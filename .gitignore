@@ -1,0 +1,10 @@
+build/bin
+node_modules
+frontend/dist
+/.idea/.gitignore
+/.idea/copilot.data.migration.agent.xml
+/.idea/copilot.data.migration.edit.xml
+/.idea/gowails.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
