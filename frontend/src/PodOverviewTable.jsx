@@ -2,36 +2,79 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
 import { GetRunningPods } from '../wailsjs/go/main/App';
 
+import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
+
 export default function PodOverviewTable({ namespace }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sorting, setSorting] = useState([]);
+  const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]); // Default sort by uptime, oldest first (longest uptime)
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [columnFilters, setColumnFilters] = useState([]);
+  const [now, setNow] = useState(Date.now());
 
+  // Subscribe to Wails event for pod updates
   useEffect(() => {
-    let mounted = true;
     setLoading(true);
-    GetRunningPods(namespace)
-      .then(pods => {
-        if (mounted) setData(pods || []);
-      })
-      .catch(() => setData([]))
-      .finally(() => setLoading(false));
-    return () => { mounted = false; };
+    const handler = (pods) => {
+      setData(Array.isArray(pods) ? pods : []);
+      setLoading(false);
+    };
+    EventsOn('pods:update', handler);
+    return () => {
+      EventsOff('pods:update');
+    };
+  }, []); // Remove namespace dependency since we want to listen to all updates
+
+  // Reset data when namespace changes
+  useEffect(() => {
+    setData([]);
+    setLoading(true);
   }, [namespace]);
+
+  // Local ticking state for uptime
+  useEffect(() => {
+    let running = true;
+    function tick() {
+      if (!running) return;
+      setNow(Date.now());
+      setTimeout(tick, 1000);
+    }
+    tick();
+    return () => { running = false; };
+  }, []);
+
+  // Helper to format uptime from startTime
+  function formatUptime(startTime) {
+    if (!startTime) return '-';
+    const start = new Date(startTime).getTime();
+    if (isNaN(start)) return '-';
+    let diff = Math.floor((now - start) / 1000);
+    if (diff < 0) diff = 0;
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    const s = diff % 60;
+    return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
+  }
 
   const columns = useMemo(() => [
     {
       accessorKey: 'name',
       header: 'Pod Name',
       filterFn: 'includesString',
+      cell: info => info.getValue(),
     },
     {
       accessorKey: 'uptime',
       header: 'Uptime',
+      cell: info => formatUptime(info.row.original.startTime),
+      sortingFn: (rowA, rowB) => {
+        const startTimeA = new Date(rowA.original.startTime || 0).getTime();
+        const startTimeB = new Date(rowB.original.startTime || 0).getTime();
+        return startTimeB - startTimeA; // Newer pods (later start time) first when desc=true
+      },
+      filterFn: undefined,
     },
-  ], []);
+  ], [now]);
 
   const table = useReactTable({
     data,

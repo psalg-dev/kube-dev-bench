@@ -15,6 +15,9 @@ func main() {
 	// Create an instance of the app structure
 	app := NewApp()
 
+	// Start pod polling to emit events for the frontend
+	app.StartPodPolling()
+
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "gowails",
