@@ -2,6 +2,7 @@ import './style.css';
 import './app.css';
 
 import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetOverview, GetRunningPods, CreateResource} from '../wailsjs/go/main/App';
+import { renderPodOverviewTable } from './podOverviewReactEntry';
 
 import {EditorState} from "@codemirror/state"
 import {
@@ -210,13 +211,10 @@ function renderMainPanels(overview, pods) {
     </div>
   `;
 
-  // Unteres Panel: Pod-Liste
+  // Unteres Panel: Pod-Liste (React placeholder)
   let lowerPanel = `
     <div class="main-panel main-panel-pods">
-      <div class="pod-list-header"><span>Pod Name</span><span>Uptime</span></div>
-      <div class="pod-list-body">
-        ${(pods && pods.length > 0) ? pods.map(pod => `<div class="pod-list-row"><span>${pod.name}</span><span>${pod.uptime}</span></div>`).join('') : '<div class="pod-list-empty">Keine laufenden Pods</div>'}
-      </div>
+      <div id="pod-overview-react"></div>
     </div>
   `;
 
@@ -439,6 +437,11 @@ function loadOverviewAndPods() {
     // Always render panels, even with error state data
     mainPanels.innerHTML = renderMainPanels(overview, pods);
     setupResourceCreation();
+    // Mount React pod overview table
+    const podOverviewContainer = document.getElementById('pod-overview-react');
+    if (podOverviewContainer) {
+      renderPodOverviewTable({ container: podOverviewContainer, namespace: selectedNamespace });
+    }
   });
 }
 
