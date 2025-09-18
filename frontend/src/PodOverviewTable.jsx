@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
 import { GetRunningPods } from '../wailsjs/go/main/App';
-
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
 
-export default function PodOverviewTable({ namespace }) {
+export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]); // Default sort by uptime, oldest first (longest uptime)
+  const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
   const [columnFilters, setColumnFilters] = useState([]);
   const [now, setNow] = useState(Date.now());
+  const [filterValue, setFilterValue] = useState('');
+  const [showMenu, setShowMenu] = useState(false);
 
   // Subscribe to Wails event for pod updates
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function PodOverviewTable({ namespace }) {
     return () => {
       EventsOff('pods:update');
     };
-  }, []); // Remove namespace dependency since we want to listen to all updates
+  }, []);
 
   // Reset data when namespace changes
   useEffect(() => {
@@ -42,6 +43,26 @@ export default function PodOverviewTable({ namespace }) {
     tick();
     return () => { running = false; };
   }, []);
+
+  // Keep the filter in sync with the table's columnFilters
+  useEffect(() => {
+    setColumnFilters([{ id: 'name', value: filterValue }]);
+  }, [filterValue]);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!showMenu) return;
+    function handleClick(e) {
+      setShowMenu(false);
+    }
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [showMenu]);
+
+  // Prevent menu from closing when clicking inside
+  function handleMenuClick(e) {
+    e.stopPropagation();
+  }
 
   // Helper to format uptime from startTime
   function formatUptime(startTime) {
@@ -97,11 +118,46 @@ export default function PodOverviewTable({ namespace }) {
 
   return (
     <div>
-      <div style={{marginBottom:12, display:'flex', alignItems:'center', gap:8}}>
+      <div style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
+        <div style={{position:'relative', display:'flex', alignItems:'center'}}>
+          <button
+            className="create-button"
+            title="Ressource erstellen"
+            style={{fontSize: 22, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+            onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
+          >+
+          </button>
+          {showMenu && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 40,
+                left: 0,
+                background: 'var(--gh-table-header-bg, #2d323b)',
+                border: '1px solid #353a42',
+                borderRadius: 6,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                zIndex: 10,
+                minWidth: 140,
+                padding: '4px 0',
+              }}
+              onClick={handleMenuClick}
+            >
+              <div
+                style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
+                onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('deployment'); }, 0); }}
+              >Deployment</div>
+              <div
+                style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
+                onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('job'); }, 0); }}
+              >Job</div>
+            </div>
+          )}
+        </div>
         <input
           type="text"
-          value={table.getColumn('name')?.getFilterValue() ?? ''}
-          onChange={e => table.getColumn('name')?.setFilterValue(e.target.value)}
+          value={filterValue}
+          onChange={e => setFilterValue(e.target.value)}
           placeholder="Filter pods..."
           style={{
             padding: '7px 12px',

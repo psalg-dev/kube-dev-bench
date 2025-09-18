@@ -571,6 +571,39 @@ body, #layout {
   color: var(--gh-text);
 }
 
+.overlay-cancel-btn {
+  background: none;
+  border: 1px solid var(--gh-border);
+  color: var(--gh-text);
+  cursor: pointer;
+  padding: 0.5em 1.5em;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.overlay-cancel-btn:hover {
+  background: var(--gh-hover-bg);
+}
+
+.overlay-create-btn {
+  background: var(--gh-accent);
+  color: #fff;
+  border: none;
+  padding: 0.5em 1.5em;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.overlay-create-btn:hover {
+  background: var(--gh-accent-hover);
+}
+
+.overlay-create-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .resource-yaml {
   font-family: 'Consolas', monospace;
   font-size: 14px;
