@@ -237,6 +237,7 @@ type OverviewInfo struct {
 
 type PodInfo struct {
 	Name      string `json:"name"`
+	Restarts  int32  `json:"restarts"`
 	Uptime    string `json:"uptime"`
 	StartTime string `json:"startTime"`
 }
@@ -283,7 +284,7 @@ func (a *App) GetOverview(namespace string) (OverviewInfo, error) {
 	}, nil
 }
 
-// GetRunningPods gibt alle laufenden Pods (Name, Uptime) im Namespace zurück
+// GetRunningPods gibt alle laufenden Pods (Name, Restarts, Uptime) im Namespace zurück
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -321,8 +322,18 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 				uptime = dur.Truncate(time.Second).String()
 				startTimeStr = pod.Status.StartTime.Time.UTC().Format(time.RFC3339)
 			}
+
+			// Calculate total restart count across all containers
+			restarts := int32(0)
+			if pod.Status.ContainerStatuses != nil {
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					restarts += containerStatus.RestartCount
+				}
+			}
+
 			result = append(result, PodInfo{
 				Name:      pod.Name,
+				Restarts:  restarts,
 				Uptime:    uptime,
 				StartTime: startTimeStr,
 			})

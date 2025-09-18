@@ -85,6 +85,17 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
       cell: info => info.getValue(),
     },
     {
+      accessorKey: 'restarts',
+      header: 'Restarts',
+      cell: info => info.getValue() || 0,
+      sortingFn: (rowA, rowB) => {
+        const restartsA = rowA.original.restarts || 0;
+        const restartsB = rowB.original.restarts || 0;
+        return restartsA - restartsB;
+      },
+      filterFn: undefined,
+    },
+    {
       accessorKey: 'uptime',
       header: 'Uptime',
       cell: info => formatUptime(info.row.original.startTime),
@@ -190,7 +201,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                     cursor: 'pointer',
                     padding: '10px 16px',
                     borderBottom: '2px solid #353a42',
-                    textAlign: header.column.id === 'uptime' ? 'right' : 'left',
+                    textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
                     fontWeight: 600,
                     fontSize: 15,
                     color: 'var(--gh-table-header-text, #fff)',
@@ -223,7 +234,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                     fontSize: 14,
                     color: 'var(--gh-table-text, #e0e0e0)',
                     borderBottom: '1px solid #353a42',
-                    textAlign: cell.column.id === 'uptime' ? 'right' : 'left',
+                    textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
                     background: 'inherit',
                   }}
                 >
