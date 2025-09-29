@@ -10,8 +10,16 @@ export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
 
+export function GetKubeConfigs() {
+  return window['go']['main']['App']['GetKubeConfigs']();
+}
+
 export function GetKubeContexts() {
   return window['go']['main']['App']['GetKubeContexts']();
+}
+
+export function GetKubeContextsFromFile(arg1) {
+  return window['go']['main']['App']['GetKubeContextsFromFile'](arg1);
 }
 
 export function GetNamespaces() {
@@ -38,12 +46,24 @@ export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }
 
+export function SaveCustomKubeConfig(arg1, arg2) {
+  return window['go']['main']['App']['SaveCustomKubeConfig'](arg1, arg2);
+}
+
+export function SelectKubeConfigFile() {
+  return window['go']['main']['App']['SelectKubeConfigFile']();
+}
+
 export function SetCurrentKubeContext(arg1) {
   return window['go']['main']['App']['SetCurrentKubeContext'](arg1);
 }
 
 export function SetCurrentNamespace(arg1) {
   return window['go']['main']['App']['SetCurrentNamespace'](arg1);
+}
+
+export function SetKubeConfigPath(arg1) {
+  return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
 
 export function SetRememberContext(arg1) {

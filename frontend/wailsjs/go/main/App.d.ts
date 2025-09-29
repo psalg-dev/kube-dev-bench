@@ -6,7 +6,11 @@ export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
 export function GetCurrentConfig():Promise<main.AppConfig>;
 
+export function GetKubeConfigs():Promise<Array<main.KubeConfigInfo>>;
+
 export function GetKubeContexts():Promise<Array<string>>;
+
+export function GetKubeContextsFromFile(arg1:string):Promise<Array<string>>;
 
 export function GetNamespaces():Promise<Array<string>>;
 
@@ -20,9 +24,15 @@ export function GetRunningPods(arg1:string):Promise<Array<main.PodInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
 
+export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
+
+export function SelectKubeConfigFile():Promise<string>;
+
 export function SetCurrentKubeContext(arg1:string):Promise<void>;
 
 export function SetCurrentNamespace(arg1:string):Promise<void>;
+
+export function SetKubeConfigPath(arg1:string):Promise<void>;
 
 export function SetRememberContext(arg1:boolean):Promise<void>;
 

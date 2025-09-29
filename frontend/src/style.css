@@ -24,3 +24,204 @@ body {
     height: 100vh;
     text-align: center;
 }
+
+/* Connection Wizard Styles */
+.connection-wizard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.connection-wizard {
+  background: var(--gh-sidebar-bg, #1a1a1a);
+  border: 1px solid var(--gh-border, #444);
+  border-radius: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.wizard-header {
+  padding: 24px;
+  border-bottom: 1px solid var(--gh-border, #444);
+  text-align: center;
+}
+
+.wizard-header h2 {
+  margin: 0 0 8px 0;
+  color: var(--gh-text, #fff);
+  font-size: 24px;
+}
+
+.wizard-header p {
+  margin: 0;
+  color: var(--gh-text-secondary, #ccc);
+  font-size: 14px;
+}
+
+.wizard-step {
+  padding: 24px;
+}
+
+.wizard-step h3 {
+  margin: 0 0 20px 0;
+  color: var(--gh-text, #fff);
+  font-size: 18px;
+}
+
+.config-list {
+  margin: 20px 0;
+}
+
+.config-list h4 {
+  margin: 0 0 12px 0;
+  color: var(--gh-text, #fff);
+  font-size: 16px;
+}
+
+.config-item {
+  border: 2px solid var(--gh-border, #444);
+  border-radius: 0;
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gh-input-bg, #2a2a2a);
+}
+
+.config-item:hover {
+  border-color: var(--gh-accent, #0969da);
+  background: var(--gh-input-bg-hover, #333);
+}
+
+.config-item.selected {
+  border-color: var(--gh-accent, #0969da);
+  background: var(--gh-accent-bg, rgba(9, 105, 218, 0.1));
+}
+
+.config-name {
+  font-weight: bold;
+  color: var(--gh-text, #fff);
+  margin-bottom: 4px;
+}
+
+.config-path {
+  font-size: 12px;
+  color: var(--gh-text-secondary, #ccc);
+  font-family: monospace;
+  margin-bottom: 4px;
+}
+
+.config-contexts {
+  font-size: 12px;
+  color: var(--gh-text-tertiary, #999);
+}
+
+.no-configs {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--gh-text-secondary, #ccc);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--gh-text, #fff);
+  font-weight: 500;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 300px;
+  padding: 12px;
+  border: 1px solid var(--gh-border, #444);
+  border-radius: 0;
+  background: var(--gh-input-bg, #2a2a2a);
+  color: var(--gh-text, #fff);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.textarea:focus {
+  outline: none;
+  border-color: var(--gh-accent, #0969da);
+  box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.2);
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gh-border, #444);
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--gh-accent, #0969da);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--gh-accent-hover, #0860ca);
+}
+
+.btn-secondary {
+  background: var(--gh-button-secondary-bg, #444);
+  color: var(--gh-text, #fff);
+  border: 1px solid var(--gh-border, #555);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gh-button-secondary-hover, #555);
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: var(--gh-text-secondary, #ccc);
+}
+
+.error-message {
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid #f85149;
+  color: #f85149;
+  padding: 12px;
+  border-radius: 0;
+  margin-bottom: 16px;
+  font-size: 14px;
+}

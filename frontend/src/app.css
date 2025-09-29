@@ -21,7 +21,7 @@
   /* Full HD optimized spacing and sizing */
   --sidebar-width: 320px;
   --footer-height: 30px;
-  --main-padding: 2rem;
+  --main-padding: 10px;
   --panel-gap: 2rem;
   --text-size-base: 15px;
   --text-size-small: 13px;
@@ -33,7 +33,7 @@
   :root {
     --sidebar-width: 380px;
     --footer-height: 35px;
-    --main-padding: 2.5rem;
+    --main-padding: 10px;
     --panel-gap: 2.5rem;
     --text-size-base: 16px;
     --text-size-small: 14px;
@@ -90,7 +90,7 @@ body, #layout {
   background: var(--gh-input-bg);
   color: var(--gh-text);
   border: 1px solid var(--gh-input-border);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 8px 12px;
   font-size: var(--text-size-base);
   margin-bottom: 1rem;
@@ -114,7 +114,7 @@ body, #layout {
 /* Sidebar section styles */
 .sidebar-section {
   margin-top: 1rem;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   background: none;
   transition: background 0.15s;
@@ -172,7 +172,7 @@ body, #layout {
 }
 .main-panel {
   background: var(--gh-bg-sidebar);
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--gh-border);
 }
@@ -189,7 +189,7 @@ body, #layout {
 .overview-card {
   background: var(--gh-bg);
   border: 1px solid var(--gh-border);
-  border-radius: 10px;
+  border-radius: 0;
   width: 220px;
   height: 140px;
   display: flex;
@@ -346,7 +346,7 @@ body, #layout {
   width: 60px;
   height: 30px;
   line-height: 30px;
-  border-radius: 6px;
+  border-radius: 0;
   border: 1px solid var(--gh-input-border);
   margin: 0 0 0 20px;
   padding: 0 8px;
@@ -361,7 +361,7 @@ body, #layout {
 }
 .input-box .input {
   border: 1px solid var(--gh-input-border);
-  border-radius: 6px;
+  border-radius: 0;
   outline: none;
   height: 30px;
   line-height: 30px;
@@ -386,7 +386,7 @@ body, #layout {
 }
 
 .message {
-  border-radius: 6px;
+  border-radius: 0;
   margin-bottom: 0.5rem;
   overflow: hidden;
   animation: messageSlideIn 0.3s ease-out;
@@ -463,7 +463,7 @@ body, #layout {
   cursor: pointer;
   padding: 4px 8px;
   font-size: 14px;
-  border-radius: 4px;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -535,7 +535,7 @@ body, #layout {
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 6px;
+  border-radius: 0;
   background: var(--gh-input-bg);
   border: 1px solid var(--gh-input-border);
   color: var(--gh-text);
@@ -555,7 +555,7 @@ body, #layout {
   left: 1rem;
   background: var(--gh-bg-sidebar);
   border: 1px solid var(--gh-border);
-  border-radius: 6px;
+  border-radius: 0;
   padding: 0.5rem;
   min-width: 160px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -567,7 +567,7 @@ body, #layout {
   padding: 0.5rem 1rem;
   color: var(--gh-text);
   text-decoration: none;
-  border-radius: 4px;
+  border-radius: 0;
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -594,7 +594,7 @@ body, #layout {
 .overlay-content {
   background: var(--gh-bg);
   border: 1px solid var(--gh-border);
-  border-radius: 12px;
+  border-radius: 0;
   padding: 2rem;
   width: 95vw;
   max-width: 1400px;
@@ -637,7 +637,7 @@ body, #layout {
   cursor: pointer;
   font-size: 24px;
   padding: 8px;
-  border-radius: 6px;
+  border-radius: 0;
   transition: all 0.2s;
 }
 
@@ -653,7 +653,7 @@ body, #layout {
   color: var(--gh-text);
   cursor: pointer;
   padding: 0.75em 2em;
-  border-radius: 8px;
+  border-radius: 0;
   font-weight: 600;
   font-size: var(--text-size-base);
   transition: all 0.2s;
@@ -669,7 +669,7 @@ body, #layout {
   color: #fff;
   border: none;
   padding: 0.75em 2em;
-  border-radius: 8px;
+  border-radius: 0;
   cursor: pointer;
   font-weight: 600;
   font-size: var(--text-size-base);
@@ -694,7 +694,7 @@ body, #layout {
   width: 100%;
   height: 500px;
   border: 1px solid var(--gh-border);
-  border-radius: 8px;
+  border-radius: 0;
   overflow: hidden;
   background: var(--gh-input-bg);
   margin-bottom: 1.5rem;
@@ -734,11 +734,21 @@ body, #layout {
 }
 
 /* Table optimizations for Full HD */
+table,
+thead,
+tbody,
+tfoot,
+tr,
+th,
+td {
+  border-radius: 0 !important;
+}
+
 table {
   border-collapse: collapse;
   width: 100%;
   background: var(--gh-bg-sidebar);
-  border-radius: 10px;
+  border-radius: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
@@ -782,7 +792,7 @@ table tr:hover {
 input[type="text"], input[type="search"] {
   background: var(--gh-input-bg);
   border: 1px solid var(--gh-input-border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 10px 14px;
   color: var(--gh-text);
   font-size: var(--text-size-base);
@@ -804,7 +814,7 @@ input[type="text"]:focus, input[type="search"]:focus {
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: 8px;
+  border-radius: 0;
   background: var(--gh-input-bg);
   border: 1px solid var(--gh-input-border);
   color: var(--gh-text);
@@ -837,7 +847,7 @@ input[type="text"]:focus, input[type="search"]:focus {
   left: 0;
   background: var(--gh-bg-sidebar);
   border: 1px solid var(--gh-border);
-  border-radius: 8px;
+  border-radius: 0;
   padding: 0.75rem;
   min-width: 180px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
@@ -849,7 +859,7 @@ input[type="text"]:focus, input[type="search"]:focus {
   padding: 0.75rem 1.25rem;
   color: var(--gh-text);
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: 0;
   cursor: pointer;
   transition: all 0.2s;
   font-size: var(--text-size-base);

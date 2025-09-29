@@ -29,6 +29,7 @@ type AppConfig struct {
 	CurrentNamespace  string `json:"currentNamespace"`
 	RememberContext   bool   `json:"rememberContext"`
 	RememberNamespace bool   `json:"rememberNamespace"`
+	KubeConfigPath    string `json:"kubeConfigPath"`
 }
 
 // App struct
@@ -89,6 +90,7 @@ func (a *App) loadConfig() error {
 	a.currentNamespace = config.CurrentNamespace
 	a.rememberContext = config.RememberContext
 	a.rememberNamespace = config.RememberNamespace
+	a.kubeConfig = config.KubeConfigPath
 	return nil
 }
 
@@ -99,6 +101,7 @@ func (a *App) saveConfig() error {
 		CurrentNamespace:  a.currentNamespace,
 		RememberContext:   a.rememberContext,
 		RememberNamespace: a.rememberNamespace,
+		KubeConfigPath:    a.kubeConfig,
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
@@ -128,13 +131,9 @@ type kubeConfigFile struct {
 	} `yaml:"contexts"`
 }
 
-// GetKubeContexts liest ~/.kube/config und gibt die Namen aller Kontexte zurück
+// GetKubeContexts liest die konfigurierte kubeconfig und gibt die Namen aller Kontexte zurück
 func (a *App) GetKubeContexts() ([]string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-	configPath := filepath.Join(home, ".kube", "config")
+	configPath := a.getKubeConfigPath()
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
@@ -150,6 +149,16 @@ func (a *App) GetKubeContexts() ([]string, error) {
 	}
 	sort.Strings(names)
 	return names, nil
+}
+
+// getKubeConfigPath returns the kubeconfig path to use
+func (a *App) getKubeConfigPath() string {
+	if a.kubeConfig != "" {
+		return a.kubeConfig
+	}
+	// Default to ~/.kube/config
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".kube", "config")
 }
 
 // SetCurrentKubeContext speichert den gewählten Kontextnamen
@@ -194,11 +203,7 @@ func (a *App) GetRememberNamespace() bool {
 
 // GetNamespaces stellt eine Verbindung zum Cluster her und gibt die Namespace-Namen zurück
 func (a *App) GetNamespaces() ([]string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-	configPath := filepath.Join(home, ".kube", "config")
+	configPath := a.getKubeConfigPath()
 	config, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
 		return nil, err
@@ -244,11 +249,7 @@ type PodInfo struct {
 
 // GetOverview gibt die Anzahl von Pods, Deployments und Jobs im Namespace zurück
 func (a *App) GetOverview(namespace string) (OverviewInfo, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return OverviewInfo{}, err
-	}
-	configPath := filepath.Join(home, ".kube", "config")
+	configPath := a.getKubeConfigPath()
 	config, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
 		return OverviewInfo{}, err
@@ -286,11 +287,7 @@ func (a *App) GetOverview(namespace string) (OverviewInfo, error) {
 
 // GetRunningPods gibt alle laufenden Pods (Name, Restarts, Uptime) im Namespace zurück
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-	configPath := filepath.Join(home, ".kube", "config")
+	configPath := a.getKubeConfigPath()
 	config, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
 		return nil, err
@@ -380,11 +377,7 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	}
 
 	// Load kubeconfig and create dynamic client
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return err
-	}
-	configPath := filepath.Join(home, ".kube", "config")
+	configPath := a.getKubeConfigPath()
 	config, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
 		return err
@@ -457,4 +450,157 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	}()
 
 	return nil
+}
+
+// KubeConfigInfo represents information about a kubeconfig file
+type KubeConfigInfo struct {
+	Path     string   `json:"path"`
+	Name     string   `json:"name"`
+	Contexts []string `json:"contexts"`
+}
+
+// GetKubeConfigs discovers kubeconfig files in the user's home directory and .kube folder
+func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	var configs []KubeConfigInfo
+	kubeDir := filepath.Join(home, ".kube")
+
+	// Check for default config
+	defaultConfig := filepath.Join(kubeDir, "config")
+	if info, err := os.Stat(defaultConfig); err == nil && !info.IsDir() {
+		contexts, err := a.getContextsFromFile(defaultConfig)
+		if err == nil && len(contexts) > 0 {
+			configs = append(configs, KubeConfigInfo{
+				Path:     defaultConfig,
+				Name:     "config (default)",
+				Contexts: contexts,
+			})
+		}
+	}
+
+	// Look for other kubeconfig files in .kube directory
+	if entries, err := os.ReadDir(kubeDir); err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			name := entry.Name()
+			if name == "config" {
+				continue // Already handled above
+			}
+			// Look for files that might be kubeconfigs
+			if strings.Contains(name, "config") || strings.Contains(name, "kube") {
+				fullPath := filepath.Join(kubeDir, name)
+				contexts, err := a.getContextsFromFile(fullPath)
+				if err == nil && len(contexts) > 0 {
+					configs = append(configs, KubeConfigInfo{
+						Path:     fullPath,
+						Name:     name,
+						Contexts: contexts,
+					})
+				}
+			}
+		}
+	}
+
+	return configs, nil
+}
+
+// getContextsFromFile extracts context names from a kubeconfig file
+func (a *App) getContextsFromFile(path string) ([]string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var cfg kubeConfigFile
+	err = yaml.Unmarshal(data, &cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	var names []string
+	for _, ctx := range cfg.Contexts {
+		names = append(names, ctx.Name)
+	}
+	return names, nil
+}
+
+// SelectKubeConfigFile opens a file dialog to select a kubeconfig file
+func (a *App) SelectKubeConfigFile() (string, error) {
+	selection, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select Kubeconfig File",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "Kubeconfig Files",
+				Pattern:     "*config*;*.yaml;*.yml",
+			},
+			{
+				DisplayName: "All Files",
+				Pattern:     "*",
+			},
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return selection, nil
+}
+
+// SaveCustomKubeConfig saves a kubeconfig content to a file in the .kube directory
+func (a *App) SaveCustomKubeConfig(name string, content string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	kubeDir := filepath.Join(home, ".kube")
+	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+		return err
+	}
+
+	// Validate the YAML content first
+	var cfg kubeConfigFile
+	if err := yaml.Unmarshal([]byte(content), &cfg); err != nil {
+		return fmt.Errorf("invalid kubeconfig YAML: %w", err)
+	}
+
+	// Ensure the filename is safe
+	safeName := strings.ReplaceAll(name, " ", "_")
+	safeName = strings.ReplaceAll(safeName, "/", "_")
+	safeName = strings.ReplaceAll(safeName, "\\", "_")
+
+	if !strings.HasPrefix(safeName, "config-") {
+		safeName = "config-" + safeName
+	}
+
+	filePath := filepath.Join(kubeDir, safeName)
+	return os.WriteFile(filePath, []byte(content), 0600)
+}
+
+// SetKubeConfigPath sets the kubeconfig file path to use
+func (a *App) SetKubeConfigPath(path string) error {
+	// Validate the file exists and is readable
+	if _, err := os.Stat(path); err != nil {
+		return fmt.Errorf("kubeconfig file not accessible: %w", err)
+	}
+
+	// Validate it's a valid kubeconfig
+	_, err := a.getContextsFromFile(path)
+	if err != nil {
+		return fmt.Errorf("invalid kubeconfig file: %w", err)
+	}
+
+	// Store the path in our app config
+	a.kubeConfig = path
+	return a.saveConfig()
+}
+
+// GetKubeContextsFromFile gets contexts from a specific kubeconfig file
+func (a *App) GetKubeContextsFromFile(path string) ([]string, error) {
+	return a.getContextsFromFile(path)
 }

@@ -134,7 +134,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
           <button
             className="create-button"
             title="Ressource erstellen"
-            style={{fontSize: 22, width: 36, height: 36, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+            style={{fontSize: 22, width: 36, height: 36, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
             onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
           >+
           </button>
@@ -146,7 +146,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                 left: 0,
                 background: 'var(--gh-table-header-bg, #2d323b)',
                 border: '1px solid #353a42',
-                borderRadius: 6,
+                borderRadius: 0,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
                 zIndex: 10,
                 minWidth: 140,
@@ -172,7 +172,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
           placeholder="Filter pods..."
           style={{
             padding: '7px 12px',
-            borderRadius: 4,
+            borderRadius: 0,
             border: '1px solid #353a42',
             background: 'var(--gh-table-header-bg, #2d323b)',
             color: 'var(--gh-table-header-text, #fff)',
@@ -187,7 +187,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
         borderCollapse: 'collapse',
         width: '100%',
         background: 'var(--gh-table-bg, #23272e)', // Use dark theme variable or fallback
-        borderRadius: 8,
+        borderRadius: 0,
         boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
       }}>
         <thead>
@@ -247,9 +247,9 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
       </table>
       {data.length >= 20 && (
         <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
-          <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:4, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
+          <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
           <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-          <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:4, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
+          <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
         </div>
       )}
     </div>

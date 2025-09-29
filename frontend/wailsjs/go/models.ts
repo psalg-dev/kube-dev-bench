@@ -5,6 +5,7 @@ export namespace main {
 	    currentNamespace: string;
 	    rememberContext: boolean;
 	    rememberNamespace: boolean;
+	    kubeConfigPath: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -16,6 +17,23 @@ export namespace main {
 	        this.currentNamespace = source["currentNamespace"];
 	        this.rememberContext = source["rememberContext"];
 	        this.rememberNamespace = source["rememberNamespace"];
+	        this.kubeConfigPath = source["kubeConfigPath"];
+	    }
+	}
+	export class KubeConfigInfo {
+	    path: string;
+	    name: string;
+	    contexts: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new KubeConfigInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.name = source["name"];
+	        this.contexts = source["contexts"];
 	    }
 	}
 	export class OverviewInfo {
