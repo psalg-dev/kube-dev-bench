@@ -694,6 +694,72 @@ func (a *App) StreamPodLogs(podName string) {
 	}()
 }
 
+// StreamPodContainerLogs streams logs for a pod container and emits each line as a Wails event
+func (a *App) StreamPodContainerLogs(podName string, container string) {
+	// stop any previous stream for this pod
+	a.StopPodLogs(podName)
+
+	go func() {
+		streamCtx, cancel := context.WithCancel(a.ctx)
+		a.logMu.Lock()
+		a.logCancels[podName] = cancel
+		a.logMu.Unlock()
+		defer func() {
+			a.logMu.Lock()
+			delete(a.logCancels, podName)
+			a.logMu.Unlock()
+			cancel()
+		}()
+
+		configPath := a.getKubeConfigPath()
+		config, err := clientcmd.LoadFromFile(configPath)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] loading kubeconfig: "+err.Error())
+			return
+		}
+		if a.currentKubeContext == "" {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no kube context selected")
+			return
+		}
+		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+		restConfig, err := clientConfig.ClientConfig()
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client config: "+err.Error())
+			return
+		}
+		clientset, err := kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] clientset: "+err.Error())
+			return
+		}
+		if a.currentNamespace == "" {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			return
+		}
+		opts := &v1.PodLogOptions{Follow: true, Container: container}
+		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(streamCtx)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			return
+		}
+		defer stream.Close()
+		scanner := bufio.NewScanner(stream)
+		for scanner.Scan() {
+			select {
+			case <-streamCtx.Done():
+				return
+			default:
+			}
+			line := scanner.Text()
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, line)
+		}
+		if err := scanner.Err(); err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+		}
+		runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+	}()
+}
+
 // GetPodLog returns the full log content of a pod (no follow)
 func (a *App) GetPodLog(podName string) (string, error) {
 	configPath := a.getKubeConfigPath()
@@ -723,4 +789,265 @@ func (a *App) GetPodLog(podName string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// GetPodContainerLog returns the full log content of a specific container (no follow)
+func (a *App) GetPodContainerLog(podName string, container string) (string, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return "", err
+	}
+	if a.currentKubeContext == "" {
+		return "", fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return "", err
+	}
+	if a.currentNamespace == "" {
+		return "", fmt.Errorf("no namespace selected")
+	}
+	opts := &v1.PodLogOptions{Follow: false, Container: container}
+	req := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts)
+	data, err := req.Do(a.ctx).Raw()
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+// EventInfo is a simplified event record for UI display
+type EventInfo struct {
+	Type           string    `json:"type"`
+	Reason         string    `json:"reason"`
+	Message        string    `json:"message"`
+	Count          int32     `json:"count"`
+	FirstTimestamp time.Time `json:"firstTimestamp"`
+	LastTimestamp  time.Time `json:"lastTimestamp"`
+	Source         string    `json:"source"`
+}
+
+// GetPodEvents returns events related to the given pod (from all available time in cluster retention)
+func (a *App) GetPodEvents(namespace string, podName string) ([]EventInfo, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentKubeContext == "" {
+		return nil, fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	if namespace == "" {
+		if a.currentNamespace == "" {
+			return nil, fmt.Errorf("no namespace selected")
+		}
+		namespace = a.currentNamespace
+	}
+
+	var res []EventInfo
+
+	// Core/v1 Events
+	if list, err := clientset.CoreV1().Events(namespace).List(a.ctx, metav1.ListOptions{}); err == nil {
+		for _, e := range list.Items {
+			if e.InvolvedObject.Name != podName {
+				continue
+			}
+			first := e.FirstTimestamp.Time
+			last := e.LastTimestamp.Time
+			if last.IsZero() && !e.EventTime.Time.IsZero() {
+				last = e.EventTime.Time
+			}
+			if first.IsZero() && !e.EventTime.Time.IsZero() {
+				first = e.EventTime.Time
+			}
+			source := ""
+			if e.Source.Component != "" || e.Source.Host != "" {
+				source = fmt.Sprintf("%s/%s", e.Source.Component, e.Source.Host)
+			}
+			res = append(res, EventInfo{
+				Type:           e.Type,
+				Reason:         e.Reason,
+				Message:        e.Message,
+				Count:          e.Count,
+				FirstTimestamp: first,
+				LastTimestamp:  last,
+				Source:         source,
+			})
+		}
+	}
+
+	// events.k8s.io/v1 Events
+	if list, err := clientset.EventsV1().Events(namespace).List(a.ctx, metav1.ListOptions{}); err == nil {
+		for _, e := range list.Items {
+			if e.Regarding.Name != podName {
+				continue
+			}
+			first := e.DeprecatedFirstTimestamp.Time
+			last := e.EventTime.Time
+			if last.IsZero() && !e.DeprecatedLastTimestamp.Time.IsZero() {
+				last = e.DeprecatedLastTimestamp.Time
+			}
+			if first.IsZero() && !e.EventTime.Time.IsZero() {
+				first = e.EventTime.Time
+			}
+			count := int32(0)
+			if e.Series != nil {
+				count = int32(e.Series.Count)
+			} else if e.DeprecatedCount != 0 {
+				count = int32(e.DeprecatedCount)
+			}
+			source := ""
+			if e.DeprecatedSource.Component != "" || e.DeprecatedSource.Host != "" {
+				source = fmt.Sprintf("%s/%s", e.DeprecatedSource.Component, e.DeprecatedSource.Host)
+			}
+			msg := e.Note
+			res = append(res, EventInfo{
+				Type:           e.Type,
+				Reason:         e.Reason,
+				Message:        msg,
+				Count:          count,
+				FirstTimestamp: first,
+				LastTimestamp:  last,
+				Source:         source,
+			})
+		}
+	}
+
+	sort.Slice(res, func(i, j int) bool {
+		return res[i].LastTimestamp.After(res[j].LastTimestamp)
+	})
+	return res, nil
+}
+
+// Backwards-compat wrapper (deprecated)
+func (a *App) GetPodEventsLegacy(podName string) ([]EventInfo, error) {
+	return a.GetPodEvents("", podName)
+}
+
+// GetPodYAML returns the live Pod manifest as YAML
+func (a *App) GetPodYAML(podName string) (string, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return "", err
+	}
+	if a.currentKubeContext == "" {
+		return "", fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return "", err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return "", err
+	}
+	if a.currentNamespace == "" {
+		return "", fmt.Errorf("no namespace selected")
+	}
+	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(a.ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	out, err := yaml.Marshal(pod)
+	if err != nil {
+		return "", err
+	}
+	return string(out), nil
+}
+
+// GetPodContainers returns the list of container names for the pod (regular containers only)
+func (a *App) GetPodContainers(podName string) ([]string, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentKubeContext == "" {
+		return nil, fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentNamespace == "" {
+		return nil, fmt.Errorf("no namespace selected")
+	}
+	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(a.ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	names := make([]string, 0, len(pod.Spec.Containers))
+	for _, c := range pod.Spec.Containers {
+		names = append(names, c.Name)
+	}
+	return names, nil
+}
+
+// PodSummary returns basic properties for a pod
+type PodSummary struct {
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Created   time.Time         `json:"created"`
+	Labels    map[string]string `json:"labels"`
+	Status    string            `json:"status"`
+}
+
+// GetPodSummary fetches a pod and returns a concise summary
+func (a *App) GetPodSummary(podName string) (PodSummary, error) {
+	var out PodSummary
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return out, err
+	}
+	if a.currentKubeContext == "" {
+		return out, fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return out, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return out, err
+	}
+	if a.currentNamespace == "" {
+		return out, fmt.Errorf("no namespace selected")
+	}
+	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(a.ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return out, err
+	}
+	status := string(pod.Status.Phase)
+	out = PodSummary{
+		Name:      pod.Name,
+		Namespace: pod.Namespace,
+		Created:   pod.CreationTimestamp.Time,
+		Labels:    pod.Labels,
+		Status:    status,
+	}
+	return out, nil
 }

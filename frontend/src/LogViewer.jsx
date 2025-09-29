@@ -2,9 +2,9 @@ import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
-import { StreamPodLogs, StopPodLogs, GetPodLog } from '../wailsjs/go/main/App';
+import { StreamPodLogs, StopPodLogs, GetPodLog, StreamPodContainerLogs, GetPodContainerLog } from '../wailsjs/go/main/App';
 
-export default function LogViewer({ podName, onClose }) {
+export default function LogViewer({ podName, onClose, embedded = false, container = null }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const allLinesRef = useRef([]);       // all received lines (for filtering)
@@ -95,27 +95,31 @@ export default function LogViewer({ podName, onClose }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [podName, lineMatches]);
 
-  // Control backend stream lifecycle based on paused & podName
+  // Control backend stream lifecycle based on paused, podName and container
   useEffect(() => {
     if (!podName) return;
     if (paused) {
       StopPodLogs(podName);
     } else {
-      StreamPodLogs(podName);
+      if (container) {
+        StreamPodContainerLogs(podName, container);
+      } else {
+        StreamPodLogs(podName);
+      }
     }
     return () => {
       StopPodLogs(podName);
     };
-  }, [podName, paused]);
+  }, [podName, paused, container]);
 
-  // Clear editor and buffers when pod changes
+  // Clear editor and buffers when pod or container changes
   useEffect(() => {
     if (!viewRef.current) return;
     const cmView = viewRef.current;
     cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: '' } });
     allLinesRef.current = [];
     pendingLinesRef.current = [];
-  }, [podName]);
+  }, [podName, container]);
 
   // When paused switched to false, flush buffered lines (respecting filter)
   useEffect(() => {
@@ -177,20 +181,21 @@ export default function LogViewer({ podName, onClose }) {
   const handleDownload = async () => {
     try {
       if (!podName) return;
-      const content = await GetPodLog(podName);
-      // Always download what the backend returns (even if empty)
+      let content = '';
+      if (container) content = await GetPodContainerLog(podName, container);
+      else content = await GetPodLog(podName);
       const blob = new Blob([content ?? ''], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const date = new Date().toISOString().replace(/[:.]/g, '-');
+      const safeContainer = container ? `-${container}` : '';
       a.href = url;
-      a.download = `pod-${podName}-logs-${date}.txt`;
+      a.download = `pod-${podName}${safeContainer}-logs-${date}.txt`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      // Notify user on failure; do not fallback to editor buffer
       console.error('Failed to download full pod log:', e);
       try { alert('Failed to download full pod log. See console for details.'); } catch {}
     }
@@ -201,6 +206,7 @@ export default function LogViewer({ podName, onClose }) {
   }, [panelHeight]);
 
   const onResizeStart = (e) => {
+    if (embedded) return; // no-op when embedded
     e.preventDefault();
     const startY = e.clientY;
     resizeRef.current = { startY, startH: panelHeight, resizing: true };
@@ -222,6 +228,12 @@ export default function LogViewer({ podName, onClose }) {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   };
+
+  if (embedded) {
+    return (
+      <div ref={editorRef} style={{ height: '100%', width: '100%', overflow: 'auto', position: 'relative' }} />
+    );
+  }
 
   return (
     <div style={{
@@ -253,7 +265,7 @@ export default function LogViewer({ podName, onClose }) {
         }}
       />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#23272e', padding: '8px 16px', borderBottom: '1px solid #353a42' }}>
-        <span>Logs: {podName}</span>
+        <span>Logs: {podName}{container ? ` (${container})` : ''}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <input
             type="text"

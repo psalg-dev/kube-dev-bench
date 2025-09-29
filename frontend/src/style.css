@@ -225,3 +225,14 @@ body {
   margin-bottom: 16px;
   font-size: 14px;
 }
+
+/* Utility: hide vertical scrollbar (preserve scroll) */
+.scrollbar-hide-y {
+  overflow-y: auto; /* ensure scroll still works */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide-y::-webkit-scrollbar {
+  width: 0px; /* hide vertical scrollbar in WebKit */
+  height: 8px; /* keep potential horizontal scrollbar visible */
+}

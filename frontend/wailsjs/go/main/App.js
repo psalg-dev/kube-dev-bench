@@ -30,8 +30,32 @@ export function GetOverview(arg1) {
   return window['go']['main']['App']['GetOverview'](arg1);
 }
 
+export function GetPodContainerLog(arg1, arg2) {
+  return window['go']['main']['App']['GetPodContainerLog'](arg1, arg2);
+}
+
+export function GetPodContainers(arg1) {
+  return window['go']['main']['App']['GetPodContainers'](arg1);
+}
+
+export function GetPodEvents(arg1, arg2) {
+  return window['go']['main']['App']['GetPodEvents'](arg1, arg2);
+}
+
+export function GetPodEventsLegacy(arg1) {
+  return window['go']['main']['App']['GetPodEventsLegacy'](arg1);
+}
+
 export function GetPodLog(arg1) {
   return window['go']['main']['App']['GetPodLog'](arg1);
+}
+
+export function GetPodSummary(arg1) {
+  return window['go']['main']['App']['GetPodSummary'](arg1);
+}
+
+export function GetPodYAML(arg1) {
+  return window['go']['main']['App']['GetPodYAML'](arg1);
 }
 
 export function GetRememberContext() {
@@ -84,6 +108,10 @@ export function StartPodPolling() {
 
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
+}
+
+export function StreamPodContainerLogs(arg1, arg2) {
+  return window['go']['main']['App']['StreamPodContainerLogs'](arg1, arg2);
 }
 
 export function StreamPodLogs(arg1) {

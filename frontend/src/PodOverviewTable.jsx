@@ -2,6 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
 import LogViewer from './LogViewer';
+import BottomPanel from './BottomPanel';
+import PodEventsTab from './PodEventsTab';
+import PodYamlTab from './PodYamlTab';
+import PodSummaryTab from './PodSummaryTab';
 
 export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [data, setData] = useState([]);
@@ -13,7 +17,10 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [filterValue, setFilterValue] = useState('');
   const [showMenu, setShowMenu] = useState(false);
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
-  const [consolePod, setConsolePod] = useState(null); // Track pod for which console is open
+  // Bottom panel state
+  const [bottomOpen, setBottomOpen] = useState(false);
+  const [bottomActiveTab, setBottomActiveTab] = useState('logs');
+  const [bottomPodName, setBottomPodName] = useState(null);
 
   // Subscribe to Wails event for pod updates
   useEffect(() => {
@@ -54,7 +61,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
   // Close menu on outside click
   useEffect(() => {
     if (!showMenu) return;
-    function handleClick(e) {
+    function handleClick() {
       setShowMenu(false);
     }
     document.addEventListener('click', handleClick);
@@ -137,13 +144,39 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     setOpenMenuIndex(null);
   };
 
+  const openLogsPanel = async (podName) => {
+    setBottomPodName(podName);
+    setBottomActiveTab('summary');
+    setBottomOpen(true);
+  };
+
   const handleKubectlLogs = (podName) => {
-    setConsolePod(podName); // Open console for this pod
+    openLogsPanel(podName);
     setOpenMenuIndex(null);
   };
-  const handleConsoleClose = () => {
-    setConsolePod(null);
-  };
+
+  const tabs = [
+    { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} /> },
+    {
+      id: 'logs',
+      label: 'Logs',
+      content: (
+        <div style={{ position: 'absolute', inset: 0 }}>
+          <LogViewer podName={bottomPodName} embedded={true} />
+        </div>
+      )
+    },
+    {
+      id: 'events',
+      label: 'Events',
+      content: <PodEventsTab namespace={namespace} podName={bottomPodName} />
+    },
+    {
+      id: 'yaml',
+      label: 'YAML',
+      content: <PodYamlTab podName={bottomPodName} />
+    }
+  ];
 
   return (
     <div style={{ position: 'relative', minHeight: 400 }}>
@@ -201,7 +234,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
         />
       </div>
       {loading && <div>Loading...</div>}
-      <table style={{
+      <table className="pods-table" style={{
         borderCollapse: 'collapse',
         width: '100%',
         background: 'var(--gh-table-bg, #23272e)', // Use dark theme variable or fallback
@@ -254,6 +287,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
           {table.getRowModel().rows.map((row, i) => (
             <tr
               key={row.id}
+              onClick={() => openLogsPanel(row.original.name)}
               style={{
                 background: i % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
                 borderBottom: '1px solid #353a42',
@@ -276,7 +310,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                 </td>
               ))}
               <td style={{ position: 'relative', textAlign: 'right' }}>
-                <button onClick={() => handleMenuClickRow(i)} style={{ padding: '2px 8px', background: 'transparent', border: 'none', color: 'var(--gh-table-header-text, #fff)', cursor: 'pointer' }}>...</button>
+                <button onClick={(e) => { e.stopPropagation(); handleMenuClickRow(i); }} style={{ padding: '2px 8px', background: 'transparent', border: 'none', color: 'var(--gh-table-header-text, #fff)', cursor: 'pointer' }}>...</button>
                 {openMenuIndex === i && (
                   <div
                     style={{
@@ -288,6 +322,7 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                       boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
                       zIndex: 10,
                     }}
+                    onClick={(e) => e.stopPropagation()}
                   >
                     <div
                       style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
@@ -315,12 +350,15 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
           <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
         </div>
       )}
-      {consolePod && (
-        <LogViewer
-          podName={consolePod}
-          onClose={handleConsoleClose}
-        />
-      )}
+
+      {/* Bottom panel with tabs */}
+      <BottomPanel
+        open={bottomOpen}
+        onClose={() => { setBottomOpen(false); setBottomPodName(null); }}
+        tabs={tabs}
+        activeTab={bottomActiveTab}
+        onTabChange={(id) => setBottomActiveTab(id)}
+      />
     </div>
   );
 }
