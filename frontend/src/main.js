@@ -1,7 +1,7 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './podOverviewReactEntry';
 
 import {EditorState} from "@codemirror/state"
