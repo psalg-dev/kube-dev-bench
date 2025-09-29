@@ -30,6 +30,10 @@ export function GetOverview(arg1) {
   return window['go']['main']['App']['GetOverview'](arg1);
 }
 
+export function GetPodLog(arg1) {
+  return window['go']['main']['App']['GetPodLog'](arg1);
+}
+
 export function GetRememberContext() {
   return window['go']['main']['App']['GetRememberContext']();
 }
@@ -76,4 +80,12 @@ export function SetRememberNamespace(arg1) {
 
 export function StartPodPolling() {
   return window['go']['main']['App']['StartPodPolling']();
+}
+
+export function StopPodLogs(arg1) {
+  return window['go']['main']['App']['StopPodLogs'](arg1);
+}
+
+export function StreamPodLogs(arg1) {
+  return window['go']['main']['App']['StreamPodLogs'](arg1);
 }

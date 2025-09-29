@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
-import { GetRunningPods } from '../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
+import LogViewer from './LogViewer';
 
 export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [data, setData] = useState([]);
@@ -12,6 +12,8 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [now, setNow] = useState(Date.now());
   const [filterValue, setFilterValue] = useState('');
   const [showMenu, setShowMenu] = useState(false);
+  const [openMenuIndex, setOpenMenuIndex] = useState(null);
+  const [consolePod, setConsolePod] = useState(null); // Track pod for which console is open
 
   // Subscribe to Wails event for pod updates
   useEffect(() => {
@@ -127,8 +129,24 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     manualSorting: false,
   });
 
+  const handleMenuClickRow = (index) => {
+    setOpenMenuIndex(openMenuIndex === index ? null : index);
+  };
+
+  const handleMenuClose = () => {
+    setOpenMenuIndex(null);
+  };
+
+  const handleKubectlLogs = (podName) => {
+    setConsolePod(podName); // Open console for this pod
+    setOpenMenuIndex(null);
+  };
+  const handleConsoleClose = () => {
+    setConsolePod(null);
+  };
+
   return (
-    <div>
+    <div style={{ position: 'relative', minHeight: 400 }}>
       <div style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
         <div style={{position:'relative', display:'flex', alignItems:'center'}}>
           <button
@@ -213,6 +231,22 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                   {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
                 </th>
               ))}
+              <th
+                style={{
+                  width: '40px',
+                  borderBottom: '2px solid #353a42',
+                  background: 'inherit',
+                  textAlign: 'right',
+                  fontWeight: 600,
+                  fontSize: 18,
+                  color: 'var(--gh-table-header-text, #fff)',
+                  userSelect: 'none',
+                }}
+                aria-label="Actions"
+                title="Actions"
+              >
+                <span style={{ opacity: 0.7, fontSize: 20, verticalAlign: 'middle' }}>⋮</span>
+              </th>
             </tr>
           ))}
         </thead>
@@ -241,6 +275,35 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
+              <td style={{ position: 'relative', textAlign: 'right' }}>
+                <button onClick={() => handleMenuClickRow(i)} style={{ padding: '2px 8px', background: 'transparent', border: 'none', color: 'var(--gh-table-header-text, #fff)', cursor: 'pointer' }}>...</button>
+                {openMenuIndex === i && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: '100%',
+                      background: 'var(--gh-table-header-bg, #2d323b)',
+                      border: '1px solid #353a42',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                      zIndex: 10,
+                    }}
+                  >
+                    <div
+                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
+                      onClick={() => handleKubectlLogs(row.original.name)}
+                    >
+                      kubectl logs
+                    </div>
+                    <div
+                      style={{ padding: '4px 16px', cursor: 'pointer', color: '#888', fontSize: '12px' }}
+                      onClick={handleMenuClose}
+                    >
+                      Close
+                    </div>
+                  </div>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -251,6 +314,12 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
           <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
           <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
         </div>
+      )}
+      {consolePod && (
+        <LogViewer
+          podName={consolePod}
+          onClose={handleConsoleClose}
+        />
       )}
     </div>
   );

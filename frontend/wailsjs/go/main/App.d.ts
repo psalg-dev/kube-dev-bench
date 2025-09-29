@@ -16,6 +16,8 @@ export function GetNamespaces():Promise<Array<string>>;
 
 export function GetOverview(arg1:string):Promise<main.OverviewInfo>;
 
+export function GetPodLog(arg1:string):Promise<string>;
+
 export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
@@ -39,3 +41,7 @@ export function SetRememberContext(arg1:boolean):Promise<void>;
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
 
 export function StartPodPolling():Promise<void>;
+
+export function StopPodLogs(arg1:string):Promise<void>;
+
+export function StreamPodLogs(arg1:string):Promise<void>;
