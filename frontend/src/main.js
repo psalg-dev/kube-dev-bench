@@ -1,7 +1,8 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetOverview, GetRunningPods, CreateResource} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview} from '../wailsjs/go/main/App';
+import { renderPodOverviewTable } from './podOverviewReactEntry';
 
 import {EditorState} from "@codemirror/state"
 import {
@@ -31,9 +32,12 @@ let selectedNamespace = '';
 let clusterConnected = false;
 let errorTimeout = null;
 let isInitializing = false;
+let podFilter = '';
 
 // Section state
-let selectedSection = 'overview';
+let selectedSection = 'pods';
+let podCountUpdater = null;
+let lastPodCount = null;
 
 document.querySelector('#app').innerHTML = `
   <div id="layout">
@@ -109,7 +113,8 @@ async function initializeWithConfig() {
           // Only load overview if we have a valid namespace
           if (nsSelect.value) {
             selectedNamespace = nsSelect.value;
-            selectSection('overview');
+            renderSidebarAndAttachHandlers();
+            renderMainContent();
           }
         }
       } catch (err) {
@@ -139,15 +144,78 @@ function updateFooter() {
 }
 
 function renderSidebarSections() {
-  // Only one section for now, but structure is ready for more
+  // Only show Pods as a standalone entry in the sidebar
   return `
-    <div class="sidebar-section${selectedSection === 'overview' ? ' selected' : ''}" id="section-overview">
-      <div class="sidebar-section-header">
-        <span class="chevron">${selectedSection === 'overview' ? '▼' : '▶'}</span>
-        <span>Overview</span>
-      </div>
+    <div class="sidebar-section${selectedSection === 'pods' ? ' selected' : ''}" id="section-pods" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📦</span><span>Pods</span></span>
+      <span class="sidebar-pod-count" id="sidebar-pod-count" style="min-width: 2em; text-align: right; font-weight: bold; color: #8ecfff;">-</span>
     </div>
   `;
+}
+
+function startPodCountUpdater() {
+  stopPodCountUpdater();
+  if (!selectedNamespace) return;
+  const update = async () => {
+    const el = document.getElementById('sidebar-pod-count');
+    if (!el) return; // Only update if element exists
+    try {
+      const pods = await GetRunningPods(selectedNamespace);
+      console.log('GetRunningPods:', pods, 'selectedNamespace:', selectedNamespace);
+      const count = Array.isArray(pods) ? pods.length : 0;
+      if (lastPodCount !== count) {
+        lastPodCount = count;
+        el.textContent = count;
+      }
+    } catch (err) {
+      console.log('GetRunningPods error:', err, 'selectedNamespace:', selectedNamespace);
+      el.textContent = '0';
+    }
+  };
+  update();
+  podCountUpdater = setInterval(update, 4000);
+}
+
+function stopPodCountUpdater() {
+  if (podCountUpdater) {
+    clearInterval(podCountUpdater);
+    podCountUpdater = null;
+  }
+}
+
+function renderSidebarAndAttachHandlers() {
+  sidebarSections.innerHTML = renderSidebarSections();
+  // Attach Pods entry click
+  const podsEntry = document.getElementById('section-pods');
+  if (podsEntry) podsEntry.onclick = (e) => { e.stopPropagation(); selectSection('pods'); };
+  startPodCountUpdater();
+}
+
+function selectSection(section) {
+  // Only update if section actually changes
+  if (selectedSection === section) return;
+  selectedSection = section;
+  renderSidebarAndAttachHandlers();
+  renderMainContent();
+}
+
+function renderMainContent() {
+  // Always render pods as the main content
+  mainPanels.innerHTML = `
+    <div class="main-panel main-panel-pods">
+      <div id="pod-overview-react"></div>
+    </div>
+  `;
+  const podOverviewContainer = document.getElementById('pod-overview-react');
+  if (podOverviewContainer) {
+    renderPodOverviewTable({
+      container: podOverviewContainer,
+      namespace: selectedNamespace,
+      onCreateResource: (type) => {
+        showResourceOverlay(type);
+      }
+    });
+  }
 }
 
 // Resource templates
@@ -199,24 +267,13 @@ function renderMainPanels(overview, pods) {
     </div>
   `;
 
-  // Mittleres Panel: Aktionen
-  let middlePanel = `
-    <div class="main-panel main-panel-actions">
-      <button id="createResourceBtn" class="create-button" title="Ressource erstellen">+</button>
-      <div id="resourceMenu" class="resource-menu" style="display: none;">
-        <div class="resource-menu-item" data-resource="deployment">Deployment</div>
-        <div class="resource-menu-item" data-resource="job">Job</div>
-      </div>
-    </div>
-  `;
+  // Mittleres Panel: Aktionen (REMOVE the create button from here)
+  let middlePanel = '';
 
-  // Unteres Panel: Pod-Liste
+  // Unteres Panel: Pod-Liste (React placeholder)
   let lowerPanel = `
     <div class="main-panel main-panel-pods">
-      <div class="pod-list-header"><span>Pod Name</span><span>Uptime</span></div>
-      <div class="pod-list-body">
-        ${(pods && pods.length > 0) ? pods.map(pod => `<div class="pod-list-row"><span>${pod.name}</span><span>${pod.uptime}</span></div>`).join('') : '<div class="pod-list-empty">Keine laufenden Pods</div>'}
-      </div>
+      <div id="pod-overview-react"></div>
     </div>
   `;
 
@@ -351,7 +408,8 @@ function onContextChange() {
       SetCurrentNamespace(selectedNamespace)
         .then(() => {
           if (selectedNamespace) {
-            selectSection('overview');
+            renderSidebarAndAttachHandlers();
+            renderMainContent();
           }
         })
         .catch(() => {
@@ -391,6 +449,7 @@ function onNamespaceChange() {
           showSuccess(`Namespace \"${selectedNamespace}\" gespeichert!`);
           updateFooter();
           selectSection('overview');
+          startPodCountUpdater();
         })
         .catch(() => {
           nsSelect.value = previousNamespace;
@@ -404,17 +463,6 @@ function onNamespaceChange() {
       selectedNamespace = previousNamespace;
       updateFooter();
     });
-}
-
-function selectSection(section) {
-  selectedSection = section;
-  sidebarSections.innerHTML = renderSidebarSections();
-  // Nur Overview implementiert
-  if (selectedSection === 'overview') {
-    loadOverviewAndPods();
-  }
-  // Event-Handler für Section-Header
-  document.getElementById('section-overview').onclick = () => selectSection('overview');
 }
 
 // Update loadOverviewAndPods to handle errors better
@@ -438,7 +486,11 @@ function loadOverviewAndPods() {
   ]).then(([overview, pods]) => {
     // Always render panels, even with error state data
     mainPanels.innerHTML = renderMainPanels(overview, pods);
-    setupResourceCreation();
+    // Mount React pod overview table
+    const podOverviewContainer = document.getElementById('pod-overview-react');
+    if (podOverviewContainer) {
+      renderPodOverviewTable({ container: podOverviewContainer, namespace: selectedNamespace });
+    }
   });
 }
 
@@ -472,8 +524,16 @@ function setupResourceCreation() {
 
 // Resource template overlay
 function showResourceOverlay(resourceType) {
+  console.log('showResourceOverlay called with:', resourceType);
+
   const template = resourceTemplates[resourceType];
+  if (!template) {
+    console.error('No template found for resource type:', resourceType);
+    return;
+  }
+
   const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+  console.log('Creating overlay for:', title);
 
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
@@ -492,6 +552,7 @@ function showResourceOverlay(resourceType) {
   `;
 
   document.body.appendChild(overlay);
+  console.log('Overlay appended to body');
 
   // Initialize CodeMirror editor with all necessary extensions
   const customDarkTheme = EditorView.theme({
@@ -595,7 +656,10 @@ function showResourceOverlay(resourceType) {
       highlightActiveLineGutter(),
       // Highlight text that matches the selected text
       highlightSelectionMatches(),
+      // YAML language support
       yaml(),
+      // Add custom dark theme
+      customDarkTheme,
       keymap.of([
         // Closed-brackets aware backspace
         ...closeBracketsKeymap,
@@ -610,21 +674,23 @@ function showResourceOverlay(resourceType) {
         // Autocompletion keys
         ...completionKeymap,
         // Keys related to the linter system
-        ...lintKeymap,
-        // Custom dark theme
-        customDarkTheme
+        ...lintKeymap
       ])
     ]
   });
+
   const editor = new EditorView({
     state,
     parent: document.querySelector("#resourceEditor")
   });
 
+  console.log('CodeMirror editor created');
+
   // Close overlay
   const closeBtn = overlay.querySelector('.overlay-close');
   const cancelBtn = overlay.querySelector('.overlay-cancel-btn');
   closeBtn.onclick = cancelBtn.onclick = () => {
+    console.log('Closing overlay');
     editor.destroy();
     overlay.remove();
   };
@@ -640,8 +706,14 @@ function showResourceOverlay(resourceType) {
       showSuccess(`${title} wurde erfolgreich erstellt!`);
       editor.destroy();
       overlay.remove();
-      // Refresh overview and pods
-      loadOverviewAndPods();
+      // Refresh only the relevant view
+      if (selectedSection === 'pods') {
+        // Re-render pods table only
+        renderMainContent();
+      } else {
+        // Default: refresh overview
+        loadOverviewAndPods();
+      }
     } catch (err) {
       showError(`Fehler beim Erstellen: ${err}`);
       createBtn.disabled = false;
@@ -652,6 +724,7 @@ function showResourceOverlay(resourceType) {
   // Close on background click
   overlay.onclick = (e) => {
     if (e.target === overlay) {
+      console.log('Closing overlay via background click');
       editor.destroy();
       overlay.remove();
     }
@@ -662,54 +735,19 @@ function showResourceOverlay(resourceType) {
   overlay.focus();
   overlay.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      console.log('Closing overlay via Escape key');
       editor.destroy();
       overlay.remove();
     }
   });
 
-  // Override CodeMirror YAML key color and weight
-  EditorView.theme({
-    "&": {
-      height: "400px",
-      fontSize: "14px"
-    },
-    ".cm-content": {
-      fontFamily: "'Consolas', monospace",
-      color: "var(--gh-text)",
-      caretColor: "var(--gh-text)",
-      padding: "10px"
-    },
-    "&.cm-editor": {
-      backgroundColor: "var(--gh-input-bg)",
-      height: "100%"
-    },
-    ".cm-gutters": {
-      backgroundColor: "var(--gh-input-bg)",
-      color: "var(--gh-text-muted)",
-      border: "none",
-      borderRight: "1px solid var(--gh-border)"
-    },
-    ".cm-activeLineGutter": {
-      backgroundColor: "var(--gh-input-bg)"
-    },
-    ".cm-line": {
-      color: "var(--gh-text)"
-    },
-    ".cm-activeLine": {
-      backgroundColor: "rgba(255, 255, 255, 0.02)"
-    },
-    "&.cm-focused": {
-      outline: "none"
-    },
-    ".cm-property": {
-      color: "#e0e0e0",
-      fontWeight: "bold"
-    }
-  });
+  console.log('Overlay setup complete');
 }
 
 // Initial Section-Handler setzen
-selectSection('overview');
+renderSidebarAndAttachHandlers();
+selectSection('pods');
+startPodCountUpdater();
 
 // Start initialization
 initializeWithConfig();

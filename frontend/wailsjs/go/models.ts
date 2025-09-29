@@ -36,7 +36,9 @@ export namespace main {
 	}
 	export class PodInfo {
 	    name: string;
+	    restarts: number;
 	    uptime: string;
+	    startTime: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PodInfo(source);
@@ -45,7 +47,9 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
+	        this.restarts = source["restarts"];
 	        this.uptime = source["uptime"];
+	        this.startTime = source["startTime"];
 	    }
 	}
 

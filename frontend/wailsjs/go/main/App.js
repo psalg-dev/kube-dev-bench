@@ -53,3 +53,7 @@ export function SetRememberContext(arg1) {
 export function SetRememberNamespace(arg1) {
   return window['go']['main']['App']['SetRememberNamespace'](arg1);
 }
+
+export function StartPodPolling() {
+  return window['go']['main']['App']['StartPodPolling']();
+}

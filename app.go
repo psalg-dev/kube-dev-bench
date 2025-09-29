@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -235,8 +236,10 @@ type OverviewInfo struct {
 }
 
 type PodInfo struct {
-	Name   string `json:"name"`
-	Uptime string `json:"uptime"`
+	Name      string `json:"name"`
+	Restarts  int32  `json:"restarts"`
+	Uptime    string `json:"uptime"`
+	StartTime string `json:"startTime"`
 }
 
 // GetOverview gibt die Anzahl von Pods, Deployments und Jobs im Namespace zurück
@@ -281,7 +284,7 @@ func (a *App) GetOverview(namespace string) (OverviewInfo, error) {
 	}, nil
 }
 
-// GetRunningPods gibt alle laufenden Pods (Name, Uptime) im Namespace zurück
+// GetRunningPods gibt alle laufenden Pods (Name, Restarts, Uptime) im Namespace zurück
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -313,17 +316,46 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	for _, pod := range pods.Items {
 		if pod.Status.Phase == "Running" {
 			uptime := "-"
+			startTimeStr := ""
 			if pod.Status.StartTime != nil {
 				dur := now.Sub(pod.Status.StartTime.Time)
 				uptime = dur.Truncate(time.Second).String()
+				startTimeStr = pod.Status.StartTime.Time.UTC().Format(time.RFC3339)
 			}
+
+			// Calculate total restart count across all containers
+			restarts := int32(0)
+			if pod.Status.ContainerStatuses != nil {
+				for _, containerStatus := range pod.Status.ContainerStatuses {
+					restarts += containerStatus.RestartCount
+				}
+			}
+
 			result = append(result, PodInfo{
-				Name:   pod.Name,
-				Uptime: uptime,
+				Name:      pod.Name,
+				Restarts:  restarts,
+				Uptime:    uptime,
+				StartTime: startTimeStr,
 			})
 		}
 	}
 	return result, nil
+}
+
+// StartPodPolling emits pods:update events every second with the current pod list
+func (a *App) StartPodPolling() {
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			if a.ctx == nil || a.currentNamespace == "" {
+				continue
+			}
+			pods, err := a.GetRunningPods(a.currentNamespace)
+			if err == nil {
+				runtime.EventsEmit(a.ctx, "pods:update", pods)
+			}
+		}
+	}()
 }
 
 // CreateResource creates a resource in the cluster from YAML
@@ -411,5 +443,18 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 		}
 		return err
 	}
+
+	// Immediately emit updated pod list after creating a resource
+	// This ensures the UI updates instantly when a new pod is created
+	go func() {
+		time.Sleep(100 * time.Millisecond) // Small delay to allow pod to be created
+		if a.ctx != nil && namespace != "" {
+			pods, err := a.GetRunningPods(namespace)
+			if err == nil {
+				runtime.EventsEmit(a.ctx, "pods:update", pods)
+			}
+		}
+	}()
+
 	return nil
 }

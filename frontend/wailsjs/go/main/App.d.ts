@@ -27,3 +27,5 @@ export function SetCurrentNamespace(arg1:string):Promise<void>;
 export function SetRememberContext(arg1:boolean):Promise<void>;
 
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
+
+export function StartPodPolling():Promise<void>;
