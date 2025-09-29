@@ -127,16 +127,20 @@ function renderMainAppHTML() {
       <aside id="sidebar">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <span style="font-size: 14px; color: var(--gh-text-secondary, #ccc);">Connection</span>
-          <button id="show-wizard-btn" style="background: transparent; border: 1px solid var(--gh-border, #444); color: var(--gh-text-secondary, #ccc); padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;" title="Show Connection Wizard">⚙️</button>
+          <button id="show-wizard-btn" style="background: transparent; border: 1px solid var(--gh-border, #444); color: var(--gh-text-secondary, #ccc); padding: 4px 8px; border-radius: 0; cursor: pointer; font-size: 12px;" title="Show Connection Wizard">⚙️</button>
         </div>
         <label for="kubecontext">Kontext:</label>
         <select class="input" id="kubecontext"></select>
         <label for="namespace">Namespace:</label>
         <select class="input" id="namespace"></select>
         <hr class="sidebar-separator" />
-        <div id="sidebar-sections">
+        <div id="sidebar-sections" style="flex: 1;">
           ${renderSidebarSections()}
         </div>
+        <button id="sidebar-toggle" title="Collapse Sidebar">
+          <span>◀</span>
+          <span>Hide Sidebar</span>
+        </button>
       </aside>
       <main id="maincontent">
         <div id="error-container"></div>
@@ -185,6 +189,21 @@ function setupEventHandlers() {
       renderConnectionWizard();
     }
   });
+
+  // Sidebar toggle button
+  const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+  if (sidebarToggleBtn) {
+    sidebarToggleBtn.onclick = () => {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+
+      // Update button content based on state with proper chevrons
+      const isCollapsed = sidebar.classList.contains('collapsed');
+      sidebarToggleBtn.innerHTML = isCollapsed
+        ? '<span>▶</span><span>Show Sidebar</span>'
+        : '<span>◀</span><span>Hide Sidebar</span>';
+    };
+  }
 }
 
 // Initialize with saved config and load data

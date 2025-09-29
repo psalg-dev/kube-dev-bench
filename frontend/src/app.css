@@ -70,45 +70,79 @@ body, #layout {
   height: calc(100vh - var(--footer-height));
   box-sizing: border-box;
   overflow-y: auto;
+  transition: margin-left 0.3s ease;
+  position: relative;
 }
 
-#sidebar label {
-  margin-bottom: 0.75rem;
-  font-weight: 600;
-  color: var(--gh-text);
-  text-align: left;
-  font-family: Arial, sans-serif;
-  font-size: var(--text-size-small);
-  display: block;
+/* Sidebar collapsed state */
+#sidebar.collapsed {
+  margin-left: calc(-1 * var(--sidebar-width) + 60px);
 }
 
-#sidebar select.input {
-  margin-bottom: 2.5rem;
+/* Hide dropdowns when sidebar is collapsed */
+#sidebar.collapsed .context-dropdown,
+#sidebar.collapsed .namespace-dropdown,
+#sidebar.collapsed select,
+#sidebar.collapsed .dropdown-container,
+#sidebar.collapsed .input-box {
+  display: none;
 }
 
-#sidebar select.input, #maincontent select.input {
-  background: var(--gh-input-bg);
-  color: var(--gh-text);
-  border: 1px solid var(--gh-input-border);
-  border-radius: 0;
-  padding: 8px 12px;
-  font-size: var(--text-size-base);
-  margin-bottom: 1rem;
-  min-height: 36px;
-}
-#sidebar select.input:focus, #maincontent select.input:focus {
-  outline: none;
-  border-color: var(--gh-input-focus);
+/* Hide any sidebar section content when collapsed, except toggle button */
+#sidebar.collapsed .sidebar-section:not(.toggle-section) {
+  display: none;
 }
 
-/* New separator line in sidebar */
-.sidebar-separator {
-  border: none;
-  border-top: 1px solid var(--gh-border);
-  margin: 1.5rem 0 0 0;
+/* Sidebar toggle button - integrated in sidebar */
+#sidebar-toggle {
   width: 100%;
-  height: 0;
-  display: block;
+  background: var(--gh-input-bg);
+  border: 1px solid var(--gh-border);
+  border-radius: 0;
+  color: var(--gh-text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+/* When sidebar is collapsed, align content to the right */
+#sidebar.collapsed #sidebar-toggle {
+  justify-content: flex-end;
+  padding-right: 0.75rem;
+}
+
+/* Hide text content when collapsed, only show chevron */
+#sidebar.collapsed #sidebar-toggle span:first-child,
+#sidebar.collapsed #sidebar-toggle span:last-child {
+  display: none;
+}
+
+/* Add chevron for collapsed state */
+#sidebar.collapsed #sidebar-toggle::after {
+  content: "›";
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--gh-text);
+}
+
+#sidebar-toggle:hover {
+  background: var(--gh-hover-bg);
+  border-color: var(--gh-input-focus);
+  color: var(--gh-accent);
+}
+
+#sidebar-toggle span:first-child {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+#sidebar-toggle span:last-child {
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* Sidebar section styles */
