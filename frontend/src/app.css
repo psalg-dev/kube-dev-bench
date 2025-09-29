@@ -861,3 +861,6 @@ input[type="text"]:focus, input[type="search"]:focus {
   color: var(--gh-accent);
   transform: translateX(4px);
 }
+.ͼl {
+  color: gray;
+}
