@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo, useLayoutEffect } from 'react';
-import { GetPodYAML } from '../wailsjs/go/main/App';
+import { GetPodYAML } from '../../wailsjs/go/main/App';
 import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { yaml as yamlLang } from '@codemirror/lang-yaml';

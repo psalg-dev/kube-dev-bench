@@ -1,16 +1,16 @@
-export namespace main {
-
+export namespace app {
+	
 	export class AppConfig {
 	    currentContext: string;
 	    currentNamespace: string;
 	    rememberContext: boolean;
 	    rememberNamespace: boolean;
 	    kubeConfigPath: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.currentContext = source["currentContext"];
@@ -30,11 +30,11 @@ export namespace main {
 	    // Go type: time
 	    lastTimestamp: any;
 	    source: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new EventInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.type = source["type"];
@@ -45,7 +45,7 @@ export namespace main {
 	        this.lastTimestamp = this.convertValues(source["lastTimestamp"], null);
 	        this.source = source["source"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -68,11 +68,11 @@ export namespace main {
 	    path: string;
 	    name: string;
 	    contexts: string[];
-
+	
 	    static createFrom(source: any = {}) {
 	        return new KubeConfigInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.path = source["path"];
@@ -84,11 +84,11 @@ export namespace main {
 	    pods: number;
 	    deployments: number;
 	    jobs: number;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new OverviewInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.pods = source["pods"];
@@ -101,11 +101,11 @@ export namespace main {
 	    restarts: number;
 	    uptime: string;
 	    startTime: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new PodInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
@@ -119,22 +119,22 @@ export namespace main {
 	    namespace: string;
 	    // Go type: time
 	    created: any;
-	    labels: { [key: string]: string };
+	    labels: Record<string, string>;
 	    status: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new PodSummary(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.namespace = source["namespace"];
 	        this.created = this.convertValues(source["created"], null);
-	        this.labels = source["labels"] || {};
+	        this.labels = source["labels"];
 	        this.status = source["status"];
 	    }
-
+	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
 		    if (!a) {
 		        return a;
@@ -155,3 +155,4 @@ export namespace main {
 	}
 
 }
+

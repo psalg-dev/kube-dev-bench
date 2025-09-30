@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { GetPodSummary, StreamPodLogs, StopPodLogs, GetPodEvents, GetPodEventsLegacy } from '../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
+import { GetPodSummary, StreamPodLogs, StopPodLogs, GetPodEvents, GetPodEventsLegacy } from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 export default function PodSummaryTab({ podName }) {
   const [data, setData] = useState(null);

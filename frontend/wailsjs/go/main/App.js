@@ -106,6 +106,10 @@ export function StartPodPolling() {
   return window['go']['main']['App']['StartPodPolling']();
 }
 
+export function Startup(arg1) {
+  return window['go']['main']['App']['Startup'](arg1);
+}
+
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
 }

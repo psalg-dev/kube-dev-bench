@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
-import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
-import LogViewer from './LogViewer';
-import BottomPanel from './BottomPanel';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import LogViewer from '../LogViewer';
+import BottomPanel from '../BottomPanel';
 import PodEventsTab from './PodEventsTab';
 import PodYamlTab from './PodYamlTab';
 import PodSummaryTab from './PodSummaryTab';
