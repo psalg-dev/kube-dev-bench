@@ -1,93 +1,129 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
-import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  getFilteredRowModel,
+  flexRender,
+} from '@tanstack/react-table';
 import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 import LogViewer from '../LogViewer';
-import BottomPanel from '../BottomPanel';
+import PodSummaryTab from './PodSummaryTab';
 import PodEventsTab from './PodEventsTab';
 import PodYamlTab from './PodYamlTab';
-import PodSummaryTab from './PodSummaryTab';
 import Console from '../Console';
+import PortForwardOutput from './PortForwardOutput';
+import BottomPanel from '../BottomPanel';
+import PortForwardDialog from './PortForwardDialog';
 
-export default function PodOverviewTable({ namespace, onCreateResource }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
-  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
-  const [columnFilters, setColumnFilters] = useState([]);
+export default function PodOverviewTable({ namespace, data = [], loading = false, onCreateResource }) {
   const [now, setNow] = useState(Date.now());
-  const [filterValue, setFilterValue] = useState('');
-  const [showMenu, setShowMenu] = useState(false);
+  // Default sorting: uptime ascending (youngest at top)
+  const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 20 });
+  const [columnFilters, setColumnFilters] = useState([]);
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
-  // Bottom panel state
   const [bottomOpen, setBottomOpen] = useState(false);
-  const [bottomActiveTab, setBottomActiveTab] = useState('logs');
   const [bottomPodName, setBottomPodName] = useState(null);
-  const [consoleCommand, setConsoleCommand] = useState('');
+  const [bottomActiveTab, setBottomActiveTab] = useState('summary');
+  const [showMenu, setShowMenu] = useState(false);
+  const [filterValue, setFilterValue] = useState('');
   const [notification, setNotification] = useState({ message: '', type: '' });
+  const [showPFDialog, setShowPFDialog] = useState(false);
+  const [pfDialogPod, setPfDialogPod] = useState(null);
+  const [forwardLocalPort, setForwardLocalPort] = useState(null);
+  const [forwardRemotePort, setForwardRemotePort] = useState(null);
+  const [internalData, setInternalData] = useState([]);
+  // Track active port-forwards: { [podName]: { [remotePort]: number[]locals } }
+  const [pfByPod, setPfByPod] = useState({});
 
-  // Subscribe to Wails event for pod updates
+  // Fallback: subscribe to pods:update if parent doesn't pass data
   useEffect(() => {
-    setLoading(true);
     const handler = (pods) => {
-      setData(Array.isArray(pods) ? pods : []);
-      setLoading(false);
+      setInternalData(Array.isArray(pods) ? pods : []);
     };
     EventsOn('pods:update', handler);
     return () => {
-      EventsOff('pods:update');
+      try { EventsOff('pods:update'); } catch (_) {}
     };
   }, []);
 
-  // Reset data when namespace changes
+  // Subscribe to consolidated portforward updates and seed initial state
   useEffect(() => {
-    setData([]);
-    setLoading(true);
+    function buildMap(list) {
+      const map = {};
+      if (Array.isArray(list)) {
+        for (const item of list) {
+          if (!item) continue;
+          const ns = item.namespace || item.Namespace; // tolerate different casings
+          if (namespace && ns && ns !== namespace) continue;
+          const pod = item.pod || item.Pod;
+          const local = item.local ?? item.Local;
+          const remote = item.remote ?? item.Remote;
+          if (!pod || !Number.isFinite(local) || !Number.isFinite(remote)) continue;
+          if (!map[pod]) map[pod] = {};
+          if (!map[pod][remote]) map[pod][remote] = [];
+          if (!map[pod][remote].includes(local)) map[pod][remote].push(local);
+        }
+      }
+      return map;
+    }
+
+    const onUpdate = (list) => {
+      setPfByPod(buildMap(list));
+    };
+
+    EventsOn('portforwards:update', onUpdate);
+
+    // Try to fetch initial forwards if binding exists
+    const maybeFetch = async () => {
+      try {
+        const fn = window?.go?.main?.App?.ListPortForwards;
+        if (typeof fn === 'function') {
+          const list = await fn();
+          setPfByPod(buildMap(list));
+        }
+      } catch (_) {
+        // ignore
+      }
+    };
+    maybeFetch();
+
+    return () => {
+      try { EventsOff('portforwards:update'); } catch (_) {}
+    };
   }, [namespace]);
 
-  // Local ticking state for uptime
   useEffect(() => {
-    let running = true;
-    function tick() {
-      if (!running) return;
-      setNow(Date.now());
-      setTimeout(tick, 1000);
-    }
-    tick();
-    return () => { running = false; };
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Keep the filter in sync with the table's columnFilters
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        setOpenMenuIndex(null);
+        return;
+      }
+      if (!target.closest('.menu-button') && !target.closest('.menu-content')) {
+        setOpenMenuIndex(null);
+      }
+    }
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openMenuIndex]);
+
   useEffect(() => {
     setColumnFilters([{ id: 'name', value: filterValue }]);
   }, [filterValue]);
 
-  // Close menu on outside click
-  useEffect(() => {
-    if (!showMenu) return;
-    function handleClick() {
-      setShowMenu(false);
-    }
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [showMenu]);
-
-  // Close pod row context menu on outside click
-  useEffect(() => {
-    if (openMenuIndex === null) return;
-    function handleClick() {
-      setOpenMenuIndex(null);
-    }
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [openMenuIndex]);
-
-  // Prevent menu from closing when clicking inside
   function handleMenuClick(e) {
     e.stopPropagation();
   }
 
-  // Helper to format uptime from startTime
   function formatUptime(startTime) {
     if (!startTime) return '-';
     const start = new Date(startTime).getTime();
@@ -100,12 +136,48 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
   }
 
+  function renderPortsCell(pod) {
+    const ports = pod?.ports || [];
+    if (!ports || ports.length === 0) return '-';
+    const fForPod = pfByPod[pod.name] || {};
+    const sorted = [...ports].sort((a, b) => a - b);
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {sorted.map((p) => {
+          const locals = fForPod[p] || [];
+          const hasFwd = locals.length > 0;
+          return (
+            <span key={p} title={hasFwd ? `Forwarded to: ${locals.join(', ')}` : ''} style={{ whiteSpace: 'nowrap' }}>
+              <code style={{ background: 'rgba(99,110,123,0.2)', padding: '2px 6px', borderRadius: 0, border: '1px solid #353a42' }}>{p}</code>
+              {hasFwd && (
+                <>
+                  <span style={{ margin: '0 4px', color: '#aaa' }}>→</span>
+                  <code style={{ background: 'rgba(35,134,54,0.15)', padding: '2px 6px', borderRadius: 0, border: '1px solid rgba(35,134,54,0.4)', color: 'var(--gh-accent, #2ea44f)' }}>
+                    {locals.join(', ')}
+                  </code>
+                  <span aria-label="forward active" title="Port-forward active" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gh-accent, #2ea44f)', marginLeft: 6, verticalAlign: 'middle' }} />
+                </>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    );
+  }
+
   const columns = useMemo(() => [
     {
       accessorKey: 'name',
       header: 'Pod Name',
       filterFn: 'includesString',
       cell: info => info.getValue(),
+    },
+    {
+      id: 'ports',
+      header: 'Ports',
+      cell: info => renderPortsCell(info.row.original),
+      enableSorting: false,
+      filterFn: undefined,
     },
     {
       accessorKey: 'restarts',
@@ -125,14 +197,16 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
       sortingFn: (rowA, rowB) => {
         const startTimeA = new Date(rowA.original.startTime || 0).getTime();
         const startTimeB = new Date(rowB.original.startTime || 0).getTime();
-        return startTimeB - startTimeA; // Newer pods (later start time) first when desc=true
+        return startTimeB - startTimeA;
       },
       filterFn: undefined,
     },
-  ], [now]);
+  ], [now, pfByPod]);
+
+  const tableData = (Array.isArray(data) && data.length > 0) ? data : internalData;
 
   const table = useReactTable({
-    data,
+    data: tableData,
     columns,
     state: {
       sorting,
@@ -165,23 +239,22 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
   };
 
   const handleKubectlLogs = (podName) => {
-    openLogsPanel(podName);
+    setBottomPodName(podName);
+    setBottomActiveTab('logs');
+    setBottomOpen(true);
     setOpenMenuIndex(null);
   };
 
-  // Auto-hide notification after 3 seconds
   useEffect(() => {
     if (!notification.message) return;
     const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     return () => clearTimeout(timer);
   }, [notification]);
 
-  // Helper to show notification
   function showNotification(message, type = 'success') {
     setNotification({ message, type });
   }
 
-  // Handler for Restart
   async function handleRestart(podName) {
     try {
       await AppAPI.RestartPod(namespace, podName);
@@ -192,7 +265,6 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     handleMenuClose();
   }
 
-  // Handler for Shell
   async function handleShell(podName) {
     try {
       setBottomPodName(podName);
@@ -204,29 +276,80 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     handleMenuClose();
   }
 
-  // Handler for Port Forward (default port 8080 for demo)
   async function handlePortForward(podName) {
-    const port = 8080; // You may want to prompt for port
+    // Open the Port Forward tab immediately so the user sees context
+    setBottomPodName(podName);
+    setBottomActiveTab('portforward');
+    setBottomOpen(true);
+    showNotification(`Configure port-forward for ${podName}…`, 'success');
+
+    setPfDialogPod(podName);
+    setShowPFDialog(true);
+    handleMenuClose();
+  }
+
+  async function confirmPortForward({ sourcePort, targetPort }) {
+    const podName = pfDialogPod;
+    setShowPFDialog(false);
+    if (!podName) return;
     try {
-      const cmd = await AppAPI.PortForwardPod(namespace, podName, port);
-      showNotification(`✔️ Port-forward command: ${cmd}`, 'success');
+      setBottomPodName(podName);
+      setForwardLocalPort(targetPort);
+      setForwardRemotePort(sourcePort);
+      setBottomActiveTab('portforward');
+      setBottomOpen(true);
+      showNotification(`Starting port-forward to ${podName}: ${targetPort} -> ${sourcePort} ...`, 'success');
+      const start = window?.go?.main?.App?.PortForwardPodWith;
+      if (typeof start === 'function') {
+        await start(namespace, podName, targetPort, sourcePort);
+      } else {
+        await AppAPI.PortForwardPod(namespace, podName, sourcePort);
+      }
     } catch (err) {
-      showNotification(`❌ Failed to get port-forward command for pod '${podName}': ${err.message || err}`, 'error');
+      showNotification(`❌ Failed to start port-forward for pod '${podName}': ${err?.message || err}`, 'error');
+    }
+  }
+
+  function cancelPortForwardDialog() {
+    setShowPFDialog(false);
+    setPfDialogPod(null);
+  }
+
+  async function handleStopPortForward(podName) {
+    try {
+      let portToStop = (forwardLocalPort && bottomPodName === podName) ? forwardLocalPort : null;
+      if (!portToStop) {
+        const input = window.prompt(`Enter local port to stop forwarding:`, '20000');
+        if (input == null) return;
+        const p = parseInt(String(input).trim(), 10);
+        if (!Number.isFinite(p) || p <= 0 || p > 65535) {
+          showNotification(`❌ Invalid port: ${input}`, 'error');
+          return;
+        }
+        portToStop = p;
+      }
+      const stop = window?.go?.main?.App?.StopPortForward;
+      if (typeof stop === 'function') {
+        await stop(namespace, podName, portToStop);
+        showNotification(`Stopped port-forward for ${podName}:${portToStop}.`, 'success');
+      } else {
+        showNotification(`❌ StopPortForward not available. Please rebuild bindings.`, 'error');
+      }
+    } catch (err) {
+      showNotification(`❌ Failed to stop port-forward for '${podName}': ${err?.message || err}`, 'error');
     }
     handleMenuClose();
   }
 
-  // Handler for Delete
+  // Delete pod handler
   async function handleDelete(podName) {
-    if (!window.confirm(`Are you sure you want to delete pod '${podName}'?`)) {
-      handleMenuClose();
-      return;
-    }
     try {
+      const ok = window.confirm(`Delete pod '${podName}'?`);
+      if (!ok) return;
       await AppAPI.DeletePod(namespace, podName);
-      showNotification(`✔️ Pod '${podName}' deleted successfully.`, 'success');
+      showNotification(`Pod '${podName}' deleted.`, 'success');
     } catch (err) {
-      showNotification(`❌ Failed to delete pod '${podName}': ${err.message || err}`, 'error');
+      showNotification(`❌ Failed to delete pod '${podName}': ${err?.message || err}`, 'error');
     }
     handleMenuClose();
   }
@@ -256,253 +379,299 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
       id: 'console',
       label: 'Console',
       content: <Console podExec={true} namespace={namespace} podName={bottomPodName} shell="auto" />
+    },
+    {
+      id: 'portforward',
+      label: 'Port Forward',
+      content: <PortForwardOutput namespace={namespace} podName={bottomPodName} localPort={forwardLocalPort} remotePort={forwardRemotePort} />
     }
   ];
 
+  function hasActivePF(podName) {
+    const m = pfByPod[podName];
+    if (!m) return false;
+    return Object.values(m).some(arr => Array.isArray(arr) && arr.length > 0);
+  }
+
   return (
-    <div style={{ position: 'relative', minHeight: 400 }}>
-      {notification.message && (
-        <div style={{
-          position: 'absolute',
-          top: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 100,
-          minWidth: 320,
-          maxWidth: 600,
-          padding: '12px 18px',
-          background: notification.type === 'success' ? '#22863a' : '#d73a49', // less bright green
-          color: '#fff',
-          textAlign: 'left',
-          fontWeight: 500,
-          fontSize: 16,
-          borderRadius: 6,
-          border: notification.type === 'success' ? '1px solid #2ea44f' : '1px solid #cb2431', // green border
-          boxShadow: '0 4px 16px rgba(27,31,35,0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-        }}>
-          <span style={{fontSize: 20}}>{notification.type === 'success' ? '✔️' : '❌'}</span>
-          <span style={{flex: 1}}>{notification.message.replace(/^✔️ |^❌ /, '')}</span>
-          <button
-            onClick={() => setNotification({ message: '', type: '' })}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: '#fff',
-              fontSize: 18,
-              cursor: 'pointer',
-              marginLeft: 8,
-              opacity: 0.7,
-            }}
-            aria-label="Dismiss notification"
-          >×</button>
-        </div>
-      )}
-      <div style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
-        <div style={{position:'relative', display:'flex', alignItems:'center'}}>
-          <button
-            className="create-button"
-            title="Ressource erstellen"
-            style={{fontSize: 22, width: 36, height: 36, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
-            onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
-          >+
-          </button>
-          {showMenu && (
-            <div
+    <>
+      <div style={{ position: 'relative', minHeight: 400 }}>
+        {notification.message && (
+          <div style={{
+            position: 'absolute',
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            minWidth: 320,
+            maxWidth: 600,
+            padding: '12px 18px',
+            background: notification.type === 'success' ? '#22863a' : '#d73a49',
+            color: '#fff',
+            textAlign: 'left',
+            fontWeight: 500,
+            fontSize: 16,
+            borderRadius: 6,
+            border: notification.type === 'success' ? '1px solid #2ea44f' : '1px solid #cb2431',
+            boxShadow: '0 4px 16px rgba(27,31,35,0.08)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}>
+            <span style={{fontSize: 20}}>{notification.type === 'success' ? '✔️' : '❌'}</span>
+            <span style={{flex: 1}}>{notification.message.replace(/^✔️ |^❌ /, '')}</span>
+            <button
+              onClick={() => setNotification({ message: '', type: '' })}
               style={{
-                position: 'absolute',
-                top: 40,
-                left: 0,
-                background: 'var(--gh-table-header-bg, #2d323b)',
-                border: '1px solid #353a42',
-                borderRadius: 0,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                zIndex: 10,
-                minWidth: 140,
-                padding: '4px 0',
+                background: 'transparent',
+                border: 'none',
+                color: '#fff',
+                fontSize: 18,
+                cursor: 'pointer',
+                marginLeft: 8,
+                opacity: 0.7,
               }}
-              onClick={handleMenuClick}
-            >
+              aria-label="Dismiss notification"
+            >×</button>
+          </div>
+        )}
+        <div style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
+          <div style={{position:'relative', display:'flex', alignItems:'center'}}>
+            <button
+              className="menu-button create-button"
+              title="Ressource erstellen"
+              style={{fontSize: 22, width: 36, height: 36, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+              onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
+            >+
+            </button>
+            {showMenu && (
               <div
-                style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
-                onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('deployment'); }, 0); }}
-              >Deployment</div>
-              <div
-                style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
-                onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('job'); }, 0); }}
-              >Job</div>
-            </div>
-          )}
+                className="menu-content"
+                style={{
+                  position: 'absolute',
+                  top: 40,
+                  left: 0,
+                  background: 'var(--gh-table-header-bg, #2d323b)',
+                  border: '1px solid #353a42',
+                  borderRadius: 0,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                  zIndex: 10,
+                  minWidth: 140,
+                  padding: '4px 0',
+                }}
+                onClick={handleMenuClick}
+              >
+                <div
+                  style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
+                  onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('deployment'); }, 0); }}
+                >Deployment</div>
+                <div
+                  style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
+                  onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('job'); }, 0); }}
+                >Job</div>
+              </div>
+            )}
+          </div>
+          <input
+            type="text"
+            value={filterValue}
+            onChange={e => setFilterValue(e.target.value)}
+            placeholder="Filter pods..."
+            style={{
+              padding: '7px 12px',
+              borderRadius: 0,
+              border: '1px solid #353a42',
+              background: 'var(--gh-table-header-bg, #2d323b)',
+              color: 'var(--gh-table-header-text, #fff)',
+              fontSize: 14,
+              outline: 'none',
+              width: 220,
+            }}
+          />
         </div>
-        <input
-          type="text"
-          value={filterValue}
-          onChange={e => setFilterValue(e.target.value)}
-          placeholder="Filter pods..."
-          style={{
-            padding: '7px 12px',
-            borderRadius: 0,
-            border: '1px solid #353a42',
-            background: 'var(--gh-table-header-bg, #2d323b)',
-            color: 'var(--gh-table-header-text, #fff)',
-            fontSize: 14,
-            outline: 'none',
-            width: 220,
-          }}
-        />
-      </div>
-      {loading && <div>Loading...</div>}
-      <table className="pods-table" style={{
-        borderCollapse: 'collapse',
-        width: '100%',
-        background: 'var(--gh-table-bg, #23272e)', // Use dark theme variable or fallback
-        borderRadius: 0,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
-      }}>
-        <thead>
-          {table.getHeaderGroups().map(headerGroup => (
-            <tr key={headerGroup.id} style={{ background: 'var(--gh-table-header-bg, #2d323b)' }}>
-              {headerGroup.headers.map(header => (
+        {loading && <div>Loading...</div>}
+        <table className="pods-table" style={{
+          borderCollapse: 'collapse',
+          width: '100%',
+          background: 'var(--gh-table-bg, #23272e)',
+          borderRadius: 0,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.18)'
+        }}>
+          <thead>
+            {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id} style={{ background: 'var(--gh-table-header-bg, #2d323b)' }}>
+                {headerGroup.headers.map(header => (
+                  <th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
+                    style={{
+                      cursor: 'pointer',
+                      padding: '10px 16px',
+                      borderBottom: '2px solid #353a42',
+                      textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
+                      fontWeight: 600,
+                      fontSize: 15,
+                      color: 'var(--gh-table-header-text, #fff)',
+                      background: 'inherit',
+                      userSelect: 'none',
+                    }}
+                  >
+                    {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
+                  </th>
+                ))}
                 <th
-                  key={header.id}
-                  onClick={header.column.getToggleSortingHandler()}
                   style={{
-                    cursor: 'pointer',
-                    padding: '10px 16px',
+                    width: '40px',
                     borderBottom: '2px solid #353a42',
-                    textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
-                    fontWeight: 600,
-                    fontSize: 15,
-                    color: 'var(--gh-table-header-text, #fff)',
                     background: 'inherit',
+                    textAlign: 'right',
+                    fontWeight: 600,
+                    fontSize: 18,
+                    color: 'var(--gh-table-header-text, #fff)',
                     userSelect: 'none',
                   }}
+                  aria-label="Actions"
+                  title="Actions"
                 >
-                  {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                  {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
+                  <span style={{ opacity: 0.7, fontSize: 20, verticalAlign: 'middle' }}>⋮</span>
                 </th>
-              ))}
-              <th
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {table.getRowModel().rows.map((row, i) => (
+              <tr
+                key={row.id}
+                onClick={() => openLogsPanel(row.original.name)}
                 style={{
-                  width: '40px',
-                  borderBottom: '2px solid #353a42',
-                  background: 'inherit',
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  fontSize: 18,
-                  color: 'var(--gh-table-header-text, #fff)',
-                  userSelect: 'none',
+                  background: i % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
+                  borderBottom: '1px solid #353a42',
+                  transition: 'background 0.2s',
                 }}
-                aria-label="Actions"
-                title="Actions"
               >
-                <span style={{ opacity: 0.7, fontSize: 20, verticalAlign: 'middle' }}>⋮</span>
-              </th>
-            </tr>
-          ))}
-        </thead>
-        <tbody>
-          {table.getRowModel().rows.map((row, i) => (
-            <tr
-              key={row.id}
-              onClick={() => openLogsPanel(row.original.name)}
-              style={{
-                background: i % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
-                borderBottom: '1px solid #353a42',
-                transition: 'background 0.2s',
-              }}
-            >
-              {row.getVisibleCells().map(cell => (
-                <td
-                  key={cell.id}
-                  style={{
-                    padding: '10px 16px',
-                    fontSize: 14,
-                    color: 'var(--gh-table-text, #e0e0e0)',
-                    borderBottom: '1px solid #353a42',
-                    textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
-                    background: 'inherit',
-                  }}
-                >
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-              <td style={{ position: 'relative', textAlign: 'right' }}>
-                <button onClick={(e) => { e.stopPropagation(); handleMenuClickRow(i); }} style={{ padding: '2px 8px', background: 'transparent', border: 'none', color: 'var(--gh-table-header-text, #fff)', cursor: 'pointer' }}>...</button>
-                {openMenuIndex === i && (
-                  <div
+                {row.getVisibleCells().map(cell => (
+                  <td
+                    key={cell.id}
                     style={{
-                      position: 'absolute',
-                      right: 0,
-                      top: '100%',
-                      background: 'var(--gh-table-header-bg, #2d323b)',
-                      border: '1px solid #353a42',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                      zIndex: 10,
+                      padding: '10px 16px',
+                      fontSize: 14,
+                      color: 'var(--gh-table-text, #e0e0e0)',
+                      borderBottom: '1px solid #353a42',
+                      textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
+                      background: 'inherit',
                     }}
-                    onClick={(e) => e.stopPropagation()}
                   >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+                <td style={{ position: 'relative', textAlign: 'right' }}>
+                  <button onClick={(e) => { e.stopPropagation(); handleMenuClickRow(i); }} style={{ padding: '2px 8px', background: 'transparent', border: 'none', color: 'var(--gh-table-header-text, #fff)', cursor: 'pointer' }}>...</button>
+                  {openMenuIndex === i && (
                     <div
-                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
-                      onClick={() => handleKubectlLogs(row.original.name)}
+                      className="menu-content"
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '100%',
+                        background: 'var(--gh-table-header-bg, #2d323b)',
+                        border: '1px solid #353a42',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                        zIndex: 10,
+                        minWidth: 180,
+                        textAlign: 'left',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      kubectl logs
+                      <div
+                        className="context-menu-item"
+                        style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
+                        onClick={() => handleKubectlLogs(row.original.name)}
+                      >
+                        <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>📜</span>
+                        <span>Logs</span>
+                      </div>
+                      <div
+                        className="context-menu-item"
+                        style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
+                        onClick={() => handleRestart(row.original.name)}
+                      >
+                        <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🔄</span>
+                        <span>Restart</span>
+                      </div>
+                      <div
+                        className="context-menu-item"
+                        style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
+                        onClick={() => handleShell(row.original.name)}
+                      >
+                        <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>💻</span>
+                        <span>Shell</span>
+                      </div>
+                      <div
+                        className="context-menu-item"
+                        style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
+                        onClick={() => handlePortForward(row.original.name)}
+                      >
+                        <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🔌</span>
+                        <span>Port Forward</span>
+                      </div>
+                      {hasActivePF(row.original.name) && (
+                        <div
+                          className="context-menu-item"
+                          style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
+                          onClick={() => handleStopPortForward(row.original.name)}
+                        >
+                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🛑</span>
+                          <span>Stop Port Forward</span>
+                        </div>
+                      )}
+                      <div
+                        className="context-menu-item"
+                        style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
+                        onClick={() => handleDelete(row.original.name)}
+                      >
+                        <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🗑️</span>
+                        <span>Delete</span>
+                      </div>
+                      <div
+                        className="context-menu-item"
+                        style={{ padding: '4px 16px', cursor: 'pointer', color: '#888', fontSize: '12px', display: 'flex', alignItems: 'center', gap: 8 }}
+                        onClick={handleMenuClose}
+                      >
+                        <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>✖️</span>
+                        <span>Close</span>
+                      </div>
                     </div>
-                    <div
-                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
-                      onClick={() => handleRestart(row.original.name)}
-                    >
-                      Restart
-                    </div>
-                    <div
-                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
-                      onClick={() => handleShell(row.original.name)}
-                    >
-                      Shell
-                    </div>
-                    <div
-                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
-                      onClick={() => handlePortForward(row.original.name)}
-                    >
-                      Port Forward
-                    </div>
-                    <div
-                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
-                      onClick={() => handleDelete(row.original.name)}
-                    >
-                      Delete
-                    </div>
-                    <div
-                      style={{ padding: '4px 16px', cursor: 'pointer', color: '#888', fontSize: '12px' }}
-                      onClick={handleMenuClose}
-                    >
-                      Close
-                    </div>
-                  </div>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {data.length >= 20 && (
-        <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
-          <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
-          <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-          <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
-        </div>
-      )}
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {data.length >= 20 && (
+          <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
+            <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
+            <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
+            <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
+          </div>
+        )}
 
-      {/* Bottom panel with tabs */}
-      <BottomPanel
-        open={bottomOpen}
-        onClose={() => { setBottomOpen(false); setBottomPodName(null); }}
-        tabs={tabs}
-        activeTab={bottomActiveTab}
-        onTabChange={(id) => setBottomActiveTab(id)}
-      />
-    </div>
+        {/* Bottom panel with tabs */}
+        <BottomPanel
+          open={bottomOpen}
+          onClose={() => { setBottomOpen(false); setBottomPodName(null); }}
+          tabs={tabs}
+          activeTab={bottomActiveTab}
+          onTabChange={(id) => setBottomActiveTab(id)}
+        />
+        <PortForwardDialog
+          open={showPFDialog}
+          namespace={namespace}
+          podName={pfDialogPod}
+          onCancel={cancelPortForwardDialog}
+          onConfirm={confirmPortForward}
+        />
+      </div>
+    </>
   );
 }

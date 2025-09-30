@@ -8,6 +8,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -170,7 +172,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 	}
 	execReq = execReq.VersionedParams(execOptions, scheme.ParameterCodec)
 
-	exec, err := remotecommand.NewSPDYExecutor(restConfig, "POST", execReq.URL())
+	executor, err := remotecommand.NewSPDYExecutor(restConfig, "POST", execReq.URL())
 	if err != nil {
 		cancel()
 		return err
@@ -190,7 +192,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 			wailsRuntime.EventsEmit(a.ctx, termExitEvent(sessionID), "[session closed]")
 		}()
 		// stream until completion or cancel
-		streamErr := exec.StreamWithContext(ctx, remotecommand.StreamOptions{
+		streamErr := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
 			Stdin:             pr,
 			Stdout:            stdoutWriter,
 			Stderr:            stderrWriter,
@@ -297,6 +299,236 @@ func (a *App) StopShellSession(sessionID string) error {
 	return nil
 }
 
+// PortForwardSession manages a kubectl port-forward session
+type PortForwardSession struct {
+	Cmd    *exec.Cmd
+	Cancel context.CancelFunc
+}
+
+var portForwardSessions sync.Map // key -> *PortForwardSession
+
+// portForwardKey returns a key for same local & remote port (backward compatibility)
+func portForwardKey(ns, pod string, port int) string { return portForwardKeyLR(ns, pod, port, port) }
+
+func portForwardKeyLR(ns, pod string, local, remote int) string {
+	return fmt.Sprintf("%s/%s:%d:%d", ns, pod, local, remote)
+}
+
+// emitPortForwardsUpdate emits a snapshot of all active port forward sessions
+func (a *App) emitPortForwardsUpdate() {
+	var list []PortForwardInfo
+	portForwardSessions.Range(func(k, v any) bool {
+		ks, _ := k.(string)
+		// format ns/pod:local:remote
+		parts := strings.Split(ks, ":")
+		if len(parts) != 3 {
+			return true
+		}
+		// split ns/pod
+		left := parts[0]
+		lr := parts[1:]
+		p := strings.SplitN(left, "/", 2)
+		if len(p) != 2 {
+			return true
+		}
+		local, _ := strconv.Atoi(lr[0])
+		remote, _ := strconv.Atoi(lr[1])
+		list = append(list, PortForwardInfo{Namespace: p[0], Pod: p[1], Local: local, Remote: remote})
+		return true
+	})
+	wailsRuntime.EventsEmit(a.ctx, "portforwards:update", list)
+}
+
+// ListPortForwards returns current active port forward sessions
+func (a *App) ListPortForwards() ([]PortForwardInfo, error) {
+	var list []PortForwardInfo
+	portForwardSessions.Range(func(k, v any) bool {
+		ks, _ := k.(string)
+		parts := strings.Split(ks, ":")
+		if len(parts) != 3 {
+			return true
+		}
+		left := parts[0]
+		lr := parts[1:]
+		p := strings.SplitN(left, "/", 2)
+		if len(p) != 2 {
+			return true
+		}
+		local, _ := strconv.Atoi(lr[0])
+		remote, _ := strconv.Atoi(lr[1])
+		list = append(list, PortForwardInfo{Namespace: p[0], Pod: p[1], Local: local, Remote: remote})
+		return true
+	})
+	return list, nil
+}
+
+// PortForwardPod starts a kubectl port-forward process using same local and remote port
+func (a *App) PortForwardPod(namespace, podName string, port int) (string, error) {
+	return a.PortForwardPodWith(namespace, podName, port, port)
+}
+
+// PortForwardPodWith starts a kubectl port-forward process with explicit local and remote ports and returns the local URL
+func (a *App) PortForwardPodWith(namespace, podName string, localPort, remotePort int) (string, error) {
+	if namespace == "" {
+		if a.currentNamespace == "" {
+			return "", fmt.Errorf("no namespace selected")
+		}
+		namespace = a.currentNamespace
+	}
+	if podName == "" {
+		return "", fmt.Errorf("pod name required")
+	}
+	if localPort <= 0 || localPort > 65535 || remotePort <= 0 || remotePort > 65535 {
+		return "", fmt.Errorf("invalid ports: local=%d remote=%d", localPort, remotePort)
+	}
+	key := portForwardKeyLR(namespace, podName, localPort, remotePort)
+	if _, exists := portForwardSessions.Load(key); exists {
+		wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":ready", localPort)
+		// also update snapshot
+		a.emitPortForwardsUpdate()
+		return fmt.Sprintf("http://127.0.0.1:%d", localPort), nil
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	kubectl := "kubectl"
+	if runtime.GOOS == "windows" {
+		kubectl = "kubectl.exe"
+	}
+	args := []string{}
+	if cfg := a.getKubeConfigPath(); cfg != "" {
+		args = append(args, "--kubeconfig", cfg)
+	}
+	if a.currentKubeContext != "" {
+		args = append(args, "--context", a.currentKubeContext)
+	}
+	args = append(args, "-n", namespace, "port-forward", "pod/"+podName, fmt.Sprintf("%d:%d", localPort, remotePort))
+	cmd := exec.CommandContext(ctx, kubectl, args...)
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		cancel()
+		return "", err
+	}
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		cancel()
+		return "", err
+	}
+	if err := cmd.Start(); err != nil {
+		cancel()
+		return "", err
+	}
+
+	sess := &PortForwardSession{Cmd: cmd, Cancel: cancel}
+	portForwardSessions.Store(key, sess)
+	// emit snapshot after storing
+	a.emitPortForwardsUpdate()
+
+	// Stream output and emit readiness/error/exit events
+	go func() {
+		defer func() {
+			_ = cmd.Wait()
+			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":exit", 0)
+			portForwardSessions.Delete(key)
+			// emit snapshot after removal
+			a.emitPortForwardsUpdate()
+		}()
+
+		readyEmitted := false
+		emitLine := func(line string) {
+			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":output", line)
+			if !readyEmitted {
+				if strings.Contains(line, fmt.Sprintf("Forwarding from 127.0.0.1:%d", localPort)) || strings.Contains(line, fmt.Sprintf("Forwarding from [::1]:%d", localPort)) || strings.Contains(line, fmt.Sprintf("Forwarding from localhost:%d", localPort)) || strings.Contains(line, fmt.Sprintf("Forwarding from 0.0.0.0:%d", localPort)) {
+					readyEmitted = true
+					wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":ready", localPort)
+				}
+			}
+		}
+		stdoutScanner := bufio.NewScanner(stdout)
+		stderrScanner := bufio.NewScanner(stderr)
+		stdoutDone := make(chan struct{})
+		stderrDone := make(chan struct{})
+		go func() {
+			for stdoutScanner.Scan() {
+				emitLine(stdoutScanner.Text())
+			}
+			stdoutDone <- struct{}{}
+		}()
+		go func() {
+			for stderrScanner.Scan() {
+				emitLine(stderrScanner.Text())
+			}
+			stderrDone <- struct{}{}
+		}()
+		<-stdoutDone
+		<-stderrDone
+		if err := stdoutScanner.Err(); err != nil {
+			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":error", err.Error())
+		}
+		if err := stderrScanner.Err(); err != nil {
+			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":error", err.Error())
+		}
+	}()
+
+	return fmt.Sprintf("http://127.0.0.1:%d", localPort), nil
+}
+
+// StopPortForward stops an active port-forward session for the given pod by local port
+func (a *App) StopPortForward(namespace, podName string, localPort int) error {
+	if namespace == "" {
+		namespace = a.currentNamespace
+	}
+	// Try exact same-port key for backward compatibility
+	keySame := portForwardKey(namespace, podName, localPort)
+	if v, ok := portForwardSessions.Load(keySame); ok {
+		sess := v.(*PortForwardSession)
+		if sess.Cancel != nil {
+			sess.Cancel()
+		}
+		if sess.Cmd != nil && sess.Cmd.Process != nil {
+			_ = sess.Cmd.Process.Kill()
+		}
+		portForwardSessions.Delete(keySame)
+		// emit snapshot after stop
+		a.emitPortForwardsUpdate()
+		return nil
+	}
+	// Otherwise, find any session for ns/pod with matching local port
+	prefix := fmt.Sprintf("%s/%s:", namespace, podName)
+	var foundKey string
+	portForwardSessions.Range(func(k, v any) bool {
+		ks, _ := k.(string)
+		if !strings.HasPrefix(ks, prefix) {
+			return true
+		}
+		// format ns/pod:local:remote
+		parts := strings.Split(ks[len(prefix):], ":")
+		if len(parts) == 2 {
+			if lp, err := strconv.Atoi(parts[0]); err == nil && lp == localPort {
+				foundKey = ks
+				return false
+			}
+		}
+		return true
+	})
+	if foundKey == "" {
+		return fmt.Errorf("no port-forward running for %s on local %d", prefix[:len(prefix)-1], localPort)
+	}
+	if v, ok := portForwardSessions.Load(foundKey); ok {
+		sess := v.(*PortForwardSession)
+		if sess.Cancel != nil {
+			sess.Cancel()
+		}
+		if sess.Cmd != nil && sess.Cmd.Process != nil {
+			_ = sess.Cmd.Process.Kill()
+		}
+		portForwardSessions.Delete(foundKey)
+		// emit snapshot after stop
+		a.emitPortForwardsUpdate()
+		return nil
+	}
+	return fmt.Errorf("session disappeared for %s", foundKey)
+}
+
 // GetRunningPods returns all running pods (name, restarts, uptime) in a namespace
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	configPath := a.getKubeConfigPath()
@@ -337,7 +569,20 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 					restarts += cs.RestartCount
 				}
 			}
-			result = append(result, PodInfo{Name: pod.Name, Restarts: restarts, Uptime: uptime, StartTime: startTimeStr})
+			// collect unique container ports across all containers
+			portSet := make(map[int]struct{})
+			for _, c := range pod.Spec.Containers {
+				for _, p := range c.Ports {
+					if p.ContainerPort > 0 {
+						portSet[int(p.ContainerPort)] = struct{}{}
+					}
+				}
+			}
+			var ports []int
+			for v := range portSet {
+				ports = append(ports, v)
+			}
+			result = append(result, PodInfo{Name: pod.Name, Restarts: restarts, Uptime: uptime, StartTime: startTimeStr, Ports: ports})
 		}
 	}
 	return result, nil
@@ -379,11 +624,6 @@ func (a *App) ShellPod(namespace, podName string) (string, error) {
 	return fmt.Sprintf("kubectl -n %s exec -i %s -- /bin/bash || kubectl -n %s exec -i %s -- /bin/sh", namespace, podName, namespace, podName), nil
 }
 
-// PortForwardPod returns a kubectl command for port-forwarding the pod
-func (a *App) PortForwardPod(namespace, podName string, port int) (string, error) {
-	return fmt.Sprintf("kubectl -n %s port-forward pod/%s %d:%d", namespace, podName, port, port), nil
-}
-
 // DeletePod deletes a pod
 func (a *App) DeletePod(namespace, podName string) error {
 	configPath := a.getKubeConfigPath()
@@ -401,7 +641,16 @@ func (a *App) DeletePod(namespace, podName string) error {
 // ExecCommand runs a shell command and streams output via Wails events
 func (a *App) ExecCommand(cmdline string) error {
 	ctx := a.ctx
-	cmd := exec.CommandContext(ctx, "bash", "-c", cmdline)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		comspec := os.Getenv("ComSpec")
+		if comspec == "" {
+			comspec = `C:\\Windows\\System32\\cmd.exe`
+		}
+		cmd = exec.CommandContext(ctx, comspec, "/C", cmdline)
+	} else {
+		cmd = exec.CommandContext(ctx, "bash", "-c", cmdline)
+	}
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return err
@@ -425,6 +674,5 @@ func (a *App) ExecCommand(cmdline string) error {
 			wailsRuntime.EventsEmit(ctx, "console:output", scanner.Text())
 		}
 	}()
-	cmd.Wait()
-	return nil
+	return cmd.Wait()
 }

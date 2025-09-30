@@ -15,6 +15,8 @@ type PodInfo struct {
 	Restarts  int32  `json:"restarts"`
 	Uptime    string `json:"uptime"`
 	StartTime string `json:"startTime"`
+	// Container ports exposed by this pod (unique, across containers)
+	Ports []int `json:"ports"`
 }
 
 // KubeConfigInfo represents information about a kubeconfig file
@@ -42,4 +44,12 @@ type PodSummary struct {
 	Created   time.Time         `json:"created"`
 	Labels    map[string]string `json:"labels"`
 	Status    string            `json:"status"`
+}
+
+// PortForwardInfo describes an active port-forward session for UI updates
+type PortForwardInfo struct {
+	Namespace string `json:"namespace"`
+	Pod       string `json:"pod"`
+	Local     int    `json:"local"`
+	Remote    int    `json:"remote"`
 }

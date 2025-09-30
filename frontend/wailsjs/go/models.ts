@@ -101,6 +101,7 @@ export namespace app {
 	    restarts: number;
 	    uptime: string;
 	    startTime: string;
+	    ports: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new PodInfo(source);
@@ -112,6 +113,7 @@ export namespace app {
 	        this.restarts = source["restarts"];
 	        this.uptime = source["uptime"];
 	        this.startTime = source["startTime"];
+	        this.ports = source["ports"];
 	    }
 	}
 	export class PodSummary {
@@ -152,6 +154,24 @@ export namespace app {
 		    }
 		    return a;
 		}
+	}
+	export class PortForwardInfo {
+	    namespace: string;
+	    pod: string;
+	    local: number;
+	    remote: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PortForwardInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.namespace = source["namespace"];
+	        this.pod = source["pod"];
+	        this.local = source["local"];
+	        this.remote = source["remote"];
+	    }
 	}
 
 }

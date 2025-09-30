@@ -903,7 +903,15 @@ input[type="text"]:focus, input[type="search"]:focus {
 .resource-menu-item:hover {
   background: rgba(56, 139, 253, 0.12);
   color: var(--gh-accent);
-  transform: translateX(4px);
+}
+
+/* Hover styles for context menus */
+.menu-content .context-menu-item {
+  transition: background 0.15s ease, color 0.15s ease;
+  border-radius: 0;
+}
+.menu-content .context-menu-item:hover {
+  background: var(--gh-hover-bg);
 }
 
 /* Pod overview table hover styles */

@@ -112,3 +112,40 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 	}
 	return out, nil
 }
+
+// GetPodContainerPorts returns a flat list of all defined container ports for the pod
+func (a *App) GetPodContainerPorts(podName string) ([]int, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentKubeContext == "" {
+		return nil, fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentNamespace == "" {
+		return nil, fmt.Errorf("no namespace selected")
+	}
+	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(a.ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	ports := []int{}
+	for _, c := range pod.Spec.Containers {
+		for _, p := range c.Ports {
+			if p.ContainerPort > 0 {
+				ports = append(ports, int(p.ContainerPort))
+			}
+		}
+	}
+	return ports, nil
+}

@@ -42,6 +42,10 @@ export function GetPodContainerLog(arg1, arg2) {
   return window['go']['main']['App']['GetPodContainerLog'](arg1, arg2);
 }
 
+export function GetPodContainerPorts(arg1) {
+  return window['go']['main']['App']['GetPodContainerPorts'](arg1);
+}
+
 export function GetPodContainers(arg1) {
   return window['go']['main']['App']['GetPodContainers'](arg1);
 }
@@ -82,8 +86,16 @@ export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }
 
+export function ListPortForwards() {
+  return window['go']['main']['App']['ListPortForwards']();
+}
+
 export function PortForwardPod(arg1, arg2, arg3) {
   return window['go']['main']['App']['PortForwardPod'](arg1, arg2, arg3);
+}
+
+export function PortForwardPodWith(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['PortForwardPodWith'](arg1, arg2, arg3, arg4);
 }
 
 export function ResizeShellSession(arg1, arg2, arg3) {
@@ -148,6 +160,10 @@ export function Startup(arg1) {
 
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
+}
+
+export function StopPortForward(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StopPortForward'](arg1, arg2, arg3);
 }
 
 export function StopShellSession(arg1) {
