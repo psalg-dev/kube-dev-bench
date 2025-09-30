@@ -1,15 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { GetPodSummary, StreamPodLogs, StopPodLogs, GetPodEvents, GetPodEventsLegacy } from '../../wailsjs/go/main/App';
+import React, { useEffect, useState } from 'react';
+import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../wailsjs/go/main/App';
+import LogViewer from '../LogViewer';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 export default function PodSummaryTab({ podName }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  // Logs state for the right panel (streaming, last 20 lines)
-  const [logs, setLogs] = useState([]);
-  const [logsFilter, setLogsFilter] = useState('');
-  const logsContainerRef = useRef(null);
   // Events panel state
   const [events, setEvents] = useState([]);
   const [eventsLoading, setEventsLoading] = useState(false);
@@ -76,7 +73,6 @@ export default function PodSummaryTab({ podName }) {
   // Stream logs: subscribe to pod log events and start/stop backend stream
   useEffect(() => {
     if (!podName) return;
-    setLogs([]); // reset on pod change
     const eventName = `podlogs:${podName}`;
     const listener = (line) => {
       const text = String(line ?? '');
@@ -92,12 +88,6 @@ export default function PodSummaryTab({ podName }) {
       try { EventsOff(eventName); } catch {}
     };
   }, [podName]);
-
-  // Auto-scroll logs view to bottom when new lines arrive or filter changes
-  useEffect(() => {
-    const el = logsContainerRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [logs, logsFilter]);
 
   const renderLabels = (labels) => {
     if (!labels || Object.keys(labels).length === 0) return '-';
@@ -206,35 +196,9 @@ export default function PodSummaryTab({ podName }) {
           <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column' }}>
             <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <span style={{ fontWeight: 600 }}>Logs</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input
-                  type="text"
-                  value={logsFilter}
-                  onChange={(e) => setLogsFilter(e.target.value)}
-                  placeholder="Filter logs"
-                  style={{
-                    padding: '6px 10px',
-                    border: '1px solid var(--gh-border, #30363d)',
-                    background: 'var(--gh-input-bg, #21262d)',
-                    color: 'var(--gh-text, #c9d1d9)',
-                    borderRadius: 0,
-                    outline: 'none',
-                    width: 220,
-                    fontSize: 14,
-                    height: 28,
-                  }}
-                />
-              </div>
             </div>
-            <div ref={logsContainerRef} className="scrollbar-hide-y" style={{ flex: 1, overflow: 'auto', padding: 12, background: 'var(--gh-bg-canvas, #0d1117)', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, \'Liberation Mono\', \'Courier New\', monospace', fontSize: 13, lineHeight: 1.4, textAlign: 'left' }}>
-              {(() => {
-                const q = logsFilter.trim().toLowerCase();
-                const filtered = q ? logs.filter(l => String(l).toLowerCase().includes(q)) : logs;
-                if (filtered.length > 0) {
-                  return <pre style={{ margin: 0, whiteSpace: 'pre-wrap', textAlign: 'left' }}>{filtered.join('\n')}</pre>;
-                }
-                return <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>{q ? 'No logs match filter.' : 'No logs yet.'}</div>;
-              })()}
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <LogViewer podName={podName} embedded={true} />
             </div>
           </div>
 

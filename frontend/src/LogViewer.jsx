@@ -12,6 +12,8 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
   const pausedRef = useRef(false);
   const [paused, setPaused] = useState(false);
   const [filter, setFilter] = useState('');
+  const [regexMode, setRegexMode] = useState(false);
+  const [regexError, setRegexError] = useState('');
   const [panelHeight, setPanelHeight] = useState(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('logviewer.height') : null;
     const v = saved ? parseInt(saved, 10) : 320;
@@ -40,11 +42,24 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
     [darkTheme]
   );
 
+  // Updated lineMatches function for regex support
   const lineMatches = useCallback((line) => {
-    const q = filter.trim().toLowerCase();
+    const q = filter.trim();
     if (!q) return true;
-    return line.toLowerCase().includes(q);
-  }, [filter]);
+    if (regexMode) {
+      try {
+        setRegexError('');
+        const re = new RegExp(q, 'i');
+        return re.test(line);
+      } catch (err) {
+        setRegexError('Invalid regex');
+        return true; // Show all lines if regex is invalid
+      }
+    } else {
+      setRegexError('');
+      return line.toLowerCase().includes(q.toLowerCase());
+    }
+  }, [filter, regexMode]);
 
   // Helper: append lines to editor efficiently (expects already filtered lines)
   const appendLines = (lines) => {
@@ -229,9 +244,35 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
     document.addEventListener('mouseup', onUp);
   };
 
+  // Common filter input field with regex toggle and error display
+  const filterInput = (
+    <div style={{ padding: '8px', background: '#222', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <input
+        type="text"
+        value={filter}
+        onChange={e => setFilter(e.target.value)}
+        placeholder={regexMode ? "Regex filter" : "Filter logs"}
+        style={{ flex: 1, padding: '6px 8px', fontSize: 14, background: '#181c20', color: '#e0e0e0', border: '1px solid #444', borderRadius: 4 }}
+      />
+      <label style={{ color: '#e0e0e0', fontSize: 13 }}>
+        <input
+          type="checkbox"
+          checked={regexMode}
+          onChange={e => setRegexMode(e.target.checked)}
+          style={{ marginRight: 4 }}
+        />
+        Regex
+      </label>
+      {regexError && <span style={{ color: '#ff6b6b', fontSize: 13 }}>{regexError}</span>}
+    </div>
+  );
+
   if (embedded) {
     return (
-      <div ref={editorRef} style={{ height: '100%', width: '100%', overflow: 'auto', position: 'relative' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {filterInput}
+        <div ref={editorRef} style={{ height: '100%', width: '100%', overflow: 'auto', position: 'relative' }} />
+      </div>
     );
   }
 
@@ -267,53 +308,40 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#23272e', padding: '8px 16px', borderBottom: '1px solid #353a42' }}>
         <span>Logs: {podName}{container ? ` (${container})` : ''}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <input
-            type="text"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter logs"
-            style={{
-              padding: '6px 10px',
-              border: '1px solid #353a42',
-              background: '#2d323b',
-              color: '#e0e0e0',
-              borderRadius: 0,
-              outline: 'none',
-              width: 220,
-              fontSize: 14,
-            }}
-          />
           <button onClick={() => { if (podName) StopPodLogs(podName); onClose && onClose(); }} style={{ background: 'transparent', border: 'none', color: '#e0e0e0', fontSize: 18, cursor: 'pointer' }}>✕</button>
         </div>
       </div>
-      <div ref={editorRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }} />
-      {/* Floating controls bottom-right */}
-      <div style={{ position: 'absolute', right: 25, bottom: 12, display: 'flex', gap: 10, zIndex: 101 }}>
-        <button
-          onClick={handleDownload}
-          title="Download full log"
-          aria-label="Download full log"
-          style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
-        >
-          💾
-        </button>
-        <button
-          onClick={handleClear}
-          title="Clear log"
-          aria-label="Clear log"
-          style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
-        >
-          ✕
-        </button>
-        <button
-          onClick={() => setPaused(p => !p)}
-          title={paused ? 'Resume auto-update' : 'Pause auto-update'}
-          aria-pressed={paused}
-          aria-label={paused ? 'Resume auto-update' : 'Pause auto-update'}
-          style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
-        >
-          {paused ? '▶' : '⏸'}
-        </button>
+      {filterInput}
+      <div style={{ flex: 1, position: 'relative' }}>
+        <div ref={editorRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }} />
+        {/* Floating controls bottom-right */}
+        <div style={{ position: 'absolute', right: 25, bottom: 12, display: 'flex', gap: 10, zIndex: 101 }}>
+          <button
+            onClick={handleDownload}
+            title="Download full log"
+            aria-label="Download full log"
+            style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
+          >
+            💾
+          </button>
+          <button
+            onClick={handleClear}
+            title="Clear log"
+            aria-label="Clear log"
+            style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
+          >
+            ✕
+          </button>
+          <button
+            onClick={() => setPaused(p => !p)}
+            title={paused ? 'Resume auto-update' : 'Pause auto-update'}
+            aria-pressed={paused}
+            aria-label={paused ? 'Resume auto-update' : 'Pause auto-update'}
+            style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
+          >
+            {paused ? '▶' : '⏸'}
+          </button>
+        </div>
       </div>
     </div>
   );
