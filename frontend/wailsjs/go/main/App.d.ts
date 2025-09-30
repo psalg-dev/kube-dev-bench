@@ -5,6 +5,10 @@ import {context} from '../models';
 
 export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
+export function DeletePod(arg1:string,arg2:string):Promise<void>;
+
+export function ExecCommand(arg1:string):Promise<void>;
+
 export function GetCurrentConfig():Promise<app.AppConfig>;
 
 export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;
@@ -39,9 +43,17 @@ export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
 
+export function PortForwardPod(arg1:string,arg2:string,arg3:number):Promise<string>;
+
+export function ResizeShellSession(arg1:string,arg2:number,arg3:number):Promise<void>;
+
+export function RestartPod(arg1:string,arg2:string):Promise<void>;
+
 export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SelectKubeConfigFile():Promise<string>;
+
+export function SendShellInput(arg1:string,arg2:string):Promise<void>;
 
 export function SetCurrentKubeContext(arg1:string):Promise<void>;
 
@@ -53,11 +65,19 @@ export function SetRememberContext(arg1:boolean):Promise<void>;
 
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
 
+export function ShellPod(arg1:string,arg2:string):Promise<string>;
+
+export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
 export function StartPodPolling():Promise<void>;
+
+export function StartShellSession(arg1:string,arg2:string):Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;
 
 export function StopPodLogs(arg1:string):Promise<void>;
+
+export function StopShellSession(arg1:string):Promise<void>;
 
 export function StreamPodContainerLogs(arg1:string,arg2:string):Promise<void>;
 

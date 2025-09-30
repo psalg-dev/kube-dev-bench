@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, getFilteredRowModel, flexRender } from '@tanstack/react-table';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import * as AppAPI from '../../wailsjs/go/main/App';
 import LogViewer from '../LogViewer';
 import BottomPanel from '../BottomPanel';
 import PodEventsTab from './PodEventsTab';
 import PodYamlTab from './PodYamlTab';
 import PodSummaryTab from './PodSummaryTab';
+import Console from '../Console';
 
 export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [data, setData] = useState([]);
@@ -21,6 +23,8 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [bottomActiveTab, setBottomActiveTab] = useState('logs');
   const [bottomPodName, setBottomPodName] = useState(null);
+  const [consoleCommand, setConsoleCommand] = useState('');
+  const [notification, setNotification] = useState({ message: '', type: '' });
 
   // Subscribe to Wails event for pod updates
   useEffect(() => {
@@ -67,6 +71,16 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
   }, [showMenu]);
+
+  // Close pod row context menu on outside click
+  useEffect(() => {
+    if (openMenuIndex === null) return;
+    function handleClick() {
+      setOpenMenuIndex(null);
+    }
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [openMenuIndex]);
 
   // Prevent menu from closing when clicking inside
   function handleMenuClick(e) {
@@ -155,6 +169,68 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
     setOpenMenuIndex(null);
   };
 
+  // Auto-hide notification after 3 seconds
+  useEffect(() => {
+    if (!notification.message) return;
+    const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    return () => clearTimeout(timer);
+  }, [notification]);
+
+  // Helper to show notification
+  function showNotification(message, type = 'success') {
+    setNotification({ message, type });
+  }
+
+  // Handler for Restart
+  async function handleRestart(podName) {
+    try {
+      await AppAPI.RestartPod(namespace, podName);
+      showNotification(`Pod '${podName}' restarted successfully.`, 'success');
+    } catch (err) {
+      showNotification(`❌ Failed to restart pod '${podName}': ${err.message || err}`, 'error');
+    }
+    handleMenuClose();
+  }
+
+  // Handler for Shell
+  async function handleShell(podName) {
+    try {
+      setBottomPodName(podName);
+      setBottomActiveTab('console');
+      setBottomOpen(true);
+    } catch (err) {
+      showNotification(`❌ Failed to open shell for pod '${podName}': ${err.message || err}`, 'error');
+    }
+    handleMenuClose();
+  }
+
+  // Handler for Port Forward (default port 8080 for demo)
+  async function handlePortForward(podName) {
+    const port = 8080; // You may want to prompt for port
+    try {
+      const cmd = await AppAPI.PortForwardPod(namespace, podName, port);
+      showNotification(`✔️ Port-forward command: ${cmd}`, 'success');
+    } catch (err) {
+      showNotification(`❌ Failed to get port-forward command for pod '${podName}': ${err.message || err}`, 'error');
+    }
+    handleMenuClose();
+  }
+
+  // Handler for Delete
+  async function handleDelete(podName) {
+    if (!window.confirm(`Are you sure you want to delete pod '${podName}'?`)) {
+      handleMenuClose();
+      return;
+    }
+    try {
+      await AppAPI.DeletePod(namespace, podName);
+      showNotification(`✔️ Pod '${podName}' deleted successfully.`, 'success');
+    } catch (err) {
+      showNotification(`❌ Failed to delete pod '${podName}': ${err.message || err}`, 'error');
+    }
+    handleMenuClose();
+  }
+
   const tabs = [
     { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} /> },
     {
@@ -175,11 +251,55 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
       id: 'yaml',
       label: 'YAML',
       content: <PodYamlTab podName={bottomPodName} />
+    },
+    {
+      id: 'console',
+      label: 'Console',
+      content: <Console podExec={true} namespace={namespace} podName={bottomPodName} shell="auto" />
     }
   ];
 
   return (
     <div style={{ position: 'relative', minHeight: 400 }}>
+      {notification.message && (
+        <div style={{
+          position: 'absolute',
+          top: 16,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 100,
+          minWidth: 320,
+          maxWidth: 600,
+          padding: '12px 18px',
+          background: notification.type === 'success' ? '#22863a' : '#d73a49', // less bright green
+          color: '#fff',
+          textAlign: 'left',
+          fontWeight: 500,
+          fontSize: 16,
+          borderRadius: 6,
+          border: notification.type === 'success' ? '1px solid #2ea44f' : '1px solid #cb2431', // green border
+          boxShadow: '0 4px 16px rgba(27,31,35,0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}>
+          <span style={{fontSize: 20}}>{notification.type === 'success' ? '✔️' : '❌'}</span>
+          <span style={{flex: 1}}>{notification.message.replace(/^✔️ |^❌ /, '')}</span>
+          <button
+            onClick={() => setNotification({ message: '', type: '' })}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#fff',
+              fontSize: 18,
+              cursor: 'pointer',
+              marginLeft: 8,
+              opacity: 0.7,
+            }}
+            aria-label="Dismiss notification"
+          >×</button>
+        </div>
+      )}
       <div style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
         <div style={{position:'relative', display:'flex', alignItems:'center'}}>
           <button
@@ -329,6 +449,30 @@ export default function PodOverviewTable({ namespace, onCreateResource }) {
                       onClick={() => handleKubectlLogs(row.original.name)}
                     >
                       kubectl logs
+                    </div>
+                    <div
+                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
+                      onClick={() => handleRestart(row.original.name)}
+                    >
+                      Restart
+                    </div>
+                    <div
+                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
+                      onClick={() => handleShell(row.original.name)}
+                    >
+                      Shell
+                    </div>
+                    <div
+                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
+                      onClick={() => handlePortForward(row.original.name)}
+                    >
+                      Port Forward
+                    </div>
+                    <div
+                      style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15 }}
+                      onClick={() => handleDelete(row.original.name)}
+                    >
+                      Delete
                     </div>
                     <div
                       style={{ padding: '4px 16px', cursor: 'pointer', color: '#888', fontSize: '12px' }}
