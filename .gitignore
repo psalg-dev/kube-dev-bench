@@ -9,3 +9,8 @@ frontend/dist
 /.idea/modules.xml
 /.idea/vcs.xml
 /build/
+/.idea/copilot.data.migration.ask.xml
+/.idea/copilot.data.migration.ask2agent.xml
+/.idea/copilotDiffState.xml
+/nul
+/*.syso
