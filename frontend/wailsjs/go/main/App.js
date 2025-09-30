@@ -6,6 +6,14 @@ export function CreateResource(arg1, arg2) {
   return window['go']['main']['App']['CreateResource'](arg1, arg2);
 }
 
+export function DeletePod(arg1, arg2) {
+  return window['go']['main']['App']['DeletePod'](arg1, arg2);
+}
+
+export function ExecCommand(arg1) {
+  return window['go']['main']['App']['ExecCommand'](arg1);
+}
+
 export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
@@ -32,6 +40,10 @@ export function GetOverview(arg1) {
 
 export function GetPodContainerLog(arg1, arg2) {
   return window['go']['main']['App']['GetPodContainerLog'](arg1, arg2);
+}
+
+export function GetPodContainerPorts(arg1) {
+  return window['go']['main']['App']['GetPodContainerPorts'](arg1);
 }
 
 export function GetPodContainers(arg1) {
@@ -74,12 +86,36 @@ export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
 }
 
+export function ListPortForwards() {
+  return window['go']['main']['App']['ListPortForwards']();
+}
+
+export function PortForwardPod(arg1, arg2, arg3) {
+  return window['go']['main']['App']['PortForwardPod'](arg1, arg2, arg3);
+}
+
+export function PortForwardPodWith(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['PortForwardPodWith'](arg1, arg2, arg3, arg4);
+}
+
+export function ResizeShellSession(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ResizeShellSession'](arg1, arg2, arg3);
+}
+
+export function RestartPod(arg1, arg2) {
+  return window['go']['main']['App']['RestartPod'](arg1, arg2);
+}
+
 export function SaveCustomKubeConfig(arg1, arg2) {
   return window['go']['main']['App']['SaveCustomKubeConfig'](arg1, arg2);
 }
 
 export function SelectKubeConfigFile() {
   return window['go']['main']['App']['SelectKubeConfigFile']();
+}
+
+export function SendShellInput(arg1, arg2) {
+  return window['go']['main']['App']['SendShellInput'](arg1, arg2);
 }
 
 export function SetCurrentKubeContext(arg1) {
@@ -102,8 +138,20 @@ export function SetRememberNamespace(arg1) {
   return window['go']['main']['App']['SetRememberNamespace'](arg1);
 }
 
+export function ShellPod(arg1, arg2) {
+  return window['go']['main']['App']['ShellPod'](arg1, arg2);
+}
+
+export function StartPodExecSession(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
+}
+
 export function StartPodPolling() {
   return window['go']['main']['App']['StartPodPolling']();
+}
+
+export function StartShellSession(arg1, arg2) {
+  return window['go']['main']['App']['StartShellSession'](arg1, arg2);
 }
 
 export function Startup(arg1) {
@@ -112,6 +160,14 @@ export function Startup(arg1) {
 
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
+}
+
+export function StopPortForward(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StopPortForward'](arg1, arg2, arg3);
+}
+
+export function StopShellSession(arg1) {
+  return window['go']['main']['App']['StopShellSession'](arg1);
 }
 
 export function StreamPodContainerLogs(arg1, arg2) {

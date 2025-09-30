@@ -132,6 +132,13 @@ body {
   color: var(--gh-text-secondary, #ccc);
 }
 
+/* Ensure xterm terminal text is left-aligned regardless of global centering */
+.xterm,
+.xterm-rows,
+.xterm-viewport {
+  text-align: left !important;
+}
+
 .form-group {
   margin-bottom: 16px;
 }
