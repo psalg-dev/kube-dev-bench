@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { GetPodEvents } from '../wailsjs/go/main/App';
+import { GetPodEvents } from '../../wailsjs/go/main/App';
 
 export default function PodEventsTab({ namespace, podName }) {
   const [events, setEvents] = useState([]);

@@ -2,7 +2,7 @@ import './style.css';
 import './app.css';
 
 import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile} from '../wailsjs/go/main/App';
-import { renderPodOverviewTable } from './podOverviewReactEntry';
+import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
