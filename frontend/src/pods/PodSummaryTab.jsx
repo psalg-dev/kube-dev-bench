@@ -250,8 +250,8 @@ export default function PodSummaryTab({ podName }) {
                 if (hasEvents) {
                   return (
                     <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
-                      {events.map((e) => {
-                        const key = `${e.lastTimestamp ?? ''}|${e.type ?? ''}|${e.reason ?? ''}|${(e.message || '').slice(0, 24)}`;
+                      {events.map((e, idx) => {
+                        const key = `${e.lastTimestamp ?? ''}|${e.type ?? ''}|${e.reason ?? ''}|${(e.message || '').slice(0, 24)}|${idx}`;
                         return (
                           <li key={key} style={{ borderBottom: '1px solid var(--gh-border, #30363d)', paddingBottom: 8 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>

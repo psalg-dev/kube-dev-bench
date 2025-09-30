@@ -555,7 +555,14 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	var result []PodInfo
 	now := time.Now()
 	for _, pod := range pods.Items {
-		if pod.Status.Phase == "Running" {
+		isJobPod := false
+		for _, owner := range pod.OwnerReferences {
+			if owner.Kind == "Job" {
+				isJobPod = true
+				break
+			}
+		}
+		if pod.Status.Phase == "Running" || isJobPod {
 			uptime := "-"
 			startTimeStr := ""
 			if pod.Status.StartTime != nil {
@@ -582,7 +589,14 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 			for v := range portSet {
 				ports = append(ports, v)
 			}
-			result = append(result, PodInfo{Name: pod.Name, Restarts: restarts, Uptime: uptime, StartTime: startTimeStr, Ports: ports})
+			result = append(result, PodInfo{
+				Name:      pod.Name,
+				Restarts:  restarts,
+				Uptime:    uptime,
+				StartTime: startTimeStr,
+				Ports:     ports,
+				Status:    string(pod.Status.Phase),
+			})
 		}
 	}
 	return result, nil

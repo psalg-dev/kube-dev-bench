@@ -16,7 +16,8 @@ type PodInfo struct {
 	Uptime    string `json:"uptime"`
 	StartTime string `json:"startTime"`
 	// Container ports exposed by this pod (unique, across containers)
-	Ports []int `json:"ports"`
+	Ports  []int  `json:"ports"`
+	Status string `json:"status"`
 }
 
 // KubeConfigInfo represents information about a kubeconfig file

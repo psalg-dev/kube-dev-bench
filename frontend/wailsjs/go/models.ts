@@ -102,6 +102,7 @@ export namespace app {
 	    uptime: string;
 	    startTime: string;
 	    ports: number[];
+	    status: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PodInfo(source);
@@ -114,6 +115,7 @@ export namespace app {
 	        this.uptime = source["uptime"];
 	        this.startTime = source["startTime"];
 	        this.ports = source["ports"];
+	        this.status = source["status"];
 	    }
 	}
 	export class PodSummary {
