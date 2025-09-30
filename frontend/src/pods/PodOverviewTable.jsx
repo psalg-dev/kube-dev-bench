@@ -444,14 +444,21 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   // Dynamically adjust scrollable div height based on BottomPanel
   const scrollDivRef = React.useRef(null);
   const bottomPanelRef = React.useRef(null);
+  const headerRef = React.useRef(null);
   function updateScrollDivHeight() {
-    let baseHeight = 800; // Increased by 30px
+    const windowHeight = window.innerHeight;
+    let headerHeight = 0;
+    if (headerRef.current) {
+      headerHeight = headerRef.current.offsetHeight;
+    }
     let bottomPanelHeight = 0;
     if (bottomOpen && bottomPanelRef.current) {
       bottomPanelHeight = bottomPanelRef.current.offsetHeight;
     }
+    const margin = 20;
+    const newHeight = windowHeight - headerHeight - bottomPanelHeight - margin;
     if (scrollDivRef.current) {
-      scrollDivRef.current.style.height = `${baseHeight - bottomPanelHeight + 70}px`;
+      scrollDivRef.current.style.height = `${newHeight}px`;
     }
   }
   useEffect(() => {
@@ -466,6 +473,20 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
       window.removeEventListener('resize', updateScrollDivHeight);
       if (observer) observer.disconnect();
     };
+  }, [bottomOpen]);
+
+  useEffect(() => {
+    if (!bottomOpen) return;
+    function handleClickOutsidePanel(event) {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (bottomPanelRef.current && !bottomPanelRef.current.contains(target)) {
+        setBottomOpen(false);
+        setBottomPodName(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutsidePanel);
+    return () => document.removeEventListener('mousedown', handleClickOutsidePanel);
   }, [bottomOpen]);
 
   return (
@@ -573,7 +594,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
         </div>
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
-        <table id="pod-table-header" style={{ width: '100%', tableLayout: 'fixed' }}>
+        <table id="pod-table-header" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
           <thead>
           {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
@@ -618,7 +639,6 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
           ))}
           </thead>
         </table>
-        {/* Scrollable container for table body only, height set by ref and listener */}
         <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '5px' }}>
           <table style={{ width: '100%', tableLayout: 'fixed' }}>
             <tbody>
@@ -630,6 +650,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
             {visibleRows.map((row, i) => (
                 <tr
                     key={row.id}
+                    className="pod-row"
                     onClick={() => openLogsPanel(row.original.name)}
                     style={{
                       background: (visibleRowStart + i) % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
