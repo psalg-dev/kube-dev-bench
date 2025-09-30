@@ -125,6 +125,7 @@ export namespace app {
 	    created: any;
 	    labels: Record<string, string>;
 	    status: string;
+	    ports: number[];
 	
 	    static createFrom(source: any = {}) {
 	        return new PodSummary(source);
@@ -137,6 +138,7 @@ export namespace app {
 	        this.created = this.convertValues(source["created"], null);
 	        this.labels = source["labels"];
 	        this.status = source["status"];
+	        this.ports = source["ports"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

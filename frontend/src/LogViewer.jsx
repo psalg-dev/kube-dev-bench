@@ -1,8 +1,13 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import { EventsOn, EventsOff } from '../wailsjs/runtime/runtime';
+import { EventsOn, EventsOff } from '../wailsjs/runtime';
 import { StreamPodLogs, StopPodLogs, GetPodLog, StreamPodContainerLogs, GetPodContainerLog } from '../wailsjs/go/main/App';
+
+// Performance constants
+const MAX_LINES = 10000; // Maximum lines to keep in memory
+const BATCH_SIZE = 100; // Lines to process in batches
+const UPDATE_INTERVAL = 100; // ms between batch updates
 
 export default function LogViewer({ podName, onClose, embedded = false, container = null }) {
   const editorRef = useRef(null);
@@ -10,10 +15,12 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
   const allLinesRef = useRef([]);       // all received lines (for filtering)
   const pendingLinesRef = useRef([]);   // buffer while paused or before editor ready
   const pausedRef = useRef(false);
+  const batchTimeoutRef = useRef(null);
   const [paused, setPaused] = useState(false);
   const [filter, setFilter] = useState('');
   const [regexMode, setRegexMode] = useState(false);
   const [regexError, setRegexError] = useState('');
+  const [lineCount, setLineCount] = useState(0);
   const [panelHeight, setPanelHeight] = useState(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('logviewer.height') : null;
     const v = saved ? parseInt(saved, 10) : 320;
@@ -38,11 +45,20 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
       EditorView.editable.of(false),
       EditorState.readOnly.of(true),
       EditorView.lineWrapping,
+      // Enable virtual scrolling for better performance
+      EditorView.theme({
+        '.cm-scroller': {
+          // Optimize scrolling performance
+          'scroll-behavior': 'auto',
+        }
+      }),
+      // Optimize for large documents
+      EditorState.allowMultipleSelections.of(false),
     ],
     [darkTheme]
   );
 
-  // Updated lineMatches function for regex support
+  // Optimized line matching with early exit
   const lineMatches = useCallback((line) => {
     const q = filter.trim();
     if (!q) return true;
@@ -61,54 +77,100 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
     }
   }, [filter, regexMode]);
 
-  // Helper: append lines to editor efficiently (expects already filtered lines)
-  const appendLines = (lines) => {
-    if (!viewRef.current || !lines || lines.length === 0) return;
-    const insert = (Array.isArray(lines) ? lines : [lines]).join('\n') + '\n';
-    const cmView = viewRef.current;
-    cmView.dispatch({ changes: { from: cmView.state.doc.length, insert } });
-    // autoscroll when not paused
-    if (!pausedRef.current && editorRef.current) {
-      setTimeout(() => {
-        const scroller = editorRef.current.querySelector('.cm-scroller');
-        if (scroller) scroller.scrollTop = scroller.scrollHeight;
-      }, 0);
+  // Memory management: trim old lines when exceeding limit
+  const trimLines = useCallback(() => {
+    if (allLinesRef.current.length > MAX_LINES) {
+      const excess = allLinesRef.current.length - MAX_LINES;
+      allLinesRef.current.splice(0, excess);
+      setLineCount(allLinesRef.current.length);
+      return true;
     }
-  };
+    return false;
+  }, []);
 
-  const appendFiltered = (lines) => {
-    const arr = Array.isArray(lines) ? lines : [lines];
-    const filtered = arr.filter(lineMatches);
-    if (filtered.length) appendLines(filtered);
-  };
+  // Batched update function for better performance
+  const processBatch = useCallback(() => {
+    if (!viewRef.current || pendingLinesRef.current.length === 0) return;
 
-  // Flush buffer helper
+    const batch = pendingLinesRef.current.splice(0, BATCH_SIZE);
+    allLinesRef.current.push(...batch);
+
+    // Trim if necessary
+    const wasTrimmed = trimLines();
+
+    // Only update the editor if not paused
+    if (!pausedRef.current) {
+      // If we trimmed, rebuild the entire document for consistency
+      if (wasTrimmed) {
+        const filtered = allLinesRef.current.filter(lineMatches);
+        const doc = filtered.length ? filtered.join('\n') + '\n' : '';
+        const cmView = viewRef.current;
+        cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: doc } });
+      } else {
+        // Otherwise, just append the new filtered lines
+        const filtered = batch.filter(lineMatches);
+        if (filtered.length) {
+          const insert = filtered.join('\n') + '\n';
+          const cmView = viewRef.current;
+          cmView.dispatch({ changes: { from: cmView.state.doc.length, insert } });
+        }
+      }
+
+      // Auto-scroll when not paused
+      if (editorRef.current) {
+        requestAnimationFrame(() => {
+          const scroller = editorRef.current.querySelector('.cm-scroller');
+          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+        });
+      }
+    }
+
+    setLineCount(allLinesRef.current.length);
+
+    // Continue processing if there are more pending lines
+    if (pendingLinesRef.current.length > 0) {
+      batchTimeoutRef.current = setTimeout(processBatch, UPDATE_INTERVAL);
+    } else {
+      batchTimeoutRef.current = null;
+    }
+  }, [lineMatches, trimLines]);
+
+  // Optimized flush pending with batching
   const flushPending = useCallback(() => {
-    if (!viewRef.current) return;
-    if (pendingLinesRef.current.length) {
-      const lines = pendingLinesRef.current.splice(0, pendingLinesRef.current.length);
-      appendFiltered(lines);
+    if (!viewRef.current || pendingLinesRef.current.length === 0) return;
+
+    // Clear any existing batch timeout
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+      batchTimeoutRef.current = null;
     }
-  }, [appendFiltered]);
+
+    // Start batch processing
+    processBatch();
+  }, [processBatch]);
 
   // Subscribe to backend events for the current pod (no stream control here)
   useEffect(() => {
     if (!podName) return;
     const eventName = `podlogs:${podName}`;
     const listener = (line) => {
-      allLinesRef.current.push(line);
-      if (pausedRef.current || !viewRef.current) {
-        pendingLinesRef.current.push(line);
-      } else {
-        appendFiltered([line]);
+      pendingLinesRef.current.push(line);
+
+      // Start batch processing if not already running
+      // Note: We process batches even when paused to keep the buffer managed
+      if (viewRef.current && !batchTimeoutRef.current) {
+        batchTimeoutRef.current = setTimeout(processBatch, UPDATE_INTERVAL);
       }
     };
     EventsOn(eventName, listener);
     return () => {
       EventsOff(eventName);
+      if (batchTimeoutRef.current) {
+        clearTimeout(batchTimeoutRef.current);
+        batchTimeoutRef.current = null;
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [podName, lineMatches]);
+  }, [podName, processBatch]);
 
   // Control backend stream lifecycle based on paused, podName and container
   useEffect(() => {
@@ -134,27 +196,42 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
     cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: '' } });
     allLinesRef.current = [];
     pendingLinesRef.current = [];
+    setLineCount(0);
+
+    // Clear any pending batch processing
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+      batchTimeoutRef.current = null;
+    }
   }, [podName, container]);
 
   // When paused switched to false, flush buffered lines (respecting filter)
   useEffect(() => {
     if (!paused) flushPending();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paused]);
+  }, [paused, flushPending]);
 
-  // Re-render full content when filter changes
+  // Optimized re-render when filter changes with debouncing
   useEffect(() => {
     if (!viewRef.current) return;
-    const cmView = viewRef.current;
-    const filtered = allLinesRef.current.filter(lineMatches);
-    const doc = filtered.length ? filtered.join('\n') + '\n' : '';
-    cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: doc } });
-    if (!pausedRef.current && editorRef.current) {
-      setTimeout(() => {
-        const scroller = editorRef.current.querySelector('.cm-scroller');
-        if (scroller) scroller.scrollTop = scroller.scrollHeight;
-      }, 0);
-    }
+
+    // Use requestAnimationFrame to debounce filter updates
+    const timeoutId = setTimeout(() => {
+      const cmView = viewRef.current;
+      if (!cmView) return;
+
+      const filtered = allLinesRef.current.filter(lineMatches);
+      const doc = filtered.length ? filtered.join('\n') + '\n' : '';
+      cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: doc } });
+
+      if (!pausedRef.current && editorRef.current) {
+        requestAnimationFrame(() => {
+          const scroller = editorRef.current.querySelector('.cm-scroller');
+          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+        });
+      }
+    }, 150); // 150ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [filter, lineMatches]);
 
   // Initialize CodeMirror only once
@@ -183,10 +260,18 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [extensions]);
 
-  // Clear button handler
+  // Clear button handler with performance optimization
   const handleClear = () => {
     allLinesRef.current = [];
     pendingLinesRef.current = [];
+    setLineCount(0);
+
+    // Clear any pending batch processing
+    if (batchTimeoutRef.current) {
+      clearTimeout(batchTimeoutRef.current);
+      batchTimeoutRef.current = null;
+    }
+
     if (viewRef.current) {
       const cmView = viewRef.current;
       cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: '' } });
@@ -196,7 +281,7 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
   const handleDownload = async () => {
     try {
       if (!podName) return;
-      let content = '';
+      let content;
       if (container) content = await GetPodContainerLog(podName, container);
       else content = await GetPodLog(podName);
       const blob = new Blob([content ?? ''], { type: 'text/plain;charset=utf-8' });
@@ -264,6 +349,10 @@ export default function LogViewer({ podName, onClose, embedded = false, containe
         Regex
       </label>
       {regexError && <span style={{ color: '#ff6b6b', fontSize: 13 }}>{regexError}</span>}
+      <span style={{ color: '#888', fontSize: 12 }}>
+        {lineCount > 0 && `${lineCount.toLocaleString()} lines`}
+        {lineCount >= MAX_LINES && ' (max)'}
+      </span>
     </div>
   );
 

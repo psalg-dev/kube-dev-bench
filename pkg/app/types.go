@@ -45,6 +45,7 @@ type PodSummary struct {
 	Created   time.Time         `json:"created"`
 	Labels    map[string]string `json:"labels"`
 	Status    string            `json:"status"`
+	Ports     []int             `json:"ports"`
 }
 
 // PortForwardInfo describes an active port-forward session for UI updates

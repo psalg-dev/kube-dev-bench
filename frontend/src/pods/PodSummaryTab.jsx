@@ -173,6 +173,24 @@ export default function PodSummaryTab({ podName }) {
                     {renderLabels(data.labels)}
                   </div>
 
+                  {/* Ports */}
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Ports</div>
+                    <div>
+                      {data.ports && data.ports.length > 0 ? (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                          {data.ports.map((port, i) => (
+                            <span key={i} style={{ background: 'rgba(46,160,67,0.15)', border: '1px solid #30363d', padding: '2px 6px', borderRadius: 0, color: '#3fb950' }}>
+                              {port}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        '-'
+                      )}
+                    </div>
+                  </div>
+
                   {/* Pod name */}
                   <div>
                     <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Pod name</div>

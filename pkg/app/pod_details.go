@@ -103,12 +103,24 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 		return out, err
 	}
 	status := string(pod.Status.Phase)
+
+	// Extract container ports
+	ports := []int{}
+	for _, c := range pod.Spec.Containers {
+		for _, p := range c.Ports {
+			if p.ContainerPort > 0 {
+				ports = append(ports, int(p.ContainerPort))
+			}
+		}
+	}
+
 	out = PodSummary{
 		Name:      pod.Name,
 		Namespace: pod.Namespace,
 		Created:   pod.CreationTimestamp.Time,
 		Labels:    pod.Labels,
 		Status:    status,
+		Ports:     ports,
 	}
 	return out, nil
 }
