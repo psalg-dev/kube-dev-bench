@@ -1,16 +1,7 @@
 build/bin
 node_modules
 frontend/dist
-/.idea/.gitignore
-/.idea/copilot.data.migration.agent.xml
-/.idea/copilot.data.migration.edit.xml
-/.idea/gowails.iml
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/vcs.xml
+/.idea
 /build/
-/.idea/copilot.data.migration.ask.xml
-/.idea/copilot.data.migration.ask2agent.xml
-/.idea/copilotDiffState.xml
 /nul
 /*.syso
