@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, forwardRef } from 'react';
 
-export default function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null }) {
+const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null }, ref) {
   const [height, setHeight] = useState(() => {
     try { return Number(localStorage.getItem('bottompanel.height')) || 360; } catch { return 360; }
   });
@@ -36,7 +36,7 @@ export default function BottomPanel({ open, onClose, tabs = [], activeTab, onTab
   };
 
   return (
-    <div style={{
+    <div ref={ref} style={{
       position: 'fixed', left: 0, right: 0, bottom: 0,
       height,
       background: 'var(--gh-bg, #0d1117)',
@@ -91,4 +91,6 @@ export default function BottomPanel({ open, onClose, tabs = [], activeTab, onTab
       </div>
     </div>
   );
-}
+});
+
+export default BottomPanel;

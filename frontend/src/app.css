@@ -174,12 +174,8 @@ body, #layout {
 /* Main content area optimization */
 #maincontent {
   flex: 1;
-  height: calc(100vh - var(--footer-height));
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  position: relative;
-  padding: var(--main-padding);
 }
 
 /* Result area containment */

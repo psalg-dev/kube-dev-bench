@@ -1,14 +1,14 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
-  useReactTable,
-  getCoreRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
   flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
 } from '@tanstack/react-table';
 import * as AppAPI from '../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import {EventsOff, EventsOn} from '../../wailsjs/runtime';
 import LogViewer from '../LogViewer';
 import PodSummaryTab from './PodSummaryTab';
 import PodEventsTab from './PodEventsTab';
@@ -425,9 +425,59 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     return Object.values(m).some(arr => Array.isArray(arr) && arr.length > 0);
   }
 
+  const ROW_HEIGHT = 44; // px, adjust to match your row height
+  const VISIBLE_COUNT = 20; // number of rows to show at once
+  const [scrollTop, setScrollTop] = useState(0);
+
+  // Calculate which rows to show
+  const totalRows = table.getRowModel().rows.length;
+  const visibleRowStart = Math.floor(scrollTop / ROW_HEIGHT);
+  const visibleRows = table.getRowModel().rows.slice(visibleRowStart, visibleRowStart + VISIBLE_COUNT);
+  const topPadHeight = visibleRowStart * ROW_HEIGHT;
+  const bottomPadHeight = Math.max(0, (totalRows - (visibleRowStart + VISIBLE_COUNT)) * ROW_HEIGHT);
+
+  // Scroll handler
+  const handleScroll = (e) => {
+    setScrollTop(e.target.scrollTop);
+  };
+
+  // Dynamically adjust scrollable div height based on BottomPanel
+  const scrollDivRef = React.useRef(null);
+  const bottomPanelRef = React.useRef(null);
+  function updateScrollDivHeight() {
+    let baseHeight = 800; // Increased by 30px
+    let bottomPanelHeight = 0;
+    if (bottomOpen && bottomPanelRef.current) {
+      bottomPanelHeight = bottomPanelRef.current.offsetHeight;
+    }
+    if (scrollDivRef.current) {
+      scrollDivRef.current.style.height = `${baseHeight - bottomPanelHeight + 70}px`;
+    }
+  }
+  useEffect(() => {
+    window.addEventListener('resize', updateScrollDivHeight);
+    updateScrollDivHeight();
+    let observer;
+    if (bottomOpen && bottomPanelRef.current) {
+      observer = new window.ResizeObserver(updateScrollDivHeight);
+      observer.observe(bottomPanelRef.current);
+    }
+    return () => {
+      window.removeEventListener('resize', updateScrollDivHeight);
+      if (observer) observer.disconnect();
+    };
+  }, [bottomOpen]);
+
   return (
     <>
-      <div style={{ position: 'relative', height: '100%', width: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+      <div style={{
+        position: 'relative',
+        height: '100vh',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0
+      }}>
         {notification.message && (
           <div style={{
             position: 'absolute',
@@ -522,174 +572,249 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
           />
         </div>
         {loading && <div>Loading...</div>}
-        <div style={{ flex: 1, height: '100%', width: '100%', overflowY: 'auto' }}>
-          <table className="pods-table" style={{
-            borderCollapse: 'collapse',
-            width: '100%',
-            background: 'var(--gh-table-bg, #23272e)',
-            borderRadius: 0,
-            boxShadow: 'none',
-            tableLayout: 'fixed',
-            height: '100%'
-          }}>
-            <thead>
-              {table.getHeaderGroups().map(headerGroup => (
-                <tr key={headerGroup.id} style={{ background: 'var(--gh-table-header-bg, #2d323b)' }}>
-                  {headerGroup.headers.map(header => (
+        {/* Fixed header table */}
+        <table id="pod-table-header" style={{ width: '100%', tableLayout: 'fixed' }}>
+          <thead>
+          {table.getHeaderGroups().map(headerGroup => (
+              <tr key={headerGroup.id}>
+                {headerGroup.headers.map(header => (
                     <th
-                      key={header.id}
-                      onClick={header.column.getToggleSortingHandler()}
-                      style={{
-                        cursor: 'pointer',
-                        padding: '10px 16px',
-                        borderBottom: '2px solid #353a42',
-                        textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
-                        fontWeight: 600,
-                        fontSize: 15,
-                        color: 'var(--gh-table-header-text, #fff)',
-                        background: 'inherit',
-                        userSelect: 'none',
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 2
-                      }}
-                    >
+                        key={header.id}
+                        onClick={header.column.getToggleSortingHandler()}
+                        style={{
+                          background: 'var(--gh-table-header-bg, #2d323b)',
+                      color: 'var(--gh-table-header-text, #fff)',
+                          borderBottom: '2px solid #353a42',
+                          padding: '10px 16px',
+                          fontWeight: 600,
+                          fontSize: 15,
+                          textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
+                      userSelect: 'none',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
+                    }}
+                  >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
-                    </th>
-                  ))}
-                  <th
+                  </th>
+                ))}
+                <th
                     style={{
-                      width: '40px',
+                      background: 'var(--gh-table-header-bg, #2d323b)',
+                      color: 'var(--gh-table-header-text, #fff)',
                       borderBottom: '2px solid #353a42',
-                      background: 'inherit',
-                      textAlign: 'right',
+                      padding: '10px 16px',
                       fontWeight: 600,
                       fontSize: 18,
-                      color: 'var(--gh-table-header-text, #fff)',
+                      textAlign: 'right',
                       userSelect: 'none',
-                      position: 'sticky',
-                      top: 0,
-                      zIndex: 2
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
                     }}
                     aria-label="Actions"
                     title="Actions"
-                  >
-                    <span style={{ opacity: 0.7, fontSize: 20, verticalAlign: 'middle' }}>⋮</span>
-                  </th>
-                </tr>
-              ))}
-            </thead>
+                >
+                  <span style={{opacity: 0.7, fontSize: 20, verticalAlign: 'middle'}}>⋮</span>
+                </th>
+              </tr>
+          ))}
+          </thead>
+        </table>
+        {/* Scrollable container for table body only, height set by ref and listener */}
+        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '5px' }}>
+          <table style={{ width: '100%', tableLayout: 'fixed' }}>
             <tbody>
-              {table.getRowModel().rows.map((row, i) => (
+            {topPadHeight > 0 && (
+                <tr style={{height: topPadHeight}}>
+                  <td colSpan={columns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                </tr>
+            )}
+            {visibleRows.map((row, i) => (
                 <tr
-                  key={row.id}
-                  onClick={() => openLogsPanel(row.original.name)}
-                  style={{
-                    background: i % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
-                    borderBottom: '1px solid #353a42',
-                    transition: 'background 0.2s',
-                  }}
+                    key={row.id}
+                    onClick={() => openLogsPanel(row.original.name)}
+                    style={{
+                      background: (visibleRowStart + i) % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
+                      borderBottom: '1px solid #353a42',
+                      transition: 'background 0.2s',
+                      height: ROW_HEIGHT
+                    }}
                 >
                   {row.getVisibleCells().map(cell => (
-                    <td
-                      key={cell.id}
-                      style={{
-                        padding: '10px 16px',
-                        fontSize: 14,
-                        color: 'var(--gh-table-text, #e0e0e0)',
-                        borderBottom: '1px solid #353a42',
-                        textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
-                        background: 'inherit',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
-                  <td style={{ position: 'relative', textAlign: 'right' }}>
-                    <button onClick={(e) => { e.stopPropagation(); handleMenuClickRow(i); }} style={{ padding: '2px 8px', background: 'transparent', border: 'none', color: 'var(--gh-table-header-text, #fff)', cursor: 'pointer' }}>...</button>
-                    {openMenuIndex === i && (
-                      <div
-                        className="menu-content"
-                        style={{
-                          position: 'absolute',
-                          right: 0,
-                          top: '100%',
-                          background: 'var(--gh-table-header-bg, #2d323b)',
-                          border: '1px solid #353a42',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                          zIndex: 10,
-                          minWidth: 180,
-                          textAlign: 'left',
-                        }}
-                        onClick={(e) => e.stopPropagation()}
+                      <td
+                          key={cell.id}
+                          style={{
+                            padding: '10px 16px',
+                            fontSize: 14,
+                            color: 'var(--gh-table-text, #e0e0e0)',
+                            borderBottom: '1px solid #353a42',
+                            textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
+                            background: 'inherit',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                          }}
                       >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                  ))}
+                  <td style={{position: 'relative', textAlign: 'right'}}>
+                    <button onClick={(e) => {
+                      e.stopPropagation();
+                      handleMenuClickRow(visibleRowStart + i);
+                    }} style={{
+                      padding: '2px 8px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--gh-table-header-text, #fff)',
+                      cursor: 'pointer'
+                    }}>...
+                    </button>
+                    {openMenuIndex === (visibleRowStart + i) && (
                         <div
-                          className="context-menu-item"
-                          style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
-                          onClick={() => handleKubectlLogs(row.original.name)}
+                            className="menu-content"
+                            style={{
+                              position: 'absolute',
+                              right: 0,
+                              top: '100%',
+                              background: 'var(--gh-table-header-bg, #2d323b)',
+                              border: '1px solid #353a42',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                              zIndex: 10,
+                              minWidth: 180,
+                              textAlign: 'left',
+                            }}
+                            onClick={(e) => e.stopPropagation()}
                         >
-                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>📜</span>
-                          <span>Logs</span>
-                        </div>
-                        <div
-                          className="context-menu-item"
-                          style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
-                          onClick={() => handleRestart(row.original.name)}
-                        >
-                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🔄</span>
-                          <span>Restart</span>
-                        </div>
-                        <div
-                          className="context-menu-item"
-                          style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
-                          onClick={() => handleShell(row.original.name)}
-                        >
-                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>💻</span>
-                          <span>Shell</span>
-                        </div>
-                        <div
-                          className="context-menu-item"
-                          style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
-                          onClick={() => handlePortForward(row.original.name)}
-                        >
-                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🔌</span>
-                          <span>Port Forward</span>
-                        </div>
-                        {hasActivePF(row.original.name) && (
                           <div
-                            className="context-menu-item"
-                            style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
-                            onClick={() => handleStopPortForward(row.original.name)}
+                              className="context-menu-item"
+                              style={{
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                color: '#fff',
+                                fontSize: 15,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                              }}
+                              onClick={() => handleKubectlLogs(row.original.name)}
                           >
-                            <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🛑</span>
-                            <span>Stop Port Forward</span>
+                            <span aria-hidden="true"
+                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>📜</span>
+                            <span>Logs</span>
                           </div>
-                        )}
-                        <div
-                          className="context-menu-item"
-                          style={{ padding: '8px 16px', cursor: 'pointer', color: '#fff', fontSize: 15, display: 'flex', alignItems: 'center', gap: 8 }}
-                          onClick={() => handleDelete(row.original.name)}
-                        >
-                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>🗑️</span>
-                          <span>Delete</span>
+                          <div
+                              className="context-menu-item"
+                              style={{
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                color: '#fff',
+                                fontSize: 15,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                              }}
+                              onClick={() => handleRestart(row.original.name)}
+                          >
+                            <span aria-hidden="true"
+                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔄</span>
+                            <span>Restart</span>
+                          </div>
+                          <div
+                              className="context-menu-item"
+                              style={{
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                color: '#fff',
+                                fontSize: 15,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                              }}
+                              onClick={() => handleShell(row.original.name)}
+                          >
+                            <span aria-hidden="true"
+                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>💻</span>
+                            <span>Shell</span>
+                          </div>
+                          <div
+                              className="context-menu-item"
+                              style={{
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                color: '#fff',
+                                fontSize: 15,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                              }}
+                              onClick={() => handlePortForward(row.original.name)}
+                          >
+                            <span aria-hidden="true"
+                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔌</span>
+                            <span>Port Forward</span>
+                          </div>
+                          {hasActivePF(row.original.name) && (
+                              <div
+                                  className="context-menu-item"
+                                  style={{
+                                    padding: '8px 16px',
+                                    cursor: 'pointer',
+                                    color: '#fff',
+                                    fontSize: 15,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8
+                                  }}
+                                  onClick={() => handleStopPortForward(row.original.name)}
+                              >
+                                <span aria-hidden="true"
+                                      style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🛑</span>
+                                <span>Stop Port Forward</span>
+                              </div>
+                          )}
+                          <div
+                              className="context-menu-item"
+                              style={{
+                                padding: '8px 16px',
+                                cursor: 'pointer',
+                                color: '#fff',
+                                fontSize: 15,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                              }}
+                              onClick={() => handleDelete(row.original.name)}
+                          >
+                            <span aria-hidden="true"
+                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🗑️</span>
+                            <span>Delete</span>
+                          </div>
+                          <div
+                              className="context-menu-item"
+                              style={{
+                                padding: '4px 16px',
+                                cursor: 'pointer',
+                                color: '#888',
+                                fontSize: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8
+                              }}
+                              onClick={handleMenuClose}
+                          >
+                            <span aria-hidden="true"
+                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>✖️</span>
+                            <span>Close</span>
+                          </div>
                         </div>
-                        <div
-                          className="context-menu-item"
-                          style={{ padding: '4px 16px', cursor: 'pointer', color: '#888', fontSize: '12px', display: 'flex', alignItems: 'center', gap: 8 }}
-                          onClick={handleMenuClose}
-                        >
-                          <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>✖️</span>
-                          <span>Close</span>
-                        </div>
-                      </div>
                     )}
                   </td>
                 </tr>
               ))}
+            {bottomPadHeight > 0 && (
+                <tr style={{height: bottomPadHeight}}>
+                  <td colSpan={columns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                </tr>
+            )}
             </tbody>
           </table>
         </div>
@@ -701,14 +826,17 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
           </div>
         )}
 
-        {/* Bottom panel with tabs */}
-        <BottomPanel
-          open={bottomOpen}
-          onClose={() => { setBottomOpen(false); setBottomPodName(null); }}
-          tabs={tabs}
-          activeTab={bottomActiveTab}
-          onTabChange={(id) => setBottomActiveTab(id)}
-        />
+        {/* Bottom panel with tabs - only render if open, and use ref */}
+        {bottomOpen && (
+          <BottomPanel
+            ref={bottomPanelRef}
+            open={bottomOpen}
+            onClose={() => { setBottomOpen(false); setBottomPodName(null); }}
+            tabs={tabs}
+            activeTab={bottomActiveTab}
+            onTabChange={(id) => setBottomActiveTab(id)}
+          />
+        )}
         <PortForwardDialog
           open={showPFDialog}
           namespace={namespace}
