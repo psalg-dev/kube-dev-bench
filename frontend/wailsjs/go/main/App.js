@@ -102,12 +102,20 @@ export function GetRememberNamespace() {
   return window['go']['main']['App']['GetRememberNamespace']();
 }
 
+export function GetReplicaSets(arg1) {
+  return window['go']['main']['App']['GetReplicaSets'](arg1);
+}
+
 export function GetRunningPods(arg1) {
   return window['go']['main']['App']['GetRunningPods'](arg1);
 }
 
 export function GetSecretData(arg1) {
   return window['go']['main']['App']['GetSecretData'](arg1);
+}
+
+export function GetStatefulSets(arg1) {
+  return window['go']['main']['App']['GetStatefulSets'](arg1);
 }
 
 export function Greet(arg1) {
@@ -190,8 +198,16 @@ export function StartPodPolling() {
   return window['go']['main']['App']['StartPodPolling']();
 }
 
+export function StartReplicaSetPolling() {
+  return window['go']['main']['App']['StartReplicaSetPolling']();
+}
+
 export function StartShellSession(arg1, arg2) {
   return window['go']['main']['App']['StartShellSession'](arg1, arg2);
+}
+
+export function StartStatefulSetPolling() {
+  return window['go']['main']['App']['StartStatefulSetPolling']();
 }
 
 export function Startup(arg1) {

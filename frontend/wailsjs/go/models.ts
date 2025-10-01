@@ -410,6 +410,50 @@ export namespace app {
 	        this.remote = source["remote"];
 	    }
 	}
+	export class ReplicaSetInfo {
+	    name: string;
+	    namespace: string;
+	    replicas: number;
+	    ready: number;
+	    age: string;
+	    image: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReplicaSetInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.replicas = source["replicas"];
+	        this.ready = source["ready"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	    }
+	}
+	export class StatefulSetInfo {
+	    name: string;
+	    namespace: string;
+	    replicas: number;
+	    ready: number;
+	    age: string;
+	    image: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new StatefulSetInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.replicas = source["replicas"];
+	        this.ready = source["ready"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	    }
+	}
 
 }
 

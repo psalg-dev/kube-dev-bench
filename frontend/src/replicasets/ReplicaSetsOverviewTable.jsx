@@ -1,10 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-
-const mockReplicaSets = [
-  { name: 'frontend-rs', namespace: 'default', replicas: 4, ready: 4, age: '20d', image: 'frontend:v1.0' },
-  { name: 'backend-rs', namespace: 'dev', replicas: 2, ready: 2, age: '8d', image: 'backend:v2.1' },
-];
+import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -55,7 +52,13 @@ metadata:
   namespace: ${row.namespace}
 spec:
   replicas: ${row.replicas}
+  selector:
+    matchLabels:
+      app: ${row.name}
   template:
+    metadata:
+      labels:
+        app: ${row.name}
     spec:
       containers:
       - name: ${row.name}
@@ -71,16 +74,66 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function ReplicaSetsOverviewTable() {
+export default function ReplicaSetsOverviewTable({ namespace }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Initial fetch by namespace
+  useEffect(() => {
+    if (!namespace) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoading(true);
+        const data = await AppAPI.GetReplicaSets(namespace);
+        if (cancelled) return;
+        setItems(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [namespace]);
+
+  // Live updates
+  useEffect(() => {
+    const onUpdate = (list) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        const filtered = namespace ? arr.filter(x => (x?.namespace || x?.Namespace) === namespace) : arr;
+        const norm = filtered.map(x => ({
+          name: x.name ?? x.Name,
+          namespace: x.namespace ?? x.Namespace,
+          replicas: x.replicas ?? x.Replicas ?? 0,
+          ready: x.ready ?? x.Ready ?? 0,
+          age: x.age ?? x.Age ?? '-',
+          image: x.image ?? x.Image ?? '',
+        }));
+        setItems(norm);
+      } catch (_) {
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    EventsOn('replicasets:update', onUpdate);
+    return () => { try { EventsOff('replicasets:update'); } catch (_) {} };
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
-      data={mockReplicaSets}
+      data={items}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Replica Sets"
       resourceKind="ReplicaSet"
+      namespace={namespace}
+      loading={loading}
     />
   );
 }

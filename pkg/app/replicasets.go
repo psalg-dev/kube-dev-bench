@@ -1,0 +1,85 @@
+package app
+
+import (
+	"fmt"
+	"time"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
+)
+
+// GetReplicaSets returns all replicasets in a namespace
+func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentKubeContext == "" {
+		return nil, fmt.Errorf("Kein Kontext gewählt")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	list, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var result []ReplicaSetInfo
+	now := time.Now()
+
+	for _, rs := range list.Items {
+		age := "-"
+		if rs.CreationTimestamp.Time != (time.Time{}) {
+			dur := now.Sub(rs.CreationTimestamp.Time)
+			age = formatDuration(dur)
+		}
+
+		image := ""
+		if len(rs.Spec.Template.Spec.Containers) > 0 {
+			image = rs.Spec.Template.Spec.Containers[0].Image
+		}
+
+		replicas := int32(0)
+		if rs.Spec.Replicas != nil {
+			replicas = *rs.Spec.Replicas
+		}
+
+		result = append(result, ReplicaSetInfo{
+			Name:      rs.Name,
+			Namespace: rs.Namespace,
+			Replicas:  replicas,
+			Ready:     rs.Status.ReadyReplicas,
+			Age:       age,
+			Image:     image,
+		})
+	}
+
+	return result, nil
+}
+
+// StartReplicaSetPolling emits replicasets:update events periodically with the current replicaset list
+func (a *App) StartReplicaSetPolling() {
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			if a.ctx == nil || a.currentNamespace == "" {
+				continue
+			}
+			list, err := a.GetReplicaSets(a.currentNamespace)
+			if err == nil {
+				wailsRuntime.EventsEmit(a.ctx, "replicasets:update", list)
+			}
+		}
+	}()
+}

@@ -1,10 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-
-const mockStatefulSets = [
-  { name: 'db-statefulset', namespace: 'default', replicas: 3, ready: 3, age: '30d', image: 'postgres:13' },
-  { name: 'cache-statefulset', namespace: 'dev', replicas: 2, ready: 2, age: '15d', image: 'redis:6' },
-];
+import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -71,16 +68,66 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function StatefulSetsOverviewTable() {
+export default function StatefulSetsOverviewTable({ namespace }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Initial fetch by namespace
+  useEffect(() => {
+    if (!namespace) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setLoading(true);
+        const data = await AppAPI.GetStatefulSets(namespace);
+        if (cancelled) return;
+        setItems(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [namespace]);
+
+  // Live updates
+  useEffect(() => {
+    const onUpdate = (list) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        const filtered = namespace ? arr.filter(x => (x?.namespace || x?.Namespace) === namespace) : arr;
+        const norm = filtered.map(x => ({
+          name: x.name ?? x.Name,
+          namespace: x.namespace ?? x.Namespace,
+          replicas: x.replicas ?? x.Replicas ?? 0,
+          ready: x.ready ?? x.Ready ?? 0,
+          age: x.age ?? x.Age ?? '-',
+          image: x.image ?? x.Image ?? '',
+        }));
+        setItems(norm);
+      } catch (_) {
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    EventsOn('statefulsets:update', onUpdate);
+    return () => { try { EventsOff('statefulsets:update'); } catch (_) {} };
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
-      data={mockStatefulSets}
+      data={items}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Stateful Sets"
       resourceKind="StatefulSet"
+      namespace={namespace}
+      loading={loading}
     />
   );
 }

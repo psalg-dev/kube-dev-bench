@@ -149,3 +149,23 @@ type DaemonSetInfo struct {
 	Age       string `json:"age"`
 	Image     string `json:"image"`
 }
+
+// StatefulSetInfo describes a statefulset's basic info
+type StatefulSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// ReplicaSetInfo describes a replicaset's basic info
+type ReplicaSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}

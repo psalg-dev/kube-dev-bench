@@ -451,14 +451,14 @@ function renderMainContent() {
     const statefulSetsOverviewContainer = document.getElementById('statefulsets-overview-react');
     if (statefulSetsOverviewContainer) {
       const root = createRoot(statefulSetsOverviewContainer);
-      root.render(React.createElement(StatefulSetsOverviewTable));
+      root.render(React.createElement(StatefulSetsOverviewTable, { namespace: selectedNamespace }));
     }
   } else if (selectedSection === 'replicasets') {
     mainPanels.innerHTML = `<div class="main-panel" id="replicasets-overview-react"></div>`;
     const replicaSetsOverviewContainer = document.getElementById('replicasets-overview-react');
     if (replicaSetsOverviewContainer) {
       const root = createRoot(replicaSetsOverviewContainer);
-      root.render(React.createElement(ReplicaSetsOverviewTable));
+      root.render(React.createElement(ReplicaSetsOverviewTable, { namespace: selectedNamespace }));
     }
   }
 }

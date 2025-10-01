@@ -53,9 +53,13 @@ export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
 
+export function GetReplicaSets(arg1:string):Promise<Array<app.ReplicaSetInfo>>;
+
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetSecretData(arg1:string):Promise<Record<string, string>>;
+
+export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
 
@@ -97,7 +101,11 @@ export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:str
 
 export function StartPodPolling():Promise<void>;
 
+export function StartReplicaSetPolling():Promise<void>;
+
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
+
+export function StartStatefulSetPolling():Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;
 
