@@ -104,3 +104,68 @@ type PodMounts struct {
 	Volumes    []VolumeInfo         `json:"volumes"`
 	Containers []ContainerMountInfo `json:"containers"`
 }
+
+// DeploymentInfo describes a deployment's basic info
+type DeploymentInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Available int32  `json:"available"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// JobInfo describes a job's basic info
+type JobInfo struct {
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	Completions int32  `json:"completions"`
+	Succeeded   int32  `json:"succeeded"`
+	Active      int32  `json:"active"`
+	Failed      int32  `json:"failed"`
+	Age         string `json:"age"`
+	Image       string `json:"image"`
+	Duration    string `json:"duration"`
+}
+
+// CronJobInfo describes a cronjob's basic info
+type CronJobInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Schedule  string `json:"schedule"`
+	Suspend   bool   `json:"suspend"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+	NextRun   string `json:"nextRun"`
+}
+
+// DaemonSetInfo describes a daemonset's basic info
+type DaemonSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Desired   int32  `json:"desired"`
+	Current   int32  `json:"current"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// StatefulSetInfo describes a statefulset's basic info
+type StatefulSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// ReplicaSetInfo describes a replicaset's basic info
+type ReplicaSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}

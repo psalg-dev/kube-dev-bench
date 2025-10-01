@@ -25,6 +25,16 @@ func main() {
 
 	// Start pod polling to emit events for the frontend
 	app.StartPodPolling()
+	// Start deployments polling to emit events for the frontend
+	app.StartDeploymentPolling()
+	// Start cronjobs polling to emit events for the frontend
+	app.StartCronJobPolling()
+	// Start daemonsets polling to emit events for the frontend
+	app.StartDaemonSetPolling()
+	// Start statefulsets polling to emit events for the frontend
+	app.StartStatefulSetPolling()
+	// Start replicasets polling to emit events for the frontend
+	app.StartReplicaSetPolling()
 
 	// Create application with options
 	err := wails.Run(&options.App{
