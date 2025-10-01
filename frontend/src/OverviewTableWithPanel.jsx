@@ -24,17 +24,33 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   const closeBottomPanel = () => {
     setBottomOpen(false);
     setSelectedRow(null);
+    setActiveTab(tabs[0]?.key || 'summary'); // Reset to default tab
   };
 
   useEffect(() => {
     if (!bottomOpen) return;
     const handleClick = (e) => {
-      if (!e.target.closest('.bottom-panel')) {
+      // Don't close if we're resizing or if the click is within the bottom panel
+      if (e.target.closest('.bottom-panel') ||
+          e.target.closest('[data-resizing]') ||
+          document.body.style.cursor === 'ns-resize') {
+        return;
+      }
+      closeBottomPanel();
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
         closeBottomPanel();
       }
     };
+
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [bottomOpen]);
 
   return (
@@ -65,11 +81,9 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         activeTab={activeTab}
         onTabChange={setActiveTab}
         headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
-        className="bottom-panel"
       >
         {selectedRow && renderPanelContent(selectedRow, activeTab)}
       </BottomPanel>
     </div>
   );
 }
-

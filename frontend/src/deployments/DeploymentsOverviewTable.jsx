@@ -1,16 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-
-const mockDeployments = [
-  { name: 'nginx-deployment', namespace: 'default', replicas: 3, available: 3, age: '2d', image: 'nginx:1.14.2' },
-  { name: 'api-deployment', namespace: 'dev', replicas: 2, available: 2, age: '5h', image: 'myapi:latest' },
-  { name: 'worker-deployment', namespace: 'prod', replicas: 5, available: 4, age: '10d', image: 'worker:v2.0' },
-];
+import * as AppAPI from '../../wailsjs/go/main/App';
 
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'namespace', label: 'Namespace' },
   { key: 'replicas', label: 'Replicas' },
+  { key: 'ready', label: 'Ready' },
   { key: 'available', label: 'Available' },
   { key: 'age', label: 'Age' },
   { key: 'image', label: 'Image' },
@@ -72,15 +68,38 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function DeploymentsOverviewTable() {
+export default function DeploymentsOverviewTable({ namespace }) {
+  const [deployments, setDeployments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!namespace) return;
+
+    const fetchDeployments = async () => {
+      try {
+        setLoading(true);
+        const data = await AppAPI.GetDeployments(namespace);
+        setDeployments(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch deployments:', error);
+        setDeployments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDeployments();
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
-      data={mockDeployments}
+      data={deployments}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Deployments"
+      loading={loading}
     />
   );
 }

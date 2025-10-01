@@ -104,3 +104,14 @@ type PodMounts struct {
 	Volumes    []VolumeInfo         `json:"volumes"`
 	Containers []ContainerMountInfo `json:"containers"`
 }
+
+// DeploymentInfo describes a deployment's basic info
+type DeploymentInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Available int32  `json:"available"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}

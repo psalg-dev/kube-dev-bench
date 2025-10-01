@@ -121,6 +121,34 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     setColumnFilters([{ id: 'name', value: filterValue }]);
   }, [filterValue]);
 
+  // Handle escape key and click-outside for bottom panel
+  useEffect(() => {
+    if (!bottomOpen) return;
+
+    const handleClick = (e) => {
+      // Don't close if we're resizing or if the click is within the bottom panel
+      if (e.target.closest('.bottom-panel') ||
+          e.target.closest('[data-resizing]') ||
+          document.body.style.cursor === 'ns-resize') {
+        return;
+      }
+      closeBottomPanel();
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeBottomPanel();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [bottomOpen]);
+
   function handleMenuClick(e) {
     e.stopPropagation();
   }
@@ -265,6 +293,14 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     setOpenMenuIndex(null);
   };
 
+  const closeBottomPanel = () => {
+    setBottomOpen(false);
+    setBottomPodName(null);
+    setBottomActiveTab('summary'); // Reset to default tab
+    setForwardLocalPort(null); // Clear port forward state
+    setForwardRemotePort(null); // Clear port forward state
+  };
+
   const openLogsPanel = async (podName) => {
     setBottomPodName(podName);
     setBottomActiveTab('summary');
@@ -277,26 +313,6 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     setBottomOpen(true);
     setOpenMenuIndex(null);
   };
-
-  useEffect(() => {
-    if (!notification.message) return;
-    const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
-    return () => clearTimeout(timer);
-  }, [notification]);
-
-  function showNotification(message, type = 'success') {
-    setNotification({ message, type });
-  }
-
-  async function handleRestart(podName) {
-    try {
-      await AppAPI.RestartPod(namespace, podName);
-      showNotification(`Pod '${podName}' restarted successfully.`, 'success');
-    } catch (err) {
-      showNotification(`❌ Failed to restart pod '${podName}': ${err.message || err}`, 'error');
-    }
-    handleMenuClose();
-  }
 
   async function handleShell(podName) {
     try {
@@ -383,6 +399,20 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
       showNotification(`Pod '${podName}' deleted.`, 'success');
     } catch (err) {
       showNotification(`❌ Failed to delete pod '${podName}': ${err?.message || err}`, 'error');
+    }
+    handleMenuClose();
+  }
+
+  function showNotification(message, type = 'success') {
+    setNotification({ message, type });
+  }
+
+  async function handleRestart(podName) {
+    try {
+      await AppAPI.RestartPod(namespace, podName);
+      showNotification(`Pod '${podName}' restarted successfully.`, 'success');
+    } catch (err) {
+      showNotification(`❌ Failed to restart pod '${podName}': ${err.message || err}`, 'error');
     }
     handleMenuClose();
   }
@@ -482,18 +512,10 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   }, [bottomOpen]);
 
   useEffect(() => {
-    if (!bottomOpen) return;
-    function handleClickOutsidePanel(event) {
-      const target = event.target;
-      if (!(target instanceof Element)) return;
-      if (bottomPanelRef.current && !bottomPanelRef.current.contains(target)) {
-        setBottomOpen(false);
-        setBottomPodName(null);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutsidePanel);
-    return () => document.removeEventListener('mousedown', handleClickOutsidePanel);
-  }, [bottomOpen]);
+    if (!notification.message) return;
+    const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    return () => clearTimeout(timer);
+  }, [notification]);
 
   return (
     <>
@@ -858,7 +880,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
           <BottomPanel
             ref={bottomPanelRef}
             open={bottomOpen}
-            onClose={() => { setBottomOpen(false); setBottomPodName(null); }}
+            onClose={closeBottomPanel}
             tabs={tabs}
             activeTab={bottomActiveTab}
             onTabChange={(id) => setBottomActiveTab(id)}

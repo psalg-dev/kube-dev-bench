@@ -72,6 +72,30 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class DeploymentInfo {
+	    name: string;
+	    namespace: string;
+	    replicas: number;
+	    ready: number;
+	    available: number;
+	    age: string;
+	    image: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DeploymentInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.replicas = source["replicas"];
+	        this.ready = source["ready"];
+	        this.available = source["available"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	    }
+	}
 	export class EventInfo {
 	    type: string;
 	    reason: string;

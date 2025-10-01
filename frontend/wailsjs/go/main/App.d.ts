@@ -11,6 +11,8 @@ export function ExecCommand(arg1:string):Promise<void>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;
 
+export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
+
 export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;
 
 export function GetKubeContexts():Promise<Array<string>>;

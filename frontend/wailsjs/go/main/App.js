@@ -18,6 +18,10 @@ export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
 
+export function GetDeployments(arg1) {
+  return window['go']['main']['App']['GetDeployments'](arg1);
+}
+
 export function GetKubeConfigs() {
   return window['go']['main']['App']['GetKubeConfigs']();
 }

@@ -15,8 +15,6 @@ This is a kubernetes client application for developers and devops engineers.
 - Application Framework: Wails (https://wails.io/)
 
 # General Guidelines
-
-- The frontend is located in project-root/frontend
 - The console used inside IntelliJ is a git bash console
 
 # Building the Project
@@ -29,11 +27,15 @@ wails build
 Dont Use "cmd /c" to run commands. Use git bash commands directly.
 
 # Frontend Guidelines
+## General Guidelines
 - This project uses React. 
 - Follow React Best Practices, especially regarding code organization
 - Have a focus on re-usability and modularity
 - Use component specific CSS files, try avoiding huge global CSS files
 - We use @tanstack/table for tables.
+- Avoid any flickering when updating components
+
+## Frontend behaviors
 - The application consists of a sidebar, a footer and a main content area
 - The sidebar is collapsible
 - The sidebar contains menu entries for different kubernetes resources:

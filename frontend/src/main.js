@@ -1,7 +1,7 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -423,7 +423,7 @@ function renderMainContent() {
     const deploymentsOverviewContainer = document.getElementById('deployments-overview-react');
     if (deploymentsOverviewContainer) {
       const root = createRoot(deploymentsOverviewContainer);
-      root.render(React.createElement(DeploymentsOverviewTable));
+      root.render(React.createElement(DeploymentsOverviewTable, { namespace: selectedNamespace }));
     }
   } else if (selectedSection === 'jobs') {
     mainPanels.innerHTML = `<div class="main-panel" id="jobs-overview-react"></div>`;
