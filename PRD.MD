@@ -1,15 +1,15 @@
-# gowails Product Requirements Document
+# KubeDevBench Product Requirements Document
 
-## gowails Overview
+## KubeDevBench Overview
 This application is a kubernetes client, looking to offer a competitive set of features to existing clients. Its target
 audience is developers and devops engineers or anyone who needs to interact with kubernetes clusters on a regular basis.
 
-## gowails Stack
+## KubeDevBench Stack
 - Frontend: React
 - Backend: Go
 - Application Framework: Wails (https://wails.io/)
 
-## gowails Development
+## KubeDevBench Development
 - IDE: JetBrains Intellij IDEA
 - Console: MINGW64
 

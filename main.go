@@ -28,7 +28,7 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "gowails",
+		Title:  "KubeDevBench",
 		Width:  1720,
 		Height: 880,
 		AssetServer: &assetserver.Options{
