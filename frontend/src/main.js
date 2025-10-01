@@ -1,7 +1,7 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments, GetJobs, GetCronJobs, GetDaemonSets, GetStatefulSets, GetReplicaSets} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -285,26 +285,32 @@ function updateFooter() {
 function renderSidebarSections() {
   return `
     <div class="sidebar-section${selectedSection === 'pods' ? ' selected' : ''}" id="section-pods" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📦</span><span>Pods</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Pods</span></span>
       <span class="sidebar-pod-counts" id="sidebar-pod-counts" style="display:flex; gap:8px; align-items:center; min-width: 2em; justify-content:flex-end;"><span style="color:#8ecfff; font-weight:bold;">-</span></span>
     </div>
     <div class="sidebar-section${selectedSection === 'deployments' ? ' selected' : ''}" id="section-deployments" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🛡️</span><span>Deployments</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Deployments</span></span>
+      <span id="sidebar-deployments-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
     <div class="sidebar-section${selectedSection === 'jobs' ? ' selected' : ''}" id="section-jobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">💼</span><span>Jobs</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Jobs</span></span>
+      <span id="sidebar-jobs-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
     <div class="sidebar-section${selectedSection === 'cronjobs' ? ' selected' : ''}" id="section-cronjobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">⏰</span><span>Cron Jobs</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Cron Jobs</span></span>
+      <span id="sidebar-cronjobs-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
     <div class="sidebar-section${selectedSection === 'daemonsets' ? ' selected' : ''}" id="section-daemonsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🔄</span><span>Daemon Sets</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Daemon Sets</span></span>
+      <span id="sidebar-daemonsets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
     <div class="sidebar-section${selectedSection === 'statefulsets' ? ' selected' : ''}" id="section-statefulsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🏛️</span><span>Stateful Sets</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Stateful Sets</span></span>
+      <span id="sidebar-statefulsets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
     <div class="sidebar-section${selectedSection === 'replicasets' ? ' selected' : ''}" id="section-replicasets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📑</span><span>Replica Sets</span></span>
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Replica Sets</span></span>
+      <span id="sidebar-replicasets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
   `;
 }
@@ -314,6 +320,15 @@ function startPodCountUpdater() {
   if (!selectedNamespace) return;
   const elId = 'sidebar-pod-counts';
   let lastSig = null;
+  // track last counts to avoid DOM writes
+  const lastCounts = {
+    deployments: null,
+    jobs: null,
+    cronjobs: null,
+    daemonsets: null,
+    statefulsets: null,
+    replicasets: null,
+  };
   const update = async () => {
     const el = document.getElementById(elId);
     if (!el) return;
@@ -322,30 +337,30 @@ function startPodCountUpdater() {
       const counts = await GetPodStatusCounts(selectedNamespace);
       // Build a signature to avoid unnecessary DOM writes
       const sig = counts ? [counts.running, counts.pending, counts.failed, counts.succeeded, counts.unknown, counts.total].join('-') : 'x';
-      if (sig === lastSig) return;
-      lastSig = sig;
+      if (sig !== lastSig) {
+        lastSig = sig;
+        const parts = [];
+        const pushPart = (value, color, title) => {
+          if (!value) return;
+          parts.push(`<span title="${title}" style="color:${color}; font-weight: 700;">${value}</span>`);
+        };
+        // Colors aligned with table: green, yellow, red, grey
+        pushPart(counts.running, '#2ea44f', 'Running');
+        pushPart(counts.pending, '#e6b800', 'Pending/Creating');
+        pushPart(counts.failed, '#d73a49', 'Failed');
+        // Show succeeded & unknown in neutral grey if present
+        pushPart(counts.succeeded, '#9aa0a6', 'Succeeded');
+        pushPart(counts.unknown, '#9aa0a6', 'Unknown');
 
-      const parts = [];
-      const pushPart = (value, color, title) => {
-        if (!value) return;
-        parts.push(`<span title="${title}" style="color:${color}; font-weight: 700;">${value}</span>`);
-      };
-      // Colors aligned with table: green, yellow, red, grey
-      pushPart(counts.running, '#2ea44f', 'Running');
-      pushPart(counts.pending, '#e6b800', 'Pending/Creating');
-      pushPart(counts.failed, '#d73a49', 'Failed');
-      // Show succeeded & unknown in neutral grey if present
-      pushPart(counts.succeeded, '#9aa0a6', 'Succeeded');
-      pushPart(counts.unknown, '#9aa0a6', 'Unknown');
-
-      // If there are no pods, show 0 in muted color
-      if (counts.total === 0) {
-        el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
-      } else if (parts.length > 0) {
-        el.innerHTML = parts.join('<span style="color:#666;">/</span>');
-      } else {
-        // Fallback: show running as single number if others are zero
-        el.innerHTML = `<span style="color:#2ea44f; font-weight:700;">${counts.running || 0}</span>`;
+        // If there are no pods, show 0 in muted color
+        if (counts.total === 0) {
+          el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
+        } else if (parts.length > 0) {
+          el.innerHTML = parts.join('<span style="color:#666;">/</span>');
+        } else {
+          // Fallback: show running as single number if others are zero
+          el.innerHTML = `<span style="color:#2ea44f; font-weight:700;">${counts.running || 0}</span>`;
+        }
       }
     } catch (err) {
       // Fallback to older API (running pods) for backward compatibility
@@ -362,6 +377,39 @@ function startPodCountUpdater() {
         const el = document.getElementById(elId);
         if (el) el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
       }
+    }
+
+    // Update other resource counts in parallel
+    try {
+      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets] = await Promise.all([
+        GetDeployments(selectedNamespace).catch(() => []),
+        GetJobs(selectedNamespace).catch(() => []),
+        GetCronJobs(selectedNamespace).catch(() => []),
+        GetDaemonSets(selectedNamespace).catch(() => []),
+        GetStatefulSets(selectedNamespace).catch(() => []),
+        GetReplicaSets(selectedNamespace).catch(() => []),
+      ]);
+
+      const setCount = (id, valueKey, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const last = lastCounts[valueKey];
+        const next = typeof value === 'number' ? value : (Array.isArray(value) ? value.length : 0);
+        if (last !== next) {
+          lastCounts[valueKey] = next;
+          el.textContent = String(next);
+          el.style.color = next > 0 ? '#8ecfff' : '#9aa0a6';
+        }
+      };
+
+      setCount('sidebar-deployments-count', 'deployments', deployments);
+      setCount('sidebar-jobs-count', 'jobs', jobs);
+      setCount('sidebar-cronjobs-count', 'cronjobs', cronjobs);
+      setCount('sidebar-daemonsets-count', 'daemonsets', daemonsets);
+      setCount('sidebar-statefulsets-count', 'statefulsets', statefulsets);
+      setCount('sidebar-replicasets-count', 'replicasets', replicasets);
+    } catch (_) {
+      // ignore; individual fetches already handled
     }
   };
   update();
