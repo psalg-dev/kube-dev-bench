@@ -13,6 +13,8 @@ export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;
 
+export function GetDaemonSets(arg1:string):Promise<Array<app.DaemonSetInfo>>;
+
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
 
 export function GetJobs(arg1:string):Promise<Array<app.JobInfo>>;
@@ -86,6 +88,8 @@ export function SetRememberNamespace(arg1:boolean):Promise<void>;
 export function ShellPod(arg1:string,arg2:string):Promise<string>;
 
 export function StartCronJobPolling():Promise<void>;
+
+export function StartDaemonSetPolling():Promise<void>;
 
 export function StartDeploymentPolling():Promise<void>;
 

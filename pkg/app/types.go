@@ -139,3 +139,13 @@ type CronJobInfo struct {
 	Image     string `json:"image"`
 	NextRun   string `json:"nextRun"`
 }
+
+// DaemonSetInfo describes a daemonset's basic info
+type DaemonSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Desired   int32  `json:"desired"`
+	Current   int32  `json:"current"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}

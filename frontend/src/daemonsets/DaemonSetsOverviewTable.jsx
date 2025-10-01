@@ -1,10 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-
-const mockDaemonSets = [
-  { name: 'log-collector', namespace: 'default', desired: 3, current: 3, age: '12d', image: 'fluentd:latest' },
-  { name: 'node-monitor', namespace: 'dev', desired: 2, current: 2, age: '2d', image: 'monitor:v1.0' },
-];
+import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -39,7 +36,7 @@ function renderPanelContent(row, tab) {
     return (
       <div>
         <h3>Events</h3>
-        <p>No events (mock data).</p>
+        <p>No events (not implemented yet).</p>
       </div>
     );
   }
@@ -70,16 +67,64 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function DaemonSetsOverviewTable() {
+export default function DaemonSetsOverviewTable({ namespace }) {
+  const [daemonSets, setDaemonSets] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!namespace) return;
+    const fetchDaemonSets = async () => {
+      try {
+        setLoading(true);
+        const data = await AppAPI.GetDaemonSets(namespace);
+        setDaemonSets(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch daemonsets:', error);
+        setDaemonSets([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDaemonSets();
+  }, [namespace]);
+
+  useEffect(() => {
+    const onUpdate = (list) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        const filtered = namespace ? arr.filter(d => (d?.namespace || d?.Namespace) === namespace) : arr;
+        const norm = filtered.map(d => ({
+          name: d.name ?? d.Name,
+          namespace: d.namespace ?? d.Namespace,
+          desired: d.desired ?? d.Desired ?? 0,
+          current: d.current ?? d.Current ?? 0,
+          age: d.age ?? d.Age ?? '-',
+          image: d.image ?? d.Image ?? '',
+        }));
+        setDaemonSets(norm);
+      } catch (_) {
+        setDaemonSets([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    EventsOn('daemonsets:update', onUpdate);
+    return () => {
+      try { EventsOff('daemonsets:update'); } catch (_) {}
+    };
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
-      data={mockDaemonSets}
+      data={daemonSets}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Daemon Sets"
       resourceKind="DaemonSet"
+      namespace={namespace}
+      loading={loading}
     />
   );
 }

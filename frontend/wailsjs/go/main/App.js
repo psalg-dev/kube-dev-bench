@@ -22,6 +22,10 @@ export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
 
+export function GetDaemonSets(arg1) {
+  return window['go']['main']['App']['GetDaemonSets'](arg1);
+}
+
 export function GetDeployments(arg1) {
   return window['go']['main']['App']['GetDeployments'](arg1);
 }
@@ -168,6 +172,10 @@ export function ShellPod(arg1, arg2) {
 
 export function StartCronJobPolling() {
   return window['go']['main']['App']['StartCronJobPolling']();
+}
+
+export function StartDaemonSetPolling() {
+  return window['go']['main']['App']['StartDaemonSetPolling']();
 }
 
 export function StartDeploymentPolling() {

@@ -444,7 +444,7 @@ function renderMainContent() {
     const daemonSetsOverviewContainer = document.getElementById('daemonsets-overview-react');
     if (daemonSetsOverviewContainer) {
       const root = createRoot(daemonSetsOverviewContainer);
-      root.render(React.createElement(DaemonSetsOverviewTable));
+      root.render(React.createElement(DaemonSetsOverviewTable, { namespace: selectedNamespace }));
     }
   } else if (selectedSection === 'statefulsets') {
     mainPanels.innerHTML = `<div class="main-panel" id="statefulsets-overview-react"></div>`;

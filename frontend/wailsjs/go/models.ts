@@ -96,6 +96,28 @@ export namespace app {
 	        this.nextRun = source["nextRun"];
 	    }
 	}
+	export class DaemonSetInfo {
+	    name: string;
+	    namespace: string;
+	    desired: number;
+	    current: number;
+	    age: string;
+	    image: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DaemonSetInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.desired = source["desired"];
+	        this.current = source["current"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	    }
+	}
 	export class DeploymentInfo {
 	    name: string;
 	    namespace: string;
