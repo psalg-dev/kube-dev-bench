@@ -20,6 +20,21 @@ type PodInfo struct {
 	Status string `json:"status"`
 }
 
+// PodStatusCounts provides counts of pods by phase for a namespace
+// Colors in UI:
+// - Running -> green
+// - Pending/Creating -> yellow (frontend maps label to "Creating")
+// - Failed -> red
+// - Succeeded/Unknown -> neutral grey
+type PodStatusCounts struct {
+	Running   int `json:"running"`
+	Pending   int `json:"pending"`
+	Failed    int `json:"failed"`
+	Succeeded int `json:"succeeded"`
+	Unknown   int `json:"unknown"`
+	Total     int `json:"total"`
+}
+
 // KubeConfigInfo represents information about a kubeconfig file
 type KubeConfigInfo struct {
 	Path     string   `json:"path"`

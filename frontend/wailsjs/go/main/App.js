@@ -66,6 +66,10 @@ export function GetPodMounts(arg1) {
   return window['go']['main']['App']['GetPodMounts'](arg1);
 }
 
+export function GetPodStatusCounts(arg1) {
+  return window['go']['main']['App']['GetPodStatusCounts'](arg1);
+}
+
 export function GetPodSummary(arg1) {
   return window['go']['main']['App']['GetPodSummary'](arg1);
 }

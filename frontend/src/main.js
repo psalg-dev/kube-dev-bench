@@ -1,7 +1,7 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -280,7 +280,7 @@ function renderSidebarSections() {
   return `
     <div class="sidebar-section${selectedSection === 'pods' ? ' selected' : ''}" id="section-pods" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
       <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📦</span><span>Pods</span></span>
-      <span class="sidebar-pod-count" id="sidebar-pod-count" style="min-width: 2em; text-align: right; font-weight: bold; color: #8ecfff;">-</span>
+      <span class="sidebar-pod-counts" id="sidebar-pod-counts" style="display:flex; gap:8px; align-items:center; min-width: 2em; justify-content:flex-end;"><span style="color:#8ecfff; font-weight:bold;">-</span></span>
     </div>
   `;
 }
@@ -288,18 +288,56 @@ function renderSidebarSections() {
 function startPodCountUpdater() {
   stopPodCountUpdater();
   if (!selectedNamespace) return;
+  const elId = 'sidebar-pod-counts';
+  let lastSig = null;
   const update = async () => {
-    const el = document.getElementById('sidebar-pod-count');
+    const el = document.getElementById(elId);
     if (!el) return;
     try {
-      const pods = await GetRunningPods(selectedNamespace);
-      const count = Array.isArray(pods) ? pods.length : 0;
-      if (lastPodCount !== count) {
-        lastPodCount = count;
-        el.textContent = count;
+      // Prefer precise status counts for color-coded display
+      const counts = await GetPodStatusCounts(selectedNamespace);
+      // Build a signature to avoid unnecessary DOM writes
+      const sig = counts ? [counts.running, counts.pending, counts.failed, counts.succeeded, counts.unknown, counts.total].join('-') : 'x';
+      if (sig === lastSig) return;
+      lastSig = sig;
+
+      const parts = [];
+      const pushPart = (value, color, title) => {
+        if (!value) return;
+        parts.push(`<span title="${title}" style="color:${color}; font-weight: 700;">${value}</span>`);
+      };
+      // Colors aligned with table: green, yellow, red, grey
+      pushPart(counts.running, '#2ea44f', 'Running');
+      pushPart(counts.pending, '#e6b800', 'Pending/Creating');
+      pushPart(counts.failed, '#d73a49', 'Failed');
+      // Show succeeded & unknown in neutral grey if present
+      pushPart(counts.succeeded, '#9aa0a6', 'Succeeded');
+      pushPart(counts.unknown, '#9aa0a6', 'Unknown');
+
+      // If there are no pods, show 0 in muted color
+      if (counts.total === 0) {
+        el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
+      } else if (parts.length > 0) {
+        el.innerHTML = parts.join('<span style="color:#666;">/</span>');
+      } else {
+        // Fallback: show running as single number if others are zero
+        el.innerHTML = `<span style="color:#2ea44f; font-weight:700;">${counts.running || 0}</span>`;
       }
     } catch (err) {
-      el.textContent = '0';
+      // Fallback to older API (running pods) for backward compatibility
+      try {
+        const pods = await GetRunningPods(selectedNamespace);
+        const count = Array.isArray(pods) ? pods.length : 0;
+        const fallbackSig = `r-${count}`;
+        if (fallbackSig !== lastSig) {
+          lastSig = fallbackSig;
+          const el = document.getElementById(elId);
+          if (el) el.innerHTML = `<span title="Running" style="color:#2ea44f; font-weight:700;">${count}</span>`;
+        }
+      } catch (_) {
+        const el = document.getElementById(elId);
+        if (el) el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
+      }
     }
   };
   update();

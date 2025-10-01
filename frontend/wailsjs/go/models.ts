@@ -231,6 +231,28 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class PodStatusCounts {
+	    running: number;
+	    pending: number;
+	    failed: number;
+	    succeeded: number;
+	    unknown: number;
+	    total: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PodStatusCounts(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.running = source["running"];
+	        this.pending = source["pending"];
+	        this.failed = source["failed"];
+	        this.succeeded = source["succeeded"];
+	        this.unknown = source["unknown"];
+	        this.total = source["total"];
+	    }
+	}
 	export class PodSummary {
 	    name: string;
 	    namespace: string;

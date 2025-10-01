@@ -35,6 +35,8 @@ export function GetPodLog(arg1:string):Promise<string>;
 
 export function GetPodMounts(arg1:string):Promise<app.PodMounts>;
 
+export function GetPodStatusCounts(arg1:string):Promise<app.PodStatusCounts>;
+
 export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 
 export function GetPodYAML(arg1:string):Promise<string>;
