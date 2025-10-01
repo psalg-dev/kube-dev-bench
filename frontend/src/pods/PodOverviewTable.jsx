@@ -461,7 +461,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     if (bottomOpen && bottomPanelRef.current) {
       bottomPanelHeight = bottomPanelRef.current.offsetHeight;
     }
-    const margin = 20;
+    const margin = 100;
     const newHeight = windowHeight - headerHeight - bottomPanelHeight - margin;
     if (scrollDivRef.current) {
       scrollDivRef.current.style.height = `${newHeight}px`;
@@ -645,7 +645,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
           ))}
           </thead>
         </table>
-        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '5px' }}>
+        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }}>
           <table style={{ width: '100%', tableLayout: 'fixed' }}>
             <tbody>
             {topPadHeight > 0 && (
