@@ -140,6 +140,34 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class JobInfo {
+	    name: string;
+	    namespace: string;
+	    completions: number;
+	    succeeded: number;
+	    active: number;
+	    failed: number;
+	    age: string;
+	    image: string;
+	    duration: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new JobInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.completions = source["completions"];
+	        this.succeeded = source["succeeded"];
+	        this.active = source["active"];
+	        this.failed = source["failed"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	        this.duration = source["duration"];
+	    }
+	}
 	export class KubeConfigInfo {
 	    path: string;
 	    name: string;

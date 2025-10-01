@@ -24,7 +24,12 @@ To build frontend or backend, navigate to project root and run:
 ```bash
 wails build
 ```
-Dont Use "cmd /c" to run commands. Use git bash commands directly.
+
+# Development Guidelines
+## General Guidelines
+- when recompiling backend code, use "wails build" and assume that the shell is in the correct directory
+- when recompiling frontend code, use "npm run build" in the "frontend" directory
+  - when changing to the frontend directory, just use "cd frontend", since the shell will start in the project root
 
 # Frontend Guidelines
 ## General Guidelines
@@ -33,6 +38,7 @@ Dont Use "cmd /c" to run commands. Use git bash commands directly.
 - Have a focus on re-usability and modularity
 - Use component specific CSS files, try avoiding huge global CSS files
 - We use @tanstack/table for tables.
+- We use @codemirror editor for showing kubernetes manifests
 - Avoid any flickering when updating components
 
 ## Frontend behaviors
@@ -52,3 +58,9 @@ Dont Use "cmd /c" to run commands. Use git bash commands directly.
   - Rows of the table are clickable
   - Clicking a row opens a detail view for the resource in the Bottom Panel
   - When the Bottom Panel is open, clicking outside of it closes it
+- All kubernetes resource views have a "Plus" Button at the top left above the table
+  - The plus button opens the CreateManifestOverlay which shows an example manifest 
+    for the type of resource the user has currently selected in the sidebar
+  - The user can edit the manifest and click "Create" to create the resource in the current namespace
+  - The user can close the Overlay by pressing Escape or clicking the X top right
+- When a resource is created, the table should refresh automatically to show the new resource

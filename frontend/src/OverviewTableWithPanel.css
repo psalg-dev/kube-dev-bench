@@ -1,0 +1,76 @@
+/* Styles for the overview header area (title centered, actions right) */
+.overview-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr; /* left, title, right */
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 8px 0;
+}
+
+.overview-title {
+  justify-self: center;
+  margin: 0; /* avoid extra vertical spacing */
+}
+
+.overview-actions {
+  justify-self: end;
+}
+
+.overview-actions input[type="search"],
+.overview-actions input[type="text"] {
+  min-width: 240px;
+}
+
+/* NEW: Standardize left area and create button */
+.overview-left {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative; /* for absolute dropdowns like Pods menu */
+  /* Align left edge of plus button with first table header text */
+  margin-left: var(--gh-table-padding-x, 16px);
+}
+
+/* Keep right side symmetric with table header padding */
+.overview-actions {
+  margin-right: var(--gh-table-padding-x, 16px);
+}
+
+.overview-create-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+  background: var(--gh-accent, #2ea44f);
+  color: #fff;
+  border: 1px solid var(--gh-accent, #2ea44f);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.overview-create-btn:hover {
+  filter: brightness(1.05);
+}
+
+/* Standard table header cell padding across overview tables */
+.gh-table thead th {
+  padding: 10px var(--gh-table-padding-x, 16px);
+  background: var(--gh-bg);
+  color: var(--gh-table-header-text, #fff);
+  border-bottom: 2px solid #353a42;
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.4;          /* unify header text line height */
+  user-select: none;
+  white-space: nowrap;       /* prevent wrapping to keep height consistent */
+  vertical-align: middle;    /* align content vertically */
+}
+
+/* Consistent body cell padding across overview tables */
+.gh-table tbody td {
+  padding: 10px var(--gh-table-padding-x, 16px);
+}

@@ -13,6 +13,8 @@ export function GetCurrentConfig():Promise<app.AppConfig>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
 
+export function GetJobs(arg1:string):Promise<Array<app.JobInfo>>;
+
 export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;
 
 export function GetKubeContexts():Promise<Array<string>>;
@@ -80,6 +82,8 @@ export function SetRememberContext(arg1:boolean):Promise<void>;
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
 
 export function ShellPod(arg1:string,arg2:string):Promise<string>;
+
+export function StartDeploymentPolling():Promise<void>;
 
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 

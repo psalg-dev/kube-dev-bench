@@ -80,6 +80,7 @@ export default function ReplicaSetsOverviewTable() {
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Replica Sets"
+      resourceKind="ReplicaSet"
     />
   );
 }

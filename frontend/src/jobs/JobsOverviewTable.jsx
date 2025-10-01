@@ -1,17 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-
-const mockJobs = [
-  { name: 'backup-job', namespace: 'default', completions: 1, succeeded: 1, age: '1d', image: 'busybox' },
-  { name: 'report-job', namespace: 'dev', completions: 2, succeeded: 2, age: '3h', image: 'reporter:latest' },
-];
+import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOff, EventsOn } from '../../wailsjs/runtime';
 
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'namespace', label: 'Namespace' },
   { key: 'completions', label: 'Completions' },
   { key: 'succeeded', label: 'Succeeded' },
+  { key: 'active', label: 'Active' },
+  { key: 'failed', label: 'Failed' },
   { key: 'age', label: 'Age' },
+  { key: 'duration', label: 'Duration' },
   { key: 'image', label: 'Image' },
 ];
 
@@ -30,8 +30,11 @@ function renderPanelContent(row, tab) {
         <p><b>Namespace:</b> {row.namespace}</p>
         <p><b>Completions:</b> {row.completions}</p>
         <p><b>Succeeded:</b> {row.succeeded}</p>
+        <p><b>Active:</b> {row.active}</p>
+        <p><b>Failed:</b> {row.failed}</p>
         <p><b>Image:</b> {row.image}</p>
         <p><b>Age:</b> {row.age}</p>
+        <p><b>Duration:</b> {row.duration}</p>
       </div>
     );
   }
@@ -39,7 +42,7 @@ function renderPanelContent(row, tab) {
     return (
       <div>
         <h3>Events</h3>
-        <p>No events (mock data).</p>
+        <p>Events functionality not yet implemented for Jobs.</p>
       </div>
     );
   }
@@ -71,15 +74,57 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function JobsOverviewTable() {
+export default function JobsOverviewTable({ namespace }) {
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch jobs data
+  const fetchJobs = async () => {
+    if (!namespace) return;
+
+    setLoading(true);
+    try {
+      const result = await AppAPI.GetJobs(namespace);
+      setJobs(Array.isArray(result) ? result : []);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch when namespace changes
+  useEffect(() => {
+    fetchJobs();
+  }, [namespace]);
+
+  // Subscribe to jobs updates if available
+  useEffect(() => {
+    const handler = (jobsData) => {
+      setJobs(Array.isArray(jobsData) ? jobsData : []);
+    };
+
+    EventsOn('jobs:update', handler);
+    return () => {
+      try {
+        EventsOff('jobs:update');
+      } catch (_) {}
+    };
+  }, []);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
-      data={mockJobs}
+      data={jobs}
+      loading={loading}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Jobs"
+      onRefresh={fetchJobs}
+      resourceKind="Job"
+      namespace={namespace}
     />
   );
 }

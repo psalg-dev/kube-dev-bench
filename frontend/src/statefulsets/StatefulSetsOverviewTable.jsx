@@ -80,6 +80,7 @@ export default function StatefulSetsOverviewTable() {
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Stateful Sets"
+      resourceKind="StatefulSet"
     />
   );
 }

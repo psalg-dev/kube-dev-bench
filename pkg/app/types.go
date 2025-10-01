@@ -115,3 +115,16 @@ type DeploymentInfo struct {
 	Age       string `json:"age"`
 	Image     string `json:"image"`
 }
+
+// JobInfo describes a job's basic info
+type JobInfo struct {
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	Completions int32  `json:"completions"`
+	Succeeded   int32  `json:"succeeded"`
+	Active      int32  `json:"active"`
+	Failed      int32  `json:"failed"`
+	Age         string `json:"age"`
+	Image       string `json:"image"`
+	Duration    string `json:"duration"`
+}

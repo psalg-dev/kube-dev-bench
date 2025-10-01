@@ -91,14 +91,21 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 		}
 		return err
 	}
-	// Emit updated pod list shortly after creating a resource
-	go func() {
+	// Emit updated lists shortly after creating a resource
+	go func(ns string, k string) {
 		time.Sleep(100 * time.Millisecond)
-		if a.ctx != nil && namespace != "" {
-			if pods, err := a.GetRunningPods(namespace); err == nil {
+		if a.ctx != nil && ns != "" {
+			// Always emit pods snapshot for now (existing behavior)
+			if pods, err := a.GetRunningPods(ns); err == nil {
 				runtime.EventsEmit(a.ctx, "pods:update", pods)
 			}
+			// If we created a Deployment, also emit deployments snapshot
+			if strings.EqualFold(k, "Deployment") {
+				if deps, err := a.GetDeployments(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "deployments:update", deps)
+				}
+			}
 		}
-	}()
+	}(resNamespace, kind)
 	return nil
 }

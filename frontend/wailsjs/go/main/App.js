@@ -22,6 +22,10 @@ export function GetDeployments(arg1) {
   return window['go']['main']['App']['GetDeployments'](arg1);
 }
 
+export function GetJobs(arg1) {
+  return window['go']['main']['App']['GetJobs'](arg1);
+}
+
 export function GetKubeConfigs() {
   return window['go']['main']['App']['GetKubeConfigs']();
 }
@@ -156,6 +160,10 @@ export function SetRememberNamespace(arg1) {
 
 export function ShellPod(arg1, arg2) {
   return window['go']['main']['App']['ShellPod'](arg1, arg2);
+}
+
+export function StartDeploymentPolling() {
+  return window['go']['main']['App']['StartDeploymentPolling']();
 }
 
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {

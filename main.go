@@ -25,6 +25,8 @@ func main() {
 
 	// Start pod polling to emit events for the frontend
 	app.StartPodPolling()
+	// Start deployments polling to emit events for the frontend
+	app.StartDeploymentPolling()
 
 	// Create application with options
 	err := wails.Run(&options.App{

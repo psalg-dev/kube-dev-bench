@@ -430,7 +430,7 @@ function renderMainContent() {
     const jobsOverviewContainer = document.getElementById('jobs-overview-react');
     if (jobsOverviewContainer) {
       const root = createRoot(jobsOverviewContainer);
-      root.render(React.createElement(JobsOverviewTable));
+      root.render(React.createElement(JobsOverviewTable, { namespace: selectedNamespace }));
     }
   } else if (selectedSection === 'cronjobs') {
     mainPanels.innerHTML = `<div class="main-panel" id="cronjobs-overview-react"></div>`;
@@ -605,6 +605,8 @@ function onNamespaceChange() {
           showSuccess(`Namespace "${selectedNamespace}" gespeichert!`);
           updateFooter();
           startPodCountUpdater();
+          // Re-render current section to apply new namespace
+          renderMainContent();
         })
         .catch(() => {
           nsSelect.value = previousNamespace;

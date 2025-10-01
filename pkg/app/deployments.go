@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -86,4 +87,20 @@ func formatDuration(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("%ds", int(d.Seconds()))
 	}
+}
+
+// StartDeploymentPolling emits deployments:update events every second with the current deployment list
+func (a *App) StartDeploymentPolling() {
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			if a.ctx == nil || a.currentNamespace == "" {
+				continue
+			}
+			deploys, err := a.GetDeployments(a.currentNamespace)
+			if err == nil {
+				wailsRuntime.EventsEmit(a.ctx, "deployments:update", deploys)
+			}
+		}
+	}()
 }

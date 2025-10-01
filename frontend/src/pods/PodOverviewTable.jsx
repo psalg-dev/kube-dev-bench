@@ -18,6 +18,7 @@ import PortForwardOutput from './PortForwardOutput';
 import BottomPanel from '../BottomPanel';
 import PortForwardDialog from './PortForwardDialog';
 import PodMountsTab from './PodMountsTab';
+import '../OverviewTableWithPanel.css';
 
 export default function PodOverviewTable({ namespace, data = [], loading = false, onCreateResource }) {
   const [now, setNow] = useState(Date.now());
@@ -222,7 +223,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   const columns = useMemo(() => [
     {
       accessorKey: 'name',
-      header: 'Pod Name',
+      header: 'Name',
       filterFn: 'includesString',
       cell: info => info.getValue(),
     },
@@ -481,18 +482,23 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   const scrollDivRef = React.useRef(null);
   const bottomPanelRef = React.useRef(null);
   const headerRef = React.useRef(null);
+  const topHeaderRef = React.useRef(null);
   function updateScrollDivHeight() {
     const windowHeight = window.innerHeight;
     let headerHeight = 0;
     if (headerRef.current) {
       headerHeight = headerRef.current.offsetHeight;
     }
+    let topHeaderHeight = 0;
+    if (topHeaderRef.current) {
+      topHeaderHeight = topHeaderRef.current.offsetHeight;
+    }
     let bottomPanelHeight = 0;
     if (bottomOpen && bottomPanelRef.current) {
       bottomPanelHeight = bottomPanelRef.current.offsetHeight;
     }
     const margin = 100;
-    const newHeight = windowHeight - headerHeight - bottomPanelHeight - margin;
+    const newHeight = windowHeight - headerHeight - topHeaderHeight - bottomPanelHeight - margin;
     if (scrollDivRef.current) {
       scrollDivRef.current.style.height = `${newHeight}px`;
     }
@@ -521,8 +527,6 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     <>
       <div style={{
         position: 'relative',
-        height: '100vh',
-        width: '100%',
         display: 'flex',
         flexDirection: 'column',
         minHeight: 0
@@ -566,12 +570,12 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
             >×</button>
           </div>
         )}
-        <div style={{marginBottom:12, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12}}>
-          <div style={{position:'relative', display:'flex', alignItems:'center'}}>
+        <div ref={topHeaderRef} className="overview-header">
+          <div className="overview-left">
             <button
-              className="menu-button create-button"
-              title="Ressource erstellen"
-              style={{fontSize: 22, width: 36, height: 36, borderRadius: 0, display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+              className="overview-create-btn menu-button"
+              title="Create"
+              aria-label="Create"
               onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
             >+
             </button>
@@ -603,26 +607,19 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
               </div>
             )}
           </div>
-          <input
-            type="text"
-            value={filterValue}
-            onChange={e => setFilterValue(e.target.value)}
-            placeholder="Filter pods..."
-            style={{
-              padding: '7px 12px',
-              borderRadius: 0,
-              border: '1px solid #353a42',
-              background: 'var(--gh-table-header-bg, #2d323b)',
-              color: 'var(--gh-table-header-text, #fff)',
-              fontSize: 14,
-              outline: 'none',
-              width: 220,
-            }}
-          />
+          <h2 className="overview-title">Pods</h2>
+          <div className="overview-actions">
+            <input
+              type="search"
+              value={filterValue}
+              onChange={e => setFilterValue(e.target.value)}
+              placeholder="Filter..."
+            />
+          </div>
         </div>
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
-        <table id="pod-table-header" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
+        <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
           <thead>
           {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
@@ -631,16 +628,15 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                         key={header.id}
                         onClick={header.column.getToggleSortingHandler()}
                         style={{
-                          background: 'var(--gh-table-header-bg, #2d323b)',
-                      color: 'var(--gh-table-header-text, #fff)',
+                          background: 'var(--gh-bg)',
+                          color: 'var(--gh-table-header-text, #fff)',
                           borderBottom: '2px solid #353a42',
-                          padding: '10px 16px',
                           fontWeight: 600,
-                          fontSize: 15,
+                          // fontSize removed to use global CSS for uniform height
                           textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
-                      userSelect: 'none',
+                          userSelect: 'none',
                           boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-                    }}
+                        }}
                   >
                       {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                       {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
@@ -648,12 +644,11 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                 ))}
                 <th
                     style={{
-                      background: 'var(--gh-table-header-bg, #2d323b)',
+                      background: 'var(--gh-bg)',
                       color: 'var(--gh-table-header-text, #fff)',
                       borderBottom: '2px solid #353a42',
-                      padding: '10px 16px',
                       fontWeight: 600,
-                      fontSize: 18,
+                      // fontSize removed to use global CSS for uniform height
                       textAlign: 'right',
                       userSelect: 'none',
                       boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
@@ -661,14 +656,14 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                     aria-label="Actions"
                     title="Actions"
                 >
-                  <span style={{opacity: 0.7, fontSize: 20, verticalAlign: 'middle'}}>⋮</span>
+                  Actions
                 </th>
               </tr>
           ))}
           </thead>
         </table>
-        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }}>
-          <table style={{ width: '100%', tableLayout: 'fixed' }}>
+        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
+          <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <tbody>
             {topPadHeight > 0 && (
                 <tr style={{height: topPadHeight}}>
@@ -678,10 +673,8 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
             {visibleRows.map((row, i) => (
                 <tr
                     key={row.id}
-                    className="pod-row"
                     onClick={() => openLogsPanel(row.original.name)}
                     style={{
-                      background: (visibleRowStart + i) % 2 === 0 ? 'var(--gh-table-row-even, #23272e)' : 'var(--gh-table-row-odd, #262b33)',
                       borderBottom: '1px solid #353a42',
                       transition: 'background 0.2s',
                       height: ROW_HEIGHT
@@ -691,7 +684,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                       <td
                           key={cell.id}
                           style={{
-                            padding: '10px 16px',
+                            // padding handled by CSS .gh-table tbody td
                             fontSize: 14,
                             color: 'var(--gh-table-text, #e0e0e0)',
                             borderBottom: '1px solid #353a42',

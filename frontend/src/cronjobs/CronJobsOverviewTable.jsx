@@ -83,6 +83,7 @@ export default function CronJobsOverviewTable() {
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Cron Jobs"
+      resourceKind="CronJob"
     />
   );
 }

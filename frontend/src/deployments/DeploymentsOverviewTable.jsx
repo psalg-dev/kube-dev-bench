@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -91,6 +92,37 @@ export default function DeploymentsOverviewTable({ namespace }) {
     fetchDeployments();
   }, [namespace]);
 
+  // Subscribe to live deployment updates from backend
+  useEffect(() => {
+    const onUpdate = (list) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        // Be defensive: filter by current namespace if provided
+        const filtered = namespace ? arr.filter(d => (d?.namespace || d?.Namespace) === namespace) : arr;
+        // Normalize keys to lower-case for frontend usage
+        const norm = filtered.map(d => ({
+          name: d.name ?? d.Name,
+          namespace: d.namespace ?? d.Namespace,
+          replicas: d.replicas ?? d.Replicas ?? 0,
+          ready: d.ready ?? d.Ready ?? 0,
+          available: d.available ?? d.Available ?? 0,
+          age: d.age ?? d.Age ?? '-',
+          image: d.image ?? d.Image ?? '',
+        }));
+        setDeployments(norm);
+      } catch (e) {
+        // Fallback to safe empty state
+        setDeployments([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    EventsOn('deployments:update', onUpdate);
+    return () => {
+      try { EventsOff('deployments:update'); } catch (_) {}
+    };
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
@@ -100,6 +132,8 @@ export default function DeploymentsOverviewTable({ namespace }) {
       panelHeader={panelHeader}
       title="Deployments"
       loading={loading}
+      resourceKind="Deployment"
+      namespace={namespace}
     />
   );
 }

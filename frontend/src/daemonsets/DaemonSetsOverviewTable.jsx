@@ -79,6 +79,7 @@ export default function DaemonSetsOverviewTable() {
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Daemon Sets"
+      resourceKind="DaemonSet"
     />
   );
 }
