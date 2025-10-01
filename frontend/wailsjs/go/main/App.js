@@ -14,8 +14,24 @@ export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
 }
 
+export function GetCronJobs(arg1) {
+  return window['go']['main']['App']['GetCronJobs'](arg1);
+}
+
 export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
+}
+
+export function GetDaemonSets(arg1) {
+  return window['go']['main']['App']['GetDaemonSets'](arg1);
+}
+
+export function GetDeployments(arg1) {
+  return window['go']['main']['App']['GetDeployments'](arg1);
+}
+
+export function GetJobs(arg1) {
+  return window['go']['main']['App']['GetJobs'](arg1);
 }
 
 export function GetKubeConfigs() {
@@ -62,6 +78,14 @@ export function GetPodLog(arg1) {
   return window['go']['main']['App']['GetPodLog'](arg1);
 }
 
+export function GetPodMounts(arg1) {
+  return window['go']['main']['App']['GetPodMounts'](arg1);
+}
+
+export function GetPodStatusCounts(arg1) {
+  return window['go']['main']['App']['GetPodStatusCounts'](arg1);
+}
+
 export function GetPodSummary(arg1) {
   return window['go']['main']['App']['GetPodSummary'](arg1);
 }
@@ -78,8 +102,20 @@ export function GetRememberNamespace() {
   return window['go']['main']['App']['GetRememberNamespace']();
 }
 
+export function GetReplicaSets(arg1) {
+  return window['go']['main']['App']['GetReplicaSets'](arg1);
+}
+
 export function GetRunningPods(arg1) {
   return window['go']['main']['App']['GetRunningPods'](arg1);
+}
+
+export function GetSecretData(arg1) {
+  return window['go']['main']['App']['GetSecretData'](arg1);
+}
+
+export function GetStatefulSets(arg1) {
+  return window['go']['main']['App']['GetStatefulSets'](arg1);
 }
 
 export function Greet(arg1) {
@@ -142,6 +178,18 @@ export function ShellPod(arg1, arg2) {
   return window['go']['main']['App']['ShellPod'](arg1, arg2);
 }
 
+export function StartCronJobPolling() {
+  return window['go']['main']['App']['StartCronJobPolling']();
+}
+
+export function StartDaemonSetPolling() {
+  return window['go']['main']['App']['StartDaemonSetPolling']();
+}
+
+export function StartDeploymentPolling() {
+  return window['go']['main']['App']['StartDeploymentPolling']();
+}
+
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
 }
@@ -150,8 +198,16 @@ export function StartPodPolling() {
   return window['go']['main']['App']['StartPodPolling']();
 }
 
+export function StartReplicaSetPolling() {
+  return window['go']['main']['App']['StartReplicaSetPolling']();
+}
+
 export function StartShellSession(arg1, arg2) {
   return window['go']['main']['App']['StartShellSession'](arg1, arg2);
+}
+
+export function StartStatefulSetPolling() {
+  return window['go']['main']['App']['StartStatefulSetPolling']();
 }
 
 export function Startup(arg1) {

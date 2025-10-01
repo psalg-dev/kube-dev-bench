@@ -690,3 +690,45 @@ func (a *App) ExecCommand(cmdline string) error {
 	}()
 	return cmd.Wait()
 }
+
+// GetPodStatusCounts returns counts of pods by phase for the given namespace
+func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return PodStatusCounts{}, err
+	}
+	if a.currentKubeContext == "" {
+		return PodStatusCounts{}, fmt.Errorf("Kein Kontext gewählt")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return PodStatusCounts{}, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return PodStatusCounts{}, err
+	}
+	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return PodStatusCounts{}, err
+	}
+	var counts PodStatusCounts
+	counts.Total = len(pods.Items)
+	for _, pod := range pods.Items {
+		switch pod.Status.Phase {
+		case v1.PodRunning:
+			counts.Running++
+		case v1.PodPending:
+			counts.Pending++
+		case v1.PodFailed:
+			counts.Failed++
+		case v1.PodSucceeded:
+			counts.Succeeded++
+		default:
+			counts.Unknown++
+		}
+	}
+	return counts, nil
+}

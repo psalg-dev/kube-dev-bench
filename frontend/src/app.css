@@ -17,6 +17,13 @@
   --gh-input-bg: #21262d;
   --gh-input-border: #30363d;
   --gh-input-focus: #2ea043;
+  --gh-text-secondary: #ccc;
+  --gh-table-header-bg: #2d323b;
+  --gh-table-header-text: #fff;
+  --gh-table-row-even: #23272e;
+  --gh-table-row-odd: #262b33;
+  --gh-table-text: #e0e0e0;
+  --gh-sidebar-bg: var(--gh-bg-sidebar);
 
   /* Full HD optimized spacing and sizing */
   --sidebar-width: 320px;
@@ -803,6 +810,12 @@ table td {
 
 table tr:hover {
   background: rgba(56, 139, 253, 0.05);
+}
+
+/* Ensure table content is left-aligned by default */
+.gh-table th,
+.gh-table td {
+  text-align: left;
 }
 
 /* Full HD table enhancements */

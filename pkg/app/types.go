@@ -20,6 +20,21 @@ type PodInfo struct {
 	Status string `json:"status"`
 }
 
+// PodStatusCounts provides counts of pods by phase for a namespace
+// Colors in UI:
+// - Running -> green
+// - Pending/Creating -> yellow (frontend maps label to "Creating")
+// - Failed -> red
+// - Succeeded/Unknown -> neutral grey
+type PodStatusCounts struct {
+	Running   int `json:"running"`
+	Pending   int `json:"pending"`
+	Failed    int `json:"failed"`
+	Succeeded int `json:"succeeded"`
+	Unknown   int `json:"unknown"`
+	Total     int `json:"total"`
+}
+
 // KubeConfigInfo represents information about a kubeconfig file
 type KubeConfigInfo struct {
 	Path     string   `json:"path"`
@@ -54,4 +69,103 @@ type PortForwardInfo struct {
 	Pod       string `json:"pod"`
 	Local     int    `json:"local"`
 	Remote    int    `json:"remote"`
+}
+
+// VolumeInfo describes a pod volume and its source details
+type VolumeInfo struct {
+	Name                    string   `json:"name"`
+	Type                    string   `json:"type"`
+	SecretName              string   `json:"secretName,omitempty"`
+	ConfigMapName           string   `json:"configMapName,omitempty"`
+	PersistentVolumeClaim   string   `json:"pvc,omitempty"`
+	HostPath                string   `json:"hostPath,omitempty"`
+	EmptyDir                bool     `json:"emptyDir,omitempty"`
+	ProjectedSecretNames    []string `json:"projectedSecretNames,omitempty"`
+	ProjectedConfigMapNames []string `json:"projectedConfigMapNames,omitempty"`
+}
+
+// MountInfo connects a container path to a volume
+type MountInfo struct {
+	Name      string `json:"name"` // volume name
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly"`
+	SubPath   string `json:"subPath,omitempty"`
+}
+
+// ContainerMountInfo lists mounts per (init-)container
+type ContainerMountInfo struct {
+	Container string      `json:"container"`
+	IsInit    bool        `json:"isInit"`
+	Mounts    []MountInfo `json:"mounts"`
+}
+
+// PodMounts is the aggregated view of volumes and their usage in containers
+type PodMounts struct {
+	Volumes    []VolumeInfo         `json:"volumes"`
+	Containers []ContainerMountInfo `json:"containers"`
+}
+
+// DeploymentInfo describes a deployment's basic info
+type DeploymentInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Available int32  `json:"available"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// JobInfo describes a job's basic info
+type JobInfo struct {
+	Name        string `json:"name"`
+	Namespace   string `json:"namespace"`
+	Completions int32  `json:"completions"`
+	Succeeded   int32  `json:"succeeded"`
+	Active      int32  `json:"active"`
+	Failed      int32  `json:"failed"`
+	Age         string `json:"age"`
+	Image       string `json:"image"`
+	Duration    string `json:"duration"`
+}
+
+// CronJobInfo describes a cronjob's basic info
+type CronJobInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Schedule  string `json:"schedule"`
+	Suspend   bool   `json:"suspend"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+	NextRun   string `json:"nextRun"`
+}
+
+// DaemonSetInfo describes a daemonset's basic info
+type DaemonSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Desired   int32  `json:"desired"`
+	Current   int32  `json:"current"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// StatefulSetInfo describes a statefulset's basic info
+type StatefulSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+}
+
+// ReplicaSetInfo describes a replicaset's basic info
+type ReplicaSetInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Replicas  int32  `json:"replicas"`
+	Ready     int32  `json:"ready"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
 }

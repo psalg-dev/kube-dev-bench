@@ -9,7 +9,15 @@ export function DeletePod(arg1:string,arg2:string):Promise<void>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
+export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
+
 export function GetCurrentConfig():Promise<app.AppConfig>;
+
+export function GetDaemonSets(arg1:string):Promise<Array<app.DaemonSetInfo>>;
+
+export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
+
+export function GetJobs(arg1:string):Promise<Array<app.JobInfo>>;
 
 export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;
 
@@ -33,6 +41,10 @@ export function GetPodEventsLegacy(arg1:string):Promise<Array<app.EventInfo>>;
 
 export function GetPodLog(arg1:string):Promise<string>;
 
+export function GetPodMounts(arg1:string):Promise<app.PodMounts>;
+
+export function GetPodStatusCounts(arg1:string):Promise<app.PodStatusCounts>;
+
 export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 
 export function GetPodYAML(arg1:string):Promise<string>;
@@ -41,7 +53,13 @@ export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
 
+export function GetReplicaSets(arg1:string):Promise<Array<app.ReplicaSetInfo>>;
+
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
+
+export function GetSecretData(arg1:string):Promise<Record<string, string>>;
+
+export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
 
@@ -73,11 +91,21 @@ export function SetRememberNamespace(arg1:boolean):Promise<void>;
 
 export function ShellPod(arg1:string,arg2:string):Promise<string>;
 
+export function StartCronJobPolling():Promise<void>;
+
+export function StartDaemonSetPolling():Promise<void>;
+
+export function StartDeploymentPolling():Promise<void>;
+
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function StartPodPolling():Promise<void>;
 
+export function StartReplicaSetPolling():Promise<void>;
+
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
+
+export function StartStatefulSetPolling():Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;
 

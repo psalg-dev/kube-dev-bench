@@ -1,11 +1,17 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import DeploymentsOverviewTable from './deployments/DeploymentsOverviewTable';
+import JobsOverviewTable from './jobs/JobsOverviewTable';
+import CronJobsOverviewTable from './cronjobs/CronJobsOverviewTable';
+import DaemonSetsOverviewTable from './daemonsets/DaemonSetsOverviewTable';
+import StatefulSetsOverviewTable from './statefulsets/StatefulSetsOverviewTable';
+import ReplicaSetsOverviewTable from './replicasets/ReplicaSetsOverviewTable';
 
 import {EditorState} from "@codemirror/state"
 import {
@@ -280,7 +286,25 @@ function renderSidebarSections() {
   return `
     <div class="sidebar-section${selectedSection === 'pods' ? ' selected' : ''}" id="section-pods" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
       <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📦</span><span>Pods</span></span>
-      <span class="sidebar-pod-count" id="sidebar-pod-count" style="min-width: 2em; text-align: right; font-weight: bold; color: #8ecfff;">-</span>
+      <span class="sidebar-pod-counts" id="sidebar-pod-counts" style="display:flex; gap:8px; align-items:center; min-width: 2em; justify-content:flex-end;"><span style="color:#8ecfff; font-weight:bold;">-</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'deployments' ? ' selected' : ''}" id="section-deployments" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🛡️</span><span>Deployments</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'jobs' ? ' selected' : ''}" id="section-jobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">💼</span><span>Jobs</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'cronjobs' ? ' selected' : ''}" id="section-cronjobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">⏰</span><span>Cron Jobs</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'daemonsets' ? ' selected' : ''}" id="section-daemonsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🔄</span><span>Daemon Sets</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'statefulsets' ? ' selected' : ''}" id="section-statefulsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🏛️</span><span>Stateful Sets</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'replicasets' ? ' selected' : ''}" id="section-replicasets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📑</span><span>Replica Sets</span></span>
     </div>
   `;
 }
@@ -288,18 +312,56 @@ function renderSidebarSections() {
 function startPodCountUpdater() {
   stopPodCountUpdater();
   if (!selectedNamespace) return;
+  const elId = 'sidebar-pod-counts';
+  let lastSig = null;
   const update = async () => {
-    const el = document.getElementById('sidebar-pod-count');
+    const el = document.getElementById(elId);
     if (!el) return;
     try {
-      const pods = await GetRunningPods(selectedNamespace);
-      const count = Array.isArray(pods) ? pods.length : 0;
-      if (lastPodCount !== count) {
-        lastPodCount = count;
-        el.textContent = count;
+      // Prefer precise status counts for color-coded display
+      const counts = await GetPodStatusCounts(selectedNamespace);
+      // Build a signature to avoid unnecessary DOM writes
+      const sig = counts ? [counts.running, counts.pending, counts.failed, counts.succeeded, counts.unknown, counts.total].join('-') : 'x';
+      if (sig === lastSig) return;
+      lastSig = sig;
+
+      const parts = [];
+      const pushPart = (value, color, title) => {
+        if (!value) return;
+        parts.push(`<span title="${title}" style="color:${color}; font-weight: 700;">${value}</span>`);
+      };
+      // Colors aligned with table: green, yellow, red, grey
+      pushPart(counts.running, '#2ea44f', 'Running');
+      pushPart(counts.pending, '#e6b800', 'Pending/Creating');
+      pushPart(counts.failed, '#d73a49', 'Failed');
+      // Show succeeded & unknown in neutral grey if present
+      pushPart(counts.succeeded, '#9aa0a6', 'Succeeded');
+      pushPart(counts.unknown, '#9aa0a6', 'Unknown');
+
+      // If there are no pods, show 0 in muted color
+      if (counts.total === 0) {
+        el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
+      } else if (parts.length > 0) {
+        el.innerHTML = parts.join('<span style="color:#666;">/</span>');
+      } else {
+        // Fallback: show running as single number if others are zero
+        el.innerHTML = `<span style="color:#2ea44f; font-weight:700;">${counts.running || 0}</span>`;
       }
     } catch (err) {
-      el.textContent = '0';
+      // Fallback to older API (running pods) for backward compatibility
+      try {
+        const pods = await GetRunningPods(selectedNamespace);
+        const count = Array.isArray(pods) ? pods.length : 0;
+        const fallbackSig = `r-${count}`;
+        if (fallbackSig !== lastSig) {
+          lastSig = fallbackSig;
+          const el = document.getElementById(elId);
+          if (el) el.innerHTML = `<span title="Running" style="color:#2ea44f; font-weight:700;">${count}</span>`;
+        }
+      } catch (_) {
+        const el = document.getElementById(elId);
+        if (el) el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
+      }
     }
   };
   update();
@@ -317,6 +379,18 @@ function renderSidebarAndAttachHandlers() {
   sidebarSections.innerHTML = renderSidebarSections();
   const podsEntry = document.getElementById('section-pods');
   if (podsEntry) podsEntry.onclick = (e) => { e.stopPropagation(); selectSection('pods'); };
+  const deploymentsEntry = document.getElementById('section-deployments');
+  if (deploymentsEntry) deploymentsEntry.onclick = (e) => { e.stopPropagation(); selectSection('deployments'); };
+  const jobsEntry = document.getElementById('section-jobs');
+  if (jobsEntry) jobsEntry.onclick = (e) => { e.stopPropagation(); selectSection('jobs'); };
+  const cronJobsEntry = document.getElementById('section-cronjobs');
+  if (cronJobsEntry) cronJobsEntry.onclick = (e) => { e.stopPropagation(); selectSection('cronjobs'); };
+  const daemonSetsEntry = document.getElementById('section-daemonsets');
+  if (daemonSetsEntry) daemonSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('daemonsets'); };
+  const statefulSetsEntry = document.getElementById('section-statefulsets');
+  if (statefulSetsEntry) statefulSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('statefulsets'); };
+  const replicaSetsEntry = document.getElementById('section-replicasets');
+  if (replicaSetsEntry) replicaSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('replicasets'); };
   startPodCountUpdater();
 }
 
@@ -328,20 +402,64 @@ function selectSection(section) {
 }
 
 function renderMainContent() {
-  mainPanels.innerHTML = `
-    <div class="main-panel main-panel-pods">
-      <div id="pod-overview-react"></div>
-    </div>
-  `;
-  const podOverviewContainer = document.getElementById('pod-overview-react');
-  if (podOverviewContainer) {
-    renderPodOverviewTable({
-      container: podOverviewContainer,
-      namespace: selectedNamespace,
-      onCreateResource: (type) => {
-        showResourceOverlay(type);
-      }
-    });
+  if (selectedSection === 'pods') {
+    mainPanels.innerHTML = `
+      <div class="main-panel main-panel-pods">
+        <div id="pod-overview-react"></div>
+      </div>
+    `;
+    const podOverviewContainer = document.getElementById('pod-overview-react');
+    if (podOverviewContainer) {
+      renderPodOverviewTable({
+        container: podOverviewContainer,
+        namespace: selectedNamespace,
+        onCreateResource: (type) => {
+          showResourceOverlay(type);
+        }
+      });
+    }
+  } else if (selectedSection === 'deployments') {
+    mainPanels.innerHTML = `<div class="main-panel" id="deployments-overview-react"></div>`;
+    const deploymentsOverviewContainer = document.getElementById('deployments-overview-react');
+    if (deploymentsOverviewContainer) {
+      const root = createRoot(deploymentsOverviewContainer);
+      root.render(React.createElement(DeploymentsOverviewTable, { namespace: selectedNamespace }));
+    }
+  } else if (selectedSection === 'jobs') {
+    mainPanels.innerHTML = `<div class="main-panel" id="jobs-overview-react"></div>`;
+    const jobsOverviewContainer = document.getElementById('jobs-overview-react');
+    if (jobsOverviewContainer) {
+      const root = createRoot(jobsOverviewContainer);
+      root.render(React.createElement(JobsOverviewTable, { namespace: selectedNamespace }));
+    }
+  } else if (selectedSection === 'cronjobs') {
+    mainPanels.innerHTML = `<div class="main-panel" id="cronjobs-overview-react"></div>`;
+    const cronJobsOverviewContainer = document.getElementById('cronjobs-overview-react');
+    if (cronJobsOverviewContainer) {
+      const root = createRoot(cronJobsOverviewContainer);
+      root.render(React.createElement(CronJobsOverviewTable, { namespace: selectedNamespace }));
+    }
+  } else if (selectedSection === 'daemonsets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="daemonsets-overview-react"></div>`;
+    const daemonSetsOverviewContainer = document.getElementById('daemonsets-overview-react');
+    if (daemonSetsOverviewContainer) {
+      const root = createRoot(daemonSetsOverviewContainer);
+      root.render(React.createElement(DaemonSetsOverviewTable, { namespace: selectedNamespace }));
+    }
+  } else if (selectedSection === 'statefulsets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="statefulsets-overview-react"></div>`;
+    const statefulSetsOverviewContainer = document.getElementById('statefulsets-overview-react');
+    if (statefulSetsOverviewContainer) {
+      const root = createRoot(statefulSetsOverviewContainer);
+      root.render(React.createElement(StatefulSetsOverviewTable, { namespace: selectedNamespace }));
+    }
+  } else if (selectedSection === 'replicasets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="replicasets-overview-react"></div>`;
+    const replicaSetsOverviewContainer = document.getElementById('replicasets-overview-react');
+    if (replicaSetsOverviewContainer) {
+      const root = createRoot(replicaSetsOverviewContainer);
+      root.render(React.createElement(ReplicaSetsOverviewTable, { namespace: selectedNamespace }));
+    }
   }
 }
 
@@ -487,6 +605,8 @@ function onNamespaceChange() {
           showSuccess(`Namespace "${selectedNamespace}" gespeichert!`);
           updateFooter();
           startPodCountUpdater();
+          // Re-render current section to apply new namespace
+          renderMainContent();
         })
         .catch(() => {
           nsSelect.value = previousNamespace;
