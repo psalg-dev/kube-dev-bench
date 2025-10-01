@@ -128,3 +128,14 @@ type JobInfo struct {
 	Image       string `json:"image"`
 	Duration    string `json:"duration"`
 }
+
+// CronJobInfo describes a cronjob's basic info
+type CronJobInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Schedule  string `json:"schedule"`
+	Suspend   bool   `json:"suspend"`
+	Age       string `json:"age"`
+	Image     string `json:"image"`
+	NextRun   string `json:"nextRun"`
+}

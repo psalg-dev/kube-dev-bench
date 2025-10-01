@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	github.com/creack/pty v1.1.24
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/wailsapp/wails/v2 v2.10.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.34.1

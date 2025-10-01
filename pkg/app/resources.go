@@ -105,6 +105,12 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 					runtime.EventsEmit(a.ctx, "deployments:update", deps)
 				}
 			}
+			// If we created a CronJob, emit cronjobs snapshot
+			if strings.EqualFold(k, "CronJob") {
+				if cjs, err := a.GetCronJobs(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "cronjobs:update", cjs)
+				}
+			}
 		}
 	}(resNamespace, kind)
 	return nil

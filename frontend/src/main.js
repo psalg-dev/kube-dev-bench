@@ -437,7 +437,7 @@ function renderMainContent() {
     const cronJobsOverviewContainer = document.getElementById('cronjobs-overview-react');
     if (cronJobsOverviewContainer) {
       const root = createRoot(cronJobsOverviewContainer);
-      root.render(React.createElement(CronJobsOverviewTable));
+      root.render(React.createElement(CronJobsOverviewTable, { namespace: selectedNamespace }));
     }
   } else if (selectedSection === 'daemonsets') {
     mainPanels.innerHTML = `<div class="main-panel" id="daemonsets-overview-react"></div>`;

@@ -14,6 +14,10 @@ export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
 }
 
+export function GetCronJobs(arg1) {
+  return window['go']['main']['App']['GetCronJobs'](arg1);
+}
+
 export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
@@ -160,6 +164,10 @@ export function SetRememberNamespace(arg1) {
 
 export function ShellPod(arg1, arg2) {
   return window['go']['main']['App']['ShellPod'](arg1, arg2);
+}
+
+export function StartCronJobPolling() {
+  return window['go']['main']['App']['StartCronJobPolling']();
 }
 
 export function StartDeploymentPolling() {

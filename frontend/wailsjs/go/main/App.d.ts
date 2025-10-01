@@ -9,6 +9,8 @@ export function DeletePod(arg1:string,arg2:string):Promise<void>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
+export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
+
 export function GetCurrentConfig():Promise<app.AppConfig>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
@@ -82,6 +84,8 @@ export function SetRememberContext(arg1:boolean):Promise<void>;
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
 
 export function ShellPod(arg1:string,arg2:string):Promise<string>;
+
+export function StartCronJobPolling():Promise<void>;
 
 export function StartDeploymentPolling():Promise<void>;
 

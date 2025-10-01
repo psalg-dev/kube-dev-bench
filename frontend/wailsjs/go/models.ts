@@ -72,6 +72,30 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class CronJobInfo {
+	    name: string;
+	    namespace: string;
+	    schedule: string;
+	    suspend: boolean;
+	    age: string;
+	    image: string;
+	    nextRun: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CronJobInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.schedule = source["schedule"];
+	        this.suspend = source["suspend"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	        this.nextRun = source["nextRun"];
+	    }
+	}
 	export class DeploymentInfo {
 	    name: string;
 	    namespace: string;

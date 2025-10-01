@@ -1,16 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-
-const mockCronJobs = [
-  { name: 'daily-backup', namespace: 'default', schedule: '0 2 * * *', suspend: false, age: '7d', image: 'busybox' },
-  { name: 'weekly-report', namespace: 'dev', schedule: '0 5 * * 1', suspend: true, age: '14d', image: 'reporter:latest' },
-];
+import * as AppAPI from '../../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'namespace', label: 'Namespace' },
   { key: 'schedule', label: 'Schedule' },
   { key: 'suspend', label: 'Suspend' },
+  { key: 'nextRun', label: 'Next run' },
   { key: 'age', label: 'Age' },
   { key: 'image', label: 'Image' },
 ];
@@ -30,6 +28,7 @@ function renderPanelContent(row, tab) {
         <p><b>Namespace:</b> {row.namespace}</p>
         <p><b>Schedule:</b> {row.schedule}</p>
         <p><b>Suspend:</b> {row.suspend ? 'Yes' : 'No'}</p>
+        <p><b>Next run:</b> {row.nextRun || '-'}</p>
         <p><b>Image:</b> {row.image}</p>
         <p><b>Age:</b> {row.age}</p>
       </div>
@@ -39,7 +38,7 @@ function renderPanelContent(row, tab) {
     return (
       <div>
         <h3>Events</h3>
-        <p>No events (mock data).</p>
+        <p>Events functionality not yet implemented for CronJobs.</p>
       </div>
     );
   }
@@ -74,16 +73,67 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function CronJobsOverviewTable() {
+export default function CronJobsOverviewTable({ namespace }) {
+  const [cronJobs, setCronJobs] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const normalize = (arr) => (arr || []).map((d) => ({
+    name: d.name ?? d.Name,
+    namespace: d.namespace ?? d.Namespace,
+    schedule: d.schedule ?? d.Schedule ?? '-',
+    suspend: d.suspend ?? d.Suspend ?? false,
+    nextRun: d.nextRun ?? d.NextRun ?? '-',
+    age: d.age ?? d.Age ?? '-',
+    image: d.image ?? d.Image ?? '',
+  }));
+
+  const fetchCronJobs = async () => {
+    if (!namespace) return;
+    setLoading(true);
+    try {
+      const result = await AppAPI.GetCronJobs(namespace);
+      setCronJobs(normalize(Array.isArray(result) ? result : []));
+    } catch (e) {
+      console.error('Error fetching cronjobs:', e);
+      setCronJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCronJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namespace]);
+
+  useEffect(() => {
+    const onUpdate = (list) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        const filtered = namespace ? arr.filter((d) => (d?.namespace || d?.Namespace) === namespace) : arr;
+        setCronJobs(normalize(filtered));
+      } catch (_) {
+        setCronJobs([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    EventsOn('cronjobs:update', onUpdate);
+    return () => { try { EventsOff('cronjobs:update'); } catch (_) {} };
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}
-      data={mockCronJobs}
+      data={cronJobs}
+      loading={loading}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Cron Jobs"
+      onRefresh={fetchCronJobs}
       resourceKind="CronJob"
+      namespace={namespace}
     />
   );
 }
