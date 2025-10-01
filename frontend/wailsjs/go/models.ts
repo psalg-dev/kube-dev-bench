@@ -20,6 +20,58 @@ export namespace app {
 	        this.kubeConfigPath = source["kubeConfigPath"];
 	    }
 	}
+	export class MountInfo {
+	    name: string;
+	    mountPath: string;
+	    readOnly: boolean;
+	    subPath?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MountInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.mountPath = source["mountPath"];
+	        this.readOnly = source["readOnly"];
+	        this.subPath = source["subPath"];
+	    }
+	}
+	export class ContainerMountInfo {
+	    container: string;
+	    isInit: boolean;
+	    mounts: MountInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ContainerMountInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.container = source["container"];
+	        this.isInit = source["isInit"];
+	        this.mounts = this.convertValues(source["mounts"], MountInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class EventInfo {
 	    type: string;
 	    reason: string;
@@ -80,6 +132,7 @@ export namespace app {
 	        this.contexts = source["contexts"];
 	    }
 	}
+	
 	export class OverviewInfo {
 	    pods: number;
 	    deployments: number;
@@ -117,6 +170,66 @@ export namespace app {
 	        this.ports = source["ports"];
 	        this.status = source["status"];
 	    }
+	}
+	export class VolumeInfo {
+	    name: string;
+	    type: string;
+	    secretName?: string;
+	    configMapName?: string;
+	    pvc?: string;
+	    hostPath?: string;
+	    emptyDir?: boolean;
+	    projectedSecretNames?: string[];
+	    projectedConfigMapNames?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new VolumeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.type = source["type"];
+	        this.secretName = source["secretName"];
+	        this.configMapName = source["configMapName"];
+	        this.pvc = source["pvc"];
+	        this.hostPath = source["hostPath"];
+	        this.emptyDir = source["emptyDir"];
+	        this.projectedSecretNames = source["projectedSecretNames"];
+	        this.projectedConfigMapNames = source["projectedConfigMapNames"];
+	    }
+	}
+	export class PodMounts {
+	    volumes: VolumeInfo[];
+	    containers: ContainerMountInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new PodMounts(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.volumes = this.convertValues(source["volumes"], VolumeInfo);
+	        this.containers = this.convertValues(source["containers"], ContainerMountInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class PodSummary {
 	    name: string;

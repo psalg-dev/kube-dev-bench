@@ -17,6 +17,7 @@ import Console from '../Console';
 import PortForwardOutput from './PortForwardOutput';
 import BottomPanel from '../BottomPanel';
 import PortForwardDialog from './PortForwardDialog';
+import PodMountsTab from './PodMountsTab';
 
 export default function PodOverviewTable({ namespace, data = [], loading = false, onCreateResource }) {
   const [now, setNow] = useState(Date.now());
@@ -416,6 +417,11 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
       id: 'portforward',
       label: 'Port Forward',
       content: <PortForwardOutput namespace={namespace} podName={bottomPodName} localPort={forwardLocalPort} remotePort={forwardRemotePort} />
+    },
+    {
+      id: 'mounts',
+      label: 'Mounts',
+      content: <PodMountsTab podName={bottomPodName} />
     }
   ];
 

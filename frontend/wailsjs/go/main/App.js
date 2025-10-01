@@ -62,6 +62,10 @@ export function GetPodLog(arg1) {
   return window['go']['main']['App']['GetPodLog'](arg1);
 }
 
+export function GetPodMounts(arg1) {
+  return window['go']['main']['App']['GetPodMounts'](arg1);
+}
+
 export function GetPodSummary(arg1) {
   return window['go']['main']['App']['GetPodSummary'](arg1);
 }
@@ -80,6 +84,10 @@ export function GetRememberNamespace() {
 
 export function GetRunningPods(arg1) {
   return window['go']['main']['App']['GetRunningPods'](arg1);
+}
+
+export function GetSecretData(arg1) {
+  return window['go']['main']['App']['GetSecretData'](arg1);
 }
 
 export function Greet(arg1) {

@@ -55,3 +55,37 @@ type PortForwardInfo struct {
 	Local     int    `json:"local"`
 	Remote    int    `json:"remote"`
 }
+
+// VolumeInfo describes a pod volume and its source details
+type VolumeInfo struct {
+	Name                    string   `json:"name"`
+	Type                    string   `json:"type"`
+	SecretName              string   `json:"secretName,omitempty"`
+	ConfigMapName           string   `json:"configMapName,omitempty"`
+	PersistentVolumeClaim   string   `json:"pvc,omitempty"`
+	HostPath                string   `json:"hostPath,omitempty"`
+	EmptyDir                bool     `json:"emptyDir,omitempty"`
+	ProjectedSecretNames    []string `json:"projectedSecretNames,omitempty"`
+	ProjectedConfigMapNames []string `json:"projectedConfigMapNames,omitempty"`
+}
+
+// MountInfo connects a container path to a volume
+type MountInfo struct {
+	Name      string `json:"name"` // volume name
+	MountPath string `json:"mountPath"`
+	ReadOnly  bool   `json:"readOnly"`
+	SubPath   string `json:"subPath,omitempty"`
+}
+
+// ContainerMountInfo lists mounts per (init-)container
+type ContainerMountInfo struct {
+	Container string      `json:"container"`
+	IsInit    bool        `json:"isInit"`
+	Mounts    []MountInfo `json:"mounts"`
+}
+
+// PodMounts is the aggregated view of volumes and their usage in containers
+type PodMounts struct {
+	Volumes    []VolumeInfo         `json:"volumes"`
+	Containers []ContainerMountInfo `json:"containers"`
+}

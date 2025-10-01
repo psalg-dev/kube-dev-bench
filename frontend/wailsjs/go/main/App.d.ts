@@ -33,6 +33,8 @@ export function GetPodEventsLegacy(arg1:string):Promise<Array<app.EventInfo>>;
 
 export function GetPodLog(arg1:string):Promise<string>;
 
+export function GetPodMounts(arg1:string):Promise<app.PodMounts>;
+
 export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 
 export function GetPodYAML(arg1:string):Promise<string>;
@@ -42,6 +44,8 @@ export function GetRememberContext():Promise<boolean>;
 export function GetRememberNamespace():Promise<boolean>;
 
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
+
+export function GetSecretData(arg1:string):Promise<Record<string, string>>;
 
 export function Greet(arg1:string):Promise<string>;
 
