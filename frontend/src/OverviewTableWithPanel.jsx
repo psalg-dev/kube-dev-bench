@@ -1,0 +1,75 @@
+import React, { useState, useEffect } from 'react';
+import BottomPanel from './BottomPanel';
+
+/**
+ * Reusable overview table with bottom panel.
+ * @param {Object[]} columns - Array of { key, label } for table columns.
+ * @param {Object[]} data - Array of row objects.
+ * @param {Object[]} tabs - Array of { key, label } for panel tabs.
+ * @param {function(row, tab): React.ReactNode} renderPanelContent - Function to render panel content for a row and tab.
+ * @param {function(row): React.ReactNode} panelHeader - Optional function to render panel header.
+ * @param {string} title - Table title.
+ */
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title }) {
+  const [bottomOpen, setBottomOpen] = useState(false);
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [activeTab, setActiveTab] = useState(tabs[0]?.key || 'summary');
+
+  const openBottomPanel = (row) => {
+    setSelectedRow(row);
+    setBottomOpen(true);
+    setActiveTab(tabs[0]?.key || 'summary');
+  };
+
+  const closeBottomPanel = () => {
+    setBottomOpen(false);
+    setSelectedRow(null);
+  };
+
+  useEffect(() => {
+    if (!bottomOpen) return;
+    const handleClick = (e) => {
+      if (!e.target.closest('.bottom-panel')) {
+        closeBottomPanel();
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [bottomOpen]);
+
+  return (
+    <div>
+      <h2>{title}</h2>
+      <table className="gh-table" style={{ width: '100%', marginTop: 12 }}>
+        <thead>
+          <tr>
+            {columns.map(col => <th key={col.key}>{col.label}</th>)}
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((row, idx) => (
+            <tr key={row.name || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+              {columns.map(col => <td key={col.key}>{row[col.key]}</td>)}
+              <td>
+                <button onClick={e => { e.stopPropagation(); openBottomPanel(row); }} style={{ padding: '2px 8px' }}>Details</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <BottomPanel
+        open={bottomOpen}
+        onClose={closeBottomPanel}
+        tabs={tabs}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
+        className="bottom-panel"
+      >
+        {selectedRow && renderPanelContent(selectedRow, activeTab)}
+      </BottomPanel>
+    </div>
+  );
+}
+

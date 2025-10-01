@@ -6,6 +6,12 @@ import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import DeploymentsOverviewTable from './deployments/DeploymentsOverviewTable';
+import JobsOverviewTable from './jobs/JobsOverviewTable';
+import CronJobsOverviewTable from './cronjobs/CronJobsOverviewTable';
+import DaemonSetsOverviewTable from './daemonsets/DaemonSetsOverviewTable';
+import StatefulSetsOverviewTable from './statefulsets/StatefulSetsOverviewTable';
+import ReplicaSetsOverviewTable from './replicasets/ReplicaSetsOverviewTable';
 
 import {EditorState} from "@codemirror/state"
 import {
@@ -282,6 +288,24 @@ function renderSidebarSections() {
       <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📦</span><span>Pods</span></span>
       <span class="sidebar-pod-counts" id="sidebar-pod-counts" style="display:flex; gap:8px; align-items:center; min-width: 2em; justify-content:flex-end;"><span style="color:#8ecfff; font-weight:bold;">-</span></span>
     </div>
+    <div class="sidebar-section${selectedSection === 'deployments' ? ' selected' : ''}" id="section-deployments" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🛡️</span><span>Deployments</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'jobs' ? ' selected' : ''}" id="section-jobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">💼</span><span>Jobs</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'cronjobs' ? ' selected' : ''}" id="section-cronjobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">⏰</span><span>Cron Jobs</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'daemonsets' ? ' selected' : ''}" id="section-daemonsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🔄</span><span>Daemon Sets</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'statefulsets' ? ' selected' : ''}" id="section-statefulsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">🏛️</span><span>Stateful Sets</span></span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'replicasets' ? ' selected' : ''}" id="section-replicasets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span style="font-size: 17px;">📑</span><span>Replica Sets</span></span>
+    </div>
   `;
 }
 
@@ -355,6 +379,18 @@ function renderSidebarAndAttachHandlers() {
   sidebarSections.innerHTML = renderSidebarSections();
   const podsEntry = document.getElementById('section-pods');
   if (podsEntry) podsEntry.onclick = (e) => { e.stopPropagation(); selectSection('pods'); };
+  const deploymentsEntry = document.getElementById('section-deployments');
+  if (deploymentsEntry) deploymentsEntry.onclick = (e) => { e.stopPropagation(); selectSection('deployments'); };
+  const jobsEntry = document.getElementById('section-jobs');
+  if (jobsEntry) jobsEntry.onclick = (e) => { e.stopPropagation(); selectSection('jobs'); };
+  const cronJobsEntry = document.getElementById('section-cronjobs');
+  if (cronJobsEntry) cronJobsEntry.onclick = (e) => { e.stopPropagation(); selectSection('cronjobs'); };
+  const daemonSetsEntry = document.getElementById('section-daemonsets');
+  if (daemonSetsEntry) daemonSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('daemonsets'); };
+  const statefulSetsEntry = document.getElementById('section-statefulsets');
+  if (statefulSetsEntry) statefulSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('statefulsets'); };
+  const replicaSetsEntry = document.getElementById('section-replicasets');
+  if (replicaSetsEntry) replicaSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('replicasets'); };
   startPodCountUpdater();
 }
 
@@ -366,20 +402,64 @@ function selectSection(section) {
 }
 
 function renderMainContent() {
-  mainPanels.innerHTML = `
-    <div class="main-panel main-panel-pods">
-      <div id="pod-overview-react"></div>
-    </div>
-  `;
-  const podOverviewContainer = document.getElementById('pod-overview-react');
-  if (podOverviewContainer) {
-    renderPodOverviewTable({
-      container: podOverviewContainer,
-      namespace: selectedNamespace,
-      onCreateResource: (type) => {
-        showResourceOverlay(type);
-      }
-    });
+  if (selectedSection === 'pods') {
+    mainPanels.innerHTML = `
+      <div class="main-panel main-panel-pods">
+        <div id="pod-overview-react"></div>
+      </div>
+    `;
+    const podOverviewContainer = document.getElementById('pod-overview-react');
+    if (podOverviewContainer) {
+      renderPodOverviewTable({
+        container: podOverviewContainer,
+        namespace: selectedNamespace,
+        onCreateResource: (type) => {
+          showResourceOverlay(type);
+        }
+      });
+    }
+  } else if (selectedSection === 'deployments') {
+    mainPanels.innerHTML = `<div class="main-panel" id="deployments-overview-react"></div>`;
+    const deploymentsOverviewContainer = document.getElementById('deployments-overview-react');
+    if (deploymentsOverviewContainer) {
+      const root = createRoot(deploymentsOverviewContainer);
+      root.render(React.createElement(DeploymentsOverviewTable));
+    }
+  } else if (selectedSection === 'jobs') {
+    mainPanels.innerHTML = `<div class="main-panel" id="jobs-overview-react"></div>`;
+    const jobsOverviewContainer = document.getElementById('jobs-overview-react');
+    if (jobsOverviewContainer) {
+      const root = createRoot(jobsOverviewContainer);
+      root.render(React.createElement(JobsOverviewTable));
+    }
+  } else if (selectedSection === 'cronjobs') {
+    mainPanels.innerHTML = `<div class="main-panel" id="cronjobs-overview-react"></div>`;
+    const cronJobsOverviewContainer = document.getElementById('cronjobs-overview-react');
+    if (cronJobsOverviewContainer) {
+      const root = createRoot(cronJobsOverviewContainer);
+      root.render(React.createElement(CronJobsOverviewTable));
+    }
+  } else if (selectedSection === 'daemonsets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="daemonsets-overview-react"></div>`;
+    const daemonSetsOverviewContainer = document.getElementById('daemonsets-overview-react');
+    if (daemonSetsOverviewContainer) {
+      const root = createRoot(daemonSetsOverviewContainer);
+      root.render(React.createElement(DaemonSetsOverviewTable));
+    }
+  } else if (selectedSection === 'statefulsets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="statefulsets-overview-react"></div>`;
+    const statefulSetsOverviewContainer = document.getElementById('statefulsets-overview-react');
+    if (statefulSetsOverviewContainer) {
+      const root = createRoot(statefulSetsOverviewContainer);
+      root.render(React.createElement(StatefulSetsOverviewTable));
+    }
+  } else if (selectedSection === 'replicasets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="replicasets-overview-react"></div>`;
+    const replicaSetsOverviewContainer = document.getElementById('replicasets-overview-react');
+    if (replicaSetsOverviewContainer) {
+      const root = createRoot(replicaSetsOverviewContainer);
+      root.render(React.createElement(ReplicaSetsOverviewTable));
+    }
   }
 }
 
