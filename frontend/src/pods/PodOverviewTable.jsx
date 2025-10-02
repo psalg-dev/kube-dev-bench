@@ -19,6 +19,20 @@ import BottomPanel from '../BottomPanel';
 import PortForwardDialog from './PortForwardDialog';
 import PodMountsTab from './PodMountsTab';
 import '../OverviewTableWithPanel.css';
+import { showResourceOverlay } from '../resource-overlay.js';
+
+// Resource types matching sidebar and templates in resource-overlay.js
+const createOptions = [
+  { key: 'deployment', label: 'Deployment' },
+  { key: 'job', label: 'Job' },
+  { key: 'cronjob', label: 'CronJob' },
+  { key: 'daemonset', label: 'DaemonSet' },
+  { key: 'statefulset', label: 'StatefulSet' },
+  { key: 'replicaset', label: 'ReplicaSet' },
+  { key: 'configmap', label: 'ConfigMap' },
+  { key: 'secret', label: 'Secret' },
+  { key: 'ingress', label: 'Ingress' },
+];
 
 export default function PodOverviewTable({ namespace, data = [], loading = false, onCreateResource }) {
   const [now, setNow] = useState(Date.now());
@@ -591,19 +605,19 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                   borderRadius: 0,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
                   zIndex: 10,
-                  minWidth: 140,
+                  minWidth: 180,
                   padding: '4px 0',
+                  textAlign: 'left', // <-- ensure left alignment
                 }}
                 onClick={handleMenuClick}
               >
-                <div
-                  style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
-                  onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('deployment'); }, 0); }}
-                >Deployment</div>
-                <div
-                  style={{padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap'}}
-                  onClick={() => { setShowMenu(false); setTimeout(() => { onCreateResource && onCreateResource('job'); }, 0); }}
-                >Job</div>
+                {createOptions.map(opt => (
+                  <div
+                    key={opt.key}
+                    style={{ padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap', textAlign: 'left' }}
+                    onClick={() => { setShowMenu(false); setTimeout(() => { showResourceOverlay(opt.key); }, 0); }}
+                  >{opt.label}</div>
+                ))}
               </div>
             )}
           </div>

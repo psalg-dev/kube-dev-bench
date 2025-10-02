@@ -74,3 +74,12 @@
 .gh-table tbody td {
   padding: 10px var(--gh-table-padding-x, 16px);
 }
+
+/* NEW: Context menu item hover style in plus button menu */
+.menu-content > div {
+  transition: background 0.15s;
+}
+.menu-content > div:hover {
+  background: rgba(46, 164, 79, 0.18); /* subtle green highlight */
+  color: #fff;
+}

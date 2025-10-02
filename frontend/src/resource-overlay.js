@@ -6,6 +6,7 @@ import {
     highlightSpecialChars, keymap,
     lineNumbers, rectangularSelection
 } from "@codemirror/view";
+import { EditorView } from "@codemirror/view";
 import {
     bracketMatching,
     defaultHighlightStyle,
@@ -16,7 +17,7 @@ import {
 import {highlightSelectionMatches, searchKeymap} from "@codemirror/search";
 import {yaml} from "@codemirror/lang-yaml";
 import {closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete";
-import {defaultKeymap, historyKeymap} from "@codemirror/commands";
+import {defaultKeymap, history, historyKeymap} from "@codemirror/commands";
 import {lintKeymap} from "@codemirror/lint";
 
 export function showResourceOverlay(resourceType) {
