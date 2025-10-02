@@ -35,7 +35,8 @@ wails build
 ## General Guidelines
 - This project uses React. 
 - Follow React Best Practices, especially regarding code organization
-- Have a focus on re-usability and modularity
+- Follow Code re-usability
+- Follow separation of concerns
 - Use component specific CSS files, try avoiding huge global CSS files
 - We use @tanstack/table for tables.
 - We use @codemirror editor for showing kubernetes manifests
@@ -52,6 +53,10 @@ wails build
   - Daemon Sets
   - Stateful Sets
   - Replica Sets
+  - Config Maps
+  - Secrets
+  - Persistent Volumes
+  - Persistent Volume Claims
 - All kubernetes resource views behave the same way
   - There is a hidden Bottom Panel that is opened for showing details of a resource
   - The main content area shows a table
@@ -65,3 +70,9 @@ wails build
   - The user can close the Overlay by pressing Escape or clicking the X top right
 - When a resource is created, the table should refresh automatically to show the new resource
 - When a resource is created, the table should refresh the age of the resource automatically once every second for the first minute
+- User actions which cause state change always result in a notification
+  - Notifications are shown top center of the main content area
+  - Notifications disappear automatically after 3 seconds
+  - Notifications can be dismissed by clicking an X button on the notification
+  - Notifiations are draggable
+  - Notifications show a progress bar in the lower border which indicates how long until the notification disappears

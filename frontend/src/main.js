@@ -22,23 +22,12 @@ import {
   SetCurrentKubeContext,
   SetCurrentNamespace
 } from '../wailsjs/go/main/App';
-import {renderPodOverviewTable} from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import DeploymentsOverviewTable from './deployments/DeploymentsOverviewTable';
-import JobsOverviewTable from './jobs/JobsOverviewTable';
-import CronJobsOverviewTable from './cronjobs/CronJobsOverviewTable';
-import DaemonSetsOverviewTable from './daemonsets/DaemonSetsOverviewTable';
-import StatefulSetsOverviewTable from './statefulsets/StatefulSetsOverviewTable';
-import ReplicaSetsOverviewTable from './replicasets/ReplicaSetsOverviewTable';
-import ConfigMapsOverviewTable from './configmaps/ConfigMapsOverviewTable';
-import SecretsOverviewTable from './secrets/SecretsOverviewTable';
-import IngressesOverviewTable from './ingresses/IngressesOverviewTable';
-import PersistentVolumeClaimsOverviewTable from './persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
-import PersistentVolumesOverviewTable from './persistentvolumes/PersistentVolumesOverviewTable';
 import {getSelectedSection, renderSidebarAndAttachHandlers, renderSidebarSections} from "./sidebar";
-import {showResourceOverlay} from './resource-overlay'
+import {showError, showSuccess, showWarning} from './notification'
+import {renderPodsMainContent, renderResourceMainContent} from "./main-content";
 
 // State
 let selectedContext = '';
@@ -136,7 +125,7 @@ function renderMainAppHTML() {
           <span style="font-size: 14px; color: var(--gh-text-secondary, #ccc);">Connection</span>
           <button id="show-wizard-btn" style="background: transparent; border: 1px solid var(--gh-border, #444); color: var(--gh-text-secondary, #ccc); padding: 4px 8px; border-radius: 0; cursor: pointer; font-size: 12px;" title="Show Connection Wizard">⚙️</button>
         </div>
-        <label for="kubecontext">Kontext:</label>
+        <label for="kubecontext">Context:</label>
         <select class="input" id="kubecontext"></select>
         <label for="namespace">Namespace:</label>
         <select class="input" id="namespace"></select>
@@ -226,7 +215,7 @@ async function initializeWithConfig() {
 
     const contexts = await GetKubeContexts();
     if (!contexts || contexts.length === 0) {
-      showError("Keine Kubernetes-Kontexte gefunden.");
+      showWarning("No Kubernetes contexts found.");
       return;
     }
 
@@ -260,14 +249,14 @@ async function initializeWithConfig() {
           }
         }
       } catch (err) {
-        showError("Fehler beim Verbinden mit dem gespeicherten Cluster: " + err);
+        showError("Failed to connect with the saved cluster: " + err);
         nsSelect.disabled = false;
         clusterConnected = false;
       }
     }
     updateFooter();
   } catch (err) {
-    showError("Fehler beim Laden der gespeicherten Konfiguration: " + err);
+    showError("Error loading saved configuration: " + err);
     selectElement.disabled = false;
     nsSelect.disabled = false;
   }
@@ -406,152 +395,16 @@ function stopPodCountUpdater() {
   }
 }
 
+
 function renderMainContent() {
-  if (getSelectedSection() === 'pods') {
-    mainPanels.innerHTML = `
-      <div class="main-panel main-panel-pods">
-        <div id="pod-overview-react"></div>
-      </div>
-    `;
-    const podOverviewContainer = document.getElementById('pod-overview-react');
-    if (podOverviewContainer) {
-      renderPodOverviewTable({
-        container: podOverviewContainer,
-        namespace: selectedNamespace,
-        onCreateResource: (type) => {
-          showResourceOverlay(type);
-        }
-      });
-    }
-  } else if (getSelectedSection() === 'deployments') {
-    mainPanels.innerHTML = `<div class="main-panel" id="deployments-overview-react"></div>`;
-    const deploymentsOverviewContainer = document.getElementById('deployments-overview-react');
-    if (deploymentsOverviewContainer) {
-      const root = createRoot(deploymentsOverviewContainer);
-      root.render(React.createElement(DeploymentsOverviewTable, { namespace: selectedNamespace }));
-    }
-  } else if (getSelectedSection() === 'jobs') {
-    mainPanels.innerHTML = `<div class="main-panel" id="jobs-overview-react"></div>`;
-    const jobsOverviewContainer = document.getElementById('jobs-overview-react');
-    if (jobsOverviewContainer) {
-      const root = createRoot(jobsOverviewContainer);
-      root.render(React.createElement(JobsOverviewTable, { namespace: selectedNamespace }));
-    }
-  } else if (getSelectedSection() === 'cronjobs') {
-    mainPanels.innerHTML = `<div class="main-panel" id="cronjobs-overview-react"></div>`;
-    const cronJobsOverviewContainer = document.getElementById('cronjobs-overview-react');
-    if (cronJobsOverviewContainer) {
-      const root = createRoot(cronJobsOverviewContainer);
-      root.render(React.createElement(CronJobsOverviewTable, { namespace: selectedNamespace }));
-    }
-  } else if (getSelectedSection() === 'daemonsets') {
-    mainPanels.innerHTML = `<div class="main-panel" id="daemonsets-overview-react"></div>`;
-    const daemonSetsOverviewContainer = document.getElementById('daemonsets-overview-react');
-    if (daemonSetsOverviewContainer) {
-      const root = createRoot(daemonSetsOverviewContainer);
-      root.render(React.createElement(DaemonSetsOverviewTable, { namespace: selectedNamespace }));
-    }
-  } else if (getSelectedSection() === 'statefulsets') {
-    mainPanels.innerHTML = `<div class="main-panel" id="statefulsets-overview-react"></div>`;
-    const statefulSetsOverviewContainer = document.getElementById('statefulsets-overview-react');
-    if (statefulSetsOverviewContainer) {
-      const root = createRoot(statefulSetsOverviewContainer);
-      root.render(React.createElement(StatefulSetsOverviewTable, { namespace: selectedNamespace }));
-    }
-  } else if (selectedSection === 'replicasets') {
-    mainPanels.innerHTML = `<div class="main-panel" id="replicasets-overview-react"></div>`;
-    const replicaSetsOverviewContainer = document.getElementById('replicasets-overview-react');
-    if (replicaSetsOverviewContainer) {
-      const root = createRoot(replicaSetsOverviewContainer);
-      root.render(React.createElement(ReplicaSetsOverviewTable, { namespace: selectedNamespace }));
-    }
-  } else if (getSelectedSection() === 'configmaps') {
-    mainPanels.innerHTML = `<div class="main-panel" id="configmaps-overview-react"></div>`;
-    const configMapsOverviewContainer = document.getElementById('configmaps-overview-react');
-    if (configMapsOverviewContainer) {
-      const root = createRoot(configMapsOverviewContainer);
-      root.render(React.createElement(ConfigMapsOverviewTable, {
-        namespace: selectedNamespace,
-        onConfigMapCreate: () => {
-          showResourceOverlay('configmap');
-        }
-      }));
-    }
-  } else if (getSelectedSection() === 'secrets') {
-    mainPanels.innerHTML = `<div class="main-panel" id="secrets-overview-react"></div>`;
-    const secretsOverviewContainer = document.getElementById('secrets-overview-react');
-    if (secretsOverviewContainer) {
-      const root = createRoot(secretsOverviewContainer);
-      root.render(React.createElement(SecretsOverviewTable, {
-        namespace: selectedNamespace,
-        onSecretCreate: () => {
-          showResourceOverlay('secret');
-        }
-      }));
-    }
-  } else if (getSelectedSection() === 'ingresses') {
-    mainPanels.innerHTML = `<div class="main-panel" id="ingresses-overview-react"></div>`;
-    const ingressesOverviewContainer = document.getElementById('ingresses-overview-react');
-    if (ingressesOverviewContainer) {
-      const root = createRoot(ingressesOverviewContainer);
-      root.render(React.createElement(IngressesOverviewTable, {
-        namespace: selectedNamespace,
-        onIngressCreate: () => {
-          showResourceOverlay('ingress');
-        }
-      }));
-    }
-  } else if (getSelectedSection() === 'persistentvolumeclaims') {
-    mainPanels.innerHTML = `<div class="main-panel" id="persistentvolumeclaims-overview-react"></div>`;
-    const persistentVolumeClaimsOverviewContainer = document.getElementById('persistentvolumeclaims-overview-react');
-    if (persistentVolumeClaimsOverviewContainer) {
-      const root = createRoot(persistentVolumeClaimsOverviewContainer);
-      root.render(React.createElement(PersistentVolumeClaimsOverviewTable, {
-        namespace: selectedNamespace,
-        onPVCCreate: () => {
-          showResourceOverlay('persistentvolumeclaim');
-        }
-      }));
-    }
-  } else if (getSelectedSection() === 'persistentvolumes') {
-    mainPanels.innerHTML = `<div class="main-panel" id="persistentvolumes-overview-react"></div>`;
-    const persistentVolumesOverviewContainer = document.getElementById('persistentvolumes-overview-react');
-    if (persistentVolumesOverviewContainer) {
-      const root = createRoot(persistentVolumesOverviewContainer);
-      root.render(React.createElement(PersistentVolumesOverviewTable, { namespace: selectedNamespace }));
-    }
+  switch (getSelectedSection()) {
+    case 'pods':
+      renderPodsMainContent(selectedNamespace);
+      break;
+    default:
+      renderResourceMainContent(selectedNamespace);
+      break;
   }
-}
-
-// Message handling functions
-function showMessage(message, type = 'error') {
-  const errorContainer = document.getElementById('error-container');
-  if (!errorContainer) return;
-
-  const messageElement = document.createElement('div');
-  messageElement.className = `message ${type}-message`;
-  messageElement.innerHTML = `
-    <div class="message-header">
-      <span class="message-icon">${type === 'error' ? '⚠️' : '✓'}</span>
-      <span class="message-preview">${message.split('\n')[0]}</span>
-      <button class="message-close">×</button>
-    </div>
-  `;
-
-  errorContainer.appendChild(messageElement);
-
-  const closeBtn = messageElement.querySelector('.message-close');
-  closeBtn.onclick = () => messageElement.remove();
-
-  setTimeout(() => messageElement.remove(), 10000);
-}
-
-function showError(message) {
-  showMessage(message, 'error');
-}
-
-function showSuccess(message) {
-  showMessage(message, 'success');
 }
 
 function onContextChange() {
@@ -569,7 +422,7 @@ function onContextChange() {
   GetNamespaces()
     .then((namespaces) => {
       if (!namespaces || namespaces.length === 0) {
-        showError("Keine Namespaces gefunden.");
+        showWarning("No namespaces found.");
         if (previousContext) {
           selectedContext = previousContext;
           selectedNamespace = previousNamespace;
@@ -600,7 +453,7 @@ function onContextChange() {
         });
     })
     .catch((err) => {
-      showError("Fehler beim Verbinden mit dem Cluster: " + err);
+      showError("Failed to connect to the cluster: " + err);
       if (previousContext) {
         selectedContext = previousContext;
         selectedNamespace = previousNamespace;
@@ -623,7 +476,7 @@ function onNamespaceChange() {
     .then(() => {
       SetCurrentNamespace(selectedNamespace)
         .then(() => {
-          showSuccess(`Namespace "${selectedNamespace}" gespeichert!`);
+          showSuccess(`Namespace "${selectedNamespace}" saved!`);
           updateFooter();
           startPodCountUpdater();
           // Re-render current section to apply new namespace
@@ -636,7 +489,7 @@ function onNamespaceChange() {
         });
     })
     .catch((err) => {
-      showError("Fehler beim Wechseln des Namespace: " + err);
+      showError("Failed to switch namespace: " + err);
       nsSelect.value = previousNamespace;
       selectedNamespace = previousNamespace;
       updateFooter();

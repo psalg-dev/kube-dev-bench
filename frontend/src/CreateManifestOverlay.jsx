@@ -4,6 +4,8 @@ import { EditorState } from '@codemirror/state';
 import { yaml as yamlLang } from '@codemirror/lang-yaml';
 import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
 import * as AppAPI from '../wailsjs/go/main/App';
+import { EventsEmit } from '../wailsjs/runtime';
+import { showSuccess, showError } from './notification';
 
 function getDefaultManifest(kind, namespace) {
   const ns = namespace || 'default';
@@ -128,9 +130,15 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
       }
       const ns = namespace || '';
       await AppAPI.CreateResource(ns, manifest);
+      const kindText = (kind || 'resource').toString();
+      showSuccess(`${kindText} was created successfully!`);
+      // Inform other views to refresh
+      try { EventsEmit('resource-updated', { resource: (kindText || '').toLowerCase(), namespace: ns }); } catch {}
       onClose?.();
     } catch (e) {
-      setError(e?.message || String(e));
+      const msg = e?.message || String(e);
+      setError(msg);
+      showError(`Error creating resource: ${msg}`);
       setSubmitting(false);
     }
   }

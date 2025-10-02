@@ -20,6 +20,7 @@ import {closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete";
 import {defaultKeymap, history, historyKeymap} from "@codemirror/commands";
 import {lintKeymap} from "@codemirror/lint";
 import { CreateResource } from "../wailsjs/go/main/App";
+import { showSuccess, showError } from './notification';
 
 export function showResourceOverlay(resourceType, options = {}) {
     console.log('showResourceOverlay called with:', resourceType);
@@ -89,16 +90,16 @@ export function showResourceOverlay(resourceType, options = {}) {
     // Create resource handler
     const createBtn = overlay.querySelector('.overlay-create-btn');
     createBtn.onclick = async () => {
-        const yaml = editor.state.doc.toString();
+        const yamlText = editor.state.doc.toString();
         createBtn.disabled = true;
         createBtn.textContent = 'Creating...';
         try {
-            await CreateResource(namespace || 'default', yaml);
-            showMessage(`${title} was created successfully!`, 'success');
+            await CreateResource(namespace || 'default', yamlText);
+            showSuccess(`${title} was created successfully!`);
             closeOverlay();
             if (onSuccess) onSuccess();
         } catch (err) {
-            showMessage(`Error creating resource: ${err}`, 'error');
+            showError(`Error creating resource: ${err}`);
             createBtn.disabled = false;
             createBtn.textContent = 'Create';
             if (onError) onError(err);
@@ -111,33 +112,6 @@ export function showResourceOverlay(resourceType, options = {}) {
         }
     };
 }
-
-// Simple message function
-function showMessage(message, type = 'error') {
-    // Create a simple message display
-    const messageEl = document.createElement('div');
-    messageEl.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 12px 20px;
-        border-radius: 6px;
-        color: white;
-        font-weight: 500;
-        z-index: 10000;
-        max-width: 400px;
-        ${type === 'success' ? 'background: #28a745;' : 'background: #dc3545;'}
-    `;
-    messageEl.textContent = message;
-    document.body.appendChild(messageEl);
-
-    setTimeout(() => {
-        if (messageEl.parentNode) {
-            messageEl.parentNode.removeChild(messageEl);
-        }
-    }, 5000);
-}
-
 
 // Resource templates
 const resourceTemplates = {
