@@ -1,11 +1,29 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments, GetJobs, GetCronJobs, GetDaemonSets, GetStatefulSets, GetReplicaSets, GetConfigMaps, GetSecrets, GetIngresses} from '../wailsjs/go/main/App';
-import { renderPodOverviewTable } from './pods/PodOverviewEntry';
+import {
+  GetConfigMaps,
+  GetCronJobs,
+  GetCurrentConfig,
+  GetDaemonSets,
+  GetDeployments,
+  GetIngresses,
+  GetJobs,
+  GetKubeContexts,
+  GetNamespaces,
+  GetOverview,
+  GetPodStatusCounts,
+  GetReplicaSets,
+  GetRunningPods,
+  GetSecrets,
+  GetStatefulSets,
+  SetCurrentKubeContext,
+  SetCurrentNamespace
+} from '../wailsjs/go/main/App';
+import {renderPodOverviewTable} from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
-import { createRoot } from 'react-dom/client';
+import {createRoot} from 'react-dom/client';
 import DeploymentsOverviewTable from './deployments/DeploymentsOverviewTable';
 import JobsOverviewTable from './jobs/JobsOverviewTable';
 import CronJobsOverviewTable from './cronjobs/CronJobsOverviewTable';
@@ -15,44 +33,20 @@ import ReplicaSetsOverviewTable from './replicasets/ReplicaSetsOverviewTable';
 import ConfigMapsOverviewTable from './configmaps/ConfigMapsOverviewTable';
 import SecretsOverviewTable from './secrets/SecretsOverviewTable';
 import IngressesOverviewTable from './ingresses/IngressesOverviewTable';
-
-import {EditorState} from "@codemirror/state"
-import {
-  EditorView, keymap, highlightSpecialChars, drawSelection,
-  highlightActiveLine, dropCursor, rectangularSelection,
-  crosshairCursor, lineNumbers, highlightActiveLineGutter
-} from "@codemirror/view"
-import {
-  defaultHighlightStyle, syntaxHighlighting, indentOnInput,
-  bracketMatching, foldGutter, foldKeymap
-} from "@codemirror/language"
-import {
-  defaultKeymap, history, historyKeymap
-} from "@codemirror/commands"
-import {
-  searchKeymap, highlightSelectionMatches
-} from "@codemirror/search"
-import {
-  autocompletion, completionKeymap, closeBrackets,
-  closeBracketsKeymap
-} from "@codemirror/autocomplete"
-import {lintKeymap} from "@codemirror/lint"
-import {yaml} from "@codemirror/lang-yaml";
+import {getSelectedSection, renderSidebarAndAttachHandlers, renderSidebarSections} from "./sidebar";
+import {showResourceOverlay} from './resource-overlay'
 
 // State
 let selectedContext = '';
 let selectedNamespace = '';
 let clusterConnected = false;
-let errorTimeout = null;
 let isInitializing = false;
-let podFilter = '';
 let showConnectionWizard = false;
 let appRoot = null;
 
 // Section state
 let selectedSection = 'pods';
 let podCountUpdater = null;
-let lastPodCount = null;
 
 // DOM element references (will be set when main app renders)
 let selectElement, nsSelect, footerInfo, footerDot, mainPanels, sidebarSections;
@@ -144,7 +138,7 @@ function renderMainAppHTML() {
         <select class="input" id="namespace"></select>
         <hr class="sidebar-separator" />
         <div id="sidebar-sections" style="flex: 1;">
-          ${renderSidebarSections()}
+          ${renderSidebarSections('pods')}
         </div>
         <button id="sidebar-toggle" title="Collapse Sidebar">
           <span>◀</span>
@@ -257,7 +251,7 @@ async function initializeWithConfig() {
           // Only load overview if we have a valid namespace
           if (nsSelect.value) {
             selectedNamespace = nsSelect.value;
-            renderSidebarAndAttachHandlers();
+            renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
             renderMainContent();
           }
         }
@@ -283,51 +277,6 @@ function updateFooter() {
   } else {
     footerDot.classList.remove('connected');
   }
-}
-
-function renderSidebarSections() {
-  return `
-    <div class="sidebar-section${selectedSection === 'pods' ? ' selected' : ''}" id="section-pods" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Pods</span></span>
-      <span class="sidebar-pod-counts" id="sidebar-pod-counts" style="display:flex; gap:8px; align-items:center; min-width: 2em; justify-content:flex-end;"><span style="color:#8ecfff; font-weight:bold;">-</span></span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'deployments' ? ' selected' : ''}" id="section-deployments" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Deployments</span></span>
-      <span id="sidebar-deployments-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'jobs' ? ' selected' : ''}" id="section-jobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Jobs</span></span>
-      <span id="sidebar-jobs-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'cronjobs' ? ' selected' : ''}" id="section-cronjobs" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Cron Jobs</span></span>
-      <span id="sidebar-cronjobs-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'daemonsets' ? ' selected' : ''}" id="section-daemonsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Daemon Sets</span></span>
-      <span id="sidebar-daemonsets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'statefulsets' ? ' selected' : ''}" id="section-statefulsets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Stateful Sets</span></span>
-      <span id="sidebar-statefulsets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'replicasets' ? ' selected' : ''}" id="section-replicasets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Replica Sets</span></span>
-      <span id="sidebar-replicasets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'configmaps' ? ' selected' : ''}" id="section-configmaps" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Config Maps</span></span>
-      <span id="sidebar-configmaps-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'secrets' ? ' selected' : ''}" id="section-secrets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Secrets</span></span>
-      <span id="sidebar-secrets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-    <div class="sidebar-section${selectedSection === 'ingresses' ? ' selected' : ''}" id="section-ingresses" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
-      <span style="display: flex; align-items: center; gap: 8px;"><span>Ingresses</span></span>
-      <span id="sidebar-ingresses-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
-    </div>
-  `;
 }
 
 function startPodCountUpdater() {
@@ -447,52 +396,8 @@ function stopPodCountUpdater() {
   }
 }
 
-function renderSidebarAndAttachHandlers() {
-  sidebarSections.innerHTML = renderSidebarSections();
-  const podsEntry = document.getElementById('section-pods');
-  if (podsEntry) podsEntry.onclick = (e) => { e.stopPropagation(); selectSection('pods'); };
-  const deploymentsEntry = document.getElementById('section-deployments');
-  if (deploymentsEntry) deploymentsEntry.onclick = (e) => { e.stopPropagation(); selectSection('deployments'); };
-  const jobsEntry = document.getElementById('section-jobs');
-  if (jobsEntry) jobsEntry.onclick = (e) => { e.stopPropagation(); selectSection('jobs'); };
-  const cronJobsEntry = document.getElementById('section-cronjobs');
-  if (cronJobsEntry) cronJobsEntry.onclick = (e) => { e.stopPropagation(); selectSection('cronjobs'); };
-  const daemonSetsEntry = document.getElementById('section-daemonsets');
-  if (daemonSetsEntry) daemonSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('daemonsets'); };
-  const statefulSetsEntry = document.getElementById('section-statefulsets');
-  if (statefulSetsEntry) statefulSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('statefulsets'); };
-  const replicaSetsEntry = document.getElementById('section-replicasets');
-  if (replicaSetsEntry) replicaSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('replicasets'); };
-  const configMapsEntry = document.getElementById('section-configmaps');
-  if (configMapsEntry) configMapsEntry.onclick = (e) => { e.stopPropagation(); selectSection('configmaps'); };
-  const secretsEntry = document.getElementById('section-secrets');
-  if (secretsEntry) secretsEntry.onclick = (e) => { e.stopPropagation(); selectSection('secrets'); };
-  const ingressesEntry = document.getElementById('section-ingresses');
-  if (ingressesEntry) ingressesEntry.onclick = (e) => { e.stopPropagation(); selectSection('ingresses'); };
-  startPodCountUpdater();
-}
-
-// NEW: Toggle selected class without re-rendering the sidebar to avoid flicker
-function updateSidebarSelection() {
-  const sections = ['pods','deployments','jobs','cronjobs','daemonsets','statefulsets','replicasets','configmaps','secrets','ingresses'];
-  sections.forEach((sec) => {
-    const el = document.getElementById(`section-${sec}`);
-    if (!el) return;
-    if (sec === selectedSection) el.classList.add('selected');
-    else el.classList.remove('selected');
-  });
-}
-
-function selectSection(section) {
-  if (selectedSection === section) return;
-  selectedSection = section;
-  // Avoid re-rendering the entire sidebar to keep counters intact
-  updateSidebarSelection();
-  renderMainContent();
-}
-
 function renderMainContent() {
-  if (selectedSection === 'pods') {
+  if (getSelectedSection() === 'pods') {
     mainPanels.innerHTML = `
       <div class="main-panel main-panel-pods">
         <div id="pod-overview-react"></div>
@@ -508,35 +413,35 @@ function renderMainContent() {
         }
       });
     }
-  } else if (selectedSection === 'deployments') {
+  } else if (getSelectedSection() === 'deployments') {
     mainPanels.innerHTML = `<div class="main-panel" id="deployments-overview-react"></div>`;
     const deploymentsOverviewContainer = document.getElementById('deployments-overview-react');
     if (deploymentsOverviewContainer) {
       const root = createRoot(deploymentsOverviewContainer);
       root.render(React.createElement(DeploymentsOverviewTable, { namespace: selectedNamespace }));
     }
-  } else if (selectedSection === 'jobs') {
+  } else if (getSelectedSection() === 'jobs') {
     mainPanels.innerHTML = `<div class="main-panel" id="jobs-overview-react"></div>`;
     const jobsOverviewContainer = document.getElementById('jobs-overview-react');
     if (jobsOverviewContainer) {
       const root = createRoot(jobsOverviewContainer);
       root.render(React.createElement(JobsOverviewTable, { namespace: selectedNamespace }));
     }
-  } else if (selectedSection === 'cronjobs') {
+  } else if (getSelectedSection() === 'cronjobs') {
     mainPanels.innerHTML = `<div class="main-panel" id="cronjobs-overview-react"></div>`;
     const cronJobsOverviewContainer = document.getElementById('cronjobs-overview-react');
     if (cronJobsOverviewContainer) {
       const root = createRoot(cronJobsOverviewContainer);
       root.render(React.createElement(CronJobsOverviewTable, { namespace: selectedNamespace }));
     }
-  } else if (selectedSection === 'daemonsets') {
+  } else if (getSelectedSection() === 'daemonsets') {
     mainPanels.innerHTML = `<div class="main-panel" id="daemonsets-overview-react"></div>`;
     const daemonSetsOverviewContainer = document.getElementById('daemonsets-overview-react');
     if (daemonSetsOverviewContainer) {
       const root = createRoot(daemonSetsOverviewContainer);
       root.render(React.createElement(DaemonSetsOverviewTable, { namespace: selectedNamespace }));
     }
-  } else if (selectedSection === 'statefulsets') {
+  } else if (getSelectedSection() === 'statefulsets') {
     mainPanels.innerHTML = `<div class="main-panel" id="statefulsets-overview-react"></div>`;
     const statefulSetsOverviewContainer = document.getElementById('statefulsets-overview-react');
     if (statefulSetsOverviewContainer) {
@@ -550,7 +455,7 @@ function renderMainContent() {
       const root = createRoot(replicaSetsOverviewContainer);
       root.render(React.createElement(ReplicaSetsOverviewTable, { namespace: selectedNamespace }));
     }
-  } else if (selectedSection === 'configmaps') {
+  } else if (getSelectedSection() === 'configmaps') {
     mainPanels.innerHTML = `<div class="main-panel" id="configmaps-overview-react"></div>`;
     const configMapsOverviewContainer = document.getElementById('configmaps-overview-react');
     if (configMapsOverviewContainer) {
@@ -562,7 +467,7 @@ function renderMainContent() {
         }
       }));
     }
-  } else if (selectedSection === 'secrets') {
+  } else if (getSelectedSection() === 'secrets') {
     mainPanels.innerHTML = `<div class="main-panel" id="secrets-overview-react"></div>`;
     const secretsOverviewContainer = document.getElementById('secrets-overview-react');
     if (secretsOverviewContainer) {
@@ -574,7 +479,7 @@ function renderMainContent() {
         }
       }));
     }
-  } else if (selectedSection === 'ingresses') {
+  } else if (getSelectedSection() === 'ingresses') {
     mainPanels.innerHTML = `<div class="main-panel" id="ingresses-overview-react"></div>`;
     const ingressesOverviewContainer = document.getElementById('ingresses-overview-react');
     if (ingressesOverviewContainer) {
@@ -588,103 +493,6 @@ function renderMainContent() {
     }
   }
 }
-
-// Resource templates
-const resourceTemplates = {
-  deployment: `apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nginx-deployment
-  labels:
-    app: nginx
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: nginx
-  template:
-    metadata:
-      labels:
-        app: nginx
-    spec:
-      containers:
-      - name: nginx
-        image: nginx:1.14.2
-        ports:
-        - containerPort: 80`,
-
-  job: `apiVersion: batch/v1
-kind: Job
-metadata:
-  name: busybox-job
-spec:
-  template:
-    spec:
-      containers:
-      - name: busybox
-        image: busybox
-        command: ["sh", "-c", "echo Hello Kubernetes! && sleep 30"]
-      restartPolicy: Never
-  backoffLimit: 4`,
-
-  configmap: `apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: example-config
-data:
-  # Configuration data as key-value pairs
-  app.properties: |
-    debug=true
-    database.host=localhost
-    database.port=5432
-  config.yaml: |
-    server:
-      port: 8080
-      host: 0.0.0.0
-    logging:
-      level: info
-  simple-key: simple-value`,
-
-  secret: `apiVersion: v1
-kind: Secret
-metadata:
-  name: example-secret
-type: Opaque
-data:
-  # Secret data must be base64 encoded
-  # Use: echo -n "your-value" | base64
-  username: dXNlcm5hbWU=  # username
-  password: cGFzc3dvcmQ=  # password
-stringData:
-  # Alternative: use stringData for plain text (will be auto-encoded)
-  # api-key: your-api-key-here
-  # database-url: postgresql://user:pass@localhost:5432/db`,
-
-  ingress: `apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: example-ingress
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    # nginx.ingress.kubernetes.io/rewrite-target: /
-spec:
-  rules:
-  - host: example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: example-service
-            port:
-              number: 80
-  # Optional: TLS configuration
-  # tls:
-  # - hosts:
-  #   - example.com
-  #   secretName: example-tls-secret`
-};
 
 // Message handling functions
 function showMessage(message, type = 'error') {
@@ -752,7 +560,7 @@ function onContextChange() {
       SetCurrentNamespace(selectedNamespace)
         .then(() => {
           if (selectedNamespace) {
-            renderSidebarAndAttachHandlers();
+            renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
             renderMainContent();
           }
         })
@@ -806,87 +614,6 @@ function onNamespaceChange() {
     });
 }
 
-function showResourceOverlay(resourceType) {
-  const template = resourceTemplates[resourceType];
-  if (!template) return;
-
-  const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
-  const overlay = document.createElement('div');
-  overlay.className = 'overlay';
-  overlay.innerHTML = `
-    <div class="overlay-content">
-      <div class="overlay-header">
-        <div class="overlay-title">Neue ${title} Ressource</div>
-        <button class="overlay-close">×</button>
-      </div>
-      <div id="resourceEditor" class="editor-wrapper"></div>
-      <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
-        <button class="overlay-cancel-btn">Abbrechen</button>
-        <button class="overlay-create-btn" style="background:var(--gh-accent);color:#fff;border:none;padding:0.5em 1.5em;border-radius:6px;cursor:pointer;font-weight:600;">Erstellen</button>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  // Initialize CodeMirror editor
-  const customDarkTheme = EditorView.theme({
-    "&": { color: "var(--gh-text)", backgroundColor: "var(--gh-input-bg)", height: "400px", fontSize: "14px" },
-    ".cm-content": { fontFamily: "'Consolas', monospace", color: "var(--gh-text)", padding: "10px" },
-    ".cm-gutters": { backgroundColor: "var(--gh-input-bg)", color: "var(--gh-text-muted)", border: "none" }
-  }, {dark: true});
-
-  const state = EditorState.create({
-    doc: template,
-    extensions: [
-      lineNumbers(), foldGutter(), highlightSpecialChars(), history(), drawSelection(),
-      dropCursor(), EditorState.allowMultipleSelections.of(true), indentOnInput(),
-      syntaxHighlighting(defaultHighlightStyle, { fallback: true }), bracketMatching(),
-      rectangularSelection(), crosshairCursor(), highlightActiveLine(),
-      highlightActiveLineGutter(), highlightSelectionMatches(), yaml(), customDarkTheme,
-      keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...foldKeymap, ...completionKeymap, ...lintKeymap])
-    ]
-  });
-
-  const editor = new EditorView({
-    state,
-    parent: document.querySelector("#resourceEditor")
-  });
-
-  // Close overlay handlers
-  const closeBtn = overlay.querySelector('.overlay-close');
-  const cancelBtn = overlay.querySelector('.overlay-cancel-btn');
-  closeBtn.onclick = cancelBtn.onclick = () => {
-    editor.destroy();
-    overlay.remove();
-  };
-
-  // Create resource handler
-  const createBtn = overlay.querySelector('.overlay-create-btn');
-  createBtn.onclick = async () => {
-    const yaml = editor.state.doc.toString();
-    createBtn.disabled = true;
-    createBtn.textContent = 'Erstelle...';
-    try {
-      await CreateResource(selectedNamespace, yaml);
-      showSuccess(`${title} wurde erfolgreich erstellt!`);
-      editor.destroy();
-      overlay.remove();
-      renderMainContent();
-    } catch (err) {
-      showError(`Fehler beim Erstellen: ${err}`);
-      createBtn.disabled = false;
-      createBtn.textContent = 'Erstellen';
-    }
-  };
-
-  overlay.onclick = (e) => {
-    if (e.target === overlay) {
-      editor.destroy();
-      overlay.remove();
-    }
-  };
-}
 
 // Start initialization by checking connection setup
 checkConnectionSetup();
