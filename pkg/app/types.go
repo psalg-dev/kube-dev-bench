@@ -201,3 +201,16 @@ type PersistentVolumeClaimInfo struct {
 	StorageClass string `json:"storageClass"`
 	Age          string `json:"age"`
 }
+
+// PersistentVolumeInfo describes a persistent volume in the cluster
+type PersistentVolumeInfo struct {
+	Name          string `json:"name"`
+	Capacity      string `json:"capacity"`
+	AccessModes   string `json:"accessModes"`
+	ReclaimPolicy string `json:"reclaimPolicy"`
+	Status        string `json:"status"`
+	Claim         string `json:"claim"`
+	StorageClass  string `json:"storageClass"`
+	VolumeType    string `json:"volumeType"`
+	Age           string `json:"age"`
+}

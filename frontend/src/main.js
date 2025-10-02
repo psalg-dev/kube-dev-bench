@@ -13,6 +13,7 @@ import {
   GetNamespaces,
   GetOverview,
   GetPersistentVolumeClaims,
+  GetPersistentVolumes,
   GetPodStatusCounts,
   GetReplicaSets,
   GetRunningPods,
@@ -35,6 +36,7 @@ import ConfigMapsOverviewTable from './configmaps/ConfigMapsOverviewTable';
 import SecretsOverviewTable from './secrets/SecretsOverviewTable';
 import IngressesOverviewTable from './ingresses/IngressesOverviewTable';
 import PersistentVolumeClaimsOverviewTable from './persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
+import PersistentVolumesOverviewTable from './persistentvolumes/PersistentVolumesOverviewTable';
 import {getSelectedSection, renderSidebarAndAttachHandlers, renderSidebarSections} from "./sidebar";
 import {showResourceOverlay} from './resource-overlay'
 
@@ -298,6 +300,7 @@ function startPodCountUpdater() {
     secrets: null,
     ingresses: null,
     persistentvolumeclaims: null,
+    persistentvolumes: null,
   };
   const update = async () => {
     const el = document.getElementById(elId);
@@ -351,7 +354,7 @@ function startPodCountUpdater() {
 
     // Update other resource counts in parallel
     try {
-      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps, secrets, ingresses, persistentvolumeclaims] = await Promise.all([
+      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps, secrets, ingresses, persistentvolumeclaims, persistentvolumes] = await Promise.all([
         GetDeployments(selectedNamespace).catch(() => []),
         GetJobs(selectedNamespace).catch(() => []),
         GetCronJobs(selectedNamespace).catch(() => []),
@@ -362,6 +365,7 @@ function startPodCountUpdater() {
         GetSecrets(selectedNamespace).catch(() => []),
         GetIngresses(selectedNamespace).catch(() => []),
         GetPersistentVolumeClaims(selectedNamespace).catch(() => []),
+        GetPersistentVolumes().catch(() => []), // Note: cluster-wide, not namespace-specific
       ]);
 
       const setCount = (id, valueKey, value) => {
@@ -386,6 +390,7 @@ function startPodCountUpdater() {
       setCount('sidebar-secrets-count', 'secrets', secrets);
       setCount('sidebar-ingresses-count', 'ingresses', ingresses);
       setCount('sidebar-persistentvolumeclaims-count', 'persistentvolumeclaims', persistentvolumeclaims);
+      setCount('sidebar-persistentvolumes-count', 'persistentvolumes', persistentvolumes);
     } catch (_) {
       // ignore; individual fetches already handled
     }
@@ -507,6 +512,13 @@ function renderMainContent() {
           showResourceOverlay('persistentvolumeclaim');
         }
       }));
+    }
+  } else if (getSelectedSection() === 'persistentvolumes') {
+    mainPanels.innerHTML = `<div class="main-panel" id="persistentvolumes-overview-react"></div>`;
+    const persistentVolumesOverviewContainer = document.getElementById('persistentvolumes-overview-react');
+    if (persistentVolumesOverviewContainer) {
+      const root = createRoot(persistentVolumesOverviewContainer);
+      root.render(React.createElement(PersistentVolumesOverviewTable, { namespace: selectedNamespace }));
     }
   }
 }

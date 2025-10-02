@@ -66,6 +66,10 @@ export function GetPersistentVolumeClaims(arg1) {
   return window['go']['main']['App']['GetPersistentVolumeClaims'](arg1);
 }
 
+export function GetPersistentVolumes() {
+  return window['go']['main']['App']['GetPersistentVolumes']();
+}
+
 export function GetPodContainerLog(arg1, arg2) {
   return window['go']['main']['App']['GetPodContainerLog'](arg1, arg2);
 }

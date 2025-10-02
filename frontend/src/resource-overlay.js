@@ -19,8 +19,9 @@ import {yaml} from "@codemirror/lang-yaml";
 import {closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete";
 import {defaultKeymap, history, historyKeymap} from "@codemirror/commands";
 import {lintKeymap} from "@codemirror/lint";
+import { CreateResource } from "../wailsjs/go/main/App";
 
-export function showResourceOverlay(resourceType) {
+export function showResourceOverlay(resourceType, options = {}) {
     console.log('showResourceOverlay called with:', resourceType);
     const template = resourceTemplates[resourceType];
     console.log('Template found:', template ? 'yes' : 'no');
@@ -30,6 +31,7 @@ export function showResourceOverlay(resourceType) {
         return;
     }
 
+    const { onSuccess, onError, onClose, namespace } = options;
     const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
     const overlay = document.createElement('div');
     overlay.className = 'overlay';
@@ -59,7 +61,7 @@ export function showResourceOverlay(resourceType) {
     const state = EditorState.create({
         doc: template,
         extensions: [
-            lineNumbers(), foldGutter(), highlightSpecialChars(), history(), drawSelection(),
+            lineNumbers(), foldGutter(), highlightSpecialChars(), drawSelection(),
             dropCursor(), EditorState.allowMultipleSelections.of(true), indentOnInput(),
             syntaxHighlighting(defaultHighlightStyle, { fallback: true }), bracketMatching(),
             rectangularSelection(), crosshairCursor(), highlightActiveLine(),
@@ -73,13 +75,16 @@ export function showResourceOverlay(resourceType) {
         parent: document.querySelector("#resourceEditor")
     });
 
+    const closeOverlay = () => {
+        editor.destroy();
+        overlay.remove();
+        if (onClose) onClose();
+    };
+
     // Close overlay handlers
     const closeBtn = overlay.querySelector('.overlay-close');
     const cancelBtn = overlay.querySelector('.overlay-cancel-btn');
-    closeBtn.onclick = cancelBtn.onclick = () => {
-        editor.destroy();
-        overlay.remove();
-    };
+    closeBtn.onclick = cancelBtn.onclick = closeOverlay;
 
     // Create resource handler
     const createBtn = overlay.querySelector('.overlay-create-btn');
@@ -88,24 +93,49 @@ export function showResourceOverlay(resourceType) {
         createBtn.disabled = true;
         createBtn.textContent = 'Creating...';
         try {
-            await CreateResource(selectedNamespace, yaml);
-            showSuccess(`${title} was created successfully!`);
-            editor.destroy();
-            overlay.remove();
-            renderMainContent();
+            await CreateResource(namespace || 'default', yaml);
+            showMessage(`${title} was created successfully!`, 'success');
+            closeOverlay();
+            if (onSuccess) onSuccess();
         } catch (err) {
-            showError(`Error creating resource: ${err}`);
+            showMessage(`Error creating resource: ${err}`, 'error');
             createBtn.disabled = false;
             createBtn.textContent = 'Create';
+            if (onError) onError(err);
         }
     };
 
     overlay.onclick = (e) => {
         if (e.target === overlay) {
-            editor.destroy();
-            overlay.remove();
+            closeOverlay();
         }
     };
+}
+
+// Simple message function
+function showMessage(message, type = 'error') {
+    // Create a simple message display
+    const messageEl = document.createElement('div');
+    messageEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-weight: 500;
+        z-index: 10000;
+        max-width: 400px;
+        ${type === 'success' ? 'background: #28a745;' : 'background: #dc3545;'}
+    `;
+    messageEl.textContent = message;
+    document.body.appendChild(messageEl);
+
+    setTimeout(() => {
+        if (messageEl.parentNode) {
+            messageEl.parentNode.removeChild(messageEl);
+        }
+    }, 5000);
 }
 
 
@@ -220,5 +250,31 @@ spec:
   # Optional: selector for existing PV
   # selector:
   #   matchLabels:
-  #     type: local`
+  #     type: local`,
+
+    persistentvolume: `apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: example-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/data"
+  # Alternative volume sources:
+  # nfs:
+  #   server: nfs-server.example.com
+  #   path: /path/to/nfs/share
+  # awsElasticBlockStore:
+  #   volumeID: vol-12345678
+  #   fsType: ext4
+  # gcePersistentDisk:
+  #   pdName: my-data-disk
+  #   fsType: ext4`
 };

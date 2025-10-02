@@ -317,6 +317,34 @@ export namespace app {
 	        this.age = source["age"];
 	    }
 	}
+	export class PersistentVolumeInfo {
+	    name: string;
+	    capacity: string;
+	    accessModes: string;
+	    reclaimPolicy: string;
+	    status: string;
+	    claim: string;
+	    storageClass: string;
+	    volumeType: string;
+	    age: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PersistentVolumeInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.capacity = source["capacity"];
+	        this.accessModes = source["accessModes"];
+	        this.reclaimPolicy = source["reclaimPolicy"];
+	        this.status = source["status"];
+	        this.claim = source["claim"];
+	        this.storageClass = source["storageClass"];
+	        this.volumeType = source["volumeType"];
+	        this.age = source["age"];
+	    }
+	}
 	export class PodInfo {
 	    name: string;
 	    restarts: number;

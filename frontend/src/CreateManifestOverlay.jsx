@@ -28,6 +28,9 @@ function getDefaultManifest(kind, namespace) {
       return `apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: my-ingress\n  namespace: ${ns}\n  annotations:\n    kubernetes.io/ingress.class: nginx\nspec:\n  rules:\n  - host: example.com\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: example-service\n            port:\n              number: 80\n  # tls:\n  # - hosts:\n  #   - example.com\n  #   secretName: example-tls\n`;
     case 'persistentvolumeclaim':
       return `apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: my-pvc\n  namespace: ${ns}\nspec:\n  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage: 1Gi\n  # Optional: specify storage class\n  # storageClassName: fast-ssd\n  # Optional: selector for existing PV\n  # selector:\n  #   matchLabels:\n  #     type: local\n`;
+    case 'persistentvolume':
+      // PersistentVolume is cluster-scoped; no namespace field
+      return `apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\n  labels:\n    type: local\nspec:\n  storageClassName: manual\n  capacity:\n    storage: 10Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: "/mnt/data"\n  # Alternative volume sources:\n  # nfs:\n  #   server: nfs-server.example.com\n  #   path: /path/to/nfs/share\n  # awsElasticBlockStore:\n  #   volumeID: vol-12345678\n  #   fsType: ext4\n  # gcePersistentDisk:\n  #   pdName: my-data-disk\n  #   fsType: ext4\n`;
     default:
       return `# Unknown kind: ${kind || 'Resource'}\n# Edit as needed\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example\n  namespace: ${ns}\ndata:\n  key: value\n`;
   }
