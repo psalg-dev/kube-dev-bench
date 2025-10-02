@@ -21,8 +21,14 @@ import {defaultKeymap, history, historyKeymap} from "@codemirror/commands";
 import {lintKeymap} from "@codemirror/lint";
 
 export function showResourceOverlay(resourceType) {
+    console.log('showResourceOverlay called with:', resourceType);
     const template = resourceTemplates[resourceType];
-    if (!template) return;
+    console.log('Template found:', template ? 'yes' : 'no');
+    if (!template) {
+        console.error('No template found for resource type:', resourceType);
+        console.log('Available templates:', Object.keys(resourceTemplates));
+        return;
+    }
 
     const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
     const overlay = document.createElement('div');
@@ -197,5 +203,22 @@ spec:
   # tls:
   # - hosts:
   #   - example.com
-  #   secretName: example-tls-secret`
+  #   secretName: example-tls-secret`,
+
+    persistentvolumeclaim: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: example-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Optional: specify storage class
+  # storageClassName: fast-ssd
+  # Optional: selector for existing PV
+  # selector:
+  #   matchLabels:
+  #     type: local`
 };

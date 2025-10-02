@@ -81,12 +81,12 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
       }}>
         <div style={{ display: 'flex', gap: 6 }}>
           {tabs.map(t => (
-            <button key={t.id}
-              onClick={() => onTabChange && onTabChange(t.id)}
+            <button key={t.key || t.id}
+              onClick={() => onTabChange && onTabChange(t.key || t.id)}
               style={{
                 border: '1px solid var(--gh-border, #30363d)',
-                borderBottom: activeTab === t.id ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
-                background: activeTab === t.id ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
+                borderBottom: activeTab === (t.key || t.id) ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
+                background: activeTab === (t.key || t.id) ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
                 color: 'var(--gh-text, #c9d1d9)',
                 padding: '6px 10px',
                 cursor: 'pointer',
@@ -105,7 +105,7 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
       </div>
       {/* Content */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-        {tabs.find(t => t.id === activeTab)?.content}
+        {tabs.find(t => (t.key || t.id) === activeTab)?.content}
       </div>
     </div>
   );

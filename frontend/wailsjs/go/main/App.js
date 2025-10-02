@@ -62,6 +62,10 @@ export function GetOverview(arg1) {
   return window['go']['main']['App']['GetOverview'](arg1);
 }
 
+export function GetPersistentVolumeClaims(arg1) {
+  return window['go']['main']['App']['GetPersistentVolumeClaims'](arg1);
+}
+
 export function GetPodContainerLog(arg1, arg2) {
   return window['go']['main']['App']['GetPodContainerLog'](arg1, arg2);
 }

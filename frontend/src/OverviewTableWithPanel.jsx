@@ -68,7 +68,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     try {
       return data.filter((row) =>
         columns.some((col) => {
-          const value = row?.[col.key];
+          const value = row?.[col.accessorKey || col.key];
           if (value === null || value === undefined) return false;
           return String(value).toLowerCase().includes(normalizedFilter);
         })
@@ -107,14 +107,18 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       <table className="gh-table" style={{ width: '100%' }}>
         <thead>
           <tr>
-            {columns.map(col => <th key={col.key}>{col.label}</th>)}
+            {columns.map(col => <th key={col.accessorKey || col.key}>{col.header || col.label}</th>)}
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {filteredData.map((row, idx) => (
-            <tr key={row.name || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
-              {columns.map(col => <td key={col.key}>{row[col.key]}</td>)}
+            <tr key={row.name || row.id || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+              {columns.map((col, colIdx) => (
+                <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
+                  {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}
+                </td>
+              ))}
               <td>
                 <button onClick={e => { e.stopPropagation(); openBottomPanel(row); }} style={{ padding: '2px 8px' }}>Details</button>
               </td>

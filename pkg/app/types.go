@@ -189,3 +189,15 @@ type IngressInfo struct {
 	Ports     string   `json:"ports"`
 	Age       string   `json:"age"`
 }
+
+// PersistentVolumeClaimInfo describes a PVC's basic info
+type PersistentVolumeClaimInfo struct {
+	Name         string `json:"name"`
+	Namespace    string `json:"namespace"`
+	Status       string `json:"status"`
+	Volume       string `json:"volume"`
+	Capacity     string `json:"capacity"`
+	AccessModes  string `json:"accessModes"`
+	StorageClass string `json:"storageClass"`
+	Age          string `json:"age"`
+}

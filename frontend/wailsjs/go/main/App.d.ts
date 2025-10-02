@@ -33,6 +33,8 @@ export function GetNamespaces():Promise<Array<string>>;
 
 export function GetOverview(arg1:string):Promise<app.OverviewInfo>;
 
+export function GetPersistentVolumeClaims(arg1:string):Promise<Array<app.PersistentVolumeClaimInfo>>;
+
 export function GetPodContainerLog(arg1:string,arg2:string):Promise<string>;
 
 export function GetPodContainerPorts(arg1:string):Promise<Array<number>>;

@@ -291,6 +291,32 @@ export namespace app {
 	        this.jobs = source["jobs"];
 	    }
 	}
+	export class PersistentVolumeClaimInfo {
+	    name: string;
+	    namespace: string;
+	    status: string;
+	    volume: string;
+	    capacity: string;
+	    accessModes: string;
+	    storageClass: string;
+	    age: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PersistentVolumeClaimInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.status = source["status"];
+	        this.volume = source["volume"];
+	        this.capacity = source["capacity"];
+	        this.accessModes = source["accessModes"];
+	        this.storageClass = source["storageClass"];
+	        this.age = source["age"];
+	    }
+	}
 	export class PodInfo {
 	    name: string;
 	    restarts: number;

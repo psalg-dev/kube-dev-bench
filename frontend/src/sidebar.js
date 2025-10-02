@@ -4,6 +4,7 @@ import {
     GetDaemonSets,
     GetDeployments, GetIngresses,
     GetJobs,
+    GetPersistentVolumeClaims,
     GetPodStatusCounts, GetReplicaSets,
     GetRunningPods, GetSecrets, GetStatefulSets
 } from "../wailsjs/go/main/App";
@@ -61,6 +62,11 @@ export function renderSidebarAndAttachHandlers(renderMainContent, cb) {
         e.stopPropagation();
         selectSection('ingresses', renderMainContent);
     };
+    const persistentVolumeClaimsEntry = document.getElementById('section-persistentvolumeclaims');
+    if (persistentVolumeClaimsEntry) persistentVolumeClaimsEntry.onclick = (e) => {
+        e.stopPropagation();
+        selectSection('persistentvolumeclaims', renderMainContent);
+    };
     cb();
 }
 
@@ -78,7 +84,7 @@ export function selectSection(section, cb) {
 
 // NEW: Toggle selected class without re-rendering the sidebar to avoid flicker
 export function updateSidebarSelection() {
-    const sections = ['pods','deployments','jobs','cronjobs','daemonsets','statefulsets','replicasets','configmaps','secrets','ingresses'];
+    const sections = ['pods','deployments','jobs','cronjobs','daemonsets','statefulsets','replicasets','configmaps','secrets','ingresses','persistentvolumeclaims'];
     sections.forEach((sec) => {
         const el = document.getElementById(`section-${sec}`);
         if (!el) return;
@@ -128,6 +134,10 @@ export function renderSidebarSections(selectedSection) {
     <div class="sidebar-section${selectedSection === 'ingresses' ? ' selected' : ''}" id="section-ingresses" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
       <span style="display: flex; align-items: center; gap: 8px;"><span>Ingresses</span></span>
       <span id="sidebar-ingresses-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
+    </div>
+    <div class="sidebar-section${selectedSection === 'persistentvolumeclaims' ? ' selected' : ''}" id="section-persistentvolumeclaims" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Persistent Volume Claims</span></span>
+      <span id="sidebar-persistentvolumeclaims-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
   `;
 }
