@@ -30,13 +30,13 @@ export function showResourceOverlay(resourceType) {
     overlay.innerHTML = `
     <div class="overlay-content">
       <div class="overlay-header">
-        <div class="overlay-title">Neue ${title} Ressource</div>
+        <div class="overlay-title">New ${title} Resource</div>
         <button class="overlay-close">×</button>
       </div>
       <div id="resourceEditor" class="editor-wrapper"></div>
       <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
-        <button class="overlay-cancel-btn">Abbrechen</button>
-        <button class="overlay-create-btn" style="background:var(--gh-accent);color:#fff;border:none;padding:0.5em 1.5em;border-radius:6px;cursor:pointer;font-weight:600;">Erstellen</button>
+        <button class="overlay-cancel-btn">Cancel</button>
+        <button class="overlay-create-btn" style="background:var(--gh-accent);color:#fff;border:none;padding:0.5em 1.5em;border-radius:6px;cursor:pointer;font-weight:600;">Create</button>
       </div>
     </div>
   `;
@@ -80,17 +80,17 @@ export function showResourceOverlay(resourceType) {
     createBtn.onclick = async () => {
         const yaml = editor.state.doc.toString();
         createBtn.disabled = true;
-        createBtn.textContent = 'Erstelle...';
+        createBtn.textContent = 'Creating...';
         try {
             await CreateResource(selectedNamespace, yaml);
-            showSuccess(`${title} wurde erfolgreich erstellt!`);
+            showSuccess(`${title} was created successfully!`);
             editor.destroy();
             overlay.remove();
             renderMainContent();
         } catch (err) {
-            showError(`Fehler beim Erstellen: ${err}`);
+            showError(`Error creating resource: ${err}`);
             createBtn.disabled = false;
-            createBtn.textContent = 'Erstellen';
+            createBtn.textContent = 'Create';
         }
     };
 
