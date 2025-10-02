@@ -9,6 +9,8 @@ export function DeletePod(arg1:string,arg2:string):Promise<void>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
+export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
+
 export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;

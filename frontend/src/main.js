@@ -1,7 +1,7 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments, GetJobs, GetCronJobs, GetDaemonSets, GetStatefulSets, GetReplicaSets} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments, GetJobs, GetCronJobs, GetDaemonSets, GetStatefulSets, GetReplicaSets, GetConfigMaps} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -12,6 +12,7 @@ import CronJobsOverviewTable from './cronjobs/CronJobsOverviewTable';
 import DaemonSetsOverviewTable from './daemonsets/DaemonSetsOverviewTable';
 import StatefulSetsOverviewTable from './statefulsets/StatefulSetsOverviewTable';
 import ReplicaSetsOverviewTable from './replicasets/ReplicaSetsOverviewTable';
+import ConfigMapsOverviewTable from './configmaps/ConfigMapsOverviewTable';
 
 import {EditorState} from "@codemirror/state"
 import {
@@ -312,6 +313,10 @@ function renderSidebarSections() {
       <span style="display: flex; align-items: center; gap: 8px;"><span>Replica Sets</span></span>
       <span id="sidebar-replicasets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
+    <div class="sidebar-section${selectedSection === 'configmaps' ? ' selected' : ''}" id="section-configmaps" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Config Maps</span></span>
+      <span id="sidebar-configmaps-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
+    </div>
   `;
 }
 
@@ -328,6 +333,7 @@ function startPodCountUpdater() {
     daemonsets: null,
     statefulsets: null,
     replicasets: null,
+    configmaps: null,
   };
   const update = async () => {
     const el = document.getElementById(elId);
@@ -381,13 +387,14 @@ function startPodCountUpdater() {
 
     // Update other resource counts in parallel
     try {
-      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets] = await Promise.all([
+      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps] = await Promise.all([
         GetDeployments(selectedNamespace).catch(() => []),
         GetJobs(selectedNamespace).catch(() => []),
         GetCronJobs(selectedNamespace).catch(() => []),
         GetDaemonSets(selectedNamespace).catch(() => []),
         GetStatefulSets(selectedNamespace).catch(() => []),
         GetReplicaSets(selectedNamespace).catch(() => []),
+        GetConfigMaps(selectedNamespace).catch(() => []),
       ]);
 
       const setCount = (id, valueKey, value) => {
@@ -408,6 +415,7 @@ function startPodCountUpdater() {
       setCount('sidebar-daemonsets-count', 'daemonsets', daemonsets);
       setCount('sidebar-statefulsets-count', 'statefulsets', statefulsets);
       setCount('sidebar-replicasets-count', 'replicasets', replicasets);
+      setCount('sidebar-configmaps-count', 'configmaps', configmaps);
     } catch (_) {
       // ignore; individual fetches already handled
     }
@@ -439,6 +447,8 @@ function renderSidebarAndAttachHandlers() {
   if (statefulSetsEntry) statefulSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('statefulsets'); };
   const replicaSetsEntry = document.getElementById('section-replicasets');
   if (replicaSetsEntry) replicaSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('replicasets'); };
+  const configMapsEntry = document.getElementById('section-configmaps');
+  if (configMapsEntry) configMapsEntry.onclick = (e) => { e.stopPropagation(); selectSection('configmaps'); };
   startPodCountUpdater();
 }
 
@@ -508,6 +518,18 @@ function renderMainContent() {
       const root = createRoot(replicaSetsOverviewContainer);
       root.render(React.createElement(ReplicaSetsOverviewTable, { namespace: selectedNamespace }));
     }
+  } else if (selectedSection === 'configmaps') {
+    mainPanels.innerHTML = `<div class="main-panel" id="configmaps-overview-react"></div>`;
+    const configMapsOverviewContainer = document.getElementById('configmaps-overview-react');
+    if (configMapsOverviewContainer) {
+      const root = createRoot(configMapsOverviewContainer);
+      root.render(React.createElement(ConfigMapsOverviewTable, {
+        namespace: selectedNamespace,
+        onConfigMapCreate: () => {
+          showResourceOverlay('configmap');
+        }
+      }));
+    }
   }
 }
 
@@ -547,7 +569,25 @@ spec:
         image: busybox
         command: ["sh", "-c", "echo Hello Kubernetes! && sleep 30"]
       restartPolicy: Never
-  backoffLimit: 4`
+  backoffLimit: 4`,
+
+  configmap: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-config
+data:
+  # Configuration data as key-value pairs
+  app.properties: |
+    debug=true
+    database.host=localhost
+    database.port=5432
+  config.yaml: |
+    server:
+      port: 8080
+      host: 0.0.0.0
+    logging:
+      level: info
+  simple-key: simple-value`
 };
 
 // Message handling functions

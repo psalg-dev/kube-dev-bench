@@ -14,6 +14,10 @@ export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
 }
 
+export function GetConfigMaps(arg1) {
+  return window['go']['main']['App']['GetConfigMaps'](arg1);
+}
+
 export function GetCronJobs(arg1) {
   return window['go']['main']['App']['GetCronJobs'](arg1);
 }

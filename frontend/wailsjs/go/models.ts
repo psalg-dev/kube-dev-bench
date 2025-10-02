@@ -20,6 +20,26 @@ export namespace app {
 	        this.kubeConfigPath = source["kubeConfigPath"];
 	    }
 	}
+	export class ConfigMapInfo {
+	    name: string;
+	    namespace: string;
+	    age: string;
+	    keys: number;
+	    size: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConfigMapInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.age = source["age"];
+	        this.keys = source["keys"];
+	        this.size = source["size"];
+	    }
+	}
 	export class MountInfo {
 	    name: string;
 	    mountPath: string;

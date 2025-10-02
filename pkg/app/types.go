@@ -169,3 +169,12 @@ type ReplicaSetInfo struct {
 	Age       string `json:"age"`
 	Image     string `json:"image"`
 }
+
+// ConfigMapInfo describes a configmap's basic info
+type ConfigMapInfo struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Age       string `json:"age"`
+	Keys      int    `json:"keys"`
+	Size      string `json:"size"`
+}
