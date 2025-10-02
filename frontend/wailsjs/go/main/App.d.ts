@@ -19,6 +19,8 @@ export function GetDaemonSets(arg1:string):Promise<Array<app.DaemonSetInfo>>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
 
+export function GetIngresses(arg1:string):Promise<Array<app.IngressInfo>>;
+
 export function GetJobs(arg1:string):Promise<Array<app.JobInfo>>;
 
 export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;

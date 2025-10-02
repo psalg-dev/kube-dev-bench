@@ -6,9 +6,10 @@ import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'namespace', label: 'Namespace' },
-  { key: 'type', label: 'Type' },
-  { key: 'keys', label: 'Keys' },
-  { key: 'size', label: 'Size' },
+  { key: 'class', label: 'Class' },
+  { key: 'hosts', label: 'Hosts', render: (value) => Array.isArray(value) ? value.join(', ') : '-' },
+  { key: 'address', label: 'Address' },
+  { key: 'ports', label: 'Ports' },
   { key: 'age', label: 'Age' },
 ];
 
@@ -25,9 +26,10 @@ function renderPanelContent(row, tab) {
         <h3>Summary</h3>
         <p><b>Name:</b> {row.name}</p>
         <p><b>Namespace:</b> {row.namespace}</p>
-        <p><b>Type:</b> {row.type}</p>
-        <p><b>Keys:</b> {row.keys}</p>
-        <p><b>Size:</b> {row.size}</p>
+        <p><b>Class:</b> {row.class || '-'}</p>
+        <p><b>Hosts:</b> {Array.isArray(row.hosts) ? row.hosts.join(', ') : '-'}</p>
+        <p><b>Address:</b> {row.address}</p>
+        <p><b>Ports:</b> {row.ports}</p>
         <p><b>Age:</b> {row.age}</p>
       </div>
     );
@@ -41,19 +43,28 @@ function renderPanelContent(row, tab) {
     );
   }
   if (tab === 'yaml') {
+    const hostsYaml = Array.isArray(row.hosts) ? row.hosts.map(host => `  - host: ${host}`).join('\n') : '';
     return (
       <div>
         <h3>YAML</h3>
         <pre style={{ background: '#222', color: '#eee', padding: 12 }}>
-{`apiVersion: v1
-kind: Secret
+{`apiVersion: networking.k8s.io/v1
+kind: Ingress
 metadata:
   name: ${row.name}
   namespace: ${row.namespace}
-type: ${row.type}
-data:
-  # Secret data would appear here (base64 encoded)
-  # Use kubectl get secret ${row.name} -o yaml for actual content`}
+spec:${row.class ? `\n  ingressClassName: ${row.class}` : ''}
+  rules:
+${hostsYaml || '  - host: example.com'}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80`}
         </pre>
       </div>
     );
@@ -61,57 +72,47 @@ data:
   return null;
 }
 
-export default function SecretsOverviewTable({ namespace, onSecretCreate }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+function panelHeader(row) {
+  return <span style={{ fontWeight: 600 }}>{row.name}</span>;
+}
 
-  const fetchSecrets = async () => {
+export default function IngressesOverviewTable({ namespace }) {
+  const [ingresses, setIngresses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
     if (!namespace) return;
 
-    setLoading(true);
-    setError(null);
-    try {
-      const secrets = await AppAPI.GetSecrets(namespace);
-      setData(secrets || []);
-    } catch (err) {
-      console.error('Error fetching secrets:', err);
-      setError(err.message || 'Failed to fetch secrets');
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSecrets();
-  }, [namespace]);
-
-  useEffect(() => {
-    const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      if (eventData?.resource === 'secret' && eventData?.namespace === namespace) {
-        fetchSecrets();
+    const fetchIngresses = async () => {
+      try {
+        setLoading(true);
+        const data = await AppAPI.GetIngresses(namespace);
+        setIngresses(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error('Failed to fetch ingresses:', error);
+        setIngresses([]);
+      } finally {
+        setLoading(false);
       }
-    });
-
-    return () => {
-      EventsOff('resource-updated', unsubscribe);
     };
+
+    fetchIngresses();
   }, [namespace]);
 
+  // Subscribe to backend updates to refresh automatically
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespace ? arr.filter(s => (s?.namespace || s?.Namespace) === namespace) : arr;
-        setData(filtered);
-      } catch (_) {
-        // ignore
+        const filtered = namespace ? arr.filter(i => (i?.namespace || i?.Namespace) === namespace) : arr;
+        setIngresses(filtered);
+      } catch (e) {
+        // ignore malformed payloads
       }
     };
-    const off = EventsOn('secrets:update', onUpdate);
+    EventsOn('ingresses:update', onUpdate);
     return () => {
-      EventsOff('secrets:update', onUpdate);
+      EventsOff('ingresses:update', onUpdate);
     };
   }, [namespace]);
 
@@ -127,8 +128,8 @@ export default function SecretsOverviewTable({ namespace, onSecretCreate }) {
       if (inFlight) return;
       inFlight = true;
       try {
-        const secrets = await AppAPI.GetSecrets(namespace);
-        setData(Array.isArray(secrets) ? secrets : []);
+        const data = await AppAPI.GetIngresses(namespace);
+        setIngresses(Array.isArray(data) ? data : []);
       } catch (_) {
         // ignore periodic errors
       } finally {
@@ -156,15 +157,14 @@ export default function SecretsOverviewTable({ namespace, onSecretCreate }) {
 
   return (
     <OverviewTableWithPanel
-      title="Secrets"
-      data={data}
+      title="Ingresses"
       columns={columns}
+      data={ingresses}
       loading={loading}
-      error={error}
-      onRefresh={fetchSecrets}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
-      resourceKind="secret"
+      panelHeader={panelHeader}
+      resourceKind="ingress"
       namespace={namespace}
     />
   );

@@ -64,3 +64,4 @@ wails build
   - The user can edit the manifest and click "Create" to create the resource in the current namespace
   - The user can close the Overlay by pressing Escape or clicking the X top right
 - When a resource is created, the table should refresh automatically to show the new resource
+- When a resource is created, the table should refresh the age of the resource automatically once every second for the first minute

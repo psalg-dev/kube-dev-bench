@@ -111,6 +111,24 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 					runtime.EventsEmit(a.ctx, "cronjobs:update", cjs)
 				}
 			}
+			// If we created an Ingress, emit ingresses snapshot
+			if strings.EqualFold(k, "Ingress") {
+				if ings, err := a.GetIngresses(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "ingresses:update", ings)
+				}
+			}
+			// If we created a Secret, emit secrets snapshot
+			if strings.EqualFold(k, "Secret") {
+				if secs, err := a.GetSecrets(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "secrets:update", secs)
+				}
+			}
+			// If we created a ConfigMap, emit configmaps snapshot
+			if strings.EqualFold(k, "ConfigMap") {
+				if cms, err := a.GetConfigMaps(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "configmaps:update", cms)
+				}
+			}
 		}
 	}(resNamespace, kind)
 	return nil

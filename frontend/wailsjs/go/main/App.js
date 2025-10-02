@@ -34,6 +34,10 @@ export function GetDeployments(arg1) {
   return window['go']['main']['App']['GetDeployments'](arg1);
 }
 
+export function GetIngresses(arg1) {
+  return window['go']['main']['App']['GetIngresses'](arg1);
+}
+
 export function GetJobs(arg1) {
   return window['go']['main']['App']['GetJobs'](arg1);
 }

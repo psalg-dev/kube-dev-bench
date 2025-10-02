@@ -206,6 +206,30 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class IngressInfo {
+	    name: string;
+	    namespace: string;
+	    class: string;
+	    hosts: string[];
+	    address: string;
+	    ports: string;
+	    age: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IngressInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.class = source["class"];
+	        this.hosts = source["hosts"];
+	        this.address = source["address"];
+	        this.ports = source["ports"];
+	        this.age = source["age"];
+	    }
+	}
 	export class JobInfo {
 	    name: string;
 	    namespace: string;

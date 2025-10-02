@@ -178,3 +178,14 @@ type ConfigMapInfo struct {
 	Keys      int    `json:"keys"`
 	Size      string `json:"size"`
 }
+
+// IngressInfo describes an ingress's basic info
+type IngressInfo struct {
+	Name      string   `json:"name"`
+	Namespace string   `json:"namespace"`
+	Class     string   `json:"class"`
+	Hosts     []string `json:"hosts"`
+	Address   string   `json:"address"`
+	Ports     string   `json:"ports"`
+	Age       string   `json:"age"`
+}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
@@ -63,6 +63,52 @@ export default function ConfigMapsOverviewTable({ namespace, onConfigMapCreate }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Timers and guards as refs so we can restart fast polling on new creates
+  const inFlightRef = useRef(false);
+  const fastTimerRef = useRef(null);
+  const slowTimerRef = useRef(null);
+
+  const clearTimers = () => {
+    if (fastTimerRef.current) {
+      clearInterval(fastTimerRef.current);
+      fastTimerRef.current = null;
+    }
+    if (slowTimerRef.current) {
+      clearInterval(slowTimerRef.current);
+      slowTimerRef.current = null;
+    }
+  };
+
+  const periodicFetch = async (ns) => {
+    if (inFlightRef.current || !ns) return;
+    inFlightRef.current = true;
+    try {
+      const configmaps = await AppAPI.GetConfigMaps(ns);
+      setData(Array.isArray(configmaps) ? configmaps : []);
+    } catch (_) {
+      // ignore periodic errors
+    } finally {
+      inFlightRef.current = false;
+    }
+  };
+
+  const startFastPollingWindow = (ns) => {
+    if (!ns) return;
+    clearTimers();
+    let elapsed = 0;
+    fastTimerRef.current = setInterval(async () => {
+      await periodicFetch(ns);
+      elapsed += 1;
+      if (elapsed >= 60) {
+        if (fastTimerRef.current) {
+          clearInterval(fastTimerRef.current);
+          fastTimerRef.current = null;
+        }
+        slowTimerRef.current = setInterval(() => periodicFetch(ns), 60000);
+      }
+    }, 1000);
+  };
+
   const fetchConfigMaps = async () => {
     if (!namespace) return;
 
@@ -82,12 +128,18 @@ export default function ConfigMapsOverviewTable({ namespace, onConfigMapCreate }
 
   useEffect(() => {
     fetchConfigMaps();
+    // Start a fast window when view opens
+    startFastPollingWindow(namespace);
+    return () => clearTimers();
   }, [namespace]);
 
+  // Generic resource-updated fallback
   useEffect(() => {
     const unsubscribe = EventsOn('resource-updated', (eventData) => {
       if (eventData?.resource === 'configmap' && eventData?.namespace === namespace) {
         fetchConfigMaps();
+        // Restart fast polling window upon new resource creation
+        startFastPollingWindow(namespace);
       }
     });
 
@@ -96,15 +148,36 @@ export default function ConfigMapsOverviewTable({ namespace, onConfigMapCreate }
     };
   }, [namespace]);
 
+  // Direct snapshot updates from backend (emitted after creates)
+  useEffect(() => {
+    const onUpdate = (list) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        const filtered = namespace ? arr.filter(cm => (cm?.namespace || cm?.Namespace) === namespace) : arr;
+        setData(filtered);
+        // Restart fast polling window to ensure per-second Age updates for first minute
+        startFastPollingWindow(namespace);
+      } catch (_) {
+        // ignore malformed payloads
+      }
+    };
+    EventsOn('configmaps:update', onUpdate);
+    return () => {
+      EventsOff('configmaps:update', onUpdate);
+    };
+  }, [namespace]);
+
   return (
     <OverviewTableWithPanel
+      title="Config Maps"
       data={data}
       columns={columns}
       loading={loading}
       error={error}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
-      resourceName="ConfigMap"
+      resourceKind="configmap"
+      namespace={namespace}
       onResourceCreate={onConfigMapCreate}
     />
   );
