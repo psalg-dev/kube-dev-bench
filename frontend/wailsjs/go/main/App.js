@@ -118,6 +118,10 @@ export function GetSecretData(arg1) {
   return window['go']['main']['App']['GetSecretData'](arg1);
 }
 
+export function GetSecrets(arg1) {
+  return window['go']['main']['App']['GetSecrets'](arg1);
+}
+
 export function GetStatefulSets(arg1) {
   return window['go']['main']['App']['GetStatefulSets'](arg1);
 }

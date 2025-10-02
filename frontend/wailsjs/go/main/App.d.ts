@@ -61,6 +61,8 @@ export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetSecretData(arg1:string):Promise<Record<string, string>>;
 
+export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
+
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
 export function Greet(arg1:string):Promise<string>;

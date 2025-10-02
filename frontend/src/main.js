@@ -1,7 +1,7 @@
 import './style.css';
 import './app.css';
 
-import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments, GetJobs, GetCronJobs, GetDaemonSets, GetStatefulSets, GetReplicaSets, GetConfigMaps} from '../wailsjs/go/main/App';
+import {GetKubeContexts, SetCurrentKubeContext, GetNamespaces, SetCurrentNamespace, GetCurrentConfig, GetRunningPods, CreateResource, GetOverview, GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, GetPodStatusCounts, GetDeployments, GetJobs, GetCronJobs, GetDaemonSets, GetStatefulSets, GetReplicaSets, GetConfigMaps, GetSecrets} from '../wailsjs/go/main/App';
 import { renderPodOverviewTable } from './pods/PodOverviewEntry';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -13,6 +13,7 @@ import DaemonSetsOverviewTable from './daemonsets/DaemonSetsOverviewTable';
 import StatefulSetsOverviewTable from './statefulsets/StatefulSetsOverviewTable';
 import ReplicaSetsOverviewTable from './replicasets/ReplicaSetsOverviewTable';
 import ConfigMapsOverviewTable from './configmaps/ConfigMapsOverviewTable';
+import SecretsOverviewTable from './secrets/SecretsOverviewTable';
 
 import {EditorState} from "@codemirror/state"
 import {
@@ -317,6 +318,10 @@ function renderSidebarSections() {
       <span style="display: flex; align-items: center; gap: 8px;"><span>Config Maps</span></span>
       <span id="sidebar-configmaps-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
     </div>
+    <div class="sidebar-section${selectedSection === 'secrets' ? ' selected' : ''}" id="section-secrets" style="padding: 8px 16px; cursor: pointer; color: var(--gh-table-header-text, #fff); font-size: 15px; margin: 0; border-radius: 4px; transition: background 0.15s; text-align: left; display: flex; align-items: center; gap: 8px; justify-content: space-between;">
+      <span style="display: flex; align-items: center; gap: 8px;"><span>Secrets</span></span>
+      <span id="sidebar-secrets-count" style="min-width:2em; text-align:right; color:#9aa0a6; font-weight:700;">-</span>
+    </div>
   `;
 }
 
@@ -334,6 +339,7 @@ function startPodCountUpdater() {
     statefulsets: null,
     replicasets: null,
     configmaps: null,
+    secrets: null,
   };
   const update = async () => {
     const el = document.getElementById(elId);
@@ -387,7 +393,7 @@ function startPodCountUpdater() {
 
     // Update other resource counts in parallel
     try {
-      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps] = await Promise.all([
+      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps, secrets] = await Promise.all([
         GetDeployments(selectedNamespace).catch(() => []),
         GetJobs(selectedNamespace).catch(() => []),
         GetCronJobs(selectedNamespace).catch(() => []),
@@ -395,6 +401,7 @@ function startPodCountUpdater() {
         GetStatefulSets(selectedNamespace).catch(() => []),
         GetReplicaSets(selectedNamespace).catch(() => []),
         GetConfigMaps(selectedNamespace).catch(() => []),
+        GetSecrets(selectedNamespace).catch(() => []),
       ]);
 
       const setCount = (id, valueKey, value) => {
@@ -416,6 +423,7 @@ function startPodCountUpdater() {
       setCount('sidebar-statefulsets-count', 'statefulsets', statefulsets);
       setCount('sidebar-replicasets-count', 'replicasets', replicasets);
       setCount('sidebar-configmaps-count', 'configmaps', configmaps);
+      setCount('sidebar-secrets-count', 'secrets', secrets);
     } catch (_) {
       // ignore; individual fetches already handled
     }
@@ -449,6 +457,8 @@ function renderSidebarAndAttachHandlers() {
   if (replicaSetsEntry) replicaSetsEntry.onclick = (e) => { e.stopPropagation(); selectSection('replicasets'); };
   const configMapsEntry = document.getElementById('section-configmaps');
   if (configMapsEntry) configMapsEntry.onclick = (e) => { e.stopPropagation(); selectSection('configmaps'); };
+  const secretsEntry = document.getElementById('section-secrets');
+  if (secretsEntry) secretsEntry.onclick = (e) => { e.stopPropagation(); selectSection('secrets'); };
   startPodCountUpdater();
 }
 
@@ -530,6 +540,18 @@ function renderMainContent() {
         }
       }));
     }
+  } else if (selectedSection === 'secrets') {
+    mainPanels.innerHTML = `<div class="main-panel" id="secrets-overview-react"></div>`;
+    const secretsOverviewContainer = document.getElementById('secrets-overview-react');
+    if (secretsOverviewContainer) {
+      const root = createRoot(secretsOverviewContainer);
+      root.render(React.createElement(SecretsOverviewTable, {
+        namespace: selectedNamespace,
+        onSecretCreate: () => {
+          showResourceOverlay('secret');
+        }
+      }));
+    }
   }
 }
 
@@ -587,7 +609,22 @@ data:
       host: 0.0.0.0
     logging:
       level: info
-  simple-key: simple-value`
+  simple-key: simple-value`,
+
+  secret: `apiVersion: v1
+kind: Secret
+metadata:
+  name: example-secret
+type: Opaque
+data:
+  # Secret data must be base64 encoded
+  # Use: echo -n "your-value" | base64
+  username: dXNlcm5hbWU=  # username
+  password: cGFzc3dvcmQ=  # password
+stringData:
+  # Alternative: use stringData for plain text (will be auto-encoded)
+  # api-key: your-api-key-here
+  # database-url: postgresql://user:pass@localhost:5432/db`
 };
 
 // Message handling functions
