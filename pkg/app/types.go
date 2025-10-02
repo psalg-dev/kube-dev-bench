@@ -12,6 +12,7 @@ type OverviewInfo struct {
 // PodInfo describes a running pod's basic info
 type PodInfo struct {
 	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
 	Restarts  int32  `json:"restarts"`
 	Uptime    string `json:"uptime"`
 	StartTime string `json:"startTime"`

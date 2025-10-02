@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
-import { GetPersistentVolumeClaims } from '../../wailsjs/go/main/App';
+import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
-export default function PersistentVolumeClaimsOverviewTable({ namespace, onPVCCreate }) {
+export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -25,44 +25,30 @@ export default function PersistentVolumeClaimsOverviewTable({ namespace, onPVCCr
     }
   };
 
-  const periodicFetch = async (ns) => {
-    if (inFlightRef.current || !ns) return;
-    inFlightRef.current = true;
-    try {
-      const data = await GetPersistentVolumeClaims(ns);
-      setPVCs(Array.isArray(data) ? data : []);
-    } catch (_) {
-      // ignore periodic errors
-    } finally {
-      inFlightRef.current = false;
+  // Normalize PVC data
+  const normalize = (arr) => (arr || []).filter(Boolean).map((i) => ({
+    name: i.name ?? i.Name,
+    namespace: i.namespace ?? i.Namespace,
+    status: i.status ?? i.Status ?? '-',
+    storage: i.storage ?? i.Storage ?? '-',
+    accessModes: Array.isArray(i.accessModes ?? i.AccessModes) ? (i.accessModes ?? i.AccessModes).join(', ') : '-',
+    volumeName: i.volumeName ?? i.VolumeName ?? '-',
+    age: i.age ?? i.Age ?? '-',
+  }));
+
+  // Fetch PVCs for all selected namespaces
+  const fetchAllPVCs = async () => {
+    if (!Array.isArray(namespaces) || namespaces.length === 0) {
+      setPVCs([]);
+      return;
     }
-  };
-
-  const startFastPollingWindow = (ns) => {
-    if (!ns) return;
-    clearTimers();
-    let elapsed = 0;
-    fastTimerRef.current = setInterval(async () => {
-      await periodicFetch(ns);
-      elapsed += 1;
-      if (elapsed >= 60) {
-        if (fastTimerRef.current) {
-          clearInterval(fastTimerRef.current);
-          fastTimerRef.current = null;
-        }
-        slowTimerRef.current = setInterval(() => periodicFetch(ns), 60000);
-      }
-    }, 1000);
-  };
-
-  const fetchPVCs = async () => {
-    if (!namespace) return;
-
     setLoading(true);
     setError(null);
     try {
-      const data = await GetPersistentVolumeClaims(namespace);
-      setPVCs(data || []);
+      const results = await Promise.all(
+        namespaces.map(ns => AppAPI.GetPersistentVolumeClaims(ns).catch(() => []))
+      );
+      setPVCs(normalize([].concat(...results).filter(Boolean)));
     } catch (err) {
       console.error('Error fetching PVCs:', err);
       setError(err.message || 'Failed to fetch persistent volume claims');
@@ -73,133 +59,108 @@ export default function PersistentVolumeClaimsOverviewTable({ namespace, onPVCCr
   };
 
   useEffect(() => {
-    fetchPVCs();
+    fetchAllPVCs();
     // Start a fast window when view opens
-    startFastPollingWindow(namespace);
+    clearTimers();
+    let elapsed = 0;
+    if (Array.isArray(namespaces) && namespaces.length > 0) {
+      fastTimerRef.current = setInterval(async () => {
+        await fetchAllPVCs();
+        elapsed += 1;
+        if (elapsed >= 60) {
+          if (fastTimerRef.current) {
+            clearInterval(fastTimerRef.current);
+            fastTimerRef.current = null;
+          }
+          slowTimerRef.current = setInterval(() => fetchAllPVCs(), 60000);
+        }
+      }, 1000);
+    }
     return () => clearTimers();
-  }, [namespace]);
+  }, [namespaces]);
 
   // Generic resource-updated fallback
   useEffect(() => {
-    const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      if (eventData?.resource === 'persistentvolumeclaim' && eventData?.namespace === namespace) {
-        fetchPVCs();
-        // Restart fast polling window upon new resource creation
-        startFastPollingWindow(namespace);
+    const onUpdate = (eventData) => {
+      if (eventData?.resource === 'persistentvolumeclaim' && (!namespaces || namespaces.includes(eventData?.namespace))) {
+        fetchAllPVCs();
+        clearTimers();
+        let elapsed = 0;
+        if (Array.isArray(namespaces) && namespaces.length > 0) {
+          fastTimerRef.current = setInterval(async () => {
+            await fetchAllPVCs();
+            elapsed += 1;
+            if (elapsed >= 60) {
+              if (fastTimerRef.current) {
+                clearInterval(fastTimerRef.current);
+                fastTimerRef.current = null;
+              }
+              slowTimerRef.current = setInterval(() => fetchAllPVCs(), 60000);
+            }
+          }, 1000);
+        }
       }
-    });
-
-    return () => {
-      EventsOff('resource-updated', unsubscribe);
     };
-  }, [namespace]);
+    EventsOn('resource-updated', onUpdate);
+    return () => {
+      EventsOff('resource-updated', onUpdate);
+    };
+  }, [namespaces]);
 
   const columns = [
-    {
-      accessorKey: 'name',
-      header: 'Name',
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>
-          {getValue()}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'status',
-      header: 'Status',
-      cell: ({ getValue }) => {
-        const status = getValue();
-        let color = 'var(--gh-text)';
-        if (status === 'Bound') color = '#28a745';
-        else if (status === 'Pending') color = '#ffc107';
-        else if (status === 'Lost') color = '#dc3545';
-
-        return (
-          <span style={{ color, fontWeight: '500' }}>
-            {status}
-          </span>
-        );
-      },
-    },
-    {
-      accessorKey: 'volume',
-      header: 'Volume',
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>
-          {getValue()}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'capacity',
-      header: 'Capacity',
-    },
-    {
-      accessorKey: 'accessModes',
-      header: 'Access Modes',
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>
-          {getValue()}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'storageClass',
-      header: 'Storage Class',
-      cell: ({ getValue }) => (
-        <span style={{ fontFamily: 'monospace', fontSize: '13px' }}>
-          {getValue()}
-        </span>
-      ),
-    },
-    {
-      accessorKey: 'age',
-      header: 'Age',
-      cell: ({ getValue }) => (
-        <span style={{ color: 'var(--gh-text-muted)' }}>
-          {getValue()}
-        </span>
-      ),
-    },
+    { key: 'name', label: 'Name' },
+    { key: 'namespace', label: 'Namespace' },
+    { key: 'status', label: 'Status' },
+    { key: 'storage', label: 'Storage' },
+    { key: 'accessModes', label: 'Access Modes' },
+    { key: 'volumeName', label: 'Volume Name' },
+    { key: 'age', label: 'Age' },
   ];
 
-  const handleRowClick = (pvc) => {
-    setSelectedPVC(pvc);
-  };
-
-  const tabs = [
-    { key: 'summary', label: 'Summary' }
-  ];
-
-  const renderPanelContent = (row, activeTab) => {
-    if (!row) return null;
-
-    // For PVCs, we only have one tab (summary), so we can ignore activeTab
-    return (
-      <div style={{ padding: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <h4 style={{ margin: '0 0 8px 0', color: 'var(--gh-text)' }}>Basic Information</h4>
-            <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
-              <div><strong>Name:</strong> {row.name}</div>
-              <div><strong>Namespace:</strong> {row.namespace}</div>
-              <div><strong>Status:</strong> {row.status}</div>
-              <div><strong>Age:</strong> {row.age}</div>
-            </div>
-          </div>
-          <div>
-            <h4 style={{ margin: '0 0 8px 0', color: 'var(--gh-text)' }}>Storage Information</h4>
-            <div style={{ fontSize: '14px', lineHeight: '1.5' }}>
-              <div><strong>Volume:</strong> {row.volume}</div>
-              <div><strong>Capacity:</strong> {row.capacity}</div>
-              <div><strong>Access Modes:</strong> {row.accessModes}</div>
-              <div><strong>Storage Class:</strong> {row.storageClass}</div>
-            </div>
-          </div>
+  // Panel content and header can be implemented similarly to other resources
+  function renderPanelContent(row, tab) {
+    if (tab === 'summary') {
+      return (
+        <div>
+          <h3>Summary</h3>
+          <p><b>Name:</b> {row.name}</p>
+          <p><b>Namespace:</b> {row.namespace}</p>
+          <p><b>Status:</b> {row.status}</p>
+          <p><b>Storage:</b> {row.storage}</p>
+          <p><b>Access Modes:</b> {row.accessModes}</p>
+          <p><b>Volume Name:</b> {row.volumeName}</p>
+          <p><b>Age:</b> {row.age}</p>
         </div>
-      </div>
-    );
-  };
+      );
+    }
+    if (tab === 'events') {
+      return (
+        <div>
+          <h3>Events</h3>
+          <p>No events (mock data).</p>
+        </div>
+      );
+    }
+    if (tab === 'yaml') {
+      return (
+        <div>
+          <h3>YAML</h3>
+          <pre style={{ background: '#222', color: '#eee', padding: 12 }}>{`apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: ${row.name}\n  namespace: ${row.namespace}\nspec:\n  accessModes: [${row.accessModes}]\n  resources:\n    requests:\n      storage: ${row.storage}`}</pre>
+        </div>
+      );
+    }
+    return null;
+  }
+
+  function panelHeader(row) {
+    return <span style={{ fontWeight: 600 }}>{row.name}</span>;
+  }
+
+  const bottomTabs = [
+    { key: 'summary', label: 'Summary' },
+    { key: 'events', label: 'Events' },
+    { key: 'yaml', label: 'YAML' },
+  ];
 
   if (loading) {
     return (
@@ -232,16 +193,16 @@ export default function PersistentVolumeClaimsOverviewTable({ namespace, onPVCCr
 
   return (
     <OverviewTableWithPanel
+      title="Persistent Volume Claims"
       columns={columns}
       data={pvcs}
-      onRowClick={handleRowClick}
+      loading={loading}
+      tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
-      panelHeader={selectedPVC ? `Persistent Volume Claim: ${selectedPVC.name}` : ''}
-      title="Persistent Volume Claims"
+      panelHeader={panelHeader}
       resourceKind="persistentvolumeclaim"
-      namespace={namespace}
+      namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
       onCreateResource={onPVCCreate}
-      tabs={tabs}
     />
   );
 }

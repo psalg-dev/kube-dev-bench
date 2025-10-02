@@ -3,6 +3,7 @@ export namespace app {
 	export class AppConfig {
 	    currentContext: string;
 	    currentNamespace: string;
+	    preferredNamespaces: string[];
 	    rememberContext: boolean;
 	    rememberNamespace: boolean;
 	    kubeConfigPath: string;
@@ -15,6 +16,7 @@ export namespace app {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.currentContext = source["currentContext"];
 	        this.currentNamespace = source["currentNamespace"];
+	        this.preferredNamespaces = source["preferredNamespaces"];
 	        this.rememberContext = source["rememberContext"];
 	        this.rememberNamespace = source["rememberNamespace"];
 	        this.kubeConfigPath = source["kubeConfigPath"];
@@ -347,6 +349,7 @@ export namespace app {
 	}
 	export class PodInfo {
 	    name: string;
+	    namespace: string;
 	    restarts: number;
 	    uptime: string;
 	    startTime: string;
@@ -360,6 +363,7 @@ export namespace app {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
+	        this.namespace = source["namespace"];
 	        this.restarts = source["restarts"];
 	        this.uptime = source["uptime"];
 	        this.startTime = source["startTime"];

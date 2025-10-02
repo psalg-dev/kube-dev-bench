@@ -67,17 +67,18 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function DaemonSetsOverviewTable({ namespace }) {
+export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
   const [daemonSets, setDaemonSets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!namespace) return;
+    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    if (nsArr.length === 0) return;
     const fetchDaemonSets = async () => {
       try {
         setLoading(true);
-        const data = await AppAPI.GetDaemonSets(namespace);
-        setDaemonSets(Array.isArray(data) ? data : []);
+        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDaemonSets(ns).catch(() => [])));
+        setDaemonSets(lists.flat());
       } catch (error) {
         console.error('Failed to fetch daemonsets:', error);
         setDaemonSets([]);
@@ -86,14 +87,13 @@ export default function DaemonSetsOverviewTable({ namespace }) {
       }
     };
     fetchDaemonSets();
-  }, [namespace]);
+  }, [namespaces, namespace]);
 
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespace ? arr.filter(d => (d?.namespace || d?.Namespace) === namespace) : arr;
-        const norm = filtered.map(d => ({
+        const norm = arr.map(d => ({
           name: d.name ?? d.Name,
           namespace: d.namespace ?? d.Namespace,
           desired: d.desired ?? d.Desired ?? 0,
@@ -112,7 +112,7 @@ export default function DaemonSetsOverviewTable({ namespace }) {
     return () => {
       try { EventsOff('daemonsets:update'); } catch (_) {}
     };
-  }, [namespace]);
+  }, []);
 
   return (
     <OverviewTableWithPanel

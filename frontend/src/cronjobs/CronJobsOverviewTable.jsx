@@ -73,11 +73,11 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function CronJobsOverviewTable({ namespace }) {
+export default function CronJobsOverviewTable({ namespaces }) {
   const [cronJobs, setCronJobs] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const normalize = (arr) => (arr || []).map((d) => ({
+  const normalize = (arr) => (arr || []).filter(Boolean).map((d) => ({
     name: d.name ?? d.Name,
     namespace: d.namespace ?? d.Namespace,
     schedule: d.schedule ?? d.Schedule ?? '-',
@@ -87,12 +87,18 @@ export default function CronJobsOverviewTable({ namespace }) {
     image: d.image ?? d.Image ?? '',
   }));
 
-  const fetchCronJobs = async () => {
-    if (!namespace) return;
+  const fetchAllCronJobs = async () => {
+    if (!Array.isArray(namespaces) || namespaces.length === 0) {
+      setCronJobs([]);
+      return;
+    }
     setLoading(true);
     try {
-      const result = await AppAPI.GetCronJobs(namespace);
-      setCronJobs(normalize(Array.isArray(result) ? result : []));
+      const results = await Promise.all(
+        namespaces.map(ns => AppAPI.GetCronJobs(ns).catch(() => []))
+      );
+      // Flatten and normalize, filter out any nulls
+      setCronJobs(normalize([].concat(...results).filter(Boolean)));
     } catch (e) {
       console.error('Error fetching cronjobs:', e);
       setCronJobs([]);
@@ -102,15 +108,15 @@ export default function CronJobsOverviewTable({ namespace }) {
   };
 
   useEffect(() => {
-    fetchCronJobs();
+    fetchAllCronJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespace]);
+  }, [namespaces]);
 
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespace ? arr.filter((d) => (d?.namespace || d?.Namespace) === namespace) : arr;
+        const filtered = namespaces ? arr.filter((d) => namespaces.includes(d?.namespace || d?.Namespace)) : arr;
         setCronJobs(normalize(filtered));
       } catch (_) {
         setCronJobs([]);
@@ -120,20 +126,18 @@ export default function CronJobsOverviewTable({ namespace }) {
     };
     EventsOn('cronjobs:update', onUpdate);
     return () => { try { EventsOff('cronjobs:update'); } catch (_) {} };
-  }, [namespace]);
+  }, [namespaces]);
 
   return (
     <OverviewTableWithPanel
       columns={columns}
       data={cronJobs}
-      loading={loading}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       title="Cron Jobs"
-      onRefresh={fetchCronJobs}
-      resourceKind="CronJob"
-      namespace={namespace}
+      resourceKind="cronjob"
+      namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
     />
   );
 }

@@ -68,20 +68,21 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function StatefulSetsOverviewTable({ namespace }) {
+export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Initial fetch by namespace
+  // Aggregate fetch by namespaces
   useEffect(() => {
-    if (!namespace) return;
+    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    if (nsArr.length === 0) return;
     let cancelled = false;
     const run = async () => {
       try {
         setLoading(true);
-        const data = await AppAPI.GetStatefulSets(namespace);
+        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetStatefulSets(ns).catch(() => [])));
         if (cancelled) return;
-        setItems(Array.isArray(data) ? data : []);
+        setItems(lists.flat());
       } catch (e) {
         if (!cancelled) setItems([]);
       } finally {
@@ -90,15 +91,14 @@ export default function StatefulSetsOverviewTable({ namespace }) {
     };
     run();
     return () => { cancelled = true; };
-  }, [namespace]);
+  }, [namespaces, namespace]);
 
-  // Live updates
+  // Live updates (already aggregated by backend polling)
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespace ? arr.filter(x => (x?.namespace || x?.Namespace) === namespace) : arr;
-        const norm = filtered.map(x => ({
+        const norm = arr.map(x => ({
           name: x.name ?? x.Name,
           namespace: x.namespace ?? x.Namespace,
           replicas: x.replicas ?? x.Replicas ?? 0,
@@ -115,7 +115,7 @@ export default function StatefulSetsOverviewTable({ namespace }) {
     };
     EventsOn('statefulsets:update', onUpdate);
     return () => { try { EventsOff('statefulsets:update'); } catch (_) {} };
-  }, [namespace]);
+  }, []);
 
   return (
     <OverviewTableWithPanel

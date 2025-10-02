@@ -591,6 +591,7 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 			}
 			result = append(result, PodInfo{
 				Name:      pod.Name,
+				Namespace: pod.Namespace,
 				Restarts:  restarts,
 				Uptime:    uptime,
 				StartTime: startTimeStr,
@@ -607,13 +608,26 @@ func (a *App) StartPodPolling() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			if a.ctx == nil || a.currentNamespace == "" {
+			if a.ctx == nil {
 				continue
 			}
-			pods, err := a.GetRunningPods(a.currentNamespace)
-			if err == nil {
-				wailsRuntime.EventsEmit(a.ctx, "pods:update", pods)
+			// Determine namespaces to poll
+			nsList := a.preferredNamespaces
+			if len(nsList) == 0 && a.currentNamespace != "" {
+				nsList = []string{a.currentNamespace}
 			}
+			if len(nsList) == 0 {
+				continue
+			}
+			var all []PodInfo
+			for _, ns := range nsList {
+				pods, err := a.GetRunningPods(ns)
+				if err != nil {
+					continue
+				}
+				all = append(all, pods...)
+			}
+			wailsRuntime.EventsEmit(a.ctx, "pods:update", all)
 		}
 	}()
 }

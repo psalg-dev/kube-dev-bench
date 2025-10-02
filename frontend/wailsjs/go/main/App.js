@@ -186,6 +186,10 @@ export function SetKubeConfigPath(arg1) {
   return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
 
+export function SetPreferredNamespaces(arg1) {
+  return window['go']['main']['App']['SetPreferredNamespaces'](arg1);
+}
+
 export function SetRememberContext(arg1) {
   return window['go']['main']['App']['SetRememberContext'](arg1);
 }

@@ -20,7 +20,7 @@ import {
   GetSecrets,
   GetStatefulSets,
   SetCurrentKubeContext,
-  SetCurrentNamespace
+  SetCurrentNamespace,
 } from '../wailsjs/go/main/App';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -46,7 +46,6 @@ let isContextDisabled = true;
 let isNamespaceDisabled = true;
 
 // Section state
-let selectedSection = 'pods';
 let podCountUpdater = null;
 
 // DOM element references (will be set when main app renders)
@@ -55,41 +54,28 @@ let selectElement, nsSelect, footerInfo, footerDot, mainPanels, sidebarSections;
 // Check if we need to show the connection wizard
 async function checkConnectionSetup() {
   try {
-    // Always check if we can successfully connect with current config
     const config = await GetCurrentConfig();
-
-    // Try to get contexts with current setup
     const contexts = await GetKubeContexts();
-
-    // If no contexts available, definitely show wizard
     if (!contexts || contexts.length === 0) {
       showConnectionWizard = true;
       renderConnectionWizard();
       return;
     }
-
-    // If we have contexts but no saved context, show wizard for selection
     if (!config.currentContext) {
       showConnectionWizard = true;
       renderConnectionWizard();
       return;
     }
-
-    // Try to connect with saved context to verify it works
     try {
       await GetNamespaces();
-      // Connection successful, proceed to main app
       showConnectionWizard = false;
       initializeMainApp();
     } catch (connectionErr) {
-      // Connection failed with current setup, show wizard
       console.log('Connection failed with current setup:', connectionErr);
       showConnectionWizard = true;
       renderConnectionWizard();
     }
-
   } catch (err) {
-    // If there's any error loading contexts, show the wizard
     console.log('Error in connection setup:', err);
     showConnectionWizard = true;
     renderConnectionWizard();
@@ -98,11 +84,9 @@ async function checkConnectionSetup() {
 
 function renderConnectionWizard() {
   const appElement = document.querySelector('#app');
-
   if (!appRoot) {
     appRoot = createRoot(appElement);
   }
-
   appRoot.render(
     React.createElement(ConnectionWizard, {
       onComplete: () => {
@@ -114,12 +98,10 @@ function renderConnectionWizard() {
 }
 
 function initializeMainApp() {
-  // Clear the React root and render the main app HTML
   if (appRoot) {
     appRoot.unmount();
     appRoot = null;
   }
-
   renderMainAppHTML();
   setupEventHandlers();
   mountSelects();
@@ -136,7 +118,7 @@ function renderMainAppHTML() {
         </div>
         <label for="kubecontext-root">Context:</label>
         <div class="input" id="kubecontext-root"></div>
-        <label for="namespace-root">Namespace:</label>
+        <label for="namespace-root">Namespaces:</label>
         <div class="input" id="namespace-root"></div>
         <hr class="sidebar-separator" />
         <div id="sidebar-sections" style="flex: 1;">
@@ -158,7 +140,6 @@ function renderMainAppHTML() {
     </div>
   `;
 
-  // Re-initialize DOM element references
   selectElement = document.getElementById("kubecontext-root");
   nsSelect = document.getElementById("namespace-root");
   footerInfo = document.getElementById("footer-info");
@@ -166,7 +147,6 @@ function renderMainAppHTML() {
   mainPanels = document.getElementById("main-panels");
   sidebarSections = document.getElementById("sidebar-sections");
 
-  // Reset footer
   footerInfo.textContent = '';
   footerDot.style.background = '#ccc';
 }
@@ -207,7 +187,6 @@ function renderNamespaceSelect() {
 }
 
 function setupEventHandlers() {
-  // Add wizard trigger button
   const wizardBtn = document.getElementById('show-wizard-btn');
   if (wizardBtn) {
     wizardBtn.onclick = () => {
@@ -215,8 +194,6 @@ function setupEventHandlers() {
       renderConnectionWizard();
     };
   }
-
-  // Add keyboard shortcut (Ctrl+K or Cmd+K)
   document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
@@ -224,15 +201,11 @@ function setupEventHandlers() {
       renderConnectionWizard();
     }
   });
-
-  // Sidebar toggle button
   const sidebarToggleBtn = document.getElementById('sidebar-toggle');
   if (sidebarToggleBtn) {
     sidebarToggleBtn.onclick = () => {
       const sidebar = document.getElementById('sidebar');
       sidebar.classList.toggle('collapsed');
-
-      // Update button content based on state with proper chevrons
       const isCollapsed = sidebar.classList.contains('collapsed');
       sidebarToggleBtn.innerHTML = isCollapsed
         ? '<span>▶</span><span>Show Sidebar</span>'
@@ -247,10 +220,11 @@ async function initializeWithConfig() {
   try {
     const config = await GetCurrentConfig();
     selectedContext = config.currentContext;
-    selectedNamespace = config.currentNamespace;
-    selectedNamespaces = selectedNamespace ? [selectedNamespace] : [];
+    // prefer preferredNamespaces list; fallback to single currentNamespace
+    const pref = config.preferredNamespaces || config.PreferredNamespaces || [];
+    selectedNamespaces = Array.isArray(pref) ? pref.slice() : [];
+    selectedNamespace = selectedNamespaces[0] || config.currentNamespace || '';
 
-    // Enable context dropdown and load contexts
     isContextDisabled = false;
     contextOptions = await GetKubeContexts();
     if (!contextOptions || contextOptions.length === 0) {
@@ -261,21 +235,21 @@ async function initializeWithConfig() {
 
     renderContextSelect();
 
-    // If we have a saved context, try to load its namespaces
     if (selectedContext) {
       try {
         const namespaces = await GetNamespaces();
         if (namespaces && namespaces.length > 0) {
           namespaceOptions = namespaces;
           isNamespaceDisabled = false;
-          // Set to stored namespace if present, else first
-          if (selectedNamespace && namespaces.includes(selectedNamespace)) {
-            selectedNamespaces = [selectedNamespace];
+          // filter stored namespaces to those existing now; default to first available if none
+          const valid = selectedNamespaces.filter(ns => namespaces.includes(ns));
+          if (valid.length > 0) {
+            selectedNamespaces = valid;
+            selectedNamespace = valid[0];
           } else {
             selectedNamespaces = [namespaces[0]];
             selectedNamespace = namespaces[0];
           }
-          // Only load overview if we have a valid namespace
           if (selectedNamespace) {
             clusterConnected = true;
             renderNamespaceSelect();
@@ -304,19 +278,14 @@ async function initializeWithConfig() {
 function updateFooter() {
   const nsText = selectedNamespaces && selectedNamespaces.length > 0 ? selectedNamespaces.join(', ') : '';
   footerInfo.textContent = selectedContext && nsText ? `${selectedContext} / ${nsText}` : '';
-  if (clusterConnected) {
-    footerDot.classList.add('connected');
-  } else {
-    footerDot.classList.remove('connected');
-  }
+  if (clusterConnected) footerDot.classList.add('connected'); else footerDot.classList.remove('connected');
 }
 
 function startPodCountUpdater() {
   stopPodCountUpdater();
-  if (!selectedNamespace) return;
+  if (!selectedNamespaces || selectedNamespaces.length === 0) return;
   const elId = 'sidebar-pod-counts';
   let lastSig = null;
-  // track last counts to avoid DOM writes
   const lastCounts = {
     deployments: null,
     jobs: null,
@@ -330,44 +299,44 @@ function startPodCountUpdater() {
     persistentvolumeclaims: null,
     persistentvolumes: null,
   };
+  const sumCounts = (a, b) => ({
+    running: (a.running||0)+(b.running||0),
+    pending: (a.pending||0)+(b.pending||0),
+    failed: (a.failed||0)+(b.failed||0),
+    succeeded: (a.succeeded||0)+(b.succeeded||0),
+    unknown: (a.unknown||0)+(b.unknown||0),
+    total: (a.total||0)+(b.total||0),
+  });
   const update = async () => {
     const el = document.getElementById(elId);
     if (!el) return;
     try {
-      // Prefer precise status counts for color-coded display
-      const counts = await GetPodStatusCounts(selectedNamespace);
-      // Build a signature to avoid unnecessary DOM writes
-      const sig = counts ? [counts.running, counts.pending, counts.failed, counts.succeeded, counts.unknown, counts.total].join('-') : 'x';
+      // aggregate pod status across namespaces
+      const countsList = await Promise.all((selectedNamespaces||[]).map(ns => GetPodStatusCounts(ns).catch(() => null)));
+      const agg = countsList.filter(Boolean).reduce((acc, c) => sumCounts(acc, c), {running:0,pending:0,failed:0,succeeded:0,unknown:0,total:0});
+      const sig = [agg.running, agg.pending, agg.failed, agg.succeeded, agg.unknown, agg.total].join('-');
       if (sig !== lastSig) {
         lastSig = sig;
         const parts = [];
-        const pushPart = (value, color, title) => {
-          if (!value) return;
-          parts.push(`<span title="${title}" style="color:${color}; font-weight: 700;">${value}</span>`);
-        };
-        // Colors aligned with table: green, yellow, red, grey
-        pushPart(counts.running, '#2ea44f', 'Running');
-        pushPart(counts.pending, '#e6b800', 'Pending/Creating');
-        pushPart(counts.failed, '#d73a49', 'Failed');
-        // Show succeeded & unknown in neutral grey if present
-        pushPart(counts.succeeded, '#9aa0a6', 'Succeeded');
-        pushPart(counts.unknown, '#9aa0a6', 'Unknown');
-
-        // If there are no pods, show 0 in muted color
-        if (counts.total === 0) {
+        const pushPart = (value, color, title) => { if (!value) return; parts.push(`<span title="${title}" style="color:${color}; font-weight: 700;">${value}</span>`); };
+        pushPart(agg.running, '#2ea44f', 'Running');
+        pushPart(agg.pending, '#e6b800', 'Pending/Creating');
+        pushPart(agg.failed, '#d73a49', 'Failed');
+        pushPart(agg.succeeded, '#9aa0a6', 'Succeeded');
+        pushPart(agg.unknown, '#9aa0a6', 'Unknown');
+        if (agg.total === 0) {
           el.innerHTML = `<span style="color:#9aa0a6; font-weight:700;">0</span>`;
         } else if (parts.length > 0) {
           el.innerHTML = parts.join('<span style="color:#666;">/</span>');
         } else {
-          // Fallback: show running as single number if others are zero
-          el.innerHTML = `<span style="color:#2ea44f; font-weight:700;">${counts.running || 0}</span>`;
+          el.innerHTML = `<span style="color:#2ea44f; font-weight:700;">${agg.running || 0}</span>`;
         }
       }
     } catch (err) {
-      // Fallback to older API (running pods) for backward compatibility
+      // Fallback: sum running pods across namespaces
       try {
-        const pods = await GetRunningPods(selectedNamespace);
-        const count = Array.isArray(pods) ? pods.length : 0;
+        const lists = await Promise.all((selectedNamespaces||[]).map(ns => GetRunningPods(ns).catch(() => [])));
+        const count = lists.reduce((n, arr) => n + (Array.isArray(arr)?arr.length:0), 0);
         const fallbackSig = `r-${count}`;
         if (fallbackSig !== lastSig) {
           lastSig = fallbackSig;
@@ -380,22 +349,23 @@ function startPodCountUpdater() {
       }
     }
 
-    // Update other resource counts in parallel
+    // Update other resource counts in parallel (sum across namespaces)
     try {
-      const [deployments, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps, secrets, ingresses, persistentvolumeclaims, persistentvolumes] = await Promise.all([
-        GetDeployments(selectedNamespace).catch(() => []),
-        GetJobs(selectedNamespace).catch(() => []),
-        GetCronJobs(selectedNamespace).catch(() => []),
-        GetDaemonSets(selectedNamespace).catch(() => []),
-        GetStatefulSets(selectedNamespace).catch(() => []),
-        GetReplicaSets(selectedNamespace).catch(() => []),
-        GetConfigMaps(selectedNamespace).catch(() => []),
-        GetSecrets(selectedNamespace).catch(() => []),
-        GetIngresses(selectedNamespace).catch(() => []),
-        GetPersistentVolumeClaims(selectedNamespace).catch(() => []),
-        GetPersistentVolumes().catch(() => []), // Note: cluster-wide, not namespace-specific
+      const nsArr = selectedNamespaces || [];
+      const [depLists, jobLists, cjLists, dsLists, ssLists, rsLists, cmLists, secLists, ingLists, pvcLists, pvs] = await Promise.all([
+        Promise.all(nsArr.map(ns => GetDeployments(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetJobs(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetCronJobs(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetDaemonSets(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetStatefulSets(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetReplicaSets(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetConfigMaps(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetSecrets(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetIngresses(ns).catch(() => []))),
+        Promise.all(nsArr.map(ns => GetPersistentVolumeClaims(ns).catch(() => []))),
+        GetPersistentVolumes().catch(() => []),
       ]);
-
+      const flattenLen = (lists) => lists.reduce((n, arr) => n + (Array.isArray(arr)?arr.length:0), 0);
       const setCount = (id, valueKey, value) => {
         const el = document.getElementById(id);
         if (!el) return;
@@ -407,21 +377,18 @@ function startPodCountUpdater() {
           el.style.color = next > 0 ? '#8ecfff' : '#9aa0a6';
         }
       };
-
-      setCount('sidebar-deployments-count', 'deployments', deployments);
-      setCount('sidebar-jobs-count', 'jobs', jobs);
-      setCount('sidebar-cronjobs-count', 'cronjobs', cronjobs);
-      setCount('sidebar-daemonsets-count', 'daemonsets', daemonsets);
-      setCount('sidebar-statefulsets-count', 'statefulsets', statefulsets);
-      setCount('sidebar-replicasets-count', 'replicasets', replicasets);
-      setCount('sidebar-configmaps-count', 'configmaps', configmaps);
-      setCount('sidebar-secrets-count', 'secrets', secrets);
-      setCount('sidebar-ingresses-count', 'ingresses', ingresses);
-      setCount('sidebar-persistentvolumeclaims-count', 'persistentvolumeclaims', persistentvolumeclaims);
-      setCount('sidebar-persistentvolumes-count', 'persistentvolumes', persistentvolumes);
-    } catch (_) {
-      // ignore; individual fetches already handled
-    }
+      setCount('sidebar-deployments-count', 'deployments', flattenLen(depLists));
+      setCount('sidebar-jobs-count', 'jobs', flattenLen(jobLists));
+      setCount('sidebar-cronjobs-count', 'cronjobs', flattenLen(cjLists));
+      setCount('sidebar-daemonsets-count', 'daemonsets', flattenLen(dsLists));
+      setCount('sidebar-statefulsets-count', 'statefulsets', flattenLen(ssLists));
+      setCount('sidebar-replicasets-count', 'replicasets', flattenLen(rsLists));
+      setCount('sidebar-configmaps-count', 'configmaps', flattenLen(cmLists));
+      setCount('sidebar-secrets-count', 'secrets', flattenLen(secLists));
+      setCount('sidebar-ingresses-count', 'ingresses', flattenLen(ingLists));
+      setCount('sidebar-persistentvolumeclaims-count', 'persistentvolumeclaims', flattenLen(pvcLists));
+      setCount('sidebar-persistentvolumes-count', 'persistentvolumes', pvs);
+    } catch (_) {}
   };
   update();
   podCountUpdater = setInterval(update, 4000);
@@ -434,23 +401,22 @@ function stopPodCountUpdater() {
   }
 }
 
-
 function renderMainContent() {
   switch (getSelectedSection()) {
     case 'pods':
-      renderPodsMainContent(selectedNamespace);
+      renderPodsMainContent(selectedNamespaces);
       break;
     default:
-      renderResourceMainContent(selectedNamespace);
+      renderResourceMainContent(selectedNamespaces);
       break;
   }
 }
 
 function onContextChange(value) {
   if (isInitializing) return;
-
   const previousContext = selectedContext;
   const previousNamespace = selectedNamespace;
+  const previousNamespaces = selectedNamespaces.slice();
 
   selectedContext = value || '';
   selectedNamespace = '';
@@ -467,7 +433,7 @@ function onContextChange(value) {
         if (previousContext) {
           selectedContext = previousContext;
           selectedNamespace = previousNamespace;
-          selectedNamespaces = previousNamespace ? [previousNamespace] : [];
+          selectedNamespaces = previousNamespaces;
           renderContextSelect();
           renderNamespaceSelect();
           updateFooter();
@@ -484,26 +450,27 @@ function onContextChange(value) {
       updateFooter();
       renderNamespaceSelect();
 
-      SetCurrentNamespace(selectedNamespace)
-        .then(() => {
-          if (selectedNamespace) {
-            renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
-            renderMainContent();
-          }
-        })
-        .catch(() => {
-          selectedNamespaces = previousNamespace ? [previousNamespace] : [];
-          selectedNamespace = previousNamespace;
-          updateFooter();
-          renderNamespaceSelect();
-        });
+      Promise.all([
+        (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
+        SetCurrentNamespace(selectedNamespace).catch(() => {}),
+      ]).then(() => {
+        if (selectedNamespaces.length > 0) {
+          renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
+          renderMainContent();
+        }
+      }).catch(() => {
+        selectedNamespaces = previousNamespaces;
+        selectedNamespace = previousNamespace;
+        updateFooter();
+        renderNamespaceSelect();
+      });
     })
     .catch((err) => {
       showError("Failed to connect to the cluster: " + err);
       if (previousContext) {
         selectedContext = previousContext;
         selectedNamespace = previousNamespace;
-        selectedNamespaces = previousNamespace ? [previousNamespace] : [];
+        selectedNamespaces = previousNamespaces;
         renderContextSelect();
         renderNamespaceSelect();
         updateFooter();
@@ -516,47 +483,44 @@ function onContextChange(value) {
 
 function onNamespaceChange(values) {
   if (isInitializing) return;
-
-  const previousNamespace = selectedNamespace;
+  const previous = selectedNamespaces.slice();
   const newSelection = Array.isArray(values) ? values : [];
   selectedNamespaces = newSelection;
   selectedNamespace = newSelection[0] || '';
 
-  // Immediately reflect the selection in the UI for controlled Select
   renderNamespaceSelect();
   updateFooter();
 
-  if (!selectedNamespace) {
-    // Nothing selected: keep footer updated, but don't call backend
+  if (!selectedNamespaces || selectedNamespaces.length === 0) {
     return;
   }
 
-  GetOverview(selectedNamespace)
+  // touch overview API for first namespace to verify connectivity
+  GetOverview(selectedNamespaces[0])
     .then(() => {
-      SetCurrentNamespace(selectedNamespace)
-        .then(() => {
-          showSuccess(`Namespace "${selectedNamespace}" saved!`);
-          updateFooter();
-          startPodCountUpdater();
-          // Re-render current section to apply new namespace
-          renderMainContent();
-        })
-        .catch(() => {
-          selectedNamespaces = previousNamespace ? [previousNamespace] : [];
-          selectedNamespace = previousNamespace;
-          updateFooter();
-          renderNamespaceSelect();
-        });
+      Promise.all([
+        (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
+        SetCurrentNamespace(selectedNamespace).catch(() => {}),
+      ]).then(() => {
+        showSuccess(`Namespaces saved: ${selectedNamespaces.join(', ')}`);
+        updateFooter();
+        startPodCountUpdater();
+        renderMainContent();
+      }).catch(() => {
+        selectedNamespaces = previous;
+        selectedNamespace = previous[0] || '';
+        updateFooter();
+        renderNamespaceSelect();
+      });
     })
     .catch((err) => {
-      showError("Failed to switch namespace: " + err);
-      selectedNamespaces = previousNamespace ? [previousNamespace] : [];
-      selectedNamespace = previousNamespace;
+      showError("Failed to switch namespaces: " + err);
+      selectedNamespaces = previous;
+      selectedNamespace = previous[0] || '';
       updateFooter();
       renderNamespaceSelect();
     });
 }
-
 
 // Start initialization by checking connection setup
 checkConnectionSetup();

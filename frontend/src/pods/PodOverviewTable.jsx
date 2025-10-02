@@ -34,7 +34,7 @@ const createOptions = [
   { key: 'ingress', label: 'Ingress' },
 ];
 
-export default function PodOverviewTable({ namespace, data = [], loading = false, onCreateResource }) {
+export default function PodOverviewTable({ namespace, namespaces = [], data = [], loading = false, onCreateResource }) {
   const [now, setNow] = useState(Date.now());
   // Default sorting: uptime ascending (youngest at top)
   const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
@@ -43,6 +43,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   const [openMenuIndex, setOpenMenuIndex] = useState(null);
   const [bottomOpen, setBottomOpen] = useState(false);
   const [bottomPodName, setBottomPodName] = useState(null);
+  const [bottomNamespace, setBottomNamespace] = useState(null);
   const [bottomActiveTab, setBottomActiveTab] = useState('summary');
   const [showMenu, setShowMenu] = useState(false);
   const [filterValue, setFilterValue] = useState('');
@@ -52,8 +53,9 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   const [forwardLocalPort, setForwardLocalPort] = useState(null);
   const [forwardRemotePort, setForwardRemotePort] = useState(null);
   const [internalData, setInternalData] = useState([]);
-  // Track active port-forwards: { [podName]: { [remotePort]: number[]locals } }
-  const [pfByPod, setPfByPod] = useState({});
+  const [pfByKey, setPfByKey] = useState({}); // key: ns/pod -> { remotePort: [locals] }
+
+  const multiNs = Array.isArray(namespaces) && namespaces.length > 1;
 
   // Fallback: subscribe to pods:update if parent doesn't pass data
   useEffect(() => {
@@ -74,63 +76,40 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
         for (const item of list) {
           if (!item) continue;
           const ns = item.namespace || item.Namespace; // tolerate different casings
-          if (namespace && ns && ns !== namespace) continue;
           const pod = item.pod || item.Pod;
           const local = item.local ?? item.Local;
           const remote = item.remote ?? item.Remote;
-          if (!pod || !Number.isFinite(local) || !Number.isFinite(remote)) continue;
-          if (!map[pod]) map[pod] = {};
-          if (!map[pod][remote]) map[pod][remote] = [];
-          if (!map[pod][remote].includes(local)) map[pod][remote].push(local);
+          if (!ns || !pod || !Number.isFinite(local) || !Number.isFinite(remote)) continue;
+          const key = `${ns}/${pod}`;
+          if (!map[key]) map[key] = {};
+          if (!map[key][remote]) map[key][remote] = [];
+          if (!map[key][remote].includes(local)) map[key][remote].push(local);
         }
       }
       return map;
     }
-
-    const onUpdate = (list) => {
-      setPfByPod(buildMap(list));
-    };
-
+    const onUpdate = (list) => setPfByKey(buildMap(list));
     EventsOn('portforwards:update', onUpdate);
-
-    // Try to fetch initial forwards if binding exists
     const maybeFetch = async () => {
       try {
         const fn = window?.go?.main?.App?.ListPortForwards;
         if (typeof fn === 'function') {
           const list = await fn();
-          setPfByPod(buildMap(list));
+          onUpdate(list);
         }
-      } catch (_) {
-        // ignore
-      }
+      } catch (_) {}
     };
     maybeFetch();
-
-    return () => {
-      try { EventsOff('portforwards:update'); } catch (_) {}
-    };
-  }, [namespace]);
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
+    return () => { try { EventsOff('portforwards:update'); } catch (_) {} };
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      const target = event.target;
-      if (!(target instanceof Element)) {
-        setOpenMenuIndex(null);
-        return;
-      }
-      if (!target.closest('.menu-button') && !target.closest('.menu-content')) {
-        setOpenMenuIndex(null);
-      }
-    }
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [openMenuIndex]);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+
+  // ensure backend current namespace aligns with the row we're operating on
+  async function ensureNamespace(ns) {
+    if (!ns) return;
+    try { await AppAPI.SetCurrentNamespace(ns); } catch (_) {}
+  }
 
   useEffect(() => {
     setColumnFilters([{ id: 'name', value: filterValue }]);
@@ -183,7 +162,8 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   function renderPortsCell(pod) {
     const ports = pod?.ports || [];
     if (!ports || ports.length === 0) return '-';
-    const fForPod = pfByPod[pod.name] || {};
+    const key = `${pod.namespace || ''}/${pod.name}`;
+    const fForPod = pfByKey[key] || {};
     const sorted = [...ports].sort((a, b) => a - b);
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -234,13 +214,14 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     );
   }
 
-  const columns = useMemo(() => [
+  const baseColumns = useMemo(() => [
     {
       accessorKey: 'name',
       header: 'Name',
       filterFn: 'includesString',
       cell: info => info.getValue(),
     },
+    ...(multiNs ? [{ accessorKey: 'namespace', header: 'Namespace', cell: info => info.getValue() }] : []),
     {
       id: 'status',
       header: 'Status',
@@ -259,31 +240,22 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
       accessorKey: 'restarts',
       header: 'Restarts',
       cell: info => info.getValue() || 0,
-      sortingFn: (rowA, rowB) => {
-        const restartsA = rowA.original.restarts || 0;
-        const restartsB = rowB.original.restarts || 0;
-        return restartsA - restartsB;
-      },
+      sortingFn: (a,b)=> (a.original.restarts||0)-(b.original.restarts||0),
       filterFn: undefined,
     },
     {
       accessorKey: 'uptime',
       header: 'Uptime',
       cell: info => formatUptime(info.row.original.startTime),
-      sortingFn: (rowA, rowB) => {
-        const startTimeA = new Date(rowA.original.startTime || 0).getTime();
-        const startTimeB = new Date(rowB.original.startTime || 0).getTime();
-        return startTimeB - startTimeA;
-      },
+      sortingFn: (a,b)=> new Date(b.original.startTime||0)-new Date(a.original.startTime||0),
       filterFn: undefined,
     },
-  ], [now, pfByPod]);
+  ], [now, pfByKey, multiNs]);
 
   const tableData = (Array.isArray(data) && data.length > 0) ? data : internalData;
-
   const table = useReactTable({
     data: tableData,
-    columns,
+    columns: baseColumns,
     state: {
       sorting,
       pagination,
@@ -311,27 +283,34 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   const closeBottomPanel = () => {
     setBottomOpen(false);
     setBottomPodName(null);
+    setBottomNamespace(null);
     setBottomActiveTab('summary'); // Reset to default tab
     setForwardLocalPort(null); // Clear port forward state
     setForwardRemotePort(null); // Clear port forward state
   };
 
-  const openLogsPanel = async (podName) => {
+  const openDetails = async (podName, ns) => {
     setBottomPodName(podName);
+    setBottomNamespace(ns || namespace);
+    await ensureNamespace(ns || namespace);
     setBottomActiveTab('summary');
     setBottomOpen(true);
   };
 
-  const handleKubectlLogs = (podName) => {
+  const handleKubectlLogs = async (podName, ns) => {
+    await ensureNamespace(ns || namespace);
     setBottomPodName(podName);
+    setBottomNamespace(ns || namespace);
     setBottomActiveTab('logs');
     setBottomOpen(true);
     setOpenMenuIndex(null);
   };
 
-  async function handleShell(podName) {
+  async function handleShell(podName, ns) {
     try {
+      await ensureNamespace(ns || namespace);
       setBottomPodName(podName);
+      setBottomNamespace(ns || namespace);
       setBottomActiveTab('console');
       setBottomOpen(true);
     } catch (err) {
@@ -340,9 +319,10 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     handleMenuClose();
   }
 
-  async function handlePortForward(podName) {
-    // Open the Port Forward tab immediately so the user sees context
+  async function handlePortForward(podName, ns) {
+    await ensureNamespace(ns || namespace);
     setBottomPodName(podName);
+    setBottomNamespace(ns || namespace);
     setBottomActiveTab('portforward');
     setBottomOpen(true);
     showNotification(`Configure port-forward for ${podName}…`, 'success');
@@ -354,6 +334,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
 
   async function confirmPortForward({ sourcePort, targetPort }) {
     const podName = pfDialogPod;
+    const ns = bottomNamespace || namespace;
     setShowPFDialog(false);
     if (!podName) return;
     try {
@@ -365,21 +346,18 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
       showNotification(`Starting port-forward to ${podName}: ${targetPort} -> ${sourcePort} ...`, 'success');
       const start = window?.go?.main?.App?.PortForwardPodWith;
       if (typeof start === 'function') {
-        await start(namespace, podName, targetPort, sourcePort);
+        await start(ns, podName, targetPort, sourcePort);
       } else {
-        await AppAPI.PortForwardPod(namespace, podName, sourcePort);
+        await AppAPI.PortForwardPod(ns, podName, sourcePort);
       }
     } catch (err) {
       showNotification(`❌ Failed to start port-forward for pod '${podName}': ${err?.message || err}`, 'error');
     }
   }
 
-  function cancelPortForwardDialog() {
-    setShowPFDialog(false);
-    setPfDialogPod(null);
-  }
+  function cancelPortForwardDialog() { setShowPFDialog(false); setPfDialogPod(null); }
 
-  async function handleStopPortForward(podName) {
+  async function handleStopPortForward(podName, ns) {
     try {
       let portToStop = (forwardLocalPort && bottomPodName === podName) ? forwardLocalPort : null;
       if (!portToStop) {
@@ -394,7 +372,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
       }
       const stop = window?.go?.main?.App?.StopPortForward;
       if (typeof stop === 'function') {
-        await stop(namespace, podName, portToStop);
+        await stop(ns || namespace, podName, portToStop);
         showNotification(`Stopped port-forward for ${podName}:${portToStop}.`, 'success');
       } else {
         showNotification(`❌ StopPortForward not available. Please rebuild bindings.`, 'error');
@@ -406,11 +384,11 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
   }
 
   // Delete pod handler
-  async function handleDelete(podName) {
+  async function handleDelete(podName, ns) {
     try {
       const ok = window.confirm(`Delete pod '${podName}'?`);
       if (!ok) return;
-      await AppAPI.DeletePod(namespace, podName);
+      await AppAPI.DeletePod(ns || namespace, podName);
       showNotification(`Pod '${podName}' deleted.`, 'success');
     } catch (err) {
       showNotification(`❌ Failed to delete pod '${podName}': ${err?.message || err}`, 'error');
@@ -418,13 +396,11 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     handleMenuClose();
   }
 
-  function showNotification(message, type = 'success') {
-    setNotification({ message, type });
-  }
+  function showNotification(message, type = 'success') { setNotification({ message, type }); }
 
-  async function handleRestart(podName) {
+  async function handleRestart(podName, ns) {
     try {
-      await AppAPI.RestartPod(namespace, podName);
+      await AppAPI.RestartPod(ns || namespace, podName);
       showNotification(`Pod '${podName}' restarted successfully.`, 'success');
     } catch (err) {
       showNotification(`❌ Failed to restart pod '${podName}': ${err.message || err}`, 'error');
@@ -446,7 +422,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     {
       id: 'events',
       label: 'Events',
-      content: <PodEventsTab namespace={namespace} podName={bottomPodName} />
+      content: <PodEventsTab namespace={bottomNamespace || namespace} podName={bottomPodName} />
     },
     {
       id: 'yaml',
@@ -456,12 +432,12 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     {
       id: 'console',
       label: 'Console',
-      content: <Console podExec={true} namespace={namespace} podName={bottomPodName} shell="auto" />
+      content: <Console podExec={true} namespace={bottomNamespace || namespace} podName={bottomPodName} shell="auto" />
     },
     {
       id: 'portforward',
       label: 'Port Forward',
-      content: <PortForwardOutput namespace={namespace} podName={bottomPodName} localPort={forwardLocalPort} remotePort={forwardRemotePort} />
+      content: <PortForwardOutput namespace={bottomNamespace || namespace} podName={bottomPodName} localPort={forwardLocalPort} remotePort={forwardRemotePort} />
     },
     {
       id: 'mounts',
@@ -470,11 +446,14 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     }
   ];
 
-  function hasActivePF(podName) {
-    const m = pfByPod[podName];
-    if (!m) return false;
-    return Object.values(m).some(arr => Array.isArray(arr) && arr.length > 0);
-  }
+  // ensure backend namespace aligns when switching tabs that need it
+  useEffect(() => {
+    if (!bottomOpen || !bottomPodName) return;
+    if (bottomActiveTab === 'logs' || bottomActiveTab === 'yaml' || bottomActiveTab === 'summary') {
+      ensureNamespace(bottomNamespace || namespace);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bottomActiveTab, bottomPodName, bottomNamespace]);
 
   const ROW_HEIGHT = 44; // px, adjust to match your row height
   const VISIBLE_COUNT = 20; // number of rows to show at once
@@ -536,6 +515,12 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
     const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
     return () => clearTimeout(timer);
   }, [notification]);
+
+  function hasActivePF(podName, ns) {
+    const m = pfByKey[`${ns || ''}/${podName}`];
+    if (!m) return false;
+    return Object.values(m).some(arr => Array.isArray(arr) && arr.length > 0);
+  }
 
   return (
     <>
@@ -681,13 +666,13 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
             <tbody>
             {topPadHeight > 0 && (
                 <tr style={{height: topPadHeight}}>
-                  <td colSpan={columns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
             {visibleRows.map((row, i) => (
                 <tr
                     key={row.id}
-                    onClick={() => openLogsPanel(row.original.name)}
+                    onClick={() => openDetails(row.original.name, row.original.namespace)}
                     style={{
                       borderBottom: '1px solid #353a42',
                       transition: 'background 0.2s',
@@ -751,7 +736,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                                 alignItems: 'center',
                                 gap: 8
                               }}
-                              onClick={() => handleKubectlLogs(row.original.name)}
+                              onClick={() => handleKubectlLogs(row.original.name, row.original.namespace)}
                           >
                             <span aria-hidden="true"
                                   style={{width: 18, display: 'inline-block', textAlign: 'center'}}>📜</span>
@@ -768,7 +753,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                                 alignItems: 'center',
                                 gap: 8
                               }}
-                              onClick={() => handleRestart(row.original.name)}
+                              onClick={() => handleRestart(row.original.name, row.original.namespace)}
                           >
                             <span aria-hidden="true"
                                   style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔄</span>
@@ -785,7 +770,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                                 alignItems: 'center',
                                 gap: 8
                               }}
-                              onClick={() => handleShell(row.original.name)}
+                              onClick={() => handleShell(row.original.name, row.original.namespace)}
                           >
                             <span aria-hidden="true"
                                   style={{width: 18, display: 'inline-block', textAlign: 'center'}}>💻</span>
@@ -802,13 +787,13 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                                 alignItems: 'center',
                                 gap: 8
                               }}
-                              onClick={() => handlePortForward(row.original.name)}
+                              onClick={() => handlePortForward(row.original.name, row.original.namespace)}
                           >
                             <span aria-hidden="true"
                                   style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔌</span>
                             <span>Port Forward</span>
                           </div>
-                          {hasActivePF(row.original.name) && (
+                          {hasActivePF(row.original.name, row.original.namespace) && (
                               <div
                                   className="context-menu-item"
                                   style={{
@@ -820,7 +805,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                                     alignItems: 'center',
                                     gap: 8
                                   }}
-                                  onClick={() => handleStopPortForward(row.original.name)}
+                                  onClick={() => handleStopPortForward(row.original.name, row.original.namespace)}
                               >
                                 <span aria-hidden="true"
                                       style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🛑</span>
@@ -838,7 +823,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
                                 alignItems: 'center',
                                 gap: 8
                               }}
-                              onClick={() => handleDelete(row.original.name)}
+                              onClick={() => handleDelete(row.original.name, row.original.namespace)}
                           >
                             <span aria-hidden="true"
                                   style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🗑️</span>
@@ -868,7 +853,7 @@ export default function PodOverviewTable({ namespace, data = [], loading = false
               ))}
             {bottomPadHeight > 0 && (
                 <tr style={{height: bottomPadHeight}}>
-                  <td colSpan={columns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
             </tbody>

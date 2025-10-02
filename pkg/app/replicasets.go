@@ -73,13 +73,25 @@ func (a *App) StartReplicaSetPolling() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			if a.ctx == nil || a.currentNamespace == "" {
+			if a.ctx == nil {
 				continue
 			}
-			list, err := a.GetReplicaSets(a.currentNamespace)
-			if err == nil {
-				wailsRuntime.EventsEmit(a.ctx, "replicasets:update", list)
+			nsList := a.preferredNamespaces
+			if len(nsList) == 0 && a.currentNamespace != "" {
+				nsList = []string{a.currentNamespace}
 			}
+			if len(nsList) == 0 {
+				continue
+			}
+			var all []ReplicaSetInfo
+			for _, ns := range nsList {
+				list, err := a.GetReplicaSets(ns)
+				if err != nil {
+					continue
+				}
+				all = append(all, list...)
+			}
+			wailsRuntime.EventsEmit(a.ctx, "replicasets:update", all)
 		}
 	}()
 }

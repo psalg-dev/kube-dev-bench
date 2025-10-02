@@ -13,13 +13,14 @@ import (
 // Holds application-wide state and references
 // (intentionally kept minimal; feature logic lives in other files)
 type App struct {
-	ctx                context.Context
-	kubeConfig         string // kept for compatibility
-	currentKubeContext string // selected kube context name
-	currentNamespace   string // selected namespace
-	configPath         string
-	rememberContext    bool
-	rememberNamespace  bool
+	ctx                 context.Context
+	kubeConfig          string   // kept for compatibility
+	currentKubeContext  string   // selected kube context name
+	currentNamespace    string   // selected namespace
+	preferredNamespaces []string // multi-namespace selection (preferred)
+	configPath          string
+	rememberContext     bool
+	rememberNamespace   bool
 
 	logMu      sync.Mutex
 	logCancels map[string]context.CancelFunc
@@ -94,8 +95,9 @@ func (a *App) Startup(ctx context.Context) {
 // GetCurrentConfig returns the currently loaded configuration
 func (a *App) GetCurrentConfig() AppConfig {
 	return AppConfig{
-		CurrentContext:   a.currentKubeContext,
-		CurrentNamespace: a.currentNamespace,
+		CurrentContext:      a.currentKubeContext,
+		CurrentNamespace:    a.currentNamespace,
+		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
 	}
 }
 

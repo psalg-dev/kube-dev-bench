@@ -24,8 +24,9 @@ This is a kubernetes client application for developers and devops engineers.
 
 ## Building the Project
 
+- We develop using the Vite DevServer. To build, first kill any "wails dev" processes and then run:
 ```bash
-wails build
+wails dev
 ```
 
 # Frontend Guidelines
@@ -41,8 +42,11 @@ wails build
 - Avoid any flickering when updating components
 
 ## Frontend behaviors
-- The application consists of a sidebar, a footer and a main content area
+
+- The frontend consists of a sidebar, a footer and a main content area
 - The sidebar is collapsible
+- The sidebar has a Dropdown through which the user can select a kubernetes context
+- The sidebar has a Dropdown through which the user can select one or more kubernetes namespaces
 - The sidebar contains menu entries for different kubernetes resources:
   - Pods
   - Deployments

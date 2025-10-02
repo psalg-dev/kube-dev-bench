@@ -94,13 +94,25 @@ func (a *App) StartDeploymentPolling() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			if a.ctx == nil || a.currentNamespace == "" {
+			if a.ctx == nil {
 				continue
 			}
-			deploys, err := a.GetDeployments(a.currentNamespace)
-			if err == nil {
-				wailsRuntime.EventsEmit(a.ctx, "deployments:update", deploys)
+			nsList := a.preferredNamespaces
+			if len(nsList) == 0 && a.currentNamespace != "" {
+				nsList = []string{a.currentNamespace}
 			}
+			if len(nsList) == 0 {
+				continue
+			}
+			var all []DeploymentInfo
+			for _, ns := range nsList {
+				deploys, err := a.GetDeployments(ns)
+				if err != nil {
+					continue
+				}
+				all = append(all, deploys...)
+			}
+			wailsRuntime.EventsEmit(a.ctx, "deployments:update", all)
 		}
 	}()
 }

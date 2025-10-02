@@ -73,13 +73,25 @@ func (a *App) StartStatefulSetPolling() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			if a.ctx == nil || a.currentNamespace == "" {
+			if a.ctx == nil {
 				continue
 			}
-			list, err := a.GetStatefulSets(a.currentNamespace)
-			if err == nil {
-				wailsRuntime.EventsEmit(a.ctx, "statefulsets:update", list)
+			nsList := a.preferredNamespaces
+			if len(nsList) == 0 && a.currentNamespace != "" {
+				nsList = []string{a.currentNamespace}
 			}
+			if len(nsList) == 0 {
+				continue
+			}
+			var all []StatefulSetInfo
+			for _, ns := range nsList {
+				list, err := a.GetStatefulSets(ns)
+				if err != nil {
+					continue
+				}
+				all = append(all, list...)
+			}
+			wailsRuntime.EventsEmit(a.ctx, "statefulsets:update", all)
 		}
 	}()
 }

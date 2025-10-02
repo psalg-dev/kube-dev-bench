@@ -9,11 +9,12 @@ import (
 
 // AppConfig represents the persistent configuration
 type AppConfig struct {
-	CurrentContext    string `json:"currentContext"`
-	CurrentNamespace  string `json:"currentNamespace"`
-	RememberContext   bool   `json:"rememberContext"`
-	RememberNamespace bool   `json:"rememberNamespace"`
-	KubeConfigPath    string `json:"kubeConfigPath"`
+	CurrentContext      string   `json:"currentContext"`
+	CurrentNamespace    string   `json:"currentNamespace"`
+	PreferredNamespaces []string `json:"preferredNamespaces"`
+	RememberContext     bool     `json:"rememberContext"`
+	RememberNamespace   bool     `json:"rememberNamespace"`
+	KubeConfigPath      string   `json:"kubeConfigPath"`
 }
 
 // loadConfig loads the saved configuration from disk
@@ -32,6 +33,7 @@ func (a *App) loadConfig() error {
 	}
 	a.currentKubeContext = config.CurrentContext
 	a.currentNamespace = config.CurrentNamespace
+	a.preferredNamespaces = append([]string(nil), config.PreferredNamespaces...)
 	a.rememberContext = config.RememberContext
 	a.rememberNamespace = config.RememberNamespace
 	a.kubeConfig = config.KubeConfigPath
@@ -41,11 +43,12 @@ func (a *App) loadConfig() error {
 // saveConfig persists the current configuration to disk
 func (a *App) saveConfig() error {
 	config := AppConfig{
-		CurrentContext:    a.currentKubeContext,
-		CurrentNamespace:  a.currentNamespace,
-		RememberContext:   a.rememberContext,
-		RememberNamespace: a.rememberNamespace,
-		KubeConfigPath:    a.kubeConfig,
+		CurrentContext:      a.currentKubeContext,
+		CurrentNamespace:    a.currentNamespace,
+		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
+		RememberContext:     a.rememberContext,
+		RememberNamespace:   a.rememberNamespace,
+		KubeConfigPath:      a.kubeConfig,
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
@@ -94,6 +97,19 @@ func (a *App) SetCurrentKubeContext(name string) error {
 // SetCurrentNamespace stores the selected namespace
 func (a *App) SetCurrentNamespace(ns string) error {
 	a.currentNamespace = ns
+	if a.rememberNamespace {
+		return a.saveConfig()
+	}
+	return nil
+}
+
+// SetPreferredNamespaces stores the selected namespaces (multi-select)
+func (a *App) SetPreferredNamespaces(namespaces []string) error {
+	a.preferredNamespaces = append([]string(nil), namespaces...)
+	// Ensure currentNamespace tracks the first selected (for backward-compat APIs)
+	if len(namespaces) > 0 {
+		a.currentNamespace = namespaces[0]
+	}
 	if a.rememberNamespace {
 		return a.saveConfig()
 	}

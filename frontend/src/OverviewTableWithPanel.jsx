@@ -113,16 +113,18 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </thead>
         <tbody>
           {filteredData.map((row, idx) => (
-            <tr key={row.name || row.id || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
-              {columns.map((col, colIdx) => (
-                <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
-                  {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}
+            !row ? null : (
+              <tr key={row.name || row.id || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+                {columns.map((col, colIdx) => (
+                  <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
+                    {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}
+                  </td>
+                ))}
+                <td>
+                  <button onClick={e => { e.stopPropagation(); openBottomPanel(row); }} style={{ padding: '2px 8px' }}>Details</button>
                 </td>
-              ))}
-              <td>
-                <button onClick={e => { e.stopPropagation(); openBottomPanel(row); }} style={{ padding: '2px 8px' }}>Details</button>
-              </td>
-            </tr>
+              </tr>
+            )
           ))}
           {filteredData.length === 0 && (
             <tr>

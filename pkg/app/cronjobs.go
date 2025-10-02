@@ -91,13 +91,25 @@ func (a *App) StartCronJobPolling() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			if a.ctx == nil || a.currentNamespace == "" {
+			if a.ctx == nil {
 				continue
 			}
-			cjs, err := a.GetCronJobs(a.currentNamespace)
-			if err == nil {
-				wailsRuntime.EventsEmit(a.ctx, "cronjobs:update", cjs)
+			nsList := a.preferredNamespaces
+			if len(nsList) == 0 && a.currentNamespace != "" {
+				nsList = []string{a.currentNamespace}
 			}
+			if len(nsList) == 0 {
+				continue
+			}
+			var all []CronJobInfo
+			for _, ns := range nsList {
+				cjs, err := a.GetCronJobs(ns)
+				if err != nil {
+					continue
+				}
+				all = append(all, cjs...)
+			}
+			wailsRuntime.EventsEmit(a.ctx, "cronjobs:update", all)
 		}
 	}()
 }

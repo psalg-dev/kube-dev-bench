@@ -15,7 +15,8 @@ import PersistentVolumesOverviewTable from "./persistentvolumes/PersistentVolume
 import {createRoot} from "react-dom/client";
 import React from 'react';
 
-export function renderPodsMainContent(selectedNamespace) {
+export function renderPodsMainContent(selectedNamespaces) {
+    const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
     document.getElementById("main-panels").innerHTML = `
       <div class="main-panel main-panel-pods">
         <div id="pod-overview-react"></div>
@@ -25,7 +26,8 @@ export function renderPodsMainContent(selectedNamespace) {
     if (podOverviewContainer) {
         renderPodOverviewTable({
             container: podOverviewContainer,
-            namespace: selectedNamespace,
+            namespace: firstNs,
+            namespaces: selectedNamespaces,
             onCreateResource: (type) => {
                 showResourceOverlay(type);
             }
@@ -33,50 +35,52 @@ export function renderPodsMainContent(selectedNamespace) {
     }
 }
 
-export function renderResourceMainContent(selectedNamespace) {
+export function renderResourceMainContent(selectedNamespaces) {
+    const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
     const sections = [
         {
             id: 'deployments-overview-react',
             section: 'deployments',
             table: DeploymentsOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {
             id: 'jobs-overview-react',
             section: 'jobs',
             table: JobsOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {
             id: 'cronjobs-overview-react',
             section: 'cronjobs',
             table: CronJobsOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {
             id: 'daemonsets-overview-react',
             section: 'daemonsets',
             table: DaemonSetsOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {
             id: 'statefulsets-overview-react',
             section: 'statefulsets',
             table: StatefulSetsOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {
             id: 'replicasets-overview-react',
             section: 'replicasets',
             table: ReplicaSetsOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {
             id: 'configmaps-overview-react',
             section: 'configmaps',
             table: ConfigMapsOverviewTable,
             props: {
-                namespace: selectedNamespace,
+                namespaces: selectedNamespaces,
+                namespace: firstNs,
                 onConfigMapCreate: () => {
                     showResourceOverlay('configmap');
                 }
@@ -87,7 +91,8 @@ export function renderResourceMainContent(selectedNamespace) {
             section: 'secrets',
             table: SecretsOverviewTable,
             props: {
-                namespace: selectedNamespace,
+                namespaces: selectedNamespaces,
+                namespace: firstNs,
                 onSecretCreate: () => {
                     showResourceOverlay('secret');
                 }
@@ -98,7 +103,8 @@ export function renderResourceMainContent(selectedNamespace) {
             section: 'ingresses',
             table: IngressesOverviewTable,
             props: {
-                namespace: selectedNamespace,
+                namespaces: selectedNamespaces,
+                namespace: firstNs,
                 onIngressCreate: () => {
                     showResourceOverlay('ingress');
                 }
@@ -109,7 +115,8 @@ export function renderResourceMainContent(selectedNamespace) {
             section: 'persistentvolumeclaims',
             table: PersistentVolumeClaimsOverviewTable,
             props: {
-                namespace: selectedNamespace,
+                namespaces: selectedNamespaces,
+                namespace: firstNs,
                 onIngressCreate: () => {
                     showResourceOverlay('persistentvolumeclaim');
                 }
@@ -119,7 +126,7 @@ export function renderResourceMainContent(selectedNamespace) {
             id: 'persistentvolumes-overview-react',
             section: 'persistentvolumes',
             table: PersistentVolumesOverviewTable,
-            props: {namespace: selectedNamespace}
+            props: {namespace: firstNs}
         }
     ];
 

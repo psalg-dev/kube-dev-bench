@@ -76,36 +76,51 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function IngressesOverviewTable({ namespace }) {
+export default function IngressesOverviewTable({ namespaces }) {
   const [ingresses, setIngresses] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const normalize = (arr) => (arr || []).filter(Boolean).map((i) => ({
+    name: i.name ?? i.Name,
+    namespace: i.namespace ?? i.Namespace,
+    class: i.class ?? i.Class ?? '-',
+    hosts: i.hosts ?? i.Hosts ?? [],
+    address: i.address ?? i.Address ?? '-',
+    ports: i.ports ?? i.Ports ?? '-',
+    age: i.age ?? i.Age ?? '-',
+  }));
+
+  const fetchAllIngresses = async () => {
+    if (!Array.isArray(namespaces) || namespaces.length === 0) {
+      setIngresses([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const results = await Promise.all(
+        namespaces.map(ns => AppAPI.GetIngresses(ns).catch(() => []))
+      );
+      setIngresses(normalize([].concat(...results).filter(Boolean)));
+    } catch (error) {
+      console.error('Failed to fetch ingresses:', error);
+      setIngresses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    if (!namespace) return;
-
-    const fetchIngresses = async () => {
-      try {
-        setLoading(true);
-        const data = await AppAPI.GetIngresses(namespace);
-        setIngresses(Array.isArray(data) ? data : []);
-      } catch (error) {
-        console.error('Failed to fetch ingresses:', error);
-        setIngresses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchIngresses();
-  }, [namespace]);
+    fetchAllIngresses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namespaces]);
 
   // Subscribe to backend updates to refresh automatically
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespace ? arr.filter(i => (i?.namespace || i?.Namespace) === namespace) : arr;
-        setIngresses(filtered);
+        const filtered = namespaces ? arr.filter(i => namespaces.includes(i?.namespace || i?.Namespace)) : arr;
+        setIngresses(normalize(filtered));
       } catch (e) {
         // ignore malformed payloads
       }
@@ -114,46 +129,7 @@ export default function IngressesOverviewTable({ namespace }) {
     return () => {
       EventsOff('ingresses:update', onUpdate);
     };
-  }, [namespace]);
-
-  useEffect(() => {
-    if (!namespace) return;
-
-    let inFlight = false;
-    let fastTimer = null;
-    let slowTimer = null;
-    let elapsed = 0; // seconds
-
-    const periodicFetch = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const data = await AppAPI.GetIngresses(namespace);
-        setIngresses(Array.isArray(data) ? data : []);
-      } catch (_) {
-        // ignore periodic errors
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    // Fast polling for the first 60 seconds
-    fastTimer = setInterval(async () => {
-      await periodicFetch();
-      elapsed += 1;
-      if (elapsed >= 60) {
-        clearInterval(fastTimer);
-        fastTimer = null;
-        // Switch to slow polling (every 60 seconds)
-        slowTimer = setInterval(periodicFetch, 60000);
-      }
-    }, 1000);
-
-    return () => {
-      if (fastTimer) clearInterval(fastTimer);
-      if (slowTimer) clearInterval(slowTimer);
-    };
-  }, [namespace]);
+  }, [namespaces]);
 
   return (
     <OverviewTableWithPanel
@@ -165,7 +141,7 @@ export default function IngressesOverviewTable({ namespace }) {
       renderPanelContent={renderPanelContent}
       panelHeader={panelHeader}
       resourceKind="ingress"
-      namespace={namespace}
+      namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
     />
   );
 }

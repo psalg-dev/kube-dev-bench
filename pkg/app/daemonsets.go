@@ -71,13 +71,25 @@ func (a *App) StartDaemonSetPolling() {
 	go func() {
 		for {
 			time.Sleep(time.Second)
-			if a.ctx == nil || a.currentNamespace == "" {
+			if a.ctx == nil {
 				continue
 			}
-			list, err := a.GetDaemonSets(a.currentNamespace)
-			if err == nil {
-				wailsRuntime.EventsEmit(a.ctx, "daemonsets:update", list)
+			nsList := a.preferredNamespaces
+			if len(nsList) == 0 && a.currentNamespace != "" {
+				nsList = []string{a.currentNamespace}
 			}
+			if len(nsList) == 0 {
+				continue
+			}
+			var all []DaemonSetInfo
+			for _, ns := range nsList {
+				list, err := a.GetDaemonSets(ns)
+				if err != nil {
+					continue
+				}
+				all = append(all, list...)
+			}
+			wailsRuntime.EventsEmit(a.ctx, "daemonsets:update", all)
 		}
 	}()
 }

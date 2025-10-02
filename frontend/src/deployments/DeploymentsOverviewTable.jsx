@@ -69,17 +69,19 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function DeploymentsOverviewTable({ namespace }) {
+export default function DeploymentsOverviewTable({ namespaces, namespace }) {
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!namespace) return;
+    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    if (nsArr.length === 0) return;
 
     const fetchDeployments = async () => {
       try {
         setLoading(true);
-        const data = await AppAPI.GetDeployments(namespace);
+        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDeployments(ns).catch(() => [])));
+        const data = lists.flat();
         setDeployments(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Failed to fetch deployments:', error);
@@ -90,17 +92,14 @@ export default function DeploymentsOverviewTable({ namespace }) {
     };
 
     fetchDeployments();
-  }, [namespace]);
+  }, [namespaces, namespace]);
 
-  // Subscribe to live deployment updates from backend
+  // Subscribe to live deployment updates from backend (already aggregated)
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        // Be defensive: filter by current namespace if provided
-        const filtered = namespace ? arr.filter(d => (d?.namespace || d?.Namespace) === namespace) : arr;
-        // Normalize keys to lower-case for frontend usage
-        const norm = filtered.map(d => ({
+        const norm = arr.map(d => ({
           name: d.name ?? d.Name,
           namespace: d.namespace ?? d.Namespace,
           replicas: d.replicas ?? d.Replicas ?? 0,
@@ -111,7 +110,6 @@ export default function DeploymentsOverviewTable({ namespace }) {
         }));
         setDeployments(norm);
       } catch (e) {
-        // Fallback to safe empty state
         setDeployments([]);
       } finally {
         setLoading(false);
@@ -121,7 +119,7 @@ export default function DeploymentsOverviewTable({ namespace }) {
     return () => {
       try { EventsOff('deployments:update'); } catch (_) {}
     };
-  }, [namespace]);
+  }, []);
 
   return (
     <OverviewTableWithPanel

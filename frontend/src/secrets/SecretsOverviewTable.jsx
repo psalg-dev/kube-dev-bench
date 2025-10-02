@@ -61,19 +61,32 @@ data:
   return null;
 }
 
-export default function SecretsOverviewTable({ namespace, onSecretCreate }) {
+export default function SecretsOverviewTable({ namespaces, onSecretCreate }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchSecrets = async () => {
-    if (!namespace) return;
+  const normalize = (arr) => (arr || []).filter(Boolean).map((s) => ({
+    name: s.name ?? s.Name,
+    namespace: s.namespace ?? s.Namespace,
+    type: s.type ?? s.Type ?? '-',
+    keys: s.keys ?? s.Keys ?? '-',
+    size: s.size ?? s.Size ?? '-',
+    age: s.age ?? s.Age ?? '-',
+  }));
 
+  const fetchAllSecrets = async () => {
+    if (!Array.isArray(namespaces) || namespaces.length === 0) {
+      setData([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
-      const secrets = await AppAPI.GetSecrets(namespace);
-      setData(secrets || []);
+      const results = await Promise.all(
+        namespaces.map(ns => AppAPI.GetSecrets(ns).catch(() => []))
+      );
+      setData(normalize([].concat(...results).filter(Boolean)));
     } catch (err) {
       console.error('Error fetching secrets:', err);
       setError(err.message || 'Failed to fetch secrets');
@@ -84,27 +97,16 @@ export default function SecretsOverviewTable({ namespace, onSecretCreate }) {
   };
 
   useEffect(() => {
-    fetchSecrets();
-  }, [namespace]);
-
-  useEffect(() => {
-    const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      if (eventData?.resource === 'secret' && eventData?.namespace === namespace) {
-        fetchSecrets();
-      }
-    });
-
-    return () => {
-      EventsOff('resource-updated', unsubscribe);
-    };
-  }, [namespace]);
+    fetchAllSecrets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [namespaces]);
 
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespace ? arr.filter(s => (s?.namespace || s?.Namespace) === namespace) : arr;
-        setData(filtered);
+        const filtered = namespaces ? arr.filter(s => namespaces.includes(s?.namespace || s?.Namespace)) : arr;
+        setData(normalize(filtered));
       } catch (_) {
         // ignore
       }
@@ -113,59 +115,17 @@ export default function SecretsOverviewTable({ namespace, onSecretCreate }) {
     return () => {
       EventsOff('secrets:update', onUpdate);
     };
-  }, [namespace]);
-
-  useEffect(() => {
-    if (!namespace) return;
-
-    let inFlight = false;
-    let fastTimer = null;
-    let slowTimer = null;
-    let elapsed = 0; // seconds
-
-    const periodicFetch = async () => {
-      if (inFlight) return;
-      inFlight = true;
-      try {
-        const secrets = await AppAPI.GetSecrets(namespace);
-        setData(Array.isArray(secrets) ? secrets : []);
-      } catch (_) {
-        // ignore periodic errors
-      } finally {
-        inFlight = false;
-      }
-    };
-
-    // Fast polling for the first 60 seconds
-    fastTimer = setInterval(async () => {
-      await periodicFetch();
-      elapsed += 1;
-      if (elapsed >= 60) {
-        clearInterval(fastTimer);
-        fastTimer = null;
-        // Switch to slow polling (every 60 seconds)
-        slowTimer = setInterval(periodicFetch, 60000);
-      }
-    }, 1000);
-
-    return () => {
-      if (fastTimer) clearInterval(fastTimer);
-      if (slowTimer) clearInterval(slowTimer);
-    };
-  }, [namespace]);
+  }, [namespaces]);
 
   return (
     <OverviewTableWithPanel
-      title="Secrets"
-      data={data}
       columns={columns}
-      loading={loading}
-      error={error}
-      onRefresh={fetchSecrets}
+      data={data}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
+      title="Secrets"
       resourceKind="secret"
-      namespace={namespace}
+      namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
     />
   );
 }

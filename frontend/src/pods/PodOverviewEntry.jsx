@@ -4,8 +4,8 @@ import PodOverviewTable from './PodOverviewTable';
 import '../style.css';
 import '../app.css';
 
-export function renderPodOverviewTable({ container, namespace, onCreateResource }) {
+export function renderPodOverviewTable({ container, namespace, namespaces, onCreateResource }) {
   const root = createRoot(container);
-  root.render(<PodOverviewTable namespace={namespace} onCreateResource={onCreateResource} />);
+  root.render(<PodOverviewTable namespace={namespace} namespaces={namespaces} onCreateResource={onCreateResource} />);
   return root;
 }

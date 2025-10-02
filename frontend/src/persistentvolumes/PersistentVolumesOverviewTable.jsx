@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GetPersistentVolumes } from '../../wailsjs/go/main/App';
+import * as AppAPI from '../../wailsjs/go/main/App';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import { showResourceOverlay } from '../resource-overlay';
 
 const columns = [
   { key: 'name', label: 'Name' },
+  { key: 'namespace', label: 'Namespace' },
   { key: 'capacity', label: 'Capacity' },
   { key: 'accessModes', label: 'Access Modes' },
   { key: 'reclaimPolicy', label: 'Reclaim Policy' },
@@ -26,6 +27,7 @@ function renderPanelContent(row, tab) {
       <div style={{ padding: '20px' }}>
         <h3>Persistent Volume Summary</h3>
         <p><b>Name:</b> {row.name}</p>
+        <p><b>Namespace:</b> {row.namespace}</p>
         <p><b>Capacity:</b> {row.capacity}</p>
         <p><b>Access Modes:</b> {row.accessModes}</p>
         <p><b>Reclaim Policy:</b> {row.reclaimPolicy}</p>
@@ -52,6 +54,7 @@ function renderPanelContent(row, tab) {
           color: '#333'
         }}>
           {`Name: ${row.name}
+Namespace: ${row.namespace}
 Capacity: ${row.capacity}
 Access Modes: ${row.accessModes}
 Reclaim Policy: ${row.reclaimPolicy}
@@ -82,18 +85,41 @@ function getStatusColor(status) {
   }
 }
 
-function PersistentVolumesOverviewTable({ namespace }) {
+export default function PersistentVolumesOverviewTable({ namespaces }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const intervalRef = useRef(null);
 
-  const fetchData = async () => {
+  // Normalize PV data
+  const normalize = (arr) => (arr || []).filter(Boolean).map((i) => {
+    // Try to extract namespace from claim (format: namespace/name)
+    let ns = '-';
+    if (i.claim) {
+      const parts = i.claim.split('/');
+      if (parts.length === 2) ns = parts[0];
+    }
+    return {
+      name: i.name ?? i.Name,
+      namespace: i.namespace ?? i.Namespace ?? ns,
+      capacity: i.capacity ?? i.Capacity ?? '-',
+      accessModes: Array.isArray(i.accessModes ?? i.AccessModes) ? (i.accessModes ?? i.AccessModes).join(', ') : '-',
+      reclaimPolicy: i.reclaimPolicy ?? i.ReclaimPolicy ?? '-',
+      status: i.status ?? i.Status ?? '-',
+      claim: i.claim ?? i.Claim ?? '-',
+      storageClass: i.storageClass ?? i.StorageClass ?? '-',
+      volumeType: i.volumeType ?? i.VolumeType ?? '-',
+      age: i.age ?? i.Age ?? '-',
+    };
+  });
+
+  // Fetch all PVs (cluster-wide)
+  const fetchAllPVs = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const persistentVolumes = await GetPersistentVolumes();
-      setData(persistentVolumes || []);
-      setError(null);
+      const result = await AppAPI.GetPersistentVolumes();
+      setData(normalize(result));
     } catch (err) {
       console.error('Error fetching persistent volumes:', err);
       setError(err.toString());
@@ -104,23 +130,14 @@ function PersistentVolumesOverviewTable({ namespace }) {
   };
 
   useEffect(() => {
-    fetchData();
-
-    // Set up auto-refresh every 5 seconds
-    intervalRef.current = setInterval(fetchData, 5000);
-
+    fetchAllPVs();
+    intervalRef.current = setInterval(fetchAllPVs, 5000);
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
   }, []);
-
-  const formatRowData = (pv) => ({
-    ...pv,
-    status: pv.status,
-    claim: pv.claim === '-' ? 'Unbound' : pv.claim
-  });
 
   if (error) {
     return (
@@ -130,23 +147,35 @@ function PersistentVolumesOverviewTable({ namespace }) {
     );
   }
 
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '200px',
+        color: 'var(--gh-text-muted)'
+      }}>
+        Loading Persistent Volumes...
+      </div>
+    );
+  }
+
   return (
     <OverviewTableWithPanel
       title="Persistent Volumes"
       columns={columns}
-      data={data.map(formatRowData)}
+      data={data}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       resourceKind="persistentvolume"
-      namespace={namespace}
+      namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
       onCreateResource={() => showResourceOverlay('persistentvolume', {
-        namespace: namespace,
+        namespace: namespaces && namespaces.length === 1 ? namespaces[0] : '',
         onSuccess: () => {
-          fetchData(); // Refresh the data after successful creation
+          fetchAllPVs(); // Refresh the data after successful creation
         }
       })}
     />
   );
 }
-
-export default PersistentVolumesOverviewTable;

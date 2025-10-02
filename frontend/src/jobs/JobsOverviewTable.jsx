@@ -74,18 +74,19 @@ function panelHeader(row) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
 
-export default function JobsOverviewTable({ namespace }) {
+export default function JobsOverviewTable({ namespaces, namespace }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Fetch jobs data
   const fetchJobs = async () => {
-    if (!namespace) return;
+    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    if (nsArr.length === 0) return;
 
     setLoading(true);
     try {
-      const result = await AppAPI.GetJobs(namespace);
-      setJobs(Array.isArray(result) ? result : []);
+      const lists = await Promise.all(nsArr.map(ns => AppAPI.GetJobs(ns).catch(() => [])));
+      setJobs(lists.flat());
     } catch (error) {
       console.error('Error fetching jobs:', error);
       setJobs([]);
@@ -97,7 +98,7 @@ export default function JobsOverviewTable({ namespace }) {
   // Initial fetch when namespace changes
   useEffect(() => {
     fetchJobs();
-  }, [namespace]);
+  }, [namespaces, namespace]);
 
   // Subscribe to jobs updates if available
   useEffect(() => {
