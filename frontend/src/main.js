@@ -28,14 +28,22 @@ import {createRoot} from 'react-dom/client';
 import {getSelectedSection, renderSidebarAndAttachHandlers, renderSidebarSections} from "./sidebar";
 import {showError, showSuccess, showWarning} from './notification'
 import {renderPodsMainContent, renderResourceMainContent} from "./main-content";
+import { ContextSelect, NamespaceMultiSelect } from './Dropdowns.jsx';
 
 // State
 let selectedContext = '';
 let selectedNamespace = '';
+let selectedNamespaces = [];
+let contextOptions = [];
+let namespaceOptions = [];
 let clusterConnected = false;
 let isInitializing = false;
 let showConnectionWizard = false;
 let appRoot = null;
+let contextSelectRoot = null;
+let namespaceSelectRoot = null;
+let isContextDisabled = true;
+let isNamespaceDisabled = true;
 
 // Section state
 let selectedSection = 'pods';
@@ -114,6 +122,7 @@ function initializeMainApp() {
 
   renderMainAppHTML();
   setupEventHandlers();
+  mountSelects();
   initializeWithConfig();
 }
 
@@ -125,10 +134,10 @@ function renderMainAppHTML() {
           <span style="font-size: 14px; color: var(--gh-text-secondary, #ccc);">Connection</span>
           <button id="show-wizard-btn" style="background: transparent; border: 1px solid var(--gh-border, #444); color: var(--gh-text-secondary, #ccc); padding: 4px 8px; border-radius: 0; cursor: pointer; font-size: 12px;" title="Show Connection Wizard">⚙️</button>
         </div>
-        <label for="kubecontext">Context:</label>
-        <select class="input" id="kubecontext"></select>
-        <label for="namespace">Namespace:</label>
-        <select class="input" id="namespace"></select>
+        <label for="kubecontext-root">Context:</label>
+        <div class="input" id="kubecontext-root"></div>
+        <label for="namespace-root">Namespace:</label>
+        <div class="input" id="namespace-root"></div>
         <hr class="sidebar-separator" />
         <div id="sidebar-sections" style="flex: 1;">
           ${renderSidebarSections('pods')}
@@ -150,24 +159,54 @@ function renderMainAppHTML() {
   `;
 
   // Re-initialize DOM element references
-  selectElement = document.getElementById("kubecontext");
-  nsSelect = document.getElementById("namespace");
+  selectElement = document.getElementById("kubecontext-root");
+  nsSelect = document.getElementById("namespace-root");
   footerInfo = document.getElementById("footer-info");
   footerDot = document.getElementById("footer-dot");
   mainPanels = document.getElementById("main-panels");
   sidebarSections = document.getElementById("sidebar-sections");
 
-  // Set initial disabled state
-  nsSelect.disabled = true;
-  selectElement.disabled = true;
+  // Reset footer
   footerInfo.textContent = '';
   footerDot.style.background = '#ccc';
 }
 
-function setupEventHandlers() {
-  selectElement.onchange = onContextChange;
-  nsSelect.onchange = onNamespaceChange;
+function mountSelects() {
+  if (!contextSelectRoot && selectElement) {
+    contextSelectRoot = createRoot(selectElement);
+  }
+  if (!namespaceSelectRoot && nsSelect) {
+    namespaceSelectRoot = createRoot(nsSelect);
+  }
+  renderContextSelect();
+  renderNamespaceSelect();
+}
 
+function renderContextSelect() {
+  if (!contextSelectRoot) return;
+  contextSelectRoot.render(
+    React.createElement(ContextSelect, {
+      value: selectedContext,
+      options: contextOptions,
+      disabled: isContextDisabled,
+      onChange: onContextChange
+    })
+  );
+}
+
+function renderNamespaceSelect() {
+  if (!namespaceSelectRoot) return;
+  namespaceSelectRoot.render(
+    React.createElement(NamespaceMultiSelect, {
+      values: selectedNamespaces,
+      options: namespaceOptions,
+      disabled: isNamespaceDisabled,
+      onChange: onNamespaceChange
+    })
+  );
+}
+
+function setupEventHandlers() {
   // Add wizard trigger button
   const wizardBtn = document.getElementById('show-wizard-btn');
   if (wizardBtn) {
@@ -209,62 +248,62 @@ async function initializeWithConfig() {
     const config = await GetCurrentConfig();
     selectedContext = config.currentContext;
     selectedNamespace = config.currentNamespace;
+    selectedNamespaces = selectedNamespace ? [selectedNamespace] : [];
 
-    // Always enable context dropdown
-    selectElement.disabled = false;
-
-    const contexts = await GetKubeContexts();
-    if (!contexts || contexts.length === 0) {
+    // Enable context dropdown and load contexts
+    isContextDisabled = false;
+    contextOptions = await GetKubeContexts();
+    if (!contextOptions || contextOptions.length === 0) {
       showWarning("No Kubernetes contexts found.");
+      renderContextSelect();
       return;
     }
 
-    // Fill contexts dropdown
-    selectElement.innerHTML = contexts.map(ctx =>
-      `<option value="${ctx}" ${ctx === selectedContext ? 'selected' : ''}>${ctx}</option>`
-    ).join("");
+    renderContextSelect();
 
     // If we have a saved context, try to load its namespaces
     if (selectedContext) {
       try {
         const namespaces = await GetNamespaces();
         if (namespaces && namespaces.length > 0) {
-          nsSelect.innerHTML = namespaces.map(ns =>
-            `<option value="${ns}">${ns}</option>`
-          ).join("");
-          nsSelect.disabled = false;
-          clusterConnected = true;
-          // Set dropdown to stored namespace if present, else first
+          namespaceOptions = namespaces;
+          isNamespaceDisabled = false;
+          // Set to stored namespace if present, else first
           if (selectedNamespace && namespaces.includes(selectedNamespace)) {
-            nsSelect.value = selectedNamespace;
+            selectedNamespaces = [selectedNamespace];
           } else {
-            nsSelect.value = namespaces[0];
+            selectedNamespaces = [namespaces[0]];
             selectedNamespace = namespaces[0];
           }
           // Only load overview if we have a valid namespace
-          if (nsSelect.value) {
-            selectedNamespace = nsSelect.value;
+          if (selectedNamespace) {
+            clusterConnected = true;
+            renderNamespaceSelect();
             renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
             renderMainContent();
           }
         }
       } catch (err) {
         showError("Failed to connect with the saved cluster: " + err);
-        nsSelect.disabled = false;
+        isNamespaceDisabled = false;
         clusterConnected = false;
+        renderNamespaceSelect();
       }
     }
     updateFooter();
   } catch (err) {
     showError("Error loading saved configuration: " + err);
-    selectElement.disabled = false;
-    nsSelect.disabled = false;
+    isContextDisabled = false;
+    isNamespaceDisabled = false;
+    renderContextSelect();
+    renderNamespaceSelect();
   }
   isInitializing = false;
 }
 
 function updateFooter() {
-  footerInfo.textContent = selectedContext && selectedNamespace ? `${selectedContext} / ${selectedNamespace}` : '';
+  const nsText = selectedNamespaces && selectedNamespaces.length > 0 ? selectedNamespaces.join(', ') : '';
+  footerInfo.textContent = selectedContext && nsText ? `${selectedContext} / ${nsText}` : '';
   if (clusterConnected) {
     footerDot.classList.add('connected');
   } else {
@@ -407,17 +446,19 @@ function renderMainContent() {
   }
 }
 
-function onContextChange() {
+function onContextChange(value) {
   if (isInitializing) return;
 
   const previousContext = selectedContext;
   const previousNamespace = selectedNamespace;
 
-  selectedContext = selectElement.value;
+  selectedContext = value || '';
   selectedNamespace = '';
+  selectedNamespaces = [];
   updateFooter();
 
-  selectElement.disabled = false;
+  isContextDisabled = false;
+  renderContextSelect();
 
   GetNamespaces()
     .then((namespaces) => {
@@ -426,18 +467,22 @@ function onContextChange() {
         if (previousContext) {
           selectedContext = previousContext;
           selectedNamespace = previousNamespace;
-          selectElement.value = previousContext;
+          selectedNamespaces = previousNamespace ? [previousNamespace] : [];
+          renderContextSelect();
+          renderNamespaceSelect();
           updateFooter();
         }
         return;
       }
 
       SetCurrentKubeContext(selectedContext);
-      nsSelect.innerHTML = namespaces.map(ns => `<option value="${ns}">${ns}</option>`).join("");
-      nsSelect.disabled = false;
-      selectedNamespace = nsSelect.value;
+      namespaceOptions = namespaces;
+      isNamespaceDisabled = false;
+      selectedNamespaces = [namespaces[0]];
+      selectedNamespace = namespaces[0];
       clusterConnected = true;
       updateFooter();
+      renderNamespaceSelect();
 
       SetCurrentNamespace(selectedNamespace)
         .then(() => {
@@ -447,9 +492,10 @@ function onContextChange() {
           }
         })
         .catch(() => {
-          nsSelect.value = previousNamespace;
+          selectedNamespaces = previousNamespace ? [previousNamespace] : [];
           selectedNamespace = previousNamespace;
           updateFooter();
+          renderNamespaceSelect();
         });
     })
     .catch((err) => {
@@ -457,20 +503,33 @@ function onContextChange() {
       if (previousContext) {
         selectedContext = previousContext;
         selectedNamespace = previousNamespace;
-        selectElement.value = previousContext;
+        selectedNamespaces = previousNamespace ? [previousNamespace] : [];
+        renderContextSelect();
+        renderNamespaceSelect();
         updateFooter();
       }
-      nsSelect.disabled = false;
+      isNamespaceDisabled = false;
       clusterConnected = false;
       updateFooter();
     });
 }
 
-function onNamespaceChange() {
+function onNamespaceChange(values) {
   if (isInitializing) return;
 
   const previousNamespace = selectedNamespace;
-  selectedNamespace = nsSelect.value;
+  const newSelection = Array.isArray(values) ? values : [];
+  selectedNamespaces = newSelection;
+  selectedNamespace = newSelection[0] || '';
+
+  // Immediately reflect the selection in the UI for controlled Select
+  renderNamespaceSelect();
+  updateFooter();
+
+  if (!selectedNamespace) {
+    // Nothing selected: keep footer updated, but don't call backend
+    return;
+  }
 
   GetOverview(selectedNamespace)
     .then(() => {
@@ -483,16 +542,18 @@ function onNamespaceChange() {
           renderMainContent();
         })
         .catch(() => {
-          nsSelect.value = previousNamespace;
+          selectedNamespaces = previousNamespace ? [previousNamespace] : [];
           selectedNamespace = previousNamespace;
           updateFooter();
+          renderNamespaceSelect();
         });
     })
     .catch((err) => {
       showError("Failed to switch namespace: " + err);
-      nsSelect.value = previousNamespace;
+      selectedNamespaces = previousNamespace ? [previousNamespace] : [];
       selectedNamespace = previousNamespace;
       updateFooter();
+      renderNamespaceSelect();
     });
 }
 

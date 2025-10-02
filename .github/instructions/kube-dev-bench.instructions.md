@@ -11,28 +11,26 @@ This is a kubernetes client application for developers and devops engineers.
 # Technologies Used
 
 - Frontend: React
+- Frontend DevServer: Vite
 - Backend: Go
 - Application Framework: Wails (https://wails.io/)
+- Development Environment: IntelliJ IDEA
+- Console: MINGW64 (Git Bash)
 
 # General Guidelines
 - The console used inside IntelliJ is a git bash console
 
-# Building the Project
+# Development Guidelines
 
-To build frontend or backend, navigate to project root and run:
+## Building the Project
 
 ```bash
 wails build
 ```
 
-# Development Guidelines
-## General Guidelines
-- when recompiling backend code, use "wails build" and assume that the shell is in the correct directory
-- when recompiling frontend code, use "npm run build" in the "frontend" directory
-  - when changing to the frontend directory, just use "cd frontend", since the shell will start in the project root
-
 # Frontend Guidelines
 ## General Guidelines
+- In the frontend/logs directory the vite devserver is logging to a file. keep track of that in case any errors occur.
 - This project uses React. 
 - Follow React Best Practices, especially regarding code organization
 - Follow Code re-usability
