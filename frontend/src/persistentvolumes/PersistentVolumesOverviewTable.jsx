@@ -114,8 +114,10 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
   });
 
   // Fetch all PVs (cluster-wide)
-  const fetchAllPVs = async () => {
-    setLoading(true);
+  const fetchAllPVs = async (isInitialLoad = false) => {
+    if (isInitialLoad) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const result = await AppAPI.GetPersistentVolumes();
@@ -123,15 +125,19 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
     } catch (err) {
       console.error('Error fetching persistent volumes:', err);
       setError(err.toString());
-      setData([]);
+      if (isInitialLoad) {
+        setData([]);
+      }
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchAllPVs();
-    intervalRef.current = setInterval(fetchAllPVs, 5000);
+    fetchAllPVs(true); // Initial load
+    intervalRef.current = setInterval(() => fetchAllPVs(false), 5000); // Subsequent refreshes
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -173,7 +179,7 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
       onCreateResource={() => showResourceOverlay('persistentvolume', {
         namespace: namespaces && namespaces.length === 1 ? namespaces[0] : '',
         onSuccess: () => {
-          fetchAllPVs(); // Refresh the data after successful creation
+          fetchAllPVs(false); // Refresh the data after successful creation without showing loading state
         }
       })}
     />

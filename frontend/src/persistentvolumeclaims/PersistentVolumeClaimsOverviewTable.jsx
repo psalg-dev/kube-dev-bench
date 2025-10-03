@@ -5,7 +5,7 @@ import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
 export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPVC, setSelectedPVC] = useState(null);
 
@@ -37,12 +37,14 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   }));
 
   // Fetch PVCs for all selected namespaces
-  const fetchAllPVCs = async () => {
+  const fetchAllPVCs = async (isInitialLoad = false) => {
     if (!Array.isArray(namespaces) || namespaces.length === 0) {
       setPVCs([]);
       return;
     }
-    setLoading(true);
+    if (isInitialLoad) {
+      setLoading(true);
+    }
     setError(null);
     try {
       const results = await Promise.all(
@@ -52,27 +54,31 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     } catch (err) {
       console.error('Error fetching PVCs:', err);
       setError(err.message || 'Failed to fetch persistent volume claims');
-      setPVCs([]);
+      if (isInitialLoad) {
+        setPVCs([]);
+      }
     } finally {
-      setLoading(false);
+      if (isInitialLoad) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchAllPVCs();
+    fetchAllPVCs(true); // Initial load
     // Start a fast window when view opens
     clearTimers();
     let elapsed = 0;
     if (Array.isArray(namespaces) && namespaces.length > 0) {
       fastTimerRef.current = setInterval(async () => {
-        await fetchAllPVCs();
+        await fetchAllPVCs(false); // Subsequent refreshes without loading state
         elapsed += 1;
         if (elapsed >= 60) {
           if (fastTimerRef.current) {
             clearInterval(fastTimerRef.current);
             fastTimerRef.current = null;
           }
-          slowTimerRef.current = setInterval(() => fetchAllPVCs(), 60000);
+          slowTimerRef.current = setInterval(() => fetchAllPVCs(false), 60000);
         }
       }, 1000);
     }
@@ -83,19 +89,19 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   useEffect(() => {
     const onUpdate = (eventData) => {
       if (eventData?.resource === 'persistentvolumeclaim' && (!namespaces || namespaces.includes(eventData?.namespace))) {
-        fetchAllPVCs();
+        fetchAllPVCs(false); // Refresh without loading state
         clearTimers();
         let elapsed = 0;
         if (Array.isArray(namespaces) && namespaces.length > 0) {
           fastTimerRef.current = setInterval(async () => {
-            await fetchAllPVCs();
+            await fetchAllPVCs(false); // Subsequent refreshes without loading state
             elapsed += 1;
             if (elapsed >= 60) {
               if (fastTimerRef.current) {
                 clearInterval(fastTimerRef.current);
                 fastTimerRef.current = null;
               }
-              slowTimerRef.current = setInterval(() => fetchAllPVCs(), 60000);
+              slowTimerRef.current = setInterval(() => fetchAllPVCs(false), 60000);
             }
           }, 1000);
         }
