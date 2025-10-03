@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
+import QuickInfoSection from '../QuickInfoSection';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
@@ -119,39 +120,95 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     { key: 'status', label: 'Status' },
     { key: 'storage', label: 'Storage' },
     { key: 'accessModes', label: 'Access Modes' },
-    { key: 'volumeName', label: 'Volume Name' },
-    { key: 'age', label: 'Age' },
+    { key: 'volumeName', label: 'Volume' },
+    { key: 'age', label: 'Age' }
   ];
 
-  // Panel content and header can be implemented similarly to other resources
+  const bottomTabs = [
+    { key: 'summary', label: 'Summary' },
+    { key: 'yaml', label: 'YAML' },
+  ];
+
   function renderPanelContent(row, tab) {
     if (tab === 'summary') {
+      const quickInfoFields = [
+        {
+          key: 'status',
+          label: 'Status',
+          type: 'status',
+          layout: 'flex',
+          rightField: {
+            key: 'age',
+            label: 'Age',
+            type: 'age',
+            getValue: (data) => data.created || data.age
+          }
+        },
+        { key: 'namespace', label: 'Namespace' },
+        { key: 'storage', label: 'Storage' },
+        { key: 'accessModes', label: 'Access Modes' },
+        { key: 'volumeName', label: 'Volume Name' },
+        { key: 'name', label: 'PVC name', type: 'break-word' }
+      ];
+
       return (
-        <div>
-          <h3>Summary</h3>
-          <p><b>Name:</b> {row.name}</p>
-          <p><b>Namespace:</b> {row.namespace}</p>
-          <p><b>Status:</b> {row.status}</p>
-          <p><b>Storage:</b> {row.storage}</p>
-          <p><b>Access Modes:</b> {row.accessModes}</p>
-          <p><b>Volume Name:</b> {row.volumeName}</p>
-          <p><b>Age:</b> {row.age}</p>
-        </div>
-      );
-    }
-    if (tab === 'events') {
-      return (
-        <div>
-          <h3>Events</h3>
-          <p>No events (mock data).</p>
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{
+            padding: '8px 10px',
+            borderBottom: '1px solid var(--gh-border, #30363d)',
+            background: 'var(--gh-bg-sidebar, #161b22)',
+            color: 'var(--gh-text, #c9d1d9)'
+          }}>
+            Summary for {row.name}
+          </div>
+          <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+            <QuickInfoSection
+              resourceName={row.name}
+              data={row}
+              loading={false}
+              error={null}
+              fields={quickInfoFields}
+            />
+            {/* Right side content area for additional information */}
+            <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
+              <div style={{ fontWeight: 600, marginBottom: 12 }}>Persistent Volume Claim Details</div>
+              <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+                <strong>Status:</strong> {row.status || '-'}<br />
+                <strong>Storage:</strong> {row.storage || '-'}<br />
+                <strong>Access Modes:</strong> {row.accessModes || '-'}<br />
+                <strong>Volume Name:</strong> {row.volumeName || '-'}<br />
+                <strong>Namespace:</strong> {row.namespace || '-'}
+              </div>
+            </div>
+          </div>
         </div>
       );
     }
     if (tab === 'yaml') {
       return (
-        <div>
+        <div style={{ padding: '20px', height: '100%', overflow: 'auto' }}>
           <h3>YAML</h3>
-          <pre style={{ background: '#222', color: '#eee', padding: 12 }}>{`apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: ${row.name}\n  namespace: ${row.namespace}\nspec:\n  accessModes: [${row.accessModes}]\n  resources:\n    requests:\n      storage: ${row.storage}`}</pre>
+          <pre style={{
+            background: '#222',
+            color: '#eee',
+            padding: '15px',
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}>
+{`apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ${row.name}
+  namespace: ${row.namespace}
+spec:
+  accessModes:
+  - ${row.accessModes}
+  resources:
+    requests:
+      storage: ${row.storage}
+status:
+  phase: ${row.status}`}
+          </pre>
         </div>
       );
     }
@@ -161,12 +218,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   function panelHeader(row) {
     return <span style={{ fontWeight: 600 }}>{row.name}</span>;
   }
-
-  const bottomTabs = [
-    { key: 'summary', label: 'Summary' },
-    { key: 'events', label: 'Events' },
-    { key: 'yaml', label: 'YAML' },
-  ];
 
   if (loading) {
     return (

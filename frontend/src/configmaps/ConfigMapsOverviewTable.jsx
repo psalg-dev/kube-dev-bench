@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
+import QuickInfoSection from '../QuickInfoSection';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
@@ -19,14 +20,51 @@ const bottomTabs = [
 
 function renderPanelContent(row, tab) {
   if (tab === 'summary') {
+    const quickInfoFields = [
+      {
+        key: 'keys',
+        label: 'Keys',
+        layout: 'flex',
+        rightField: {
+          key: 'age',
+          label: 'Age',
+          type: 'age',
+          getValue: (data) => data.created || data.age
+        }
+      },
+      { key: 'namespace', label: 'Namespace' },
+      { key: 'size', label: 'Size' },
+      { key: 'name', label: 'ConfigMap name', type: 'break-word' }
+    ];
+
     return (
-      <div>
-        <h3>Summary</h3>
-        <p><b>Name:</b> {row.name}</p>
-        <p><b>Namespace:</b> {row.namespace}</p>
-        <p><b>Keys:</b> {row.keys}</p>
-        <p><b>Size:</b> {row.size}</p>
-        <p><b>Age:</b> {row.age}</p>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          background: 'var(--gh-bg-sidebar, #161b22)',
+          color: 'var(--gh-text, #c9d1d9)'
+        }}>
+          Summary for {row.name}
+        </div>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <QuickInfoSection
+            resourceName={row.name}
+            data={row}
+            loading={false}
+            error={null}
+            fields={quickInfoFields}
+          />
+          {/* Right side content area for additional information */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>ConfigMap Details</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              <strong>Keys:</strong> {row.keys || '-'}<br />
+              <strong>Size:</strong> {row.size || '-'}<br />
+              <strong>Namespace:</strong> {row.namespace || '-'}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

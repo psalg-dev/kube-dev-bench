@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, forwardRef } from 'react';
 
-const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null }, ref) {
+const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null, children }, ref) {
   const [height, setHeight] = useState(() => {
     try { return Number(localStorage.getItem('bottompanel.height')) || 360; } catch { return 360; }
   });
@@ -103,9 +103,9 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
           }}>✕</button>
         </div>
       </div>
-      {/* Content */}
+      {/* Content - Use children prop instead of tabs content */}
       <div style={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
-        {tabs.find(t => (t.key || t.id) === activeTab)?.content}
+        {children || tabs.find(t => (t.key || t.id) === activeTab)?.content}
       </div>
     </div>
   );

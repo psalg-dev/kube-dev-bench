@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
+import QuickInfoSection from '../QuickInfoSection';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
@@ -20,15 +21,53 @@ const bottomTabs = [
 
 function renderPanelContent(row, tab) {
   if (tab === 'summary') {
+    const quickInfoFields = [
+      {
+        key: 'replicas',
+        label: 'Replicas',
+        layout: 'flex',
+        rightField: {
+          key: 'age',
+          label: 'Age',
+          type: 'age',
+          getValue: (data) => data.created || data.age
+        }
+      },
+      { key: 'namespace', label: 'Namespace' },
+      { key: 'ready', label: 'Ready' },
+      { key: 'image', label: 'Image', type: 'break-word' },
+      { key: 'name', label: 'StatefulSet name', type: 'break-word' }
+    ];
+
     return (
-      <div>
-        <h3>Summary</h3>
-        <p><b>Name:</b> {row.name}</p>
-        <p><b>Namespace:</b> {row.namespace}</p>
-        <p><b>Replicas:</b> {row.replicas}</p>
-        <p><b>Ready:</b> {row.ready}</p>
-        <p><b>Image:</b> {row.image}</p>
-        <p><b>Age:</b> {row.age}</p>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          background: 'var(--gh-bg-sidebar, #161b22)',
+          color: 'var(--gh-text, #c9d1d9)'
+        }}>
+          Summary for {row.name}
+        </div>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <QuickInfoSection
+            resourceName={row.name}
+            data={row}
+            loading={false}
+            error={null}
+            fields={quickInfoFields}
+          />
+          {/* Right side content area for additional information */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>StatefulSet Details</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              <strong>Replicas:</strong> {row.replicas || '0'}<br />
+              <strong>Ready:</strong> {row.ready || '0'}<br />
+              <strong>Image:</strong> {row.image || '-'}<br />
+              <strong>Namespace:</strong> {row.namespace || '-'}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

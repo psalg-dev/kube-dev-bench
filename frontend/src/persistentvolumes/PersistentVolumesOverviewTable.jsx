@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
+import QuickInfoSection from '../QuickInfoSection';
 import { showResourceOverlay } from '../resource-overlay';
 
 const columns = [
@@ -23,19 +24,60 @@ const bottomTabs = [
 
 function renderPanelContent(row, tab) {
   if (tab === 'summary') {
+    const quickInfoFields = [
+      {
+        key: 'status',
+        label: 'Status',
+        type: 'status',
+        layout: 'flex',
+        rightField: {
+          key: 'age',
+          label: 'Age',
+          type: 'age',
+          getValue: (data) => data.created || data.age
+        }
+      },
+      { key: 'namespace', label: 'Namespace' },
+      { key: 'capacity', label: 'Capacity' },
+      { key: 'accessModes', label: 'Access Modes' },
+      { key: 'reclaimPolicy', label: 'Reclaim Policy' },
+      { key: 'claim', label: 'Claim' },
+      { key: 'storageClass', label: 'Storage Class' },
+      { key: 'volumeType', label: 'Volume Type' },
+      { key: 'name', label: 'PV name', type: 'break-word' }
+    ];
+
     return (
-      <div style={{ padding: '20px' }}>
-        <h3>Persistent Volume Summary</h3>
-        <p><b>Name:</b> {row.name}</p>
-        <p><b>Namespace:</b> {row.namespace}</p>
-        <p><b>Capacity:</b> {row.capacity}</p>
-        <p><b>Access Modes:</b> {row.accessModes}</p>
-        <p><b>Reclaim Policy:</b> {row.reclaimPolicy}</p>
-        <p><b>Status:</b> <span style={{ color: getStatusColor(row.status) }}>{row.status}</span></p>
-        <p><b>Claim:</b> {row.claim === '-' ? 'Unbound' : row.claim}</p>
-        <p><b>Storage Class:</b> {row.storageClass}</p>
-        <p><b>Volume Type:</b> {row.volumeType}</p>
-        <p><b>Age:</b> {row.age}</p>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          background: 'var(--gh-bg-sidebar, #161b22)',
+          color: 'var(--gh-text, #c9d1d9)'
+        }}>
+          Summary for {row.name}
+        </div>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <QuickInfoSection
+            resourceName={row.name}
+            data={row}
+            loading={false}
+            error={null}
+            fields={quickInfoFields}
+          />
+          {/* Right side content area for additional information */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Persistent Volume Details</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              <strong>Status:</strong> {row.status || '-'}<br />
+              <strong>Capacity:</strong> {row.capacity || '-'}<br />
+              <strong>Access Modes:</strong> {row.accessModes || '-'}<br />
+              <strong>Reclaim Policy:</strong> {row.reclaimPolicy || '-'}<br />
+              <strong>Claim:</strong> {row.claim || '-'}<br />
+              <strong>Storage Class:</strong> {row.storageClass || '-'}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
+import QuickInfoSection from '../QuickInfoSection';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOff, EventsOn } from '../../wailsjs/runtime';
 
@@ -23,18 +24,58 @@ const bottomTabs = [
 
 function renderPanelContent(row, tab) {
   if (tab === 'summary') {
+    const quickInfoFields = [
+      {
+        key: 'completions',
+        label: 'Completions',
+        layout: 'flex',
+        rightField: {
+          key: 'age',
+          label: 'Age',
+          type: 'age',
+          getValue: (data) => data.created || data.age
+        }
+      },
+      { key: 'namespace', label: 'Namespace' },
+      { key: 'succeeded', label: 'Succeeded' },
+      { key: 'active', label: 'Active' },
+      { key: 'failed', label: 'Failed' },
+      { key: 'duration', label: 'Duration' },
+      { key: 'image', label: 'Image', type: 'break-word' },
+      { key: 'name', label: 'Job name', type: 'break-word' }
+    ];
+
     return (
-      <div>
-        <h3>Summary</h3>
-        <p><b>Name:</b> {row.name}</p>
-        <p><b>Namespace:</b> {row.namespace}</p>
-        <p><b>Completions:</b> {row.completions}</p>
-        <p><b>Succeeded:</b> {row.succeeded}</p>
-        <p><b>Active:</b> {row.active}</p>
-        <p><b>Failed:</b> {row.failed}</p>
-        <p><b>Image:</b> {row.image}</p>
-        <p><b>Age:</b> {row.age}</p>
-        <p><b>Duration:</b> {row.duration}</p>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          padding: '8px 10px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          background: 'var(--gh-bg-sidebar, #161b22)',
+          color: 'var(--gh-text, #c9d1d9)'
+        }}>
+          Summary for {row.name}
+        </div>
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <QuickInfoSection
+            resourceName={row.name}
+            data={row}
+            loading={false}
+            error={null}
+            fields={quickInfoFields}
+          />
+          {/* Right side content area for additional information */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>Job Details</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              <strong>Completions:</strong> {row.completions || '0'}<br />
+              <strong>Succeeded:</strong> {row.succeeded || '0'}<br />
+              <strong>Active:</strong> {row.active || '0'}<br />
+              <strong>Failed:</strong> {row.failed || '0'}<br />
+              <strong>Duration:</strong> {row.duration || '-'}<br />
+              <strong>Image:</strong> {row.image || '-'}
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
