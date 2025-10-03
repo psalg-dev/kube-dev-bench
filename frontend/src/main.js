@@ -1,5 +1,6 @@
 import './style.css';
 import './app.css';
+import './footer.css';
 
 import {
   GetConfigMaps,
