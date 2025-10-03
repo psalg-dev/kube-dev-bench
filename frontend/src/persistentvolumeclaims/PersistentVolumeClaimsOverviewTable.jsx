@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import QuickInfoSection from '../QuickInfoSection';
+import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 
@@ -185,32 +186,21 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
       );
     }
     if (tab === 'yaml') {
-      return (
-        <div style={{ padding: '20px', height: '100%', overflow: 'auto' }}>
-          <h3>YAML</h3>
-          <pre style={{
-            background: '#222',
-            color: '#eee',
-            padding: '15px',
-            borderRadius: '4px',
-            fontSize: '12px'
-          }}>
-{`apiVersion: v1
+      const yamlContent = `apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ${row.name}
   namespace: ${row.namespace}
 spec:
   accessModes:
-  - ${row.accessModes}
+  ${row.accessModes ? `- ${row.accessModes}` : '- ReadWriteOnce'}
   resources:
     requests:
       storage: ${row.storage}
 status:
-  phase: ${row.status}`}
-          </pre>
-        </div>
-      );
+  phase: ${row.status}`;
+
+      return <YamlViewer content={yamlContent} />;
     }
     return null;
   }

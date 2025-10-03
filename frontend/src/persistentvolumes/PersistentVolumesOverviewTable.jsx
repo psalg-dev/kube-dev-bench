@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import QuickInfoSection from '../QuickInfoSection';
+import YamlViewer from '../YamlViewer';
 import { showResourceOverlay } from '../resource-overlay';
 
 const columns = [
@@ -82,32 +83,21 @@ function renderPanelContent(row, tab) {
     );
   }
   if (tab === 'yaml') {
-    return (
-      <div style={{ padding: '20px', height: '100%', overflow: 'auto' }}>
-        <h3>YAML</h3>
-        <div style={{ color: '#6c757d', marginBottom: '10px' }}>
-          YAML view for Persistent Volume details would be implemented here
-        </div>
-        <pre style={{
-          background: '#f8f9fa',
-          padding: '15px',
-          borderRadius: '4px',
-          fontSize: '12px',
-          color: '#333'
-        }}>
-          {`Name: ${row.name}
-Namespace: ${row.namespace}
-Capacity: ${row.capacity}
-Access Modes: ${row.accessModes}
-Reclaim Policy: ${row.reclaimPolicy}
-Status: ${row.status}
-Claim: ${row.claim}
-Storage Class: ${row.storageClass}
-Volume Type: ${row.volumeType}
-Age: ${row.age}`}
-        </pre>
-      </div>
-    );
+    const yamlContent = `apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ${row.name}
+spec:
+  capacity:
+    storage: ${row.capacity}
+  accessModes:
+  ${row.accessModes ? `- ${row.accessModes}` : '- ReadWriteOnce'}
+  persistentVolumeReclaimPolicy: ${row.reclaimPolicy || 'Retain'}
+  storageClassName: ${row.storageClass || 'default'}
+  hostPath:
+    path: /mnt/data`;
+
+    return <YamlViewer content={yamlContent} />;
   }
   return null;
 }

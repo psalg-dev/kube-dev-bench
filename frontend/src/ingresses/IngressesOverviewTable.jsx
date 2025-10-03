@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import QuickInfoSection from '../QuickInfoSection';
+import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
@@ -87,31 +88,36 @@ function renderPanelContent(row, tab) {
     );
   }
   if (tab === 'yaml') {
-    const hostsYaml = Array.isArray(row.hosts) ? row.hosts.map(host => `  - host: ${host}`).join('\n') : '';
-    return (
-      <div>
-        <h3>YAML</h3>
-        <pre style={{ background: '#222', color: '#eee', padding: 12 }}>
-{`apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: ${row.name}
-  namespace: ${row.namespace}
-spec:${row.class ? `\n  ingressClassName: ${row.class}` : ''}
-  rules:
-${hostsYaml || '  - host: example.com'}
+    const hostsYaml = Array.isArray(row.hosts) ? row.hosts.map(host => `  - host: ${host}
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: example-service
+            name: ${row.name}-service
             port:
-              number: 80`}
-        </pre>
-      </div>
-    );
+              number: 80`).join('\n') : `  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: ${row.name}-service
+            port:
+              number: 80`;
+
+    const yamlContent = `apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ${row.name}
+  namespace: ${row.namespace}
+spec:${row.class ? `\n  ingressClassName: ${row.class}` : ''}
+  rules:
+${hostsYaml}`;
+
+    return <YamlViewer content={yamlContent} />;
   }
   return null;
 }

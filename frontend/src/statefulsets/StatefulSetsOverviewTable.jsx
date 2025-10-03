@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import QuickInfoSection from '../QuickInfoSection';
+import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
@@ -80,25 +81,27 @@ function renderPanelContent(row, tab) {
     );
   }
   if (tab === 'yaml') {
-    return (
-      <div>
-        <h3>YAML</h3>
-        <pre style={{ background: '#222', color: '#eee', padding: 12 }}>
-{`apiVersion: apps/v1
+    const yamlContent = `apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: ${row.name}
   namespace: ${row.namespace}
 spec:
   replicas: ${row.replicas}
+  serviceName: ${row.name}
+  selector:
+    matchLabels:
+      app: ${row.name}
   template:
+    metadata:
+      labels:
+        app: ${row.name}
     spec:
       containers:
       - name: ${row.name}
-        image: ${row.image}`}
-        </pre>
-      </div>
-    );
+        image: ${row.image}`;
+
+    return <YamlViewer content={yamlContent} />;
   }
   return null;
 }
