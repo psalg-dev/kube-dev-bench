@@ -343,20 +343,32 @@ body, #layout {
 }
 
 #footer-info {
-  margin-right: 2rem;
+  margin-right: 45px; /* subtle space to right edge */
   color: var(--gh-text-muted);
   white-space: nowrap;
   font-weight: 500;
 }
 
 #footer-dot {
-  display: inline-block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ccc;
-  box-shadow: 0 0 0 3px var(--gh-bg-footer);
-  transition: all 0.3s;
+  /* Enlarged hover area */
+  display: inline-flex; /* center the icon */
+  align-items: center;
+  justify-content: center;
+  width: 26px; /* larger hit target */
+  height: 26px;
+  color: #d73a49; /* GitHub danger red */
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  margin-right: 8px;
+  cursor: default;
+  user-select: none;
+  /* Slight transparent background on hover to visualize area */
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+#footer-dot:hover {
+  background-color: rgba(215,58,73,0.15);
 }
 
 #footer-dot.connected {

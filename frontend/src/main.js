@@ -140,11 +140,8 @@ function renderMainAppHTML() {
         <div id="main-panels"></div>
       </main>
       <footer id="footer">
+        <span id="footer-dot" title="Connection indicator">!</span>
         <span id="footer-info"></span>
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span id="footer-dot"></span>
-          <span id="footer-warning" style="display: none; color: #d73a49; font-weight: bold; font-size: 16px;" title="Insecure connection: TLS certificate validation disabled">⚠️</span>
-        </div>
       </footer>
     </div>
   `;
@@ -157,8 +154,6 @@ function renderMainAppHTML() {
   sidebarSections = document.getElementById("sidebar-sections");
 
   footerInfo.textContent = '';
-  // Remove hard-coded inline background so CSS classes (.connected, .insecure) can control color
-  footerDot.style.background = '';
 }
 
 function mountSelects() {
@@ -319,51 +314,23 @@ async function initializeWithConfig() {
 async function updateFooter() {
   const nsText = selectedNamespaces && selectedNamespaces.length > 0 ? selectedNamespaces.join(', ') : '';
   footerInfo.textContent = selectedContext && nsText ? `${selectedContext} / ${nsText}` : '';
-  // Clear any inline background so class-based styling works
-  footerDot.style.background = '';
-  // Base state reset
-  footerDot.classList.remove('insecure');
-  if (clusterConnected) footerDot.classList.add('connected'); else footerDot.classList.remove('connected');
-
-  // Check connection security status and show/hide warning indicator
-  if (clusterConnected) {
+  if (!footerDot) return;
+  // Ensure indicator remains visible as red exclamation mark
+  footerDot.textContent = '!';
+  // Tooltip reflects state
+  if (!clusterConnected) {
+    footerDot.title = 'Not connected to cluster';
+  } else {
     try {
       const connectionStatus = await GetConnectionStatus();
-      const warningElement = document.getElementById('footer-warning');
       if (connectionStatus && connectionStatus.isInsecure) {
-        // Show warning icon + make dot red
-        footerDot.classList.remove('connected');
-        footerDot.classList.add('insecure');
         footerDot.title = 'Insecure connection: TLS certificate validation disabled';
-        if (warningElement) {
-          warningElement.style.display = 'inline';
-        }
-        console.log('Showing insecure connection warning + red footer dot');
       } else {
-        // Secure connection
-        footerDot.classList.remove('insecure');
-        if (clusterConnected) footerDot.classList.add('connected');
-        footerDot.removeAttribute('title');
-        if (warningElement) {
-          warningElement.style.display = 'none';
-        }
-        console.log('Secure connection: green footer dot');
+        footerDot.title = 'Connected';
       }
-    } catch (err) {
-      console.error('Error checking connection status:', err);
-      // On error, fall back to neutral dot and hide warning
-      footerDot.classList.remove('insecure');
-      if (clusterConnected) footerDot.classList.add('connected');
-      const warningElement = document.getElementById('footer-warning');
-      if (warningElement) warningElement.style.display = 'none';
+    } catch (_) {
+      footerDot.title = 'Connection status unknown';
     }
-  } else {
-    // Not connected, neutral dot
-    footerDot.classList.remove('connected');
-    footerDot.classList.remove('insecure');
-    footerDot.removeAttribute('title');
-    const warningElement = document.getElementById('footer-warning');
-    if (warningElement) warningElement.style.display = 'none';
   }
 }
 

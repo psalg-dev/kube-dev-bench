@@ -69,6 +69,11 @@ func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
 
 // formatDuration formats a duration into a human-readable string
 func formatDuration(d time.Duration) string {
+	// Guard against negative durations (can happen with slight clock skew between host & cluster)
+	if d < 0 {
+		// Treat future timestamps as 0s old instead of showing a negative age
+		d = 0
+	}
 	days := int(d.Hours() / 24)
 	hours := int(d.Hours()) % 24
 	minutes := int(d.Minutes()) % 60
