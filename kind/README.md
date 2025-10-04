@@ -9,9 +9,29 @@ copy .env.example .env   (optional – override versions)
 docker compose up -d
 # Check status
 docker compose logs -f kind
-# Use kubectl
-docker compose exec kind kubectl get nodes
+# Use kubectl (from host OR specify kubeconfig explicitly when inside container)
 ```
+
+## Kubeconfig Files (NEW)
+Two kubeconfig files are now produced:
+- `output/kubeconfig` (host-mapped): Uses a 127.0.0.1:PORT server URL suitable for kubectl on the HOST machine.
+- `output/kubeconfig.internal` (when available): Uses the in-cluster DNS name `https://dev-control-plane:6443` and is reliable from inside the `kind-manager` container (the previous 127.0.0.1 mapping is not reachable from a sibling container).
+
+Inside the container, either export the internal kubeconfig or pass it explicitly:
+```
+docker compose exec kind sh -c "kubectl --kubeconfig /kind/output/kubeconfig.internal get nodes"
+```
+If the internal file is absent (older kind versions), fall back to:
+```
+docker compose exec kind sh -c "kubectl --kubeconfig /kind/output/kubeconfig get nodes"
+```
+
+From the host (PowerShell / CMD):
+```
+set KUBECONFIG=%CD%\kind\output\kubeconfig
+kubectl get nodes
+```
+(Adjust path quoting for PowerShell if needed.)
 
 ## Environment Variables (.env)
 - KIND_VERSION: (default v0.23.0) version of kind binary.
@@ -29,6 +49,10 @@ Fetch kubeconfig locally:
 ```
 # Writes to kind/output/kubeconfig (already mounted on host)
 cat output/kubeconfig
+```
+Fetch internal kubeconfig (inside container context):
+```
+cat output/kubeconfig.internal
 ```
 Use host-side `kubectl` with that kubeconfig (PowerShell example):
 ```
@@ -113,4 +137,3 @@ docker compose exec kind kind get clusters || echo "kind list failed"
 
 ---
 Generated helper README.
-

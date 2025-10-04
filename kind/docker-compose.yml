@@ -14,6 +14,7 @@ services:
       - ./kind-cluster.yaml:/kind/kind-cluster.yaml:ro
       - ./output:/kind/output
       - ./manager.sh:/kind/manager.sh:ro
+      - ./examples:/kind/examples:ro
     environment:
       KIND_VERSION: ${KIND_VERSION:-v0.23.0}
       KUBECTL_VERSION: ${KUBECTL_VERSION:-stable}
