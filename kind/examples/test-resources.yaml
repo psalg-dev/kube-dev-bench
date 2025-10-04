@@ -9,12 +9,16 @@ metadata:
   name: test
   labels:
     purpose: example
+  annotations:
+    kube-dev-bench/example: "true"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: example-config
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 data:
   APP_MODE: "demo"
   WELCOME_MESSAGE: "Hello from ConfigMap"
@@ -24,6 +28,8 @@ kind: Secret
 metadata:
   name: example-secret
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 stringData:
   username: demo
   password: demo123
@@ -35,6 +41,8 @@ metadata:
   name: example-pv
   labels:
     type: local
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   capacity:
     storage: 1Gi
@@ -58,6 +66,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: example-pvc
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   accessModes:
     - ReadWriteOnce
@@ -76,6 +86,8 @@ metadata:
   namespace: test
   labels:
     app: example-pod
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   containers:
     - name: main
@@ -93,6 +105,8 @@ kind: Deployment
 metadata:
   name: example-deployment
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   replicas: 2
   selector:
@@ -102,6 +116,8 @@ spec:
     metadata:
       labels:
         app: example-deployment
+      annotations:
+        kube-dev-bench/example: "true"
     spec:
       containers:
         - name: nginx
@@ -114,6 +130,8 @@ kind: ReplicaSet
 metadata:
   name: example-replicaset
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   replicas: 1
   selector:
@@ -123,6 +141,8 @@ spec:
     metadata:
       labels:
         app: example-replicaset
+      annotations:
+        kube-dev-bench/example: "true"
     spec:
       containers:
         - name: pause
@@ -133,6 +153,8 @@ kind: DaemonSet
 metadata:
   name: example-daemonset
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   selector:
     matchLabels:
@@ -141,6 +163,8 @@ spec:
     metadata:
       labels:
         app: example-daemonset
+      annotations:
+        kube-dev-bench/example: "true"
     spec:
       tolerations:
         - operator: Exists
@@ -155,6 +179,8 @@ kind: Service
 metadata:
   name: example-statefulset
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   clusterIP: None
   selector:
@@ -168,6 +194,8 @@ kind: StatefulSet
 metadata:
   name: example-statefulset
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   serviceName: example-statefulset
   replicas: 1
@@ -178,6 +206,8 @@ spec:
     metadata:
       labels:
         app: example-statefulset
+      annotations:
+        kube-dev-bench/example: "true"
     spec:
       containers:
         - name: web
@@ -197,11 +227,15 @@ kind: Job
 metadata:
   name: example-job
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   template:
     metadata:
       labels:
         job: example-job
+      annotations:
+        kube-dev-bench/example: "true"
     spec:
       restartPolicy: Never
       containers:
@@ -215,6 +249,8 @@ kind: CronJob
 metadata:
   name: example-cronjob
   namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
 spec:
   schedule: "*/30 * * * *" # every 30 minutes
   successfulJobsHistoryLimit: 1
@@ -222,6 +258,9 @@ spec:
   jobTemplate:
     spec:
       template:
+        metadata:
+          annotations:
+            kube-dev-bench/example: "true"
         spec:
           restartPolicy: OnFailure
           containers:

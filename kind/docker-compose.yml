@@ -21,6 +21,7 @@ services:
       KUBECONFIG: /kind/output/kubeconfig
       DOCKER_HOST: unix:///var/run/docker.sock
       DEBUG_KEEP_ON_ERROR: ${DEBUG_KEEP_ON_ERROR:-0}
+      CLEAN_TEST_NAMESPACE: ${CLEAN_TEST_NAMESPACE:-1}
     # Directly invoke the script via /bin/sh to avoid needing chmod on a read-only mount
     entrypoint: ["/bin/sh"]
     command: ["/kind/manager.sh"]

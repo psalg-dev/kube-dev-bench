@@ -97,7 +97,6 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {headerRight}
           <button onClick={onClose} title="Close" style={{
             background: 'transparent', border: 'none', color: 'var(--gh-text, #c9d1d9)', cursor: 'pointer', fontSize: 18
           }}>✕</button>

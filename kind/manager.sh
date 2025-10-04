@@ -121,6 +121,55 @@ for i in $(seq 1 30); do
 done
 [ $OPENAPI_READY -eq 1 ] || err "OpenAPI not ready after waits; will fallback to --validate=false if needed"
 
+clean_test_namespace() {
+  # Deletes the 'test' namespace if it exists to ensure a clean state before applying example resources.
+  # Controlled by CLEAN_TEST_NAMESPACE env var (default=1). Set CLEAN_TEST_NAMESPACE=0 to skip.
+  if [ "${CLEAN_TEST_NAMESPACE:-1}" != "1" ]; then
+    log "CLEAN_TEST_NAMESPACE disabled (CLEAN_TEST_NAMESPACE=${CLEAN_TEST_NAMESPACE:-0})"
+    return 0
+  fi
+  if kubectl get ns test >/dev/null 2>&1; then
+    log "Deleting existing 'test' namespace for clean state..."
+    # Start async delete
+    if ! kubectl delete namespace test --wait=false >/dev/null 2>&1; then
+      err "Failed to issue namespace deletion (continuing)"
+    fi
+    # Wait (max ~120s) for full removal; namespace must be fully gone before re-apply
+    attempts=0
+    max_attempts=60
+    while [ $attempts -lt $max_attempts ]; do
+      if ! kubectl get ns test >/dev/null 2>&1; then
+        log "'test' namespace fully removed after $attempts checks"
+        break
+      fi
+      phase=$(kubectl get ns test -o jsonpath='{.status.phase}' 2>/dev/null || echo terminating)
+      log "Waiting for 'test' namespace to terminate (phase=$phase)..."
+      sleep 2
+      attempts=$((attempts+1))
+    done
+    if kubectl get ns test >/dev/null 2>&1; then
+      err "Namespace 'test' still terminating after wait; attempting finalizer removal"
+      # Force remove finalizers if stuck (best-effort)
+      if command -v jq >/dev/null 2>&1; then
+        kubectl get ns test -o json 2>/dev/null | jq '.spec.finalizers=[]' | kubectl replace --raw /api/v1/namespaces/test/finalize -f - >/dev/null 2>&1 || true
+      fi
+      # Final short wait
+      for i in 1 2 3 4 5; do
+        if ! kubectl get ns test >/dev/null 2>&1; then
+          log "'test' namespace removed after finalizer patch"
+          break
+        fi
+        sleep 2
+      done
+      if kubectl get ns test >/dev/null 2>&1; then
+        err "Proceeding although 'test' namespace still present/terminating; example apply may fail"
+      fi
+    fi
+  else
+    log "No pre-existing 'test' namespace to clean"
+  fi
+}
+
 apply_examples() {
   EXAMPLES_FILE="$1"
   [ -f "$EXAMPLES_FILE" ] || { log "No examples file at $EXAMPLES_FILE"; return 0; }
@@ -156,6 +205,7 @@ apply_examples() {
 }
 
 EXAMPLES_FILE="/kind/examples/test-resources.yaml"
+clean_test_namespace
 apply_examples "$EXAMPLES_FILE"
 
 # Keep container alive for interactive use
