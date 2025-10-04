@@ -6,43 +6,25 @@ import (
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // GetDeployments returns all deployments in a namespace
 func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
+	clientset, err := a.getKubernetesClient()
 	if err != nil {
 		return nil, err
 	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("Kein Kontext gewählt")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
-
 	var result []DeploymentInfo
 	now := time.Now()
 
 	for _, deployment := range deployments.Items {
 		age := "-"
 		if deployment.CreationTimestamp.Time != (time.Time{}) {
-			dur := now.Sub(deployment.CreationTimestamp.Time)
-			age = formatDuration(dur)
+			age = formatDuration(now.Sub(deployment.CreationTimestamp.Time))
 		}
 
 		// Get the first container image from the deployment spec

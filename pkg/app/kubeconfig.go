@@ -100,6 +100,29 @@ func (a *App) SaveCustomKubeConfig(name string, content string) error {
 	return os.WriteFile(filePath, []byte(content), 0600)
 }
 
+// SavePrimaryKubeConfig saves (or creates) the primary kubeconfig at ~/.kube/kubeconfig.
+// It validates the YAML before writing. Returns the full path written.
+func (a *App) SavePrimaryKubeConfig(content string) (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	kubeDir := filepath.Join(home, ".kube")
+	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+		return "", err
+	}
+	// Validate YAML
+	var cfg kubeConfigFile
+	if err := yaml.Unmarshal([]byte(content), &cfg); err != nil {
+		return "", err
+	}
+	primaryPath := filepath.Join(kubeDir, "kubeconfig")
+	if err := os.WriteFile(primaryPath, []byte(content), 0600); err != nil {
+		return "", err
+	}
+	return primaryPath, nil
+}
+
 // GetKubeConfigs discovers kubeconfig files in the user's home directory and .kube folder
 func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 	home, err := os.UserHomeDir()
@@ -108,7 +131,14 @@ func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 	}
 	var configs []KubeConfigInfo
 	kubeDir := filepath.Join(home, ".kube")
-	// Check for default config
+	// Check for primary kubeconfig (non-standard name requested by project): ~/.kube/kubeconfig
+	primaryConfig := filepath.Join(kubeDir, "kubeconfig")
+	if info, err := os.Stat(primaryConfig); err == nil && !info.IsDir() {
+		if contexts, err := a.getContextsFromFile(primaryConfig); err == nil && len(contexts) > 0 {
+			configs = append(configs, KubeConfigInfo{Path: primaryConfig, Name: "kubeconfig (primary)", Contexts: contexts})
+		}
+	}
+	// Existing default config handling
 	defaultConfig := filepath.Join(kubeDir, "config")
 	if info, err := os.Stat(defaultConfig); err == nil && !info.IsDir() {
 		if contexts, err := a.getContextsFromFile(defaultConfig); err == nil && len(contexts) > 0 {
@@ -122,7 +152,7 @@ func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 				continue
 			}
 			name := entry.Name()
-			if name == "config" {
+			if name == "config" || name == "kubeconfig" { // already handled
 				continue
 			}
 			if strings.Contains(name, "config") || strings.Contains(name, "kube") {
@@ -132,6 +162,9 @@ func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 				}
 			}
 		}
+	}
+	if len(configs) == 0 {
+		return []KubeConfigInfo{}, nil
 	}
 	return configs, nil
 }

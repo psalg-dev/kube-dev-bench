@@ -11,6 +11,8 @@ export function ExecCommand(arg1:string):Promise<void>;
 
 export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
 
+export function GetConnectionStatus():Promise<Record<string, any>>;
+
 export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;
@@ -84,6 +86,8 @@ export function ResizeShellSession(arg1:string,arg2:number,arg3:number):Promise<
 export function RestartPod(arg1:string,arg2:string):Promise<void>;
 
 export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
+
+export function SavePrimaryKubeConfig(arg1:string):Promise<string>;
 
 export function SelectKubeConfigFile():Promise<string>;
 
