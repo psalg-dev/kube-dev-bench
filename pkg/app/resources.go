@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/restmapper"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // CreateResource creates a resource in the cluster from YAML
@@ -27,38 +26,33 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	// Convert to unstructured
 	u := &unstructured.Unstructured{Object: obj}
 	// Extract apiVersion and kind
-	apiVersion, found := obj["apiVersion"].(string)
-	if !found {
+	apiVersion, ok := obj["apiVersion"].(string)
+	if !ok {
 		return fmt.Errorf("apiVersion not found in resource")
 	}
-	kind, found := obj["kind"].(string)
-	if !found {
+	kind, ok := obj["kind"].(string)
+	if !ok {
 		return fmt.Errorf("kind not found in resource")
-	}
-	// Load kubeconfig and create dynamic client
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return err
 	}
 	if a.currentKubeContext == "" {
 		return fmt.Errorf("Kein Kontext gewählt")
 	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
+
+	// Centralized REST config (handles insecure fallback)
+	restCfg, err := a.getRESTConfig()
 	if err != nil {
 		return err
 	}
-	dynClient, err := dynamic.NewForConfig(restConfig)
+	dynClient, err := dynamic.NewForConfig(restCfg)
 	if err != nil {
 		return err
 	}
-	// Discover REST mapping
-	dc, err := discovery.NewDiscoveryClientForConfig(restConfig)
+	dc, err := discovery.NewDiscoveryClientForConfig(restCfg)
 	if err != nil {
 		return err
 	}
 	mapper := restmapper.NewDeferredDiscoveryRESTMapper(memory.NewMemCacheClient(dc))
+
 	gv, err := schema.ParseGroupVersion(apiVersion)
 	if err != nil {
 		return fmt.Errorf("invalid apiVersion: %w", err)
@@ -67,14 +61,14 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	if err != nil {
 		return fmt.Errorf("could not find REST mapping for %s/%s: %w", apiVersion, kind, err)
 	}
-	// Determine namespace
+
 	resNamespace := namespace
 	if meta, ok := obj["metadata"].(map[string]interface{}); ok {
 		if ns, ok := meta["namespace"].(string); ok && ns != "" {
 			resNamespace = ns
 		}
 	}
-	// Create resource
+
 	var ri dynamic.ResourceInterface
 	if mapping.Scope.Name() == "namespace" {
 		if resNamespace == "" {
@@ -84,13 +78,14 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	} else {
 		ri = dynClient.Resource(mapping.Resource)
 	}
-	_, err = ri.Create(a.ctx, u, metav1.CreateOptions{})
-	if err != nil {
+
+	if _, err = ri.Create(a.ctx, u, metav1.CreateOptions{}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			return fmt.Errorf("Resource already exists: %w", err)
 		}
 		return err
 	}
+
 	// Emit updated lists shortly after creating a resource
 	go func(ns string, k string) {
 		time.Sleep(100 * time.Millisecond)

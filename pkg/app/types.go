@@ -222,6 +222,8 @@ type PersistentVolumeInfo struct {
 	Claim         string            `json:"claim"`
 	StorageClass  string            `json:"storageClass"`
 	VolumeType    string            `json:"volumeType"`
+	Reason        string            `json:"reason"`     // Added: status reason if present
+	VolumeMode    string            `json:"volumeMode"` // Added: Filesystem/Block if specified
 	Age           string            `json:"age"`
 	Labels        map[string]string `json:"labels"`      // Added
 	Annotations   map[string]string `json:"annotations"` // New: expose annotations

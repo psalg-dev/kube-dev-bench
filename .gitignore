@@ -5,3 +5,4 @@ frontend/dist
 /build/
 /nul
 /*.syso
+/frontend/logs/
