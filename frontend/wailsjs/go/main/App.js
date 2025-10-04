@@ -18,6 +18,10 @@ export function GetConfigMaps(arg1) {
   return window['go']['main']['App']['GetConfigMaps'](arg1);
 }
 
+export function GetConnectionStatus() {
+  return window['go']['main']['App']['GetConnectionStatus']();
+}
+
 export function GetCronJobs(arg1) {
   return window['go']['main']['App']['GetCronJobs'](arg1);
 }
@@ -164,6 +168,10 @@ export function RestartPod(arg1, arg2) {
 
 export function SaveCustomKubeConfig(arg1, arg2) {
   return window['go']['main']['App']['SaveCustomKubeConfig'](arg1, arg2);
+}
+
+export function SavePrimaryKubeConfig(arg1) {
+  return window['go']['main']['App']['SavePrimaryKubeConfig'](arg1);
 }
 
 export function SelectKubeConfigFile() {

@@ -1,31 +1,15 @@
 package app
 
 import (
-	"fmt"
 	"time"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // GetReplicaSets returns all replicasets in a namespace
 func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("Kein Kontext gewählt")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	clientset, err := a.getKubernetesClient()
 	if err != nil {
 		return nil, err
 	}

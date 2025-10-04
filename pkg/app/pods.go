@@ -19,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
 )
 
@@ -130,16 +129,11 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 		}
 		namespace = a.currentNamespace
 	}
-	configPath := a.getKubeConfigPath()
-	cfg, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return err
-	}
 	if a.currentKubeContext == "" {
 		return fmt.Errorf("no kube context selected")
 	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*cfg, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
+	// obtain rest.Config with insecure fallback capability
+	restConfig, err := a.getRESTConfig()
 	if err != nil {
 		return err
 	}
@@ -531,27 +525,16 @@ func (a *App) StopPortForward(namespace, podName string, localPort int) error {
 
 // GetRunningPods returns all running pods (name, restarts, uptime) in a namespace
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
+	clientset, err := a.createKubernetesClient()
 	if err != nil {
 		return nil, err
 	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("Kein Kontext gewählt")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
-	}
+
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	var result []PodInfo
 	now := time.Now()
 	for _, pod := range pods.Items {
@@ -634,12 +617,7 @@ func (a *App) StartPodPolling() {
 
 // RestartPod restarts a pod by deleting it (Kubernetes will recreate it if part of a deployment)
 func (a *App) RestartPod(namespace, podName string) error {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.BuildConfigFromFlags("", configPath)
-	if err != nil {
-		return err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := a.createKubernetesClient()
 	if err != nil {
 		return err
 	}
@@ -654,12 +632,7 @@ func (a *App) ShellPod(namespace, podName string) (string, error) {
 
 // DeletePod deletes a pod
 func (a *App) DeletePod(namespace, podName string) error {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.BuildConfigFromFlags("", configPath)
-	if err != nil {
-		return err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
+	clientset, err := a.createKubernetesClient()
 	if err != nil {
 		return err
 	}
@@ -707,20 +680,7 @@ func (a *App) ExecCommand(cmdline string) error {
 
 // GetPodStatusCounts returns counts of pods by phase for the given namespace
 func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return PodStatusCounts{}, err
-	}
-	if a.currentKubeContext == "" {
-		return PodStatusCounts{}, fmt.Errorf("Kein Kontext gewählt")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return PodStatusCounts{}, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
+	clientset, err := a.getKubernetesClient()
 	if err != nil {
 		return PodStatusCounts{}, err
 	}

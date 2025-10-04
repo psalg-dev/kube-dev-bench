@@ -364,6 +364,11 @@ body, #layout {
   box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(35, 134, 54, 0.3);
 }
 
+#footer-dot.insecure {
+  background: #d73a49; /* GitHub danger red */
+  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(215, 58, 73, 0.4);
+}
+
 /* Remove old logo styles */
 #logo {
   display: none !important;

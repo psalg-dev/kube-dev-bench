@@ -7,8 +7,6 @@ import (
 
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // StopPodLogs stops an active log stream for the given pod if running
@@ -44,29 +42,13 @@ func (a *App) StreamPodLogs(podName string) {
 			cancel()
 		}()
 
-		configPath := a.getKubeConfigPath()
-		config, err := clientcmd.LoadFromFile(configPath)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] loading kubeconfig: "+err.Error())
-			return
-		}
-		if a.currentKubeContext == "" {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no kube context selected")
-			return
-		}
-		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-		restConfig, err := clientConfig.ClientConfig()
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client config: "+err.Error())
-			return
-		}
-		clientset, err := kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] clientset: "+err.Error())
-			return
-		}
 		if a.currentNamespace == "" {
 			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			return
+		}
+		clientset, err := a.getKubernetesClient()
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
 			return
 		}
 		opts := &v1.PodLogOptions{Follow: true}
@@ -94,7 +76,7 @@ func (a *App) StreamPodLogs(podName string) {
 }
 
 // StreamPodContainerLogs streams logs for a pod container and emits each line as a Wails event
-func (a *App) StreamPodContainerLogs(podName string, container string) {
+func (a *App) StreamPodContainerLogs(podName, container string) {
 	// stop any previous stream for this pod
 	a.StopPodLogs(podName)
 
@@ -110,29 +92,13 @@ func (a *App) StreamPodContainerLogs(podName string, container string) {
 			cancel()
 		}()
 
-		configPath := a.getKubeConfigPath()
-		config, err := clientcmd.LoadFromFile(configPath)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] loading kubeconfig: "+err.Error())
-			return
-		}
-		if a.currentKubeContext == "" {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no kube context selected")
-			return
-		}
-		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-		restConfig, err := clientConfig.ClientConfig()
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client config: "+err.Error())
-			return
-		}
-		clientset, err := kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] clientset: "+err.Error())
-			return
-		}
 		if a.currentNamespace == "" {
 			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			return
+		}
+		clientset, err := a.getKubernetesClient()
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
 			return
 		}
 		opts := &v1.PodLogOptions{Follow: true, Container: container}
@@ -161,29 +127,15 @@ func (a *App) StreamPodContainerLogs(podName string, container string) {
 
 // GetPodLog returns the full log content of a pod (no follow)
 func (a *App) GetPodLog(podName string) (string, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return "", err
-	}
-	if a.currentKubeContext == "" {
-		return "", fmt.Errorf("no kube context selected")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return "", err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return "", err
-	}
 	if a.currentNamespace == "" {
 		return "", fmt.Errorf("no namespace selected")
 	}
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return "", err
+	}
 	opts := &v1.PodLogOptions{Follow: false}
-	req := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts)
-	data, err := req.Do(a.ctx).Raw()
+	data, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Do(a.ctx).Raw()
 	if err != nil {
 		return "", err
 	}
@@ -191,30 +143,16 @@ func (a *App) GetPodLog(podName string) (string, error) {
 }
 
 // GetPodContainerLog returns the full log content of a specific container (no follow)
-func (a *App) GetPodContainerLog(podName string, container string) (string, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return "", err
-	}
-	if a.currentKubeContext == "" {
-		return "", fmt.Errorf("no kube context selected")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return "", err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return "", err
-	}
+func (a *App) GetPodContainerLog(podName, container string) (string, error) {
 	if a.currentNamespace == "" {
 		return "", fmt.Errorf("no namespace selected")
 	}
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return "", err
+	}
 	opts := &v1.PodLogOptions{Follow: false, Container: container}
-	req := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts)
-	data, err := req.Do(a.ctx).Raw()
+	data, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Do(a.ctx).Raw()
 	if err != nil {
 		return "", err
 	}

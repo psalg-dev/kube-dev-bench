@@ -342,6 +342,8 @@ export namespace app {
 	    claim: string;
 	    storageClass: string;
 	    volumeType: string;
+	    reason: string;
+	    volumeMode: string;
 	    age: string;
 	    labels: Record<string, string>;
 	    annotations: Record<string, string>;
@@ -360,6 +362,8 @@ export namespace app {
 	        this.claim = source["claim"];
 	        this.storageClass = source["storageClass"];
 	        this.volumeType = source["volumeType"];
+	        this.reason = source["reason"];
+	        this.volumeMode = source["volumeMode"];
 	        this.age = source["age"];
 	        this.labels = source["labels"];
 	        this.annotations = source["annotations"];

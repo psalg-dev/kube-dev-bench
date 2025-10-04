@@ -21,6 +21,7 @@ import {
   GetStatefulSets,
   SetCurrentKubeContext,
   SetCurrentNamespace,
+  GetConnectionStatus,
 } from '../wailsjs/go/main/App';
 import ConnectionWizard from './ConnectionWizard.jsx';
 import React from 'react';
@@ -61,19 +62,18 @@ async function checkConnectionSetup() {
       renderConnectionWizard();
       return;
     }
-    if (!config.currentContext) {
-      showConnectionWizard = true;
-      renderConnectionWizard();
-      return;
-    }
+    // If there is no currentContext but contexts exist, proceed and we'll auto-select the first.
+    // Only show wizard if we fail to fetch namespaces after auto-selection later.
     try {
-      await GetNamespaces();
+      if (config.currentContext) {
+        await GetNamespaces();
+      }
       showConnectionWizard = false;
       initializeMainApp();
     } catch (connectionErr) {
-      console.log('Connection failed with current setup:', connectionErr);
-      showConnectionWizard = true;
-      renderConnectionWizard();
+      // We might not yet have a valid currentContext; still proceed – initializeMainApp will pick first context.
+      showConnectionWizard = false;
+      initializeMainApp();
     }
   } catch (err) {
     console.log('Error in connection setup:', err);
@@ -84,6 +84,8 @@ async function checkConnectionSetup() {
 
 function renderConnectionWizard() {
   const appElement = document.querySelector('#app');
+  // Ensure old dropdown roots are disposed so a future initializeMainApp() recreates them
+  destroySelectRoots();
   if (!appRoot) {
     appRoot = createRoot(appElement);
   }
@@ -98,10 +100,14 @@ function renderConnectionWizard() {
 }
 
 function initializeMainApp() {
+  // Stop any running counters before re-rendering layout
+  stopPodCountUpdater();
   if (appRoot) {
     appRoot.unmount();
     appRoot = null;
   }
+  // Always destroy select roots so they are recreated against the new DOM
+  destroySelectRoots();
   renderMainAppHTML();
   setupEventHandlers();
   mountSelects();
@@ -135,7 +141,10 @@ function renderMainAppHTML() {
       </main>
       <footer id="footer">
         <span id="footer-info"></span>
-        <span id="footer-dot"></span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="footer-dot"></span>
+          <span id="footer-warning" style="display: none; color: #d73a49; font-weight: bold; font-size: 16px;" title="Insecure connection: TLS certificate validation disabled">⚠️</span>
+        </div>
       </footer>
     </div>
   `;
@@ -148,7 +157,8 @@ function renderMainAppHTML() {
   sidebarSections = document.getElementById("sidebar-sections");
 
   footerInfo.textContent = '';
-  footerDot.style.background = '#ccc';
+  // Remove hard-coded inline background so CSS classes (.connected, .insecure) can control color
+  footerDot.style.background = '';
 }
 
 function mountSelects() {
@@ -214,6 +224,53 @@ function setupEventHandlers() {
   }
 }
 
+// Helper: fetch namespaces for the currently selected context (assuming selectedContext set)
+async function fetchAndSelectNamespaces(fallbackMessageShown = false) {
+  try {
+    const namespaces = await GetNamespaces();
+    if (namespaces && namespaces.length > 0) {
+      namespaceOptions = namespaces;
+      isNamespaceDisabled = false;
+      // Ensure selectedNamespaces intersects; otherwise choose first
+      const valid = selectedNamespaces.filter(ns => namespaces.includes(ns));
+      if (valid.length > 0) {
+        selectedNamespaces = valid;
+        selectedNamespace = valid[0];
+      } else {
+        selectedNamespaces = [namespaces[0]];
+        selectedNamespace = namespaces[0];
+        if (!fallbackMessageShown) {
+          showSuccess(`Auto-selected namespace '${selectedNamespace}'.`);
+        }
+      }
+      // Persist selection (best-effort)
+      try {
+        await Promise.all([
+          (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
+          SetCurrentNamespace(selectedNamespace).catch(() => {}),
+        ]);
+      } catch (_) { /* ignore */ }
+      clusterConnected = true;
+      renderNamespaceSelect();
+      renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
+      renderMainContent();
+      // Update footer after successful connection to check security status
+      await updateFooter();
+    } else {
+      showWarning('No namespaces found for the selected context.');
+      namespaceOptions = [];
+      selectedNamespaces = [];
+      selectedNamespace = '';
+      isNamespaceDisabled = false;
+      renderNamespaceSelect();
+    }
+  } catch (err) {
+    showError('Failed to fetch namespaces: ' + err);
+    isNamespaceDisabled = false;
+    renderNamespaceSelect();
+  }
+}
+
 // Initialize with saved config and load data
 async function initializeWithConfig() {
   isInitializing = true;
@@ -233,36 +290,17 @@ async function initializeWithConfig() {
       return;
     }
 
+    // Auto-select first context if none stored
+    if (!selectedContext) {
+      selectedContext = contextOptions[0];
+      try { await SetCurrentKubeContext(selectedContext); } catch (_) {}
+      showSuccess(`Auto-selected context '${selectedContext}'.`);
+    }
+
     renderContextSelect();
 
     if (selectedContext) {
-      try {
-        const namespaces = await GetNamespaces();
-        if (namespaces && namespaces.length > 0) {
-          namespaceOptions = namespaces;
-          isNamespaceDisabled = false;
-          // filter stored namespaces to those existing now; default to first available if none
-          const valid = selectedNamespaces.filter(ns => namespaces.includes(ns));
-          if (valid.length > 0) {
-            selectedNamespaces = valid;
-            selectedNamespace = valid[0];
-          } else {
-            selectedNamespaces = [namespaces[0]];
-            selectedNamespace = namespaces[0];
-          }
-          if (selectedNamespace) {
-            clusterConnected = true;
-            renderNamespaceSelect();
-            renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
-            renderMainContent();
-          }
-        }
-      } catch (err) {
-        showError("Failed to connect with the saved cluster: " + err);
-        isNamespaceDisabled = false;
-        clusterConnected = false;
-        renderNamespaceSelect();
-      }
+      await fetchAndSelectNamespaces();
     }
     updateFooter();
   } catch (err) {
@@ -275,10 +313,55 @@ async function initializeWithConfig() {
   isInitializing = false;
 }
 
-function updateFooter() {
+async function updateFooter() {
   const nsText = selectedNamespaces && selectedNamespaces.length > 0 ? selectedNamespaces.join(', ') : '';
   footerInfo.textContent = selectedContext && nsText ? `${selectedContext} / ${nsText}` : '';
+  // Clear any inline background so class-based styling works
+  footerDot.style.background = '';
+  // Base state reset
+  footerDot.classList.remove('insecure');
   if (clusterConnected) footerDot.classList.add('connected'); else footerDot.classList.remove('connected');
+
+  // Check connection security status and show/hide warning indicator
+  if (clusterConnected) {
+    try {
+      const connectionStatus = await GetConnectionStatus();
+      const warningElement = document.getElementById('footer-warning');
+      if (connectionStatus && connectionStatus.isInsecure) {
+        // Show warning icon + make dot red
+        footerDot.classList.remove('connected');
+        footerDot.classList.add('insecure');
+        footerDot.title = 'Insecure connection: TLS certificate validation disabled';
+        if (warningElement) {
+          warningElement.style.display = 'inline';
+        }
+        console.log('Showing insecure connection warning + red footer dot');
+      } else {
+        // Secure connection
+        footerDot.classList.remove('insecure');
+        if (clusterConnected) footerDot.classList.add('connected');
+        footerDot.removeAttribute('title');
+        if (warningElement) {
+          warningElement.style.display = 'none';
+        }
+        console.log('Secure connection: green footer dot');
+      }
+    } catch (err) {
+      console.error('Error checking connection status:', err);
+      // On error, fall back to neutral dot and hide warning
+      footerDot.classList.remove('insecure');
+      if (clusterConnected) footerDot.classList.add('connected');
+      const warningElement = document.getElementById('footer-warning');
+      if (warningElement) warningElement.style.display = 'none';
+    }
+  } else {
+    // Not connected, neutral dot
+    footerDot.classList.remove('connected');
+    footerDot.classList.remove('insecure');
+    footerDot.removeAttribute('title');
+    const warningElement = document.getElementById('footer-warning');
+    if (warningElement) warningElement.style.display = 'none';
+  }
 }
 
 function startPodCountUpdater() {
@@ -373,8 +456,8 @@ function startPodCountUpdater() {
         const next = typeof value === 'number' ? value : (Array.isArray(value) ? value.length : 0);
         if (last !== next) {
           lastCounts[valueKey] = next;
-          el.textContent = String(next);
-          el.style.color = next > 0 ? '#8ecfff' : '#9aa0a6';
+            el.textContent = String(next);
+            el.style.color = next > 0 ? '#8ecfff' : '#9aa0a6';
         }
       };
       setCount('sidebar-deployments-count', 'deployments', flattenLen(depLists));
@@ -520,6 +603,14 @@ function onNamespaceChange(values) {
       updateFooter();
       renderNamespaceSelect();
     });
+}
+
+// Helper to fully dispose the dropdown React roots so they can be cleanly recreated
+function destroySelectRoots() {
+  try { if (contextSelectRoot) { contextSelectRoot.unmount(); } } catch (_) {}
+  try { if (namespaceSelectRoot) { namespaceSelectRoot.unmount(); } } catch (_) {}
+  contextSelectRoot = null;
+  namespaceSelectRoot = null;
 }
 
 // Start initialization by checking connection setup
