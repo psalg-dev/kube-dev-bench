@@ -184,6 +184,8 @@ function renderContextSelect() {
   );
 }
 
+let isNamespaceRefreshInFlight = false;
+
 function renderNamespaceSelect() {
   if (!namespaceSelectRoot) return;
   namespaceSelectRoot.render(
@@ -191,7 +193,8 @@ function renderNamespaceSelect() {
       values: selectedNamespaces,
       options: namespaceOptions,
       disabled: isNamespaceDisabled,
-      onChange: onNamespaceChange
+      onChange: onNamespaceChange,
+      onMenuOpen: handleNamespaceMenuOpen
     })
   );
 }
@@ -615,3 +618,67 @@ function destroySelectRoots() {
 
 // Start initialization by checking connection setup
 checkConnectionSetup();
+
+async function handleNamespaceMenuOpen() {
+  if (isNamespaceRefreshInFlight || !selectedContext) return;
+  isNamespaceRefreshInFlight = true;
+  try {
+    const latest = await GetNamespaces();
+    if (!Array.isArray(latest)) return;
+    // Compare sorted lists to detect change
+    const prevSorted = [...(namespaceOptions||[])].sort();
+    const latestSorted = [...latest].sort();
+    const changed = prevSorted.length !== latestSorted.length || prevSorted.some((v,i)=>v!==latestSorted[i]);
+    if (!changed) return; // no update needed
+
+    // Preserve still existing selections
+    const stillSelected = selectedNamespaces.filter(ns => latest.includes(ns));
+    const lostSelections = selectedNamespaces.filter(ns => !latest.includes(ns));
+
+    namespaceOptions = latest;
+
+    if (stillSelected.length === 0 && latest.length > 0) {
+      // Pick first namespace if all previous selections disappeared
+      selectedNamespaces = [latest[0]];
+      selectedNamespace = latest[0];
+      showSuccess(`Namespaces list updated. Auto-selected '${selectedNamespace}'.`);
+      try {
+        await Promise.all([
+          (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
+          SetCurrentNamespace(selectedNamespace).catch(()=>{})
+        ]);
+      } catch(_) {/* ignore */}
+      startPodCountUpdater();
+      renderMainContent();
+    } else {
+      if (lostSelections.length > 0) {
+        showWarning(`Removed namespaces: ${lostSelections.join(', ')}`);
+      }
+      if (stillSelected.length !== selectedNamespaces.length) {
+        // We lost some selections
+        selectedNamespaces = stillSelected;
+        selectedNamespace = stillSelected[0] || '';
+        try {
+          await Promise.all([
+            (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
+            selectedNamespace ? SetCurrentNamespace(selectedNamespace).catch(()=>{}) : Promise.resolve()
+          ]);
+        } catch(_) {/* ignore */}
+        startPodCountUpdater();
+        renderMainContent();
+      } else {
+        // Only list changed (new namespaces added)
+        const newOnes = latest.filter(ns => !prevSorted.includes(ns));
+        if (newOnes.length > 0) {
+          showSuccess(`New namespaces detected: ${newOnes.join(', ')}`);
+        }
+      }
+    }
+  } catch(err) {
+    // Silent failure to avoid noise; could log if desired
+    console.debug('Namespace refresh on open failed:', err);
+  } finally {
+    isNamespaceRefreshInFlight = false;
+    renderNamespaceSelect(); // re-render if changed
+  }
+}

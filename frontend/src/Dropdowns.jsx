@@ -110,7 +110,7 @@ export function ContextSelect({ value, options, disabled, onChange }) {
   );
 }
 
-export function NamespaceMultiSelect({ values, options, disabled, onChange, placeholder = 'Select namespaces…' }) {
+export function NamespaceMultiSelect({ values, options, disabled, onChange, placeholder = 'Select namespaces…', onMenuOpen }) {
   const selectOptions = (options || []).map((o) => ({ value: o, label: o }));
   const current = (values || []).map((v) => ({ value: v, label: v }));
   return (
@@ -129,6 +129,7 @@ export function NamespaceMultiSelect({ values, options, disabled, onChange, plac
       closeMenuOnSelect={false}
       isSearchable={false}
       classNamePrefix="kdv"
+      onMenuOpen={onMenuOpen}
     />
   );
 }
