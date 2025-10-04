@@ -4,6 +4,7 @@ import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
@@ -36,6 +37,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     accessModes: Array.isArray(i.accessModes ?? i.AccessModes) ? (i.accessModes ?? i.AccessModes).join(', ') : '-',
     volumeName: i.volumeName ?? i.VolumeName ?? '-',
     age: i.age ?? i.Age ?? '-',
+    labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {}
   }));
 
   // Fetch PVCs for all selected namespaces
@@ -154,14 +156,8 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
       return (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{
-            padding: '8px 10px',
-            borderBottom: '1px solid var(--gh-border, #30363d)',
-            background: 'var(--gh-bg-sidebar, #161b22)',
-            color: 'var(--gh-text, #c9d1d9)'
-          }}>
-            Summary for {row.name}
-          </div>
+          <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
+          {/* Main content */}
           <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
             <QuickInfoSection
               resourceName={row.name}

@@ -98,6 +98,7 @@ func (a *App) GetPersistentVolumeClaims(namespace string) ([]PersistentVolumeCla
 			AccessModes:  accessModes,
 			StorageClass: storageClass,
 			Age:          age,
+			Labels:       pvc.Labels,
 		})
 	}
 

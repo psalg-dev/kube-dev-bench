@@ -151,6 +151,8 @@ func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
 			StorageClass:  storageClass,
 			VolumeType:    volumeType,
 			Age:           age,
+			Labels:        pv.Labels,
+			Annotations:   pv.Annotations, // Added
 		})
 	}
 

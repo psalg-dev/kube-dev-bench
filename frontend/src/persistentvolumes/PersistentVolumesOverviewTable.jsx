@@ -4,6 +4,7 @@ import OverviewTableWithPanel from '../OverviewTableWithPanel';
 import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import { showResourceOverlay } from '../resource-overlay';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -48,16 +49,12 @@ function renderPanelContent(row, tab) {
       { key: 'name', label: 'PV name', type: 'break-word' }
     ];
 
+    // Extract annotations once for reuse
+    const annotations = row.annotations || row.Annotations || row.metadata?.annotations || {};
+
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-          background: 'var(--gh-bg-sidebar, #161b22)',
-          color: 'var(--gh-text, #c9d1d9)'
-        }}>
-          Summary for {row.name}
-        </div>
+        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -77,6 +74,33 @@ function renderPanelContent(row, tab) {
               <strong>Claim:</strong> {row.claim || '-'}<br />
               <strong>Storage Class:</strong> {row.storageClass || '-'}
             </div>
+            {annotations && Object.keys(annotations).length > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>Annotations</div>
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  maxHeight: 180,
+                  overflowY: 'auto',
+                  paddingRight: 4,
+                  fontSize: 12,
+                  scrollbarWidth: 'thin'
+                }}>
+                  {Object.entries(annotations).map(([k, v]) => (
+                    <div key={k} style={{ display: 'flex', alignItems: 'flex-start' }}>
+                      <span style={{ color: 'var(--gh-text-muted, #8b949e)', minWidth: 200, wordBreak: 'break-all' }}>{k}:</span>
+                      <span style={{ marginLeft: 4, wordBreak: 'break-all', flex: 1 }}>{v || '-'}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(!annotations || Object.keys(annotations).length === 0) && (
+              <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>
+                No annotations
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -142,6 +166,8 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
       storageClass: i.storageClass ?? i.StorageClass ?? '-',
       volumeType: i.volumeType ?? i.VolumeType ?? '-',
       age: i.age ?? i.Age ?? '-',
+      labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {},
+      annotations: i.annotations ?? i.Annotations ?? i.metadata?.annotations ?? {}
     };
   });
 

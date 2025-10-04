@@ -55,6 +55,17 @@ func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
 			replicas = *ss.Spec.Replicas
 		}
 
+		labels := map[string]string{}
+		for k, v := range ss.Labels {
+			labels[k] = v
+		}
+		if ss.Spec.Template.Labels != nil {
+			for k, v := range ss.Spec.Template.Labels {
+				if _, e := labels[k]; !e {
+					labels[k] = v
+				}
+			}
+		}
 		result = append(result, StatefulSetInfo{
 			Name:      ss.Name,
 			Namespace: ss.Namespace,
@@ -62,6 +73,7 @@ func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
 			Ready:     ss.Status.ReadyReplicas,
 			Age:       age,
 			Image:     image,
+			Labels:    labels,
 		})
 	}
 

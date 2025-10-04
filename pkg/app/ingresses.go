@@ -91,6 +91,7 @@ func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
 			Address:   address,
 			Ports:     ports,
 			Age:       age,
+			Labels:    ingress.Labels,
 		})
 	}
 

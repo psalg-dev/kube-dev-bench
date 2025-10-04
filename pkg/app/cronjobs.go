@@ -60,6 +60,17 @@ func (a *App) GetCronJobs(namespace string) ([]CronJobInfo, error) {
 		} else if suspend {
 			nextRun = "Suspended"
 		}
+		labels := map[string]string{}
+		for k, v := range cj.Labels {
+			labels[k] = v
+		}
+		if tmpl := cj.Spec.JobTemplate.Spec.Template; tmpl.Labels != nil {
+			for k, v := range tmpl.Labels {
+				if _, e := labels[k]; !e {
+					labels[k] = v
+				}
+			}
+		}
 		result = append(result, CronJobInfo{
 			Name:      cj.Name,
 			Namespace: cj.Namespace,
@@ -68,6 +79,7 @@ func (a *App) GetCronJobs(namespace string) ([]CronJobInfo, error) {
 			Age:       age,
 			Image:     image,
 			NextRun:   nextRun,
+			Labels:    labels,
 		})
 	}
 

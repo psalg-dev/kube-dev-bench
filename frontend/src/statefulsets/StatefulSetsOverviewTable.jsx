@@ -4,6 +4,7 @@ import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -42,14 +43,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-          background: 'var(--gh-bg-sidebar, #161b22)',
-          color: 'var(--gh-text, #c9d1d9)'
-        }}>
-          Summary for {row.name}
-        </div>
+        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -58,7 +52,6 @@ function renderPanelContent(row, tab) {
             error={null}
             fields={quickInfoFields}
           />
-          {/* Right side content area for additional information */}
           <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
             <div style={{ fontWeight: 600, marginBottom: 12 }}>StatefulSet Details</div>
             <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
@@ -124,7 +117,16 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
         setLoading(true);
         const lists = await Promise.all(nsArr.map(ns => AppAPI.GetStatefulSets(ns).catch(() => [])));
         if (cancelled) return;
-        setItems(lists.flat());
+        const flat = lists.flat().map(x => ({
+          name: x.name ?? x.Name,
+          namespace: x.namespace ?? x.Namespace,
+          replicas: x.replicas ?? x.Replicas ?? 0,
+          ready: x.ready ?? x.Ready ?? 0,
+          age: x.age ?? x.Age ?? '-',
+          image: x.image ?? x.Image ?? '',
+          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
+        }));
+        setItems(flat);
       } catch (e) {
         if (!cancelled) setItems([]);
       } finally {
@@ -147,6 +149,7 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
           ready: x.ready ?? x.Ready ?? 0,
           age: x.age ?? x.Age ?? '-',
           image: x.image ?? x.Image ?? '',
+          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
         }));
         setItems(norm);
       } catch (_) {

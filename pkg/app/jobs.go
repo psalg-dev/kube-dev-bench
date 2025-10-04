@@ -70,6 +70,17 @@ func (a *App) GetJobs(namespace string) ([]JobInfo, error) {
 			}
 		}
 
+		labels := map[string]string{}
+		for k, v := range job.Labels {
+			labels[k] = v
+		}
+		if job.Spec.Template.Labels != nil {
+			for k, v := range job.Spec.Template.Labels {
+				if _, exists := labels[k]; !exists {
+					labels[k] = v
+				}
+			}
+		}
 		jobInfo := JobInfo{
 			Name:        job.Name,
 			Namespace:   job.Namespace,
@@ -80,6 +91,7 @@ func (a *App) GetJobs(namespace string) ([]JobInfo, error) {
 			Age:         age,
 			Image:       image,
 			Duration:    duration,
+			Labels:      labels,
 		}
 
 		result = append(result, jobInfo)

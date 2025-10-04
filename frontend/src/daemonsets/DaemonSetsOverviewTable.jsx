@@ -4,6 +4,7 @@ import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -42,14 +43,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-          background: 'var(--gh-bg-sidebar, #161b22)',
-          color: 'var(--gh-text, #c9d1d9)'
-        }}>
-          Summary for {row.name}
-        </div>
+        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -113,24 +107,6 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-    const fetchDaemonSets = async () => {
-      try {
-        setLoading(true);
-        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDaemonSets(ns).catch(() => [])));
-        setDaemonSets(lists.flat());
-      } catch (error) {
-        console.error('Failed to fetch daemonsets:', error);
-        setDaemonSets([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDaemonSets();
-  }, [namespaces, namespace]);
-
-  useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
@@ -141,19 +117,40 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
           current: d.current ?? d.Current ?? 0,
           age: d.age ?? d.Age ?? '-',
           image: d.image ?? d.Image ?? '',
+          labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
         }));
         setDaemonSets(norm);
       } catch (_) {
         setDaemonSets([]);
-      } finally {
-        setLoading(false);
-      }
+      } finally { setLoading(false); }
     };
     EventsOn('daemonsets:update', onUpdate);
-    return () => {
-      try { EventsOff('daemonsets:update'); } catch (_) {}
-    };
+    return () => { try { EventsOff('daemonsets:update'); } catch (_) {} };
   }, []);
+
+  useEffect(() => {
+    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    if (nsArr.length === 0) return;
+    const fetchDaemonSets = async () => {
+      try {
+        setLoading(true);
+        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDaemonSets(ns).catch(() => [])));
+        const flat = lists.flat().map(d => ({
+          name: d.name ?? d.Name,
+          namespace: d.namespace ?? d.Namespace,
+          desired: d.desired ?? d.Desired ?? 0,
+          current: d.current ?? d.Current ?? 0,
+          age: d.age ?? d.Age ?? '-',
+          image: d.image ?? d.Image ?? '',
+          labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
+        }));
+        setDaemonSets(flat);
+      } catch (error) {
+        setDaemonSets([]);
+      } finally { setLoading(false); }
+    };
+    fetchDaemonSets();
+  }, [namespaces, namespace]);
 
   return (
     <OverviewTableWithPanel

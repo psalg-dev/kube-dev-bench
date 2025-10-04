@@ -55,6 +55,17 @@ func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
 			replicas = *rs.Spec.Replicas
 		}
 
+		labels := map[string]string{}
+		for k, v := range rs.Labels {
+			labels[k] = v
+		}
+		if rs.Spec.Template.Labels != nil {
+			for k, v := range rs.Spec.Template.Labels {
+				if _, e := labels[k]; !e {
+					labels[k] = v
+				}
+			}
+		}
 		result = append(result, ReplicaSetInfo{
 			Name:      rs.Name,
 			Namespace: rs.Namespace,
@@ -62,6 +73,7 @@ func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
 			Ready:     rs.Status.ReadyReplicas,
 			Age:       age,
 			Image:     image,
+			Labels:    labels,
 		})
 	}
 

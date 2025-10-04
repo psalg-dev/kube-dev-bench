@@ -4,6 +4,7 @@ import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -48,14 +49,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid #30363d',
-          background: '#161b22',
-          color: '#c9d1d9'
-        }}>
-          Summary for {row.name}
-        </div>
+        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: '#c9d1d9' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -124,6 +118,7 @@ export default function CronJobsOverviewTable({ namespaces }) {
     nextRun: d.nextRun ?? d.NextRun ?? '-',
     age: d.age ?? d.Age ?? '-',
     image: d.image ?? d.Image ?? '',
+    labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
   }));
 
   const fetchAllCronJobs = async () => {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../wailsjs/go/main/App';
 import LogViewer from '../LogViewer';
-import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 export default function PodSummaryTab({ podName }) {
   const [data, setData] = useState(null);
@@ -70,24 +70,7 @@ export default function PodSummaryTab({ podName }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [podName, data && data.namespace]);
 
-  // Stream logs: subscribe to pod log events and start/stop backend stream
-  useEffect(() => {
-    if (!podName) return;
-    const eventName = `podlogs:${podName}`;
-    const listener = (line) => {
-      const text = String(line ?? '');
-      // Append and keep only last 20 lines
-      setLogs(prev => (prev.length >= 20 ? [...prev.slice(1), text] : [...prev, text]));
-    };
-    EventsOn(eventName, listener);
-    // start streaming from backend
-    try { StreamPodLogs(podName); } catch {}
-    return () => {
-      // stop stream and unsubscribe
-      try { StopPodLogs(podName); } catch {}
-      try { EventsOff(eventName); } catch {}
-    };
-  }, [podName]);
+  // Removed log streaming side-effect: handled by <LogViewer /> directly.
 
   const renderLabels = (labels) => {
     if (!labels || Object.keys(labels).length === 0) return '-';
@@ -128,9 +111,7 @@ export default function PodSummaryTab({ podName }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)', background: 'var(--gh-bg-sidebar, #161b22)', color: 'var(--gh-text, #c9d1d9)' }}>
-        Summary for {podName}
-      </div>
+      <SummaryHeader hideTitle name={podName} labels={data?.labels || data?.Labels || data?.metadata?.labels} />
       {loading && <div style={{ padding: 12, color: 'var(--gh-text-muted, #8b949e)' }}>Loading…</div>}
       {error && <div style={{ padding: 12, color: '#f85149' }}>Error: {error}</div>}
       {!loading && !error && (

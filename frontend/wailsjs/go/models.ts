@@ -28,6 +28,7 @@ export namespace app {
 	    age: string;
 	    keys: number;
 	    size: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new ConfigMapInfo(source);
@@ -40,6 +41,7 @@ export namespace app {
 	        this.age = source["age"];
 	        this.keys = source["keys"];
 	        this.size = source["size"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class MountInfo {
@@ -102,6 +104,7 @@ export namespace app {
 	    age: string;
 	    image: string;
 	    nextRun: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new CronJobInfo(source);
@@ -116,6 +119,7 @@ export namespace app {
 	        this.age = source["age"];
 	        this.image = source["image"];
 	        this.nextRun = source["nextRun"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class DaemonSetInfo {
@@ -125,6 +129,7 @@ export namespace app {
 	    current: number;
 	    age: string;
 	    image: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new DaemonSetInfo(source);
@@ -138,6 +143,7 @@ export namespace app {
 	        this.current = source["current"];
 	        this.age = source["age"];
 	        this.image = source["image"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class DeploymentInfo {
@@ -148,6 +154,7 @@ export namespace app {
 	    available: number;
 	    age: string;
 	    image: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new DeploymentInfo(source);
@@ -162,6 +169,7 @@ export namespace app {
 	        this.available = source["available"];
 	        this.age = source["age"];
 	        this.image = source["image"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class EventInfo {
@@ -216,6 +224,7 @@ export namespace app {
 	    address: string;
 	    ports: string;
 	    age: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new IngressInfo(source);
@@ -230,6 +239,7 @@ export namespace app {
 	        this.address = source["address"];
 	        this.ports = source["ports"];
 	        this.age = source["age"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class JobInfo {
@@ -242,6 +252,7 @@ export namespace app {
 	    age: string;
 	    image: string;
 	    duration: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new JobInfo(source);
@@ -258,6 +269,7 @@ export namespace app {
 	        this.age = source["age"];
 	        this.image = source["image"];
 	        this.duration = source["duration"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class KubeConfigInfo {
@@ -302,6 +314,7 @@ export namespace app {
 	    accessModes: string;
 	    storageClass: string;
 	    age: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PersistentVolumeClaimInfo(source);
@@ -317,6 +330,7 @@ export namespace app {
 	        this.accessModes = source["accessModes"];
 	        this.storageClass = source["storageClass"];
 	        this.age = source["age"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class PersistentVolumeInfo {
@@ -329,6 +343,8 @@ export namespace app {
 	    storageClass: string;
 	    volumeType: string;
 	    age: string;
+	    labels: Record<string, string>;
+	    annotations: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new PersistentVolumeInfo(source);
@@ -345,6 +361,8 @@ export namespace app {
 	        this.storageClass = source["storageClass"];
 	        this.volumeType = source["volumeType"];
 	        this.age = source["age"];
+	        this.labels = source["labels"];
+	        this.annotations = source["annotations"];
 	    }
 	}
 	export class PodInfo {
@@ -519,6 +537,7 @@ export namespace app {
 	    ready: number;
 	    age: string;
 	    image: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new ReplicaSetInfo(source);
@@ -532,6 +551,7 @@ export namespace app {
 	        this.ready = source["ready"];
 	        this.age = source["age"];
 	        this.image = source["image"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class StatefulSetInfo {
@@ -541,6 +561,7 @@ export namespace app {
 	    ready: number;
 	    age: string;
 	    image: string;
+	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new StatefulSetInfo(source);
@@ -554,6 +575,7 @@ export namespace app {
 	        this.ready = source["ready"];
 	        this.age = source["age"];
 	        this.image = source["image"];
+	        this.labels = source["labels"];
 	    }
 	}
 

@@ -4,6 +4,7 @@ import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -44,14 +45,8 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-          background: 'var(--gh-bg-sidebar, #161b22)',
-          color: 'var(--gh-text, #c9d1d9)'
-        }}>
-          Summary for {row.name}
-        </div>
+        {/* Centered heading with labels on right */}
+        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -107,10 +102,6 @@ spec:
   return null;
 }
 
-function panelHeader(row) {
-  return <span style={{ fontWeight: 600 }}>{row.name}</span>;
-}
-
 export default function DeploymentsOverviewTable({ namespaces, namespace }) {
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -119,12 +110,23 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
     const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
     if (nsArr.length === 0) return;
 
+    const normalize = (arr) => (arr || []).filter(Boolean).map(d => ({
+      name: d.name ?? d.Name,
+      namespace: d.namespace ?? d.Namespace,
+      replicas: d.replicas ?? d.Replicas ?? 0,
+      ready: d.ready ?? d.Ready ?? 0,
+      available: d.available ?? d.Available ?? 0,
+      age: d.age ?? d.Age ?? '-',
+      image: d.image ?? d.Image ?? '',
+      labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
+    }));
+
     const fetchDeployments = async () => {
       try {
         setLoading(true);
         const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDeployments(ns).catch(() => [])));
-        const data = lists.flat();
-        setDeployments(Array.isArray(data) ? data : []);
+        const flat = lists.flat();
+        setDeployments(normalize(flat));
       } catch (error) {
         console.error('Failed to fetch deployments:', error);
         setDeployments([]);
@@ -144,11 +146,12 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
         const norm = arr.map(d => ({
           name: d.name ?? d.Name,
           namespace: d.namespace ?? d.Namespace,
-          replicas: d.replicas ?? d.Replicas ?? 0,
-          ready: d.ready ?? d.Ready ?? 0,
-          available: d.available ?? d.Available ?? 0,
-          age: d.age ?? d.Age ?? '-',
-          image: d.image ?? d.Image ?? '',
+            replicas: d.replicas ?? d.Replicas ?? 0,
+            ready: d.ready ?? d.Ready ?? 0,
+            available: d.available ?? d.Available ?? 0,
+            age: d.age ?? d.Age ?? '-',
+            image: d.image ?? d.Image ?? '',
+            labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
         }));
         setDeployments(norm);
       } catch (e) {
@@ -169,7 +172,7 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
       data={deployments}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
-      panelHeader={panelHeader}
+      panelHeader={(row) => <span style={{ fontWeight: 600 }}>{row.name}</span>}
       title="Deployments"
       loading={loading}
       resourceKind="Deployment"

@@ -4,6 +4,7 @@ import QuickInfoSection from '../QuickInfoSection';
 import YamlViewer from '../YamlViewer';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import SummaryHeader from '../SummaryHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -42,14 +43,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{
-          padding: '8px 10px',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-          background: 'var(--gh-bg-sidebar, #161b22)',
-          color: 'var(--gh-text, #c9d1d9)'
-        }}>
-          Summary for {row.name}
-        </div>
+        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -108,6 +102,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }) {
     keys: s.keys ?? s.Keys ?? '-',
     size: s.size ?? s.Size ?? '-',
     age: s.age ?? s.Age ?? '-',
+    labels: s.labels ?? s.Labels ?? s.metadata?.labels ?? {}
   }));
 
   const fetchAllSecrets = async () => {
@@ -140,16 +135,11 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }) {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = namespaces ? arr.filter(s => namespaces.includes(s?.namespace || s?.Namespace)) : arr;
-        setData(normalize(filtered));
-      } catch (_) {
-        // ignore
-      }
+        setData(normalize(arr));
+      } catch { /* ignore */ }
     };
-    const off = EventsOn('secrets:update', onUpdate);
-    return () => {
-      EventsOff('secrets:update', onUpdate);
-    };
+    EventsOn('secrets:update', onUpdate);
+    return () => { try { EventsOff('secrets:update'); } catch (_) {} };
   }, [namespaces]);
 
   return (

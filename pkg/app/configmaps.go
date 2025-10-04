@@ -64,6 +64,7 @@ func (a *App) GetConfigMaps(namespace string) ([]ConfigMapInfo, error) {
 			Age:       age,
 			Keys:      keys,
 			Size:      size,
+			Labels:    cm.Labels,
 		})
 	}
 

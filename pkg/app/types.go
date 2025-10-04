@@ -108,110 +108,121 @@ type PodMounts struct {
 
 // DeploymentInfo describes a deployment's basic info
 type DeploymentInfo struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Replicas  int32  `json:"replicas"`
-	Ready     int32  `json:"ready"`
-	Available int32  `json:"available"`
-	Age       string `json:"age"`
-	Image     string `json:"image"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Replicas  int32             `json:"replicas"`
+	Ready     int32             `json:"ready"`
+	Available int32             `json:"available"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	Labels    map[string]string `json:"labels"` // Added: union of deployment metadata labels (preferred) or pod template labels fallback
 }
 
 // JobInfo describes a job's basic info
 type JobInfo struct {
-	Name        string `json:"name"`
-	Namespace   string `json:"namespace"`
-	Completions int32  `json:"completions"`
-	Succeeded   int32  `json:"succeeded"`
-	Active      int32  `json:"active"`
-	Failed      int32  `json:"failed"`
-	Age         string `json:"age"`
-	Image       string `json:"image"`
-	Duration    string `json:"duration"`
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace"`
+	Completions int32             `json:"completions"`
+	Succeeded   int32             `json:"succeeded"`
+	Active      int32             `json:"active"`
+	Failed      int32             `json:"failed"`
+	Age         string            `json:"age"`
+	Image       string            `json:"image"`
+	Duration    string            `json:"duration"`
+	Labels      map[string]string `json:"labels"` // Added
 }
 
 // CronJobInfo describes a cronjob's basic info
 type CronJobInfo struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Schedule  string `json:"schedule"`
-	Suspend   bool   `json:"suspend"`
-	Age       string `json:"age"`
-	Image     string `json:"image"`
-	NextRun   string `json:"nextRun"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Schedule  string            `json:"schedule"`
+	Suspend   bool              `json:"suspend"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	NextRun   string            `json:"nextRun"`
+	Labels    map[string]string `json:"labels"` // Added
 }
 
 // DaemonSetInfo describes a daemonset's basic info
 type DaemonSetInfo struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Desired   int32  `json:"desired"`
-	Current   int32  `json:"current"`
-	Age       string `json:"age"`
-	Image     string `json:"image"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Desired   int32             `json:"desired"`
+	Current   int32             `json:"current"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	Labels    map[string]string `json:"labels"` // Added
 }
 
 // StatefulSetInfo describes a statefulset's basic info
 type StatefulSetInfo struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Replicas  int32  `json:"replicas"`
-	Ready     int32  `json:"ready"`
-	Age       string `json:"age"`
-	Image     string `json:"image"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Replicas  int32             `json:"replicas"`
+	Ready     int32             `json:"ready"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	Labels    map[string]string `json:"labels"` // Added
 }
 
 // ReplicaSetInfo describes a replicaset's basic info
 type ReplicaSetInfo struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Replicas  int32  `json:"replicas"`
-	Ready     int32  `json:"ready"`
-	Age       string `json:"age"`
-	Image     string `json:"image"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Replicas  int32             `json:"replicas"`
+	Ready     int32             `json:"ready"`
+	Age       string            `json:"age"`
+	Image     string            `json:"image"`
+	Labels    map[string]string `json:"labels"` // Added
 }
 
 // ConfigMapInfo describes a configmap's basic info
 type ConfigMapInfo struct {
-	Name      string `json:"name"`
-	Namespace string `json:"namespace"`
-	Age       string `json:"age"`
-	Keys      int    `json:"keys"`
-	Size      string `json:"size"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Age       string            `json:"age"`
+	Keys      int               `json:"keys"`
+	Size      string            `json:"size"`
+	Labels    map[string]string `json:"labels"` // Added
 }
 
 // IngressInfo describes an ingress's basic info
 type IngressInfo struct {
-	Name      string   `json:"name"`
-	Namespace string   `json:"namespace"`
-	Class     string   `json:"class"`
-	Hosts     []string `json:"hosts"`
-	Address   string   `json:"address"`
-	Ports     string   `json:"ports"`
-	Age       string   `json:"age"`
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Class     string            `json:"class"`
+	Hosts     []string          `json:"hosts"`
+	Address   string            `json:"address"`
+	Ports     string            `json:"ports"`
+	Age       string            `json:"age"`
+	Labels    map[string]string `json:"labels"` // Added
 }
 
 // PersistentVolumeClaimInfo describes a PVC's basic info
 type PersistentVolumeClaimInfo struct {
-	Name         string `json:"name"`
-	Namespace    string `json:"namespace"`
-	Status       string `json:"status"`
-	Volume       string `json:"volume"`
-	Capacity     string `json:"capacity"`
-	AccessModes  string `json:"accessModes"`
-	StorageClass string `json:"storageClass"`
-	Age          string `json:"age"`
+	Name         string            `json:"name"`
+	Namespace    string            `json:"namespace"`
+	Status       string            `json:"status"`
+	Volume       string            `json:"volume"`
+	Capacity     string            `json:"capacity"`
+	AccessModes  string            `json:"accessModes"`
+	StorageClass string            `json:"storageClass"`
+	Age          string            `json:"age"`
+	Labels       map[string]string `json:"labels"` // Added
 }
 
 // PersistentVolumeInfo describes a persistent volume in the cluster
 type PersistentVolumeInfo struct {
-	Name          string `json:"name"`
-	Capacity      string `json:"capacity"`
-	AccessModes   string `json:"accessModes"`
-	ReclaimPolicy string `json:"reclaimPolicy"`
-	Status        string `json:"status"`
-	Claim         string `json:"claim"`
-	StorageClass  string `json:"storageClass"`
-	VolumeType    string `json:"volumeType"`
-	Age           string `json:"age"`
+	Name          string            `json:"name"`
+	Capacity      string            `json:"capacity"`
+	AccessModes   string            `json:"accessModes"`
+	ReclaimPolicy string            `json:"reclaimPolicy"`
+	Status        string            `json:"status"`
+	Claim         string            `json:"claim"`
+	StorageClass  string            `json:"storageClass"`
+	VolumeType    string            `json:"volumeType"`
+	Age           string            `json:"age"`
+	Labels        map[string]string `json:"labels"`      // Added
+	Annotations   map[string]string `json:"annotations"` // New: expose annotations
 }

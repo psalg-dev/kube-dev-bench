@@ -64,8 +64,21 @@ func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
 			Available: deployment.Status.AvailableReplicas,
 			Age:       age,
 			Image:     image,
+			Labels:    map[string]string{},
 		}
-
+		// Merge labels: deployment metadata first, then template labels (without overwriting existing)
+		if len(deployment.Labels) > 0 {
+			for k, v := range deployment.Labels {
+				deploymentInfo.Labels[k] = v
+			}
+		}
+		if tpl := deployment.Spec.Template; tpl.Labels != nil {
+			for k, v := range tpl.Labels {
+				if _, exists := deploymentInfo.Labels[k]; !exists { // keep deployment-level value precedence
+					deploymentInfo.Labels[k] = v
+				}
+			}
+		}
 		result = append(result, deploymentInfo)
 	}
 

@@ -53,6 +53,17 @@ func (a *App) GetDaemonSets(namespace string) ([]DaemonSetInfo, error) {
 		desired := ds.Status.DesiredNumberScheduled
 		current := ds.Status.NumberReady // show ready pods as current to reflect health
 
+		labels := map[string]string{}
+		for k, v := range ds.Labels {
+			labels[k] = v
+		}
+		if ds.Spec.Template.Labels != nil {
+			for k, v := range ds.Spec.Template.Labels {
+				if _, exists := labels[k]; !exists {
+					labels[k] = v
+				}
+			}
+		}
 		result = append(result, DaemonSetInfo{
 			Name:      ds.Name,
 			Namespace: ds.Namespace,
@@ -60,6 +71,7 @@ func (a *App) GetDaemonSets(namespace string) ([]DaemonSetInfo, error) {
 			Current:   current,
 			Age:       age,
 			Image:     image,
+			Labels:    labels,
 		})
 	}
 

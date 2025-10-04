@@ -112,6 +112,7 @@ func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 			"keys":      fmt.Sprintf("%d", keyCount),
 			"size":      formatBytes(totalSize),
 			"age":       age,
+			"labels":    secret.Labels,
 		})
 	}
 
