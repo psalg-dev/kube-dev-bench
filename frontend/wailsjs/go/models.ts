@@ -369,6 +369,50 @@ export namespace app {
 	        this.annotations = source["annotations"];
 	    }
 	}
+	export class PodFileContent {
+	    path: string;
+	    base64: string;
+	    size: number;
+	    truncated: boolean;
+	    isBinary: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new PodFileContent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.base64 = source["base64"];
+	        this.size = source["size"];
+	        this.truncated = source["truncated"];
+	        this.isBinary = source["isBinary"];
+	    }
+	}
+	export class PodFileEntry {
+	    name: string;
+	    path: string;
+	    isDir: boolean;
+	    size: number;
+	    mode?: string;
+	    modified?: string;
+	    created?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PodFileEntry(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.path = source["path"];
+	        this.isDir = source["isDir"];
+	        this.size = source["size"];
+	        this.mode = source["mode"];
+	        this.modified = source["modified"];
+	        this.created = source["created"];
+	    }
+	}
 	export class PodInfo {
 	    name: string;
 	    namespace: string;

@@ -125,6 +125,113 @@ func (a *App) StreamPodContainerLogs(podName, container string) {
 	}()
 }
 
+// StreamPodLogsWith streams logs with optional tail lines & follow flags.
+func (a *App) StreamPodLogsWith(podName string, tailLines int, follow bool) {
+	// stop existing
+	a.StopPodLogs(podName)
+	go func() {
+		ctx, cancel := context.WithCancel(a.ctx)
+		a.logMu.Lock()
+		a.logCancels[podName] = cancel
+		a.logMu.Unlock()
+		defer func() {
+			a.logMu.Lock()
+			delete(a.logCancels, podName)
+			a.logMu.Unlock()
+			cancel()
+		}()
+		if a.currentNamespace == "" {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			return
+		}
+		clientset, err := a.getKubernetesClient()
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
+			return
+		}
+		var tl *int64
+		if tailLines > 0 {
+			v := int64(tailLines)
+			tl = &v
+		}
+		opts := &v1.PodLogOptions{Follow: follow, TailLines: tl}
+		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(ctx)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			return
+		}
+		defer stream.Close()
+		scanner := bufio.NewScanner(stream)
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+		}
+		if follow {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+		}
+	}()
+}
+
+// StreamPodContainerLogsWith streams logs for a specific container with tail/follow options.
+func (a *App) StreamPodContainerLogsWith(podName, container string, tailLines int, follow bool) {
+	a.StopPodLogs(podName)
+	go func() {
+		ctx, cancel := context.WithCancel(a.ctx)
+		a.logMu.Lock()
+		a.logCancels[podName] = cancel
+		a.logMu.Unlock()
+		defer func() {
+			a.logMu.Lock()
+			delete(a.logCancels, podName)
+			a.logMu.Unlock()
+			cancel()
+		}()
+		if a.currentNamespace == "" {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			return
+		}
+		clientset, err := a.getKubernetesClient()
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
+			return
+		}
+		var tl *int64
+		if tailLines > 0 {
+			v := int64(tailLines)
+			tl = &v
+		}
+		opts := &v1.PodLogOptions{Follow: follow, Container: container, TailLines: tl}
+		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(ctx)
+		if err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			return
+		}
+		defer stream.Close()
+		scanner := bufio.NewScanner(stream)
+		for scanner.Scan() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+			}
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+		}
+		if follow {
+			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+		}
+	}()
+}
+
 // GetPodLog returns the full log content of a pod (no follow)
 func (a *App) GetPodLog(podName string) (string, error) {
 	if a.currentNamespace == "" {

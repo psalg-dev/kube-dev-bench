@@ -229,6 +229,33 @@ type PersistentVolumeInfo struct {
 	Annotations   map[string]string `json:"annotations"` // New: expose annotations
 }
 
+// PodFileEntry represents a single file or directory in a pod container filesystem
+// Minimal info per requirement: just list directories & files
+// Additional fields (size, modTime, mode) are placeholders for future enhancement
+type PodFileEntry struct {
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	IsDir    bool   `json:"isDir"`
+	Size     int64  `json:"size"` // always include size even if 0 so frontend can distinguish
+	Mode     string `json:"mode,omitempty"`
+	Modified string `json:"modified,omitempty"`
+	Created  int64  `json:"created,omitempty"`
+}
+
+// PodFileContent holds the (possibly truncated) base64 encoded content of a file in a pod
+// Base64 is always supplied to preserve binary safety; frontend can decide to decode
+// IsBinary is a heuristic based on first bytes of content
+// Size is full file size (if determinable), not size of returned content
+// Truncated indicates returned content is limited by maxBytes param
+// Path is absolute path inside container
+type PodFileContent struct {
+	Path      string `json:"path"`
+	Base64    string `json:"base64"`
+	Size      int64  `json:"size"`
+	Truncated bool   `json:"truncated"`
+	IsBinary  bool   `json:"isBinary"`
+}
+
 // ResourceCounts aggregates counts for all sidebar-listed resources across the currently
 // selected (preferred) namespaces. PersistentVolumes are cluster-scoped.
 // This is emitted periodically to the frontend (event: "resourcecounts:update").

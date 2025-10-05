@@ -22,6 +22,7 @@ This is a kubernetes client application for developers and devops engineers.
 # Development Guidelines
 
 - When formulating commands to run in the terminal, *use bash syntax*
+- When rebuilding the project, run build.sh
 
 ## Building the Project
 
