@@ -18,6 +18,7 @@ import PortForwardOutput from './PortForwardOutput';
 import BottomPanel from '../../../layout/bottompanel/BottomPanel';
 import PortForwardDialog from './PortForwardDialog';
 import PodMountsTab from './PodMountsTab';
+import PodFilesTab from './PodFilesTab';
 import '../../../layout/overview/OverviewTableWithPanel.css';
 import { showResourceOverlay } from '../../../resource-overlay.js';
 
@@ -440,6 +441,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       content: <PortForwardOutput namespace={bottomNamespace || namespace} podName={bottomPodName} localPort={forwardLocalPort} remotePort={forwardRemotePort} />
     },
     {
+      id: 'files',
+      label: 'Files',
+      content: <PodFilesTab podName={bottomPodName} />
+    },
+    {
       id: 'mounts',
       label: 'Mounts',
       content: <PodMountsTab podName={bottomPodName} />
@@ -449,7 +455,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   // ensure backend namespace aligns when switching tabs that need it
   useEffect(() => {
     if (!bottomOpen || !bottomPodName) return;
-    if (bottomActiveTab === 'logs' || bottomActiveTab === 'yaml' || bottomActiveTab === 'summary') {
+    if (['logs','yaml','summary','mounts','files'].includes(bottomActiveTab)) {
       ensureNamespace(bottomNamespace || namespace);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

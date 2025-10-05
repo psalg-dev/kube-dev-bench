@@ -49,6 +49,12 @@ export function GetPodEvents(arg1:string,arg2:string):Promise<Array<app.EventInf
 
 export function GetPodEventsLegacy(arg1:string):Promise<Array<app.EventInfo>>;
 
+export function GetPodFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
+
+export function GetPodFileContentSimple(arg1:string,arg2:string,arg3:string):Promise<app.PodFileContent>;
+
+export function GetPodFiles(arg1:string,arg2:string,arg3:string):Promise<Array<app.PodFileEntry>>;
+
 export function GetPodLog(arg1:string):Promise<string>;
 
 export function GetPodMounts(arg1:string):Promise<app.PodMounts>;
@@ -90,6 +96,8 @@ export function RestartPod(arg1:string,arg2:string):Promise<void>;
 export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SavePrimaryKubeConfig(arg1:string):Promise<string>;
+
+export function SearchPodFiles(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number):Promise<Array<app.PodFileEntry>>;
 
 export function SelectKubeConfigFile():Promise<string>;
 
@@ -135,4 +143,8 @@ export function StopShellSession(arg1:string):Promise<void>;
 
 export function StreamPodContainerLogs(arg1:string,arg2:string):Promise<void>;
 
+export function StreamPodContainerLogsWith(arg1:string,arg2:string,arg3:number,arg4:boolean):Promise<void>;
+
 export function StreamPodLogs(arg1:string):Promise<void>;
+
+export function StreamPodLogsWith(arg1:string,arg2:number,arg3:boolean):Promise<void>;

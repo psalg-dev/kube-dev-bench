@@ -94,6 +94,18 @@ export function GetPodEventsLegacy(arg1) {
   return window['go']['main']['App']['GetPodEventsLegacy'](arg1);
 }
 
+export function GetPodFileContent(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetPodFileContent'](arg1, arg2, arg3, arg4);
+}
+
+export function GetPodFileContentSimple(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetPodFileContentSimple'](arg1, arg2, arg3);
+}
+
+export function GetPodFiles(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetPodFiles'](arg1, arg2, arg3);
+}
+
 export function GetPodLog(arg1) {
   return window['go']['main']['App']['GetPodLog'](arg1);
 }
@@ -176,6 +188,10 @@ export function SaveCustomKubeConfig(arg1, arg2) {
 
 export function SavePrimaryKubeConfig(arg1) {
   return window['go']['main']['App']['SavePrimaryKubeConfig'](arg1);
+}
+
+export function SearchPodFiles(arg1, arg2, arg3, arg4, arg5, arg6) {
+  return window['go']['main']['App']['SearchPodFiles'](arg1, arg2, arg3, arg4, arg5, arg6);
 }
 
 export function SelectKubeConfigFile() {
@@ -266,6 +282,14 @@ export function StreamPodContainerLogs(arg1, arg2) {
   return window['go']['main']['App']['StreamPodContainerLogs'](arg1, arg2);
 }
 
+export function StreamPodContainerLogsWith(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['StreamPodContainerLogsWith'](arg1, arg2, arg3, arg4);
+}
+
 export function StreamPodLogs(arg1) {
   return window['go']['main']['App']['StreamPodLogs'](arg1);
+}
+
+export function StreamPodLogsWith(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StreamPodLogsWith'](arg1, arg2, arg3);
 }
