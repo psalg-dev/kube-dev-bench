@@ -10,6 +10,7 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     coverage: {
+      provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       reportsDirectory: './coverage',
       exclude: [

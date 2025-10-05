@@ -33,7 +33,7 @@ jobs:
 
       - name: Run frontend tests (with coverage)
         working-directory: frontend
-        run: npm test -- --coverage --reporter=dot
+        run: npm test -- --coverage
 
       - name: Upload frontend coverage artifact
         if: always()
