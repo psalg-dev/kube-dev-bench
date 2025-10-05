@@ -13,7 +13,7 @@ import {
   GetIngresses,
   GetPersistentVolumeClaims,
   GetPersistentVolumes,
-} from '../services/kubeApi';
+} from '../k8s/resources/kubeApi';
 import { aggregatePodStatusCounts, podAggSignature, flattenLength } from '../utils/aggregateCounts';
 
 /**

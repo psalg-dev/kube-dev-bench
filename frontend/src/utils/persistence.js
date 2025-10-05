@@ -1,6 +1,6 @@
 // Persistence helpers for saving user selections to the backend.
 // Abstracts the dual calls so callers have a single promise to await.
-import { SetCurrentNamespace } from '../services/kubeApi';
+import { SetCurrentNamespace } from '../k8s/resources/kubeApi';
 
 /**
  * Persist preferred namespaces (if backend function exists) and current namespace.

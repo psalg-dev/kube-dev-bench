@@ -1,17 +1,16 @@
-import {getSelectedSection} from "./layout/sidebar/sidebar";
-import {renderPodOverviewTable} from "./pods/PodOverviewEntry";
+import {renderPodOverviewTable} from "./k8s/resources/pods/PodOverviewEntry";
 import {showResourceOverlay} from "./resource-overlay";
-import DeploymentsOverviewTable from "./deployments/DeploymentsOverviewTable";
-import JobsOverviewTable from "./jobs/JobsOverviewTable";
-import CronJobsOverviewTable from "./cronjobs/CronJobsOverviewTable";
-import DaemonSetsOverviewTable from "./daemonsets/DaemonSetsOverviewTable";
-import StatefulSetsOverviewTable from "./statefulsets/StatefulSetsOverviewTable";
-import ReplicaSetsOverviewTable from "./replicasets/ReplicaSetsOverviewTable";
-import ConfigMapsOverviewTable from "./configmaps/ConfigMapsOverviewTable";
-import SecretsOverviewTable from "./secrets/SecretsOverviewTable";
-import IngressesOverviewTable from "./ingresses/IngressesOverviewTable";
-import PersistentVolumeClaimsOverviewTable from "./persistentvolumeclaims/PersistentVolumeClaimsOverviewTable";
-import PersistentVolumesOverviewTable from "./persistentvolumes/PersistentVolumesOverviewTable";
+import DeploymentsOverviewTable from "./k8s/resources/deployments/DeploymentsOverviewTable";
+import JobsOverviewTable from "./k8s/resources/jobs/JobsOverviewTable";
+import CronJobsOverviewTable from "./k8s/resources/cronjobs/CronJobsOverviewTable";
+import DaemonSetsOverviewTable from "./k8s/resources/daemonsets/DaemonSetsOverviewTable";
+import StatefulSetsOverviewTable from "./k8s/resources/statefulsets/StatefulSetsOverviewTable";
+import ReplicaSetsOverviewTable from "./k8s/resources/replicasets/ReplicaSetsOverviewTable";
+import ConfigMapsOverviewTable from "./k8s/resources/configmaps/ConfigMapsOverviewTable";
+import SecretsOverviewTable from "./k8s/resources/secrets/SecretsOverviewTable";
+import IngressesOverviewTable from "./k8s/resources/ingresses/IngressesOverviewTable";
+import PersistentVolumeClaimsOverviewTable from "./k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable";
+import PersistentVolumesOverviewTable from "./k8s/resources/persistentvolumes/PersistentVolumesOverviewTable";
 import {createRoot} from "react-dom/client";
 import React from 'react';
 
@@ -35,7 +34,7 @@ export function renderPodsMainContent(selectedNamespaces) {
     }
 }
 
-export function renderResourceMainContent(selectedNamespaces) {
+export function renderResourceMainContent(selectedNamespaces, selectedSection) {
     const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
     const sections = [
         {
@@ -130,7 +129,8 @@ export function renderResourceMainContent(selectedNamespaces) {
         }
     ];
 
-    sections.filter(x => x.section === getSelectedSection()).forEach((section) => {
+    const targetSection = selectedSection || 'deployments';
+    sections.filter(x => x.section === targetSection).forEach((section) => {
         document.getElementById("main-panels").innerHTML = `<div class="main-panel" id="${section.id}"></div>`;
         const container = document.getElementById(section.id);
         if (container) {

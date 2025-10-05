@@ -6,7 +6,7 @@ import {
   SetCurrentKubeContext,
   SetCurrentNamespace,
   GetConnectionStatus,
-} from '../services/kubeApi';
+} from '../k8s/resources/kubeApi.js'; // fixed path
 import { showError, showSuccess, showWarning } from '../notification';
 
 const ClusterStateContext = createContext(null);
@@ -23,6 +23,7 @@ const initialState = {
   showWizard: false,
   initialized: false,
 };
+export { initialState };
 
 function reducer(state, action) {
   switch(action.type) {

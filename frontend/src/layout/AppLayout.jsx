@@ -7,7 +7,7 @@ import SidebarSections from './SidebarSections.jsx';
  * that queries by id (#kubecontext-root, #namespace-root, #sidebar-sections, etc.) continues to work.
  * Future phases will replace these id-based mutations with declarative React state.
  */
-export function AppLayout({ contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection }) {
+export function AppLayout({ contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl }) {
   return (
     <div id="layout">
       <aside id="sidebar">
@@ -30,7 +30,7 @@ export function AppLayout({ contextSelectEl, namespaceSelectEl, selectedSection,
       </aside>
       <main id="maincontent">
         <div id="error-container" />
-        <div id="main-panels" />
+        <div id="main-panels">{mainContentEl}</div>
       </main>
       <footer id="footer">
         <FooterBar />
