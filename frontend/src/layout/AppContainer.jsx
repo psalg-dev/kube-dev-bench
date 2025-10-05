@@ -13,7 +13,8 @@ function MainContentBinder({ selectedSection }) {
     if (selectedSection === 'pods') {
       renderPodsMainContent(selectedNamespaces);
     } else {
-      renderResourceMainContent(selectedNamespaces);
+      // BUGFIX: pass selectedSection so correct resource renders (was defaulting to deployments)
+      renderResourceMainContent(selectedNamespaces, selectedSection);
     }
   }, [selectedSection, selectedNamespaces]);
 
