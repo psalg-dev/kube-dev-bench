@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../../../wailsjs/go/main/App';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
+import ResourceActions from '../../../components/ResourceActions.jsx';
+import * as AppAPI from "../../../../wailsjs/go/main/App.js";
 
 export default function PodSummaryTab({ podName }) {
   const [data, setData] = useState(null);
@@ -109,9 +111,40 @@ export default function PodSummaryTab({ podName }) {
     return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey
   };
 
+  // Handler for restart (no UI side-effects; ResourceActions shows notifications)
+  const handleRestart = async (name, ns) => {
+    const fn = window?.wailsjs?.go?.main?.App?.RestartPod;
+    if (typeof fn !== 'function') throw new Error('RestartPod API unavailable');
+    await fn(ns, name);
+    // refresh summary after restart
+    await load();
+  };
+  // Handler for delete (two-step confirm handled by ResourceActions)
+  const handleDelete = async (name, ns) => {
+    const fn = window?.wailsjs?.go?.main?.App?.DeletePod;
+    if (typeof fn !== 'function') throw new Error('DeletePod API unavailable');
+    await fn(ns, name);
+  };
+
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <SummaryTabHeader hideTitle name={podName} labels={data?.labels || data?.Labels || data?.metadata?.labels} />
+      <SummaryTabHeader
+        hideTitle
+        name={podName}
+        labels={data?.labels || data?.Labels || data?.metadata?.labels}
+        actions={
+          <ResourceActions
+            resourceType="Pod"
+            name={podName}
+            namespace={data?.namespace || data?.Namespace || ''}
+            onRestart={handleRestart}
+            onDelete={async (n, ns) => {
+                await AppAPI.DeletePod(ns, n);
+            }}
+            disabled={!data}
+          />
+        }
+      />
       {loading && <div style={{ padding: 12, color: 'var(--gh-text-muted, #8b949e)' }}>Loading…</div>}
       {error && <div style={{ padding: 12, color: '#f85149' }}>Error: {error}</div>}
       {!loading && !error && (

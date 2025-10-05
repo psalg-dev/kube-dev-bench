@@ -22,6 +22,24 @@ export namespace app {
 	        this.kubeConfigPath = source["kubeConfigPath"];
 	    }
 	}
+	export class ArchiveResult {
+	    path: string;
+	    base64: string;
+	    truncated: boolean;
+	    size: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ArchiveResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.path = source["path"];
+	        this.base64 = source["base64"];
+	        this.truncated = source["truncated"];
+	        this.size = source["size"];
+	    }
+	}
 	export class ConfigMapInfo {
 	    name: string;
 	    namespace: string;
@@ -397,6 +415,8 @@ export namespace app {
 	    mode?: string;
 	    modified?: string;
 	    created?: number;
+	    isSymlink?: boolean;
+	    linkTarget?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PodFileEntry(source);
@@ -411,6 +431,8 @@ export namespace app {
 	        this.mode = source["mode"];
 	        this.modified = source["modified"];
 	        this.created = source["created"];
+	        this.isSymlink = source["isSymlink"];
+	        this.linkTarget = source["linkTarget"];
 	    }
 	}
 	export class PodInfo {

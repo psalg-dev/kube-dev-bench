@@ -230,16 +230,17 @@ type PersistentVolumeInfo struct {
 }
 
 // PodFileEntry represents a single file or directory in a pod container filesystem
-// Minimal info per requirement: just list directories & files
-// Additional fields (size, modTime, mode) are placeholders for future enhancement
+// Extended with IsSymlink + LinkTarget for PVC browsing feature.
 type PodFileEntry struct {
-	Name     string `json:"name"`
-	Path     string `json:"path"`
-	IsDir    bool   `json:"isDir"`
-	Size     int64  `json:"size"` // always include size even if 0 so frontend can distinguish
-	Mode     string `json:"mode,omitempty"`
-	Modified string `json:"modified,omitempty"`
-	Created  int64  `json:"created,omitempty"`
+	Name       string `json:"name"`
+	Path       string `json:"path"`
+	IsDir      bool   `json:"isDir"`
+	Size       int64  `json:"size"`
+	Mode       string `json:"mode,omitempty"`
+	Modified   string `json:"modified,omitempty"`
+	Created    int64  `json:"created,omitempty"`
+	IsSymlink  bool   `json:"isSymlink,omitempty"`
+	LinkTarget string `json:"linkTarget,omitempty"`
 }
 
 // PodFileContent holds the (possibly truncated) base64 encoded content of a file in a pod
@@ -254,6 +255,15 @@ type PodFileContent struct {
 	Size      int64  `json:"size"`
 	Truncated bool   `json:"truncated"`
 	IsBinary  bool   `json:"isBinary"`
+}
+
+// ArchiveResult contains a base64‐encoded tar (optionally truncated)
+// of a directory or single file for download.
+type ArchiveResult struct {
+	Path      string `json:"path"`
+	Base64    string `json:"base64"`
+	Truncated bool   `json:"truncated"`
+	Size      int64  `json:"size"` // size of returned (decoded) tar data (may be truncated)
 }
 
 // ResourceCounts aggregates counts for all sidebar-listed resources across the currently

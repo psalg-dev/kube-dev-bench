@@ -3,9 +3,35 @@
 import {app} from '../models';
 import {context} from '../models';
 
+export function ArchivePVCPath(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.ArchiveResult>;
+
 export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
+export function DeleteConfigMap(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteCronJob(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteDaemonSet(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteDeployment(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteIngress(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteJob(arg1:string,arg2:string):Promise<void>;
+
+export function DeletePersistentVolume(arg1:string):Promise<void>;
+
+export function DeletePersistentVolumeClaim(arg1:string,arg2:string):Promise<void>;
+
 export function DeletePod(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteReplicaSet(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteResource(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function DeleteSecret(arg1:string,arg2:string):Promise<void>;
+
+export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
@@ -34,6 +60,8 @@ export function GetKubeContextsFromFile(arg1:string):Promise<Array<string>>;
 export function GetNamespaces():Promise<Array<string>>;
 
 export function GetOverview(arg1:string):Promise<app.OverviewInfo>;
+
+export function GetPVCFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
 
 export function GetPersistentVolumeClaims(arg1:string):Promise<Array<app.PersistentVolumeClaimInfo>>;
 
@@ -83,6 +111,8 @@ export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>
 
 export function Greet(arg1:string):Promise<string>;
 
+export function ListPVCFiles(arg1:string,arg2:string,arg3:string):Promise<Array<app.PodFileEntry>>;
+
 export function ListPortForwards():Promise<Array<app.PortForwardInfo>>;
 
 export function PortForwardPod(arg1:string,arg2:string,arg3:number):Promise<string>;
@@ -91,7 +121,13 @@ export function PortForwardPodWith(arg1:string,arg2:string,arg3:number,arg4:numb
 
 export function ResizeShellSession(arg1:string,arg2:number,arg3:number):Promise<void>;
 
+export function RestartDaemonSet(arg1:string,arg2:string):Promise<void>;
+
+export function RestartDeployment(arg1:string,arg2:string):Promise<void>;
+
 export function RestartPod(arg1:string,arg2:string):Promise<void>;
+
+export function RestartStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
