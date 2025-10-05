@@ -15,12 +15,13 @@ This is a kubernetes client application for developers and devops engineers.
 - Backend: Go
 - Application Framework: Wails (https://wails.io/)
 - Development Environment: IntelliJ IDEA
-- ConsoleTab: MINGW64 (Git Bash)
 
 # General Guidelines
 - The console used inside IntelliJ is a git bash console
 
 # Development Guidelines
+
+- When formulating commands to run in the terminal, *use bash syntax*
 
 ## Building the Project
 

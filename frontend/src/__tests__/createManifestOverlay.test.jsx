@@ -58,40 +58,26 @@ vi.mock('@codemirror/language', () => ({
   defaultHighlightStyle: {},
 }));
 
-// Corrected mock paths: __tests__ is under src/, real wailsjs folder is at project root (../.. from here)
-const createResourceMock = vi.fn();
-vi.mock('../../wailsjs/go/main/App', () => ({
-  CreateResource: (...args) => createResourceMock(...args)
-}));
-const eventsEmitMock = vi.fn();
-vi.mock('../../wailsjs/runtime', () => ({
-  EventsEmit: (...args) => eventsEmitMock(...args)
-}));
+// Centralized Wails mocks (no longer mocking notifications globally)
+import { createResourceMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
 
-// Mock notifications (so we don't manipulate DOM styles here)
-const showSuccess = vi.fn();
-const showError = vi.fn();
+// Local notification mocks for this test file
+const showSuccessMock = vi.fn();
+const showErrorMock = vi.fn();
 vi.mock('../notification.js', () => ({
-  showSuccess: (...a) => showSuccess(...a),
-  showError: (...a) => showError(...a)
+  showSuccess: (...a) => showSuccessMock(...a),
+  showError: (...a) => showErrorMock(...a),
 }));
 
 // Import after mocks
 import CreateManifestOverlay from '../CreateManifestOverlay.jsx';
-// Update imported helper getters to use the mocked codemirror view module id
 import { __getCtorCount, __getLastInstance } from '@codemirror/view';
 
 function openOverlay(props = {}) {
   return render(<CreateManifestOverlay open kind="Deployment" namespace="dev" onClose={vi.fn()} {...props} />);
 }
 
-beforeEach(() => {
-  createResourceMock.mockReset();
-  eventsEmitMock.mockReset();
-  showSuccess.mockReset();
-  showError.mockReset();
-  document.body.innerHTML = ''; // ensure clean
-});
+beforeEach(() => { resetAllMocks(); showSuccessMock.mockReset(); showErrorMock.mockReset(); document.body.innerHTML = ''; });
 
 describe('CreateManifestOverlay', () => {
   it('renders nothing when closed', () => {
@@ -139,7 +125,7 @@ describe('CreateManifestOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(createResourceMock).toHaveBeenCalled());
     expect(createResourceMock).toHaveBeenCalledWith('dev', manifest);
-    expect(showSuccess).toHaveBeenCalled();
+    expect(showSuccessMock).toHaveBeenCalled();
     expect(eventsEmitMock).toHaveBeenCalledWith('resource-updated', expect.objectContaining({ resource: 'deployment', namespace: 'dev' }));
     expect(onClose).toHaveBeenCalled();
   });
@@ -149,7 +135,7 @@ describe('CreateManifestOverlay', () => {
     const onClose = vi.fn();
     openOverlay({ kind: 'Secret', namespace: 'dev', onClose });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
-    await waitFor(() => expect(showError).toHaveBeenCalled());
+    await waitFor(() => expect(showErrorMock).toHaveBeenCalled());
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByText(/BoomFail/)).toBeInTheDocument();
   });
