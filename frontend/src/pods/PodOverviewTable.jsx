@@ -9,16 +9,16 @@ import {
 } from '@tanstack/react-table';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import {EventsOff, EventsOn} from '../../wailsjs/runtime';
-import LogViewer from '../LogViewer';
+import LogViewerTab from '../layout/bottompanel/LogViewerTab';
 import PodSummaryTab from './PodSummaryTab';
 import PodEventsTab from './PodEventsTab';
 import PodYamlTab from './PodYamlTab';
-import Console from '../Console';
+import ConsoleTab from '../layout/bottompanel/ConsoleTab';
 import PortForwardOutput from './PortForwardOutput';
-import BottomPanel from '../BottomPanel';
+import BottomPanel from '../layout/bottompanel/BottomPanel';
 import PortForwardDialog from './PortForwardDialog';
 import PodMountsTab from './PodMountsTab';
-import '../OverviewTableWithPanel.css';
+import '../layout/overview/OverviewTableWithPanel.css';
 import { showResourceOverlay } from '../resource-overlay.js';
 
 // Resource types matching sidebar and templates in resource-overlay.js
@@ -415,7 +415,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       label: 'Logs',
       content: (
         <div style={{ position: 'absolute', inset: 0 }}>
-          <LogViewer podName={bottomPodName} embedded={true} />
+          <LogViewerTab podName={bottomPodName} embedded={true} />
         </div>
       )
     },
@@ -432,7 +432,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     {
       id: 'console',
       label: 'Console',
-      content: <Console podExec={true} namespace={bottomNamespace || namespace} podName={bottomPodName} shell="auto" />
+      content: <ConsoleTab podExec={true} namespace={bottomNamespace || namespace} podName={bottomPodName} shell="auto" />
     },
     {
       id: 'portforward',

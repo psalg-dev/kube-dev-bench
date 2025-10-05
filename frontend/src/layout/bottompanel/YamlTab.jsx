@@ -10,7 +10,7 @@ import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle } fro
  * @param {boolean} loading - Whether content is loading
  * @param {string} error - Error message if any
  */
-export default function YamlViewer({ content, loading = false, error = null }) {
+export default function YamlTab({ content, loading = false, error = null }) {
   const editorParentRef = useRef(null);
   const viewRef = useRef(null);
 

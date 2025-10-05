@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext.jsx';
-import { AppLayout } from './layout/AppLayout.jsx';
-import ConnectionWizard from './layout/connection/ConnectionWizard.jsx';
-import { ContextSelect, NamespaceMultiSelect } from './Dropdowns.jsx';
-import { renderPodsMainContent, renderResourceMainContent } from './main-content';
-import { useResourceCounts } from './hooks/useResourceCounts';
+import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext.jsx';
+import { AppLayout } from './AppLayout.jsx';
+import ConnectionWizard from './connection/ConnectionWizard.jsx';
+import { ContextSelect, NamespaceMultiSelect } from '../Dropdowns.jsx';
+import { renderPodsMainContent, renderResourceMainContent } from '../main-content';
+import { useResourceCounts } from '../hooks/useResourceCounts';
 
 function MainContentBinder({ selectedSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();

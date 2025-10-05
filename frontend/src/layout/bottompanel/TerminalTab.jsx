@@ -2,8 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { EventsOn } from '../wailsjs/runtime';
-import * as AppAPI from '../wailsjs/go/main/App';
+import { EventsOn } from '../../../wailsjs/runtime';
+import * as AppAPI from '../../../wailsjs/go/main/App';
 import { v4 as uuidv4 } from 'uuid';
 
 export default function TerminalTab({ command, podExec, namespace, podName, shell }) {

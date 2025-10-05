@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import OverviewTableWithPanel from '../OverviewTableWithPanel';
+import OverviewTableWithPanel from '../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../QuickInfoSection';
-import YamlViewer from '../YamlViewer';
+import YamlTab from '../layout/bottompanel/YamlTab';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime';
-import SummaryHeader from '../SummaryHeader.jsx';
+import SummaryTabHeader from '../layout/bottompanel/SummaryTabHeader.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -43,7 +43,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -93,7 +93,7 @@ spec:
       - name: ${row.name}
         image: ${row.image}`;
 
-    return <YamlViewer content={yamlContent} />;
+    return <YamlTab content={yamlContent} />;
   }
   return null;
 }

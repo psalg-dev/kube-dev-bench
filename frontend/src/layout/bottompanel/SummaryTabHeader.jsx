@@ -1,13 +1,13 @@
 // filepath: frontend/src/SummaryHeader.jsx
 import React, { useMemo } from 'react';
-import LabelsInline from './LabelsInline.jsx';
+import LabelsInline from '../../LabelsInline.jsx';
 
 /**
  * Generic summary header used in bottom panel summary tabs.
  * Updated: Removed centered "Summary for <name>" title. Now header just shows labels (or '-' if none) left-aligned.
  * hideTitle is retained for backward compatibility but has no visual difference now.
  */
-export default function SummaryHeader({ name, labels, hideTitle = false }) { // name kept in signature in case future use
+export default function SummaryTabHeader({ name, labels, hideTitle = false }) { // name kept in signature in case future use
   const normalized = useMemo(() => {
     if (!labels || typeof labels !== 'object') return {};
     return labels;

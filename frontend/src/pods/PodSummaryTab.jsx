@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../wailsjs/go/main/App';
-import LogViewer from '../LogViewer';
-import SummaryHeader from '../SummaryHeader.jsx';
+import LogViewerTab from '../layout/bottompanel/LogViewerTab';
+import SummaryTabHeader from '../layout/bottompanel/SummaryTabHeader.jsx';
 
 export default function PodSummaryTab({ podName }) {
   const [data, setData] = useState(null);
@@ -111,7 +111,7 @@ export default function PodSummaryTab({ podName }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <SummaryHeader hideTitle name={podName} labels={data?.labels || data?.Labels || data?.metadata?.labels} />
+      <SummaryTabHeader hideTitle name={podName} labels={data?.labels || data?.Labels || data?.metadata?.labels} />
       {loading && <div style={{ padding: 12, color: 'var(--gh-text-muted, #8b949e)' }}>Loading…</div>}
       {error && <div style={{ padding: 12, color: '#f85149' }}>Error: {error}</div>}
       {!loading && !error && (
@@ -197,7 +197,7 @@ export default function PodSummaryTab({ podName }) {
               <span style={{ fontWeight: 600 }}>Logs</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}>
-              <LogViewer podName={podName} embedded={true} />
+              <LogViewerTab podName={podName} embedded={true} />
             </div>
           </div>
 

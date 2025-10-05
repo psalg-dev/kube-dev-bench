@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import BottomPanel from './BottomPanel';
+import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
-import CreateManifestOverlay from './CreateManifestOverlay';
+import CreateManifestOverlay from '../../CreateManifestOverlay';
 
 /**
  * Reusable overview table with bottom panel.

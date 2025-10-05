@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
-import { EventsOn, EventsOff } from '../wailsjs/runtime';
-import { StreamPodLogs, StopPodLogs, GetPodLog, StreamPodContainerLogs, GetPodContainerLog } from '../wailsjs/go/main/App';
+import { EventsOn, EventsOff } from '../../../wailsjs/runtime';
+import { StreamPodLogs, StopPodLogs, GetPodLog, StreamPodContainerLogs, GetPodContainerLog } from '../../../wailsjs/go/main/App';
 
 // Performance constants
 const MAX_LINES = 10000; // Maximum lines to keep in memory
 const BATCH_SIZE = 100; // Lines to process in batches
 const UPDATE_INTERVAL = 100; // ms between batch updates
 
-export default function LogViewer({ podName, onClose, embedded = false, container = null }) {
+export default function LogViewerTab({ podName, onClose, embedded = false, container = null }) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const allLinesRef = useRef([]);       // all received lines (for filtering)

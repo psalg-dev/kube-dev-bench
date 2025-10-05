@@ -11,7 +11,7 @@ audience is developers and devops engineers or anyone who needs to interact with
 
 ## KubeDevBench Development
 - IDE: JetBrains Intellij IDEA
-- Console: MINGW64
+- ConsoleTab: MINGW64
 
 ## Features
 - Connection Wizard
