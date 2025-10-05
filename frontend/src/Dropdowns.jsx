@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
 
 // Shared dark theme styles matching app look, Material-inspired on GitHub Dark
@@ -112,15 +112,23 @@ export function ContextSelect({ value, options, disabled, onChange, onMenuOpen }
 }
 
 export function NamespaceMultiSelect({ values, options, disabled, onChange, placeholder = 'Select namespaces…', onMenuOpen }) {
+  const [internal, setInternal] = useState(values || []);
+  // Sync when parent updates values prop (controlled usage)
+  useEffect(() => { if (Array.isArray(values)) setInternal(values); }, [values]);
   const selectOptions = (options || []).map((o) => ({ value: o, label: o }));
-  const current = (values || []).map((v) => ({ value: v, label: v }));
+  const current = internal.map((v) => ({ value: v, label: v }));
+  function handleChange(opts) {
+    const next = (opts || []).map((o) => o.value);
+    setInternal(next);
+    onChange?.(next);
+  }
   return (
     <Select
       isMulti
       options={selectOptions}
       value={current}
       isDisabled={!!disabled}
-      onChange={(opts) => onChange?.((opts || []).map((o) => o.value))}
+      onChange={handleChange}
       placeholder={placeholder}
       styles={multiStyles}
       menuPortalTarget={typeof document !== 'undefined' ? document.body : null}

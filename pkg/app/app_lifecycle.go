@@ -26,6 +26,11 @@ type App struct {
 
 	logMu      sync.Mutex
 	logCancels map[string]context.CancelFunc
+
+	// Aggregated resource counts (for sidebar counters)
+	resourceCountsMu   sync.RWMutex
+	lastResourceCounts ResourceCounts
+	countsRefreshCh    chan struct{}
 }
 
 // NewApp creates a new App application struct
@@ -70,6 +75,7 @@ func NewApp() *App {
 		configPath:           newCfg,
 		logCancels:           make(map[string]context.CancelFunc),
 		isInsecureConnection: false, // Initialize to secure by default
+		countsRefreshCh:      make(chan struct{}, 1),
 	}
 }
 
@@ -100,6 +106,11 @@ func (a *App) Startup(ctx context.Context) {
 	if err := a.loadConfig(); err != nil {
 		fmt.Printf("Error loading config: %v\n", err)
 	}
+	// Start background aggregator goroutine
+	if a.countsRefreshCh == nil { // safety
+		a.countsRefreshCh = make(chan struct{}, 1)
+	}
+	go a.runResourceCountsAggregator()
 }
 
 // GetCurrentConfig returns the currently loaded configuration

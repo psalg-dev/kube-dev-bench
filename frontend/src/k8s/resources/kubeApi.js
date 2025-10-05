@@ -23,6 +23,8 @@ import {
   SetCurrentKubeContext,
   SetCurrentNamespace,
   GetConnectionStatus,
+  GetResourceCounts,
+  SetPreferredNamespaces,
 } from '../../../wailsjs/go/main/App';
 
 // Direct re-exports for now. Wrapper functions retained for possible future enhancements.
@@ -47,5 +49,6 @@ export {
   SetCurrentKubeContext,
   SetCurrentNamespace,
   GetConnectionStatus,
+  GetResourceCounts,
+  SetPreferredNamespaces,
 };
-
