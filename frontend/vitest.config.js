@@ -9,5 +9,18 @@ export default defineConfig({
     globals: true,
     restoreMocks: true,
     clearMocks: true,
+    coverage: {
+      reporter: ['text', 'lcov', 'html'],
+      reportsDirectory: './coverage',
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'coverage/',
+        'vite.config.*',
+        'vitest.config.*',
+        'test.setup.*',
+        '**/__tests__/**'
+      ]
+    }
   }
 });
