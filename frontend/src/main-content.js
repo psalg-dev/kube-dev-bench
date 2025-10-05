@@ -1,4 +1,4 @@
-import {getSelectedSection} from "./sidebar";
+import {getSelectedSection} from "./layout/sidebar/sidebar";
 import {renderPodOverviewTable} from "./pods/PodOverviewEntry";
 import {showResourceOverlay} from "./resource-overlay";
 import DeploymentsOverviewTable from "./deployments/DeploymentsOverviewTable";

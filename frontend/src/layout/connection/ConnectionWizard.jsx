@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, SavePrimaryKubeConfig, GetKubeContexts, GetNamespaces, SetCurrentKubeContext, SetCurrentNamespace, GetCurrentConfig } from '../wailsjs/go/main/App';
+import { GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, SavePrimaryKubeConfig, GetKubeContexts, GetNamespaces, SetCurrentKubeContext, SetCurrentNamespace, GetCurrentConfig } from '../../../wailsjs/go/main/App';
 
 const ConnectionWizard = ({ onComplete }) => {
   const [step, setStep] = useState(1);

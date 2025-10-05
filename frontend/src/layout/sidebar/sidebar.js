@@ -1,3 +1,4 @@
+// moved from src/sidebar.js
 import {
     GetConfigMaps,
     GetCronJobs,
@@ -8,7 +9,7 @@ import {
     GetPersistentVolumes,
     GetPodStatusCounts, GetReplicaSets,
     GetRunningPods, GetSecrets, GetStatefulSets
-} from "../wailsjs/go/main/App";
+} from "../../../wailsjs/go/main/App";
 let selectedSection = 'pods';
 
 export function renderSidebarAndAttachHandlers(renderMainContent, cb) {
@@ -151,3 +152,4 @@ export function renderSidebarSections(selectedSection) {
     </div>
   `;
 }
+
