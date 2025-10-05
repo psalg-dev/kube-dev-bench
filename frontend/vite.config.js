@@ -80,5 +80,10 @@ export default defineConfig(async ({ command, mode }) => {
   return {
     plugins: [react()],
     customLogger,
+    server: {
+      watch: {
+        ignored: ['**/coverage/**']
+      }
+    }
   };
 });
