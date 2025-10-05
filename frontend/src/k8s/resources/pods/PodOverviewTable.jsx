@@ -409,6 +409,25 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     handleMenuClose();
   }
 
+  function panelHeader(selectedPod) {
+    return (
+      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <button
+          style={{ padding: '6px 16px', background: '#2d323b', color: '#fff', border: '1px solid #353a42', borderRadius: 4, cursor: 'pointer' }}
+          onClick={() => handleRestart(selectedPod.name, selectedPod.namespace)}
+        >
+          Restart
+        </button>
+        <button
+          style={{ padding: '6px 16px', background: '#b22222', color: '#fff', border: '1px solid #353a42', borderRadius: 4, cursor: 'pointer' }}
+          onClick={() => handleDelete(selectedPod.name, selectedPod.namespace)}
+        >
+          Delete
+        </button>
+      </div>
+    );
+  }
+
   const tabs = [
     { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} /> },
     {
@@ -528,6 +547,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     return Object.values(m).some(arr => Array.isArray(arr) && arr.length > 0);
   }
 
+  // Find the selected pod object for the bottom panel
+  const selectedRow = bottomOpen && bottomPodName
+    ? tableData.find(pod => pod.name === bottomPodName && pod.namespace === (bottomNamespace || namespace))
+    : null;
+
   return (
     <>
       <div style={{
@@ -595,7 +619,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                   border: '1px solid #353a42',
                   borderRadius: 0,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                  zIndex: 10,
+                  zIndex: 1200, // raised to sit above notifications & bottom panel
                   minWidth: 180,
                   padding: '4px 0',
                   textAlign: 'left', // <-- ensure left alignment
@@ -725,7 +749,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                               background: 'var(--gh-table-header-bg, #2d323b)',
                               border: '1px solid #353a42',
                               boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                              zIndex: 10,
+                              zIndex: 1200, // raised above other floating UI
                               minWidth: 180,
                               textAlign: 'left',
                             }}
@@ -882,6 +906,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             tabs={tabs}
             activeTab={bottomActiveTab}
             onTabChange={(id) => setBottomActiveTab(id)}
+            headerRight={selectedRow ? panelHeader(selectedRow) : null}
           />
         )}
         <PortForwardDialog

@@ -523,7 +523,8 @@ func (a *App) StopPortForward(namespace, podName string, localPort int) error {
 	return fmt.Errorf("session disappeared for %s", foundKey)
 }
 
-// GetRunningPods returns all running pods (name, restarts, uptime) in a namespace
+// GetRunningPods returns all running (and pending) pods (name, restarts, uptime) in a namespace
+// Pending pods are included so the UI can show pods while they are in 'Creating' state.
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	clientset, err := a.createKubernetesClient()
 	if err != nil {
@@ -545,7 +546,8 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 				break
 			}
 		}
-		if pod.Status.Phase == "Running" || isJobPod {
+		// Include Running, Pending, and any Job-owned pod (to preserve previous behavior for Jobs)
+		if pod.Status.Phase == v1.PodRunning || pod.Status.Phase == v1.PodPending || isJobPod {
 			uptime := "-"
 			startTimeStr := ""
 			if pod.Status.StartTime != nil {
@@ -559,7 +561,6 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 					restarts += cs.RestartCount
 				}
 			}
-			// collect unique container ports across all containers
 			portSet := make(map[int]struct{})
 			for _, c := range pod.Spec.Containers {
 				for _, p := range c.Ports {

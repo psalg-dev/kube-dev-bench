@@ -7,7 +7,7 @@ import LabelsInline from '../../LabelsInline.jsx';
  * Updated: Removed centered "Summary for <name>" title. Now header just shows labels (or '-' if none) left-aligned.
  * hideTitle is retained for backward compatibility but has no visual difference now.
  */
-export default function SummaryTabHeader({ name, labels, hideTitle = false }) { // name kept in signature in case future use
+export default function SummaryTabHeader({ name, labels, hideTitle = false, actions = null }) { // name kept in signature in case future use
   const normalized = useMemo(() => {
     if (!labels || typeof labels !== 'object') return {};
     return labels;
@@ -19,7 +19,7 @@ export default function SummaryTabHeader({ name, labels, hideTitle = false }) { 
     <div
       style={{
         position: 'relative',
-        padding: '8px 10px',
+        padding: '6px 10px',
         borderBottom: '1px solid var(--gh-border, #30363d)',
         background: 'var(--gh-bg-sidebar, #161b22)',
         color: 'var(--gh-text, #c9d1d9)',
@@ -27,15 +27,21 @@ export default function SummaryTabHeader({ name, labels, hideTitle = false }) { 
         lineHeight: '24px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'flex-start',
-        gap: 8,
+        gap: 12,
         textAlign: 'left'
       }}
     >
-      {hasLabels ? (
-        <LabelsInline labels={normalized} maxVisible={6} style={{ maxWidth: '100%' }} />
-      ) : (
-        <span style={{ opacity: 0.6, fontSize: 12 }}>-</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, overflow: 'hidden' }}>
+        {hasLabels ? (
+          <LabelsInline labels={normalized} maxVisible={6} style={{ maxWidth: '100%' }} />
+        ) : (
+          <span style={{ opacity: 0.6, fontSize: 12 }}>-</span>
+        )}
+      </div>
+      {actions && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+          {actions}
+        </div>
       )}
     </div>
   );

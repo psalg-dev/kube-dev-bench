@@ -5,15 +5,14 @@ import YamlTab from '../../../layout/bottompanel/YamlTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
+import FilesTab from '../../../layout/bottompanel/FilesTab.jsx';
+import ResourceActions from '../../../components/ResourceActions.jsx';
 
 export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPVC, setSelectedPVC] = useState(null);
 
-  // Timers and guards as refs so we can restart fast polling on new creates
-  const inFlightRef = useRef(false);
   const fastTimerRef = useRef(null);
   const slowTimerRef = useRef(null);
 
@@ -130,6 +129,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   const bottomTabs = [
     { key: 'summary', label: 'Summary' },
     { key: 'yaml', label: 'YAML' },
+    { key: 'files', label: 'Files' },
   ];
 
   function renderPanelContent(row, tab) {
@@ -156,7 +156,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
       return (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
+          <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="pvc" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("pvc", ns, n);}} />} />
           {/* Main content */}
           <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
             <QuickInfoSection
@@ -197,6 +197,9 @@ status:
   phase: ${row.status}`;
 
       return <YamlTab content={yamlContent} />;
+    }
+    if (tab === 'files') {
+      return <FilesTab namespace={row.namespace} pvcName={row.name} />;
     }
     return null;
   }

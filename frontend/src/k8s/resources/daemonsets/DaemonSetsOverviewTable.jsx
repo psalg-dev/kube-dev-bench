@@ -5,6 +5,7 @@ import YamlTab from '../../../layout/bottompanel/YamlTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
+import ResourceActions from '../../../components/ResourceActions.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -43,7 +44,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="daemonset" name={row.name} namespace={row.namespace} onRestart={async (n,ns)=>{ if(AppAPI.RestartDaemonSet){ await AppAPI.RestartDaemonSet(ns,n);} else { throw new Error('RestartDaemonSet API unavailable; rebuild bindings'); }} } onDelete={async (n,ns)=>{await AppAPI.DeleteResource("daemonset", ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
