@@ -126,6 +126,10 @@ export function GetReplicaSets(arg1) {
   return window['go']['main']['App']['GetReplicaSets'](arg1);
 }
 
+export function GetResourceCounts() {
+  return window['go']['main']['App']['GetResourceCounts']();
+}
+
 export function GetRunningPods(arg1) {
   return window['go']['main']['App']['GetRunningPods'](arg1);
 }

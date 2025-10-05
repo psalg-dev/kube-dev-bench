@@ -65,6 +65,8 @@ export function GetRememberNamespace():Promise<boolean>;
 
 export function GetReplicaSets(arg1:string):Promise<Array<app.ReplicaSetInfo>>;
 
+export function GetResourceCounts():Promise<app.ResourceCounts>;
+
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetSecretData(arg1:string):Promise<Record<string, string>>;

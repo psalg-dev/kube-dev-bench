@@ -228,3 +228,21 @@ type PersistentVolumeInfo struct {
 	Labels        map[string]string `json:"labels"`      // Added
 	Annotations   map[string]string `json:"annotations"` // New: expose annotations
 }
+
+// ResourceCounts aggregates counts for all sidebar-listed resources across the currently
+// selected (preferred) namespaces. PersistentVolumes are cluster-scoped.
+// This is emitted periodically to the frontend (event: "resourcecounts:update").
+type ResourceCounts struct {
+	PodStatus              PodStatusCounts `json:"podStatus"`
+	Deployments            int             `json:"deployments"`
+	Jobs                   int             `json:"jobs"`
+	CronJobs               int             `json:"cronjobs"`
+	DaemonSets             int             `json:"daemonsets"`
+	StatefulSets           int             `json:"statefulsets"`
+	ReplicaSets            int             `json:"replicasets"`
+	ConfigMaps             int             `json:"configmaps"`
+	Secrets                int             `json:"secrets"`
+	Ingresses              int             `json:"ingresses"`
+	PersistentVolumeClaims int             `json:"persistentvolumeclaims"`
+	PersistentVolumes      int             `json:"persistentvolumes"`
+}

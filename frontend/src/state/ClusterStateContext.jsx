@@ -6,6 +6,7 @@ import {
   SetCurrentKubeContext,
   SetCurrentNamespace,
   GetConnectionStatus,
+  SetPreferredNamespaces,
 } from '../k8s/resources/kubeApi.js'; // fixed path
 import { showError, showSuccess, showWarning } from '../notification';
 
@@ -101,6 +102,7 @@ export function ClusterStateProvider({ children }) {
         if (selNs.length === 0) selNs = [namespaces[0]];
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: selNs });
         try { await SetCurrentNamespace(selNs[0]); } catch(_) {}
+        try { await SetPreferredNamespaces(selNs); } catch(_) {}
         await refreshConnectionStatus();
       } catch(err) {
         showError('Initialization error: ' + err);
@@ -129,6 +131,7 @@ export function ClusterStateProvider({ children }) {
       const selNs = [namespaces[0]];
       dispatch({ type: 'SET_SELECTED_NAMESPACES', values: selNs });
       try { await SetCurrentNamespace(selNs[0]); } catch(_) {}
+      try { await SetPreferredNamespaces(selNs); } catch(_) {}
       showSuccess(`Context switched to '${ctx}'.`);
       await refreshConnectionStatus();
     } catch(err) {
@@ -143,6 +146,7 @@ export function ClusterStateProvider({ children }) {
     }
     dispatch({ type: 'SET_SELECTED_NAMESPACES', values: names });
     try { await SetCurrentNamespace(names[0]); showSuccess(`Namespaces saved: ${names.join(', ')}`);} catch(_) {}
+    try { await SetPreferredNamespaces(names); } catch(_) {}
     await refreshConnectionStatus();
   }, [refreshConnectionStatus]);
 
@@ -180,10 +184,12 @@ export function ClusterStateProvider({ children }) {
       if (still.length === 0 && latest.length > 0) {
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: [latest[0]] });
         try { await SetCurrentNamespace(latest[0]); } catch(_) {}
+        try { await SetPreferredNamespaces([latest[0]]); } catch(_) {}
         showSuccess(`Namespaces list updated. Auto-selected '${latest[0]}'.`);
       } else if (still.length !== state.selectedNamespaces.length) {
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: still });
         if (still[0]) { try { await SetCurrentNamespace(still[0]); } catch(_) {} }
+        try { if (still.length > 0) await SetPreferredNamespaces(still); } catch(_) {}
       }
     } catch(err) {
       // silent

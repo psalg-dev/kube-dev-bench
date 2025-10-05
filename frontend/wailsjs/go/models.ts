@@ -558,6 +558,58 @@ export namespace app {
 	        this.labels = source["labels"];
 	    }
 	}
+	export class ResourceCounts {
+	    podStatus: PodStatusCounts;
+	    deployments: number;
+	    jobs: number;
+	    cronjobs: number;
+	    daemonsets: number;
+	    statefulsets: number;
+	    replicasets: number;
+	    configmaps: number;
+	    secrets: number;
+	    ingresses: number;
+	    persistentvolumeclaims: number;
+	    persistentvolumes: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ResourceCounts(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.podStatus = this.convertValues(source["podStatus"], PodStatusCounts);
+	        this.deployments = source["deployments"];
+	        this.jobs = source["jobs"];
+	        this.cronjobs = source["cronjobs"];
+	        this.daemonsets = source["daemonsets"];
+	        this.statefulsets = source["statefulsets"];
+	        this.replicasets = source["replicasets"];
+	        this.configmaps = source["configmaps"];
+	        this.secrets = source["secrets"];
+	        this.ingresses = source["ingresses"];
+	        this.persistentvolumeclaims = source["persistentvolumeclaims"];
+	        this.persistentvolumes = source["persistentvolumes"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class StatefulSetInfo {
 	    name: string;
 	    namespace: string;

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext.jsx';
 import { AppLayout } from './layout/AppLayout.jsx';
 import ConnectionWizard from './layout/connection/ConnectionWizard.jsx';
 import { ContextSelect, NamespaceMultiSelect } from './Dropdowns.jsx';
-import { useResourceCounts } from './hooks/useResourceCounts';
+import { ResourceCountsProvider } from './state/ResourceCountsContext.jsx';
 // Resource overview tables
 import PodOverviewTable from './k8s/resources/pods/PodOverviewTable.jsx';
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable.jsx';
@@ -20,11 +20,8 @@ import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/Pe
 import { showResourceOverlay } from './resource-overlay.js';
 
 function MainApp({ selectedSection, setSelectedSection }) {
-  const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled, clusterConnected } = useClusterState();
+  const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled } = useClusterState();
   const firstNs = useMemo(() => (Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : ''), [selectedNamespaces]);
-
-  // Poll resource counts (sidebar numbers)
-  useResourceCounts(clusterConnected ? selectedNamespaces : []);
 
   // Global hotkey & sidebar toggle
   useEffect(() => {
@@ -159,7 +156,9 @@ export default function AppContainer() {
   const [selectedSection, setSelectedSection] = useState('pods');
   return (
     <ClusterStateProvider key={reloadKey}>
-      <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+      <ResourceCountsProvider>
+        <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+      </ResourceCountsProvider>
     </ClusterStateProvider>
   );
 }

@@ -4,7 +4,7 @@ import { AppLayout } from './AppLayout.jsx';
 import ConnectionWizard from './connection/ConnectionWizard.jsx';
 import { ContextSelect, NamespaceMultiSelect } from '../Dropdowns.jsx';
 import { renderPodsMainContent, renderResourceMainContent } from '../main-content';
-import { useResourceCounts } from '../hooks/useResourceCounts';
+import { ResourceCountsProvider } from '../state/ResourceCountsContext.jsx';
 
 function MainContentBinder({ selectedSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
@@ -53,10 +53,7 @@ function MainContentBinder({ selectedSection }) {
     };
   }, [showWizard, actions]);
 
-  // Resource counts polling hook
-  useResourceCounts(clusterConnected ? selectedNamespaces : []);
-
-  return null; // side-effect only
+  return null; // side-effect only (no longer needed for counts)
 }
 
 function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection }) {
@@ -93,8 +90,10 @@ export default function AppContainer() {
   const handleWizardComplete = () => setReloadKey(k => k + 1);
   return (
     <ClusterStateProvider key={reloadKey}>
-      <LayoutOrWizard onWizardComplete={handleWizardComplete} selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
-      <MainContentBinder selectedSection={selectedSection} />
+      <ResourceCountsProvider>
+        <LayoutOrWizard onWizardComplete={handleWizardComplete} selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+        <MainContentBinder selectedSection={selectedSection} />
+      </ResourceCountsProvider>
     </ClusterStateProvider>
   );
 }

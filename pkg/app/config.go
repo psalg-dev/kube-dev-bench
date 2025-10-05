@@ -88,6 +88,11 @@ func (a *App) SetKubeConfigPath(path string) error {
 // SetCurrentKubeContext stores the selected context name
 func (a *App) SetCurrentKubeContext(name string) error {
 	a.currentKubeContext = name
+	// Trigger a counts refresh (context switch invalidates prior data)
+	select {
+	case a.countsRefreshCh <- struct{}{}:
+	default:
+	}
 	if a.rememberContext {
 		return a.saveConfig()
 	}
@@ -97,6 +102,14 @@ func (a *App) SetCurrentKubeContext(name string) error {
 // SetCurrentNamespace stores the selected namespace
 func (a *App) SetCurrentNamespace(ns string) error {
 	a.currentNamespace = ns
+	// Ensure preferredNamespaces has this namespace as first if empty (legacy compatibility)
+	if len(a.preferredNamespaces) == 0 && ns != "" {
+		a.preferredNamespaces = []string{ns}
+	}
+	select {
+	case a.countsRefreshCh <- struct{}{}:
+	default:
+	}
 	if a.rememberNamespace {
 		return a.saveConfig()
 	}
@@ -109,6 +122,10 @@ func (a *App) SetPreferredNamespaces(namespaces []string) error {
 	// Ensure currentNamespace tracks the first selected (for backward-compat APIs)
 	if len(namespaces) > 0 {
 		a.currentNamespace = namespaces[0]
+	}
+	select {
+	case a.countsRefreshCh <- struct{}{}:
+	default:
 	}
 	if a.rememberNamespace {
 		return a.saveConfig()
