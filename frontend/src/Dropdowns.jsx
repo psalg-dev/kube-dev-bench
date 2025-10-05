@@ -88,7 +88,7 @@ const multiStyles = {
   }),
 };
 
-export function ContextSelect({ value, options, disabled, onChange }) {
+export function ContextSelect({ value, options, disabled, onChange, onMenuOpen }) {
   const selectOptions = (options || []).map((o) => ({ value: o, label: o }));
   const current = value ? { value, label: value } : null;
   return (
@@ -106,6 +106,7 @@ export function ContextSelect({ value, options, disabled, onChange }) {
       isClearable={false}
       isSearchable={false}
       classNamePrefix="kdv"
+      onMenuOpen={onMenuOpen}
     />
   );
 }

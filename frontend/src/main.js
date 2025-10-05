@@ -175,7 +175,8 @@ function renderContextSelect() {
       value: selectedContext,
       options: contextOptions,
       disabled: isContextDisabled,
-      onChange: onContextChange
+      onChange: onContextChange,
+      onMenuOpen: handleContextMenuOpen
     })
   );
 }
@@ -276,7 +277,6 @@ async function initializeWithConfig() {
   try {
     const config = await GetCurrentConfig();
     selectedContext = config.currentContext;
-    // prefer preferredNamespaces list; fallback to single currentNamespace
     const pref = config.preferredNamespaces || config.PreferredNamespaces || [];
     selectedNamespaces = Array.isArray(pref) ? pref.slice() : [];
     selectedNamespace = selectedNamespaces[0] || config.currentNamespace || '';
@@ -289,11 +289,15 @@ async function initializeWithConfig() {
       return;
     }
 
-    // Auto-select first context if none stored
-    if (!selectedContext) {
+    // Auto-select or fix invalid stored context
+    if (!selectedContext || !contextOptions.includes(selectedContext)) {
       selectedContext = contextOptions[0];
       try { await SetCurrentKubeContext(selectedContext); } catch (_) {}
       showSuccess(`Auto-selected context '${selectedContext}'.`);
+      // Reset namespaces so we don't reuse persisted ones from another cluster
+      selectedNamespaces = [];
+      selectedNamespace = '';
+      namespaceOptions = [];
     }
 
     renderContextSelect();
@@ -466,7 +470,7 @@ function renderMainContent() {
   }
 }
 
-function onContextChange(value) {
+async function onContextChange(value) {
   if (isInitializing) return;
   const previousContext = selectedContext;
   const previousNamespace = selectedNamespace;
@@ -475,52 +479,21 @@ function onContextChange(value) {
   selectedContext = value || '';
   selectedNamespace = '';
   selectedNamespaces = [];
+  clusterConnected = false;
   updateFooter();
 
   isContextDisabled = false;
   renderContextSelect();
+  isNamespaceDisabled = true;
+  renderNamespaceSelect();
 
-  GetNamespaces()
-    .then((namespaces) => {
-      if (!namespaces || namespaces.length === 0) {
-        showWarning("No namespaces found.");
-        if (previousContext) {
-          selectedContext = previousContext;
-          selectedNamespace = previousNamespace;
-          selectedNamespaces = previousNamespaces;
-          renderContextSelect();
-          renderNamespaceSelect();
-          updateFooter();
-        }
-        return;
-      }
+  if (!selectedContext) return;
 
-      SetCurrentKubeContext(selectedContext);
-      namespaceOptions = namespaces;
-      isNamespaceDisabled = false;
-      selectedNamespaces = [namespaces[0]];
-      selectedNamespace = namespaces[0];
-      clusterConnected = true;
-      updateFooter();
-      renderNamespaceSelect();
-
-      Promise.all([
-        (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
-        SetCurrentNamespace(selectedNamespace).catch(() => {}),
-      ]).then(() => {
-        if (selectedNamespaces.length > 0) {
-          renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
-          renderMainContent();
-        }
-      }).catch(() => {
-        selectedNamespaces = previousNamespaces;
-        selectedNamespace = previousNamespace;
-        updateFooter();
-        renderNamespaceSelect();
-      });
-    })
-    .catch((err) => {
-      showError("Failed to connect to the cluster: " + err);
+  try {
+    await SetCurrentKubeContext(selectedContext).catch(()=>{});
+    const namespaces = await GetNamespaces();
+    if (!namespaces || namespaces.length === 0) {
+      showWarning("No namespaces found.");
       if (previousContext) {
         selectedContext = previousContext;
         selectedNamespace = previousNamespace;
@@ -529,50 +502,94 @@ function onContextChange(value) {
         renderNamespaceSelect();
         updateFooter();
       }
-      isNamespaceDisabled = false;
-      clusterConnected = false;
+      return;
+    }
+    namespaceOptions = namespaces;
+    isNamespaceDisabled = false;
+    selectedNamespaces = [namespaces[0]];
+    selectedNamespace = namespaces[0];
+    clusterConnected = true;
+    renderNamespaceSelect();
+    updateFooter();
+
+    try {
+      await Promise.all([
+        (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
+        SetCurrentNamespace(selectedNamespace).catch(() => {}),
+      ]);
+    } catch(_) { /* ignore */ }
+
+    if (selectedNamespaces.length > 0) {
+      renderSidebarAndAttachHandlers(renderMainContent, startPodCountUpdater);
+      renderMainContent();
+    }
+  } catch (err) {
+    showError("Failed to connect to the cluster: " + err);
+    if (previousContext) {
+      selectedContext = previousContext;
+      selectedNamespace = previousNamespace;
+      selectedNamespaces = previousNamespaces;
+      renderContextSelect();
+      renderNamespaceSelect();
       updateFooter();
-    });
+    }
+    isNamespaceDisabled = false;
+    clusterConnected = false;
+    updateFooter();
+  }
 }
 
 function onNamespaceChange(values) {
   if (isInitializing) return;
-  const previous = selectedNamespaces.slice();
-  const newSelection = Array.isArray(values) ? values : [];
-  selectedNamespaces = newSelection;
-  selectedNamespace = newSelection[0] || '';
+  const prevNamespaces = selectedNamespaces.slice();
+  const prevNamespace = selectedNamespace;
 
+  const newValues = Array.isArray(values) ? values : [];
+  selectedNamespaces = newValues;
+  selectedNamespace = newValues[0] || '';
+
+  // Re-render UI immediately for responsiveness
   renderNamespaceSelect();
   updateFooter();
 
-  if (!selectedNamespaces || selectedNamespaces.length === 0) {
+  if (selectedNamespaces.length === 0) {
+    // Disallow empty selection – revert
+    selectedNamespaces = prevNamespaces;
+    selectedNamespace = prevNamespace;
+    renderNamespaceSelect();
+    updateFooter();
+    showWarning('At least one namespace must be selected.');
     return;
   }
 
-  // touch overview API for first namespace to verify connectivity
+  // Validate connectivity against first namespace
   GetOverview(selectedNamespaces[0])
     .then(() => {
       Promise.all([
         (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
         SetCurrentNamespace(selectedNamespace).catch(() => {}),
-      ]).then(() => {
-        showSuccess(`Namespaces saved: ${selectedNamespaces.join(', ')}`);
-        updateFooter();
-        startPodCountUpdater();
-        renderMainContent();
-      }).catch(() => {
-        selectedNamespaces = previous;
-        selectedNamespace = previous[0] || '';
-        updateFooter();
-        renderNamespaceSelect();
-      });
+      ])
+        .then(() => {
+          showSuccess(`Namespaces saved: ${selectedNamespaces.join(', ')}`);
+          clusterConnected = true;
+          updateFooter();
+          startPodCountUpdater();
+          renderMainContent();
+        })
+        .catch(() => {
+          // Persistence failed; revert
+          selectedNamespaces = prevNamespaces;
+          selectedNamespace = prevNamespace;
+          renderNamespaceSelect();
+          updateFooter();
+        });
     })
     .catch((err) => {
-      showError("Failed to switch namespaces: " + err);
-      selectedNamespaces = previous;
-      selectedNamespace = previous[0] || '';
-      updateFooter();
+      showError('Failed to switch namespaces: ' + err);
+      selectedNamespaces = prevNamespaces;
+      selectedNamespace = prevNamespace;
       renderNamespaceSelect();
+      updateFooter();
     });
 }
 
@@ -593,20 +610,14 @@ async function handleNamespaceMenuOpen() {
   try {
     const latest = await GetNamespaces();
     if (!Array.isArray(latest)) return;
-    // Compare sorted lists to detect change
     const prevSorted = [...(namespaceOptions||[])].sort();
     const latestSorted = [...latest].sort();
     const changed = prevSorted.length !== latestSorted.length || prevSorted.some((v,i)=>v!==latestSorted[i]);
-    if (!changed) return; // no update needed
-
-    // Preserve still existing selections
+    if (!changed) return;
     const stillSelected = selectedNamespaces.filter(ns => latest.includes(ns));
     const lostSelections = selectedNamespaces.filter(ns => !latest.includes(ns));
-
     namespaceOptions = latest;
-
     if (stillSelected.length === 0 && latest.length > 0) {
-      // Pick first namespace if all previous selections disappeared
       selectedNamespaces = [latest[0]];
       selectedNamespace = latest[0];
       showSuccess(`Namespaces list updated. Auto-selected '${selectedNamespace}'.`);
@@ -615,7 +626,7 @@ async function handleNamespaceMenuOpen() {
           (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
           SetCurrentNamespace(selectedNamespace).catch(()=>{})
         ]);
-      } catch(_) {/* ignore */}
+      } catch(_) {}
       startPodCountUpdater();
       renderMainContent();
     } else {
@@ -623,7 +634,6 @@ async function handleNamespaceMenuOpen() {
         showWarning(`Removed namespaces: ${lostSelections.join(', ')}`);
       }
       if (stillSelected.length !== selectedNamespaces.length) {
-        // We lost some selections
         selectedNamespaces = stillSelected;
         selectedNamespace = stillSelected[0] || '';
         try {
@@ -631,11 +641,10 @@ async function handleNamespaceMenuOpen() {
             (window?.go?.main?.App?.SetPreferredNamespaces ? window.go.main.App.SetPreferredNamespaces(selectedNamespaces) : Promise.resolve()),
             selectedNamespace ? SetCurrentNamespace(selectedNamespace).catch(()=>{}) : Promise.resolve()
           ]);
-        } catch(_) {/* ignore */}
+        } catch(_) {}
         startPodCountUpdater();
         renderMainContent();
       } else {
-        // Only list changed (new namespaces added)
         const newOnes = latest.filter(ns => !prevSorted.includes(ns));
         if (newOnes.length > 0) {
           showSuccess(`New namespaces detected: ${newOnes.join(', ')}`);
@@ -643,10 +652,43 @@ async function handleNamespaceMenuOpen() {
       }
     }
   } catch(err) {
-    // Silent failure to avoid noise; could log if desired
     console.debug('Namespace refresh on open failed:', err);
   } finally {
     isNamespaceRefreshInFlight = false;
-    renderNamespaceSelect(); // re-render if changed
+    renderNamespaceSelect();
+  }
+}
+
+let isContextRefreshInFlight = false;
+async function handleContextMenuOpen() {
+  if (isContextRefreshInFlight) return;
+  isContextRefreshInFlight = true;
+  try {
+    const latest = await GetKubeContexts();
+    if (!Array.isArray(latest) || latest.length === 0) {
+      showWarning('No Kubernetes contexts found.');
+      return;
+    }
+    const prevSorted = [...(contextOptions||[])].sort();
+    const latestSorted = [...latest].sort();
+    const changed = prevSorted.length !== latestSorted.length || prevSorted.some((v,i)=>v!==latestSorted[i]);
+    if (!changed) return;
+    contextOptions = latest;
+    if (!latest.includes(selectedContext)) {
+      selectedContext = latest[0];
+      showSuccess(`Auto-selected context '${selectedContext}'.`);
+      try { await SetCurrentKubeContext(selectedContext); } catch(_){}
+      selectedNamespaces = [];
+      selectedNamespace = '';
+      namespaceOptions = [];
+      clusterConnected = false;
+      renderNamespaceSelect();
+      await fetchAndSelectNamespaces(true);
+    }
+    renderContextSelect();
+  } catch(err) {
+    console.debug('Context refresh on open failed:', err);
+  } finally {
+    isContextRefreshInFlight = false;
   }
 }
