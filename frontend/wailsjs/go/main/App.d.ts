@@ -129,6 +129,8 @@ export function RestartPod(arg1:string,arg2:string):Promise<void>;
 
 export function RestartStatefulSet(arg1:string,arg2:string):Promise<void>;
 
+export function ResumeCronJob(arg1:string,arg2:string):Promise<void>;
+
 export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SavePrimaryKubeConfig(arg1:string):Promise<string>;
@@ -159,6 +161,10 @@ export function StartDaemonSetPolling():Promise<void>;
 
 export function StartDeploymentPolling():Promise<void>;
 
+export function StartJob(arg1:string,arg2:string):Promise<void>;
+
+export function StartJobFromCronJob(arg1:string,arg2:string):Promise<void>;
+
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function StartPodPolling():Promise<void>;
@@ -184,3 +190,5 @@ export function StreamPodContainerLogsWith(arg1:string,arg2:string,arg3:number,a
 export function StreamPodLogs(arg1:string):Promise<void>;
 
 export function StreamPodLogsWith(arg1:string,arg2:number,arg3:boolean):Promise<void>;
+
+export function SuspendCronJob(arg1:string,arg2:string):Promise<void>;

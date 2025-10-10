@@ -25,6 +25,10 @@ import {
   GetConnectionStatus,
   GetResourceCounts,
   SetPreferredNamespaces,
+  StartJob,
+  SuspendCronJob,
+  ResumeCronJob,
+  StartJobFromCronJob,
 } from '../../../wailsjs/go/main/App';
 
 // Direct re-exports for now. Wrapper functions retained for possible future enhancements.
@@ -51,4 +55,8 @@ export {
   GetConnectionStatus,
   GetResourceCounts,
   SetPreferredNamespaces,
+  StartJob,
+  SuspendCronJob,
+  ResumeCronJob,
+  StartJobFromCronJob,
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { showSuccess, showError, showWarning } from '../notification';
+import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob } from '../k8s/resources/kubeApi';
 
 export default function ResourceActions({ resourceType, name, namespace, onRestart, onDelete, disabled }) {
   const [confirm, setConfirm] = useState({ type: null, expires: 0 });
@@ -44,6 +45,43 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
     }
   };
 
+  // New handlers for Job and CronJob actions
+  const handleStartJob = async () => {
+    try {
+      await StartJob(namespace, name);
+      showSuccess(`Job '${name}' started`);
+    } catch (err) {
+      showError(`Failed to start Job '${name}': ${err?.message || err}`);
+    }
+  };
+
+  const handleSuspendCronJob = async () => {
+    try {
+      await SuspendCronJob(namespace, name);
+      showSuccess(`CronJob '${name}' suspended`);
+    } catch (err) {
+      showError(`Failed to suspend CronJob '${name}': ${err?.message || err}`);
+    }
+  };
+
+  const handleResumeCronJob = async () => {
+    try {
+      await ResumeCronJob(namespace, name);
+      showSuccess(`CronJob '${name}' resumed`);
+    } catch (err) {
+      showError(`Failed to resume CronJob '${name}': ${err?.message || err}`);
+    }
+  };
+
+  const handleStartJobFromCronJob = async () => {
+    try {
+      await StartJobFromCronJob(namespace, name);
+      showSuccess(`Job started from CronJob '${name}'`);
+    } catch (err) {
+      showError(`Failed to start Job from CronJob '${name}': ${err?.message || err}`);
+    }
+  };
+
   const restartPending = confirm.type === 'restart';
   const deletePending  = confirm.type === 'delete';
 
@@ -62,6 +100,55 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
 
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      {/* Job actions */}
+      {resourceType === 'job' && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={handleStartJob}
+          title={`Start Job '${name}' (re-run)`}
+          style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+        >
+          <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
+          Start
+        </button>
+      )}
+      {/* CronJob actions */}
+      {resourceType === 'cronjob' && (
+        <>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleStartJobFromCronJob}
+            title={`Start Job from CronJob '${name}' (manual trigger)`}
+            style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+          >
+            <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
+            Start
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleSuspendCronJob}
+            title={`Suspend CronJob '${name}'`}
+            style={{ ...baseBtn, background: '#b22222', color: '#fff' }}
+          >
+            <span aria-hidden="true" style={{ lineHeight: 1 }}>⏸</span>
+            Suspend
+          </button>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={handleResumeCronJob}
+            title={`Resume CronJob '${name}'`}
+            style={{ ...baseBtn, background: '#228B22', color: '#fff' }}
+          >
+            <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
+            Resume
+          </button>
+        </>
+      )}
+      {/* Existing actions */}
       {hasRestart && (
         <button
           type="button"
