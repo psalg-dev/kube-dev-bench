@@ -1,6 +1,10 @@
 package app
 
-import "time"
+import (
+	"time"
+
+	jobs "gowails/pkg/app/jobs"
+)
 
 // OverviewInfo contains counts of resources for a namespace
 type OverviewInfo struct {
@@ -118,19 +122,8 @@ type DeploymentInfo struct {
 	Labels    map[string]string `json:"labels"` // Added: union of deployment metadata labels (preferred) or pod template labels fallback
 }
 
-// JobInfo describes a job's basic info
-type JobInfo struct {
-	Name        string            `json:"name"`
-	Namespace   string            `json:"namespace"`
-	Completions int32             `json:"completions"`
-	Succeeded   int32             `json:"succeeded"`
-	Active      int32             `json:"active"`
-	Failed      int32             `json:"failed"`
-	Age         string            `json:"age"`
-	Image       string            `json:"image"`
-	Duration    string            `json:"duration"`
-	Labels      map[string]string `json:"labels"` // Added
-}
+// JobInfo describes a job's basic info — reuse the type from the jobs package to avoid duplication
+type JobInfo = jobs.JobInfo
 
 // CronJobInfo describes a cronjob's basic info
 type CronJobInfo struct {

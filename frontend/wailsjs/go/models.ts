@@ -260,36 +260,6 @@ export namespace app {
 	        this.labels = source["labels"];
 	    }
 	}
-	export class JobInfo {
-	    name: string;
-	    namespace: string;
-	    completions: number;
-	    succeeded: number;
-	    active: number;
-	    failed: number;
-	    age: string;
-	    image: string;
-	    duration: string;
-	    labels: Record<string, string>;
-	
-	    static createFrom(source: any = {}) {
-	        return new JobInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.name = source["name"];
-	        this.namespace = source["namespace"];
-	        this.completions = source["completions"];
-	        this.succeeded = source["succeeded"];
-	        this.active = source["active"];
-	        this.failed = source["failed"];
-	        this.age = source["age"];
-	        this.image = source["image"];
-	        this.duration = source["duration"];
-	        this.labels = source["labels"];
-	    }
-	}
 	export class KubeConfigInfo {
 	    path: string;
 	    name: string;
@@ -697,6 +667,41 @@ export namespace app {
 	        this.ready = source["ready"];
 	        this.age = source["age"];
 	        this.image = source["image"];
+	        this.labels = source["labels"];
+	    }
+	}
+
+}
+
+export namespace jobs {
+	
+	export class JobInfo {
+	    name: string;
+	    namespace: string;
+	    completions: number;
+	    succeeded: number;
+	    active: number;
+	    failed: number;
+	    age: string;
+	    image: string;
+	    duration: string;
+	    labels: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new JobInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.completions = source["completions"];
+	        this.succeeded = source["succeeded"];
+	        this.active = source["active"];
+	        this.failed = source["failed"];
+	        this.age = source["age"];
+	        this.image = source["image"];
+	        this.duration = source["duration"];
 	        this.labels = source["labels"];
 	    }
 	}

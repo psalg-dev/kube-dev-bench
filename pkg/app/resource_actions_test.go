@@ -8,13 +8,15 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	jobs "gowails/pkg/app/jobs"
 )
 
 type mockResourceClient struct {
-	batch BatchV1Interface
+	batch jobs.BatchV1Interface
 }
 
-func (m *mockResourceClient) BatchV1() BatchV1Interface { return m.batch }
+func (m *mockResourceClient) BatchV1() jobs.BatchV1Interface { return m.batch }
 
 func TestStartJob_Success(t *testing.T) {
 	jobName := "test-job"
@@ -31,7 +33,7 @@ func TestStartJob_Success(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs}}
-	if err := StartJob(client, namespace, jobName); err != nil {
+	if err := jobs.StartJob(client, namespace, jobName); err != nil {
 		t.Errorf("expected success, got error: %v", err)
 	}
 }
@@ -48,7 +50,7 @@ func TestSuspendCronJob_Success(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
-	if err := SuspendCronJob(client, namespace, cronJobName); err != nil {
+	if err := jobs.SuspendCronJob(client, namespace, cronJobName); err != nil {
 		t.Errorf("expected success, got error: %v", err)
 	}
 }
@@ -65,7 +67,7 @@ func TestResumeCronJob_Success(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
-	if err := ResumeCronJob(client, namespace, cronJobName); err != nil {
+	if err := jobs.ResumeCronJob(client, namespace, cronJobName); err != nil {
 		t.Errorf("expected success, got error: %v", err)
 	}
 }
@@ -87,7 +89,7 @@ func TestStartJobFromCronJob_Success(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs, cronJobs: mockCronJobs}}
-	if err := StartJobFromCronJob(client, namespace, cronJobName); err != nil {
+	if err := jobs.StartJobFromCronJob(client, namespace, cronJobName); err != nil {
 		t.Errorf("expected success, got error: %v", err)
 	}
 }
@@ -101,7 +103,7 @@ func TestStartJob_GetError(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs}}
-	if err := StartJob(client, namespace, jobName); err == nil {
+	if err := jobs.StartJob(client, namespace, jobName); err == nil {
 		t.Errorf("expected error, got success")
 	}
 }
@@ -118,7 +120,7 @@ func TestStartJob_CreateError(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs}}
-	if err := StartJob(client, namespace, jobName); err == nil {
+	if err := jobs.StartJob(client, namespace, jobName); err == nil {
 		t.Errorf("expected error, got success")
 	}
 }
@@ -132,7 +134,7 @@ func TestSuspendCronJob_PatchError(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
-	if err := SuspendCronJob(client, namespace, cronJobName); err == nil {
+	if err := jobs.SuspendCronJob(client, namespace, cronJobName); err == nil {
 		t.Errorf("expected error, got success")
 	}
 }
@@ -146,7 +148,7 @@ func TestResumeCronJob_PatchError(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
-	if err := ResumeCronJob(client, namespace, cronJobName); err == nil {
+	if err := jobs.ResumeCronJob(client, namespace, cronJobName); err == nil {
 		t.Errorf("expected error, got success")
 	}
 }
@@ -160,7 +162,7 @@ func TestStartJobFromCronJob_GetError(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
-	if err := StartJobFromCronJob(client, namespace, cronJobName); err == nil {
+	if err := jobs.StartJobFromCronJob(client, namespace, cronJobName); err == nil {
 		t.Errorf("expected error, got success")
 	}
 }
@@ -179,7 +181,7 @@ func TestStartJobFromCronJob_CreateError(t *testing.T) {
 		},
 	}
 	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs, cronJobs: mockCronJobs}}
-	if err := StartJobFromCronJob(client, namespace, cronJobName); err == nil {
+	if err := jobs.StartJobFromCronJob(client, namespace, cronJobName); err == nil {
 		t.Errorf("expected error, got success")
 	}
 }
@@ -246,17 +248,26 @@ func TestDeleteCronJob_Error(t *testing.T) {
 // Mock implementations
 
 type mockBatchV1 struct {
-	jobs     JobInterface
-	cronJobs CronJobInterface
+	jobs     jobs.JobInterface
+	cronJobs jobs.CronJobInterface
 }
 
-func (m *mockBatchV1) Jobs(namespace string) JobInterface         { return m.jobs }
-func (m *mockBatchV1) CronJobs(namespace string) CronJobInterface { return m.cronJobs }
+func (m *mockBatchV1) Jobs(namespace string) jobs.JobInterface         { return m.jobs }
+func (m *mockBatchV1) CronJobs(namespace string) jobs.CronJobInterface { return m.cronJobs }
 
 type mockJobInterface struct {
+	listFunc   func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error)
 	getFunc    func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error)
 	createFunc func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error)
 	deleteFunc func(ctx context.Context, name string, opts metav1.DeleteOptions) error
+}
+
+func (m *mockJobInterface) List(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+	if m.listFunc != nil {
+		return m.listFunc(ctx, opts)
+	}
+	// default: return empty list
+	return &batchv1.JobList{Items: []batchv1.Job{}}, nil
 }
 
 func (m *mockJobInterface) Get(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error) {
