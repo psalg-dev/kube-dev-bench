@@ -258,3 +258,27 @@ func (a *App) DeleteIngress(namespace, name string) error {
 	}
 	return clientset.NetworkingV1().Ingresses(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
 }
+
+// Start a Job by copying an existing Job (exposed on App so Wails generates a binding)
+func (a *App) StartJob(namespace, name string) error {
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return err
+	}
+	job, err := clientset.BatchV1().Jobs(namespace).Get(a.ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	newJob := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: job.Name + "-manual-",
+			Namespace:    namespace,
+		},
+		Spec: job.Spec,
+	}
+	newJob.ResourceVersion = ""
+	newJob.UID = ""
+	newJob.CreationTimestamp = metav1.Time{}
+	_, err = clientset.BatchV1().Jobs(namespace).Create(a.ctx, newJob, metav1.CreateOptions{})
+	return err
+}
