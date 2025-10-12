@@ -10,7 +10,12 @@ import (
 
 // --- Generic helpers ---
 
-func (a *App) patchControllerAnnotation(kind, namespace, name string, patchFunc func() error) error {
+// Remove unused parameter warnings
+func (a *App) patchControllerAnnotation(_kind, _namespace, _name string, patchFunc func() error) error {
+	// reference parameters to avoid unused parameter warnings in static analysis
+	_ = _kind
+	_ = _namespace
+	_ = _name
 	return patchFunc()
 }
 
@@ -77,26 +82,6 @@ func (a *App) DeleteReplicaSet(namespace, name string) error {
 	return clientset.AppsV1().ReplicaSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
 }
 
-// --- Jobs ---
-func (a *App) DeleteJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		return err
-	}
-	propagation := metav1.DeletePropagationBackground
-	opts := metav1.DeleteOptions{PropagationPolicy: &propagation}
-	return clientset.BatchV1().Jobs(namespace).Delete(a.ctx, name, opts)
-}
-
-// --- CronJobs ---
-func (a *App) DeleteCronJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		return err
-	}
-	return clientset.BatchV1().CronJobs(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
-}
-
 // --- ConfigMaps ---
 func (a *App) DeleteConfigMap(namespace, name string) error {
 	clientset, err := a.getKubernetesClient()
@@ -141,3 +126,5 @@ func (a *App) DeleteIngress(namespace, name string) error {
 	}
 	return clientset.NetworkingV1().Ingresses(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
 }
+
+// Job and CronJob App methods moved to resource_actions_jobs.go

@@ -254,6 +254,10 @@ export function RestartStatefulSet(arg1, arg2) {
   return window['go']['main']['App']['RestartStatefulSet'](arg1, arg2);
 }
 
+export function ResumeCronJob(arg1, arg2) {
+  return window['go']['main']['App']['ResumeCronJob'](arg1, arg2);
+}
+
 export function SaveCustomKubeConfig(arg1, arg2) {
   return window['go']['main']['App']['SaveCustomKubeConfig'](arg1, arg2);
 }
@@ -314,6 +318,14 @@ export function StartDeploymentPolling() {
   return window['go']['main']['App']['StartDeploymentPolling']();
 }
 
+export function StartJob(arg1, arg2) {
+  return window['go']['main']['App']['StartJob'](arg1, arg2);
+}
+
+export function StartJobFromCronJob(arg1, arg2) {
+  return window['go']['main']['App']['StartJobFromCronJob'](arg1, arg2);
+}
+
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
 }
@@ -364,4 +376,8 @@ export function StreamPodLogs(arg1) {
 
 export function StreamPodLogsWith(arg1, arg2, arg3) {
   return window['go']['main']['App']['StreamPodLogsWith'](arg1, arg2, arg3);
+}
+
+export function SuspendCronJob(arg1, arg2) {
+  return window['go']['main']['App']['SuspendCronJob'](arg1, arg2);
 }
