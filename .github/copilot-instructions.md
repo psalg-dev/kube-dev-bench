@@ -1,81 +1,89 @@
 ---
 applyTo: '**'
-description: 'description'
+description: 'Repository-specific guidance for AI code agents working on kube-dev-bench'
 ---
-Provide project context and coding guidelines that AI should follow when generating code, answering questions, or reviewing changes.
 
-# Project Overview
+This project is a desktop Kubernetes client built with Go backend + Wails and a React frontend (Vite).
+Keep guidance short and concrete so an AI agent can be productive immediately.
 
-This is a kubernetes client application for developers and devops engineers.
+- Big picture
+  - Frontend: React app lives in `frontend/`. Vite dev server is used during development (`npm run dev`).
+  - Backend: Go code under `pkg/` integrates with Kubernetes APIs and exposes functions to the frontend via Wails (`wailsjs/go/main/App`).
+  - Orchestration: Wails runs the Go backend and the Vite dev server during `wails dev`. The frontend is also served independently via Vite for tests.
 
-# Technologies Used
+- Key developer flows (commands)
+  - Start development app (dev mode): run `wails dev` from repository root. This starts the Go backend and the Vite dev server.
+  - Build production app: `wails build`.
+  - Frontend dev-only: `cd frontend && npm install && npm run dev`.
+  - Run unit tests (frontend): `cd frontend && npm test` (uses Vitest).
 
-- Frontend: React
-- Frontend DevServer: Vite
-- Backend: Go
-- Application Framework: Wails (https://wails.io/)
-- Development Environment: IntelliJ IDEA
+- Project-specific conventions
+  - App UI elements are referenced by DOM ids in `frontend/src/layout/AppLayout.jsx` (examples: `#show-wizard-btn`, `#sidebar`, `#maincontent`). Use these stable ids in tests and automation.
+  - Connection handling is centralized in `frontend/src/state/ClusterStateContext.jsx`. UI opens `ConnectionWizard` (`frontend/src/layout/connection/ConnectionWizard.jsx`) when no connection exists or when user clicks the gear button (`#show-wizard-btn`).
+  - Frontend <> backend RPCs: frontend calls Go functions generated under `frontend/wailsjs/go/main/App` (e.g. `SavePrimaryKubeConfig`, `GetKubeConfigs`, `GetConnectionStatus`). Tests should trigger these via the UI, not by directly calling Go functions.
 
-# General Guidelines
-- The console used inside IntelliJ is a git bash console
+- Integration points and patterns
+  - Kube configs are persisted via backend RPCs: `SavePrimaryKubeConfig` and `SetKubeConfigPath` are used to make a kubeconfig the application's primary file. The connection wizard accepts pasted kubeconfig YAML (`#primaryConfigContent`).
+  - The `kind/` directory contains a Docker-based KinD manager (`kind/docker-compose.yml`, `kind/manager.sh`) which writes the host kubeconfig to `kind/output/kubeconfig` and `kubeconfig.internal`.
+  - Tests and CI should prefer the KinD manager container to create kubeconfigs for deterministic clusters.
 
-# Development Guidelines
+- Testing and e2e guidance
+  - End-to-end tests live in `e2e/` (Playwright). They start the Kind manager (via `docker compose -f kind/docker-compose.yml up -d`), wait for `kind/output/kubeconfig`, then start `wails dev` and run browser flows against the Vite dev server.
+  - Use stable selectors: `#show-wizard-btn` to open the connection wizard, `#primaryConfigContent` textarea to paste kubeconfig, and `button:has-text("Save & Continue")` to save.
 
-- When formulating commands to run in the terminal, *use bash syntax*
+- When editing code
+  - Preserve existing id-based selectors and avoid refactoring them unless you update all usages (tests, DOM queries in `main-content.js` and `AppLayout.jsx`).
+  - If you modify RPC names or signatures in Go (`pkg/`), update generated Wails bindings under `frontend/wailsjs/go/main/App` by rebuilding Wails or regenerating bindings.
 
-## Building the Project
+- Files to reference when working here
+  - Frontend UI and tests: `frontend/src/`, `frontend/package.json`, `frontend/test.setup.js`
+  - Connection logic: `frontend/src/layout/connection/ConnectionWizard.jsx`, `frontend/src/state/ClusterStateContext.jsx`
+  - KinD infra: `kind/docker-compose.yml`, `kind/manager.sh`, `kind/output/kubeconfig`
+  - Wails config: `wails.json`
 
-- We develop using the Vite DevServer. To build, first kill any "wails dev" processes and then run:
-```bash
-wails dev
-```
+If anything above is unclear or you'd like me to include more examples (e.g. a Playwright test template), tell me which area to expand and I'll iterate.
+---
+---
+applyTo: '**'
+description: 'Repository-specific guidance for AI code agents working on kube-dev-bench'
+---
 
-# Frontend Guidelines
-## General Guidelines
-- In the frontend/logs directory the vite devserver is logging to a file. keep track of that in case any errors occur.
-- This project uses React.
-- Follow React Best Practices, especially regarding code organization
-- Follow Code re-usability
-- Follow separation of concerns
-- Use component specific CSS files, try avoiding huge global CSS files
-- We use @tanstack/table for tables.
-- We use @codemirror editor for showing kubernetes manifests
-- Avoid any flickering when updating components
+This project is a desktop Kubernetes client built with Go backend + Wails and a React frontend (Vite).
+Keep guidance short and concrete so an AI agent can be productive immediately.
 
-## Frontend behaviors
+- Big picture
+  - Frontend: React app lives in `frontend/`. Vite dev server is used during development (`npm run dev`).
+  - Backend: Go code under `pkg/` integrates with Kubernetes APIs and exposes functions to the frontend via Wails (`wailsjs/go/main/App`).
+  - Orchestration: Wails runs the Go backend and the Vite dev server during `wails dev`. The frontend is also served independently via Vite for tests.
 
-- The frontend consists of a sidebar, a footer and a main content area
-- The sidebar is collapsible
-- The sidebar has a Dropdown through which the user can select a kubernetes context
-- The sidebar has a Dropdown through which the user can select one or more kubernetes namespaces
-- The sidebar contains menu entries for different kubernetes resources:
-    - Pods
-    - Deployments
-    - Jobs
-    - CronJobs
-    - Daemon Sets
-    - Stateful Sets
-    - Replica Sets
-    - Config Maps
-    - Secrets
-    - Persistent Volumes
-    - Persistent Volume Claims
-- All kubernetes resource views behave the same way
-    - There is a hidden Bottom Panel that is opened for showing details of a resource
-    - The main content area shows a table
-    - Rows of the table are clickable
-    - Clicking a row opens a detail view for the resource in the Bottom Panel
-    - When the Bottom Panel is open, clicking outside of it closes it
-- All kubernetes resource views have a "Plus" Button at the top left above the table
-    - The plus button opens the CreateManifestOverlay which shows an example manifest
-      for the type of resource the user has currently selected in the sidebar
-    - The user can edit the manifest and click "Create" to create the resource in the current namespace
-    - The user can close the Overlay by pressing Escape or clicking the X top right
-- When a resource is created, the table should refresh automatically to show the new resource
-- When a resource is created, the table should refresh the age of the resource automatically once every second for the first minute
-- User actions which cause state change always result in a notification
-    - Notifications are shown top center of the main content area
-    - Notifications disappear automatically after 3 seconds
-    - Notifications can be dismissed by clicking an X button on the notification
-    - Notifiations are draggable
-    - Notifications show a progress bar in the lower border which indicates how long until the notification disappears
+- Key developer flows (commands)
+  - Start development app (dev mode): run `wails dev` from repository root. This starts the Go backend and the Vite dev server.
+  - Build production app: `wails build`.
+  - Frontend dev-only: `cd frontend && npm install && npm run dev`.
+  - Run unit tests (frontend): `cd frontend && npm test` (uses Vitest).
+
+- Project-specific conventions
+  - App UI elements are referenced by DOM ids in `frontend/src/layout/AppLayout.jsx` (examples: <code>#show-wizard-btn</code>, <code>#sidebar</code>, <code>#maincontent</code>). Use these stable ids in tests and automation.
+  - Connection handling is centralized in `frontend/src/state/ClusterStateContext.jsx`. UI opens `ConnectionWizard` (`frontend/src/layout/connection/ConnectionWizard.jsx`) when no connection exists or when user clicks the gear button (<code>#show-wizard-btn</code>).
+  - Frontend &lt;&gt; backend RPCs: frontend calls Go functions generated under `frontend/wailsjs/go/main/App` (e.g. <code>SavePrimaryKubeConfig</code>, <code>GetKubeConfigs</code>, <code>GetConnectionStatus</code>). Tests should trigger these via the UI, not by directly calling Go functions.
+
+- Integration points and patterns
+  - Kube configs are persisted via backend RPCs: <code>SavePrimaryKubeConfig</code> and <code>SetKubeConfigPath</code> are used to make a kubeconfig the application's primary file. The connection wizard accepts pasted kubeconfig YAML (<code>#primaryConfigContent</code>).
+  - The `kind/` directory contains a Docker-based KinD manager (`kind/docker-compose.yml`, `kind/manager.sh`) which writes the host kubeconfig to `kind/output/kubeconfig` and `kubeconfig.internal`.
+  - Tests and CI should prefer the KinD manager container to create kubeconfigs for deterministic clusters.
+
+- Testing and e2e guidance
+  - End-to-end tests live in `e2e/` (Playwright). They start the Kind manager (via `docker compose -f kind/docker-compose.yml up -d`), wait for `kind/output/kubeconfig`, then start `wails dev` and run browser flows against the Vite dev server.
+  - Use stable selectors: <code>#show-wizard-btn</code> to open the connection wizard, <code>#primaryConfigContent</code> textarea to paste kubeconfig, and <code>button:has-text("Save & Continue")</code> to save.
+
+- When editing code
+  - Preserve existing id-based selectors and avoid refactoring them unless you update all usages (tests, DOM queries in `main-content.js` and `AppLayout.jsx`).
+  - If you modify RPC names or signatures in Go (`pkg/`), update generated Wails bindings under `frontend/wailsjs/go/main/App` by rebuilding Wails or regenerating bindings.
+
+- Files to reference when working here
+  - Frontend UI and tests: `frontend/src/`, `frontend/package.json`, `frontend/test.setup.js`
+  - Connection logic: `frontend/src/layout/connection/ConnectionWizard.jsx`, `frontend/src/state/ClusterStateContext.jsx`
+  - KinD infra: `kind/docker-compose.yml`, `kind/manager.sh`, `kind/output/kubeconfig`
+  - Wails config: `wails.json`
+
+If anything above is unclear or you'd like me to include more examples (e.g. a Playwright test template), tell me which area to expand and I'll iterate.
