@@ -38,7 +38,7 @@ test.describe('Load Kubeconfig from File', () => {
     const wizardOverlay = page.locator('.connection-wizard-overlay');
     const gearBtn = page.locator('#show-wizard-btn');
     if (!(await wizardOverlay.isVisible().catch(() => false))) {
-      await gearBtn.waitFor({ state: 'visible', timeout: 30_000 });
+      await gearBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await gearBtn.click();
     }
     await expect(wizardOverlay).toBeVisible();
@@ -76,8 +76,15 @@ test.describe('Load Kubeconfig from File', () => {
 
     // If KinD is available, select the 'test' namespace and verify UI reflects the change and connected status
     if (process.env.KIND_AVAILABLE === '1') {
-  const control = page.locator('#namespace-root .kdv__control');
-  // Wait for namespace select to become enabled
+      // Up-front stabilization: toggle context once to ensure any auto-open menus are closed
+      const ctxControl = page.locator('#kubecontext-root .kdv__control');
+      await ctxControl.click();
+      const firstCtx = page.getByRole('option').first();
+      if (await firstCtx.isVisible().catch(() => false)) await firstCtx.click();
+      await ctxControl.click();
+
+      const control = page.locator('#namespace-root .kdv__control');
+      // Wait for namespace select to become enabled
   await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 120_000 });
   const testOption = page.getByRole('option', { name: /^test$/ });
   // Ensure no stray menus are open
@@ -110,7 +117,7 @@ test.describe('Load Kubeconfig from File', () => {
           const firstCtx = page.getByRole('option').first();
           if (await firstCtx.isVisible().catch(() => false)) await firstCtx.click();
           await ctxControl.click();
-          await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 30_000 });
+          await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 10_000 });
         }
         await page.waitForTimeout(1000);
       }
@@ -121,7 +128,7 @@ test.describe('Load Kubeconfig from File', () => {
         await page.keyboard.press('Escape');
         await control.click();
         const firstNs = page.getByRole('option').first();
-        await expect(firstNs).toBeVisible({ timeout: 30_000 });
+  await expect(firstNs).toBeVisible({ timeout: 10_000 });
         const nsText = (await firstNs.innerText()).trim();
         await firstNs.click();
         await control.click();

@@ -23,15 +23,15 @@ test.describe('Connection Wizard with KinD kubeconfig', () => {
     const gearBtn = page.locator('#show-wizard-btn');
     // Wait for either overlay or gear button to appear, then ensure overlay is shown
     const appeared = await Promise.race<Promise<"overlay" | "gear" | null>[]>([
-      wizardOverlay.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'overlay').catch(() => null),
-      gearBtn.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'gear').catch(() => null),
+      wizardOverlay.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'overlay').catch(() => null),
+      gearBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'gear').catch(() => null),
     ]);
     if (appeared !== 'overlay') {
       // Gear became visible (or overlay wasn't yet visible); click to open wizard
       if (await gearBtn.isVisible().catch(() => false)) {
         await gearBtn.click();
       }
-      await expect(wizardOverlay).toBeVisible({ timeout: 30_000 });
+      await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
     }
 
     // Two possible flows depending on whether any kubeconfigs were discovered

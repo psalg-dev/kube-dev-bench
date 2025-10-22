@@ -32,7 +32,7 @@ test.describe('Select existing Kubeconfig', () => {
     const wizardOverlay = page.locator('.connection-wizard-overlay');
     const gearBtn = page.locator('#show-wizard-btn');
     if (!(await wizardOverlay.isVisible().catch(() => false))) {
-      await gearBtn.waitFor({ state: 'visible', timeout: 30_000 });
+      await gearBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await gearBtn.click();
     }
     await expect(wizardOverlay).toBeVisible();
@@ -84,7 +84,7 @@ test.describe('Select existing Kubeconfig', () => {
           const firstCtx = page.getByRole('option').first();
           if (await firstCtx.isVisible().catch(() => false)) await firstCtx.click();
           await ctxControl.click();
-          await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 30_000 });
+      await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 10_000 });
         }
         await page.waitForTimeout(1000);
       }

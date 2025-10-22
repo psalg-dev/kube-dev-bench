@@ -10,7 +10,7 @@ export default defineConfig({
   testDir: path.join(__dirname, 'tests'),
   testMatch: ['**/*.spec.ts'],
   timeout: 120_000,
-  expect: { timeout: 30_000 },
+  expect: { timeout: 10_000 },
   retries: process.env.CI ? 1 : 0,
   workers: 1,
   use: {

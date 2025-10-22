@@ -23,12 +23,12 @@ test.describe('Basic app load without kubeconfigs on host', () => {
     const wizardOverlay = page.locator('.connection-wizard-overlay');
     const gearBtn = page.locator('#show-wizard-btn');
     const appeared = await Promise.race<Promise<"overlay" | "gear" | null>[]>([
-      wizardOverlay.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'overlay').catch(() => null),
-      gearBtn.waitFor({ state: 'visible', timeout: 30_000 }).then(() => 'gear').catch(() => null),
+      wizardOverlay.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'overlay').catch(() => null),
+      gearBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'gear').catch(() => null),
     ]);
     if (appeared !== 'overlay') {
       if (await gearBtn.isVisible().catch(() => false)) await gearBtn.click();
-      await expect(wizardOverlay).toBeVisible({ timeout: 30_000 });
+      await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
     }
     await expect(wizardOverlay).toBeVisible();
 
