@@ -1,0 +1,6 @@
+# Ignore compiled JS test duplicates and artifacts
+tests/**/*.js
+test-results/
+playwright-report/
+blob-report/
+.cache/
