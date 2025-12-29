@@ -241,6 +241,159 @@ export async function scaleAndRevert(page: Page, options: { section: string; nam
 }
 
 /**
+ * Verify a resource row exists in the current table
+ */
+export async function verifyResourceRow(page: Page, resourceName: string) {
+  const row = page.locator('tbody tr').filter({ hasText: resourceName }).first();
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  return row;
+}
+
+/**
+ * Get all visible rows in the current resource table
+ */
+export async function getTableRowCount(page: Page) {
+  const rows = page.locator('tbody tr');
+  await expect(rows.first()).toBeVisible({ timeout: 30_000 });
+  return rows.count();
+}
+
+/**
+ * Switch to a specific tab in the bottom panel
+ */
+export async function switchPanelTab(page: Page, tabLabel: string) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  const tab = panel.getByRole('button', { name: new RegExp(`^${tabLabel}$`, 'i') });
+  await expect(tab).toBeVisible({ timeout: 5_000 });
+  await tab.click();
+  // Wait for tab to be active (has accent border)
+  await page.waitForTimeout(300);
+}
+
+/**
+ * Verify YAML content is visible in the YAML tab
+ */
+export async function verifyYamlTabContent(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  // YAML tab uses CodeMirror - look for the editor container
+  const yamlContent = panel.locator('.cm-editor, .cm-content, pre');
+  await expect(yamlContent.first()).toBeVisible({ timeout: 10_000 });
+}
+
+/**
+ * Trigger restart action on the currently selected resource
+ * Requires double-click confirmation
+ */
+export async function restartResource(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+
+  const restartBtn = panel.getByRole('button', { name: /^Restart$/i }).first();
+  await expect(restartBtn).toBeVisible({ timeout: 5_000 });
+
+  // First click enters confirm mode
+  await restartBtn.click();
+
+  // Wait for confirm button to appear
+  const confirmBtn = panel.getByRole('button', { name: /^Confirm$/i }).first();
+  await expect(confirmBtn).toBeVisible({ timeout: 5_000 });
+
+  // Second click confirms
+  await confirmBtn.click();
+
+  // Wait for action to complete (button should revert to Restart)
+  await expect(panel.getByRole('button', { name: /^Restart$/i }).first()).toBeVisible({ timeout: 10_000 });
+}
+
+/**
+ * Trigger start action on a Job
+ */
+export async function startJob(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+
+  const startBtn = panel.getByRole('button', { name: /^Start$/i }).first();
+  await expect(startBtn).toBeVisible({ timeout: 5_000 });
+  await startBtn.click();
+
+  // Wait briefly for action to complete
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Suspend a CronJob
+ */
+export async function suspendCronJob(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+
+  const suspendBtn = panel.getByRole('button', { name: /^Suspend$/i }).first();
+  await expect(suspendBtn).toBeVisible({ timeout: 5_000 });
+  await suspendBtn.click();
+
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Resume a CronJob
+ */
+export async function resumeCronJob(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+
+  const resumeBtn = panel.getByRole('button', { name: /^Resume$/i }).first();
+  await expect(resumeBtn).toBeVisible({ timeout: 5_000 });
+  await resumeBtn.click();
+
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Start a Job from a CronJob (manual trigger)
+ */
+export async function startJobFromCronJob(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+
+  // For CronJobs, the Start button triggers a new job
+  const startBtn = panel.getByRole('button', { name: /^Start$/i }).first();
+  await expect(startBtn).toBeVisible({ timeout: 5_000 });
+  await startBtn.click();
+
+  await page.waitForTimeout(1000);
+}
+
+/**
+ * Verify connection status indicator shows connected
+ */
+export async function verifyConnected(page: Page) {
+  const footerDot = page.locator('#footer-dot');
+  await expect(footerDot).toHaveAttribute('title', /Connected|Insecure connection/i, { timeout: 30_000 });
+}
+
+/**
+ * Common setup: connect and select test namespace
+ */
+export async function setupConnectedState(page: Page, baseURL?: string) {
+  await connectWithKindKubeconfig(page, baseURL);
+  await selectNamespace(page, 'test');
+  await verifyConnected(page);
+}
+
+/**
+ * Wait for a notification toast to appear with specific text
+ */
+export async function waitForNotification(page: Page, textPattern: RegExp | string, timeout = 10_000) {
+  const notification = page.locator('.notification-toast, .toast, [class*="notification"]');
+  if (typeof textPattern === 'string') {
+    await expect(notification.filter({ hasText: textPattern })).toBeVisible({ timeout });
+  } else {
+    await expect(notification.filter({ hasText: textPattern })).toBeVisible({ timeout });
+  }
+}
+
+/**
  * Get the repo root directory
  */
 export { getRepoRoot };
@@ -249,3 +402,13 @@ export { getRepoRoot };
  * Open connection wizard
  */
 export { openConnectionWizard };
+
+/**
+ * Wait for reconnect overlay
+ */
+export { waitForReconnectOverlay };
+
+/**
+ * Close open menus
+ */
+export { closeOpenMenus };
