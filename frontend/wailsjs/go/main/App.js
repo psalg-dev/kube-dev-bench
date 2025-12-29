@@ -266,6 +266,10 @@ export function SavePrimaryKubeConfig(arg1) {
   return window['go']['main']['App']['SavePrimaryKubeConfig'](arg1);
 }
 
+export function ScaleResource(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['ScaleResource'](arg1, arg2, arg3, arg4);
+}
+
 export function SearchPodFiles(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['SearchPodFiles'](arg1, arg2, arg3, arg4, arg5, arg6);
 }

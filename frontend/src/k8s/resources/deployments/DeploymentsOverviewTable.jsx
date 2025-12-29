@@ -49,7 +49,7 @@ function renderPanelContent(row, tab) {
         <SummaryTabHeader
           name={row.name}
           labels={row.labels || row.Labels || row.metadata?.labels}
-          actions={<ResourceActions resourceType="deployment" name={row.name} namespace={row.namespace} onRestart={async (n,ns)=>{await AppAPI.RestartDeployment(ns,n);}} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("deployment", ns, n);}} />}
+          actions={<ResourceActions resourceType="deployment" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onRestart={async (n,ns)=>{await AppAPI.RestartDeployment(ns,n);}} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("deployment", ns, n);}} />}
         />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection

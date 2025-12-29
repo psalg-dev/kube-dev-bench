@@ -136,6 +136,8 @@ export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SavePrimaryKubeConfig(arg1:string):Promise<string>;
 
+export function ScaleResource(arg1:string,arg2:string,arg3:string,arg4:number):Promise<void>;
+
 export function SearchPodFiles(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number):Promise<Array<app.PodFileEntry>>;
 
 export function SelectKubeConfigFile():Promise<string>;

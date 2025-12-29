@@ -1,12 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { showSuccess, showError, showWarning } from '../notification';
-import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob } from '../k8s/resources/kubeApi';
+import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob, ScaleResource } from '../k8s/resources/kubeApi';
 
-export default function ResourceActions({ resourceType, name, namespace, onRestart, onDelete, disabled }) {
+const SCALE_VISIBLE = new Set(['deployment', 'statefulset', 'replicaset', 'daemonset']);
+const SCALE_EDITABLE = new Set(['deployment', 'statefulset', 'replicaset']);
+
+const sanitizeReplicaString = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return '0';
+  return String(Math.max(0, Math.round(num)));
+};
+
+const parseReplicaValue = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num < 0) return 0;
+  return Math.max(0, Math.round(num));
+};
+
+export default function ResourceActions({ resourceType, name, namespace, onRestart, onDelete, disabled, replicaCount }) {
   const [confirm, setConfirm] = useState({ type: null, expires: 0 });
+  const [scaleMode, setScaleMode] = useState(false);
+  const [scaleValue, setScaleValue] = useState(() => sanitizeReplicaString(replicaCount));
+  const [scaleBusy, setScaleBusy] = useState(false);
   const CONFIRM_WINDOW = 3500; // ms
   const hasRestart = typeof onRestart === 'function';
   const hasDelete = typeof onDelete === 'function';
+  const normalizedType = (resourceType || '').toLowerCase();
+  const showScaleButton = SCALE_VISIBLE.has(normalizedType);
+  const canEditScale = showScaleButton && SCALE_EDITABLE.has(normalizedType) && typeof namespace === 'string' && namespace && typeof name === 'string' && name;
 
   // Reset confirmation automatically when window expires
   useEffect(() => {
@@ -14,6 +35,19 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
     const id = setTimeout(() => setConfirm({ type: null, expires: 0 }), Math.max(0, confirm.expires - Date.now()));
     return () => clearTimeout(id);
   }, [confirm]);
+
+  // Reset scale UI when resource changes
+  useEffect(() => {
+    setScaleMode(false);
+    setScaleBusy(false);
+    setScaleValue(sanitizeReplicaString(replicaCount));
+  }, [name, namespace, replicaCount]);
+
+  useEffect(() => {
+    if (!canEditScale && scaleMode) {
+      setScaleMode(false);
+    }
+  }, [canEditScale, scaleMode]);
 
   const beginConfirm = (type) => {
     setConfirm({ type, expires: Date.now() + CONFIRM_WINDOW });
@@ -79,6 +113,29 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
       showSuccess(`Job started from CronJob '${name}'`);
     } catch (err) {
       showError(`Failed to start Job from CronJob '${name}': ${err?.message || err}`);
+    }
+  };
+
+  const toggleScale = () => {
+    if (!canEditScale || disabled) return;
+    if (!scaleMode) {
+      setScaleValue(sanitizeReplicaString(replicaCount));
+    }
+    setScaleMode(!scaleMode);
+  };
+
+  const submitScale = async () => {
+    if (!canEditScale || disabled) return;
+    const desired = parseReplicaValue(scaleValue);
+    setScaleBusy(true);
+    try {
+      await ScaleResource(resourceType, namespace, name, desired);
+      showSuccess(`Scaled ${resourceType} '${name}' to ${desired} replicas`);
+      setScaleMode(false);
+    } catch (err) {
+      showError(`Failed to scale ${resourceType} '${name}': ${err?.message || err}`);
+    } finally {
+      setScaleBusy(false);
     }
   };
 
@@ -183,6 +240,63 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           {deletePending ? 'Confirm' : 'Delete'}
         </button>
       )}
+          {showScaleButton && !scaleMode && (
+            <button
+              type="button"
+              disabled={disabled || !canEditScale}
+              onClick={toggleScale}
+              title={canEditScale ? `Scale ${resourceType} '${name}'` : normalizedType === 'daemonset' ? 'DaemonSets run one pod per matching node; change node labels to affect count' : `Scaling not available for ${resourceType}`}
+              style={{
+                ...baseBtn,
+                background: '#1f6feb',
+                borderColor: '#388bfd',
+                color: '#fff',
+                opacity: disabled || !canEditScale ? 0.6 : 1,
+                cursor: disabled || !canEditScale ? 'not-allowed' : baseBtn.cursor
+              }}
+            >
+              <span aria-hidden="true" style={{ lineHeight: 1 }}>⤢</span>
+              Scale
+            </button>
+          )}
+          {canEditScale && scaleMode && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
+                <span>Replicas</span>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={scaleValue}
+                  onChange={(e) => setScaleValue(e.target.value)}
+                  style={{
+                    width: 70,
+                    padding: '4px 6px',
+                    borderRadius: 4,
+                    border: '1px solid #353a42',
+                    background: '#0d1117',
+                    color: '#fff'
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                onClick={submitScale}
+                disabled={disabled || scaleBusy}
+                style={{ ...baseBtn, background: '#238636', borderColor: '#2ea043', color: '#fff' }}
+              >
+                {scaleBusy ? 'Scaling…' : 'Apply'}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setScaleMode(false); setScaleValue(sanitizeReplicaString(replicaCount)); }}
+                disabled={scaleBusy}
+                style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+              >
+                Cancel
+              </button>
+            </div>
+          )}
     </div>
   );
 }

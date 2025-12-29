@@ -43,15 +43,12 @@ export default async function globalSetup(_config: FullConfig) {
     console.log('[e2e setup] Starting KinD manager...');
     await run('docker', ['compose', '-f', composeFile, 'up', '-d'], { cwd: repoRoot });
     console.log(`[e2e setup] Waiting for kubeconfig at ${kubeconfigPath} ...`);
-  await waitForFile(kubeconfigPath, 180_000);
-  // Give the KinD manager extra time to apply test manifests (ensures 'test' namespace exists)
-  await wait(20_000);
+    await waitForFile(kubeconfigPath, 180_000);
+    // Wait for KinD manager to apply test manifests (test namespace)
+    await wait(20_000);
     process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;
     process.env.KIND_AVAILABLE = '1';
     console.log('[e2e setup] kubeconfig ready.');
-    // Ensure the 'test' namespace exists (manager applies examples, but wait explicitly)
-    // Skipping explicit wait for the 'test' namespace.
-    // The Wails app compile and startup time is sufficient for it to be present by the time tests run.
   } catch (err) {
     console.warn('[e2e setup] Docker is not available or failed to start KinD.');
     // Fallback: if a kubeconfig already exists in repo, use it (best effort)

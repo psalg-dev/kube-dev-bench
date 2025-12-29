@@ -29,6 +29,7 @@ import {
   SuspendCronJob,
   ResumeCronJob,
   StartJobFromCronJob,
+  ScaleResource,
 } from '../../../wailsjs/go/main/App';
 
 // Direct re-exports for now. Wrapper functions retained for possible future enhancements.
@@ -59,4 +60,5 @@ export {
   SuspendCronJob,
   ResumeCronJob,
   StartJobFromCronJob,
+  ScaleResource,
 };

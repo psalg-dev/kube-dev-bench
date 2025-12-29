@@ -1,0 +1,251 @@
+import type { Page } from '@playwright/test';
+import { expect } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const DEFAULT_BASE_URL = 'http://localhost:34115';
+
+function getRepoRoot() {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  return path.resolve(__dirname, '..', '..');
+}
+
+/**
+ * Wait for the Wails reconnect overlay to disappear (if present)
+ */
+async function waitForReconnectOverlay(page: Page) {
+  const reconnectOverlay = page.locator('.wails-reconnect-overlay');
+  if (await reconnectOverlay.isVisible().catch(() => false)) {
+    await reconnectOverlay.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
+  }
+}
+
+/**
+ * Open the connection wizard overlay
+ */
+async function openConnectionWizard(page: Page) {
+  const wizardOverlay = page.locator('.connection-wizard-overlay');
+  const gearBtn = page.locator('#show-wizard-btn');
+
+  // Check if wizard is already visible
+  if (await wizardOverlay.isVisible().catch(() => false)) {
+    return;
+  }
+
+  // Wait for gear button and click it
+  await gearBtn.waitFor({ state: 'visible', timeout: 10_000 });
+  await gearBtn.click();
+  await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
+}
+
+/**
+ * Close any open dropdown menus
+ */
+async function closeOpenMenus(page: Page) {
+  for (let j = 0; j < 3; j++) {
+    const openMenus = await page.locator('.kdv__menu-portal').count();
+    if (openMenus === 0) break;
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(100);
+  }
+}
+
+/**
+ * Connect to a Kubernetes cluster using the KinD kubeconfig
+ */
+export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
+  const repoRoot = getRepoRoot();
+  const kubeconfigPath = process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+  const kubeconfig = fs.readFileSync(kubeconfigPath, 'utf-8');
+
+  await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
+  await waitForReconnectOverlay(page);
+
+  const wizardOverlay = page.locator('.connection-wizard-overlay');
+  const gearBtn = page.locator('#show-wizard-btn');
+
+  // Wait for either overlay or gear button to appear
+  const appeared = await Promise.race<Promise<"overlay" | "gear" | null>[]>([
+    wizardOverlay.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'overlay').catch(() => null),
+    gearBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'gear').catch(() => null),
+  ]);
+
+  if (appeared !== 'overlay') {
+    if (await gearBtn.isVisible().catch(() => false)) {
+      await gearBtn.click();
+    }
+    await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
+  }
+
+  const primaryArea = page.locator('#primaryConfigContent');
+  if (await primaryArea.isVisible().catch(() => false)) {
+    await primaryArea.fill(kubeconfig);
+    await page.getByRole('button', { name: /Save \& Continue/i }).click();
+  } else {
+    await page.getByRole('button', { name: /Paste Additional Config/i }).click();
+    await page.locator('#configName').fill('kind-e2e');
+    await page.locator('#configContent').fill(kubeconfig);
+    await page.getByRole('button', { name: /Save \& Use/i }).click();
+    await page.getByRole('button', { name: /Continue/i }).click();
+  }
+
+  // Reload to ensure fresh state
+  await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
+}
+
+/**
+ * Select a namespace with optimized polling
+ * Uses same logic as original tests but with slightly better timing
+ */
+export async function selectNamespace(page: Page, namespace: string) {
+  const control = page.locator('#namespace-root .kdv__control');
+
+  // Wait for namespace control to be enabled
+  await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 120_000 });
+
+  // Check if namespace is already selected
+  const namespaceChip = page.locator('#namespace-root .kdv__multi-value__label', { hasText: namespace });
+  if (await namespaceChip.isVisible().catch(() => false)) {
+    // Namespace already selected, verify and return early
+    await expect(namespaceChip).toBeVisible({ timeout: 5_000 });
+    return;
+  }
+
+  const testOption = page.getByRole('option', { name: new RegExp(`^${namespace}$`, 'i') });
+
+  // Ensure no stray menus are open
+  await closeOpenMenus(page);
+  const main = page.locator('#maincontent');
+  if (await main.isVisible().catch(() => false)) {
+    await main.click({ force: true });
+  }
+
+  let selected = false;
+  const maxAttempts = 60; // Reduced from 110 to fit within test timeout
+  const pollInterval = 1000;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    // Ensure no other select menu portals are open that could intercept clicks
+    await closeOpenMenus(page);
+
+    // Open the namespace dropdown
+    await control.click({ timeout: 5000 });
+
+    // Wait a bit for the menu to render
+    await page.waitForTimeout(200);
+
+    if (await testOption.first().isVisible().catch(() => false)) {
+      await testOption.first().click();
+      selected = true;
+      break;
+    }
+
+    // Close the dropdown if option wasn't found
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(pollInterval);
+  }
+
+  expect(selected).toBe(true);
+  await expect(namespaceChip).toBeVisible({ timeout: 10_000 });
+}
+
+/**
+ * Select a section in the sidebar
+ */
+export async function selectSection(page: Page, sectionKey: string) {
+  await closeOpenMenus(page);
+
+  const section = page.locator(`#section-${sectionKey}`);
+  await expect(section).toBeVisible({ timeout: 10_000 });
+  await section.click();
+  await expect(section).toHaveClass(/selected/);
+}
+
+/**
+ * Get replica count for a resource
+ */
+export async function getReplicaCount(page: Page, rowName: string, columnIndex: number) {
+  const row = page.locator('tbody tr').filter({ hasText: rowName }).first();
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  const cell = row.locator('td').nth(columnIndex - 1);
+  await expect(cell).toBeVisible({ timeout: 30_000 });
+  const raw = (await cell.innerText()).trim();
+  const parsed = parseInt(raw, 10);
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Unable to parse replica count '${raw}' for ${rowName}`);
+  }
+  return parsed;
+}
+
+/**
+ * Open the bottom panel for a resource row
+ */
+export async function openRowPanel(page: Page, rowName: string) {
+  const row = page.locator('tbody tr').filter({ hasText: rowName }).first();
+  await expect(row).toBeVisible({ timeout: 30_000 });
+  await row.click();
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  return panel;
+}
+
+/**
+ * Apply scale change from the panel
+ */
+export async function applyScaleFromPanel(page: Page, target: number) {
+  const panel = page.locator('.bottom-panel');
+  await expect(panel).toBeVisible({ timeout: 5_000 });
+  const scaleBtn = panel.getByRole('button', { name: /^Scale$/i }).first();
+  await scaleBtn.click();
+  const input = panel.getByLabel('Replicas');
+  await expect(input).toBeVisible();
+  await input.fill(String(target));
+  await panel.getByRole('button', { name: /Apply/i }).click();
+  await expect(panel.getByLabel('Replicas')).toHaveCount(0, { timeout: 5_000 });
+}
+
+/**
+ * Wait for replica value to change
+ */
+export async function waitForReplicaValue(page: Page, rowName: string, columnIndex: number, expectedValue: number) {
+  const row = page.locator('tbody tr').filter({ hasText: rowName }).first();
+  const cell = row.locator('td').nth(columnIndex - 1);
+  await expect(cell).toHaveText(String(expectedValue), { timeout: 60_000 });
+}
+
+/**
+ * Close the bottom panel
+ */
+export async function closeBottomPanel(page: Page) {
+  const panel = page.locator('.bottom-panel');
+  if (!await panel.isVisible().catch(() => false)) return;
+  await panel.getByTitle('Close').click();
+  await expect(panel).toBeHidden({ timeout: 5_000 });
+}
+
+/**
+ * Helper to scale a resource and revert it
+ */
+export async function scaleAndRevert(page: Page, options: { section: string; name: string; columnIndex: number }) {
+  await selectSection(page, options.section);
+  const current = await getReplicaCount(page, options.name, options.columnIndex);
+  const next = current === 0 ? 1 : current + 1;
+  await openRowPanel(page, options.name);
+  await applyScaleFromPanel(page, next);
+  await waitForReplicaValue(page, options.name, options.columnIndex, next);
+  await applyScaleFromPanel(page, current);
+  await waitForReplicaValue(page, options.name, options.columnIndex, current);
+  await closeBottomPanel(page);
+}
+
+/**
+ * Get the repo root directory
+ */
+export { getRepoRoot };
+
+/**
+ * Open connection wizard
+ */
+export { openConnectionWizard };

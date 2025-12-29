@@ -2,8 +2,10 @@ package app
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 )
@@ -128,3 +130,58 @@ func (a *App) DeleteIngress(namespace, name string) error {
 }
 
 // Job and CronJob App methods moved to resource_actions_jobs.go
+
+// ScaleResource updates the replica count for supported workload controllers via the scale subresource.
+func (a *App) ScaleResource(kind, namespace, name string, replicas int) error {
+	if replicas < 0 {
+		return fmt.Errorf("replicas must be non-negative")
+	}
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return err
+	}
+	desired := int32(replicas)
+	switch strings.ToLower(kind) {
+	case "deployment", "deployments":
+		return a.updateScale(desired, func() (*autoscalingv1.Scale, error) {
+			return clientset.AppsV1().Deployments(namespace).GetScale(a.ctx, name, metav1.GetOptions{})
+		}, func(scale *autoscalingv1.Scale) error {
+			_, err := clientset.AppsV1().Deployments(namespace).UpdateScale(a.ctx, name, scale, metav1.UpdateOptions{})
+			return err
+		})
+	case "statefulset", "statefulsets":
+		return a.updateScale(desired, func() (*autoscalingv1.Scale, error) {
+			return clientset.AppsV1().StatefulSets(namespace).GetScale(a.ctx, name, metav1.GetOptions{})
+		}, func(scale *autoscalingv1.Scale) error {
+			_, err := clientset.AppsV1().StatefulSets(namespace).UpdateScale(a.ctx, name, scale, metav1.UpdateOptions{})
+			return err
+		})
+	case "daemonset", "daemonsets":
+		return fmt.Errorf("daemonsets do not support replica scaling; they run once per matching node")
+	case "replicaset", "replicasets":
+		return a.updateScale(desired, func() (*autoscalingv1.Scale, error) {
+			return clientset.AppsV1().ReplicaSets(namespace).GetScale(a.ctx, name, metav1.GetOptions{})
+		}, func(scale *autoscalingv1.Scale) error {
+			_, err := clientset.AppsV1().ReplicaSets(namespace).UpdateScale(a.ctx, name, scale, metav1.UpdateOptions{})
+			return err
+		})
+	default:
+		return fmt.Errorf("scaling not supported for kind %s", kind)
+	}
+}
+
+type scaleGetFunc func() (*autoscalingv1.Scale, error)
+type scaleUpdateFunc func(*autoscalingv1.Scale) error
+
+// updateScale fetches, mutates, and persists the scale subresource while preserving metadata like ResourceVersion.
+func (a *App) updateScale(target int32, getFn scaleGetFunc, updateFn scaleUpdateFunc) error {
+	if getFn == nil || updateFn == nil {
+		return fmt.Errorf("invalid scale helper")
+	}
+	scaleObj, err := getFn()
+	if err != nil {
+		return err
+	}
+	scaleObj.Spec.Replicas = target
+	return updateFn(scaleObj)
+}

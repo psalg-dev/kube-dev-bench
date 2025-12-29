@@ -1,13 +1,7 @@
 import { test, expect } from '../setup/fixtures';
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
-function getRepoRoot() {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  return path.resolve(__dirname, '..', '..');
-}
+import { getRepoRoot, selectNamespace } from '../setup/helpers';
 
 async function ensureHostKubeconfigAvailable() {
   const repoRoot = getRepoRoot();
@@ -26,16 +20,24 @@ test.describe('Select existing Kubeconfig', () => {
     const ok = await ensureHostKubeconfigAvailable();
     if (!ok) test.skip(true, 'KinD kubeconfig not available');
 
-    await page.goto(baseURL || 'http://localhost:34115');
+    await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
 
     // Ensure wizard visible; if not, open via gear
     const wizardOverlay = page.locator('.connection-wizard-overlay');
     const gearBtn = page.locator('#show-wizard-btn');
-    if (!(await wizardOverlay.isVisible().catch(() => false))) {
-      await gearBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await gearBtn.click();
+
+    // Wait for either wizard or gear button to appear
+    const appeared = await Promise.race<Promise<"overlay" | "gear" | null>[]>([
+      wizardOverlay.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'overlay').catch(() => null),
+      gearBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'gear').catch(() => null),
+    ]);
+
+    if (appeared !== 'overlay') {
+      if (await gearBtn.isVisible().catch(() => false)) {
+        await gearBtn.click();
+      }
+      await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
     }
-    await expect(wizardOverlay).toBeVisible();
 
     // Force deterministic file-selection flow to avoid flakiness from discovery timing
     await page.evaluate((p) => {
@@ -49,46 +51,12 @@ test.describe('Select existing Kubeconfig', () => {
     // Continue to connect using the selected file
     await page.getByRole('button', { name: /^Continue$/i }).click();
 
-  // Reload the app to ensure clean UI state and avoid overlay flakiness
-  await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
+    // Reload the app to ensure clean UI state and avoid overlay flakiness
+    await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
 
     if (process.env.KIND_AVAILABLE === '1') {
-      const control = page.locator('#namespace-root .kdv__control');
-      await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 120_000 });
-      const testOption = page.getByRole('option', { name: /^test$/ });
-      // Ensure no stray menus are open
-      await page.keyboard.press('Escape');
-      const main = page.locator('#maincontent');
-      if (await main.isVisible().catch(()=>false)) await main.click({ force: true });
-      let selected = false;
-      for (let i = 0; i < 110; i++) { // ~110s total with 1s backoff
-        // Ensure no other select menu portals are open that could intercept clicks
-        for (let j = 0; j < 5; j++) {
-          const openMenus = await page.locator('.kdv__menu-portal').count();
-          if (openMenus === 0) break;
-          await page.keyboard.press('Escape');
-          await page.waitForTimeout(150);
-        }
-        await control.click();
-        if (await testOption.first().isVisible().catch(() => false)) {
-          await testOption.first().click();
-          await control.click();
-          selected = true;
-          break;
-        }
-        await control.click();
-        // Occasionally force context reload to refresh namespaces
-        if (i === 10) {
-          const ctxControl = page.locator('#kubecontext-root .kdv__control');
-          await ctxControl.click();
-          const firstCtx = page.getByRole('option').first();
-          if (await firstCtx.isVisible().catch(() => false)) await firstCtx.click();
-          await ctxControl.click();
-      await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 10_000 });
-        }
-        await page.waitForTimeout(1000);
-      }
-      expect(selected).toBe(true);
+      await selectNamespace(page, 'test');
+
       const testChip = page.locator('#namespace-root .kdv__multi-value__label', { hasText: 'test' });
       await expect(testChip).toBeVisible();
       await expect(page.locator('#footer-dot')).toHaveAttribute('title', /Connected|Insecure connection/i);

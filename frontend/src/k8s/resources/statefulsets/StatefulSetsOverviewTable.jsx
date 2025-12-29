@@ -44,7 +44,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="statefulset" name={row.name} namespace={row.namespace} onRestart={async (n,ns)=>{ if(AppAPI.RestartStatefulSet){ await AppAPI.RestartStatefulSet(ns,n);} else { throw new Error('RestartStatefulSet API unavailable; rebuild bindings'); }} } onDelete={async (n,ns)=>{await AppAPI.DeleteResource("statefulset", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="statefulset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onRestart={async (n,ns)=>{ if(AppAPI.RestartStatefulSet){ await AppAPI.RestartStatefulSet(ns,n);} else { throw new Error('RestartStatefulSet API unavailable; rebuild bindings'); }} } onDelete={async (n,ns)=>{await AppAPI.DeleteResource("statefulset", ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
