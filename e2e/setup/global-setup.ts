@@ -47,7 +47,7 @@ export default async function globalSetup(_config: FullConfig) {
     // Fix permissions on kubeconfig file (Docker creates it with root ownership)
     // Use docker exec to chmod since we can't do it from Node.js
     try {
-      await run('docker', ['exec', 'kind-manager', 'chmod', '644', '/output/kubeconfig']);
+      await run('docker', ['exec', 'kind-manager', 'chmod', '644', '/kind/output/kubeconfig']);
       console.log('[e2e setup] Fixed kubeconfig permissions.');
     } catch (chmodErr) {
       console.warn('[e2e setup] Could not chmod kubeconfig via docker:', chmodErr);
