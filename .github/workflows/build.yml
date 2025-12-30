@@ -40,11 +40,25 @@ jobs:
         working-directory: frontend
         run: npm run build
 
+      - name: Upload frontend dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
   backend:
     runs-on: ubuntu-22.04
+    needs: frontend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -60,7 +74,7 @@ jobs:
 
   e2e:
     runs-on: ubuntu-22.04
-    needs: [frontend, backend]
+    needs: backend
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
