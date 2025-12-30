@@ -1,13 +1,41 @@
 import { test as base, expect } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
-import { exec as execCb } from 'node:child_process';
-import { promisify } from 'node:util';
+import { spawn } from 'node:child_process';
 import { getRepoRoot } from './helpers';
 
-const execAsync = promisify(execCb);
-
 type ExecFn = (command: string) => Promise<{ stdout: string; stderr: string }>;
+
+// Helper to run a command with optional stdin input
+function execWithStdin(cmd: string, args: string[], options: { cwd?: string; input?: string }): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, { cwd: options.cwd, shell: false });
+    let stdout = '';
+    let stderr = '';
+
+    child.stdout.on('data', (data) => { stdout += data.toString(); });
+    child.stderr.on('data', (data) => { stderr += data.toString(); });
+
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve({ stdout, stderr });
+      } else {
+        const error = new Error(`Command failed with exit code ${code}: ${stderr}`);
+        (error as any).stdout = stdout;
+        (error as any).stderr = stderr;
+        reject(error);
+      }
+    });
+
+    if (options.input) {
+      child.stdin.write(options.input);
+      child.stdin.end();
+    } else {
+      child.stdin.end();
+    }
+  });
+}
 
 // Auto-fixture that clears per-test HOME state used by wails dev
 // Also provides exec fixture for running kubectl commands via docker compose
@@ -26,11 +54,26 @@ export const test = base.extend<{ _isolate: void; exec: ExecFn }>({
     const composeFile = path.join(repoRoot, 'kind', 'docker-compose.yml');
 
     const execFn: ExecFn = async (command: string) => {
-      // Run command via docker compose exec in the kind container
-      // Use sh -c to properly handle complex commands with heredocs
-      const escapedCommand = command.replace(/'/g, "'\\''");
-      const fullCommand = `docker compose -f "${composeFile}" exec -T kind sh -c '${escapedCommand}'`;
-      return execAsync(fullCommand, { cwd: repoRoot });
+      // Check if command uses heredoc syntax (kubectl apply -f - <<EOF ... EOF)
+      const heredocMatch = command.match(/^(.+?)\s+-f\s+-\s+<<EOF\n([\s\S]*?)\nEOF$/);
+
+      if (heredocMatch) {
+        // Extract the base command and the manifest content
+        const baseCmd = heredocMatch[1].trim(); // e.g., "kubectl apply"
+        const manifest = heredocMatch[2];
+
+        // Run docker compose exec with stdin piping for the manifest
+        return execWithStdin('docker', [
+          'compose', '-f', composeFile, 'exec', '-T', '-i', 'kind',
+          'sh', '-c', `${baseCmd} -f -`
+        ], { cwd: repoRoot, input: manifest });
+      }
+
+      // For regular commands, just run via docker compose exec
+      return execWithStdin('docker', [
+        'compose', '-f', composeFile, 'exec', '-T', 'kind',
+        'sh', '-c', command
+      ], { cwd: repoRoot });
     };
 
     await use(execFn);
