@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 // Mock the Wails API calls
 const mockGetKubeConfigs = vi.fn();
@@ -253,17 +254,15 @@ describe('ConnectionWizard', () => {
     });
 
     it('adds file from browser to discovered configs', async () => {
+      const user = userEvent.setup();
       mockSelectKubeConfigFile.mockResolvedValue('/custom/path/kubeconfig');
       mockGetKubeContextsFromFile.mockResolvedValue(['ctx1', 'ctx2']);
 
       const onComplete = vi.fn();
       render(<ConnectionWizard onComplete={onComplete} />);
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Browse for File/i })).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: /Browse for File/i }));
+      const browseButton = await screen.findByRole('button', { name: /Browse for File/i });
+      await user.click(browseButton);
 
       await waitFor(() => {
         expect(mockSelectKubeConfigFile).toHaveBeenCalled();
@@ -272,16 +271,14 @@ describe('ConnectionWizard', () => {
     });
 
     it('handles file selection cancellation', async () => {
+      const user = userEvent.setup();
       mockSelectKubeConfigFile.mockResolvedValue(''); // Empty string = cancelled
 
       const onComplete = vi.fn();
       render(<ConnectionWizard onComplete={onComplete} />);
 
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Browse for File/i })).toBeInTheDocument();
-      });
-
-      fireEvent.click(screen.getByRole('button', { name: /Browse for File/i }));
+      const browseButton = await screen.findByRole('button', { name: /Browse for File/i });
+      await user.click(browseButton);
 
       await waitFor(() => {
         expect(mockSelectKubeConfigFile).toHaveBeenCalled();
