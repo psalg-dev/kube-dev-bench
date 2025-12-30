@@ -67,7 +67,13 @@ export default async function globalSetup(_config: FullConfig) {
   // Clean any previous app state to ensure "no kubeconfig on host" scenario for basic test
   try { await fs.promises.rm(path.join(tempHome, '.kube'), { recursive: true, force: true }); } catch {}
   try { await fs.promises.rm(path.join(tempHome, 'KubeDevBench'), { recursive: true, force: true }); } catch {}
-  const dev = spawn('wails', ['dev'], {
+  
+  // On Linux CI, use xvfb-run to provide a virtual display for GTK
+  const isLinuxCI = process.env.CI && process.platform === 'linux';
+  const command = isLinuxCI ? 'xvfb-run' : 'wails';
+  const args = isLinuxCI ? ['-a', 'wails', 'dev'] : ['dev'];
+  
+  const dev = spawn(command, args, {
     cwd: repoRoot,
     shell: false,
     env: { ...process.env, HOME: tempHome, USERPROFILE: tempHome },
