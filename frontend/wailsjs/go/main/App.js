@@ -370,6 +370,10 @@ export function StartJobFromCronJob(arg1, arg2) {
   return window['go']['main']['App']['StartJobFromCronJob'](arg1, arg2);
 }
 
+export function StartMonitorPolling() {
+  return window['go']['main']['App']['StartMonitorPolling']();
+}
+
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
 }

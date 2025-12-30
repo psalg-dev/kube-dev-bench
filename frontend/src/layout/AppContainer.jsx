@@ -89,6 +89,55 @@ export default function AppContainer() {
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedSection, setSelectedSection] = useState('pods');
   const handleWizardComplete = () => setReloadKey(k => k + 1);
+
+  // Handle navigation to resources from monitor modal
+  useEffect(() => {
+    const handleNavigateToResource = (event) => {
+      const { resource, name, namespace } = event.detail;
+
+      // Map resource type to section name
+      const resourceToSection = {
+        'Pod': 'pods',
+        'Deployment': 'deployments',
+        'StatefulSet': 'statefulsets',
+        'DaemonSet': 'daemonsets',
+        'ReplicaSet': 'replicasets',
+        'Job': 'jobs',
+        'CronJob': 'cronjobs',
+        'ConfigMap': 'configmaps',
+        'Secret': 'secrets',
+        'Ingress': 'ingresses',
+        'PersistentVolumeClaim': 'persistentvolumeclaims',
+        'PersistentVolume': 'persistentvolumes',
+      };
+
+      const section = resourceToSection[resource];
+      if (!section) {
+        console.warn(`Unknown resource type: ${resource}`);
+        return;
+      }
+
+      // Navigate to the section
+      setSelectedSection(section);
+
+      // Wait for content to render, then find and click the row
+      setTimeout(() => {
+        const rows = document.querySelectorAll('tbody tr');
+        for (const row of rows) {
+          if (row.textContent.includes(name) && row.textContent.includes(namespace)) {
+            row.click();
+            break;
+          }
+        }
+      }, 500);
+    };
+
+    window.addEventListener('navigate-to-resource', handleNavigateToResource);
+    return () => {
+      window.removeEventListener('navigate-to-resource', handleNavigateToResource);
+    };
+  }, []);
+
   return (
     <ClusterStateProvider key={reloadKey}>
       <ResourceCountsProvider>

@@ -52,8 +52,55 @@ export default async function globalSetup(_config: FullConfig) {
     } catch (chmodErr) {
       console.warn('[e2e setup] Could not chmod kubeconfig via docker:', chmodErr);
     }
-    // Wait for KinD manager to apply test manifests (test namespace)
-    await wait(20_000);
+    // Wait for KinD manager to finish namespace setup
+    // The manager script logs "Example resources applied successfully" when done
+    console.log('[e2e setup] Waiting for KinD manager to complete setup...');
+    const setupCheckTimeout = 180_000;
+    const setupCheckStart = Date.now();
+    let setupComplete = false;
+    while (Date.now() - setupCheckStart < setupCheckTimeout) {
+      try {
+        // Check docker logs for completion message
+        const logs = await new Promise<string>((resolve, reject) => {
+          const child = spawn('docker', ['logs', '--tail', '20', 'kind-manager'], { shell: false });
+          let output = '';
+          child.stdout.on('data', (d) => { output += d.toString(); });
+          child.stderr.on('data', (d) => { output += d.toString(); });
+          child.on('error', (err) => {
+            console.log(`[e2e setup] Docker logs error: ${err.message}`);
+            reject(err);
+          });
+          child.on('close', (code) => {
+            if (code !== 0) {
+              console.log(`[e2e setup] Docker logs exit code: ${code}`);
+            }
+            resolve(output);
+          });
+        });
+        if (logs.includes('Example resources applied successfully') || logs.includes('[kind-manager] Example resources applied')) {
+          console.log('[e2e setup] KinD manager setup complete.');
+          setupComplete = true;
+          break;
+        }
+        // Also check for namespace status
+        const nsStatus = await new Promise<string>((resolve, reject) => {
+          const child = spawn('docker', ['exec', 'kind-manager', 'sh', '-c', "kubectl --kubeconfig /kind/output/kubeconfig.internal get ns test -o jsonpath='{.status.phase}'"], { shell: false });
+          let stdout = '';
+          child.stdout.on('data', (d) => { stdout += d.toString(); });
+          child.on('error', reject);
+          child.on('close', (code) => code === 0 ? resolve(stdout.trim().replace(/['"]/g, '')) : reject(new Error('kubectl failed')));
+        });
+        console.log(`[e2e setup] Namespace status: ${nsStatus}, waiting for setup completion...`);
+      } catch {
+        // Container or namespace might not be ready yet
+      }
+      await wait(5_000);
+    }
+    if (!setupComplete) {
+      console.warn('[e2e setup] Timeout waiting for KinD manager setup, proceeding anyway...');
+    }
+    // Extra wait to ensure namespace is stable
+    await wait(5_000);
     process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;
     process.env.KIND_AVAILABLE = '1';
     console.log('[e2e setup] kubeconfig ready.');
