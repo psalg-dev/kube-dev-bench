@@ -3,7 +3,7 @@ import { setupConnectedState } from '../setup/helpers';
 
 /**
  * Test monitoring feature that displays warnings and errors in the footer.
- * Creates a pod with an invalid image to trigger an error, then verifies the badge appears and modal works.
+ * Creates a pod with an invalid image to trigger an error, then verifies the badge appears and panel works.
  */
 test.describe('Monitoring feature', () => {
   test.beforeEach(async ({ page, baseURL }) => {
@@ -41,18 +41,15 @@ EOF`);
     // Verify the badge shows at least 1 error
     await expect(errorBadge).toContainText('Errors:');
 
-    // Click the error badge to open the modal
+    // Click the error badge to open the panel
     await errorBadge.click();
 
-    // Verify the modal is visible
-    const modal = page.locator('#monitor-modal');
-    await expect(modal).toBeVisible();
-
-    // Verify the modal header
-    await expect(page.getByText('Cluster Monitor')).toBeVisible();
+    // Verify the panel is visible
+    const panel = page.locator('#monitor-panel');
+    await expect(panel).toBeVisible();
 
     // Verify errors tab is active and shows our pod
-    await expect(page.getByText('Pod: monitor-test-pod')).toBeVisible();
+    await expect(page.getByText('monitor-test-pod')).toBeVisible();
 
     // Verify the error reason is shown (ImagePullBackOff or ErrImagePull)
     const issueItem = page.locator('.monitor-issue-item').filter({ hasText: 'monitor-test-pod' });
@@ -60,9 +57,9 @@ EOF`);
     const text = await issueItem.innerText();
     expect(text).toMatch(/ImagePullBackOff|ErrImagePull/);
 
-    // Close the modal
-    await page.locator('#monitor-modal-close').click();
-    await expect(modal).not.toBeVisible();
+    // Close the panel
+    await panel.getByTitle('Close').click();
+    await expect(panel).not.toBeVisible();
 
     // Clean up - delete the test pod
     await exec('kubectl delete pod monitor-test-pod -n test --ignore-not-found=true');
@@ -72,7 +69,7 @@ EOF`);
     await page.waitForTimeout(6000);
   });
 
-  test('modal switches between errors and warnings tabs', async ({ page, exec }) => {
+  test('panel switches between errors and warnings tabs', async ({ page, exec }) => {
     // Create a pod with an invalid image
     await exec(`kubectl apply -f - <<EOF
 apiVersion: v1
@@ -92,10 +89,10 @@ EOF`);
     const errorBadge = page.locator('#monitor-error-badge');
     await expect(errorBadge).toBeVisible({ timeout: 15000 });
 
-    // Open modal
+    // Open panel
     await errorBadge.click();
 
-    // Verify errors tab is active by default
+    // Verify errors tab is active by default (since errors exist)
     const errorsTab = page.locator('#monitor-tab-errors');
     await expect(errorsTab).toBeVisible();
 
@@ -104,17 +101,17 @@ EOF`);
     await warningsTab.click();
 
     // Verify warnings content area is shown (even if empty)
-    const modalContent = page.locator('#monitor-modal-content');
-    await expect(modalContent).toBeVisible();
+    await expect(page.getByText('No warnings found')).toBeVisible();
 
     // Switch back to errors tab
     await errorsTab.click();
 
     // Verify we can see our pod error again
-    await expect(page.getByText('Pod: monitor-tab-test-pod')).toBeVisible();
+    await expect(page.getByText('monitor-tab-test-pod')).toBeVisible();
 
-    // Close modal
-    await page.locator('#monitor-modal-close').click();
+    // Close panel
+    const panel = page.locator('#monitor-panel');
+    await panel.getByTitle('Close').click();
 
     // Clean up
     await exec('kubectl delete pod monitor-tab-test-pod -n test --ignore-not-found=true');
@@ -146,5 +143,101 @@ EOF`);
     // Wait for monitor to update and badge to disappear
     // Give enough time for cleanup and next polling cycle (5s interval + buffer)
     await expect(errorBadge).not.toBeVisible({ timeout: 20000 });
+  });
+
+  test('pre-selects errors tab when errors exist', async ({ page, exec }) => {
+    // Create a pod with an invalid image to generate an error
+    await exec(`kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitor-preselect-error-pod
+  namespace: test
+spec:
+  containers:
+    - name: main
+      image: invalid-image-preselect-test:latest
+EOF`);
+
+    // Wait for error to be detected
+    await page.waitForTimeout(5000);
+
+    const errorBadge = page.locator('#monitor-error-badge');
+    await expect(errorBadge).toBeVisible({ timeout: 15000 });
+
+    // Open panel by clicking error badge
+    await errorBadge.click();
+
+    const panel = page.locator('#monitor-panel');
+    await expect(panel).toBeVisible();
+
+    // Verify errors tab is pre-selected (it should show the error content immediately)
+    await expect(page.getByText('monitor-preselect-error-pod')).toBeVisible();
+
+    // Verify errors tab has active styling
+    const errorsTab = page.locator('#monitor-tab-errors');
+    await expect(errorsTab).toBeVisible();
+
+    // Close panel and clean up
+    await panel.getByTitle('Close').click();
+    await exec('kubectl delete pod monitor-preselect-error-pod -n test --ignore-not-found=true');
+  });
+
+  test('panel can be resized by dragging', async ({ page, exec }) => {
+    // Create a pod with an invalid image
+    await exec(`kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitor-resize-test-pod
+  namespace: test
+spec:
+  containers:
+    - name: main
+      image: invalid-image-resize-test:latest
+EOF`);
+
+    // Wait for error to be detected
+    await page.waitForTimeout(5000);
+
+    const errorBadge = page.locator('#monitor-error-badge');
+    await expect(errorBadge).toBeVisible({ timeout: 15000 });
+
+    // Open panel
+    await errorBadge.click();
+
+    const panel = page.locator('#monitor-panel');
+    await expect(panel).toBeVisible();
+
+    // Get initial height
+    const initialBox = await panel.boundingBox();
+    const initialHeight = initialBox?.height || 0;
+
+    // Find the drag handle (data-resizing="true")
+    const dragHandle = panel.locator('[data-resizing="true"]');
+    await expect(dragHandle).toBeVisible();
+
+    // Drag the handle upwards to increase height
+    const handleBox = await dragHandle.boundingBox();
+    if (handleBox) {
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y - 100); // Move 100px up
+      await page.mouse.up();
+    }
+
+    // Wait a bit for the resize to settle
+    await page.waitForTimeout(300);
+
+    // Get new height
+    const newBox = await panel.boundingBox();
+    const newHeight = newBox?.height || 0;
+
+    // Verify height increased
+    expect(newHeight).toBeGreaterThan(initialHeight);
+
+    // Close panel and clean up
+    await panel.getByTitle('Close').click();
+    await exec('kubectl delete pod monitor-resize-test-pod -n test --ignore-not-found=true');
   });
 });
