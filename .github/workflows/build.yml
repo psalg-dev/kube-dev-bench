@@ -51,6 +51,35 @@ jobs:
       - name: Build Go app
         run: go build -v .
 
+      # E2E Tests
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install e2e dependencies
+        working-directory: e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        working-directory: e2e
+        run: npm test
+        env:
+          CI: true
+
+      - name: Upload e2e test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-results
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+          if-no-files-found: ignore
+          retention-days: 7
+
       # Optionally, upload build artifacts
       # - name: Upload build artifacts
       #   uses: actions/upload-artifact@v4
