@@ -87,17 +87,18 @@ export default async function globalSetup(_config: FullConfig) {
   const targetUrl = process.env.WAILS_URL || 'http://localhost:34115';
   const pingUrl = targetUrl.replace('localhost', '127.0.0.1');
   console.log(`[e2e setup] Waiting for Wails DevServer at ${targetUrl} ...`);
+  const devServerTimeout = process.env.CI ? 300_000 : 120_000; // 5 min in CI, 2 min locally
   await new Promise<void>((resolve, reject) => {
     const started = Date.now();
     const tryOnce = () => {
   const req = http.get(pingUrl, (res) => {
         res.resume();
         if ((res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 500) resolve();
-        else if (Date.now() - started > 120_000) reject(new Error('Timeout'));
+        else if (Date.now() - started > devServerTimeout) reject(new Error('Timeout'));
         else setTimeout(tryOnce, 1000);
       });
       req.on('error', () => {
-        if (Date.now() - started > 120_000) reject(new Error('Timeout'));
+        if (Date.now() - started > devServerTimeout) reject(new Error('Timeout'));
         else setTimeout(tryOnce, 1000);
       });
     };
