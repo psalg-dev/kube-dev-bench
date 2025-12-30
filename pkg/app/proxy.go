@@ -128,8 +128,6 @@ func (a *App) applyProxyConfig(restConfig *rest.Config) {
 	restConfig.Proxy = func(_ *http.Request) (*url.URL, error) {
 		return parsedURL, nil
 	}
-
-	fmt.Printf("[INFO] Proxy configured: %s (auth: %s)\n", proxyURL, a.proxyAuthType)
 }
 
 // IsProxyEnabled returns true if a proxy is configured and active
