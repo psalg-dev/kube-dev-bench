@@ -15,6 +15,11 @@ type AppConfig struct {
 	RememberContext     bool     `json:"rememberContext"`
 	RememberNamespace   bool     `json:"rememberNamespace"`
 	KubeConfigPath      string   `json:"kubeConfigPath"`
+	// Proxy configuration
+	ProxyURL      string `json:"proxyURL"`
+	ProxyAuthType string `json:"proxyAuthType"` // "none", "basic", "system"
+	ProxyUsername string `json:"proxyUsername"`
+	ProxyPassword string `json:"proxyPassword"`
 }
 
 // loadConfig loads the saved configuration from disk
@@ -37,6 +42,11 @@ func (a *App) loadConfig() error {
 	a.rememberContext = config.RememberContext
 	a.rememberNamespace = config.RememberNamespace
 	a.kubeConfig = config.KubeConfigPath
+	// Load proxy configuration
+	a.proxyURL = config.ProxyURL
+	a.proxyAuthType = config.ProxyAuthType
+	a.proxyUsername = config.ProxyUsername
+	a.proxyPassword = config.ProxyPassword
 	return nil
 }
 
@@ -49,6 +59,11 @@ func (a *App) saveConfig() error {
 		RememberContext:     a.rememberContext,
 		RememberNamespace:   a.rememberNamespace,
 		KubeConfigPath:      a.kubeConfig,
+		// Proxy configuration
+		ProxyURL:      a.proxyURL,
+		ProxyAuthType: a.proxyAuthType,
+		ProxyUsername: a.proxyUsername,
+		ProxyPassword: a.proxyPassword,
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

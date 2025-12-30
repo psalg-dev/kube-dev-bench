@@ -7,6 +7,10 @@ export namespace app {
 	    rememberContext: boolean;
 	    rememberNamespace: boolean;
 	    kubeConfigPath: string;
+	    proxyURL: string;
+	    proxyAuthType: string;
+	    proxyUsername: string;
+	    proxyPassword: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -20,6 +24,10 @@ export namespace app {
 	        this.rememberContext = source["rememberContext"];
 	        this.rememberNamespace = source["rememberNamespace"];
 	        this.kubeConfigPath = source["kubeConfigPath"];
+	        this.proxyURL = source["proxyURL"];
+	        this.proxyAuthType = source["proxyAuthType"];
+	        this.proxyUsername = source["proxyUsername"];
+	        this.proxyPassword = source["proxyPassword"];
 	    }
 	}
 	export class ArchiveResult {
@@ -899,6 +907,22 @@ export namespace app {
 	        this.pod = source["pod"];
 	        this.local = source["local"];
 	        this.remote = source["remote"];
+	    }
+	}
+	export class ProxyConfig {
+	    url: string;
+	    authType: string;
+	    username: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ProxyConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.url = source["url"];
+	        this.authType = source["authType"];
+	        this.username = source["username"];
 	    }
 	}
 	export class ReplicaSetDetail {

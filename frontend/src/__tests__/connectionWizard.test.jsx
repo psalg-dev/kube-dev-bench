@@ -15,6 +15,9 @@ const mockGetNamespaces = vi.fn();
 const mockSetCurrentKubeContext = vi.fn();
 const mockSetCurrentNamespace = vi.fn();
 const mockGetCurrentConfig = vi.fn();
+const mockGetProxyConfig = vi.fn();
+const mockSetProxyConfig = vi.fn();
+const mockDetectSystemProxy = vi.fn();
 
 vi.mock('../../wailsjs/go/main/App', () => ({
   GetKubeConfigs: (...args) => mockGetKubeConfigs(...args),
@@ -28,6 +31,9 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   SetCurrentKubeContext: (...args) => mockSetCurrentKubeContext(...args),
   SetCurrentNamespace: (...args) => mockSetCurrentNamespace(...args),
   GetCurrentConfig: (...args) => mockGetCurrentConfig(...args),
+  GetProxyConfig: (...args) => mockGetProxyConfig(...args),
+  SetProxyConfig: (...args) => mockSetProxyConfig(...args),
+  DetectSystemProxy: (...args) => mockDetectSystemProxy(...args),
 }));
 
 import ConnectionWizard from '../layout/connection/ConnectionWizard.jsx';
@@ -40,6 +46,9 @@ describe('ConnectionWizard', () => {
     mockGetNamespaces.mockResolvedValue(['default']);
     mockSetCurrentKubeContext.mockResolvedValue();
     mockSetCurrentNamespace.mockResolvedValue();
+    mockGetProxyConfig.mockResolvedValue({ url: '', authType: 'none', username: '' });
+    mockDetectSystemProxy.mockResolvedValue({ HTTP_PROXY: '', HTTPS_PROXY: '', NO_PROXY: '' });
+    mockSetProxyConfig.mockResolvedValue();
   });
 
   describe('Empty state (no configs discovered)', () => {
@@ -335,6 +344,278 @@ describe('ConnectionWizard', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/Failed to load kubeconfig file/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Proxy configuration', () => {
+    const mockConfigs = [
+      { path: '/home/user/.kube/config', name: 'config', contexts: ['dev'] },
+    ];
+
+    beforeEach(() => {
+      mockGetKubeConfigs.mockResolvedValue(mockConfigs);
+    });
+
+    it('shows proxy settings button when configs are discovered', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+    });
+
+    it('opens proxy settings step when button is clicked', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Proxy Configuration/i)).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/No Proxy/i)).toBeInTheDocument();
+      expect(screen.getByText(/Use System Proxy/i)).toBeInTheDocument();
+      expect(screen.getByText(/Manual Configuration/i)).toBeInTheDocument();
+    });
+
+    it('shows system proxy environment variables when system option is selected', async () => {
+      mockDetectSystemProxy.mockResolvedValue({
+        HTTP_PROXY: 'http://system-proxy:8080',
+        HTTPS_PROXY: 'https://system-proxy:8443',
+        NO_PROXY: 'localhost',
+      });
+
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Use System Proxy/i)).toBeInTheDocument();
+      });
+
+      // Select system proxy option
+      const systemRadio = screen.getByLabelText(/Use System Proxy/i);
+      fireEvent.click(systemRadio);
+
+      await waitFor(() => {
+        expect(screen.getByText(/http:\/\/system-proxy:8080/)).toBeInTheDocument();
+      });
+    });
+
+    it('shows manual proxy input fields when manual option is selected', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Manual Configuration/i)).toBeInTheDocument();
+      });
+
+      // Select manual configuration option
+      const manualRadio = screen.getByLabelText(/Manual Configuration/i);
+      fireEvent.click(manualRadio);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Proxy URL/i)).toBeInTheDocument();
+      });
+
+      expect(screen.getByLabelText(/Username/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+    });
+
+    it('saves proxy configuration with manual settings', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      // Select manual configuration
+      const manualRadio = await screen.findByLabelText(/Manual Configuration/i);
+      fireEvent.click(manualRadio);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Proxy URL/i)).toBeInTheDocument();
+      });
+
+      // Fill in proxy details
+      fireEvent.change(screen.getByLabelText(/Proxy URL/i), {
+        target: { value: 'http://myproxy.example.com:8080' },
+      });
+      fireEvent.change(screen.getByLabelText(/Username/i), {
+        target: { value: 'testuser' },
+      });
+      fireEvent.change(screen.getByLabelText(/Password/i), {
+        target: { value: 'testpass' },
+      });
+
+      // Save
+      fireEvent.click(screen.getByRole('button', { name: /Save Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(mockSetProxyConfig).toHaveBeenCalledWith(
+          'http://myproxy.example.com:8080',
+          'basic',
+          'testuser',
+          'testpass'
+        );
+      });
+    });
+
+    it('saves proxy configuration with no proxy option', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/No Proxy/i)).toBeInTheDocument();
+      });
+
+      // No Proxy should be selected by default
+      fireEvent.click(screen.getByRole('button', { name: /Save Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(mockSetProxyConfig).toHaveBeenCalledWith('', 'none', '', '');
+      });
+    });
+
+    it('saves proxy configuration with system proxy option', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Use System Proxy/i)).toBeInTheDocument();
+      });
+
+      // Select system proxy
+      const systemRadio = screen.getByLabelText(/Use System Proxy/i);
+      fireEvent.click(systemRadio);
+
+      fireEvent.click(screen.getByRole('button', { name: /Save Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(mockSetProxyConfig).toHaveBeenCalledWith('', 'system', '', '');
+      });
+    });
+
+    it('navigates back from proxy settings to config selection', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Proxy Configuration/i)).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /← Back/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Select Kubeconfig/i)).toBeInTheDocument();
+      });
+    });
+
+    it('loads existing proxy configuration on mount', async () => {
+      mockGetProxyConfig.mockResolvedValue({
+        url: 'http://existing-proxy:8080',
+        authType: 'basic',
+        username: 'existinguser',
+      });
+
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Proxy URL/i)).toHaveValue('http://existing-proxy:8080');
+      });
+
+      expect(screen.getByLabelText(/Username/i)).toHaveValue('existinguser');
+    });
+
+    it('disables save button when manual proxy URL is empty', async () => {
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      // Select manual configuration
+      const manualRadio = await screen.findByLabelText(/Manual Configuration/i);
+      fireEvent.click(manualRadio);
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/Proxy URL/i)).toBeInTheDocument();
+      });
+
+      // Save button should be disabled when URL is empty
+      const saveButton = screen.getByRole('button', { name: /Save Proxy Settings/i });
+      expect(saveButton).toBeDisabled();
+    });
+
+    it('displays error when saving proxy config fails', async () => {
+      mockSetProxyConfig.mockRejectedValue(new Error('Save failed'));
+
+      const onComplete = vi.fn();
+      render(<ConnectionWizard onComplete={onComplete} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Proxy Settings/i })).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/No Proxy/i)).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Save Proxy Settings/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Failed to save proxy configuration/i)).toBeInTheDocument();
       });
     });
   });

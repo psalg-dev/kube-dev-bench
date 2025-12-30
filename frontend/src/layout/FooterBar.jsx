@@ -18,6 +18,8 @@ export function FooterBar() {
   }, []);
 
   const nsText = selectedNamespaces.join(', ');
+  const isProxyEnabled = connectionStatus && connectionStatus.proxyEnabled;
+  const proxyURL = connectionStatus && connectionStatus.proxyURL;
   const title = !clusterConnected
     ? 'Not connected to cluster'
     : (connectionStatus && connectionStatus.isInsecure
@@ -76,6 +78,29 @@ export function FooterBar() {
           </button>
         )}
       </div>
+
+      {/* Proxy indicator */}
+      {isProxyEnabled && (
+        <span
+          id="proxy-indicator"
+          style={{
+            background: '#0366d6',
+            color: '#fff',
+            borderRadius: 0,
+            padding: '4px 12px',
+            fontSize: '12px',
+            fontWeight: '600',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            marginRight: '8px'
+          }}
+          title={`Proxy: ${proxyURL || 'System proxy'}`}
+        >
+          <span>🌐</span>
+          <span>Proxy</span>
+        </span>
+      )}
 
       {/* Connection status on the right */}
       <span id="footer-dot" title={title}>!</span>

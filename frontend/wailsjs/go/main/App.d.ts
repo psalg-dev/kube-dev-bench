@@ -6,6 +6,8 @@ import {context} from '../models';
 
 export function ArchivePVCPath(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.ArchiveResult>;
 
+export function ClearProxyConfig():Promise<void>;
+
 export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
 export function DeleteConfigMap(arg1:string,arg2:string):Promise<void>;
@@ -33,6 +35,8 @@ export function DeleteResource(arg1:string,arg2:string,arg3:string):Promise<void
 export function DeleteSecret(arg1:string,arg2:string):Promise<void>;
 
 export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
+
+export function DetectSystemProxy():Promise<Record<string, string>>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
@@ -106,6 +110,10 @@ export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 
 export function GetPodYAML(arg1:string):Promise<string>;
 
+export function GetProxyConfig():Promise<app.ProxyConfig>;
+
+export function GetProxyDisplayURL():Promise<string>;
+
 export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
@@ -131,6 +139,8 @@ export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.Statef
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
+
+export function IsProxyEnabled():Promise<boolean>;
 
 export function ListPVCFiles(arg1:string,arg2:string,arg3:string):Promise<Array<app.PodFileEntry>>;
 
@@ -171,6 +181,8 @@ export function SetCurrentNamespace(arg1:string):Promise<void>;
 export function SetKubeConfigPath(arg1:string):Promise<void>;
 
 export function SetPreferredNamespaces(arg1:Array<string>):Promise<void>;
+
+export function SetProxyConfig(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function SetRememberContext(arg1:boolean):Promise<void>;
 
