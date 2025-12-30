@@ -52,6 +52,13 @@ export const test = base.extend<{ _isolate: void; exec: ExecFn }>({
   exec: async ({}, use) => {
     const repoRoot = getRepoRoot();
     const composeFile = path.join(repoRoot, 'kind', 'docker-compose.yml');
+    const kubeconfigInternal = '/kind/output/kubeconfig.internal';
+
+    // Prepend kubeconfig flag to kubectl commands
+    const addKubeconfig = (cmd: string) => {
+      // Replace kubectl with kubectl --kubeconfig <path>
+      return cmd.replace(/^kubectl\b/, `kubectl --kubeconfig ${kubeconfigInternal}`);
+    };
 
     const execFn: ExecFn = async (command: string) => {
       // Check if command uses heredoc syntax (kubectl apply -f - <<EOF ... EOF)
@@ -59,7 +66,7 @@ export const test = base.extend<{ _isolate: void; exec: ExecFn }>({
 
       if (heredocMatch) {
         // Extract the base command and the manifest content
-        const baseCmd = heredocMatch[1].trim(); // e.g., "kubectl apply"
+        const baseCmd = addKubeconfig(heredocMatch[1].trim()); // e.g., "kubectl --kubeconfig ... apply"
         const manifest = heredocMatch[2];
 
         // Run docker compose exec with stdin piping for the manifest
@@ -69,10 +76,13 @@ export const test = base.extend<{ _isolate: void; exec: ExecFn }>({
         ], { cwd: repoRoot, input: manifest });
       }
 
-      // For regular commands, just run via docker compose exec
+      // For regular commands, add kubeconfig if it's a kubectl command
+      const modifiedCommand = addKubeconfig(command);
+
+      // Run via docker compose exec
       return execWithStdin('docker', [
         'compose', '-f', composeFile, 'exec', '-T', 'kind',
-        'sh', '-c', command
+        'sh', '-c', modifiedCommand
       ], { cwd: repoRoot });
     };
 

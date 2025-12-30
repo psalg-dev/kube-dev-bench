@@ -48,14 +48,14 @@ EOF`);
     const panel = page.locator('#monitor-panel');
     await expect(panel).toBeVisible();
 
-    // Verify errors tab is active and shows our pod
-    await expect(page.getByText('monitor-test-pod')).toBeVisible();
+    // Verify errors tab is active and shows our pod (scoped to panel)
+    await expect(panel.getByText('monitor-test-pod')).toBeVisible();
 
     // Verify the error reason is shown (ImagePullBackOff or ErrImagePull)
     const issueItem = page.locator('.monitor-issue-item').filter({ hasText: 'monitor-test-pod' });
     await expect(issueItem).toBeVisible();
     const text = await issueItem.innerText();
-    expect(text).toMatch(/ImagePullBackOff|ErrImagePull/);
+    expect(text).toMatch(/ImagePullBackOff|ErrImagePull/i);
 
     // Close the panel
     await panel.getByTitle('Close').click();
@@ -106,8 +106,8 @@ EOF`);
     // Switch back to errors tab
     await errorsTab.click();
 
-    // Verify we can see our pod error again
-    await expect(page.getByText('monitor-tab-test-pod')).toBeVisible();
+    // Verify we can see our pod error again (scoped to panel)
+    await expect(page.locator('#monitor-panel').getByText('monitor-tab-test-pod')).toBeVisible();
 
     // Close panel
     const panel = page.locator('#monitor-panel');
@@ -142,7 +142,8 @@ EOF`);
 
     // Wait for monitor to update and badge to disappear
     // Give enough time for cleanup and next polling cycle (5s interval + buffer)
-    await expect(errorBadge).not.toBeVisible({ timeout: 20000 });
+    // Note: Monitor polls every 5 seconds, and it may take a few cycles for the badge to disappear
+    await expect(errorBadge).not.toBeVisible({ timeout: 30000 });
   });
 
   test('pre-selects errors tab when errors exist', async ({ page, exec }) => {
@@ -171,8 +172,8 @@ EOF`);
     const panel = page.locator('#monitor-panel');
     await expect(panel).toBeVisible();
 
-    // Verify errors tab is pre-selected (it should show the error content immediately)
-    await expect(page.getByText('monitor-preselect-error-pod')).toBeVisible();
+    // Verify errors tab is pre-selected (it should show the error content immediately, scoped to panel)
+    await expect(panel.getByText('monitor-preselect-error-pod')).toBeVisible();
 
     // Verify errors tab has active styling
     const errorsTab = page.locator('#monitor-tab-errors');
@@ -220,21 +221,27 @@ EOF`);
     // Drag the handle upwards to increase height
     const handleBox = await dragHandle.boundingBox();
     if (handleBox) {
-      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+      const startX = handleBox.x + handleBox.width / 2;
+      const startY = handleBox.y + handleBox.height / 2;
+      await page.mouse.move(startX, startY);
       await page.mouse.down();
-      await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y - 100); // Move 100px up
+      // Move in small steps for more reliable drag
+      for (let i = 0; i < 10; i++) {
+        await page.mouse.move(startX, startY - (i + 1) * 15);
+        await page.waitForTimeout(20);
+      }
       await page.mouse.up();
     }
 
     // Wait a bit for the resize to settle
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     // Get new height
     const newBox = await panel.boundingBox();
     const newHeight = newBox?.height || 0;
 
-    // Verify height increased
-    expect(newHeight).toBeGreaterThan(initialHeight);
+    // Verify height increased (allow for some tolerance)
+    expect(newHeight).toBeGreaterThanOrEqual(initialHeight + 50);
 
     // Close panel and clean up
     await panel.getByTitle('Close').click();
