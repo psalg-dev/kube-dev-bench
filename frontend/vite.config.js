@@ -82,7 +82,14 @@ export default defineConfig(async ({ command, mode }) => {
     customLogger,
     server: {
       watch: {
-        ignored: ['**/coverage/**', '**/__tests__/**', '**/e2e/test-results/**']
+        ignored: [
+          '**/coverage/**',
+          '**/__tests__/**',
+          '**/e2e/test-results/**',
+          '**/test-results/**',
+          '**/.playwright-artifacts-*/**',
+          '**/node_modules/**'
+        ]
       }
     }
   };
