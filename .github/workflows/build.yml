@@ -16,13 +16,16 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          cache: true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: frontend/package.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
 
       - name: Install Go dependencies
         run: go mod download
@@ -52,6 +55,14 @@ jobs:
         run: go build -v .
 
       # E2E Tests
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        id: apt-cache
+        with:
+          path: |
+            /var/cache/apt/archives
+          key: apt-${{ runner.os }}-wails-deps-v1
+
       - name: Install Wails Linux dependencies
         run: |
           sudo apt-get update
