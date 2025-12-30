@@ -44,6 +44,13 @@ export default async function globalSetup(_config: FullConfig) {
     await run('docker', ['compose', '-f', composeFile, 'up', '-d'], { cwd: repoRoot });
     console.log(`[e2e setup] Waiting for kubeconfig at ${kubeconfigPath} ...`);
     await waitForFile(kubeconfigPath, 180_000);
+    // Fix permissions on kubeconfig file (Docker creates it with restrictive permissions)
+    try {
+      await fs.promises.chmod(kubeconfigPath, 0o644);
+      console.log('[e2e setup] Fixed kubeconfig permissions.');
+    } catch (chmodErr) {
+      console.warn('[e2e setup] Could not chmod kubeconfig:', chmodErr);
+    }
     // Wait for KinD manager to apply test manifests (test namespace)
     await wait(20_000);
     process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;

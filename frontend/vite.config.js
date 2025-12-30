@@ -82,7 +82,7 @@ export default defineConfig(async ({ command, mode }) => {
     customLogger,
     server: {
       watch: {
-        ignored: ['**/coverage/**', '**/__tests__/**']
+        ignored: ['**/coverage/**', '**/__tests__/**', '**/e2e/test-results/**']
       }
     }
   };
