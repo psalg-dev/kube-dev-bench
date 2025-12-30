@@ -66,12 +66,20 @@ export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
 }
 
+export function GetConfigMapDataByName(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapDataByName'](arg1, arg2);
+}
+
 export function GetConfigMaps(arg1) {
   return window['go']['main']['App']['GetConfigMaps'](arg1);
 }
 
 export function GetConnectionStatus() {
   return window['go']['main']['App']['GetConnectionStatus']();
+}
+
+export function GetCronJobDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetCronJobDetail'](arg1, arg2);
 }
 
 export function GetCronJobs(arg1) {
@@ -82,16 +90,32 @@ export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
 
+export function GetDaemonSetDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetDaemonSetDetail'](arg1, arg2);
+}
+
 export function GetDaemonSets(arg1) {
   return window['go']['main']['App']['GetDaemonSets'](arg1);
+}
+
+export function GetDeploymentDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetDeploymentDetail'](arg1, arg2);
 }
 
 export function GetDeployments(arg1) {
   return window['go']['main']['App']['GetDeployments'](arg1);
 }
 
+export function GetIngressDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetIngressDetail'](arg1, arg2);
+}
+
 export function GetIngresses(arg1) {
   return window['go']['main']['App']['GetIngresses'](arg1);
+}
+
+export function GetJobDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetJobDetail'](arg1, arg2);
 }
 
 export function GetJobs(arg1) {
@@ -190,12 +214,20 @@ export function GetRememberNamespace() {
   return window['go']['main']['App']['GetRememberNamespace']();
 }
 
+export function GetReplicaSetDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetReplicaSetDetail'](arg1, arg2);
+}
+
 export function GetReplicaSets(arg1) {
   return window['go']['main']['App']['GetReplicaSets'](arg1);
 }
 
 export function GetResourceCounts() {
   return window['go']['main']['App']['GetResourceCounts']();
+}
+
+export function GetResourceEvents(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetResourceEvents'](arg1, arg2, arg3);
 }
 
 export function GetRunningPods(arg1) {
@@ -206,8 +238,16 @@ export function GetSecretData(arg1) {
   return window['go']['main']['App']['GetSecretData'](arg1);
 }
 
+export function GetSecretDataByName(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretDataByName'](arg1, arg2);
+}
+
 export function GetSecrets(arg1) {
   return window['go']['main']['App']['GetSecrets'](arg1);
+}
+
+export function GetStatefulSetDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetStatefulSetDetail'](arg1, arg2);
 }
 
 export function GetStatefulSets(arg1) {

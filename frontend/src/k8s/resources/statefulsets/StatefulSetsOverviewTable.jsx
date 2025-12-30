@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import ResourcePodsTab from '../../../components/ResourcePodsTab';
+import StatefulSetPVCsTab from './StatefulSetPVCsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -18,6 +21,8 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'pods', label: 'Pods' },
+  { key: 'pvcs', label: 'PVCs' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -66,12 +71,30 @@ function renderPanelContent(row, tab) {
       </div>
     );
   }
+  if (tab === 'pods') {
+    return (
+      <ResourcePodsTab
+        namespace={row.namespace}
+        resourceKind="StatefulSet"
+        resourceName={row.name}
+      />
+    );
+  }
+  if (tab === 'pvcs') {
+    return (
+      <StatefulSetPVCsTab
+        namespace={row.namespace}
+        statefulSetName={row.name}
+      />
+    );
+  }
   if (tab === 'events') {
     return (
-      <div>
-        <h3>Events</h3>
-        <p>No events (mock data).</p>
-      </div>
+      <ResourceEventsTab
+        namespace={row.namespace}
+        kind="StatefulSet"
+        name={row.name}
+      />
     );
   }
   if (tab === 'yaml') {

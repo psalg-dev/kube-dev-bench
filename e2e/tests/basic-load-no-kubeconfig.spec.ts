@@ -1,12 +1,20 @@
 import { test, expect } from '../setup/fixtures';
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
+import { getRepoRoot } from '../setup/helpers';
 
-function getRepoRoot() {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  return path.resolve(__dirname, '..', '..');
+async function clickWithRetry(page: any, locator: any, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await locator.waitFor({ state: 'visible', timeout: 5000 });
+      await page.waitForTimeout(100);
+      await locator.click({ timeout: 5000 });
+      return;
+    } catch (err) {
+      if (attempt === maxRetries - 1) throw err;
+      await page.waitForTimeout(500);
+    }
+  }
 }
 
 test.describe('Basic app load without kubeconfigs on host', () => {
@@ -18,6 +26,9 @@ test.describe('Basic app load without kubeconfigs on host', () => {
 
     // Open app
     await page.goto(baseURL || 'http://localhost:34115');
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(300);
 
     // Ensure wizard is visible; if not, wait for either the overlay or the gear button and click if needed
     const wizardOverlay = page.locator('.connection-wizard-overlay');
@@ -27,7 +38,9 @@ test.describe('Basic app load without kubeconfigs on host', () => {
       gearBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'gear').catch(() => null),
     ]);
     if (appeared !== 'overlay') {
-      if (await gearBtn.isVisible().catch(() => false)) await gearBtn.click();
+      if (await gearBtn.isVisible().catch(() => false)) {
+        await clickWithRetry(page, gearBtn);
+      }
       await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
     }
     await expect(wizardOverlay).toBeVisible();

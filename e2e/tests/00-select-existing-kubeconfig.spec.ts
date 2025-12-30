@@ -3,6 +3,20 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { getRepoRoot, selectNamespace } from '../setup/helpers';
 
+async function clickWithRetry(page: any, locator: any, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await locator.waitFor({ state: 'visible', timeout: 5000 });
+      await page.waitForTimeout(100);
+      await locator.click({ timeout: 5000 });
+      return;
+    } catch (err) {
+      if (attempt === maxRetries - 1) throw err;
+      await page.waitForTimeout(500);
+    }
+  }
+}
+
 async function ensureHostKubeconfigAvailable() {
   const repoRoot = getRepoRoot();
   const source = process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
@@ -21,6 +35,9 @@ test.describe('Select existing Kubeconfig', () => {
     if (!ok) test.skip(true, 'KinD kubeconfig not available');
 
     await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(300);
 
     // Ensure wizard visible; if not, open via gear
     const wizardOverlay = page.locator('.connection-wizard-overlay');
@@ -34,7 +51,7 @@ test.describe('Select existing Kubeconfig', () => {
 
     if (appeared !== 'overlay') {
       if (await gearBtn.isVisible().catch(() => false)) {
-        await gearBtn.click();
+        await clickWithRetry(page, gearBtn);
       }
       await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
     }
@@ -53,6 +70,8 @@ test.describe('Select existing Kubeconfig', () => {
 
     // Reload the app to ensure clean UI state and avoid overlay flakiness
     await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(300);
 
     if (process.env.KIND_AVAILABLE === '1') {
       await selectNamespace(page, 'test');

@@ -40,6 +40,24 @@ export namespace app {
 	        this.size = source["size"];
 	    }
 	}
+	export class ConfigMapDataInfo {
+	    key: string;
+	    value: string;
+	    size: number;
+	    isBinary: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConfigMapDataInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.key = source["key"];
+	        this.value = source["value"];
+	        this.size = source["size"];
+	        this.isBinary = source["isBinary"];
+	    }
+	}
 	export class ConfigMapInfo {
 	    name: string;
 	    namespace: string;
@@ -114,6 +132,66 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class CronJobJobInfo {
+	    name: string;
+	    namespace: string;
+	    status: string;
+	    startTime: string;
+	    endTime: string;
+	    duration: string;
+	    succeeded: number;
+	    failed: number;
+	    active: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new CronJobJobInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.status = source["status"];
+	        this.startTime = source["startTime"];
+	        this.endTime = source["endTime"];
+	        this.duration = source["duration"];
+	        this.succeeded = source["succeeded"];
+	        this.failed = source["failed"];
+	        this.active = source["active"];
+	    }
+	}
+	export class CronJobDetail {
+	    jobs: CronJobJobInfo[];
+	    nextRuns: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new CronJobDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.jobs = this.convertValues(source["jobs"], CronJobJobInfo);
+	        this.nextRuns = source["nextRuns"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class CronJobInfo {
 	    name: string;
 	    namespace: string;
@@ -140,6 +218,63 @@ export namespace app {
 	        this.labels = source["labels"];
 	    }
 	}
+	
+	export class ResourcePodInfo {
+	    name: string;
+	    namespace: string;
+	    status: string;
+	    ready: string;
+	    restarts: number;
+	    age: string;
+	    node: string;
+	    ip: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ResourcePodInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.status = source["status"];
+	        this.ready = source["ready"];
+	        this.restarts = source["restarts"];
+	        this.age = source["age"];
+	        this.node = source["node"];
+	        this.ip = source["ip"];
+	    }
+	}
+	export class DaemonSetDetail {
+	    pods: ResourcePodInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DaemonSetDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pods = this.convertValues(source["pods"], ResourcePodInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class DaemonSetInfo {
 	    name: string;
 	    namespace: string;
@@ -163,6 +298,82 @@ export namespace app {
 	        this.image = source["image"];
 	        this.labels = source["labels"];
 	    }
+	}
+	export class DeploymentCondition {
+	    type: string;
+	    status: string;
+	    lastTransition: string;
+	    reason: string;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DeploymentCondition(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.status = source["status"];
+	        this.lastTransition = source["lastTransition"];
+	        this.reason = source["reason"];
+	        this.message = source["message"];
+	    }
+	}
+	export class RolloutRevision {
+	    revision: number;
+	    replicaSet: string;
+	    image: string;
+	    createdAt: string;
+	    replicas: number;
+	    isCurrent: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new RolloutRevision(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.revision = source["revision"];
+	        this.replicaSet = source["replicaSet"];
+	        this.image = source["image"];
+	        this.createdAt = source["createdAt"];
+	        this.replicas = source["replicas"];
+	        this.isCurrent = source["isCurrent"];
+	    }
+	}
+	export class DeploymentDetail {
+	    pods: ResourcePodInfo[];
+	    conditions: DeploymentCondition[];
+	    revisions: RolloutRevision[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DeploymentDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pods = this.convertValues(source["pods"], ResourcePodInfo);
+	        this.conditions = this.convertValues(source["conditions"], DeploymentCondition);
+	        this.revisions = this.convertValues(source["revisions"], RolloutRevision);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class DeploymentInfo {
 	    name: string;
@@ -234,6 +445,72 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class IngressTLSInfo {
+	    hosts: string[];
+	    secretName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IngressTLSInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.hosts = source["hosts"];
+	        this.secretName = source["secretName"];
+	    }
+	}
+	export class IngressRule {
+	    host: string;
+	    path: string;
+	    pathType: string;
+	    serviceName: string;
+	    servicePort: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IngressRule(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.host = source["host"];
+	        this.path = source["path"];
+	        this.pathType = source["pathType"];
+	        this.serviceName = source["serviceName"];
+	        this.servicePort = source["servicePort"];
+	    }
+	}
+	export class IngressDetail {
+	    rules: IngressRule[];
+	    tls: IngressTLSInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new IngressDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.rules = this.convertValues(source["rules"], IngressRule);
+	        this.tls = this.convertValues(source["tls"], IngressTLSInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class IngressInfo {
 	    name: string;
 	    namespace: string;
@@ -259,6 +536,60 @@ export namespace app {
 	        this.age = source["age"];
 	        this.labels = source["labels"];
 	    }
+	}
+	
+	
+	export class JobCondition {
+	    type: string;
+	    status: string;
+	    lastTransition: string;
+	    reason: string;
+	    message: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new JobCondition(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.status = source["status"];
+	        this.lastTransition = source["lastTransition"];
+	        this.reason = source["reason"];
+	        this.message = source["message"];
+	    }
+	}
+	export class JobDetail {
+	    pods: ResourcePodInfo[];
+	    conditions: JobCondition[];
+	
+	    static createFrom(source: any = {}) {
+	        return new JobDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pods = this.convertValues(source["pods"], ResourcePodInfo);
+	        this.conditions = this.convertValues(source["conditions"], JobCondition);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class KubeConfigInfo {
 	    path: string;
@@ -570,6 +901,40 @@ export namespace app {
 	        this.remote = source["remote"];
 	    }
 	}
+	export class ReplicaSetDetail {
+	    pods: ResourcePodInfo[];
+	    ownerName: string;
+	    ownerKind: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ReplicaSetDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pods = this.convertValues(source["pods"], ResourcePodInfo);
+	        this.ownerName = source["ownerName"];
+	        this.ownerKind = source["ownerKind"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class ReplicaSetInfo {
 	    name: string;
 	    namespace: string;
@@ -646,6 +1011,84 @@ export namespace app {
 		    return a;
 		}
 	}
+	
+	
+	export class SecretDataInfo {
+	    key: string;
+	    value: string;
+	    size: number;
+	    isBinary: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new SecretDataInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.key = source["key"];
+	        this.value = source["value"];
+	        this.size = source["size"];
+	        this.isBinary = source["isBinary"];
+	    }
+	}
+	export class StatefulSetPVCInfo {
+	    name: string;
+	    namespace: string;
+	    status: string;
+	    capacity: string;
+	    accessModes: string;
+	    storageClass: string;
+	    age: string;
+	    podName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new StatefulSetPVCInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.status = source["status"];
+	        this.capacity = source["capacity"];
+	        this.accessModes = source["accessModes"];
+	        this.storageClass = source["storageClass"];
+	        this.age = source["age"];
+	        this.podName = source["podName"];
+	    }
+	}
+	export class StatefulSetDetail {
+	    pods: ResourcePodInfo[];
+	    pvcs: StatefulSetPVCInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new StatefulSetDetail(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.pods = this.convertValues(source["pods"], ResourcePodInfo);
+	        this.pvcs = this.convertValues(source["pvcs"], StatefulSetPVCInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class StatefulSetInfo {
 	    name: string;
 	    namespace: string;
@@ -670,6 +1113,7 @@ export namespace app {
 	        this.labels = source["labels"];
 	    }
 	}
+	
 
 }
 

@@ -1,13 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import path from 'node:path';
 import fs from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
-function getRepoRoot() {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-  return path.resolve(__dirname, '..', '..');
-}
+import { getRepoRoot } from './helpers';
 
 // Auto-fixture that clears per-test HOME state used by wails dev
 export const test = base.extend<{ _isolate: void }>({

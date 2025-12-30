@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import ConfigMapDataTab from './ConfigMapDataTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -17,6 +19,7 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'data', label: 'Data' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -64,13 +67,11 @@ function renderPanelContent(row, tab) {
       </div>
     );
   }
+  if (tab === 'data') {
+    return <ConfigMapDataTab namespace={row.namespace} configMapName={row.name} />;
+  }
   if (tab === 'events') {
-    return (
-      <div>
-        <h3>Events</h3>
-        <p>No events (mock data).</p>
-      </div>
-    );
+    return <ResourceEventsTab namespace={row.namespace} resourceKind="ConfigMap" resourceName={row.name} />;
   }
   if (tab === 'yaml') {
     const yamlContent = `apiVersion: v1

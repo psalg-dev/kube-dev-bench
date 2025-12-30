@@ -267,3 +267,23 @@ spec:
             - name: cron
               image: busybox:1.36
               command: ["/bin/sh","-c","echo Cron run at $(date)"]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  namespace: test
+  annotations:
+    kube-dev-bench/example: "true"
+spec:
+  rules:
+    - host: example.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: example-statefulset
+                port:
+                  number: 80

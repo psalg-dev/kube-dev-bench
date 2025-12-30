@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const DEFAULT_BASE_URL = 'http://localhost:34115';
 
-function getRepoRoot() {
+export function getRepoRoot() {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   return path.resolve(__dirname, '..', '..');
@@ -53,6 +53,35 @@ async function closeOpenMenus(page: Page) {
 }
 
 /**
+ * Wait for the page to be stable (no pending network requests, DOM settled)
+ */
+async function waitForPageStable(page: Page, timeout = 5000) {
+  // Wait for network to be idle
+  await page.waitForLoadState('networkidle', { timeout }).catch(() => {});
+  // Small delay for React to finish any pending state updates
+  await page.waitForTimeout(300);
+}
+
+/**
+ * Click an element with retry logic for detached elements
+ */
+async function clickWithRetry(page: Page, locator: ReturnType<Page['locator']>, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Wait for element to be stable before clicking
+      await locator.waitFor({ state: 'visible', timeout: 5000 });
+      await page.waitForTimeout(100); // Brief pause to let React settle
+      await locator.click({ timeout: 5000 });
+      return;
+    } catch (err) {
+      if (attempt === maxRetries - 1) throw err;
+      // Element was detached, wait and retry
+      await page.waitForTimeout(500);
+    }
+  }
+}
+
+/**
  * Connect to a Kubernetes cluster using the KinD kubeconfig
  */
 export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
@@ -62,6 +91,7 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
 
   await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
   await waitForReconnectOverlay(page);
+  await waitForPageStable(page);
 
   const wizardOverlay = page.locator('.connection-wizard-overlay');
   const gearBtn = page.locator('#show-wizard-btn');
@@ -74,7 +104,7 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
 
   if (appeared !== 'overlay') {
     if (await gearBtn.isVisible().catch(() => false)) {
-      await gearBtn.click();
+      await clickWithRetry(page, gearBtn);
     }
     await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
   }
@@ -91,8 +121,10 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
     await page.getByRole('button', { name: /Continue/i }).click();
   }
 
-  // Reload to ensure fresh state
+  // Reload to ensure fresh state and wait for page to stabilize
   await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
+  await waitForReconnectOverlay(page);
+  await waitForPageStable(page);
 }
 
 /**
@@ -101,6 +133,9 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
  */
 export async function selectNamespace(page: Page, namespace: string) {
   const control = page.locator('#namespace-root .kdv__control');
+
+  // Wait for page to stabilize before interacting with namespace dropdown
+  await waitForPageStable(page);
 
   // Wait for namespace control to be enabled
   await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 120_000 });
@@ -121,6 +156,9 @@ export async function selectNamespace(page: Page, namespace: string) {
   if (await main.isVisible().catch(() => false)) {
     await main.click({ force: true });
   }
+  
+  // Wait for page to be stable again after closing menus
+  await waitForPageStable(page);
 
   let selected = false;
   const maxAttempts = 60; // Reduced from 110 to fit within test timeout
@@ -130,11 +168,16 @@ export async function selectNamespace(page: Page, namespace: string) {
     // Ensure no other select menu portals are open that could intercept clicks
     await closeOpenMenus(page);
 
-    // Open the namespace dropdown
-    await control.click({ timeout: 5000 });
+    // Open the namespace dropdown with retry logic
+    try {
+      await clickWithRetry(page, control, 2);
+    } catch {
+      await page.waitForTimeout(pollInterval);
+      continue;
+    }
 
     // Wait a bit for the menu to render
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
 
     if (await testOption.first().isVisible().catch(() => false)) {
       await testOption.first().click();
@@ -394,21 +437,16 @@ export async function waitForNotification(page: Page, textPattern: RegExp | stri
 }
 
 /**
- * Get the repo root directory
- */
-export { getRepoRoot };
-
-/**
- * Open connection wizard
+ * Open connection wizard - exported from internal function
  */
 export { openConnectionWizard };
 
 /**
- * Wait for reconnect overlay
+ * Wait for reconnect overlay - exported from internal function
  */
 export { waitForReconnectOverlay };
 
 /**
- * Close open menus
+ * Close open menus - exported from internal function
  */
 export { closeOpenMenus };

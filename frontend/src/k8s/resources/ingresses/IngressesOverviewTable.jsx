@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import IngressRulesTab from './IngressRulesTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -19,6 +21,7 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'rules', label: 'Rules' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -75,13 +78,11 @@ function renderPanelContent(row, tab) {
       </div>
     );
   }
+  if (tab === 'rules') {
+    return <IngressRulesTab namespace={row.namespace} ingressName={row.name} hosts={row.hosts} />;
+  }
   if (tab === 'events') {
-    return (
-      <div>
-        <h3>Events</h3>
-        <p>No events (mock data).</p>
-      </div>
-    );
+    return <ResourceEventsTab namespace={row.namespace} resourceKind="Ingress" resourceName={row.name} />;
   }
   if (tab === 'yaml') {
     const hostsYaml = Array.isArray(row.hosts) ? row.hosts.map(host => `  - host: ${host}

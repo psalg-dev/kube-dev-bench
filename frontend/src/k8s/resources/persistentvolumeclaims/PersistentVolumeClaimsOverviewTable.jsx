@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -128,6 +129,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
   const bottomTabs = [
     { key: 'summary', label: 'Summary' },
+    { key: 'events', label: 'Events' },
     { key: 'yaml', label: 'YAML' },
     { key: 'files', label: 'Files' },
   ];
@@ -197,6 +199,9 @@ status:
   phase: ${row.status}`;
 
       return <YamlTab content={yamlContent} />;
+    }
+    if (tab === 'events') {
+      return <ResourceEventsTab namespace={row.namespace} resourceKind="PersistentVolumeClaim" resourceName={row.name} />;
     }
     if (tab === 'files') {
       return <FilesTab namespace={row.namespace} pvcName={row.name} />;

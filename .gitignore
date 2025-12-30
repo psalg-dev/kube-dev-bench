@@ -14,3 +14,4 @@ frontend/dist
 /e2e/.home-e2e
 /e2e/.wails-dev.pid
 *.pid
+/todos

@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import CronJobHistoryTab from './CronJobHistoryTab';
+import CronJobActionsTab from './CronJobActionsTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -19,6 +22,8 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'history', label: 'Job History' },
+  { key: 'actions', label: 'Actions' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -73,12 +78,19 @@ function renderPanelContent(row, tab) {
       </div>
     );
   }
+  if (tab === 'history') {
+    return <CronJobHistoryTab namespace={row.namespace} cronJobName={row.name} />;
+  }
+  if (tab === 'actions') {
+    return <CronJobActionsTab namespace={row.namespace} cronJobName={row.name} suspend={row.suspend} />;
+  }
   if (tab === 'events') {
     return (
-      <div>
-        <h3>Events</h3>
-        <p>Events functionality not yet implemented for CronJobs.</p>
-      </div>
+      <ResourceEventsTab
+        namespace={row.namespace}
+        kind="CronJob"
+        name={row.name}
+      />
     );
   }
   if (tab === 'yaml') {

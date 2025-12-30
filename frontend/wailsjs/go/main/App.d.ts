@@ -36,19 +36,31 @@ export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
+export function GetConfigMapDataByName(arg1:string,arg2:string):Promise<Array<app.ConfigMapDataInfo>>;
+
 export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
 
 export function GetConnectionStatus():Promise<Record<string, any>>;
+
+export function GetCronJobDetail(arg1:string,arg2:string):Promise<app.CronJobDetail>;
 
 export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;
 
+export function GetDaemonSetDetail(arg1:string,arg2:string):Promise<app.DaemonSetDetail>;
+
 export function GetDaemonSets(arg1:string):Promise<Array<app.DaemonSetInfo>>;
+
+export function GetDeploymentDetail(arg1:string,arg2:string):Promise<app.DeploymentDetail>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
 
+export function GetIngressDetail(arg1:string,arg2:string):Promise<app.IngressDetail>;
+
 export function GetIngresses(arg1:string):Promise<Array<app.IngressInfo>>;
+
+export function GetJobDetail(arg1:string,arg2:string):Promise<app.JobDetail>;
 
 export function GetJobs(arg1:string):Promise<Array<jobs.JobInfo>>;
 
@@ -98,15 +110,23 @@ export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
 
+export function GetReplicaSetDetail(arg1:string,arg2:string):Promise<app.ReplicaSetDetail>;
+
 export function GetReplicaSets(arg1:string):Promise<Array<app.ReplicaSetInfo>>;
 
 export function GetResourceCounts():Promise<app.ResourceCounts>;
+
+export function GetResourceEvents(arg1:string,arg2:string,arg3:string):Promise<Array<app.EventInfo>>;
 
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetSecretData(arg1:string):Promise<Record<string, string>>;
 
+export function GetSecretDataByName(arg1:string,arg2:string):Promise<Array<app.SecretDataInfo>>;
+
 export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
+
+export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.StatefulSetDetail>;
 
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 

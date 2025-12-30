@@ -3,6 +3,20 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { getRepoRoot, selectNamespace } from '../setup/helpers';
 
+async function clickWithRetry(page: any, locator: any, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      await locator.waitFor({ state: 'visible', timeout: 5000 });
+      await page.waitForTimeout(100);
+      await locator.click({ timeout: 5000 });
+      return;
+    } catch (err) {
+      if (attempt === maxRetries - 1) throw err;
+      await page.waitForTimeout(500);
+    }
+  }
+}
+
 test.describe('Load Kubeconfig from File', () => {
   test('browse for file, select KinD kubeconfig, and connect', async ({ page, baseURL }) => {
     test.setTimeout(120_000); // Reduced from 180s
@@ -16,6 +30,9 @@ test.describe('Load Kubeconfig from File', () => {
 
     // Navigate and ensure bindings are available
     await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
+    // Wait for page to stabilize
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(300);
 
     // Ensure wizard is visible; if not, open it via the gear button
     const wizardOverlay = page.locator('.connection-wizard-overlay');
@@ -29,7 +46,7 @@ test.describe('Load Kubeconfig from File', () => {
 
     if (appeared !== 'overlay') {
       if (await gearBtn.isVisible().catch(() => false)) {
-        await gearBtn.click();
+        await clickWithRetry(page, gearBtn);
       }
       await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
     }
@@ -51,6 +68,8 @@ test.describe('Load Kubeconfig from File', () => {
 
     // Reload the app to ensure clean UI state
     await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(300);
 
     // If KinD is available, select the 'test' namespace
     if (process.env.KIND_AVAILABLE === '1') {

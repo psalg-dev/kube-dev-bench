@@ -3,6 +3,8 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import PVBoundPVCTab from './PVBoundPVCTab';
 import { showResourceOverlay } from '../../../resource-overlay';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
@@ -22,6 +24,8 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'boundpvc', label: 'Bound PVC' },
+  { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
 
@@ -106,6 +110,12 @@ function renderPanelContent(row, tab) {
         </div>
       </div>
     );
+  }
+  if (tab === 'boundpvc') {
+    return <PVBoundPVCTab pvName={row.name} claim={row.claim} />;
+  }
+  if (tab === 'events') {
+    return <ResourceEventsTab namespace="" resourceKind="PersistentVolume" resourceName={row.name} />;
   }
   if (tab === 'yaml') {
     const yamlContent = `apiVersion: v1

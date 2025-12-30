@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
+import JobPodsTab from './JobPodsTab';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -21,6 +23,7 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'pods', label: 'Pods' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -76,12 +79,16 @@ function renderPanelContent(row, tab) {
       </div>
     );
   }
+  if (tab === 'pods') {
+    return <JobPodsTab namespace={row.namespace} jobName={row.name} />;
+  }
   if (tab === 'events') {
     return (
-      <div>
-        <h3>Events</h3>
-        <p>Events functionality not yet implemented for Jobs.</p>
-      </div>
+      <ResourceEventsTab
+        namespace={row.namespace}
+        kind="Job"
+        name={row.name}
+      />
     );
   }
   if (tab === 'yaml') {
