@@ -276,3 +276,29 @@ type ResourceCounts struct {
 	PersistentVolumeClaims int             `json:"persistentvolumeclaims"`
 	PersistentVolumes      int             `json:"persistentvolumes"`
 }
+
+// MonitorIssue represents a single warning or error detected in the cluster
+type MonitorIssue struct {
+	Type          string `json:"type"`          // "warning" or "error"
+	Resource      string `json:"resource"`      // e.g., "Pod", "Deployment"
+	Namespace     string `json:"namespace"`     // namespace of the resource
+	Name          string `json:"name"`          // name of the resource
+	Reason        string `json:"reason"`        // reason for the issue (e.g., "CrashLoopBackOff", "ImagePullBackOff")
+	Message       string `json:"message"`       // detailed message
+	ContainerName string `json:"containerName"` // container name (for container-specific issues)
+	RestartCount  int32  `json:"restartCount"`  // number of restarts (for pods)
+	Age           string `json:"age"`           // age of the resource or event
+	PodPhase      string `json:"podPhase"`      // pod phase (for pod issues)
+	OwnerKind     string `json:"ownerKind"`     // parent resource kind (e.g., "Deployment")
+	OwnerName     string `json:"ownerName"`     // parent resource name
+	NodeName      string `json:"nodeName"`      // node where pod is scheduled
+}
+
+// MonitorInfo aggregates warnings and errors across monitored namespaces
+// This is emitted periodically to the frontend (event: "monitor:update")
+type MonitorInfo struct {
+	WarningCount int            `json:"warningCount"`
+	ErrorCount   int            `json:"errorCount"`
+	Warnings     []MonitorIssue `json:"warnings"`
+	Errors       []MonitorIssue `json:"errors"`
+}

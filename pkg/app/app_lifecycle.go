@@ -31,6 +31,9 @@ type App struct {
 	resourceCountsMu   sync.RWMutex
 	lastResourceCounts ResourceCounts
 	countsRefreshCh    chan struct{}
+
+	// testClientset is used for testing only (dependency injection)
+	testClientset interface{}
 }
 
 // NewApp creates a new App application struct

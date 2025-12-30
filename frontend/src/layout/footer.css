@@ -10,7 +10,7 @@
   border-top: 1px solid var(--gh-border);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   padding: 0 2rem;
   font-size: var(--text-size-base);
   z-index: 10;

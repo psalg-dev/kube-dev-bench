@@ -5,6 +5,7 @@ import { vi } from 'vitest';
 
 export const createResourceMock = vi.fn();
 export const eventsEmitMock = vi.fn();
+export const eventsOnMock = vi.fn();
 
 // Generic mock for other App API functions to avoid individual test failures
 export const genericAPIMock = vi.fn().mockResolvedValue(undefined);
@@ -30,14 +31,20 @@ vi.mock('../../wailsjs/go/main/App', () => {
   return exports;
 });
 
-// Mock Wails runtime EventsEmit (add stubs for potential other runtime funcs if needed)
+// Mock Wails runtime EventsEmit and EventsOn
 vi.mock('../../wailsjs/runtime', () => ({
+  EventsEmit: (...args) => eventsEmitMock(...args),
+}));
+
+vi.mock('../../wailsjs/runtime/runtime.js', () => ({
+  EventsOn: (...args) => eventsOnMock(...args),
   EventsEmit: (...args) => eventsEmitMock(...args),
 }));
 
 export function resetAllMocks() {
   createResourceMock.mockReset();
   eventsEmitMock.mockReset();
+  eventsOnMock.mockReset();
   genericAPIMock.mockReset();
   Object.values(appApiMocks).forEach((m) => m.mock && m.mockReset && m.mockReset());
 }

@@ -188,6 +188,8 @@ export function StartJob(arg1:string,arg2:string):Promise<void>;
 
 export function StartJobFromCronJob(arg1:string,arg2:string):Promise<void>;
 
+export function StartMonitorPolling():Promise<void>;
+
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function StartPodPolling():Promise<void>;

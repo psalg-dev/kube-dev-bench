@@ -35,6 +35,8 @@ func main() {
 	app.StartStatefulSetPolling()
 	// Start replicasets polling to emit events for the frontend
 	app.StartReplicaSetPolling()
+	// Start monitor polling to emit warnings and errors for the frontend
+	app.StartMonitorPolling()
 
 	// Create application with options
 	err := wails.Run(&options.App{
