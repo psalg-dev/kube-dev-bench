@@ -62,14 +62,22 @@ export default async function globalSetup(_config: FullConfig) {
       try {
         // Check docker logs for completion message
         const logs = await new Promise<string>((resolve, reject) => {
-          const child = spawn('docker', ['logs', '--tail', '10', 'kind-manager'], { shell: false });
-          let stdout = '';
-          child.stdout.on('data', (d) => { stdout += d.toString(); });
-          child.stderr.on('data', (d) => { stdout += d.toString(); });
-          child.on('error', reject);
-          child.on('close', () => resolve(stdout));
+          const child = spawn('docker', ['logs', '--tail', '20', 'kind-manager'], { shell: false });
+          let output = '';
+          child.stdout.on('data', (d) => { output += d.toString(); });
+          child.stderr.on('data', (d) => { output += d.toString(); });
+          child.on('error', (err) => {
+            console.log(`[e2e setup] Docker logs error: ${err.message}`);
+            reject(err);
+          });
+          child.on('close', (code) => {
+            if (code !== 0) {
+              console.log(`[e2e setup] Docker logs exit code: ${code}`);
+            }
+            resolve(output);
+          });
         });
-        if (logs.includes('Example resources applied successfully')) {
+        if (logs.includes('Example resources applied successfully') || logs.includes('[kind-manager] Example resources applied')) {
           console.log('[e2e setup] KinD manager setup complete.');
           setupComplete = true;
           break;
