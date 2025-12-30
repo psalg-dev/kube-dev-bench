@@ -23,7 +23,7 @@ func (a *App) patchControllerAnnotation(_kind, _namespace, _name string, patchFu
 
 // --- Deployments ---
 func (a *App) RestartDeployment(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (a *App) RestartDeployment(namespace, name string) error {
 	return err
 }
 func (a *App) DeleteDeployment(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -41,7 +41,7 @@ func (a *App) DeleteDeployment(namespace, name string) error {
 
 // --- StatefulSets ---
 func (a *App) RestartStatefulSet(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func (a *App) RestartStatefulSet(namespace, name string) error {
 	return err
 }
 func (a *App) DeleteStatefulSet(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (a *App) DeleteStatefulSet(namespace, name string) error {
 
 // --- DaemonSets ---
 func (a *App) RestartDaemonSet(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (a *App) RestartDaemonSet(namespace, name string) error {
 	return err
 }
 func (a *App) DeleteDaemonSet(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (a *App) DeleteDaemonSet(namespace, name string) error {
 
 // --- ReplicaSets (restart not meaningful separately) ---
 func (a *App) DeleteReplicaSet(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (a *App) DeleteReplicaSet(namespace, name string) error {
 
 // --- ConfigMaps ---
 func (a *App) DeleteConfigMap(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (a *App) DeleteConfigMap(namespace, name string) error {
 
 // --- Secrets ---
 func (a *App) DeleteSecret(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (a *App) DeleteSecret(namespace, name string) error {
 
 // --- Persistent Volume Claims ---
 func (a *App) DeletePersistentVolumeClaim(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func (a *App) DeletePersistentVolumeClaim(namespace, name string) error {
 
 // --- Persistent Volumes ---
 func (a *App) DeletePersistentVolume(name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (a *App) DeletePersistentVolume(name string) error {
 
 // --- Ingresses ---
 func (a *App) DeleteIngress(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func (a *App) ScaleResource(kind, namespace, name string, replicas int) error {
 	if replicas < 0 {
 		return fmt.Errorf("replicas must be non-negative")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}

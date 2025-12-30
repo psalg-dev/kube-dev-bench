@@ -11,22 +11,29 @@ import (
 
 // GetPodEvents returns events related to the given pod (from all available time in cluster retention)
 func (a *App) GetPodEvents(namespace string, podName string) ([]EventInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("no kube context selected")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		configPath := a.getKubeConfigPath()
+		config, err := clientcmd.LoadFromFile(configPath)
+		if err != nil {
+			return nil, err
+		}
+		if a.currentKubeContext == "" {
+			return nil, fmt.Errorf("no kube context selected")
+		}
+		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+		restConfig, err := clientConfig.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		var newErr error
+		clientset, newErr = kubernetes.NewForConfig(restConfig)
+		if newErr != nil {
+			return nil, newErr
+		}
 	}
 	if namespace == "" {
 		if a.currentNamespace == "" {
@@ -114,22 +121,28 @@ func (a *App) GetPodEventsLegacy(podName string) ([]EventInfo, error) {
 // GetResourceEvents returns events related to a resource by kind and name
 // kind can be: Pod, Deployment, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, ConfigMap, Secret, PersistentVolume, PersistentVolumeClaim, Ingress
 func (a *App) GetResourceEvents(namespace, kind, name string) ([]EventInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("no kube context selected")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		configPath := a.getKubeConfigPath()
+		config, configErr := clientcmd.LoadFromFile(configPath)
+		if configErr != nil {
+			return nil, configErr
+		}
+		if a.currentKubeContext == "" {
+			return nil, fmt.Errorf("no kube context selected")
+		}
+		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+		restConfig, restErr := clientConfig.ClientConfig()
+		if restErr != nil {
+			return nil, restErr
+		}
+		var clientErr error
+		clientset, clientErr = kubernetes.NewForConfig(restConfig)
+		if clientErr != nil {
+			return nil, clientErr
+		}
 	}
 
 	// For cluster-scoped resources like PersistentVolume, use all namespaces

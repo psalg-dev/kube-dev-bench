@@ -12,22 +12,29 @@ import (
 
 // GetIngresses returns all ingresses in a namespace
 func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("Kein Kontext gewählt")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		configPath := a.getKubeConfigPath()
+		config, err := clientcmd.LoadFromFile(configPath)
+		if err != nil {
+			return nil, err
+		}
+		if a.currentKubeContext == "" {
+			return nil, fmt.Errorf("Kein Kontext gewählt")
+		}
+		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+		restConfig, err := clientConfig.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		clientset, err = kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(a.ctx, metav1.ListOptions{})

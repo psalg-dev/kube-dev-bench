@@ -32,6 +32,12 @@ cd e2e && npm install && npx playwright install && npx playwright test
 
 # Go unit tests
 go test ./pkg/app/...
+
+# Go unit tests with coverage
+go test -cover ./pkg/app/...                      # Show coverage percentage
+go test -coverprofile=coverage.out ./pkg/app/...  # Generate coverage profile
+go tool cover -html=coverage.out                  # Open HTML coverage report
+go tool cover -func=coverage.out                  # Show per-function coverage
 ```
 
 ### KinD Cluster for Testing

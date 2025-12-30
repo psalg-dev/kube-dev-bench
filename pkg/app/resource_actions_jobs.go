@@ -9,7 +9,7 @@ import (
 // App methods for Jobs and CronJobs
 
 func (a *App) DeleteJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -18,7 +18,7 @@ func (a *App) DeleteJob(namespace, name string) error {
 }
 
 func (a *App) DeleteCronJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -26,7 +26,7 @@ func (a *App) DeleteCronJob(namespace, name string) error {
 }
 
 func (a *App) SuspendCronJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func (a *App) SuspendCronJob(namespace, name string) error {
 }
 
 func (a *App) ResumeCronJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (a *App) ResumeCronJob(namespace, name string) error {
 }
 
 func (a *App) StartJobFromCronJob(namespace, cronJobName string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (a *App) StartJobFromCronJob(namespace, cronJobName string) error {
 }
 
 func (a *App) StartJob(namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}

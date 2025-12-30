@@ -13,22 +13,29 @@ import (
 
 // GetCronJobs returns all cronjobs in a namespace
 func (a *App) GetCronJobs(namespace string) ([]CronJobInfo, error) {
-	configPath := a.getKubeConfigPath()
-	config, err := clientcmd.LoadFromFile(configPath)
-	if err != nil {
-		return nil, err
-	}
-	if a.currentKubeContext == "" {
-		return nil, fmt.Errorf("Kein Kontext gewählt")
-	}
-	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restConfig)
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		configPath := a.getKubeConfigPath()
+		config, err := clientcmd.LoadFromFile(configPath)
+		if err != nil {
+			return nil, err
+		}
+		if a.currentKubeContext == "" {
+			return nil, fmt.Errorf("Kein Kontext gewählt")
+		}
+		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+		restConfig, err := clientConfig.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		clientset, err = kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	list, err := clientset.BatchV1().CronJobs(namespace).List(a.ctx, metav1.ListOptions{})

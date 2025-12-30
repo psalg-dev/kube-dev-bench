@@ -24,7 +24,7 @@ func (a *App) GetPodYAML(podName string) (string, error) {
 	if a.currentNamespace == "" {
 		return "", fmt.Errorf("no namespace selected")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return "", err
 	}
@@ -44,7 +44,7 @@ func (a *App) GetPodContainers(podName string) ([]string, error) {
 	if a.currentNamespace == "" {
 		return nil, fmt.Errorf("no namespace selected")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 	if a.currentNamespace == "" {
 		return out, fmt.Errorf("no namespace selected")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return out, err
 	}
@@ -97,7 +97,7 @@ func (a *App) GetPodContainerPorts(podName string) ([]int, error) {
 	if a.currentNamespace == "" {
 		return nil, fmt.Errorf("no namespace selected")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (a *App) GetPodMounts(podName string) (PodMounts, error) {
 	if a.currentNamespace == "" {
 		return result, fmt.Errorf("no namespace selected")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return result, err
 	}

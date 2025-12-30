@@ -526,9 +526,15 @@ func (a *App) StopPortForward(namespace, podName string, localPort int) error {
 // GetRunningPods returns all running (and pending) pods (name, restarts, uptime) in a namespace
 // Pending pods are included so the UI can show pods while they are in 'Creating' state.
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
-	clientset, err := a.createKubernetesClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.createKubernetesClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
@@ -618,7 +624,7 @@ func (a *App) StartPodPolling() {
 
 // RestartPod restarts a pod by deleting it (Kubernetes will recreate it if part of a deployment)
 func (a *App) RestartPod(namespace, podName string) error {
-	clientset, err := a.createKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -633,7 +639,7 @@ func (a *App) ShellPod(namespace, podName string) (string, error) {
 
 // DeletePod deletes a pod
 func (a *App) DeletePod(namespace, podName string) error {
-	clientset, err := a.createKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
@@ -681,9 +687,15 @@ func (a *App) ExecCommand(cmdline string) error {
 
 // GetPodStatusCounts returns counts of pods by phase for the given namespace
 func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		return PodStatusCounts{}, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.getKubernetesClient()
+		if err != nil {
+			return PodStatusCounts{}, err
+		}
 	}
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {

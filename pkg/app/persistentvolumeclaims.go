@@ -5,13 +5,20 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // GetPersistentVolumeClaims returns all persistent volume claims in a namespace
 func (a *App) GetPersistentVolumeClaims(namespace string) ([]PersistentVolumeClaimInfo, error) {
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.getKubernetesClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(a.ctx, metav1.ListOptions{})

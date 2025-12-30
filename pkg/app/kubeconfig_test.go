@@ -441,3 +441,85 @@ func TestKubeConfigInfo_Struct(t *testing.T) {
 		t.Errorf("Contexts length mismatch: got %d", len(info.Contexts))
 	}
 }
+
+func TestGetKubeContexts(t *testing.T) {
+	tmpDir := t.TempDir()
+	kubeconfigPath := filepath.Join(tmpDir, "kubeconfig")
+
+	if err := os.WriteFile(kubeconfigPath, []byte(validKubeconfig), 0600); err != nil {
+		t.Fatalf("Failed to write test kubeconfig: %v", err)
+	}
+
+	app := &App{}
+	app.kubeConfig = kubeconfigPath
+
+	contexts, err := app.GetKubeContexts()
+	if err != nil {
+		t.Fatalf("GetKubeContexts failed: %v", err)
+	}
+
+	if len(contexts) != 2 {
+		t.Errorf("Expected 2 contexts, got %d", len(contexts))
+	}
+
+	// Contexts should be sorted
+	if contexts[0] != "admin-context" || contexts[1] != "test-context" {
+		t.Errorf("Expected sorted contexts [admin-context, test-context], got %v", contexts)
+	}
+}
+
+func TestGetKubeContexts_NonExistentFile(t *testing.T) {
+	app := &App{}
+	app.kubeConfig = "/nonexistent/path/kubeconfig"
+
+	_, err := app.GetKubeContexts()
+	if err == nil {
+		t.Error("Expected error for non-existent file, got nil")
+	}
+}
+
+func TestGetKubeContextsFromFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	kubeconfigPath := filepath.Join(tmpDir, "kubeconfig")
+
+	if err := os.WriteFile(kubeconfigPath, []byte(validKubeconfig), 0600); err != nil {
+		t.Fatalf("Failed to write test kubeconfig: %v", err)
+	}
+
+	app := &App{}
+	contexts, err := app.GetKubeContextsFromFile(kubeconfigPath)
+	if err != nil {
+		t.Fatalf("GetKubeContextsFromFile failed: %v", err)
+	}
+
+	if len(contexts) != 2 {
+		t.Errorf("Expected 2 contexts, got %d", len(contexts))
+	}
+
+	// Check that both contexts are present
+	hasTestContext := false
+	hasAdminContext := false
+	for _, ctx := range contexts {
+		if ctx == "test-context" {
+			hasTestContext = true
+		}
+		if ctx == "admin-context" {
+			hasAdminContext = true
+		}
+	}
+
+	if !hasTestContext {
+		t.Error("Expected test-context to be present")
+	}
+	if !hasAdminContext {
+		t.Error("Expected admin-context to be present")
+	}
+}
+
+func TestGetKubeContextsFromFile_NonExistentFile(t *testing.T) {
+	app := &App{}
+	_, err := app.GetKubeContextsFromFile("/nonexistent/path/kubeconfig")
+	if err == nil {
+		t.Error("Expected error for non-existent file, got nil")
+	}
+}

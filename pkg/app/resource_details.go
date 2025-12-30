@@ -39,15 +39,15 @@ type JobDetail struct {
 
 // CronJobJobInfo represents a job created by a cronjob
 type CronJobJobInfo struct {
-	Name       string `json:"name"`
-	Namespace  string `json:"namespace"`
-	Status     string `json:"status"`
-	StartTime  string `json:"startTime"`
-	EndTime    string `json:"endTime"`
-	Duration   string `json:"duration"`
-	Succeeded  int32  `json:"succeeded"`
-	Failed     int32  `json:"failed"`
-	Active     int32  `json:"active"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Status    string `json:"status"`
+	StartTime string `json:"startTime"`
+	EndTime   string `json:"endTime"`
+	Duration  string `json:"duration"`
+	Succeeded int32  `json:"succeeded"`
+	Failed    int32  `json:"failed"`
+	Active    int32  `json:"active"`
 }
 
 // CronJobDetail provides detailed cronjob information
@@ -66,10 +66,10 @@ type ConfigMapDataInfo struct {
 
 // SecretDataInfo provides secret data with key-value pairs (base64 encoded)
 type SecretDataInfo struct {
-	Key       string `json:"key"`
-	Value     string `json:"value"` // base64 encoded
-	Size      int    `json:"size"`
-	IsBinary  bool   `json:"isBinary"`
+	Key      string `json:"key"`
+	Value    string `json:"value"` // base64 encoded
+	Size     int    `json:"size"`
+	IsBinary bool   `json:"isBinary"`
 }
 
 // DeploymentCondition represents a deployment condition
@@ -83,12 +83,12 @@ type DeploymentCondition struct {
 
 // RolloutRevision represents a deployment revision
 type RolloutRevision struct {
-	Revision    int64  `json:"revision"`
-	ReplicaSet  string `json:"replicaSet"`
-	Image       string `json:"image"`
-	CreatedAt   string `json:"createdAt"`
-	Replicas    int32  `json:"replicas"`
-	IsCurrent   bool   `json:"isCurrent"`
+	Revision   int64  `json:"revision"`
+	ReplicaSet string `json:"replicaSet"`
+	Image      string `json:"image"`
+	CreatedAt  string `json:"createdAt"`
+	Replicas   int32  `json:"replicas"`
+	IsCurrent  bool   `json:"isCurrent"`
 }
 
 // DeploymentDetail provides detailed deployment information
@@ -139,9 +139,9 @@ type IngressDetail struct {
 
 // ReplicaSetDetail provides detailed replicaset information
 type ReplicaSetDetail struct {
-	Pods          []ResourcePodInfo `json:"pods"`
-	OwnerName     string            `json:"ownerName"`
-	OwnerKind     string            `json:"ownerKind"`
+	Pods      []ResourcePodInfo `json:"pods"`
+	OwnerName string            `json:"ownerName"`
+	OwnerKind string            `json:"ownerKind"`
 }
 
 // DaemonSetDetail provides detailed daemonset information
@@ -151,7 +151,7 @@ type DaemonSetDetail struct {
 
 // GetJobDetail returns detailed information about a job including its pods and conditions
 func (a *App) GetJobDetail(namespace, jobName string) (*JobDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -237,7 +237,7 @@ func (a *App) GetJobDetail(namespace, jobName string) (*JobDetail, error) {
 
 // GetCronJobDetail returns detailed information about a cronjob including job history
 func (a *App) GetCronJobDetail(namespace, cronJobName string) (*CronJobDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func (a *App) GetCronJobDetail(namespace, cronJobName string) (*CronJobDetail, e
 
 // GetConfigMapDataByName returns the data of a configmap
 func (a *App) GetConfigMapDataByName(namespace, name string) ([]ConfigMapDataInfo, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -356,7 +356,7 @@ func (a *App) GetConfigMapDataByName(namespace, name string) ([]ConfigMapDataInf
 
 // GetSecretDataByName returns the data of a secret (values are base64 encoded)
 func (a *App) GetSecretDataByName(namespace, name string) ([]SecretDataInfo, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -396,7 +396,7 @@ func (a *App) GetSecretDataByName(namespace, name string) ([]SecretDataInfo, err
 
 // GetDeploymentDetail returns detailed information about a deployment
 func (a *App) GetDeploymentDetail(namespace, deploymentName string) (*DeploymentDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -524,7 +524,7 @@ func (a *App) GetDeploymentDetail(namespace, deploymentName string) (*Deployment
 
 // GetStatefulSetDetail returns detailed information about a statefulset
 func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*StatefulSetDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -657,7 +657,7 @@ func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*Stateful
 
 // GetDaemonSetDetail returns detailed information about a daemonset
 func (a *App) GetDaemonSetDetail(namespace, daemonSetName string) (*DaemonSetDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -731,7 +731,7 @@ func (a *App) GetDaemonSetDetail(namespace, daemonSetName string) (*DaemonSetDet
 
 // GetReplicaSetDetail returns detailed information about a replicaset
 func (a *App) GetReplicaSetDetail(namespace, replicaSetName string) (*ReplicaSetDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -809,7 +809,7 @@ func (a *App) GetReplicaSetDetail(namespace, replicaSetName string) (*ReplicaSet
 
 // GetIngressDetail returns detailed information about an ingress
 func (a *App) GetIngressDetail(namespace, ingressName string) (*IngressDetail, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}

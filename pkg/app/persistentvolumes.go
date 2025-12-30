@@ -6,13 +6,20 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // GetPersistentVolumes returns all persistent volumes in the cluster
 func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.getKubernetesClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	pvs, err := clientset.CoreV1().PersistentVolumes().List(a.ctx, metav1.ListOptions{})

@@ -230,3 +230,325 @@ func TestJobInfoShape(t *testing.T) {
 		}
 	}
 }
+
+// Tests for formatDuration function
+func TestFormatDuration_Days(t *testing.T) {
+	tests := []struct {
+		name     string
+		duration time.Duration
+		expected string
+	}{
+		{"1 day", 24 * time.Hour, "1d"},
+		{"2 days", 48 * time.Hour, "2d"},
+		{"7 days", 7 * 24 * time.Hour, "7d"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := formatDuration(tc.duration)
+			if result != tc.expected {
+				t.Errorf("formatDuration(%v) = %q, want %q", tc.duration, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestFormatDuration_Hours(t *testing.T) {
+	tests := []struct {
+		name     string
+		duration time.Duration
+		expected string
+	}{
+		{"1 hour", time.Hour, "1h"},
+		{"5 hours", 5 * time.Hour, "5h"},
+		{"23 hours", 23 * time.Hour, "23h"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := formatDuration(tc.duration)
+			if result != tc.expected {
+				t.Errorf("formatDuration(%v) = %q, want %q", tc.duration, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestFormatDuration_Minutes(t *testing.T) {
+	tests := []struct {
+		name     string
+		duration time.Duration
+		expected string
+	}{
+		{"1 minute", time.Minute, "1m"},
+		{"30 minutes", 30 * time.Minute, "30m"},
+		{"59 minutes", 59 * time.Minute, "59m"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := formatDuration(tc.duration)
+			if result != tc.expected {
+				t.Errorf("formatDuration(%v) = %q, want %q", tc.duration, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestFormatDuration_Seconds(t *testing.T) {
+	tests := []struct {
+		name     string
+		duration time.Duration
+		expected string
+	}{
+		{"0 seconds", 0, "0s"},
+		{"1 second", time.Second, "1s"},
+		{"30 seconds", 30 * time.Second, "30s"},
+		{"59 seconds", 59 * time.Second, "59s"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := formatDuration(tc.duration)
+			if result != tc.expected {
+				t.Errorf("formatDuration(%v) = %q, want %q", tc.duration, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestFormatDuration_Negative(t *testing.T) {
+	// Negative durations should be treated as 0
+	result := formatDuration(-5 * time.Minute)
+	if result != "0s" {
+		t.Errorf("formatDuration(-5m) = %q, want %q", result, "0s")
+	}
+}
+
+// Tests for GetJobs with various scenarios
+func TestGetJobs_EmptyList(t *testing.T) {
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return &batchv1.JobList{Items: []batchv1.Job{}}, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 0 {
+		t.Errorf("expected 0 jobs, got %d", len(out))
+	}
+}
+
+func TestGetJobs_ListError(t *testing.T) {
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return nil, errors.New("list error")
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	_, err := GetJobs(client, "default")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
+
+func TestGetJobs_WithCompletions(t *testing.T) {
+	completions := int32(3)
+	jl := &batchv1.JobList{Items: []batchv1.Job{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "job-with-completions", Namespace: "default"},
+			Spec:       batchv1.JobSpec{Completions: &completions},
+			Status:     batchv1.JobStatus{Succeeded: 2},
+		},
+	}}
+
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return jl, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(out))
+	}
+	if out[0].Completions != 3 {
+		t.Errorf("expected completions 3, got %d", out[0].Completions)
+	}
+}
+
+func TestGetJobs_WithDuration_Completed(t *testing.T) {
+	now := time.Now()
+	startTime := metav1.NewTime(now.Add(-10 * time.Minute))
+	completionTime := metav1.NewTime(now.Add(-5 * time.Minute))
+
+	jl := &batchv1.JobList{Items: []batchv1.Job{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "completed-job", Namespace: "default"},
+			Spec:       batchv1.JobSpec{},
+			Status: batchv1.JobStatus{
+				StartTime:      &startTime,
+				CompletionTime: &completionTime,
+				Succeeded:      1,
+			},
+		},
+	}}
+
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return jl, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(out))
+	}
+	// Duration should be 5 minutes
+	if out[0].Duration != "5m" {
+		t.Errorf("expected duration '5m', got %q", out[0].Duration)
+	}
+}
+
+func TestGetJobs_WithDuration_Running(t *testing.T) {
+	now := time.Now()
+	startTime := metav1.NewTime(now.Add(-3 * time.Minute))
+
+	jl := &batchv1.JobList{Items: []batchv1.Job{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "running-job", Namespace: "default"},
+			Spec:       batchv1.JobSpec{},
+			Status: batchv1.JobStatus{
+				StartTime: &startTime,
+				Active:    1,
+			},
+		},
+	}}
+
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return jl, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(out))
+	}
+	// Duration should indicate running
+	if out[0].Duration == "-" {
+		t.Error("expected running duration, got '-'")
+	}
+}
+
+func TestGetJobs_WithLabels(t *testing.T) {
+	jl := &batchv1.JobList{Items: []batchv1.Job{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "labeled-job",
+				Namespace: "default",
+				Labels:    map[string]string{"app": "test", "env": "dev"},
+			},
+			Spec: batchv1.JobSpec{
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{"pod-label": "value"},
+					},
+				},
+			},
+		},
+	}}
+
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return jl, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(out))
+	}
+	if out[0].Labels["app"] != "test" {
+		t.Errorf("expected label app=test, got %v", out[0].Labels)
+	}
+	if out[0].Labels["pod-label"] != "value" {
+		t.Errorf("expected pod-label=value, got %v", out[0].Labels)
+	}
+}
+
+func TestGetJobs_NoStartTime(t *testing.T) {
+	jl := &batchv1.JobList{Items: []batchv1.Job{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "pending-job", Namespace: "default"},
+			Spec:       batchv1.JobSpec{},
+			Status:     batchv1.JobStatus{},
+		},
+	}}
+
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return jl, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(out))
+	}
+	if out[0].Duration != "-" {
+		t.Errorf("expected duration '-' for job without start time, got %q", out[0].Duration)
+	}
+}
+
+func TestGetJobs_NoContainers(t *testing.T) {
+	jl := &batchv1.JobList{Items: []batchv1.Job{
+		{
+			ObjectMeta: metav1.ObjectMeta{Name: "no-container-job", Namespace: "default"},
+			Spec:       batchv1.JobSpec{Template: corev1.PodTemplateSpec{}},
+		},
+	}}
+
+	mockJobs := &mockJobInterface{
+		listFunc: func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+			return jl, nil
+		},
+	}
+	client := &mockBatchV1{jobs: mockJobs}
+
+	out, err := GetJobs(client, "default")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(out) != 1 {
+		t.Fatalf("expected 1 job, got %d", len(out))
+	}
+	if out[0].Image != "" {
+		t.Errorf("expected empty image, got %q", out[0].Image)
+	}
+}

@@ -24,9 +24,15 @@ func (a *App) GetConnectionStatus() map[string]interface{} {
 
 // GetNamespaces connects to the cluster and returns namespace names
 func (a *App) GetNamespaces() ([]string, error) {
-	clientset, err := a.createKubernetesClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.createKubernetesClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	nsList, err := clientset.CoreV1().Namespaces().List(a.ctx, metav1.ListOptions{})

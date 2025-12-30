@@ -2,13 +2,20 @@ package app
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // GetOverview returns counts of Pods, Deployments and Jobs in a namespace
 func (a *App) GetOverview(namespace string) (OverviewInfo, error) {
-	clientset, err := a.createKubernetesClient()
-	if err != nil {
-		return OverviewInfo{}, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.createKubernetesClient()
+		if err != nil {
+			return OverviewInfo{}, err
+		}
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})

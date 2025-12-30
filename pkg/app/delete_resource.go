@@ -7,7 +7,7 @@ import (
 // DeleteResource deletes a resource of the given type, namespace, and name
 // Supported types: pod, deployment, statefulset, daemonset, replicaset, job, cronjob, configmap, secret, pvc, pv, ingress
 func (a *App) DeleteResource(resourceType, namespace, name string) error {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
