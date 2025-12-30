@@ -49,16 +49,11 @@ test.describe('Rich bottom panel tabs', () => {
   test.describe('StatefulSet rich tabs', () => {
     test('opens Pods tab and shows stateful pods', async ({ page }) => {
       await selectSection(page, 'statefulsets');
-      // Wait for any statefulset to appear
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No StatefulSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      // Use the named resource that we know exists in the test cluster
+      await openRowPanel(page, 'example-statefulset');
 
       await switchPanelTab(page, 'Pods');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('table, .no-pods, .loading')).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -66,15 +61,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens PVCs tab and shows persistent volume claims', async ({ page }) => {
       await selectSection(page, 'statefulsets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No StatefulSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-statefulset');
 
       await switchPanelTab(page, 'PVCs');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('table, .no-pvcs, .loading, .statefulset-pvcs-tab')).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -82,15 +72,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens Events tab and shows real events', async ({ page }) => {
       await selectSection(page, 'statefulsets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No StatefulSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-statefulset');
 
       await switchPanelTab(page, 'Events');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.resource-events-tab, .no-events').first()).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -100,15 +85,10 @@ test.describe('Rich bottom panel tabs', () => {
   test.describe('DaemonSet rich tabs', () => {
     test('opens Pods tab and shows daemon pods', async ({ page }) => {
       await selectSection(page, 'daemonsets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No DaemonSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-daemonset');
 
       await switchPanelTab(page, 'Pods');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('table, .no-pods, .loading')).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -116,17 +96,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens Events tab and shows real events', async ({ page }) => {
       await selectSection(page, 'daemonsets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No DaemonSets found in cluster');
-      
-      // Ensure row is stable before clicking
-      await page.waitForTimeout(200);
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 10_000 });
+      await openRowPanel(page, 'example-daemonset');
 
       await switchPanelTab(page, 'Events');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.resource-events-tab, .no-events').first()).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -136,15 +109,10 @@ test.describe('Rich bottom panel tabs', () => {
   test.describe('ReplicaSet rich tabs', () => {
     test('opens Pods tab and shows replica pods', async ({ page }) => {
       await selectSection(page, 'replicasets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No ReplicaSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-replicaset');
 
       await switchPanelTab(page, 'Pods');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('table, .no-pods, .loading')).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -152,15 +120,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens Owner tab and shows owner deployment', async ({ page }) => {
       await selectSection(page, 'replicasets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No ReplicaSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-replicaset');
 
       await switchPanelTab(page, 'Owner');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.replicaset-owner-tab, .no-owner, .loading')).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -168,15 +131,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens Events tab and shows real events', async ({ page }) => {
       await selectSection(page, 'replicasets');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No ReplicaSets found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-replicaset');
 
       await switchPanelTab(page, 'Events');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.resource-events-tab, .no-events').first()).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -289,15 +247,10 @@ test.describe('Rich bottom panel tabs', () => {
   test.describe('PersistentVolume rich tabs', () => {
     test('opens Bound PVC tab and shows PVC info', async ({ page }) => {
       await selectSection(page, 'persistentvolumes');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No PersistentVolumes found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-pv');
 
       await switchPanelTab(page, 'Bound PVC');
+      const panel = page.locator('.bottom-panel');
       // Should show either bound PVC info or "no bound PVC" message
       await expect(panel.locator('.pv-bound-pvc-tab')).toBeVisible({ timeout: 10_000 });
 
@@ -306,15 +259,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens Events tab and shows real events', async ({ page }) => {
       await selectSection(page, 'persistentvolumes');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No PersistentVolumes found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-pv');
 
       await switchPanelTab(page, 'Events');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.resource-events-tab, .no-events').first()).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -324,15 +272,10 @@ test.describe('Rich bottom panel tabs', () => {
   test.describe('PersistentVolumeClaim rich tabs', () => {
     test('opens Events tab and shows real events', async ({ page }) => {
       await selectSection(page, 'persistentvolumeclaims');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No PersistentVolumeClaims found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-pvc');
 
       await switchPanelTab(page, 'Events');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.resource-events-tab, .no-events').first()).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);
@@ -342,15 +285,10 @@ test.describe('Rich bottom panel tabs', () => {
   test.describe('Ingress rich tabs', () => {
     test('opens Rules tab and shows routing rules', async ({ page }) => {
       await selectSection(page, 'ingresses');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No Ingresses found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-ingress');
 
       await switchPanelTab(page, 'Rules');
+      const panel = page.locator('.bottom-panel');
       // Should show rules table or "no rules" message
       await expect(panel.locator('.ingress-rules-tab')).toBeVisible({ timeout: 10_000 });
 
@@ -359,15 +297,10 @@ test.describe('Rich bottom panel tabs', () => {
 
     test('opens Events tab and shows real events', async ({ page }) => {
       await selectSection(page, 'ingresses');
-      const row = page.locator('tbody tr').first();
-      const rowVisible = await row.isVisible().catch(() => false);
-      test.skip(!rowVisible, 'No Ingresses found in cluster');
-      
-      await row.click();
-      const panel = page.locator('.bottom-panel');
-      await expect(panel).toBeVisible({ timeout: 5_000 });
+      await openRowPanel(page, 'example-ingress');
 
       await switchPanelTab(page, 'Events');
+      const panel = page.locator('.bottom-panel');
       await expect(panel.locator('.resource-events-tab, .no-events').first()).toBeVisible({ timeout: 10_000 });
 
       await closeBottomPanel(page);

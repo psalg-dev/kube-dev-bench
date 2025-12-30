@@ -228,9 +228,11 @@ export async function getReplicaCount(page: Page, rowName: string, columnIndex: 
 export async function openRowPanel(page: Page, rowName: string) {
   const row = page.locator('tbody tr').filter({ hasText: rowName }).first();
   await expect(row).toBeVisible({ timeout: 30_000 });
+  // Small delay to ensure row is fully rendered and clickable
+  await page.waitForTimeout(100);
   await row.click();
   const panel = page.locator('.bottom-panel');
-  await expect(panel).toBeVisible({ timeout: 5_000 });
+  await expect(panel).toBeVisible({ timeout: 10_000 });
   return panel;
 }
 
