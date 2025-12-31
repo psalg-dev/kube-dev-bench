@@ -133,6 +133,7 @@ async function resetProxySettings(page: Page): Promise<boolean> {
 
 /**
  * Connect to a Kubernetes cluster using the KinD kubeconfig
+ * Handles all wizard states: fresh start, discovered configs, already connected
  */
 export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   const repoRoot = getRepoRoot();
@@ -162,22 +163,64 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   // Reset proxy settings to ensure clean connection
   await resetProxySettings(page);
 
+  // Handle different wizard states
   const primaryArea = page.locator('#primaryConfigContent');
-  if (await primaryArea.isVisible().catch(() => false)) {
+  const selectKubeconfigHeading = page.getByText('Select Kubeconfig');
+  const continueBtn = page.getByRole('button', { name: /^Continue$/i });
+  const pasteAdditionalBtn = page.getByRole('button', { name: /Paste Additional Config/i });
+
+  // Case 1: Fresh start - primary config textarea is visible
+  if (await primaryArea.isVisible({ timeout: 2_000 }).catch(() => false)) {
     await primaryArea.fill(kubeconfig);
     await page.getByRole('button', { name: /Save \& Continue/i }).click();
-  } else {
-    await page.getByRole('button', { name: /Paste Additional Config/i }).click();
-    await page.locator('#configName').fill('kind-e2e');
-    await page.locator('#configContent').fill(kubeconfig);
-    await page.getByRole('button', { name: /Save \& Use/i }).click();
-    await page.getByRole('button', { name: /Continue/i }).click();
+  }
+  // Case 2: Discovered configs - "Select Kubeconfig" heading visible
+  else if (await selectKubeconfigHeading.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    // Check if there's a discovered config we can use
+    const discoveredConfig = page.locator('.config-item').first();
+    if (await discoveredConfig.isVisible({ timeout: 1_000 }).catch(() => false)) {
+      // Click on the discovered config to select it, then continue
+      await discoveredConfig.click();
+      await page.waitForTimeout(300);
+    }
+    
+    // If Continue is available, just continue (existing config will be used)
+    if (await continueBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await continueBtn.click();
+    }
+    // Otherwise, paste additional config
+    else if (await pasteAdditionalBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await pasteAdditionalBtn.click();
+      await page.locator('#configName').fill('kind-e2e');
+      await page.locator('#configContent').fill(kubeconfig);
+      await page.getByRole('button', { name: /Save \& Use/i }).click();
+      // After saving, Continue button should appear
+      await expect(continueBtn).toBeVisible({ timeout: 5_000 });
+      await continueBtn.click();
+    }
+  }
+  // Case 3: Other state - try to navigate to a usable state
+  else {
+    // Try paste additional config flow
+    if (await pasteAdditionalBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await pasteAdditionalBtn.click();
+      await page.locator('#configName').fill('kind-e2e');
+      await page.locator('#configContent').fill(kubeconfig);
+      await page.getByRole('button', { name: /Save \& Use/i }).click();
+      await expect(continueBtn).toBeVisible({ timeout: 5_000 });
+      await continueBtn.click();
+    } else if (await continueBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      await continueBtn.click();
+    }
   }
 
-  // Reload to ensure fresh state and wait for page to stabilize
-  await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
-  await waitForReconnectOverlay(page);
+  // Wait for wizard to close and page to stabilize
+  await wizardOverlay.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
   await waitForPageStable(page);
+  
+  // Verify we're in the main app (not stuck in wizard)
+  const sidebar = page.locator('#sidebar');
+  await expect(sidebar).toBeVisible({ timeout: 10_000 });
 }
 
 /**

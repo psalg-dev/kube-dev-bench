@@ -60,16 +60,18 @@ test.describe('Load Kubeconfig from File', () => {
       }
     }, kubeconfigPath);
 
-    // Click the Browse button in the empty-state view
-    await page.getByRole('button', { name: /Browse for File/i }).click();
+    // Click the Browse button (it appears in both empty-state and config-selection views)
+    const browseBtn = page.getByRole('button', { name: /Browse for File/i });
+    await expect(browseBtn).toBeVisible({ timeout: 10_000 });
+    await browseBtn.click();
 
-    // After selecting, the wizard should switch to discovered configs view
-    await page.getByRole('button', { name: /^Continue$/i }).click();
+    // After selecting, wait for Continue button to be enabled and click it
+    const continueBtn = page.getByRole('button', { name: /^Continue$/i });
+    await expect(continueBtn).toBeVisible({ timeout: 10_000 });
+    await continueBtn.click();
 
-    // Reload the app to ensure clean UI state
-    await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
-    await page.waitForLoadState('networkidle').catch(() => {});
-    await page.waitForTimeout(300);
+    // Wait for wizard to close
+    await wizardOverlay.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
 
     // If KinD is available, select the 'test' namespace
     if (process.env.KIND_AVAILABLE === '1') {
