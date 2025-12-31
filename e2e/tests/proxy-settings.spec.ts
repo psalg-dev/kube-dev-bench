@@ -121,6 +121,9 @@ test.describe('Proxy Settings', () => {
     await page.getByLabel('Manual Configuration').click();
     await expect(page.locator('#proxyURL')).toBeVisible({ timeout: 5_000 });
 
+    // Clear the URL field (it might have a value from previous test or loaded config)
+    await page.locator('#proxyURL').clear();
+
     // Save button should be disabled when URL is empty
     const saveBtn = page.locator('#save-proxy-btn');
     await expect(saveBtn).toBeDisabled();
