@@ -55,11 +55,17 @@ async function closeOpenMenus(page: Page) {
 /**
  * Wait for the page to be stable (no pending network requests, DOM settled)
  */
-async function waitForPageStable(page: Page, timeout = 5000) {
+async function waitForPageStable(page: Page, timeout = 10000) {
   // Wait for network to be idle
   await page.waitForLoadState('networkidle', { timeout }).catch(() => {});
-  // Small delay for React to finish any pending state updates
-  await page.waitForTimeout(300);
+  // Wait for DOM to settle (no pending React updates)
+  await page.waitForTimeout(500);
+  // Extra stability check: wait for any loading spinners to disappear
+  try {
+    await page.locator('.loading-spinner, .loader, [data-loading="true"]').waitFor({ state: 'hidden', timeout: 3000 }).catch(() => {});
+  } catch {
+    // Ignore if no loading elements found
+  }
 }
 
 /**
@@ -176,7 +182,7 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
 
 /**
  * Select a namespace with optimized polling
- * Uses same logic as original tests but with slightly better timing
+ * Uses same logic as original tests but with improved stability
  */
 export async function selectNamespace(page: Page, namespace: string) {
   const control = page.locator('#namespace-root .kdv__control');
@@ -184,8 +190,11 @@ export async function selectNamespace(page: Page, namespace: string) {
   // Wait for page to stabilize before interacting with namespace dropdown
   await waitForPageStable(page);
 
-  // Wait for namespace control to be enabled
-  await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 120_000 });
+  // Wait for namespace control to be enabled - increased timeout for slow clusters
+  await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 180_000 });
+
+  // Additional stabilization wait after control becomes enabled
+  await page.waitForTimeout(1000);
 
   // Check if namespace is already selected
   const namespaceChip = page.locator('#namespace-root .kdv__multi-value__label', { hasText: namespace });
@@ -203,33 +212,41 @@ export async function selectNamespace(page: Page, namespace: string) {
   if (await main.isVisible().catch(() => false)) {
     await main.click({ force: true });
   }
-  
+
   // Wait for page to be stable again after closing menus
   await waitForPageStable(page);
 
   let selected = false;
-  const maxAttempts = 60; // Reduced from 110 to fit within test timeout
-  const pollInterval = 1000;
+  const maxAttempts = 90; // Increased to allow more time for cluster to populate namespaces
+  const pollInterval = 2000; // Increased poll interval for more stable waiting
 
   for (let i = 0; i < maxAttempts; i++) {
     // Ensure no other select menu portals are open that could intercept clicks
     await closeOpenMenus(page);
+    await page.waitForTimeout(200);
 
     // Open the namespace dropdown with retry logic
     try {
-      await clickWithRetry(page, control, 2);
+      await clickWithRetry(page, control, 3);
     } catch {
       await page.waitForTimeout(pollInterval);
       continue;
     }
 
-    // Wait a bit for the menu to render
-    await page.waitForTimeout(300);
+    // Wait a bit for the menu to render - increased for reliability
+    await page.waitForTimeout(500);
 
     if (await testOption.first().isVisible().catch(() => false)) {
-      await testOption.first().click();
-      selected = true;
-      break;
+      try {
+        await testOption.first().click();
+        selected = true;
+        break;
+      } catch {
+        // Click might fail if element was detached, retry
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(pollInterval);
+        continue;
+      }
     }
 
     // Close the dropdown if option wasn't found
@@ -238,7 +255,7 @@ export async function selectNamespace(page: Page, namespace: string) {
   }
 
   expect(selected).toBe(true);
-  await expect(namespaceChip).toBeVisible({ timeout: 10_000 });
+  await expect(namespaceChip).toBeVisible({ timeout: 15_000 });
 }
 
 /**

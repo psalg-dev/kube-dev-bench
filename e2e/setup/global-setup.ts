@@ -127,6 +127,39 @@ export default async function globalSetup(_config: FullConfig) {
         console.warn('[e2e setup] Timeout waiting for KinD manager setup, proceeding anyway...');
       }
       await wait(5_000);
+
+      // Verify cluster is ready by checking that example pods exist and are running
+      console.log('[e2e setup] Verifying example resources are ready...');
+      const clusterReadyTimeout = 120_000;
+      const clusterReadyStart = Date.now();
+      let clusterReady = false;
+      while (Date.now() - clusterReadyStart < clusterReadyTimeout) {
+        try {
+          const podStatus = await new Promise<string>((resolve, reject) => {
+            const child = spawn('docker', ['exec', 'kind-manager', 'sh', '-c',
+              "kubectl --kubeconfig /kind/output/kubeconfig.internal get pods -n test -o jsonpath='{range .items[*]}{.metadata.name}:{.status.phase} {end}'"
+            ], { shell: false });
+            let stdout = '';
+            child.stdout.on('data', (d) => { stdout += d.toString(); });
+            child.on('error', reject);
+            child.on('close', (code) => code === 0 ? resolve(stdout.trim()) : reject(new Error('kubectl failed')));
+          });
+          // Check if example-pod exists and is Running
+          if (podStatus.includes('example-pod:Running')) {
+            console.log('[e2e setup] Example resources are ready.');
+            clusterReady = true;
+            break;
+          }
+          console.log(`[e2e setup] Waiting for pods to be ready: ${podStatus.substring(0, 100)}...`);
+        } catch {
+          // Might not be ready yet
+        }
+        await wait(5_000);
+      }
+      if (!clusterReady) {
+        console.warn('[e2e setup] Could not verify example resources, proceeding anyway...');
+      }
+
       process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;
       process.env.KIND_AVAILABLE = '1';
       console.log('[e2e setup] kubeconfig ready.');
