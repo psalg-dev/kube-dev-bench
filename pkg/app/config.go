@@ -69,6 +69,10 @@ func (a *App) saveConfig() error {
 	if err != nil {
 		return err
 	}
+	// Ensure the parent directory exists
+	if err := os.MkdirAll(filepath.Dir(a.configPath), 0755); err != nil {
+		return err
+	}
 	return os.WriteFile(a.configPath, data, 0644)
 }
 
