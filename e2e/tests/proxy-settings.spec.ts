@@ -1,40 +1,69 @@
 import { test, expect } from '../setup/fixtures';
 import { openConnectionWizard, waitForReconnectOverlay, connectWithKindKubeconfig } from '../setup/helpers';
 
+/**
+ * Helper to reset proxy settings to "No Proxy" mode
+ */
+async function resetProxyToNone(page: any) {
+  try {
+    const proxyBtn = page.locator('#proxy-settings-btn');
+    if (!await proxyBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      return;
+    }
+
+    await proxyBtn.click();
+    await page.waitForTimeout(500);
+
+    const noProxyLabel = page.getByLabel('No Proxy');
+    if (!await noProxyLabel.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // Not on proxy settings page, go back
+      const backBtn = page.getByRole('button', { name: /← Back/i });
+      if (await backBtn.isVisible({ timeout: 1_000 }).catch(() => false)) {
+        await backBtn.click();
+      }
+      return;
+    }
+
+    await noProxyLabel.click();
+    await page.waitForTimeout(200);
+
+    const saveBtn = page.locator('#save-proxy-btn');
+    if (await saveBtn.isEnabled({ timeout: 2_000 }).catch(() => false)) {
+      await saveBtn.click();
+      await page.waitForTimeout(500);
+    } else {
+      // Go back if save not available
+      const backBtn = page.getByRole('button', { name: /← Back/i });
+      if (await backBtn.isVisible({ timeout: 1_000 }).catch(() => false)) {
+        await backBtn.click();
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+}
+
 test.describe('Proxy Settings', () => {
   // Reset proxy settings after each test to avoid affecting subsequent tests
   test.afterEach(async ({ page, baseURL }) => {
     try {
       // Navigate to clean state
       await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       // Open wizard
+      const wizardOverlay = page.locator('.connection-wizard-overlay');
       const gearBtn = page.locator('#show-wizard-btn');
-      if (await gearBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        await gearBtn.click();
+      
+      if (!await wizardOverlay.isVisible({ timeout: 2_000 }).catch(() => false)) {
+        if (await gearBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+          await gearBtn.click();
+          await page.waitForTimeout(500);
+        }
       }
 
-      const wizardOverlay = page.locator('.connection-wizard-overlay');
       if (await wizardOverlay.isVisible({ timeout: 3_000 }).catch(() => false)) {
-        // Open proxy settings
-        const proxyBtn = page.locator('#proxy-settings-btn');
-        if (await proxyBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-          await proxyBtn.click();
-          await page.waitForTimeout(300);
-
-          // Select "No Proxy" to reset
-          const noProxyLabel = page.getByLabel('No Proxy');
-          if (await noProxyLabel.isVisible({ timeout: 2_000 }).catch(() => false)) {
-            await noProxyLabel.click();
-
-            // Save the reset
-            const saveBtn = page.locator('#save-proxy-btn');
-            if (await saveBtn.isEnabled({ timeout: 2_000 }).catch(() => false)) {
-              await saveBtn.click();
-            }
-          }
-        }
+        await resetProxyToNone(page);
       }
     } catch {
       // Ignore cleanup errors - best effort cleanup

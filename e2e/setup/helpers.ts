@@ -146,11 +146,21 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
 
   const wizardOverlay = page.locator('.connection-wizard-overlay');
   const gearBtn = page.locator('#show-wizard-btn');
+  const sidebar = page.locator('#sidebar');
+
+  // Check if we're already connected (sidebar visible, wizard not visible)
+  if (await sidebar.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    if (!await wizardOverlay.isVisible().catch(() => false)) {
+      // Already connected, just verify and return
+      await waitForPageStable(page);
+      return;
+    }
+  }
 
   // Wait for either overlay or gear button to appear
   const appeared = await Promise.race<Promise<"overlay" | "gear" | null>[]>([
-    wizardOverlay.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'overlay').catch(() => null),
-    gearBtn.waitFor({ state: 'visible', timeout: 10_000 }).then(() => 'gear').catch(() => null),
+    wizardOverlay.waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'overlay').catch(() => null),
+    gearBtn.waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'gear').catch(() => null),
   ]);
 
   if (appeared !== 'overlay') {
@@ -169,28 +179,33 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   const continueBtn = page.getByRole('button', { name: /^Continue$/i });
   const pasteAdditionalBtn = page.getByRole('button', { name: /Paste Additional Config/i });
 
+  // Wait a moment for wizard content to stabilize
+  await page.waitForTimeout(500);
+
   // Case 1: Fresh start - primary config textarea is visible
-  if (await primaryArea.isVisible({ timeout: 2_000 }).catch(() => false)) {
+  if (await primaryArea.isVisible({ timeout: 3_000 }).catch(() => false)) {
     await primaryArea.fill(kubeconfig);
+    await page.waitForTimeout(200);
     await page.getByRole('button', { name: /Save \& Continue/i }).click();
   }
   // Case 2: Discovered configs - "Select Kubeconfig" heading visible
-  else if (await selectKubeconfigHeading.isVisible({ timeout: 2_000 }).catch(() => false)) {
+  else if (await selectKubeconfigHeading.isVisible({ timeout: 3_000 }).catch(() => false)) {
     // Check if there's a discovered config we can use
     const discoveredConfig = page.locator('.config-item').first();
-    if (await discoveredConfig.isVisible({ timeout: 1_000 }).catch(() => false)) {
+    if (await discoveredConfig.isVisible({ timeout: 2_000 }).catch(() => false)) {
       // Click on the discovered config to select it, then continue
       await discoveredConfig.click();
-      await page.waitForTimeout(300);
+      await page.waitForTimeout(500);
     }
     
     // If Continue is available, just continue (existing config will be used)
-    if (await continueBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    if (await continueBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await continueBtn.click();
     }
     // Otherwise, paste additional config
     else if (await pasteAdditionalBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
       await pasteAdditionalBtn.click();
+      await page.waitForTimeout(300);
       await page.locator('#configName').fill('kind-e2e');
       await page.locator('#configContent').fill(kubeconfig);
       await page.getByRole('button', { name: /Save \& Use/i }).click();
@@ -202,25 +217,25 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   // Case 3: Other state - try to navigate to a usable state
   else {
     // Try paste additional config flow
-    if (await pasteAdditionalBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    if (await pasteAdditionalBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await pasteAdditionalBtn.click();
+      await page.waitForTimeout(300);
       await page.locator('#configName').fill('kind-e2e');
       await page.locator('#configContent').fill(kubeconfig);
       await page.getByRole('button', { name: /Save \& Use/i }).click();
       await expect(continueBtn).toBeVisible({ timeout: 5_000 });
       await continueBtn.click();
-    } else if (await continueBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+    } else if (await continueBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
       await continueBtn.click();
     }
   }
 
   // Wait for wizard to close and page to stabilize
-  await wizardOverlay.waitFor({ state: 'hidden', timeout: 15_000 }).catch(() => {});
+  await wizardOverlay.waitFor({ state: 'hidden', timeout: 20_000 }).catch(() => {});
   await waitForPageStable(page);
   
   // Verify we're in the main app (not stuck in wizard)
-  const sidebar = page.locator('#sidebar');
-  await expect(sidebar).toBeVisible({ timeout: 10_000 });
+  await expect(sidebar).toBeVisible({ timeout: 15_000 });
 }
 
 /**
@@ -237,7 +252,7 @@ export async function selectNamespace(page: Page, namespace: string) {
   await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 180_000 });
 
   // Additional stabilization wait after control becomes enabled
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(1500);
 
   // Check if namespace is already selected
   const namespaceChip = page.locator('#namespace-root .kdv__multi-value__label', { hasText: namespace });
@@ -251,37 +266,49 @@ export async function selectNamespace(page: Page, namespace: string) {
 
   // Ensure no stray menus are open
   await closeOpenMenus(page);
+  
+  // Click somewhere neutral to dismiss any popups
   const main = page.locator('#maincontent');
   if (await main.isVisible().catch(() => false)) {
-    await main.click({ force: true });
+    await main.click({ force: true, position: { x: 10, y: 10 } });
   }
 
   // Wait for page to be stable again after closing menus
   await waitForPageStable(page);
 
   let selected = false;
-  const maxAttempts = 90; // Increased to allow more time for cluster to populate namespaces
-  const pollInterval = 2000; // Increased poll interval for more stable waiting
+  const maxAttempts = 60; // Reasonable number of attempts
+  const pollInterval = 3000; // Longer poll interval for stability
 
   for (let i = 0; i < maxAttempts; i++) {
     // Ensure no other select menu portals are open that could intercept clicks
     await closeOpenMenus(page);
-    await page.waitForTimeout(200);
+    await page.waitForTimeout(300);
+
+    // Re-check if already selected (might have happened during delay)
+    if (await namespaceChip.isVisible().catch(() => false)) {
+      selected = true;
+      break;
+    }
 
     // Open the namespace dropdown with retry logic
     try {
-      await clickWithRetry(page, control, 3);
+      await control.waitFor({ state: 'visible', timeout: 5000 });
+      await page.waitForTimeout(200);
+      await control.click({ timeout: 5000 });
     } catch {
       await page.waitForTimeout(pollInterval);
       continue;
     }
 
-    // Wait a bit for the menu to render - increased for reliability
-    await page.waitForTimeout(500);
+    // Wait for the menu to render
+    await page.waitForTimeout(800);
 
     if (await testOption.first().isVisible().catch(() => false)) {
       try {
-        await testOption.first().click();
+        await testOption.first().click({ timeout: 5000 });
+        // Wait for selection to register
+        await page.waitForTimeout(500);
         selected = true;
         break;
       } catch {
@@ -297,7 +324,10 @@ export async function selectNamespace(page: Page, namespace: string) {
     await page.waitForTimeout(pollInterval);
   }
 
-  expect(selected).toBe(true);
+  if (!selected) {
+    throw new Error(`Failed to select namespace '${namespace}' after ${maxAttempts} attempts`);
+  }
+  
   await expect(namespaceChip).toBeVisible({ timeout: 15_000 });
 }
 

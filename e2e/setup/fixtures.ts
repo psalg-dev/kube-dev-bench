@@ -40,12 +40,16 @@ function execWithStdin(cmd: string, args: string[], options: { cwd?: string; inp
 // Auto-fixture that clears per-test HOME state used by wails dev
 // Also provides exec fixture for running kubectl commands via docker compose
 export const test = base.extend<{ _isolate: void; exec: ExecFn }>({
-  _isolate: [async ({}, use) => {
+  _isolate: [async ({ page }, use) => {
     const repoRoot = getRepoRoot();
     const tempHome = path.join(repoRoot, 'e2e', '.home-e2e');
     // Clean app state and kube dir to avoid cross-test leakage
     try { await fs.promises.rm(path.join(tempHome, 'KubeDevBench'), { recursive: true, force: true }); } catch {}
     try { await fs.promises.rm(path.join(tempHome, '.kube'), { recursive: true, force: true }); } catch {}
+    
+    // Clear browser storage to reset any cached UI state
+    await page.context().clearCookies();
+    
     await use();
   }, { auto: true }],
 
