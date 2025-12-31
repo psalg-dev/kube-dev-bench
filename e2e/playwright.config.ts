@@ -14,6 +14,10 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 1, // Keep serial for now since tests share state
   fullyParallel: false,
+  // Fail fast: stop after 3 test failures to get quick feedback in CI
+  maxFailures: process.env.CI ? 3 : 0,
+  // Global timeout: cap entire test run at 15 minutes in CI
+  globalTimeout: process.env.CI ? 15 * 60 * 1000 : 0,
   use: {
     baseURL: 'http://localhost:34115',
     trace: 'on-first-retry',
