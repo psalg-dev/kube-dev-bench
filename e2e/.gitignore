@@ -4,3 +4,8 @@ test-results/
 playwright-report/
 blob-report/
 .cache/
+
+# E2E state files (used for keep-alive mode)
+.e2e-state.json
+.wails-dev.pid
+.home-e2e/

@@ -6,7 +6,10 @@
   "scripts": {
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "browsers": "playwright install"
+    "test:dev": "E2E_KEEP_ALIVE=1 playwright test",
+    "browsers": "playwright install",
+    "infra:start": "docker compose -f ../kind/docker-compose.yml up -d && echo 'KinD manager started. Run wails dev from repo root separately.'",
+    "infra:stop": "docker compose -f ../kind/docker-compose.yml down"
   },
   "devDependencies": {
     "@playwright/test": "^1.48.0",

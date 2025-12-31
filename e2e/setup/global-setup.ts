@@ -7,6 +7,29 @@ import { fileURLToPath } from 'node:url';
 
 const wait = (ms: number) => new Promise(res => setTimeout(res, ms));
 
+// Check if wails dev server is already running
+async function isDevServerRunning(url: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const req = http.get(url.replace('localhost', '127.0.0.1'), (res) => {
+      res.resume();
+      resolve((res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 500);
+    });
+    req.on('error', () => resolve(false));
+    req.setTimeout(2000, () => { req.destroy(); resolve(false); });
+  });
+}
+
+// Check if kind manager is already running
+async function isKindManagerRunning(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const child = spawn('docker', ['ps', '--filter', 'name=kind-manager', '--format', '{{.Names}}'], { shell: false });
+    let output = '';
+    child.stdout.on('data', (d) => { output += d.toString(); });
+    child.on('error', () => resolve(false));
+    child.on('close', () => resolve(output.includes('kind-manager')));
+  });
+}
+
 async function fileExists(p: string) {
   try { await fs.promises.access(p, fs.constants.F_OK); return true; } catch { return false; }
 }
@@ -35,130 +58,141 @@ export default async function globalSetup(_config: FullConfig) {
   const repoRoot = path.resolve(__dirname, '..', '..');
   const composeFile = path.join(repoRoot, 'kind', 'docker-compose.yml');
   const kubeconfigPath = path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+  const targetUrl = process.env.WAILS_URL || 'http://localhost:34115';
 
-  // Start KinD manager via docker compose
-  try {
-    console.log('[e2e setup] Checking Docker availability...');
-    await run('docker', ['version']);
-    console.log('[e2e setup] Starting KinD manager...');
-    await run('docker', ['compose', '-f', composeFile, 'up', '-d'], { cwd: repoRoot });
-    console.log(`[e2e setup] Waiting for kubeconfig at ${kubeconfigPath} ...`);
-    await waitForFile(kubeconfigPath, 180_000);
-    // Fix permissions on kubeconfig file (Docker creates it with root ownership)
-    // Use docker exec to chmod since we can't do it from Node.js
-    try {
-      await run('docker', ['exec', 'kind-manager', 'chmod', '644', '/kind/output/kubeconfig']);
-      console.log('[e2e setup] Fixed kubeconfig permissions.');
-    } catch (chmodErr) {
-      console.warn('[e2e setup] Could not chmod kubeconfig via docker:', chmodErr);
-    }
-    // Wait for KinD manager to finish namespace setup
-    // The manager script logs "Example resources applied successfully" when done
-    console.log('[e2e setup] Waiting for KinD manager to complete setup...');
-    const setupCheckTimeout = 180_000;
-    const setupCheckStart = Date.now();
-    let setupComplete = false;
-    while (Date.now() - setupCheckStart < setupCheckTimeout) {
-      try {
-        // Check docker logs for completion message
-        const logs = await new Promise<string>((resolve, reject) => {
-          const child = spawn('docker', ['logs', '--tail', '20', 'kind-manager'], { shell: false });
-          let output = '';
-          child.stdout.on('data', (d) => { output += d.toString(); });
-          child.stderr.on('data', (d) => { output += d.toString(); });
-          child.on('error', (err) => {
-            console.log(`[e2e setup] Docker logs error: ${err.message}`);
-            reject(err);
-          });
-          child.on('close', (code) => {
-            if (code !== 0) {
-              console.log(`[e2e setup] Docker logs exit code: ${code}`);
-            }
-            resolve(output);
-          });
-        });
-        if (logs.includes('Example resources applied successfully') || logs.includes('[kind-manager] Example resources applied')) {
-          console.log('[e2e setup] KinD manager setup complete.');
-          setupComplete = true;
-          break;
-        }
-        // Also check for namespace status
-        const nsStatus = await new Promise<string>((resolve, reject) => {
-          const child = spawn('docker', ['exec', 'kind-manager', 'sh', '-c', "kubectl --kubeconfig /kind/output/kubeconfig.internal get ns test -o jsonpath='{.status.phase}'"], { shell: false });
-          let stdout = '';
-          child.stdout.on('data', (d) => { stdout += d.toString(); });
-          child.on('error', reject);
-          child.on('close', (code) => code === 0 ? resolve(stdout.trim().replace(/['"]/g, '')) : reject(new Error('kubectl failed')));
-        });
-        console.log(`[e2e setup] Namespace status: ${nsStatus}, waiting for setup completion...`);
-      } catch {
-        // Container or namespace might not be ready yet
-      }
-      await wait(5_000);
-    }
-    if (!setupComplete) {
-      console.warn('[e2e setup] Timeout waiting for KinD manager setup, proceeding anyway...');
-    }
-    // Extra wait to ensure namespace is stable
-    await wait(5_000);
+  // Check if infrastructure is already running (for faster local dev)
+  const kindAlreadyRunning = await isKindManagerRunning();
+  const devServerAlreadyRunning = await isDevServerRunning(targetUrl);
+  
+  // Track what we started so teardown knows what to stop
+  const stateFile = path.join(repoRoot, 'e2e', '.e2e-state.json');
+  const state = { startedKind: false, startedWails: false };
+
+  // Handle KinD manager
+  if (kindAlreadyRunning && await fileExists(kubeconfigPath)) {
+    console.log('[e2e setup] KinD manager already running, reusing existing cluster.');
     process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;
     process.env.KIND_AVAILABLE = '1';
-    console.log('[e2e setup] kubeconfig ready.');
-  } catch (err) {
-    console.warn('[e2e setup] Docker is not available or failed to start KinD.');
-    // Fallback: if a kubeconfig already exists in repo, use it (best effort)
-    if (await fileExists(kubeconfigPath)) {
-      console.warn('[e2e setup] Using existing kubeconfig file on disk. Connection may fail if cluster is not running.');
+  } else {
+    // Start KinD manager via docker compose
+    try {
+      console.log('[e2e setup] Checking Docker availability...');
+      await run('docker', ['version']);
+      console.log('[e2e setup] Starting KinD manager...');
+      await run('docker', ['compose', '-f', composeFile, 'up', '-d'], { cwd: repoRoot });
+      state.startedKind = true;
+      console.log(`[e2e setup] Waiting for kubeconfig at ${kubeconfigPath} ...`);
+      await waitForFile(kubeconfigPath, 180_000);
+      // Fix permissions on kubeconfig file (Docker creates it with root ownership)
+      try {
+        await run('docker', ['exec', 'kind-manager', 'chmod', '644', '/kind/output/kubeconfig']);
+        console.log('[e2e setup] Fixed kubeconfig permissions.');
+      } catch (chmodErr) {
+        console.warn('[e2e setup] Could not chmod kubeconfig via docker:', chmodErr);
+      }
+      // Wait for KinD manager to finish namespace setup
+      console.log('[e2e setup] Waiting for KinD manager to complete setup...');
+      const setupCheckTimeout = 180_000;
+      const setupCheckStart = Date.now();
+      let setupComplete = false;
+      while (Date.now() - setupCheckStart < setupCheckTimeout) {
+        try {
+          const logs = await new Promise<string>((resolve, reject) => {
+            const child = spawn('docker', ['logs', '--tail', '20', 'kind-manager'], { shell: false });
+            let output = '';
+            child.stdout.on('data', (d) => { output += d.toString(); });
+            child.stderr.on('data', (d) => { output += d.toString(); });
+            child.on('error', reject);
+            child.on('close', () => resolve(output));
+          });
+          if (logs.includes('Example resources applied successfully') || logs.includes('[kind-manager] Example resources applied')) {
+            console.log('[e2e setup] KinD manager setup complete.');
+            setupComplete = true;
+            break;
+          }
+          const nsStatus = await new Promise<string>((resolve, reject) => {
+            const child = spawn('docker', ['exec', 'kind-manager', 'sh', '-c', "kubectl --kubeconfig /kind/output/kubeconfig.internal get ns test -o jsonpath='{.status.phase}'"], { shell: false });
+            let stdout = '';
+            child.stdout.on('data', (d) => { stdout += d.toString(); });
+            child.on('error', reject);
+            child.on('close', (code) => code === 0 ? resolve(stdout.trim().replace(/['"]/g, '')) : reject(new Error('kubectl failed')));
+          });
+          console.log(`[e2e setup] Namespace status: ${nsStatus}, waiting for setup completion...`);
+        } catch {
+          // Container or namespace might not be ready yet
+        }
+        await wait(5_000);
+      }
+      if (!setupComplete) {
+        console.warn('[e2e setup] Timeout waiting for KinD manager setup, proceeding anyway...');
+      }
+      await wait(5_000);
       process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;
+      process.env.KIND_AVAILABLE = '1';
+      console.log('[e2e setup] kubeconfig ready.');
+    } catch (err) {
+      console.warn('[e2e setup] Docker is not available or failed to start KinD.');
+      if (await fileExists(kubeconfigPath)) {
+        console.warn('[e2e setup] Using existing kubeconfig file on disk.');
+        process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = kubeconfigPath;
+      }
+      process.env.KIND_AVAILABLE = '0';
     }
-    process.env.KIND_AVAILABLE = '0';
   }
 
-  // Start wails dev and wait for DevServer to respond
-  console.log('[e2e setup] Starting wails dev...');
-  // Isolate HOME for deterministic ~/.kube paths
-  const tempHome = path.join(repoRoot, 'e2e', '.home-e2e');
-  try { await fs.promises.mkdir(tempHome, { recursive: true }); } catch {}
-  // Clean any previous app state to ensure "no kubeconfig on host" scenario for basic test
-  try { await fs.promises.rm(path.join(tempHome, '.kube'), { recursive: true, force: true }); } catch {}
-  try { await fs.promises.rm(path.join(tempHome, 'KubeDevBench'), { recursive: true, force: true }); } catch {}
-  
-  // On Linux CI, use xvfb-run to provide a virtual display for GTK
-  const isLinuxCI = process.env.CI && process.platform === 'linux';
-  const command = isLinuxCI ? 'xvfb-run' : 'wails';
-  const args = isLinuxCI ? ['-a', 'wails', 'dev'] : ['dev'];
-  
-  const dev = spawn(command, args, {
-    cwd: repoRoot,
-    shell: false,
-    env: { ...process.env, HOME: tempHome, USERPROFILE: tempHome },
-  });
-  dev.stdout.on('data', (d) => process.stdout.write(d.toString()));
-  dev.stderr.on('data', (d) => process.stderr.write(d.toString()));
-  // Persist PID for teardown
-  const pidFile = path.join(repoRoot, 'e2e', '.wails-dev.pid');
-  try { await fs.promises.writeFile(pidFile, String(dev.pid ?? '')); } catch {}
+  // Handle Wails dev server
+  if (devServerAlreadyRunning) {
+    console.log('[e2e setup] Wails DevServer already running at ' + targetUrl + ', reusing it.');
+  } else {
+    console.log('[e2e setup] Starting wails dev...');
+    // Isolate HOME for deterministic ~/.kube paths
+    const tempHome = path.join(repoRoot, 'e2e', '.home-e2e');
+    try { await fs.promises.mkdir(tempHome, { recursive: true }); } catch {}
+    // Clean any previous app state to ensure "no kubeconfig on host" scenario for basic test
+    try { await fs.promises.rm(path.join(tempHome, '.kube'), { recursive: true, force: true }); } catch {}
+    try { await fs.promises.rm(path.join(tempHome, 'KubeDevBench'), { recursive: true, force: true }); } catch {}
+    
+    // On Linux CI, use xvfb-run to provide a virtual display for GTK
+    const isLinuxCI = process.env.CI && process.platform === 'linux';
+    const command = isLinuxCI ? 'xvfb-run' : 'wails';
+    const args = isLinuxCI ? ['-a', 'wails', 'dev'] : ['dev'];
+    
+    const dev = spawn(command, args, {
+      cwd: repoRoot,
+      shell: false,
+      env: { ...process.env, HOME: tempHome, USERPROFILE: tempHome },
+    });
+    dev.stdout.on('data', (d) => process.stdout.write(d.toString()));
+    dev.stderr.on('data', (d) => process.stderr.write(d.toString()));
+    state.startedWails = true;
+    // Persist PID for teardown
+    const pidFile = path.join(repoRoot, 'e2e', '.wails-dev.pid');
+    try { await fs.promises.writeFile(pidFile, String(dev.pid ?? '')); } catch {}
 
-  const targetUrl = process.env.WAILS_URL || 'http://localhost:34115';
-  const pingUrl = targetUrl.replace('localhost', '127.0.0.1');
-  console.log(`[e2e setup] Waiting for Wails DevServer at ${targetUrl} ...`);
-  const devServerTimeout = process.env.CI ? 300_000 : 120_000; // 5 min in CI, 2 min locally
-  await new Promise<void>((resolve, reject) => {
-    const started = Date.now();
-    const tryOnce = () => {
-  const req = http.get(pingUrl, (res) => {
-        res.resume();
-        if ((res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 500) resolve();
-        else if (Date.now() - started > devServerTimeout) reject(new Error('Timeout'));
-        else setTimeout(tryOnce, 1000);
-      });
-      req.on('error', () => {
-        if (Date.now() - started > devServerTimeout) reject(new Error('Timeout'));
-        else setTimeout(tryOnce, 1000);
-      });
-    };
-    tryOnce();
-  });
+    const pingUrl = targetUrl.replace('localhost', '127.0.0.1');
+    console.log(`[e2e setup] Waiting for Wails DevServer at ${targetUrl} ...`);
+    const devServerTimeout = process.env.CI ? 300_000 : 120_000;
+    await new Promise<void>((resolve, reject) => {
+      const started = Date.now();
+      const tryOnce = () => {
+        const req = http.get(pingUrl, (res) => {
+          res.resume();
+          if ((res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 500) resolve();
+          else if (Date.now() - started > devServerTimeout) reject(new Error('Timeout'));
+          else setTimeout(tryOnce, 1000);
+        });
+        req.on('error', () => {
+          if (Date.now() - started > devServerTimeout) reject(new Error('Timeout'));
+          else setTimeout(tryOnce, 1000);
+        });
+      };
+      tryOnce();
+    });
+    console.log('[e2e setup] Wails DevServer is ready.');
+  }
+
+  // Save state for teardown
+  try { await fs.promises.writeFile(stateFile, JSON.stringify(state)); } catch {}
+  
   process.env.WAILS_URL = targetUrl;
-  console.log('[e2e setup] Wails DevServer is ready.');
 }
