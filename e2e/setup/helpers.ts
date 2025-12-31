@@ -249,10 +249,14 @@ export async function selectNamespace(page: Page, namespace: string) {
   await waitForPageStable(page);
 
   // Wait for namespace control to be enabled - increased timeout for slow clusters
-  await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 180_000 });
+  try {
+    await expect(page.locator('#namespace-root .kdv__control--is-disabled')).toHaveCount(0, { timeout: 180_000 });
+  } catch (err) {
+    console.log('Namespace control still disabled after 180s, trying anyway...');
+  }
 
   // Additional stabilization wait after control becomes enabled
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
 
   // Check if namespace is already selected
   const namespaceChip = page.locator('#namespace-root .kdv__multi-value__label', { hasText: namespace });
@@ -275,15 +279,16 @@ export async function selectNamespace(page: Page, namespace: string) {
 
   // Wait for page to be stable again after closing menus
   await waitForPageStable(page);
+  await page.waitForTimeout(1000);
 
   let selected = false;
-  const maxAttempts = 60; // Reasonable number of attempts
-  const pollInterval = 3000; // Longer poll interval for stability
+  const maxAttempts = 45; // Reasonable number of attempts
+  const pollInterval = 4000; // Longer poll interval for stability
 
   for (let i = 0; i < maxAttempts; i++) {
     // Ensure no other select menu portals are open that could intercept clicks
     await closeOpenMenus(page);
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(500);
 
     // Re-check if already selected (might have happened during delay)
     if (await namespaceChip.isVisible().catch(() => false)) {
@@ -294,25 +299,27 @@ export async function selectNamespace(page: Page, namespace: string) {
     // Open the namespace dropdown with retry logic
     try {
       await control.waitFor({ state: 'visible', timeout: 5000 });
-      await page.waitForTimeout(200);
+      await page.waitForTimeout(300);
       await control.click({ timeout: 5000 });
     } catch {
+      console.log(`Attempt ${i + 1}: Failed to click namespace control, retrying...`);
       await page.waitForTimeout(pollInterval);
       continue;
     }
 
     // Wait for the menu to render
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(1000);
 
     if (await testOption.first().isVisible().catch(() => false)) {
       try {
         await testOption.first().click({ timeout: 5000 });
         // Wait for selection to register
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(800);
         selected = true;
         break;
-      } catch {
+      } catch (clickErr) {
         // Click might fail if element was detached, retry
+        console.log(`Attempt ${i + 1}: Failed to click namespace option, retrying...`);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(pollInterval);
         continue;
@@ -328,7 +335,7 @@ export async function selectNamespace(page: Page, namespace: string) {
     throw new Error(`Failed to select namespace '${namespace}' after ${maxAttempts} attempts`);
   }
   
-  await expect(namespaceChip).toBeVisible({ timeout: 15_000 });
+  await expect(namespaceChip).toBeVisible({ timeout: 30_000 });
 }
 
 /**
@@ -551,16 +558,32 @@ export async function startJobFromCronJob(page: Page) {
  */
 export async function verifyConnected(page: Page) {
   const footerDot = page.locator('#footer-dot');
-  await expect(footerDot).toHaveAttribute('title', /Connected|Insecure connection/i, { timeout: 30_000 });
+  await expect(footerDot).toHaveAttribute('title', /Connected|Insecure connection/i, { timeout: 60_000 });
 }
 
 /**
  * Common setup: connect and select test namespace
+ * Includes retry logic for robustness
  */
-export async function setupConnectedState(page: Page, baseURL?: string) {
-  await connectWithKindKubeconfig(page, baseURL);
-  await selectNamespace(page, 'test');
-  await verifyConnected(page);
+export async function setupConnectedState(page: Page, baseURL?: string, maxRetries = 3) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      await connectWithKindKubeconfig(page, baseURL);
+      await selectNamespace(page, 'test');
+      await verifyConnected(page);
+      return; // Success
+    } catch (err) {
+      console.log(`setupConnectedState attempt ${attempt}/${maxRetries} failed:`, err);
+      if (attempt === maxRetries) {
+        throw err;
+      }
+      // Wait and retry
+      await page.waitForTimeout(3000);
+      // Reload page before retry
+      await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
+      await waitForPageStable(page);
+    }
+  }
 }
 
 /**

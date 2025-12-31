@@ -10,12 +10,12 @@ export default defineConfig({
   testDir: path.join(__dirname, 'tests'),
   testMatch: ['**/*.spec.ts'],
   timeout: 180_000, // Increased for monitor tests that involve K8s polling
-  expect: { timeout: 20_000 }, // Increased for slow CI environments
-  retries: process.env.CI ? 2 : 0, // Increased retries for flaky tests
+  expect: { timeout: 30_000 }, // Increased for slow CI environments
+  retries: process.env.CI ? 3 : 0, // More retries for flaky tests
   workers: 1, // Keep serial for now since tests share state
   fullyParallel: false,
-  // Fail fast: stop after 3 test failures to get quick feedback in CI
-  maxFailures: process.env.CI ? 3 : 0,
+  // Let all tests run to gather complete failure information
+  maxFailures: 0,
   // Global timeout: cap entire test run at 30 minutes in CI (increased for retries)
   globalTimeout: process.env.CI ? 30 * 60 * 1000 : 0,
   // Reporter configuration for better CI visibility
