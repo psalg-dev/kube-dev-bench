@@ -16,3 +16,4 @@ coverage.out
 /e2e/.wails-dev.pid
 *.pid
 /todos
+*.exe

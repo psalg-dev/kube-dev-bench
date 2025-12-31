@@ -2,6 +2,45 @@ import { test, expect } from '../setup/fixtures';
 import { openConnectionWizard, waitForReconnectOverlay, connectWithKindKubeconfig } from '../setup/helpers';
 
 test.describe('Proxy Settings', () => {
+  // Reset proxy settings after each test to avoid affecting subsequent tests
+  test.afterEach(async ({ page, baseURL }) => {
+    try {
+      // Navigate to clean state
+      await page.goto(baseURL || 'http://localhost:34115', { waitUntil: 'domcontentloaded' });
+      await page.waitForTimeout(500);
+
+      // Open wizard
+      const gearBtn = page.locator('#show-wizard-btn');
+      if (await gearBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        await gearBtn.click();
+      }
+
+      const wizardOverlay = page.locator('.connection-wizard-overlay');
+      if (await wizardOverlay.isVisible({ timeout: 3_000 }).catch(() => false)) {
+        // Open proxy settings
+        const proxyBtn = page.locator('#proxy-settings-btn');
+        if (await proxyBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+          await proxyBtn.click();
+          await page.waitForTimeout(300);
+
+          // Select "No Proxy" to reset
+          const noProxyLabel = page.getByLabel('No Proxy');
+          if (await noProxyLabel.isVisible({ timeout: 2_000 }).catch(() => false)) {
+            await noProxyLabel.click();
+
+            // Save the reset
+            const saveBtn = page.locator('#save-proxy-btn');
+            if (await saveBtn.isEnabled({ timeout: 2_000 }).catch(() => false)) {
+              await saveBtn.click();
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore cleanup errors - best effort cleanup
+    }
+  });
+
   test('shows proxy settings button in connection wizard', async ({ page, baseURL }) => {
     // First connect to have configs available
     await connectWithKindKubeconfig(page, baseURL);

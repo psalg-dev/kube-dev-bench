@@ -91,6 +91,15 @@ UI elements use stable id-based selectors for tests:
 
 Preserve these ids; if changing, update all usages in tests and `main-content.js`.
 
+### Testing
+Go Code and Frontend Code should be unit tested.
+Test Coverage for new Code should always be at least 70%.
+Features should be tested by end to end tests.
+Unit tests and end to end tests must pass in Github Build Pipeline, use github mcp 
+to inspect Github Builds.
+All code introduced must pass through those quality gates.
+
+
 ### Test Patterns
 - Tests trigger Go RPCs through the UI, not by calling Go functions directly
 - E2E tests use KinD manager container for reproducible clusters

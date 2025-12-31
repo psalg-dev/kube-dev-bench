@@ -82,6 +82,50 @@ async function clickWithRetry(page: Page, locator: ReturnType<Page['locator']>, 
 }
 
 /**
+ * Reset proxy settings to "No Proxy" mode
+ * Call this when the connection wizard is already visible
+ */
+async function resetProxySettings(page: Page): Promise<boolean> {
+  try {
+    const proxyBtn = page.locator('#proxy-settings-btn');
+    if (!await proxyBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      return false;
+    }
+
+    await proxyBtn.click();
+    await page.waitForTimeout(300);
+
+    const noProxyLabel = page.getByLabel('No Proxy');
+    if (!await noProxyLabel.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      // Not on proxy settings page, go back
+      const backBtn = page.getByRole('button', { name: /← Back/i });
+      if (await backBtn.isVisible({ timeout: 1_000 }).catch(() => false)) {
+        await backBtn.click();
+      }
+      return false;
+    }
+
+    await noProxyLabel.click();
+
+    const saveBtn = page.locator('#save-proxy-btn');
+    if (await saveBtn.isEnabled({ timeout: 2_000 }).catch(() => false)) {
+      await saveBtn.click();
+      await page.waitForTimeout(300);
+      return true;
+    }
+
+    // If save not enabled, go back
+    const backBtn = page.getByRole('button', { name: /← Back/i });
+    if (await backBtn.isVisible({ timeout: 1_000 }).catch(() => false)) {
+      await backBtn.click();
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Connect to a Kubernetes cluster using the KinD kubeconfig
  */
 export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
@@ -108,6 +152,9 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
     }
     await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
   }
+
+  // Reset proxy settings to ensure clean connection
+  await resetProxySettings(page);
 
   const primaryArea = page.locator('#primaryConfigContent');
   if (await primaryArea.isVisible().catch(() => false)) {
