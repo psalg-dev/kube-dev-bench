@@ -9,15 +9,15 @@ const repoRoot = path.resolve(__dirname, '..');
 export default defineConfig({
   testDir: path.join(__dirname, 'tests'),
   testMatch: ['**/*.spec.ts'],
-  timeout: 180_000, // Increased for monitor tests that involve K8s polling
-  expect: { timeout: 30_000 }, // Increased for slow CI environments
-  retries: process.env.CI ? 3 : 0, // More retries for flaky tests
+  timeout: 120_000, // Individual test timeout
+  expect: { timeout: 30_000 }, // Assertion timeout
+  retries: process.env.CI ? 2 : 0, // Retries for flaky tests
   workers: 1, // Keep serial for now since tests share state
   fullyParallel: false,
   // Let all tests run to gather complete failure information
   maxFailures: 0,
-  // Global timeout: cap entire test run at 30 minutes in CI (increased for retries)
-  globalTimeout: process.env.CI ? 30 * 60 * 1000 : 0,
+  // Global timeout: cap entire test run at 20 minutes in CI
+  globalTimeout: process.env.CI ? 20 * 60 * 1000 : 0,
   // Reporter configuration for better CI visibility
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {
