@@ -204,9 +204,9 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
     await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
   }
 
-  // Reset proxy settings to ensure clean connection
-  console.log('[connectWithKindKubeconfig] Resetting proxy settings');
-  await resetProxySettings(page);
+  // Note: Removed resetProxySettings call here as it was navigating the wizard
+  // to an unexpected state before we could handle the normal wizard flow.
+  // Proxy settings reset should be handled by individual tests if needed.
 
   // Handle different wizard states
   const primaryArea = page.locator('#primaryConfigContent');
