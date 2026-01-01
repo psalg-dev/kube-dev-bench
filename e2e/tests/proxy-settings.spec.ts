@@ -71,16 +71,20 @@ test.describe('Proxy Settings', () => {
   });
 
   test('shows proxy settings button in connection wizard', async ({ page, baseURL }) => {
+    console.log('[test] shows proxy settings button - starting');
     // First connect to have configs available
     await connectWithKindKubeconfig(page, baseURL);
+    console.log('[test] Connected, opening wizard');
 
     // Open connection wizard
     await openConnectionWizard(page);
+    console.log('[test] Wizard opened, checking proxy button');
 
     // Verify proxy settings button is visible
     const proxyBtn = page.locator('#proxy-settings-btn');
     await expect(proxyBtn).toBeVisible({ timeout: 10_000 });
     await expect(proxyBtn).toContainText('Proxy Settings');
+    console.log('[test] Test passed');
   });
 
   test('opens proxy configuration panel when clicking proxy settings', async ({ page, baseURL }) => {

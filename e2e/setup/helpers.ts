@@ -42,18 +42,23 @@ async function waitForReconnectOverlay(page: Page) {
  * Open the connection wizard overlay
  */
 async function openConnectionWizard(page: Page) {
+  console.log('[openConnectionWizard] Starting...');
   const wizardOverlay = page.locator('.connection-wizard-overlay');
   const gearBtn = page.locator('#show-wizard-btn');
 
   // Check if wizard is already visible
   if (await wizardOverlay.isVisible().catch(() => false)) {
+    console.log('[openConnectionWizard] Wizard already visible');
     return;
   }
 
   // Wait for gear button and click it
+  console.log('[openConnectionWizard] Waiting for gear button...');
   await gearBtn.waitFor({ state: 'visible', timeout: 10_000 });
+  console.log('[openConnectionWizard] Clicking gear button');
   await gearBtn.click();
   await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
+  console.log('[openConnectionWizard] Wizard is now visible');
 }
 
 /**
@@ -152,11 +157,16 @@ async function resetProxySettings(page: Page): Promise<boolean> {
  * Handles all wizard states: fresh start, discovered configs, already connected
  */
 export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
+  console.log('[connectWithKindKubeconfig] Starting...');
   const repoRoot = getRepoRoot();
   const kubeconfigPath = process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+  console.log('[connectWithKindKubeconfig] Kubeconfig path:', kubeconfigPath);
   const kubeconfig = fs.readFileSync(kubeconfigPath, 'utf-8');
 
-  await page.goto(baseURL || DEFAULT_BASE_URL, { waitUntil: 'domcontentloaded' });
+  const targetUrl = baseURL || DEFAULT_BASE_URL;
+  console.log('[connectWithKindKubeconfig] Navigating to:', targetUrl);
+  await page.goto(targetUrl, { waitUntil: 'domcontentloaded' });
+  console.log('[connectWithKindKubeconfig] Page loaded, current URL:', page.url());
   await waitForReconnectOverlay(page);
   await waitForPageStable(page);
 
@@ -165,28 +175,37 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   const sidebar = page.locator('#sidebar');
 
   // Check if we're already connected (sidebar visible, wizard not visible)
-  if (await sidebar.isVisible({ timeout: 3_000 }).catch(() => false)) {
-    if (!await wizardOverlay.isVisible().catch(() => false)) {
+  const sidebarVisible = await sidebar.isVisible({ timeout: 3_000 }).catch(() => false);
+  console.log('[connectWithKindKubeconfig] Sidebar visible:', sidebarVisible);
+  if (sidebarVisible) {
+    const wizardVisible = await wizardOverlay.isVisible().catch(() => false);
+    console.log('[connectWithKindKubeconfig] Wizard visible:', wizardVisible);
+    if (!wizardVisible) {
       // Already connected, just verify and return
+      console.log('[connectWithKindKubeconfig] Already connected, returning');
       await waitForPageStable(page);
       return;
     }
   }
 
   // Wait for either overlay or gear button to appear
+  console.log('[connectWithKindKubeconfig] Waiting for overlay or gear button...');
   const appeared = await Promise.race<Promise<"overlay" | "gear" | null>[]>([
     wizardOverlay.waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'overlay').catch(() => null),
     gearBtn.waitFor({ state: 'visible', timeout: 15_000 }).then(() => 'gear').catch(() => null),
   ]);
+  console.log('[connectWithKindKubeconfig] Appeared:', appeared);
 
   if (appeared !== 'overlay') {
     if (await gearBtn.isVisible().catch(() => false)) {
+      console.log('[connectWithKindKubeconfig] Clicking gear button');
       await clickWithRetry(page, gearBtn);
     }
     await expect(wizardOverlay).toBeVisible({ timeout: 10_000 });
   }
 
   // Reset proxy settings to ensure clean connection
+  console.log('[connectWithKindKubeconfig] Resetting proxy settings');
   await resetProxySettings(page);
 
   // Handle different wizard states
@@ -198,28 +217,39 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   // Wait a moment for wizard content to stabilize
   await page.waitForTimeout(500);
 
+  // Log what we see
+  const primaryVisible = await primaryArea.isVisible({ timeout: 1_000 }).catch(() => false);
+  const selectVisible = await selectKubeconfigHeading.isVisible({ timeout: 1_000 }).catch(() => false);
+  const continueVisible = await continueBtn.isVisible({ timeout: 1_000 }).catch(() => false);
+  console.log('[connectWithKindKubeconfig] Wizard state - primaryArea:', primaryVisible, 'selectKubeconfig:', selectVisible, 'continue:', continueVisible);
+
   // Case 1: Fresh start - primary config textarea is visible
   if (await primaryArea.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    console.log('[connectWithKindKubeconfig] Case 1: Fresh start - filling primary config');
     await primaryArea.fill(kubeconfig);
     await page.waitForTimeout(200);
     await page.getByRole('button', { name: /Save \& Continue/i }).click();
   }
   // Case 2: Discovered configs - "Select Kubeconfig" heading visible
   else if (await selectKubeconfigHeading.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    console.log('[connectWithKindKubeconfig] Case 2: Discovered configs');
     // Check if there's a discovered config we can use
     const discoveredConfig = page.locator('.config-item').first();
     if (await discoveredConfig.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      console.log('[connectWithKindKubeconfig] Clicking discovered config');
       // Click on the discovered config to select it, then continue
       await discoveredConfig.click();
       await page.waitForTimeout(500);
     }
-    
+
     // If Continue is available, just continue (existing config will be used)
     if (await continueBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      console.log('[connectWithKindKubeconfig] Clicking Continue');
       await continueBtn.click();
     }
     // Otherwise, paste additional config
     else if (await pasteAdditionalBtn.isVisible({ timeout: 2_000 }).catch(() => false)) {
+      console.log('[connectWithKindKubeconfig] Pasting additional config');
       await pasteAdditionalBtn.click();
       await page.waitForTimeout(300);
       await page.locator('#configName').fill('kind-e2e');
@@ -232,8 +262,10 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   }
   // Case 3: Other state - try to navigate to a usable state
   else {
+    console.log('[connectWithKindKubeconfig] Case 3: Other state');
     // Try paste additional config flow
     if (await pasteAdditionalBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      console.log('[connectWithKindKubeconfig] Pasting additional config (case 3)');
       await pasteAdditionalBtn.click();
       await page.waitForTimeout(300);
       await page.locator('#configName').fill('kind-e2e');
@@ -242,16 +274,22 @@ export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
       await expect(continueBtn).toBeVisible({ timeout: 5_000 });
       await continueBtn.click();
     } else if (await continueBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      console.log('[connectWithKindKubeconfig] Clicking Continue (case 3)');
       await continueBtn.click();
+    } else {
+      console.log('[connectWithKindKubeconfig] No actionable state found!');
     }
   }
 
   // Wait for wizard to close and page to stabilize
+  console.log('[connectWithKindKubeconfig] Waiting for wizard to close...');
   await wizardOverlay.waitFor({ state: 'hidden', timeout: 20_000 }).catch(() => {});
   await waitForPageStable(page);
-  
+
   // Verify we're in the main app (not stuck in wizard)
+  console.log('[connectWithKindKubeconfig] Verifying sidebar is visible');
   await expect(sidebar).toBeVisible({ timeout: 15_000 });
+  console.log('[connectWithKindKubeconfig] Done!');
 }
 
 /**

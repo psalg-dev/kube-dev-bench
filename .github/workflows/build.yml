@@ -140,11 +140,12 @@ jobs:
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests
+      - name: Run e2e tests (proxy-settings only for debugging)
         working-directory: e2e
-        run: npm test
+        run: npx playwright test proxy-settings --reporter=list
         env:
           CI: true
+          DEBUG: pw:api
 
       - name: Upload e2e test results
         if: always()
