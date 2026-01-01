@@ -359,11 +359,11 @@ export async function selectNamespace(page: Page, namespace: string) {
 
   // Wait for page to be stable again after closing menus
   await waitForPageStable(page);
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(500);
 
   let selected = false;
-  const maxAttempts = 45; // Reasonable number of attempts
-  const pollInterval = 4000; // Longer poll interval for stability
+  const maxAttempts = 18; // keep under 120s total
+  const pollInterval = 2000; // tighter polling to avoid test timeout
 
   for (let i = 0; i < maxAttempts; i++) {
     // Ensure no other select menu portals are open that could intercept clicks
@@ -388,13 +388,13 @@ export async function selectNamespace(page: Page, namespace: string) {
     }
 
     // Wait for the menu to render
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(600);
 
     if (await testOption.first().isVisible().catch(() => false)) {
       try {
         await testOption.first().click({ timeout: 5000 });
         // Wait for selection to register
-        await page.waitForTimeout(800);
+        await page.waitForTimeout(500);
         selected = true;
         break;
       } catch (clickErr) {
