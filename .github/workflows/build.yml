@@ -140,9 +140,9 @@ jobs:
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests (proxy-settings + connect-kind)
+      - name: Run e2e tests (proxy-settings + connect-kind + load-from-file)
         working-directory: e2e
-        run: npx playwright test proxy-settings connect-kind --reporter=list
+        run: npx playwright test proxy-settings connect-kind load-from-file --reporter=list
         env:
           CI: true
 
