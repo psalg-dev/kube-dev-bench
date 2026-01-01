@@ -16,8 +16,8 @@ export default defineConfig({
   fullyParallel: false,
   // Let all tests run to gather complete failure information
   maxFailures: 0,
-  // Global timeout: cap entire test run at 20 minutes in CI
-  globalTimeout: process.env.CI ? 20 * 60 * 1000 : 0,
+  // Global timeout: allow extra headroom in CI so infra bring-up + suites don't abort early
+  globalTimeout: process.env.CI ? 30 * 60 * 1000 : 0,
   // Reporter configuration for better CI visibility
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : [['list']],
   use: {

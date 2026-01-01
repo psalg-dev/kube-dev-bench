@@ -13,6 +13,22 @@ export function getRepoRoot() {
 }
 
 /**
+ * Remove persisted app state in the e2e HOME to simulate a fresh install.
+ */
+export async function resetAppStateOnDisk() {
+  const repoRoot = getRepoRoot();
+  const tempHome = path.join(repoRoot, 'e2e', '.home-e2e');
+  const targets = [path.join(tempHome, 'KubeDevBench'), path.join(tempHome, '.kube')];
+  for (const target of targets) {
+    try {
+      await fs.promises.rm(target, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors so tests keep running
+    }
+  }
+}
+
+/**
  * Wait for the Wails reconnect overlay to disappear (if present)
  */
 async function waitForReconnectOverlay(page: Page) {

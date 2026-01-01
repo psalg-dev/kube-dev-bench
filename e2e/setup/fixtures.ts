@@ -1,8 +1,7 @@
 import { test as base, expect } from '@playwright/test';
 import path from 'node:path';
-import fs from 'node:fs';
 import { spawn } from 'node:child_process';
-import { getRepoRoot } from './helpers';
+import { getRepoRoot, resetAppStateOnDisk } from './helpers';
 
 type ExecFn = (command: string) => Promise<{ stdout: string; stderr: string }>;
 
@@ -37,19 +36,22 @@ function execWithStdin(cmd: string, args: string[], options: { cwd?: string; inp
   });
 }
 
-// Auto-fixture that clears per-test HOME state used by wails dev
+// Auto-fixture that prepares HOME state used by wails dev (worker-scoped for speed)
 // Also provides exec fixture for running kubectl commands via docker compose
-export const test = base.extend<{ _isolate: void; exec: ExecFn }>({
-  _isolate: [async ({ page }, use) => {
-    const repoRoot = getRepoRoot();
-    const tempHome = path.join(repoRoot, 'e2e', '.home-e2e');
-    // Clean app state and kube dir to avoid cross-test leakage
-    try { await fs.promises.rm(path.join(tempHome, 'KubeDevBench'), { recursive: true, force: true }); } catch {}
-    try { await fs.promises.rm(path.join(tempHome, '.kube'), { recursive: true, force: true }); } catch {}
-    
-    // Clear browser storage to reset any cached UI state
+export const test = base.extend<{ _isolate: void; _clearStorage: void; exec: ExecFn }>({
+  _isolate: [async ({}, use) => {
+    await resetAppStateOnDisk();
+    await use();
+  }, { auto: true, scope: 'worker' }],
+
+  _clearStorage: [async ({ page }, use) => {
     await page.context().clearCookies();
-    
+    // Clear in-page storage to avoid leaking UI state across tests
+    await page.goto('about:blank');
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+    });
     await use();
   }, { auto: true }],
 

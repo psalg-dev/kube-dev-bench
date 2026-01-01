@@ -1,7 +1,5 @@
 import { test, expect } from '../setup/fixtures';
-import path from 'node:path';
-import fs from 'node:fs';
-import { getRepoRoot } from '../setup/helpers';
+import { resetAppStateOnDisk } from '../setup/helpers';
 
 async function clickWithRetry(page: any, locator: any, maxRetries = 5) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -25,11 +23,9 @@ async function waitForPageStable(page: any) {
 test.describe('Basic app load without kubeconfigs on host', () => {
   test('shows connection wizard on fresh load', async ({ page, baseURL }) => {
     test.setTimeout(120_000);
-    
-    // Ensure no kubeconfigs exist in the isolated HOME used by wails dev
-    const repoRoot = getRepoRoot();
-    const kubeDir = path.join(repoRoot, 'e2e', '.home-e2e', '.kube');
-    try { fs.rmSync(kubeDir, { recursive: true, force: true }); } catch {}
+
+    // Ensure no kubeconfigs or cached app state exist in the isolated HOME used by wails dev
+    await resetAppStateOnDisk();
 
     // Open app
     await page.goto(baseURL || 'http://localhost:34115');
