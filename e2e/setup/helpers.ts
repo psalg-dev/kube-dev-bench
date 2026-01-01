@@ -153,13 +153,37 @@ async function resetProxySettings(page: Page): Promise<boolean> {
 }
 
 /**
+ * Get the kubeconfig path, checking the .kubeconfig-path file first (for CI)
+ */
+function getKubeconfigPath(): string {
+  const repoRoot = getRepoRoot();
+  const kubeconfigPathFile = path.join(repoRoot, 'e2e', '.kubeconfig-path');
+
+  // In CI, global-setup writes the accessible kubeconfig path to this file
+  // because process.env changes don't propagate to Playwright worker processes
+  try {
+    if (fs.existsSync(kubeconfigPathFile)) {
+      const pathFromFile = fs.readFileSync(kubeconfigPathFile, 'utf-8').trim();
+      if (pathFromFile && fs.existsSync(pathFromFile)) {
+        console.log('[getKubeconfigPath] Using path from .kubeconfig-path file:', pathFromFile);
+        return pathFromFile;
+      }
+    }
+  } catch {
+    // Fall through to default paths
+  }
+
+  // Fall back to environment variable or default Docker volume path
+  return process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+}
+
+/**
  * Connect to a Kubernetes cluster using the KinD kubeconfig
  * Handles all wizard states: fresh start, discovered configs, already connected
  */
 export async function connectWithKindKubeconfig(page: Page, baseURL?: string) {
   console.log('[connectWithKindKubeconfig] Starting...');
-  const repoRoot = getRepoRoot();
-  const kubeconfigPath = process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+  const kubeconfigPath = getKubeconfigPath();
   console.log('[connectWithKindKubeconfig] Kubeconfig path:', kubeconfigPath);
   const kubeconfig = fs.readFileSync(kubeconfigPath, 'utf-8');
 

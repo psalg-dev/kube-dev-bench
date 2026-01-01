@@ -101,8 +101,11 @@ export default async function globalSetup(_config: FullConfig) {
           const accessibleKubeconfigPath = path.join(tempHome, 'kubeconfig');
           await fs.promises.writeFile(accessibleKubeconfigPath, kubeconfigContent, { mode: 0o644 });
           console.log('[e2e setup] Copied kubeconfig to:', accessibleKubeconfigPath);
-          // Update the environment variable to point to the accessible copy
-          process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = accessibleKubeconfigPath;
+          // Write the path to a file so test workers can read it
+          // (process.env changes don't propagate to Playwright worker processes)
+          const kubeconfigPathFile = path.join(repoRoot, 'e2e', '.kubeconfig-path');
+          await fs.promises.writeFile(kubeconfigPathFile, accessibleKubeconfigPath);
+          console.log('[e2e setup] Wrote kubeconfig path to:', kubeconfigPathFile);
         } catch (copyErr) {
           console.warn('[e2e setup] Could not copy kubeconfig from container:', copyErr);
         }
