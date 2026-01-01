@@ -84,11 +84,29 @@ export default async function globalSetup(_config: FullConfig) {
       console.log(`[e2e setup] Waiting for kubeconfig at ${kubeconfigPath} ...`);
       await waitForFile(kubeconfigPath, 180_000);
       // Fix permissions on kubeconfig file (Docker creates it with root ownership)
-      try {
-        await run('docker', ['exec', 'kind-manager', 'chmod', '644', '/kind/output/kubeconfig']);
-        console.log('[e2e setup] Fixed kubeconfig permissions.');
-      } catch (chmodErr) {
-        console.warn('[e2e setup] Could not chmod kubeconfig via docker:', chmodErr);
+      // In CI, Docker volumes may create files with root ownership that the runner can't read.
+      // Copy the file content out of the container to create a new file with runner ownership.
+      if (process.env.CI) {
+        try {
+          const kubeconfigContent = await new Promise<string>((resolve, reject) => {
+            const child = spawn('docker', ['exec', 'kind-manager', 'cat', '/kind/output/kubeconfig'], { shell: false });
+            let stdout = '';
+            child.stdout.on('data', (d) => { stdout += d.toString(); });
+            child.on('error', reject);
+            child.on('close', (code) => code === 0 ? resolve(stdout) : reject(new Error('docker exec cat failed')));
+          });
+          await fs.promises.writeFile(kubeconfigPath, kubeconfigContent, { mode: 0o644 });
+          console.log('[e2e setup] Copied kubeconfig from container with correct permissions.');
+        } catch (copyErr) {
+          console.warn('[e2e setup] Could not copy kubeconfig from container:', copyErr);
+        }
+      } else {
+        try {
+          await run('docker', ['exec', 'kind-manager', 'chmod', '644', '/kind/output/kubeconfig']);
+          console.log('[e2e setup] Fixed kubeconfig permissions inside container.');
+        } catch (chmodErr) {
+          console.warn('[e2e setup] Could not chmod kubeconfig via docker:', chmodErr);
+        }
       }
       // Wait for KinD manager to finish namespace setup
       console.log('[e2e setup] Waiting for KinD manager to complete setup...');
