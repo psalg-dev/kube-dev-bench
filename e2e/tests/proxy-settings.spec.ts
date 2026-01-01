@@ -251,26 +251,44 @@ test.describe('Proxy Settings', () => {
   });
 
   test('loads existing proxy configuration when reopening settings', async ({ page, baseURL }) => {
+    console.log('[test] loads existing proxy config - starting');
     await connectWithKindKubeconfig(page, baseURL);
+    console.log('[test] Connected, configuring proxy');
 
     // Configure a proxy
     await openConnectionWizard(page);
+    console.log('[test] Wizard opened, clicking proxy settings');
     await page.locator('#proxy-settings-btn').click();
+    await expect(page.getByText('Proxy Configuration')).toBeVisible({ timeout: 10_000 });
+    console.log('[test] On proxy config page, selecting manual');
     await page.getByLabel('Manual Configuration').click();
+    await expect(page.locator('#proxyURL')).toBeVisible({ timeout: 5_000 });
+    console.log('[test] Filling proxy details');
     await page.locator('#proxyURL').fill('http://saved-proxy:8080');
     await page.locator('#proxyUsername').fill('saveduser');
+    console.log('[test] Saving proxy config');
     await page.locator('#save-proxy-btn').click();
 
-    // Close and reopen wizard
+    // Close and reopen wizard - should return to Select Kubeconfig
+    console.log('[test] Clicking Continue to close wizard');
+    await expect(page.getByText('Select Kubeconfig')).toBeVisible({ timeout: 10_000 });
     await page.getByRole('button', { name: /Continue/i }).click();
+    console.log('[test] Waiting for reconnect overlay');
     await waitForReconnectOverlay(page);
+    console.log('[test] Overlay handled');
 
     // Reopen wizard and proxy settings
+    console.log('[test] Reopening wizard');
     await openConnectionWizard(page);
+    console.log('[test] Clicking proxy settings again');
     await page.locator('#proxy-settings-btn').click();
+    await expect(page.getByText('Proxy Configuration')).toBeVisible({ timeout: 10_000 });
+    console.log('[test] On proxy config page, checking values');
 
-    // Verify saved values are loaded
+    // Verify saved values are loaded (manual config should auto-select if previously saved)
+    await expect(page.locator('#proxyURL')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('#proxyURL')).toHaveValue('http://saved-proxy:8080', { timeout: 10_000 });
     await expect(page.locator('#proxyUsername')).toHaveValue('saveduser');
+    console.log('[test] Test passed');
   });
 });
