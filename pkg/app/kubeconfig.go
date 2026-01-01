@@ -129,22 +129,44 @@ func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	var configs []KubeConfigInfo
+	configs := []KubeConfigInfo{}
+	seen := map[string]bool{}
 	kubeDir := filepath.Join(home, ".kube")
+
+	addConfig := func(path, name string) {
+		if path == "" || seen[path] {
+			return
+		}
+		info, err := os.Stat(path)
+		if err != nil || info.IsDir() {
+			return
+		}
+		contexts, err := a.getContextsFromFile(path)
+		if err != nil || len(contexts) == 0 {
+			return
+		}
+		configs = append(configs, KubeConfigInfo{Path: path, Name: name, Contexts: contexts})
+		seen[path] = true
+	}
+
+	// Always include the currently configured kubeconfig, even if it lives outside ~/.kube
+	currentPath := a.getKubeConfigPath()
+	if currentPath != "" {
+		label := filepath.Base(currentPath)
+		if label == "" {
+			label = "current kubeconfig"
+		}
+		addConfig(currentPath, label)
+	}
+
 	// Check for primary kubeconfig (non-standard name requested by project): ~/.kube/kubeconfig
 	primaryConfig := filepath.Join(kubeDir, "kubeconfig")
-	if info, err := os.Stat(primaryConfig); err == nil && !info.IsDir() {
-		if contexts, err := a.getContextsFromFile(primaryConfig); err == nil && len(contexts) > 0 {
-			configs = append(configs, KubeConfigInfo{Path: primaryConfig, Name: "kubeconfig (primary)", Contexts: contexts})
-		}
-	}
+	addConfig(primaryConfig, "kubeconfig (primary)")
+
 	// Existing default config handling
 	defaultConfig := filepath.Join(kubeDir, "config")
-	if info, err := os.Stat(defaultConfig); err == nil && !info.IsDir() {
-		if contexts, err := a.getContextsFromFile(defaultConfig); err == nil && len(contexts) > 0 {
-			configs = append(configs, KubeConfigInfo{Path: defaultConfig, Name: "config (default)", Contexts: contexts})
-		}
-	}
+	addConfig(defaultConfig, "config (default)")
+
 	// Look for other kubeconfig files in .kube directory
 	if entries, err := os.ReadDir(kubeDir); err == nil {
 		for _, entry := range entries {
@@ -157,9 +179,7 @@ func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 			}
 			if strings.Contains(name, "config") || strings.Contains(name, "kube") {
 				fullPath := filepath.Join(kubeDir, name)
-				if contexts, err := a.getContextsFromFile(fullPath); err == nil && len(contexts) > 0 {
-					configs = append(configs, KubeConfigInfo{Path: fullPath, Name: name, Contexts: contexts})
-				}
+				addConfig(fullPath, name)
 			}
 		}
 	}
