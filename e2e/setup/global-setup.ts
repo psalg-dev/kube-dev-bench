@@ -85,7 +85,7 @@ export default async function globalSetup(_config: FullConfig) {
       await waitForFile(kubeconfigPath, 180_000);
       // Fix permissions on kubeconfig file (Docker creates it with root ownership)
       // In CI, Docker volumes may create files with root ownership that the runner can't read.
-      // Copy the file content out of the container to create a new file with runner ownership.
+      // Copy the file content to a new location we control (e2e temp home).
       if (process.env.CI) {
         try {
           const kubeconfigContent = await new Promise<string>((resolve, reject) => {
@@ -95,8 +95,14 @@ export default async function globalSetup(_config: FullConfig) {
             child.on('error', reject);
             child.on('close', (code) => code === 0 ? resolve(stdout) : reject(new Error('docker exec cat failed')));
           });
-          await fs.promises.writeFile(kubeconfigPath, kubeconfigContent, { mode: 0o644 });
-          console.log('[e2e setup] Copied kubeconfig from container with correct permissions.');
+          // Write to e2e temp home directory instead of Docker volume
+          const tempHome = path.join(repoRoot, 'e2e', '.home-e2e');
+          await fs.promises.mkdir(tempHome, { recursive: true });
+          const accessibleKubeconfigPath = path.join(tempHome, 'kubeconfig');
+          await fs.promises.writeFile(accessibleKubeconfigPath, kubeconfigContent, { mode: 0o644 });
+          console.log('[e2e setup] Copied kubeconfig to:', accessibleKubeconfigPath);
+          // Update the environment variable to point to the accessible copy
+          process.env.KUBEDEV_BENCH_KIND_KUBECONFIG = accessibleKubeconfigPath;
         } catch (copyErr) {
           console.warn('[e2e setup] Could not copy kubeconfig from container:', copyErr);
         }
