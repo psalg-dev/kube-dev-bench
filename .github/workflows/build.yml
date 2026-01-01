@@ -142,7 +142,7 @@ jobs:
 
       - name: Run e2e tests
         working-directory: e2e
-        run: npx playwright test proxy-settings connect-kind load-from-file 00-select-existing-kubeconfig basic-load-no-kubeconfig --reporter=list
+        run: npx playwright test proxy-settings connect-kind load-from-file 00-select-existing-kubeconfig basic-load-no-kubeconfig view-resources --reporter=list
         env:
           CI: true
 
