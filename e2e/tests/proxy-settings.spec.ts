@@ -279,13 +279,26 @@ test.describe('Proxy Settings', () => {
     await expect(page.getByText('Select Kubeconfig')).toBeVisible({ timeout: 10_000 });
     console.log('[test] Clicking Continue to close wizard');
     await page.getByRole('button', { name: /Continue/i }).click();
-    console.log('[test] Waiting for reconnect overlay');
+
+    // Wait for wizard to ACTUALLY close
+    console.log('[test] Waiting for wizard to close');
+    const wizardOverlay = page.locator('.connection-wizard-overlay');
+    await expect(wizardOverlay).toBeHidden({ timeout: 20_000 });
+    console.log('[test] Wizard closed');
+
+    // Wait for sidebar to be visible (confirms we're in main app)
+    console.log('[test] Waiting for sidebar');
+    await expect(page.locator('#sidebar')).toBeVisible({ timeout: 10_000 });
+    console.log('[test] Sidebar visible');
+
     await waitForReconnectOverlay(page);
     console.log('[test] Overlay handled');
 
     // Reopen wizard and proxy settings
     console.log('[test] Reopening wizard');
     await openConnectionWizard(page);
+    console.log('[test] Wizard reopened, waiting for stable state');
+    await page.waitForTimeout(500); // Wait for wizard content to stabilize
     console.log('[test] Waiting for proxy settings button again');
     await expect(proxyBtn).toBeVisible({ timeout: 10_000 });
     console.log('[test] Clicking proxy settings again');
