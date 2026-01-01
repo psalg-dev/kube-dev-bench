@@ -257,8 +257,12 @@ test.describe('Proxy Settings', () => {
 
     // Configure a proxy
     await openConnectionWizard(page);
-    console.log('[test] Wizard opened, clicking proxy settings');
-    await page.locator('#proxy-settings-btn').click();
+    console.log('[test] Wizard opened, waiting for proxy settings button');
+    const proxyBtn = page.locator('#proxy-settings-btn');
+    await expect(proxyBtn).toBeVisible({ timeout: 10_000 });
+    console.log('[test] Clicking proxy settings');
+    await proxyBtn.click();
+    await page.waitForTimeout(500); // Wait for navigation
     await expect(page.getByText('Proxy Configuration')).toBeVisible({ timeout: 10_000 });
     console.log('[test] On proxy config page, selecting manual');
     await page.getByLabel('Manual Configuration').click();
@@ -268,10 +272,12 @@ test.describe('Proxy Settings', () => {
     await page.locator('#proxyUsername').fill('saveduser');
     console.log('[test] Saving proxy config');
     await page.locator('#save-proxy-btn').click();
+    await page.waitForTimeout(500); // Wait for save
 
     // Close and reopen wizard - should return to Select Kubeconfig
-    console.log('[test] Clicking Continue to close wizard');
+    console.log('[test] Waiting for Select Kubeconfig');
     await expect(page.getByText('Select Kubeconfig')).toBeVisible({ timeout: 10_000 });
+    console.log('[test] Clicking Continue to close wizard');
     await page.getByRole('button', { name: /Continue/i }).click();
     console.log('[test] Waiting for reconnect overlay');
     await waitForReconnectOverlay(page);
@@ -280,8 +286,12 @@ test.describe('Proxy Settings', () => {
     // Reopen wizard and proxy settings
     console.log('[test] Reopening wizard');
     await openConnectionWizard(page);
+    console.log('[test] Waiting for proxy settings button again');
+    await expect(proxyBtn).toBeVisible({ timeout: 10_000 });
     console.log('[test] Clicking proxy settings again');
-    await page.locator('#proxy-settings-btn').click();
+    await proxyBtn.click();
+    await page.waitForTimeout(500); // Wait for navigation
+    console.log('[test] Waiting for Proxy Configuration heading');
     await expect(page.getByText('Proxy Configuration')).toBeVisible({ timeout: 10_000 });
     console.log('[test] On proxy config page, checking values');
 
