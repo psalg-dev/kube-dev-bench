@@ -47,11 +47,16 @@ export const test = base.extend<{ _isolate: void; _clearStorage: void; exec: Exe
   _clearStorage: [async ({ page }, use) => {
     await page.context().clearCookies();
     // Clear in-page storage to avoid leaking UI state across tests
-    await page.goto('about:blank');
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-    });
+    // Note: about:blank doesn't have storage access, so we navigate to the app first
+    try {
+      await page.goto('http://localhost:34115');
+      await page.evaluate(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+      });
+    } catch {
+      // Storage access may fail on certain pages (e.g., about:blank) - that's OK
+    }
     await use();
   }, { auto: true }],
 
