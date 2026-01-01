@@ -221,7 +221,7 @@ const ConnectionWizard = ({ onComplete }) => {
             <div className="wizard-actions">
               <button onClick={handleSelectFile} className="btn btn-secondary" disabled={loading}>📁 Browse for File</button>
               <button onClick={handleSavePrimaryConfig} className="btn btn-primary" disabled={loading || !primaryConfigContent.trim()}>
-                {loading ? 'Saving...' : 'Save & Continue'}
+                Save & Continue
               </button>
             </div>
           </div>
