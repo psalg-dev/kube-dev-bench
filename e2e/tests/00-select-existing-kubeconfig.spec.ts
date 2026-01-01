@@ -1,7 +1,7 @@
 import { test, expect } from '../setup/fixtures';
 import path from 'node:path';
 import fs from 'node:fs';
-import { getRepoRoot, selectNamespace, closeOpenMenus } from '../setup/helpers';
+import { getRepoRoot, getKubeconfigPath, selectNamespace, closeOpenMenus } from '../setup/helpers';
 
 async function clickWithRetry(page: any, locator: any, maxRetries = 5) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -24,7 +24,7 @@ async function waitForPageStable(page: any) {
 
 async function ensureHostKubeconfigAvailable() {
   const repoRoot = getRepoRoot();
-  const source = process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+  const source = getKubeconfigPath();
   if (!fs.existsSync(source)) return false;
   const homeDir = path.join(repoRoot, 'e2e', '.home-e2e');
   const kubeDir = path.join(homeDir, '.kube');
@@ -61,13 +61,14 @@ test.describe('Select existing Kubeconfig', () => {
     }
 
     // Force deterministic file-selection flow to avoid flakiness from discovery timing
+    const kubeconfigPath = getKubeconfigPath();
     await page.evaluate((p) => {
       // @ts-ignore
       if (window.go && window.go.main && window.go.main.App) {
         // @ts-ignore
         window.go.main.App.SelectKubeConfigFile = async () => p;
       }
-    }, path.join(getRepoRoot(), 'kind', 'output', 'kubeconfig'));
+    }, kubeconfigPath);
     
     // Wait for button to be ready
     const browseBtn = page.getByRole('button', { name: /Browse for File/i });

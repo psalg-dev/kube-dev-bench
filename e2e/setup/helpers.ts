@@ -154,8 +154,10 @@ async function resetProxySettings(page: Page): Promise<boolean> {
 
 /**
  * Get the kubeconfig path, checking the .kubeconfig-path file first (for CI)
+ * In CI, global-setup copies kubeconfig to an accessible location and writes the path
+ * to .kubeconfig-path because Docker volume files have root ownership.
  */
-function getKubeconfigPath(): string {
+export function getKubeconfigPath(): string {
   const repoRoot = getRepoRoot();
   const kubeconfigPathFile = path.join(repoRoot, 'e2e', '.kubeconfig-path');
 

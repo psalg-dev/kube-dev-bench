@@ -1,7 +1,6 @@
 import { test, expect } from '../setup/fixtures';
-import path from 'node:path';
 import fs from 'node:fs';
-import { getRepoRoot, selectNamespace } from '../setup/helpers';
+import { getKubeconfigPath, selectNamespace } from '../setup/helpers';
 
 async function clickWithRetry(page: any, locator: any, maxRetries = 3) {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -20,8 +19,7 @@ async function clickWithRetry(page: any, locator: any, maxRetries = 3) {
 test.describe('Load Kubeconfig from File', () => {
   test('browse for file, select KinD kubeconfig, and connect', async ({ page, baseURL }) => {
     test.setTimeout(120_000); // Reduced from 180s
-    const repoRoot = getRepoRoot();
-    const kubeconfigPath = process.env.KUBEDEV_BENCH_KIND_KUBECONFIG || path.join(repoRoot, 'kind', 'output', 'kubeconfig');
+    const kubeconfigPath = getKubeconfigPath();
 
     // Ensure the kubeconfig file exists for this test
     if (!fs.existsSync(kubeconfigPath)) {
