@@ -175,6 +175,18 @@ export default function CronJobsOverviewTable({ namespaces }) {
     return () => { try { EventsOff('cronjobs:update'); } catch (_) {} };
   }, [namespaces]);
 
+  // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
+  useEffect(() => {
+    const unsubscribe = EventsOn('resource-updated', (eventData) => {
+      if (eventData?.resource === 'cronjob' && Array.isArray(namespaces) && namespaces.includes(eventData?.namespace)) {
+        fetchAllCronJobs();
+      }
+    });
+    return () => {
+      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
+    };
+  }, [namespaces]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}

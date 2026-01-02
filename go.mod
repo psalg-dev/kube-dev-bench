@@ -5,14 +5,14 @@ go 1.24.0
 require (
 	github.com/creack/pty v1.1.24
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/wailsapp/wails/v2 v2.10.2
+	github.com/wailsapp/wails/v2 v2.11.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.34.1
 	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v0.34.1
 )
 
-require github.com/wailsapp/go-webview2 v1.0.21 // indirect
+require github.com/wailsapp/go-webview2 v1.0.22 // indirect
 
 require (
 	github.com/bep/debounce v1.2.1 // indirect

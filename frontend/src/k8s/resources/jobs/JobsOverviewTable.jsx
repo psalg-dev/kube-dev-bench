@@ -164,6 +164,19 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
     return () => { try { EventsOff('jobs:update'); } catch (_) {} };
   }, []);
 
+  // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
+  useEffect(() => {
+    const unsubscribe = EventsOn('resource-updated', (eventData) => {
+      const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+      if (eventData?.resource === 'job' && nsArr.includes(eventData?.namespace)) {
+        fetchJobs();
+      }
+    });
+    return () => {
+      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
+    };
+  }, [JSON.stringify(namespaces), namespace]);
+
   return (
     <OverviewTableWithPanel
       columns={columns}

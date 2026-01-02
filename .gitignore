@@ -8,9 +8,11 @@ frontend/dist
 /frontend/logs/
 /frontend/coverage/
 coverage.out
-./e2e/.home-e2e
 /e2e/node_modules
+/e2e/.run/
+/e2e/.playwright-artifacts-*/
 /e2e/test-results
+/e2e/playwright-report/
 /.claude
 /e2e/.home-e2e
 /e2e/.wails-dev.pid
