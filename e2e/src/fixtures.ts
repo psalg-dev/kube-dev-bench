@@ -53,7 +53,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   }, { scope: 'worker' }],
 
   wails: [async ({ homeDir }, use: (value: WailsDevInstance | null) => Promise<void>, workerInfo: WorkerInfo) => {
-    if (process.platform === 'win32') {
+    const state = await readRunState();
+    if (state.sharedBaseURL) {
       await use(null);
       return;
     }
@@ -68,11 +69,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   }, { scope: 'worker' }],
 
   appBaseURL: [async ({ wails }, use: (value: string) => Promise<void>) => {
-    if (process.platform === 'win32') {
-      const state = await readRunState();
-      if (!state.sharedBaseURL) {
-        throw new Error('Shared Wails server baseURL was not set in run state.');
-      }
+    const state = await readRunState();
+    if (state.sharedBaseURL) {
       await use(state.sharedBaseURL);
       return;
     }

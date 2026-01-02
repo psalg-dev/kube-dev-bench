@@ -32,10 +32,16 @@ export default async function globalSetup() {
 
   const kind = await ensureKindCluster(clusterName);
 
-  // Windows note: running multiple `wails dev` processes concurrently in the same repo can collide
-  // on temporary resource files (e.g. <outputfilename>-res.syso). To keep parallel Playwright workers
-  // working locally on Windows, start one shared server and let workers run parallel browser sessions.
-  if (process.platform === 'win32') {
+  // Shared-server mode:
+  // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
+  // - CI/Linux: per-worker `wails dev` startup can exceed the 30s per-test timeout.
+  // Start one shared server and let workers run parallel browser sessions.
+  const sharedServerMode =
+    process.platform === 'win32' ||
+    process.env.E2E_SHARED_SERVER === '1' ||
+    (!!process.env.CI && process.platform !== 'win32');
+
+  if (sharedServerMode) {
     const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, 'home-shared');
     await fs.mkdir(homeDir, { recursive: true });
 
@@ -47,7 +53,13 @@ export default async function globalSetup() {
 
     const instance = alreadyRunning
       ? null
-      : await startWailsDev({ repoRoot: withinRepo(), port: 34115, homeDir, readyTimeoutMs: 30_000 });
+      : await startWailsDev({
+          repoRoot: withinRepo(),
+          port: 34115,
+          homeDir,
+          // Allow more time in CI/global setup while keeping per-test timeouts strict.
+          readyTimeoutMs: process.env.CI ? 120_000 : 30_000,
+        });
 
     await writeRunState({
       runId,

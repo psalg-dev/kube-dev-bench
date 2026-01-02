@@ -6,11 +6,13 @@ export default async function globalTeardown() {
   try {
     const state = await readRunState();
 
-    if (process.platform === 'win32') {
-      // Best-effort: kill shared servers if they were started.
-      const pids = [state.sharedWailsPid, state.sharedVitePid].filter((p): p is number => typeof p === 'number');
-      for (const pid of pids) {
+    // Best-effort: kill shared servers if they were started.
+    const pids = [state.sharedWailsPid, state.sharedVitePid].filter((p): p is number => typeof p === 'number');
+    for (const pid of pids) {
+      if (process.platform === 'win32') {
         await exec('taskkill', ['/PID', String(pid), '/T', '/F'], { timeoutMs: 30_000 });
+      } else {
+        await exec('bash', ['-lc', `kill -TERM ${pid} 2>/dev/null || true; sleep 1; kill -KILL ${pid} 2>/dev/null || true`], { timeoutMs: 30_000 });
       }
     }
   } catch {
