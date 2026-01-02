@@ -64,5 +64,10 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
 }
 
 export async function deleteNamespace(kubeconfigPath: string, namespace: string) {
-  await kubectl(['delete', 'ns', namespace, '--ignore-not-found=true'], { kubeconfigPath, timeoutMs: 60_000 });
+  // Namespace termination can take a while (finalizers, PV/PVC cleanup). For E2E isolation we only
+  // need to *request* deletion; waiting can exceed Playwright's fixture teardown timeout.
+  await kubectl(['delete', 'ns', namespace, '--ignore-not-found=true', '--wait=false'], {
+    kubeconfigPath,
+    timeoutMs: 20_000,
+  });
 }

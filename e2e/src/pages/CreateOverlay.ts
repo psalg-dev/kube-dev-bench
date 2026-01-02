@@ -4,7 +4,36 @@ export class CreateOverlay {
   constructor(private readonly page: Page) {}
 
   async openFromOverviewHeader() {
-    await this.page.getByRole('button', { name: /create new/i }).click();
+    // Different sections expose different create buttons:
+    // - Most resources: "Create new"
+    // - Pods: a "+" button with aria-label "Create" and class "overview-create-btn"
+    // Prefer a short, retrying strategy instead of relying on a single locator.
+    const attempts: Array<() => Promise<void>> = [
+      async () => {
+        await this.page.getByRole('button', { name: /create new/i }).first().click({ timeout: 2_500 });
+      },
+      async () => {
+        await this.page.getByRole('button', { name: /^create$/i }).first().click({ timeout: 2_500 });
+      },
+      async () => {
+        await this.page.locator('.overview-create-btn').first().click({ timeout: 2_500 });
+      },
+    ];
+
+    let lastErr: unknown;
+    for (const fn of attempts) {
+      try {
+        await fn();
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    if (lastErr) {
+      throw lastErr;
+    }
+
     await expect(this.page.getByRole('button', { name: 'Close' })).toBeVisible();
   }
 

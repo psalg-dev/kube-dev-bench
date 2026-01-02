@@ -19,6 +19,10 @@ export default async function globalSetup() {
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
 
+  // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
+  const platform = process.platform as unknown as string;
+  const isWin32 = platform === 'win32';
+
   // Ensure frontend build exists (wails dev will serve from dist)
   const distIndex = withinRepo('frontend', 'dist', 'index.html');
   try {
@@ -37,9 +41,9 @@ export default async function globalSetup() {
   // - CI/Linux: per-worker `wails dev` startup can exceed the 30s per-test timeout.
   // Start one shared server and let workers run parallel browser sessions.
   const sharedServerMode =
-    process.platform === 'win32' ||
+    isWin32 ||
     process.env.E2E_SHARED_SERVER === '1' ||
-    (!!process.env.CI && process.platform !== 'win32');
+    (!!process.env.CI && !isWin32);
 
   if (sharedServerMode) {
     const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, 'home-shared');

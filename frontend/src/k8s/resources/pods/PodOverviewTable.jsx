@@ -58,6 +58,49 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   const multiNs = Array.isArray(namespaces) && namespaces.length > 1;
 
+  const mountedRef = React.useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const normalizePod = (pod, ns) => {
+    const name = pod?.name ?? pod?.Name;
+    const namespaceVal = pod?.namespace ?? pod?.Namespace ?? ns;
+    return {
+      ...pod,
+      name,
+      namespace: namespaceVal,
+      restarts: pod?.restarts ?? pod?.Restarts ?? 0,
+      uptime: pod?.uptime ?? pod?.Uptime ?? pod?.age ?? pod?.Age ?? '-',
+      status: pod?.status ?? pod?.Status ?? pod?.phase ?? pod?.Phase ?? '-',
+      ports: pod?.ports ?? pod?.Ports ?? [],
+    };
+  };
+
+  const refreshPods = React.useCallback(async () => {
+    const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
+    const targetNamespaces = selected.filter(Boolean);
+    if (targetNamespaces.length === 0) return;
+
+    try {
+      const results = await Promise.all(
+        targetNamespaces.map(async (ns) => {
+          const pods = await AppAPI.GetRunningPods(ns);
+          return (Array.isArray(pods) ? pods : []).map((p) => normalizePod(p, ns));
+        })
+      );
+      const combined = results.flat();
+      if (mountedRef.current) {
+        setInternalData(combined);
+      }
+    } catch (_) {
+      // Best-effort refresh; keep existing list on failure to avoid flicker.
+    }
+  }, [namespace, namespaces]);
+
   // Fallback: subscribe to pods:update if parent doesn't pass data
   useEffect(() => {
     const handler = (pods) => {
@@ -68,6 +111,29 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       try { EventsOff('pods:update'); } catch (_) {}
     };
   }, []);
+
+  // React to generic resource-updated events emitted by CreateManifestOverlay.
+  // This makes newly created Pods appear quickly without waiting for background polling.
+  useEffect(() => {
+    const onUpdate = (eventData) => {
+      const res = (eventData?.resource || '').toString().toLowerCase();
+      if (res !== 'pod' && res !== 'pods') return;
+      const ns = (eventData?.namespace || '').toString();
+      const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
+      if (ns && !selected.includes(ns)) return;
+      refreshPods();
+    };
+
+    const unsubscribe = EventsOn('resource-updated', onUpdate);
+    return () => {
+      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
+    };
+  }, [namespace, namespaces, refreshPods]);
+
+  // Initial load when this view mounts or namespaces change.
+  useEffect(() => {
+    refreshPods();
+  }, [refreshPods]);
 
   // Subscribe to consolidated portforward updates and seed initial state
   useEffect(() => {
