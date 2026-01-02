@@ -24,6 +24,12 @@ type App struct {
 	isInsecureConnection bool      // tracks if we're using insecure TLS
 	insecureWarnOnce     sync.Once // ensures we log TLS fallback warning only once
 
+	// Proxy configuration
+	proxyURL      string // HTTP/HTTPS proxy URL (e.g., http://proxy.example.com:8080)
+	proxyAuthType string // "none", "basic", "system"
+	proxyUsername string // username for basic auth
+	proxyPassword string // password for basic auth
+
 	logMu      sync.Mutex
 	logCancels map[string]context.CancelFunc
 

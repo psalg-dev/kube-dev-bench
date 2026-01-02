@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, SavePrimaryKubeConfig, GetKubeContexts, GetNamespaces, SetCurrentKubeContext, SetCurrentNamespace, GetCurrentConfig } from '../../../wailsjs/go/main/App';
+import { GetKubeConfigs, SelectKubeConfigFile, SaveCustomKubeConfig, SetKubeConfigPath, GetKubeContextsFromFile, SavePrimaryKubeConfig, GetKubeContexts, GetNamespaces, SetCurrentKubeContext, SetCurrentNamespace, GetCurrentConfig, GetProxyConfig, SetProxyConfig, DetectSystemProxy } from '../../../wailsjs/go/main/App';
 
 const ConnectionWizard = ({ onComplete }) => {
   const [step, setStep] = useState(1);
@@ -10,10 +10,34 @@ const ConnectionWizard = ({ onComplete }) => {
   const [primaryConfigContent, setPrimaryConfigContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  // Proxy configuration state
+  const [proxyAuthType, setProxyAuthType] = useState('none');
+  const [proxyURL, setProxyURL] = useState('');
+  const [proxyUsername, setProxyUsername] = useState('');
+  const [proxyPassword, setProxyPassword] = useState('');
+  const [systemProxy, setSystemProxy] = useState({});
 
   useEffect(() => {
     loadDiscoveredConfigs();
+    loadProxyConfig();
   }, []);
+
+  const loadProxyConfig = async () => {
+    try {
+      const [proxyConfig, sysProxy] = await Promise.all([
+        GetProxyConfig(),
+        DetectSystemProxy()
+      ]);
+      if (proxyConfig) {
+        setProxyAuthType(proxyConfig.authType || 'none');
+        setProxyURL(proxyConfig.url || '');
+        setProxyUsername(proxyConfig.username || '');
+      }
+      setSystemProxy(sysProxy || {});
+    } catch (err) {
+      console.error('Failed to load proxy config:', err);
+    }
+  };
 
   const loadDiscoveredConfigs = async () => {
     try {
@@ -71,6 +95,22 @@ const ConnectionWizard = ({ onComplete }) => {
       setStep(1);
     } catch (err) {
       setError('Failed to save custom kubeconfig: ' + err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProxyConfig = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const url = proxyAuthType === 'system' ? '' : proxyURL;
+      const user = proxyAuthType === 'basic' ? proxyUsername : '';
+      const pass = proxyAuthType === 'basic' ? proxyPassword : '';
+      await SetProxyConfig(url, proxyAuthType, user, pass);
+      setStep(1);
+    } catch (err) {
+      setError('Failed to save proxy configuration: ' + err);
     } finally {
       setLoading(false);
     }
@@ -181,7 +221,7 @@ const ConnectionWizard = ({ onComplete }) => {
             <div className="wizard-actions">
               <button onClick={handleSelectFile} className="btn btn-secondary" disabled={loading}>📁 Browse for File</button>
               <button onClick={handleSavePrimaryConfig} className="btn btn-primary" disabled={loading || !primaryConfigContent.trim()}>
-                {loading ? 'Saving...' : 'Save & Continue'}
+                Save & Continue
               </button>
             </div>
           </div>
@@ -221,12 +261,123 @@ const ConnectionWizard = ({ onComplete }) => {
               <button onClick={() => setStep(2)} className="btn btn-secondary">
                 ➕ Paste Additional Config
               </button>
+              <button onClick={() => setStep(3)} className="btn btn-secondary" id="proxy-settings-btn">
+                🌐 Proxy Settings
+              </button>
               <button
                 onClick={handleComplete}
                 disabled={!selectedConfig || loading}
                 className="btn btn-primary"
               >
                 Continue
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!noConfigs && step === 3 && (
+          <div className="wizard-step">
+            <h3>Proxy Configuration</h3>
+            <p>Configure HTTP/HTTPS proxy for Kubernetes API connections.</p>
+
+            {error && <div className="error-message">{error}</div>}
+
+            <div className="form-group">
+              <label>Proxy Mode:</label>
+              <div className="radio-group" style={{ display: 'flex', gap: '16px', marginTop: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <input
+                    type="radio"
+                    name="proxyAuthType"
+                    value="none"
+                    checked={proxyAuthType === 'none'}
+                    onChange={(e) => setProxyAuthType(e.target.value)}
+                  />
+                  No Proxy
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <input
+                    type="radio"
+                    name="proxyAuthType"
+                    value="system"
+                    checked={proxyAuthType === 'system'}
+                    onChange={(e) => setProxyAuthType(e.target.value)}
+                  />
+                  Use System Proxy
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <input
+                    type="radio"
+                    name="proxyAuthType"
+                    value="basic"
+                    checked={proxyAuthType === 'basic'}
+                    onChange={(e) => setProxyAuthType(e.target.value)}
+                  />
+                  Manual Configuration
+                </label>
+              </div>
+            </div>
+
+            {proxyAuthType === 'system' && (
+              <div className="form-group" style={{ background: 'var(--bg-secondary, #f5f5f5)', padding: '12px', borderRadius: '4px', marginTop: '12px' }}>
+                <label>Detected System Proxy:</label>
+                <div style={{ fontFamily: 'monospace', fontSize: '12px', marginTop: '8px' }}>
+                  <div>HTTP_PROXY: {systemProxy.HTTP_PROXY || '(not set)'}</div>
+                  <div>HTTPS_PROXY: {systemProxy.HTTPS_PROXY || '(not set)'}</div>
+                  <div>NO_PROXY: {systemProxy.NO_PROXY || '(not set)'}</div>
+                </div>
+              </div>
+            )}
+
+            {proxyAuthType === 'basic' && (
+              <>
+                <div className="form-group">
+                  <label htmlFor="proxyURL">Proxy URL:</label>
+                  <input
+                    id="proxyURL"
+                    type="text"
+                    value={proxyURL}
+                    onChange={(e) => setProxyURL(e.target.value)}
+                    placeholder="http://proxy.example.com:8080"
+                    className="input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="proxyUsername">Username (optional):</label>
+                  <input
+                    id="proxyUsername"
+                    type="text"
+                    value={proxyUsername}
+                    onChange={(e) => setProxyUsername(e.target.value)}
+                    placeholder="username"
+                    className="input"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="proxyPassword">Password (optional):</label>
+                  <input
+                    id="proxyPassword"
+                    type="password"
+                    value={proxyPassword}
+                    onChange={(e) => setProxyPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="input"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="wizard-actions">
+              <button onClick={() => setStep(1)} className="btn btn-secondary">
+                ← Back
+              </button>
+              <button
+                onClick={handleSaveProxyConfig}
+                disabled={loading || (proxyAuthType === 'basic' && !proxyURL.trim())}
+                className="btn btn-primary"
+                id="save-proxy-btn"
+              >
+                {loading ? 'Saving...' : 'Save Proxy Settings'}
               </button>
             </div>
           </div>

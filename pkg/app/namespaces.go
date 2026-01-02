@@ -15,10 +15,13 @@ func (a *App) createKubernetesClient() (*kubernetes.Clientset, error) {
 
 // GetConnectionStatus returns connection security status for frontend
 func (a *App) GetConnectionStatus() map[string]interface{} {
-	fmt.Printf("[DEBUG] GetConnectionStatus called: isInsecure=%v, connected=%v\n", a.isInsecureConnection, a.currentKubeContext != "")
+	fmt.Printf("[DEBUG] GetConnectionStatus called: isInsecure=%v, connected=%v, proxyEnabled=%v\n", a.isInsecureConnection, a.currentKubeContext != "", a.IsProxyEnabled())
 	return map[string]interface{}{
-		"isInsecure": a.isInsecureConnection,
-		"connected":  a.currentKubeContext != "",
+		"isInsecure":   a.isInsecureConnection,
+		"connected":    a.currentKubeContext != "",
+		"proxyEnabled": a.IsProxyEnabled(),
+		"proxyURL":     a.GetProxyDisplayURL(),
+		"proxyType":    a.proxyAuthType,
 	}
 }
 

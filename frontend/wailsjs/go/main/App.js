@@ -6,6 +6,10 @@ export function ArchivePVCPath(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchivePVCPath'](arg1, arg2, arg3, arg4);
 }
 
+export function ClearProxyConfig() {
+  return window['go']['main']['App']['ClearProxyConfig']();
+}
+
 export function CreateResource(arg1, arg2) {
   return window['go']['main']['App']['CreateResource'](arg1, arg2);
 }
@@ -60,6 +64,10 @@ export function DeleteSecret(arg1, arg2) {
 
 export function DeleteStatefulSet(arg1, arg2) {
   return window['go']['main']['App']['DeleteStatefulSet'](arg1, arg2);
+}
+
+export function DetectSystemProxy() {
+  return window['go']['main']['App']['DetectSystemProxy']();
 }
 
 export function ExecCommand(arg1) {
@@ -206,6 +214,14 @@ export function GetPodYAML(arg1) {
   return window['go']['main']['App']['GetPodYAML'](arg1);
 }
 
+export function GetProxyConfig() {
+  return window['go']['main']['App']['GetProxyConfig']();
+}
+
+export function GetProxyDisplayURL() {
+  return window['go']['main']['App']['GetProxyDisplayURL']();
+}
+
 export function GetRememberContext() {
   return window['go']['main']['App']['GetRememberContext']();
 }
@@ -256,6 +272,10 @@ export function GetStatefulSets(arg1) {
 
 export function Greet(arg1) {
   return window['go']['main']['App']['Greet'](arg1);
+}
+
+export function IsProxyEnabled() {
+  return window['go']['main']['App']['IsProxyEnabled']();
 }
 
 export function ListPVCFiles(arg1, arg2, arg3) {
@@ -336,6 +356,10 @@ export function SetKubeConfigPath(arg1) {
 
 export function SetPreferredNamespaces(arg1) {
   return window['go']['main']['App']['SetPreferredNamespaces'](arg1);
+}
+
+export function SetProxyConfig(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['SetProxyConfig'](arg1, arg2, arg3, arg4);
 }
 
 export function SetRememberContext(arg1) {

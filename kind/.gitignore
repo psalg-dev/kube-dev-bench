@@ -1,3 +1,0 @@
-# Ignore generated kubeconfig + any other runtime artifacts
-/output/
-

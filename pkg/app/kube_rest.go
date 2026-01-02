@@ -28,6 +28,9 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 		return nil, err
 	}
 
+	// Apply proxy configuration if set
+	a.applyProxyConfig(restConfig)
+
 	// Probe cluster to detect TLS issues early. We do a lightweight namespaced call via a temp clientset.
 	if err := a.probeRESTConfig(restConfig); err != nil {
 		if isCertError(err) && !restConfig.TLSClientConfig.Insecure {

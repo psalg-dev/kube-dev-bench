@@ -30,6 +30,11 @@ import {
   ResumeCronJob,
   StartJobFromCronJob,
   ScaleResource,
+  // Proxy configuration
+  GetProxyConfig,
+  SetProxyConfig,
+  ClearProxyConfig,
+  DetectSystemProxy,
 } from '../../../wailsjs/go/main/App';
 
 // Direct re-exports for now. Wrapper functions retained for possible future enhancements.
@@ -61,4 +66,9 @@ export {
   ResumeCronJob,
   StartJobFromCronJob,
   ScaleResource,
+  // Proxy configuration
+  GetProxyConfig,
+  SetProxyConfig,
+  ClearProxyConfig,
+  DetectSystemProxy,
 };
