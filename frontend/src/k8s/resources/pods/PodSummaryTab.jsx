@@ -113,17 +113,15 @@ export default function PodSummaryTab({ podName }) {
 
   // Handler for restart (no UI side-effects; ResourceActions shows notifications)
   const handleRestart = async (name, ns) => {
-    const fn = window?.wailsjs?.go?.main?.App?.RestartPod;
-    if (typeof fn !== 'function') throw new Error('RestartPod API unavailable');
-    await fn(ns, name);
+    if (typeof AppAPI.RestartPod !== 'function') throw new Error('RestartPod API unavailable');
+    await AppAPI.RestartPod(ns, name);
     // refresh summary after restart
     await load();
   };
   // Handler for delete (two-step confirm handled by ResourceActions)
   const handleDelete = async (name, ns) => {
-    const fn = window?.wailsjs?.go?.main?.App?.DeletePod;
-    if (typeof fn !== 'function') throw new Error('DeletePod API unavailable');
-    await fn(ns, name);
+    if (typeof AppAPI.DeletePod !== 'function') throw new Error('DeletePod API unavailable');
+    await AppAPI.DeletePod(ns, name);
   };
 
   return (
@@ -138,9 +136,7 @@ export default function PodSummaryTab({ podName }) {
             name={podName}
             namespace={data?.namespace || data?.Namespace || ''}
             onRestart={handleRestart}
-            onDelete={async (n, ns) => {
-                await AppAPI.DeletePod(ns, n);
-            }}
+            onDelete={handleDelete}
             disabled={!data}
           />
         }

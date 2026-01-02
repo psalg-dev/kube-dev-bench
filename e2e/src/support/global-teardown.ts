@@ -6,8 +6,11 @@ export default async function globalTeardown() {
   try {
     const state = await readRunState();
 
-    // Best-effort: kill shared servers if they were started.
-    const pids = [state.sharedWailsPid, state.proxyPid].filter((p): p is number => typeof p === 'number');
+    // Best-effort: kill any servers we started.
+    const poolPids = (state.wailsInstances ?? []).map((w) => w.pid).filter((p): p is number => typeof p === 'number');
+    const pids = [state.frontendPid, state.sharedWailsPid, state.proxyPid, ...poolPids].filter(
+      (p): p is number => typeof p === 'number'
+    );
     for (const pid of pids) {
       if (process.platform === 'win32') {
         await exec('taskkill', ['/PID', String(pid), '/T', '/F'], { timeoutMs: 30_000 });

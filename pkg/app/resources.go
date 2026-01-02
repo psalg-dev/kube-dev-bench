@@ -88,7 +88,9 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 
 	// Emit updated lists shortly after creating a resource
 	go func(ns string, k string) {
-		time.Sleep(100 * time.Millisecond)
+		// Give the API server a brief moment to persist the object so our
+		// snapshot events include the newly created resource.
+		time.Sleep(500 * time.Millisecond)
 		if a.ctx != nil && ns != "" {
 			// Always emit pods snapshot for now (existing behavior)
 			if pods, err := a.GetRunningPods(ns); err == nil {
@@ -98,6 +100,30 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 			if strings.EqualFold(k, "Deployment") {
 				if deps, err := a.GetDeployments(ns); err == nil {
 					runtime.EventsEmit(a.ctx, "deployments:update", deps)
+				}
+			}
+			// If we created a StatefulSet, emit statefulsets snapshot
+			if strings.EqualFold(k, "StatefulSet") {
+				if sts, err := a.GetStatefulSets(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "statefulsets:update", sts)
+				}
+			}
+			// If we created a DaemonSet, emit daemonsets snapshot
+			if strings.EqualFold(k, "DaemonSet") {
+				if dss, err := a.GetDaemonSets(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "daemonsets:update", dss)
+				}
+			}
+			// If we created a ReplicaSet, emit replicasets snapshot
+			if strings.EqualFold(k, "ReplicaSet") {
+				if rss, err := a.GetReplicaSets(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "replicasets:update", rss)
+				}
+			}
+			// If we created a Job, emit jobs snapshot
+			if strings.EqualFold(k, "Job") {
+				if jobs, err := a.GetJobs(ns); err == nil {
+					runtime.EventsEmit(a.ctx, "jobs:update", jobs)
 				}
 			}
 			// If we created a CronJob, emit cronjobs snapshot

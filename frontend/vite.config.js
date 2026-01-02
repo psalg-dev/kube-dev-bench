@@ -76,11 +76,13 @@ async function setupLogging(configEnv) {
 
 export default defineConfig(async ({ command, mode }) => {
   const { customLogger } = await setupLogging({ command, mode });
+  const hostOverride = process.env.VITE_HOST;
 
   return {
     plugins: [react()],
     customLogger,
     server: {
+      host: hostOverride || undefined,
       watch: {
         ignored: [
           '**/coverage/**',

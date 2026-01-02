@@ -46,6 +46,7 @@ export async function startWailsDev(opts: {
   repoRoot: string;
   port: number;
   homeDir: string;
+  frontendDevServerURL?: string;
   readyTimeoutMs?: number;
 }) : Promise<WailsDevInstance> {
   const { repoRoot, port, homeDir } = opts;
@@ -72,18 +73,14 @@ export async function startWailsDev(opts: {
   logStream.write(`\n=== worker (port=${port}) ${new Date().toISOString()} ===\n`);
   logStream.write(`cwd: ${repoRoot}\n`);
 
-  // Serve the already-built frontend bundle to avoid frontend dev-server port conflicts.
-  // The global setup ensures `frontend/dist/index.html` exists.
-
   const args = [
     'dev',
-    '-s',
-    '-assetdir',
-    path.join('frontend', 'dist'),
+    // Use a shared external frontend server (vite preview) so multiple Wails instances
+    // don't each start their own Vite dev watcher.
+    ...(opts.frontendDevServerURL ? ['-frontenddevserverurl', opts.frontendDevServerURL] : []),
     '-devserver',
     `127.0.0.1:${port}`,
     '-noreload',
-    '-nogorebuild',
     '-skipbindings',
     '-nosyncgomod',
     '-m',
@@ -96,6 +93,7 @@ export async function startWailsDev(opts: {
     cwd: repoRoot,
     env: {
       ...process.env,
+      VITE_HOST: '127.0.0.1',
       HOME: homeDir,
       USERPROFILE: homeDir,
       APPDATA: appDataDir,

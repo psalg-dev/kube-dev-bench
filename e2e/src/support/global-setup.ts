@@ -6,6 +6,8 @@ import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
+import { exec } from './exec.js';
+import { startFrontendPreviewServer } from './frontend-preview.js';
 
 async function isHttpOk(url: string): Promise<boolean> {
   try {
@@ -13,6 +15,28 @@ async function isHttpOk(url: string): Promise<boolean> {
     return res.status >= 200 && res.status < 500;
   } catch {
     return false;
+  }
+}
+
+async function killWindowsListenerOnPort(port: number) {
+  // Best-effort cleanup for interrupted runs:
+  // shared Wails dev uses a fixed port, and reusing a stale process means tests run against old code.
+  const { stdout } = await exec('cmd.exe', ['/c', 'netstat -ano -p tcp'], { timeoutMs: 10_000 });
+  const pids = new Set<string>();
+  for (const line of stdout.split(/\r?\n/)) {
+    if (!line.includes(`:${port}`)) continue;
+    if (!/\bLISTENING\b/i.test(line)) continue;
+    const parts = line.trim().split(/\s+/);
+    const pid = parts.at(-1);
+    if (pid && /^\d+$/.test(pid)) pids.add(pid);
+  }
+
+  for (const pid of pids) {
+    try {
+      await exec('taskkill', ['/PID', pid, '/F', '/T'], { timeoutMs: 10_000 });
+    } catch {
+      // ignore
+    }
   }
 }
 
@@ -41,34 +65,44 @@ export default async function globalSetup() {
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
   const proxy = await ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 });
 
+  // Serve the built frontend via a single vite preview server.
+  // This avoids each Wails instance spawning its own frontend dev watcher.
+  const frontendPort = Number(process.env.E2E_FRONTEND_PORT || 35173);
+  const frontend = await startFrontendPreviewServer({
+    repoRoot: withinRepo(),
+    port: frontendPort,
+    readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
+  });
+
   // Shared-server mode:
   // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
   // - CI/Linux: per-worker `wails dev` startup can exceed the 30s per-test timeout.
   // Start one shared server and let workers run parallel browser sessions.
-  const sharedServerMode =
-    isWin32 ||
-    process.env.E2E_SHARED_SERVER === '1' ||
-    (!!process.env.CI && !isWin32);
+  // IMPORTANT: A shared Wails server holds global backend/UI state (selected namespaces, etc.),
+  // which causes cross-test interference when Playwright runs multiple workers.
+  // Therefore shared-server mode must be an explicit opt-in.
+  const sharedServerMode = process.env.E2E_SHARED_SERVER === '1';
 
   if (sharedServerMode) {
     const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, 'home-shared');
     await fs.mkdir(homeDir, { recursive: true });
 
-    // If a previous run was interrupted (Ctrl+C), the shared server may still be running.
-    // Reuse it instead of starting a new one and hanging on port conflicts.
     // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
     const sharedBaseURL = 'http://127.0.0.1:34115';
-    const alreadyRunning = await isHttpOk(sharedBaseURL);
+    if (isWin32) {
+      // Always clear the port before starting. The listener may be stale and not
+      // return HTTP (so isHttpOk() would be false) but still prevents binding.
+      await killWindowsListenerOnPort(34115);
+    }
 
-    const instance = alreadyRunning
-      ? null
-      : await startWailsDev({
-          repoRoot: withinRepo(),
-          port: 34115,
-          homeDir,
-          // Allow more time in CI/global setup while keeping per-test timeouts strict.
-          readyTimeoutMs: process.env.CI ? 120_000 : 90_000,
-        });
+    const instance = await startWailsDev({
+      repoRoot: withinRepo(),
+      port: 34115,
+      homeDir,
+      frontendDevServerURL: frontend.baseURL,
+      // Allow more time in CI/global setup while keeping per-test timeouts strict.
+      readyTimeoutMs: process.env.CI ? 120_000 : 90_000,
+    });
 
     await writeRunState({
       runId,
@@ -77,10 +111,37 @@ export default async function globalSetup() {
       kubeconfigYaml: kind.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      sharedBaseURL: alreadyRunning ? sharedBaseURL : instance!.baseURL,
-      sharedWailsPid: alreadyRunning ? undefined : (instance!.process.pid ?? undefined),
+      frontendBaseURL: frontend.baseURL,
+      frontendPid: frontend.process?.pid ?? undefined,
+      sharedBaseURL: instance.baseURL,
+      sharedWailsPid: instance.process.pid ?? undefined,
     });
   } else {
+    const instanceCount = Math.max(1, Number(process.env.E2E_WAILS_INSTANCES || 4));
+    const basePort = Number(process.env.E2E_WAILS_BASE_PORT || 34200);
+    const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number }> = [];
+
+    for (let i = 0; i < instanceCount; i++) {
+      const port = basePort + i;
+      if (isWin32) {
+        await killWindowsListenerOnPort(port);
+      }
+
+      const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, `home-w${i}`);
+      await fs.mkdir(homeDir, { recursive: true });
+
+      const instance = await startWailsDev({
+        repoRoot: withinRepo(),
+        port,
+        homeDir,
+        frontendDevServerURL: frontend.baseURL,
+        // Sequential startup in global setup; allow more time here.
+        readyTimeoutMs: process.env.CI ? 180_000 : 150_000,
+      });
+
+      wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
+    }
+
     await writeRunState({
       runId,
       clusterName: kind.clusterName,
@@ -88,6 +149,9 @@ export default async function globalSetup() {
       kubeconfigYaml: kind.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
+      frontendBaseURL: frontend.baseURL,
+      frontendPid: frontend.process?.pid ?? undefined,
+      wailsInstances,
     });
   }
 

@@ -21,7 +21,9 @@ export class ConnectionWizardPage {
     const textarea = this.page.locator('#primaryConfigContent');
     if (await textarea.count()) {
       await textarea.fill(kubeconfigYaml);
-      await this.page.getByRole('button', { name: /save & continue/i }).click();
+      const saveBtn = this.page.getByRole('button', { name: /save & continue/i });
+      await expect(saveBtn).toBeEnabled({ timeout: 60_000 });
+      await saveBtn.click();
       await expect(this.page.locator('.connection-wizard-overlay')).toBeHidden({ timeout: 60_000 });
       return;
     }

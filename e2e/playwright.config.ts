@@ -2,7 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  timeout: 30_000,
+  // Note: worker-scoped fixtures (like starting Wails) run under the test timeout.
+  // Keep this high enough to allow cold-starts when running with multiple workers.
+  timeout: 120_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
   workers: process.env.PW_WORKERS ? Number(process.env.PW_WORKERS) : 4,

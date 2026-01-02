@@ -7,6 +7,9 @@ export type RunState = {
   clusterName: string;
   contextName: string;
   kubeconfigYaml: string;
+  wailsInstances?: Array<{ baseURL: string; pid?: number; port?: number }>;
+  frontendBaseURL?: string;
+  frontendPid?: number;
   sharedBaseURL?: string;
   sharedWailsPid?: number;
   sharedVitePid?: number;

@@ -4,7 +4,7 @@ import { test as base, chromium, type Browser, type Page, type WorkerInfo } from
 import { repoRoot } from './support/paths.js';
 import { readRunState } from './support/run-state.js';
 import { ensureNamespace, deleteNamespace, writeKubeconfigFile } from './support/kind.js';
-import { startWailsDev, stopWailsDev, type WailsDevInstance } from './support/wails.js';
+import type { WailsDevInstance } from './support/wails.js';
 
 type WorkerFixtures = {
   wails: WailsDevInstance | null;
@@ -59,13 +59,9 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       return;
     }
 
-    const port = 34115 + workerInfo.workerIndex;
-    const instance = await startWailsDev({ repoRoot, port, homeDir });
-    try {
-      await use(instance);
-    } finally {
-      await stopWailsDev(instance);
-    }
+    // Wails instances are pre-started in global setup to avoid expensive parallel builds.
+    // Workers simply attach to their assigned instance.
+    await use(null);
   }, { scope: 'worker' }],
 
   appBaseURL: [async ({ wails }, use: (value: string) => Promise<void>) => {
@@ -75,10 +71,11 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       return;
     }
 
-    if (!wails) {
-      throw new Error('Expected a per-worker Wails instance on non-Windows platforms.');
+    if (!Array.isArray(state.wailsInstances) || state.wailsInstances.length === 0) {
+      throw new Error('Expected pre-started Wails instances in run state.');
     }
-    await use(wails.baseURL);
+    // The actual selection happens in the page fixture (it has workerInfo), so default to first.
+    await use(state.wailsInstances[0].baseURL);
   }, { scope: 'worker' }],
 
   // Per-test: isolated browser context (but same backend per worker)
@@ -88,8 +85,19 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await browser.close();
   },
 
-  page: async ({ browser, appBaseURL }, use: (value: Page) => Promise<void>) => {
-    const context = await browser.newContext({ baseURL: appBaseURL });
+  page: async ({ browser }, use: (value: Page) => Promise<void>, workerInfo: WorkerInfo) => {
+    const state = await readRunState();
+    const baseURL = state.sharedBaseURL
+      ? state.sharedBaseURL
+      : state.wailsInstances && state.wailsInstances.length > 0
+        ? state.wailsInstances[workerInfo.workerIndex % state.wailsInstances.length].baseURL
+        : undefined;
+
+    if (!baseURL) {
+      throw new Error('No app baseURL available (missing sharedBaseURL or wailsInstances).');
+    }
+
+    const context = await browser.newContext({ baseURL });
     const page = await context.newPage();
     await use(page);
     await context.close();

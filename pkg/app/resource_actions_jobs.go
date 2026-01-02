@@ -1,6 +1,9 @@
 package app
 
 import (
+	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -62,7 +65,22 @@ func (a *App) StartJobFromCronJob(namespace, cronJobName string) error {
 		Spec: cronJob.Spec.JobTemplate.Spec,
 	}
 	_, err = clientset.BatchV1().Jobs(namespace).Create(a.ctx, newJob, metav1.CreateOptions{})
-	return err
+	if err != nil {
+		return err
+	}
+
+	go func(ns string) {
+		// Avoid racing the apiserver; ensure list includes the new Job.
+		time.Sleep(500 * time.Millisecond)
+		if a.ctx == nil {
+			return
+		}
+		if jobs, e := a.GetJobs(ns); e == nil {
+			runtime.EventsEmit(a.ctx, "jobs:update", jobs)
+		}
+	}(namespace)
+
+	return nil
 }
 
 func (a *App) StartJob(namespace, name string) error {
@@ -85,5 +103,20 @@ func (a *App) StartJob(namespace, name string) error {
 	newJob.UID = ""
 	newJob.CreationTimestamp = metav1.Time{}
 	_, err = clientset.BatchV1().Jobs(namespace).Create(a.ctx, newJob, metav1.CreateOptions{})
-	return err
+	if err != nil {
+		return err
+	}
+
+	go func(ns string) {
+		// Avoid racing the apiserver; ensure list includes the new Job.
+		time.Sleep(500 * time.Millisecond)
+		if a.ctx == nil {
+			return
+		}
+		if jobs, e := a.GetJobs(ns); e == nil {
+			runtime.EventsEmit(a.ctx, "jobs:update", jobs)
+		}
+	}(namespace)
+
+	return nil
 }

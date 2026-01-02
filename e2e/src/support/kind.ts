@@ -55,9 +55,9 @@ export async function writeKubeconfigFile(dir: string, kubeconfigYaml: string) {
 }
 
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
-  const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 20_000 });
+  const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
   if (get.code === 0) return;
-  const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 20_000 });
+  const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
   if (create.code !== 0) {
     throw new Error(`Failed creating namespace ${namespace}: ${create.stderr || create.stdout}`);
   }
@@ -68,6 +68,6 @@ export async function deleteNamespace(kubeconfigPath: string, namespace: string)
   // need to *request* deletion; waiting can exceed Playwright's fixture teardown timeout.
   await kubectl(['delete', 'ns', namespace, '--ignore-not-found=true', '--wait=false'], {
     kubeconfigPath,
-    timeoutMs: 20_000,
+    timeoutMs: 60_000,
   });
 }

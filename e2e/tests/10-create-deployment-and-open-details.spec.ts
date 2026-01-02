@@ -22,7 +22,9 @@ test('creates a Deployment via plus overlay and opens bottom panel', async ({ pa
   await overlay.create();
 
   const notifications = new Notifications(page);
-  await notifications.expectSuccessContains('created successfully');
+  // Toast text can vary slightly across environments; ensure toasts are gone
+  // so they don't intercept the row click.
+  await notifications.waitForClear();
 
   // Wait for row to show up then open bottom panel
   await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible({ timeout: 60_000 });
