@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { showError, showSuccess } from '../../../notification';
 
 export default function SecretDataTab({ namespace, secretName }) {
   const [data, setData] = useState([]);
@@ -7,22 +8,28 @@ export default function SecretDataTab({ namespace, secretName }) {
   const [error, setError] = useState(null);
   const [visibleKeys, setVisibleKeys] = useState(new Set());
   const [copiedKey, setCopiedKey] = useState(null);
+  const [editingKey, setEditingKey] = useState(null);
+  const [draftValue, setDraftValue] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
+  const fetchData = async () => {
     if (!namespace || !secretName) return;
-
     setLoading(true);
     setError(null);
+    try {
+      const result = await AppAPI.GetSecretDataByName(namespace, secretName);
+      setData(result || []);
+    } catch (err) {
+      setError(err?.message || 'Failed to fetch secret data');
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    AppAPI.GetSecretDataByName(namespace, secretName)
-      .then(result => {
-        setData(result || []);
-        setLoading(false);
-      })
-      .catch(err => {
-        setError(err.message || 'Failed to fetch secret data');
-        setLoading(false);
-      });
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, secretName]);
 
   const toggleVisibility = (key) => {
@@ -54,6 +61,33 @@ export default function SecretDataTab({ namespace, secretName }) {
       return atob(base64Value);
     } catch {
       return '[Unable to decode]';
+    }
+  };
+
+  const beginEdit = (key, base64Value, isBinary) => {
+    if (isBinary) return;
+    setEditingKey(key);
+    setDraftValue(decodeValue(base64Value));
+    setVisibleKeys(prev => new Set(prev).add(key));
+  };
+
+  const cancelEdit = () => {
+    setEditingKey(null);
+    setDraftValue('');
+    setSaving(false);
+  };
+
+  const saveEdit = async () => {
+    if (!editingKey) return;
+    setSaving(true);
+    try {
+      await AppAPI.UpdateSecretDataKey(namespace, secretName, editingKey, draftValue);
+      showSuccess(`Secret '${secretName}' updated (${editingKey})`);
+      cancelEdit();
+      await fetchData();
+    } catch (e) {
+      showError(`Failed to update Secret '${secretName}': ${e?.message || e}`);
+      setSaving(false);
     }
   };
 
@@ -106,6 +140,8 @@ export default function SecretDataTab({ namespace, secretName }) {
             const isVisible = visibleKeys.has(item.key);
             const decodedValue = isVisible ? decodeValue(item.value) : null;
             const isCopied = copiedKey === item.key;
+            const isEditing = editingKey === item.key;
+            const canEdit = !item.isBinary;
 
             return (
               <tr key={item.key} style={{ borderBottom: '1px solid #21262d' }}>
@@ -125,7 +161,24 @@ export default function SecretDataTab({ namespace, secretName }) {
                   )}
                 </td>
                 <td style={{ padding: '8px 12px' }}>
-                  {isVisible ? (
+                  {isEditing ? (
+                    <textarea
+                      value={draftValue}
+                      onChange={(e) => setDraftValue(e.target.value)}
+                      style={{
+                        width: '100%',
+                        minHeight: 120,
+                        padding: 8,
+                        backgroundColor: '#0d1117',
+                        border: '1px solid #30363d',
+                        borderRadius: 4,
+                        fontSize: 12,
+                        fontFamily: 'monospace',
+                        color: 'var(--gh-text, #c9d1d9)',
+                        resize: 'vertical'
+                      }}
+                    />
+                  ) : isVisible ? (
                     <pre style={{
                       margin: 0,
                       padding: 8,
@@ -167,21 +220,79 @@ export default function SecretDataTab({ namespace, secretName }) {
                     >
                       {isVisible ? '👁️' : '👁️‍🗨️'}
                     </button>
-                    <button
-                      onClick={() => copyToClipboard(item.key, item.value)}
-                      title="Copy decoded value"
-                      style={{
-                        padding: '4px 8px',
-                        backgroundColor: isCopied ? '#23863620' : 'transparent',
-                        border: `1px solid ${isCopied ? '#238636' : '#30363d'}`,
-                        borderRadius: 4,
-                        color: isCopied ? '#238636' : 'var(--gh-text, #c9d1d9)',
-                        cursor: 'pointer',
-                        fontSize: 14
-                      }}
-                    >
-                      {isCopied ? '✓' : '📋'}
-                    </button>
+                    {!isEditing ? (
+                      <>
+                        <button
+                          onClick={() => copyToClipboard(item.key, item.value)}
+                          title="Copy decoded value"
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: isCopied ? '#23863620' : 'transparent',
+                            border: `1px solid ${isCopied ? '#238636' : '#30363d'}`,
+                            borderRadius: 4,
+                            color: isCopied ? '#238636' : 'var(--gh-text, #c9d1d9)',
+                            cursor: 'pointer',
+                            fontSize: 14
+                          }}
+                        >
+                          {isCopied ? '✓' : '📋'}
+                        </button>
+                        <button
+                          onClick={() => beginEdit(item.key, item.value, item.isBinary)}
+                          disabled={!canEdit}
+                          title={canEdit ? 'Edit key' : 'Binary keys cannot be edited'}
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #30363d',
+                            borderRadius: 4,
+                            color: 'var(--gh-text, #c9d1d9)',
+                            cursor: canEdit ? 'pointer' : 'not-allowed',
+                            fontSize: 12,
+                            opacity: canEdit ? 1 : 0.6
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={cancelEdit}
+                          disabled={saving}
+                          title="Cancel"
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #30363d',
+                            borderRadius: 4,
+                            color: 'var(--gh-text, #c9d1d9)',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            fontSize: 12,
+                            opacity: saving ? 0.6 : 1
+                          }}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={saveEdit}
+                          disabled={saving}
+                          title="Save"
+                          style={{
+                            padding: '4px 8px',
+                            backgroundColor: '#238636',
+                            border: '1px solid #2ea44f',
+                            borderRadius: 4,
+                            color: '#fff',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            fontSize: 12,
+                            opacity: saving ? 0.6 : 1
+                          }}
+                        >
+                          {saving ? 'Saving…' : 'Save'}
+                        </button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>

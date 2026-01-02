@@ -105,6 +105,26 @@ func computeNextRunString(schedule string, base time.Time) string {
 	return next.Local().Format("2006-01-02 15:04")
 }
 
+// computeNextRuns parses a standard 5-field cron schedule and returns the next N occurrences.
+// Times are returned in RFC3339 (local time) so the frontend can reliably parse them.
+func computeNextRuns(schedule string, base time.Time, count int) []string {
+	if count <= 0 {
+		return []string{}
+	}
+	parser := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow)
+	spec, err := parser.Parse(schedule)
+	if err != nil {
+		return []string{}
+	}
+	out := make([]string, 0, count)
+	t := base
+	for i := 0; i < count; i++ {
+		t = spec.Next(t)
+		out = append(out, t.Local().Format(time.RFC3339))
+	}
+	return out
+}
+
 // StartCronJobPolling emits cronjobs:update events periodically with the current cronjob list
 func (a *App) StartCronJobPolling() {
 	go func() {

@@ -3,6 +3,7 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import ConfigMapDataTab from './ConfigMapDataTab';
+import ConfigMapConsumersTab from './ConfigMapConsumersTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
@@ -20,6 +21,7 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'data', label: 'Data' },
+  { key: 'consumers', label: 'Consumers' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -69,6 +71,9 @@ function renderPanelContent(row, tab) {
   }
   if (tab === 'data') {
     return <ConfigMapDataTab namespace={row.namespace} configMapName={row.name} />;
+  }
+  if (tab === 'consumers') {
+    return <ConfigMapConsumersTab namespace={row.namespace} configMapName={row.name} />;
   }
   if (tab === 'events') {
     return <ResourceEventsTab namespace={row.namespace} resourceKind="ConfigMap" resourceName={row.name} />;

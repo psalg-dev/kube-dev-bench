@@ -4,10 +4,13 @@ import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import IngressRulesTab from './IngressRulesTab';
+import IngressTLSTab from './IngressTLSTab';
+import IngressBackendServicesTab from './IngressBackendServicesTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import { showSuccess, showError } from '../../../notification';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -22,6 +25,8 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'rules', label: 'Rules' },
+  { key: 'tls', label: 'TLS' },
+  { key: 'services', label: 'Backend Services' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -53,7 +58,46 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="ingress" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("ingress", ns, n);}} />} />
+        <SummaryTabHeader
+          name={row.name}
+          labels={row.labels || row.Labels || row.metadata?.labels}
+          actions={
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button
+                type="button"
+                disabled={!Array.isArray(row.hosts) || row.hosts.length === 0}
+                onClick={() => {
+                  try {
+                    const host = Array.isArray(row.hosts) && row.hosts.length ? row.hosts[0] : null;
+                    if (!host) return;
+                    const url = `https://${host}`;
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                    showSuccess(`Opening ${url}`);
+                  } catch (e) {
+                    showError(`Failed to open endpoint: ${e?.message || e}`);
+                  }
+                }}
+                title={(Array.isArray(row.hosts) && row.hosts.length) ? 'Open first host in browser' : 'No hosts available'}
+                style={{
+                  padding: '4px 10px',
+                  fontSize: 12,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  borderRadius: 4,
+                  border: '1px solid #353a42',
+                  background: '#2d323b',
+                  color: '#fff',
+                  cursor: (Array.isArray(row.hosts) && row.hosts.length) ? 'pointer' : 'not-allowed',
+                  opacity: (Array.isArray(row.hosts) && row.hosts.length) ? 1 : 0.6,
+                }}
+              >
+                Test Endpoint
+              </button>
+              <ResourceActions resourceType="ingress" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("ingress", ns, n);}} />
+            </div>
+          }
+        />
         {/* Main content */}
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
@@ -80,6 +124,12 @@ function renderPanelContent(row, tab) {
   }
   if (tab === 'rules') {
     return <IngressRulesTab namespace={row.namespace} ingressName={row.name} hosts={row.hosts} />;
+  }
+  if (tab === 'tls') {
+    return <IngressTLSTab namespace={row.namespace} ingressName={row.name} />;
+  }
+  if (tab === 'services') {
+    return <IngressBackendServicesTab namespace={row.namespace} ingressName={row.name} />;
   }
   if (tab === 'events') {
     return <ResourceEventsTab namespace={row.namespace} resourceKind="Ingress" resourceName={row.name} />;

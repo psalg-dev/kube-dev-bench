@@ -8,6 +8,8 @@ import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import FilesTab from '../../../layout/bottompanel/FilesTab.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import PVCBoundPVTab from './PVCBoundPVTab.jsx';
+import PVCConsumersTab from './PVCConsumersTab.jsx';
 
 export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
@@ -129,6 +131,8 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
   const bottomTabs = [
     { key: 'summary', label: 'Summary' },
+    { key: 'boundpv', label: 'Bound PV' },
+    { key: 'consumers', label: 'Consumers' },
     { key: 'events', label: 'Events' },
     { key: 'yaml', label: 'YAML' },
     { key: 'files', label: 'Files' },
@@ -202,6 +206,12 @@ status:
     }
     if (tab === 'events') {
       return <ResourceEventsTab namespace={row.namespace} resourceKind="PersistentVolumeClaim" resourceName={row.name} />;
+    }
+    if (tab === 'boundpv') {
+      return <PVCBoundPVTab namespace={row.namespace} pvcName={row.name} pvName={row.volumeName} />;
+    }
+    if (tab === 'consumers') {
+      return <PVCConsumersTab namespace={row.namespace} pvcName={row.name} />;
     }
     if (tab === 'files') {
       return <FilesTab namespace={row.namespace} pvcName={row.name} />;

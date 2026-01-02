@@ -5,6 +5,7 @@ import YamlTab from '../../../layout/bottompanel/YamlTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
 import StatefulSetPVCsTab from './StatefulSetPVCsTab';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -23,6 +24,7 @@ const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'pods', label: 'Pods' },
   { key: 'pvcs', label: 'PVCs' },
+  { key: 'logs', label: 'Logs' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -85,6 +87,15 @@ function renderPanelContent(row, tab) {
       <StatefulSetPVCsTab
         namespace={row.namespace}
         statefulSetName={row.name}
+      />
+    );
+  }
+  if (tab === 'logs') {
+    return (
+      <AggregateLogsTab
+        title="StatefulSet Logs"
+        reloadKey={`${row.namespace}/${row.name}`}
+        loadLogs={() => AppAPI.GetStatefulSetLogs(row.namespace, row.name)}
       />
     );
   }
