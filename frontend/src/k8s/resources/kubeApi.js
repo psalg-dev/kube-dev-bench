@@ -30,6 +30,7 @@ import {
   ResumeCronJob,
   StartJobFromCronJob,
   ScaleResource,
+  ResizePersistentVolumeClaim,
   // Proxy configuration
   GetProxyConfig,
   SetProxyConfig,
@@ -66,6 +67,7 @@ export {
   ResumeCronJob,
   StartJobFromCronJob,
   ScaleResource,
+  ResizePersistentVolumeClaim,
   // Proxy configuration
   GetProxyConfig,
   SetProxyConfig,

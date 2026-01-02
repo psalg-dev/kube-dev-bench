@@ -42,7 +42,11 @@ export function ExecCommand(arg1:string):Promise<void>;
 
 export function GetConfigMapDataByName(arg1:string,arg2:string):Promise<Array<app.ConfigMapDataInfo>>;
 
+export function GetConfigMapConsumers(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+
 export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
+
+export function UpdateConfigMapDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function GetConnectionStatus():Promise<Record<string, any>>;
 
@@ -54,17 +58,27 @@ export function GetCurrentConfig():Promise<app.AppConfig>;
 
 export function GetDaemonSetDetail(arg1:string,arg2:string):Promise<app.DaemonSetDetail>;
 
+export function GetDaemonSetLogs(arg1:string,arg2:string):Promise<string>;
+
+export function GetDaemonSetNodeCoverage(arg1:string,arg2:string):Promise<Record<string, any>>;
+
 export function GetDaemonSets(arg1:string):Promise<Array<app.DaemonSetInfo>>;
 
 export function GetDeploymentDetail(arg1:string,arg2:string):Promise<app.DeploymentDetail>;
+
+export function GetDeploymentLogs(arg1:string,arg2:string):Promise<string>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
 
 export function GetIngressDetail(arg1:string,arg2:string):Promise<app.IngressDetail>;
 
+export function GetIngressTLSSummary(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+
 export function GetIngresses(arg1:string):Promise<Array<app.IngressInfo>>;
 
 export function GetJobDetail(arg1:string,arg2:string):Promise<app.JobDetail>;
+
+export function GetJobLogs(arg1:string,arg2:string):Promise<string>;
 
 export function GetJobs(arg1:string):Promise<Array<jobs.JobInfo>>;
 
@@ -79,6 +93,12 @@ export function GetNamespaces():Promise<Array<string>>;
 export function GetOverview(arg1:string):Promise<app.OverviewInfo>;
 
 export function GetPVCFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
+
+export function GetPVCConsumers(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+
+export function ResizePersistentVolumeClaim(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function GetServiceSummary(arg1:string,arg2:string):Promise<Record<string, any>>;
 
 export function GetPersistentVolumeClaims(arg1:string):Promise<Array<app.PersistentVolumeClaimInfo>>;
 
@@ -134,7 +154,13 @@ export function GetSecretDataByName(arg1:string,arg2:string):Promise<Array<app.S
 
 export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
 
+export function GetSecretConsumers(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+
+export function UpdateSecretDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
 export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.StatefulSetDetail>;
+
+export function GetStatefulSetLogs(arg1:string,arg2:string):Promise<string>;
 
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
@@ -155,6 +181,8 @@ export function ResizeShellSession(arg1:string,arg2:number,arg3:number):Promise<
 export function RestartDaemonSet(arg1:string,arg2:string):Promise<void>;
 
 export function RestartDeployment(arg1:string,arg2:string):Promise<void>;
+
+export function RollbackDeploymentToRevision(arg1:string,arg2:string,arg3:number):Promise<void>;
 
 export function RestartPod(arg1:string,arg2:string):Promise<void>;
 

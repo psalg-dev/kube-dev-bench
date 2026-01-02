@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { showError, showSuccess } from '../../../notification';
 
 // Simple syntax detection for common formats
 const detectSyntax = (content, key) => {
@@ -34,6 +35,9 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedKeys, setExpandedKeys] = useState(new Set());
+  const [editingKey, setEditingKey] = useState(null);
+  const [draftValue, setDraftValue] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!namespace || !configMapName) return;
@@ -68,6 +72,31 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
     });
   };
 
+  const beginEdit = (key, value) => {
+    setEditingKey(key);
+    setDraftValue(String(value ?? ''));
+  };
+
+  const cancelEdit = () => {
+    setEditingKey(null);
+    setDraftValue('');
+    setSaving(false);
+  };
+
+  const saveEdit = async () => {
+    if (!editingKey) return;
+    setSaving(true);
+    try {
+      await AppAPI.UpdateConfigMapDataKey(namespace, configMapName, editingKey, draftValue);
+      setData(prev => prev.map(it => (it.key === editingKey ? { ...it, value: draftValue, size: draftValue.length } : it)));
+      showSuccess(`ConfigMap '${configMapName}' updated (${editingKey})`);
+      cancelEdit();
+    } catch (e) {
+      showError(`Failed to update ConfigMap '${configMapName}': ${e?.message || e}`);
+      setSaving(false);
+    }
+  };
+
   const formatSize = (bytes) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -97,6 +126,8 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
         const displayValue = item.isBinary
           ? `[Binary data - ${formatSize(item.size)}]`
           : item.value;
+        const isEditing = editingKey === item.key;
+        const canEdit = !item.isBinary;
 
         return (
           <div key={item.key} style={{ marginBottom: 8, border: '1px solid #30363d', borderRadius: 6 }}>
@@ -144,20 +175,104 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
               </span>
             </div>
             {isExpanded && (
-              <pre style={{
-                margin: 0,
-                padding: 12,
-                backgroundColor: '#0d1117',
-                overflow: 'auto',
-                maxHeight: 400,
-                fontSize: 12,
-                fontFamily: 'monospace',
-                color: 'var(--gh-text, #c9d1d9)',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-all'
-              }}>
-                {displayValue}
-              </pre>
+              <div style={{ backgroundColor: '#0d1117' }}>
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid #21262d', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  {!isEditing && (
+                    <button
+                      type="button"
+                      disabled={!canEdit}
+                      onClick={() => beginEdit(item.key, item.value)}
+                      style={{
+                        padding: '4px 10px',
+                        fontSize: 12,
+                        borderRadius: 4,
+                        border: '1px solid #353a42',
+                        background: canEdit ? '#1f6feb' : '#2d323b',
+                        borderColor: canEdit ? '#388bfd' : '#353a42',
+                        color: '#fff',
+                        opacity: canEdit ? 1 : 0.6,
+                        cursor: canEdit ? 'pointer' : 'not-allowed'
+                      }}
+                      title={canEdit ? 'Edit this key' : 'Binary keys cannot be edited'}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {isEditing && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={cancelEdit}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: 12,
+                          borderRadius: 4,
+                          border: '1px solid #353a42',
+                          background: '#2d323b',
+                          color: '#fff',
+                          opacity: saving ? 0.6 : 1,
+                          cursor: saving ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={saving}
+                        onClick={saveEdit}
+                        style={{
+                          padding: '4px 10px',
+                          fontSize: 12,
+                          borderRadius: 4,
+                          border: '1px solid #353a42',
+                          background: '#238636',
+                          borderColor: '#2ea44f',
+                          color: '#fff',
+                          opacity: saving ? 0.6 : 1,
+                          cursor: saving ? 'not-allowed' : 'pointer'
+                        }}
+                      >
+                        {saving ? 'Saving…' : 'Save'}
+                      </button>
+                    </>
+                  )}
+                </div>
+                {!isEditing ? (
+                  <pre style={{
+                    margin: 0,
+                    padding: 12,
+                    overflow: 'auto',
+                    maxHeight: 400,
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    color: 'var(--gh-text, #c9d1d9)',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all'
+                  }}>
+                    {displayValue}
+                  </pre>
+                ) : (
+                  <textarea
+                    value={draftValue}
+                    onChange={(e) => setDraftValue(e.target.value)}
+                    style={{
+                      width: '100%',
+                      minHeight: 220,
+                      maxHeight: 400,
+                      resize: 'vertical',
+                      background: '#0d1117',
+                      color: 'var(--gh-text, #c9d1d9)',
+                      border: 'none',
+                      outline: 'none',
+                      padding: 12,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                )}
+              </div>
             )}
           </div>
         );

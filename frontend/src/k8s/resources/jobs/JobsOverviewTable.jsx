@@ -4,6 +4,7 @@ import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import JobPodsTab from './JobPodsTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -24,6 +25,7 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'pods', label: 'Pods' },
+  { key: 'logs', label: 'Logs' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -81,6 +83,15 @@ function renderPanelContent(row, tab) {
   }
   if (tab === 'pods') {
     return <JobPodsTab namespace={row.namespace} jobName={row.name} />;
+  }
+  if (tab === 'logs') {
+    return (
+      <AggregateLogsTab
+        title="Job Logs"
+        reloadKey={`${row.namespace}/${row.name}`}
+        loadLogs={() => AppAPI.GetJobLogs(row.namespace, row.name)}
+      />
+    );
   }
   if (tab === 'events') {
     return (

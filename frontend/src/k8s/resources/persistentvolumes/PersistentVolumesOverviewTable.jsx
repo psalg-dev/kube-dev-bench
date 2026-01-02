@@ -8,6 +8,8 @@ import PVBoundPVCTab from './PVBoundPVCTab';
 import { showResourceOverlay } from '../../../resource-overlay';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import PVAnnotationsTab from './PVAnnotationsTab.jsx';
+import PVCapacityUsageTab from './PVCapacityUsageTab.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -25,6 +27,8 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'boundpvc', label: 'Bound PVC' },
+  { key: 'annotations', label: 'Annotations' },
+  { key: 'usage', label: 'Capacity Usage' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -113,6 +117,12 @@ function renderPanelContent(row, tab) {
   }
   if (tab === 'boundpvc') {
     return <PVBoundPVCTab pvName={row.name} claim={row.claim} />;
+  }
+  if (tab === 'annotations') {
+    return <PVAnnotationsTab annotations={row.annotations || row.Annotations || row.metadata?.annotations || {}} />;
+  }
+  if (tab === 'usage') {
+    return <PVCapacityUsageTab pvName={row.name} />;
   }
   if (tab === 'events') {
     return <ResourceEventsTab namespace="" resourceKind="PersistentVolume" resourceName={row.name} />;

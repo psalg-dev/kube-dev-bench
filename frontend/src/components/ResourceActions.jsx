@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { showSuccess, showError, showWarning } from '../notification';
-import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob, ScaleResource } from '../k8s/resources/kubeApi';
+import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob, ScaleResource, ResizePersistentVolumeClaim } from '../k8s/resources/kubeApi';
 
 const SCALE_VISIBLE = new Set(['deployment', 'statefulset', 'replicaset', 'daemonset']);
 const SCALE_EDITABLE = new Set(['deployment', 'statefulset', 'replicaset']);
@@ -22,12 +22,16 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
   const [scaleMode, setScaleMode] = useState(false);
   const [scaleValue, setScaleValue] = useState(() => sanitizeReplicaString(replicaCount));
   const [scaleBusy, setScaleBusy] = useState(false);
+  const [resizeMode, setResizeMode] = useState(false);
+  const [resizeValue, setResizeValue] = useState('');
+  const [resizeBusy, setResizeBusy] = useState(false);
   const CONFIRM_WINDOW = 3500; // ms
   const hasRestart = typeof onRestart === 'function';
   const hasDelete = typeof onDelete === 'function';
   const normalizedType = (resourceType || '').toLowerCase();
   const showScaleButton = SCALE_VISIBLE.has(normalizedType);
   const canEditScale = showScaleButton && SCALE_EDITABLE.has(normalizedType) && typeof namespace === 'string' && namespace && typeof name === 'string' && name;
+  const canResizePVC = normalizedType === 'pvc' && typeof namespace === 'string' && namespace && typeof name === 'string' && name;
 
   // Reset confirmation automatically when window expires
   useEffect(() => {
@@ -41,6 +45,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
     setScaleMode(false);
     setScaleBusy(false);
     setScaleValue(sanitizeReplicaString(replicaCount));
+    setResizeMode(false);
+    setResizeBusy(false);
+    setResizeValue('');
   }, [name, namespace, replicaCount]);
 
   useEffect(() => {
@@ -136,6 +143,26 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
       showError(`Failed to scale ${resourceType} '${name}': ${err?.message || err}`);
     } finally {
       setScaleBusy(false);
+    }
+  };
+
+  const submitResizePVC = async () => {
+    if (!canResizePVC || disabled) return;
+    const nextSize = String(resizeValue || '').trim();
+    if (!nextSize) {
+      showError('Enter a size (e.g. 5Gi)');
+      return;
+    }
+    setResizeBusy(true);
+    try {
+      await ResizePersistentVolumeClaim(namespace, name, nextSize);
+      showSuccess(`Resize requested for PVC '${name}' to ${nextSize}`);
+      setResizeMode(false);
+      setResizeValue('');
+    } catch (err) {
+      showError(`Failed to resize PVC '${name}': ${err?.message || err}`);
+    } finally {
+      setResizeBusy(false);
     }
   };
 
@@ -239,6 +266,54 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           <span aria-hidden="true" style={{ lineHeight: 1 }}>🗑</span>
           {deletePending ? 'Confirm' : 'Delete'}
         </button>
+      )}
+      {canResizePVC && !resizeMode && (
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() => setResizeMode(true)}
+          title={`Request storage expansion for PVC '${name}'`}
+          style={{ ...baseBtn, background: '#1f6feb', borderColor: '#388bfd', color: '#fff', opacity: disabled ? 0.6 : 1 }}
+        >
+          Resize
+        </button>
+      )}
+      {canResizePVC && resizeMode && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+            <span>Size</span>
+            <input
+              type="text"
+              value={resizeValue}
+              onChange={(e) => setResizeValue(e.target.value)}
+              placeholder="e.g. 5Gi"
+              style={{
+                width: 110,
+                padding: '4px 6px',
+                borderRadius: 4,
+                border: '1px solid #353a42',
+                background: '#0d1117',
+                color: '#fff'
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={submitResizePVC}
+            disabled={disabled || resizeBusy}
+            style={{ ...baseBtn, background: '#238636', borderColor: '#2ea043', color: '#fff' }}
+          >
+            {resizeBusy ? 'Applying…' : 'Apply'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setResizeMode(false); setResizeValue(''); }}
+            disabled={resizeBusy}
+            style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+          >
+            Cancel
+          </button>
+        </div>
       )}
           {showScaleButton && !scaleMode && (
             <button

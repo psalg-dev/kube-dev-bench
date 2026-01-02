@@ -78,8 +78,16 @@ export function GetConfigMapDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapDataByName'](arg1, arg2);
 }
 
+export function GetConfigMapConsumers(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapConsumers'](arg1, arg2);
+}
+
 export function GetConfigMaps(arg1) {
   return window['go']['main']['App']['GetConfigMaps'](arg1);
+}
+
+export function UpdateConfigMapDataKey(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['UpdateConfigMapDataKey'](arg1, arg2, arg3, arg4);
 }
 
 export function GetConnectionStatus() {
@@ -102,12 +110,24 @@ export function GetDaemonSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetDaemonSetDetail'](arg1, arg2);
 }
 
+export function GetDaemonSetLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetDaemonSetLogs'](arg1, arg2);
+}
+
+export function GetDaemonSetNodeCoverage(arg1, arg2) {
+  return window['go']['main']['App']['GetDaemonSetNodeCoverage'](arg1, arg2);
+}
+
 export function GetDaemonSets(arg1) {
   return window['go']['main']['App']['GetDaemonSets'](arg1);
 }
 
 export function GetDeploymentDetail(arg1, arg2) {
   return window['go']['main']['App']['GetDeploymentDetail'](arg1, arg2);
+}
+
+export function GetDeploymentLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetDeploymentLogs'](arg1, arg2);
 }
 
 export function GetDeployments(arg1) {
@@ -118,12 +138,20 @@ export function GetIngressDetail(arg1, arg2) {
   return window['go']['main']['App']['GetIngressDetail'](arg1, arg2);
 }
 
+export function GetIngressTLSSummary(arg1, arg2) {
+  return window['go']['main']['App']['GetIngressTLSSummary'](arg1, arg2);
+}
+
 export function GetIngresses(arg1) {
   return window['go']['main']['App']['GetIngresses'](arg1);
 }
 
 export function GetJobDetail(arg1, arg2) {
   return window['go']['main']['App']['GetJobDetail'](arg1, arg2);
+}
+
+export function GetJobLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetJobLogs'](arg1, arg2);
 }
 
 export function GetJobs(arg1) {
@@ -140,6 +168,10 @@ export function GetKubeContexts() {
 
 export function GetKubeContextsFromFile(arg1) {
   return window['go']['main']['App']['GetKubeContextsFromFile'](arg1);
+}
+
+export function GetPVCConsumers(arg1, arg2) {
+  return window['go']['main']['App']['GetPVCConsumers'](arg1, arg2);
 }
 
 export function GetNamespaces() {
@@ -234,6 +266,14 @@ export function GetReplicaSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetDetail'](arg1, arg2);
 }
 
+export function GetServiceSummary(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceSummary'](arg1, arg2);
+}
+
+export function ResizePersistentVolumeClaim(arg1, arg2, arg3) {
+  return window['go']['main']['App']['ResizePersistentVolumeClaim'](arg1, arg2, arg3);
+}
+
 export function GetReplicaSets(arg1) {
   return window['go']['main']['App']['GetReplicaSets'](arg1);
 }
@@ -262,8 +302,20 @@ export function GetSecrets(arg1) {
   return window['go']['main']['App']['GetSecrets'](arg1);
 }
 
+export function GetSecretConsumers(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretConsumers'](arg1, arg2);
+}
+
+export function UpdateSecretDataKey(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['UpdateSecretDataKey'](arg1, arg2, arg3, arg4);
+}
+
 export function GetStatefulSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetStatefulSetDetail'](arg1, arg2);
+}
+
+export function GetStatefulSetLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetStatefulSetLogs'](arg1, arg2);
 }
 
 export function GetStatefulSets(arg1) {
@@ -304,6 +356,10 @@ export function RestartDaemonSet(arg1, arg2) {
 
 export function RestartDeployment(arg1, arg2) {
   return window['go']['main']['App']['RestartDeployment'](arg1, arg2);
+}
+
+export function RollbackDeploymentToRevision(arg1, arg2, arg3) {
+  return window['go']['main']['App']['RollbackDeploymentToRevision'](arg1, arg2, arg3);
 }
 
 export function RestartPod(arg1, arg2) {

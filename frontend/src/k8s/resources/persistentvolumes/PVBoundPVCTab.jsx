@@ -24,6 +24,18 @@ export default function PVBoundPVCTab({ pvName, claim }) {
 
   const claimInfo = parseClaimInfo();
 
+  const openPVC = () => {
+    if (!claimInfo.bound || !claimInfo.namespace || !claimInfo.pvcName) return;
+    const event = new CustomEvent('navigate-to-resource', {
+      detail: {
+        resource: 'PersistentVolumeClaim',
+        name: claimInfo.pvcName,
+        namespace: claimInfo.namespace,
+      }
+    });
+    window.dispatchEvent(event);
+  };
+
   if (!claimInfo.bound) {
     return (
       <div className="pv-bound-pvc-tab">
@@ -60,6 +72,25 @@ export default function PVBoundPVCTab({ pvName, claim }) {
             <span className="pvc-value code">{claim}</span>
           </div>
         </div>
+      </div>
+
+      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+        <button
+          type="button"
+          onClick={openPVC}
+          style={{
+            padding: '6px 10px',
+            fontSize: 12,
+            borderRadius: 4,
+            border: '1px solid #353a42',
+            background: '#2d323b',
+            color: '#fff',
+            cursor: 'pointer'
+          }}
+          title="Open bound PersistentVolumeClaim"
+        >
+          Open PVC
+        </button>
       </div>
 
       <div className="info-section">

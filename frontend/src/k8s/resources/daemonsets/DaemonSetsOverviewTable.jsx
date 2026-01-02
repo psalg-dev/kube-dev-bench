@@ -4,6 +4,8 @@ import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
+import DaemonSetNodeCoverageTab from './DaemonSetNodeCoverageTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -21,6 +23,8 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'pods', label: 'Pods' },
+  { key: 'coverage', label: 'Node Coverage' },
+  { key: 'logs', label: 'Logs' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
 ];
@@ -76,6 +80,18 @@ function renderPanelContent(row, tab) {
         namespace={row.namespace}
         resourceKind="DaemonSet"
         resourceName={row.name}
+      />
+    );
+  }
+  if (tab === 'coverage') {
+    return <DaemonSetNodeCoverageTab namespace={row.namespace} daemonSetName={row.name} />;
+  }
+  if (tab === 'logs') {
+    return (
+      <AggregateLogsTab
+        title="DaemonSet Logs"
+        reloadKey={`${row.namespace}/${row.name}`}
+        loadLogs={() => AppAPI.GetDaemonSetLogs(row.namespace, row.name)}
       />
     );
   }

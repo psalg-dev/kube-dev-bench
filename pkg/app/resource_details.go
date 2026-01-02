@@ -247,6 +247,20 @@ func (a *App) GetCronJobDetail(namespace, cronJobName string) (*CronJobDetail, e
 		NextRuns: []string{},
 	}
 
+	// Compute next scheduled runs (best-effort)
+	if cronJobName != "" {
+		cj, err := clientset.BatchV1().CronJobs(namespace).Get(a.ctx, cronJobName, metav1.GetOptions{})
+		if err == nil {
+			suspend := false
+			if cj.Spec.Suspend != nil {
+				suspend = *cj.Spec.Suspend
+			}
+			if !suspend && cj.Spec.Schedule != "" {
+				detail.NextRuns = computeNextRuns(cj.Spec.Schedule, time.Now(), 5)
+			}
+		}
+	}
+
 	// Get all jobs in the namespace and filter by owner
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {

@@ -6,7 +6,9 @@ import (
 	"time"
 
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
 )
 
@@ -37,6 +39,58 @@ func (a *App) DeleteDeployment(namespace, name string) error {
 		return err
 	}
 	return clientset.AppsV1().Deployments(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+}
+
+// RollbackDeploymentToRevision updates the Deployment's pod template to match a previous ReplicaSet revision.
+// This is a best-effort rollback similar to kubectl rollout undo.
+func (a *App) RollbackDeploymentToRevision(namespace, name string, revision int64) error {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return err
+	}
+	dep, err := clientset.AppsV1().Deployments(namespace).Get(a.ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	if dep.Spec.Selector == nil {
+		return fmt.Errorf("deployment has no selector")
+	}
+	selector := labels.SelectorFromSet(dep.Spec.Selector.MatchLabels)
+	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return err
+	}
+
+	var foundTemplate *corev1.PodTemplateSpec
+	for _, rs := range rsList.Items {
+		// Ensure RS is owned by the deployment
+		owned := false
+		for _, ref := range rs.OwnerReferences {
+			if ref.Kind == "Deployment" && ref.Name == name {
+				owned = true
+				break
+			}
+		}
+		if !owned {
+			continue
+		}
+		rsRev := int64(0)
+		if rev, ok := rs.Annotations["deployment.kubernetes.io/revision"]; ok {
+			fmt.Sscanf(rev, "%d", &rsRev)
+		}
+		if rsRev == revision {
+			tpl := rs.Spec.Template
+			foundTemplate = &tpl
+			break
+		}
+	}
+	if foundTemplate == nil {
+		return fmt.Errorf("revision %d not found", revision)
+	}
+
+	dep.Spec.Template = *foundTemplate
+	_, err = clientset.AppsV1().Deployments(namespace).Update(a.ctx, dep, metav1.UpdateOptions{})
+	return err
 }
 
 // --- StatefulSets ---
