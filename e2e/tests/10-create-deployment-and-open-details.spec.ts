@@ -9,6 +9,7 @@ function uniqueName(prefix: string) {
 }
 
 test('creates a Deployment via plus overlay and opens bottom panel', async ({ page, contextName, namespace }) => {
+  test.setTimeout(120_000);
   const { sidebar } = await bootstrapApp({ page, contextName, namespace });
   await sidebar.goToSection('deployments');
 

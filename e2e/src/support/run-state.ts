@@ -10,6 +10,8 @@ export type RunState = {
   sharedBaseURL?: string;
   sharedWailsPid?: number;
   sharedVitePid?: number;
+  proxyBaseURL?: string;
+  proxyPid?: number;
 };
 
 const stateDir = path.join(e2eRoot, '.run');

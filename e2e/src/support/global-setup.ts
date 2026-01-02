@@ -5,6 +5,7 @@ import { ensureKindCluster } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
+import { ensureProxyServer } from './proxy.js';
 
 async function isHttpOk(url: string): Promise<boolean> {
   try {
@@ -36,6 +37,10 @@ export default async function globalSetup() {
 
   const kind = await ensureKindCluster(clusterName);
 
+  // Start a local proxy suitable for real cluster connections.
+  // Some E2Es validate proxy behavior and require a working CONNECT proxy.
+  const proxy = await ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 });
+
   // Shared-server mode:
   // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
   // - CI/Linux: per-worker `wails dev` startup can exceed the 30s per-test timeout.
@@ -62,7 +67,7 @@ export default async function globalSetup() {
           port: 34115,
           homeDir,
           // Allow more time in CI/global setup while keeping per-test timeouts strict.
-          readyTimeoutMs: process.env.CI ? 120_000 : 30_000,
+          readyTimeoutMs: process.env.CI ? 120_000 : 90_000,
         });
 
     await writeRunState({
@@ -70,6 +75,8 @@ export default async function globalSetup() {
       clusterName: kind.clusterName,
       contextName: kind.contextName,
       kubeconfigYaml: kind.kubeconfigYaml,
+      proxyBaseURL: proxy.baseURL,
+      proxyPid: proxy.pid,
       sharedBaseURL: alreadyRunning ? sharedBaseURL : instance!.baseURL,
       sharedWailsPid: alreadyRunning ? undefined : (instance!.process.pid ?? undefined),
     });
@@ -79,6 +86,8 @@ export default async function globalSetup() {
       clusterName: kind.clusterName,
       contextName: kind.contextName,
       kubeconfigYaml: kind.kubeconfigYaml,
+      proxyBaseURL: proxy.baseURL,
+      proxyPid: proxy.pid,
     });
   }
 

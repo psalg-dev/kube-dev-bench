@@ -53,6 +53,17 @@ export async function startWailsDev(opts: {
   // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
   const baseURL = `http://127.0.0.1:${port}`;
 
+  // Per-worker isolation: Wails/Go config dirs on Windows use APPDATA/LOCALAPPDATA, not HOME.
+  // If these aren't isolated, settings (like proxy) can leak between parallel workers.
+  const appDataDir = path.join(homeDir, 'AppData', 'Roaming');
+  const localAppDataDir = path.join(homeDir, 'AppData', 'Local');
+  const tmpDir = path.join(homeDir, 'tmp');
+  await Promise.all([
+    fsp.mkdir(appDataDir, { recursive: true }),
+    fsp.mkdir(localAppDataDir, { recursive: true }),
+    fsp.mkdir(tmpDir, { recursive: true }),
+  ]);
+
   const logDir = path.join(repoRoot, 'e2e', 'test-results', 'wails-logs');
   await fsp.mkdir(logDir, { recursive: true });
   const logPath = path.join(logDir, `wails-${port}.log`);
@@ -87,6 +98,12 @@ export async function startWailsDev(opts: {
       ...process.env,
       HOME: homeDir,
       USERPROFILE: homeDir,
+      APPDATA: appDataDir,
+      LOCALAPPDATA: localAppDataDir,
+      TEMP: tmpDir,
+      TMP: tmpDir,
+      XDG_CONFIG_HOME: path.join(homeDir, '.config'),
+      XDG_DATA_HOME: path.join(homeDir, '.local', 'share'),
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
