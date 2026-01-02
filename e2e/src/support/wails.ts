@@ -8,8 +8,6 @@ export type WailsDevInstance = {
   port: number;
   baseURL: string;
   process: ChildProcess;
-  vitePort: number;
-  viteProcess: ChildProcess;
 };
 
 async function waitForHttpOk(url: string, timeoutMs: number) {
@@ -52,12 +50,8 @@ export async function startWailsDev(opts: {
 }) : Promise<WailsDevInstance> {
   const { repoRoot, port, homeDir } = opts;
   const readyTimeoutMs = opts.readyTimeoutMs ?? 30_000;
-  const baseURL = `http://localhost:${port}`;
-
-  // Use a per-worker Vite dev server to avoid Wails trying to spawn/detect Vite on shared ports.
-  const workerOffset = port - 34115;
-  const vitePort = 5173 + workerOffset;
-  const viteURL = `http://127.0.0.1:${vitePort}`;
+  // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
+  const baseURL = `http://127.0.0.1:${port}`;
 
   const logDir = path.join(repoRoot, 'e2e', 'test-results', 'wails-logs');
   await fsp.mkdir(logDir, { recursive: true });
@@ -67,27 +61,16 @@ export async function startWailsDev(opts: {
   logStream.write(`\n=== worker (port=${port}) ${new Date().toISOString()} ===\n`);
   logStream.write(`cwd: ${repoRoot}\n`);
 
-  // Start Vite explicitly
-  const npmArgs = ['run', 'dev', '--', '--host', '127.0.0.1', '--port', String(vitePort), '--strictPort'];
-  const viteCmd = process.platform === 'win32' ? 'cmd.exe' : 'npm';
-  const viteArgs = process.platform === 'win32' ? ['/c', 'npm', ...npmArgs] : npmArgs;
-  logStream.write(`vite: ${viteCmd} ${viteArgs.join(' ')} (cwd=frontend)\n`);
-
-  const vite = spawn(viteCmd, viteArgs, {
-    cwd: path.join(repoRoot, 'frontend'),
-    env: { ...process.env },
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  vite.stdout?.on('data', (d: Buffer) => logStream.write(d));
-  vite.stderr?.on('data', (d: Buffer) => logStream.write(d));
+  // Serve the already-built frontend bundle to avoid frontend dev-server port conflicts.
+  // The global setup ensures `frontend/dist/index.html` exists.
 
   const args = [
     'dev',
     '-s',
+    '-assetdir',
+    path.join('frontend', 'dist'),
     '-devserver',
     `127.0.0.1:${port}`,
-    '-frontenddevserverurl',
-    viteURL,
     '-noreload',
     '-nogorebuild',
     '-skipbindings',
@@ -118,34 +101,22 @@ export async function startWailsDev(opts: {
   });
 
   try {
-    await waitForHttpOk(viteURL, readyTimeoutMs);
     await waitForHttpOk(baseURL, readyTimeoutMs);
   } catch (err) {
     killProcessTreeBestEffort(child);
-    killProcessTreeBestEffort(vite);
     try { logStream.end(`\n=== worker failed to become ready (port=${port}) ===\n`); } catch {}
     throw err;
   }
 
-  return { port, baseURL, process: child, vitePort, viteProcess: vite };
+  return { port, baseURL, process: child };
 }
 
 export async function stopWailsDev(instance: WailsDevInstance) {
   const child = instance.process;
-  const vite = instance.viteProcess;
 
   await new Promise<void>((resolve) => {
-    let closed = 0;
-    const maybeResolve = () => {
-      closed += 1;
-      if (closed >= 2) resolve();
-    };
-
-    if (child && !child.killed) child.once('close', () => maybeResolve());
-    else maybeResolve();
-
-    if (vite && !vite.killed) vite.once('close', () => maybeResolve());
-    else maybeResolve();
+    if (child && !child.killed) child.once('close', () => resolve());
+    else resolve();
 
     try {
       if (child && !child.killed) child.kill('SIGTERM');
@@ -153,15 +124,8 @@ export async function stopWailsDev(instance: WailsDevInstance) {
       // ignore
     }
 
-    try {
-      if (vite && !vite.killed) vite.kill('SIGTERM');
-    } catch {
-      // ignore
-    }
-
     setTimeout(() => {
       killProcessTreeBestEffort(child);
-      killProcessTreeBestEffort(vite);
       resolve();
     }, 5_000);
   });

@@ -47,9 +47,9 @@ export default async function globalSetup() {
 
     // If a previous run was interrupted (Ctrl+C), the shared server may still be running.
     // Reuse it instead of starting a new one and hanging on port conflicts.
-    const sharedBaseURL = 'http://localhost:34115';
-    const sharedViteURL = 'http://127.0.0.1:5173';
-    const alreadyRunning = (await isHttpOk(sharedBaseURL)) && (await isHttpOk(sharedViteURL));
+    // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
+    const sharedBaseURL = 'http://127.0.0.1:34115';
+    const alreadyRunning = await isHttpOk(sharedBaseURL);
 
     const instance = alreadyRunning
       ? null
@@ -68,7 +68,6 @@ export default async function globalSetup() {
       kubeconfigYaml: kind.kubeconfigYaml,
       sharedBaseURL: alreadyRunning ? sharedBaseURL : instance!.baseURL,
       sharedWailsPid: alreadyRunning ? undefined : (instance!.process.pid ?? undefined),
-      sharedVitePid: alreadyRunning ? undefined : (instance!.viteProcess.pid ?? undefined),
     });
   } else {
     await writeRunState({
