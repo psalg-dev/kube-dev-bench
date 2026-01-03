@@ -9,6 +9,7 @@ import HelmHistoryTab from './HelmHistoryTab.jsx';
 import HelmValuesTab from './HelmValuesTab.jsx';
 import HelmNotesTab from './HelmNotesTab.jsx';
 import HelmActions from './HelmActions.jsx';
+import HelmResourcesTab from './HelmResourcesTab.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -26,6 +27,7 @@ const bottomTabs = [
   { key: 'values', label: 'Values' },
   { key: 'history', label: 'History' },
   { key: 'notes', label: 'Notes' },
+  { key: 'resources', label: 'Resources' },
   { key: 'manifest', label: 'Manifest' },
 ];
 
@@ -103,6 +105,9 @@ function renderPanelContent(row, tab, onRefresh) {
   }
   if (tab === 'notes') {
     return <HelmNotesTab namespace={row.namespace} releaseName={row.name} />;
+  }
+  if (tab === 'resources') {
+    return <HelmResourcesTab namespace={row.namespace} releaseName={row.name} />;
   }
   if (tab === 'manifest') {
     return <HelmManifestTab namespace={row.namespace} releaseName={row.name} />;

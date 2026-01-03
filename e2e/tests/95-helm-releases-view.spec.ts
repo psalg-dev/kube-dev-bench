@@ -154,7 +154,7 @@ test.describe('Helm Release Operations', () => {
       await panel.expectVisible();
 
       // Verify bottom panel tabs exist
-      const expectedTabs = ['Summary', 'Values', 'History', 'Notes', 'Manifest'];
+      const expectedTabs = ['Summary', 'Values', 'History', 'Notes', 'Resources', 'Manifest'];
       await panel.expectTabs(expectedTabs);
 
       // Click through each tab and verify no errors
@@ -183,15 +183,57 @@ test.describe('Helm Release Operations', () => {
           const rows = historyTable.locator('tbody tr');
           await expect.poll(async () => await rows.count(), { timeout: 30_000 }).toBeGreaterThan(0);
           await expect(rows.first().locator('td').first()).toContainText(/^1/i, { timeout: 30_000 });
+        } else if (tab === 'Resources') {
+          // Resources tab should list the ConfigMap rendered by the local chart.
+          const resourcesTable = panel.root.locator('table');
+          await expect(resourcesTable).toBeVisible({ timeout: 30_000 });
+          await expect(resourcesTable.locator('thead th', { hasText: /^Health$/ })).toBeVisible({ timeout: 30_000 });
+          await expect(resourcesTable.locator('thead th', { hasText: /^Kind$/ })).toBeVisible({ timeout: 30_000 });
+          await expect(resourcesTable.locator('thead th', { hasText: /^Name$/ })).toBeVisible({ timeout: 30_000 });
+
+          const rows = resourcesTable.locator('tbody tr');
+          await expect.poll(async () => await rows.count(), { timeout: 30_000 }).toBeGreaterThan(0);
+
+          const expectedResourceName = `${releaseName}-e2e`;
+          await expect(resourcesTable).toContainText('ConfigMap', { timeout: 30_000 });
+          await expect(resourcesTable).toContainText(expectedResourceName, { timeout: 30_000 });
         } else if (tab === 'Manifest') {
           // Manifest tab should show YAML content
           await panel.expectCodeMirrorVisible();
         }
       }
 
+      // Clicking a resource row should navigate to the matching resource view and open its bottom panel.
+      // Do this after the Helm tab assertions, since it switches the current section/panel.
+      await panel.clickTab('Resources');
+      const expectedResourceName = `${releaseName}-e2e`;
+      const resourcesTable = panel.root.locator('table');
+      await expect(resourcesTable).toBeVisible({ timeout: 30_000 });
+      await resourcesTable.locator('tbody tr').filter({ hasText: expectedResourceName }).first().click();
+
+      await expect(page.locator('h2.overview-title')).toHaveText(/config maps/i, { timeout: 60_000 });
+
+      const cmPanel = new BottomPanel(page);
+      await cmPanel.expectVisible();
+      await expect(cmPanel.root).toContainText(expectedResourceName, { timeout: 30_000 });
+
+      // Close the resource panel before interacting with the sidebar; otherwise the
+      // bottom panel/main content may intercept pointer events on the sidebar.
+      await cmPanel.closeByClickingOutside();
+
+      // Navigate back to Helm Releases and re-open the release so we can uninstall via the Helm panel.
+      await sidebar.goToSection('helmreleases');
+      const releaseRowAgain = page.locator('table.gh-table tbody tr').filter({ hasText: releaseName });
+      await expect(releaseRowAgain).toBeVisible({ timeout: 60_000 });
+      await releaseRowAgain.click();
+
+      const helmPanel = new BottomPanel(page);
+      await helmPanel.expectVisible();
+      await helmPanel.expectTabs(expectedTabs);
+
       // Test Upgrade button exists
-      await panel.clickTab('Summary');
-      await expect(panel.root.getByRole('button', { name: /upgrade/i })).toBeVisible();
+      await helmPanel.clickTab('Summary');
+      await expect(helmPanel.root.getByRole('button', { name: /upgrade/i })).toBeVisible();
 
       // Test Uninstall via UI
       // Set up dialog handler before clicking
@@ -199,7 +241,7 @@ test.describe('Helm Release Operations', () => {
         await dialog.accept();
       });
 
-      await panel.root.getByRole('button', { name: /uninstall/i }).click();
+      await helmPanel.root.getByRole('button', { name: /uninstall/i }).click();
 
       // Wait for the release to be removed from the table
       await expect(releaseRow).toBeHidden({ timeout: 60_000 });

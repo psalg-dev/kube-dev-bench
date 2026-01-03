@@ -60,7 +60,7 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--gh-border, #30363d)', color: 'var(--gh-text-muted, #8b949e)' }}>
             <th style={{ textAlign: 'left', padding: '8px 12px' }}>Revision</th>

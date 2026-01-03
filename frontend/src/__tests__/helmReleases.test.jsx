@@ -21,6 +21,7 @@ import HelmReleasesOverviewTable from '../k8s/resources/helmreleases/HelmRelease
 import HelmHistoryTab from '../k8s/resources/helmreleases/HelmHistoryTab.jsx';
 import HelmValuesTab from '../k8s/resources/helmreleases/HelmValuesTab.jsx';
 import HelmNotesTab from '../k8s/resources/helmreleases/HelmNotesTab.jsx';
+import HelmResourcesTab from '../k8s/resources/helmreleases/HelmResourcesTab.jsx';
 import HelmActions from '../k8s/resources/helmreleases/HelmActions.jsx';
 import HelmInstallDialog from '../k8s/resources/helmreleases/HelmInstallDialog.jsx';
 import HelmRepositoriesDialog from '../k8s/resources/helmreleases/HelmRepositoriesDialog.jsx';
@@ -246,6 +247,85 @@ describe('HelmNotesTab', () => {
     await waitFor(() => {
       expect(screen.getByText(/thank you for installing nginx/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe('HelmResourcesTab', () => {
+  beforeEach(() => {
+    resetAllMocks();
+    genericAPIMock.mockReset();
+  });
+
+  it('renders resources with health status', async () => {
+    const manifest = [
+      'apiVersion: v1',
+      'kind: ConfigMap',
+      'metadata:',
+      '  name: my-release-e2e',
+      '---',
+      'apiVersion: apps/v1',
+      'kind: Deployment',
+      'metadata:',
+      '  name: my-deploy',
+      '  namespace: default',
+      '',
+    ].join('\n');
+
+    genericAPIMock.mockImplementation((name, ...args) => {
+      if (name === 'GetHelmReleaseManifest') return Promise.resolve(manifest);
+      if (name === 'GetConfigMaps') {
+        return Promise.resolve([{ name: 'my-release-e2e', namespace: 'default', keys: 1, size: '1B', age: '1s', labels: {} }]);
+      }
+      if (name === 'GetDeployments') {
+        return Promise.resolve([{ name: 'my-deploy', namespace: 'default', replicas: 1, ready: 1, available: 1, age: '1s', image: '', labels: {} }]);
+      }
+      // Other kind lists used by health calculation
+      if (
+        name === 'GetStatefulSets' ||
+        name === 'GetDaemonSets' ||
+        name === 'GetReplicaSets' ||
+        name === 'GetJobs' ||
+        name === 'GetCronJobs' ||
+        name === 'GetSecrets' ||
+        name === 'GetPersistentVolumeClaims' ||
+        name === 'GetIngresses' ||
+        name === 'GetRunningPods'
+      ) {
+        return Promise.resolve([]);
+      }
+
+      return Promise.resolve([]);
+    });
+
+    render(<HelmResourcesTab namespace="default" releaseName="my-release" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Health')).toBeInTheDocument();
+      expect(screen.getByText('ConfigMap')).toBeInTheDocument();
+      expect(screen.getByText('my-release-e2e')).toBeInTheDocument();
+      expect(screen.getByText('OK')).toBeInTheDocument();
+      expect(screen.getByText('Deployment')).toBeInTheDocument();
+      expect(screen.getByText('my-deploy')).toBeInTheDocument();
+      expect(screen.getByText(/Healthy/i)).toBeInTheDocument();
+
+      // Color-coding should be applied to the health values.
+      expect(screen.getByText('OK')).toHaveStyle({ color: 'var(--gh-success-fg, #2ea44f)' });
+      expect(screen.getByText('Healthy')).toHaveStyle({ color: 'var(--gh-success-fg, #2ea44f)' });
+    });
+
+    const handler = vi.fn();
+    window.addEventListener('navigate-to-resource', handler);
+    try {
+      const row = screen.getByText('my-deploy').closest('tr');
+      expect(row).toBeTruthy();
+      fireEvent.click(row);
+
+      expect(handler).toHaveBeenCalled();
+      const evt = handler.mock.calls[0][0];
+      expect(evt.detail).toEqual({ resource: 'Deployment', name: 'my-deploy', namespace: 'default' });
+    } finally {
+      window.removeEventListener('navigate-to-resource', handler);
+    }
   });
 });
 

@@ -48,6 +48,24 @@ export namespace app {
 	        this.size = source["size"];
 	    }
 	}
+	export class ConfigMapConsumer {
+	    kind: string;
+	    name: string;
+	    namespace: string;
+	    refType?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ConfigMapConsumer(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.refType = source["refType"];
+	    }
+	}
 	export class ConfigMapDataInfo {
 	    key: string;
 	    value: string;
@@ -307,6 +325,57 @@ export namespace app {
 	        this.labels = source["labels"];
 	    }
 	}
+	export class DaemonSetNodeCoverageEntry {
+	    node: string;
+	    hasPod: boolean;
+	    podName?: string;
+	    podStatus?: string;
+	    ready?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DaemonSetNodeCoverageEntry(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.node = source["node"];
+	        this.hasPod = source["hasPod"];
+	        this.podName = source["podName"];
+	        this.podStatus = source["podStatus"];
+	        this.ready = source["ready"];
+	    }
+	}
+	export class DaemonSetNodeCoverage {
+	    nodes: DaemonSetNodeCoverageEntry[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DaemonSetNodeCoverage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.nodes = this.convertValues(source["nodes"], DaemonSetNodeCoverageEntry);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class DeploymentCondition {
 	    type: string;
 	    status: string;
@@ -453,6 +522,156 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class HelmChartInfo {
+	    name: string;
+	    repo: string;
+	    version: string;
+	    appVersion: string;
+	    description: string;
+	    versions: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmChartInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.repo = source["repo"];
+	        this.version = source["version"];
+	        this.appVersion = source["appVersion"];
+	        this.description = source["description"];
+	        this.versions = source["versions"];
+	    }
+	}
+	export class HelmChartVersionInfo {
+	    version: string;
+	    appVersion: string;
+	    description: string;
+	    created: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmChartVersionInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.appVersion = source["appVersion"];
+	        this.description = source["description"];
+	        this.created = source["created"];
+	    }
+	}
+	export class HelmHistoryInfo {
+	    revision: number;
+	    updated: string;
+	    status: string;
+	    chart: string;
+	    appVersion: string;
+	    description: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmHistoryInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.revision = source["revision"];
+	        this.updated = source["updated"];
+	        this.status = source["status"];
+	        this.chart = source["chart"];
+	        this.appVersion = source["appVersion"];
+	        this.description = source["description"];
+	    }
+	}
+	export class HelmInstallRequest {
+	    releaseName: string;
+	    namespace: string;
+	    chartRef: string;
+	    version: string;
+	    values: Record<string, any>;
+	    createNamespace: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmInstallRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.releaseName = source["releaseName"];
+	        this.namespace = source["namespace"];
+	        this.chartRef = source["chartRef"];
+	        this.version = source["version"];
+	        this.values = source["values"];
+	        this.createNamespace = source["createNamespace"];
+	    }
+	}
+	export class HelmReleaseInfo {
+	    name: string;
+	    namespace: string;
+	    revision: number;
+	    chart: string;
+	    chartVersion: string;
+	    appVersion: string;
+	    status: string;
+	    age: string;
+	    updated: string;
+	    labels: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmReleaseInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.revision = source["revision"];
+	        this.chart = source["chart"];
+	        this.chartVersion = source["chartVersion"];
+	        this.appVersion = source["appVersion"];
+	        this.status = source["status"];
+	        this.age = source["age"];
+	        this.updated = source["updated"];
+	        this.labels = source["labels"];
+	    }
+	}
+	export class HelmRepositoryInfo {
+	    name: string;
+	    url: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmRepositoryInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.url = source["url"];
+	    }
+	}
+	export class HelmUpgradeRequest {
+	    releaseName: string;
+	    namespace: string;
+	    chartRef: string;
+	    version: string;
+	    values: Record<string, any>;
+	    reuseValues: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new HelmUpgradeRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.releaseName = source["releaseName"];
+	        this.namespace = source["namespace"];
+	        this.chartRef = source["chartRef"];
+	        this.version = source["version"];
+	        this.values = source["values"];
+	        this.reuseValues = source["reuseValues"];
+	    }
+	}
 	export class IngressTLSInfo {
 	    hosts: string[];
 	    secretName: string;
@@ -547,6 +766,28 @@ export namespace app {
 	}
 	
 	
+	export class IngressTLSSummary {
+	    hosts: string[];
+	    secretName: string;
+	    notBefore: string;
+	    notAfter: string;
+	    daysRemaining: number;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new IngressTLSSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.hosts = source["hosts"];
+	        this.secretName = source["secretName"];
+	        this.notBefore = source["notBefore"];
+	        this.notAfter = source["notAfter"];
+	        this.daysRemaining = source["daysRemaining"];
+	        this.error = source["error"];
+	    }
+	}
 	export class JobCondition {
 	    type: string;
 	    status: string;
@@ -630,6 +871,24 @@ export namespace app {
 	        this.pods = source["pods"];
 	        this.deployments = source["deployments"];
 	        this.jobs = source["jobs"];
+	    }
+	}
+	export class PVCConsumer {
+	    podName: string;
+	    node: string;
+	    status: string;
+	    refType?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PVCConsumer(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.podName = source["podName"];
+	        this.node = source["node"];
+	        this.status = source["status"];
+	        this.refType = source["refType"];
 	    }
 	}
 	export class PersistentVolumeClaimInfo {
@@ -996,6 +1255,7 @@ export namespace app {
 	    ingresses: number;
 	    persistentvolumeclaims: number;
 	    persistentvolumes: number;
+	    helmreleases: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ResourceCounts(source);
@@ -1015,6 +1275,7 @@ export namespace app {
 	        this.ingresses = source["ingresses"];
 	        this.persistentvolumeclaims = source["persistentvolumeclaims"];
 	        this.persistentvolumes = source["persistentvolumes"];
+	        this.helmreleases = source["helmreleases"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1037,6 +1298,24 @@ export namespace app {
 	}
 	
 	
+	export class SecretConsumer {
+	    kind: string;
+	    name: string;
+	    namespace: string;
+	    refType?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SecretConsumer(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.refType = source["refType"];
+	    }
+	}
 	export class SecretDataInfo {
 	    key: string;
 	    value: string;
@@ -1053,6 +1332,24 @@ export namespace app {
 	        this.value = source["value"];
 	        this.size = source["size"];
 	        this.isBinary = source["isBinary"];
+	    }
+	}
+	export class ServiceSummary {
+	    name: string;
+	    namespace: string;
+	    type: string;
+	    clusterIP: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new ServiceSummary(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.type = source["type"];
+	        this.clusterIP = source["clusterIP"];
 	    }
 	}
 	export class StatefulSetPVCInfo {
