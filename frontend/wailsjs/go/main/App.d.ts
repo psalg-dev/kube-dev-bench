@@ -4,6 +4,8 @@ import {app} from '../models';
 import {jobs} from '../models';
 import {context} from '../models';
 
+export function AddHelmRepository(arg1:string,arg2:string):Promise<void>;
+
 export function ArchivePVCPath(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.ArchiveResult>;
 
 export function ClearProxyConfig():Promise<void>;
@@ -40,13 +42,11 @@ export function DetectSystemProxy():Promise<Record<string, string>>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
+export function GetConfigMapConsumers(arg1:string,arg2:string):Promise<Array<app.ConfigMapConsumer>>;
+
 export function GetConfigMapDataByName(arg1:string,arg2:string):Promise<Array<app.ConfigMapDataInfo>>;
 
-export function GetConfigMapConsumers(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
-
 export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
-
-export function UpdateConfigMapDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function GetConnectionStatus():Promise<Record<string, any>>;
 
@@ -60,7 +60,7 @@ export function GetDaemonSetDetail(arg1:string,arg2:string):Promise<app.DaemonSe
 
 export function GetDaemonSetLogs(arg1:string,arg2:string):Promise<string>;
 
-export function GetDaemonSetNodeCoverage(arg1:string,arg2:string):Promise<Record<string, any>>;
+export function GetDaemonSetNodeCoverage(arg1:string,arg2:string):Promise<app.DaemonSetNodeCoverage>;
 
 export function GetDaemonSets(arg1:string):Promise<Array<app.DaemonSetInfo>>;
 
@@ -70,9 +70,23 @@ export function GetDeploymentLogs(arg1:string,arg2:string):Promise<string>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
 
+export function GetHelmChartVersions(arg1:string,arg2:string):Promise<Array<app.HelmChartVersionInfo>>;
+
+export function GetHelmReleaseHistory(arg1:string,arg2:string):Promise<Array<app.HelmHistoryInfo>>;
+
+export function GetHelmReleaseManifest(arg1:string,arg2:string):Promise<string>;
+
+export function GetHelmReleaseNotes(arg1:string,arg2:string):Promise<string>;
+
+export function GetHelmReleaseValues(arg1:string,arg2:string,arg3:boolean):Promise<string>;
+
+export function GetHelmReleases(arg1:string):Promise<Array<app.HelmReleaseInfo>>;
+
+export function GetHelmRepositories():Promise<Array<app.HelmRepositoryInfo>>;
+
 export function GetIngressDetail(arg1:string,arg2:string):Promise<app.IngressDetail>;
 
-export function GetIngressTLSSummary(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+export function GetIngressTLSSummary(arg1:string,arg2:string):Promise<Array<app.IngressTLSSummary>>;
 
 export function GetIngresses(arg1:string):Promise<Array<app.IngressInfo>>;
 
@@ -92,13 +106,9 @@ export function GetNamespaces():Promise<Array<string>>;
 
 export function GetOverview(arg1:string):Promise<app.OverviewInfo>;
 
+export function GetPVCConsumers(arg1:string,arg2:string):Promise<Array<app.PVCConsumer>>;
+
 export function GetPVCFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
-
-export function GetPVCConsumers(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
-
-export function ResizePersistentVolumeClaim(arg1:string,arg2:string,arg3:string):Promise<void>;
-
-export function GetServiceSummary(arg1:string,arg2:string):Promise<Record<string, any>>;
 
 export function GetPersistentVolumeClaims(arg1:string):Promise<Array<app.PersistentVolumeClaimInfo>>;
 
@@ -148,15 +158,15 @@ export function GetResourceEvents(arg1:string,arg2:string,arg3:string):Promise<A
 
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
+export function GetSecretConsumers(arg1:string,arg2:string):Promise<Array<app.SecretConsumer>>;
+
 export function GetSecretData(arg1:string):Promise<Record<string, string>>;
 
 export function GetSecretDataByName(arg1:string,arg2:string):Promise<Array<app.SecretDataInfo>>;
 
 export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
 
-export function GetSecretConsumers(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
-
-export function UpdateSecretDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+export function GetServiceSummary(arg1:string,arg2:string):Promise<app.ServiceSummary>;
 
 export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.StatefulSetDetail>;
 
@@ -165,6 +175,8 @@ export function GetStatefulSetLogs(arg1:string,arg2:string):Promise<string>;
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
+
+export function InstallHelmChart(arg1:app.HelmInstallRequest):Promise<void>;
 
 export function IsProxyEnabled():Promise<boolean>;
 
@@ -176,13 +188,15 @@ export function PortForwardPod(arg1:string,arg2:string,arg3:number):Promise<stri
 
 export function PortForwardPodWith(arg1:string,arg2:string,arg3:number,arg4:number):Promise<string>;
 
+export function RemoveHelmRepository(arg1:string):Promise<void>;
+
+export function ResizePersistentVolumeClaim(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function ResizeShellSession(arg1:string,arg2:number,arg3:number):Promise<void>;
 
 export function RestartDaemonSet(arg1:string,arg2:string):Promise<void>;
 
 export function RestartDeployment(arg1:string,arg2:string):Promise<void>;
-
-export function RollbackDeploymentToRevision(arg1:string,arg2:string,arg3:number):Promise<void>;
 
 export function RestartPod(arg1:string,arg2:string):Promise<void>;
 
@@ -190,11 +204,17 @@ export function RestartStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function ResumeCronJob(arg1:string,arg2:string):Promise<void>;
 
+export function RollbackDeploymentToRevision(arg1:string,arg2:string,arg3:number):Promise<void>;
+
+export function RollbackHelmRelease(arg1:string,arg2:string,arg3:number):Promise<void>;
+
 export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SavePrimaryKubeConfig(arg1:string):Promise<string>;
 
 export function ScaleResource(arg1:string,arg2:string,arg3:string,arg4:number):Promise<void>;
+
+export function SearchHelmCharts(arg1:string):Promise<Array<app.HelmChartInfo>>;
 
 export function SearchPodFiles(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number):Promise<Array<app.PodFileEntry>>;
 
@@ -223,6 +243,8 @@ export function StartCronJobPolling():Promise<void>;
 export function StartDaemonSetPolling():Promise<void>;
 
 export function StartDeploymentPolling():Promise<void>;
+
+export function StartHelmReleasePolling():Promise<void>;
 
 export function StartJob(arg1:string,arg2:string):Promise<void>;
 
@@ -257,3 +279,13 @@ export function StreamPodLogs(arg1:string):Promise<void>;
 export function StreamPodLogsWith(arg1:string,arg2:number,arg3:boolean):Promise<void>;
 
 export function SuspendCronJob(arg1:string,arg2:string):Promise<void>;
+
+export function UninstallHelmRelease(arg1:string,arg2:string):Promise<void>;
+
+export function UpdateConfigMapDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function UpdateHelmRepositories():Promise<void>;
+
+export function UpdateSecretDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function UpgradeHelmRelease(arg1:app.HelmUpgradeRequest):Promise<void>;

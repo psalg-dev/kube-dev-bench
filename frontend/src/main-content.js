@@ -11,6 +11,7 @@ import SecretsOverviewTable from "./k8s/resources/secrets/SecretsOverviewTable";
 import IngressesOverviewTable from "./k8s/resources/ingresses/IngressesOverviewTable";
 import PersistentVolumeClaimsOverviewTable from "./k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable";
 import PersistentVolumesOverviewTable from "./k8s/resources/persistentvolumes/PersistentVolumesOverviewTable";
+import HelmReleasesOverviewTable from "./k8s/resources/helmreleases/HelmReleasesOverviewTable";
 import {createRoot} from "react-dom/client";
 import React from 'react';
 
@@ -126,6 +127,12 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection) {
             section: 'persistentvolumes',
             table: PersistentVolumesOverviewTable,
             props: {namespace: firstNs}
+        },
+        {
+            id: 'helmreleases-overview-react',
+            section: 'helmreleases',
+            table: HelmReleasesOverviewTable,
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
         }
     ];
 

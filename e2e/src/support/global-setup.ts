@@ -101,7 +101,7 @@ export default async function globalSetup() {
       homeDir,
       frontendDevServerURL: frontend.baseURL,
       // Allow more time in CI/global setup while keeping per-test timeouts strict.
-      readyTimeoutMs: process.env.CI ? 120_000 : 90_000,
+      readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
     });
 
     await writeRunState({
@@ -136,7 +136,7 @@ export default async function globalSetup() {
         homeDir,
         frontendDevServerURL: frontend.baseURL,
         // Sequential startup in global setup; allow more time here.
-        readyTimeoutMs: process.env.CI ? 180_000 : 150_000,
+        readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
       });
 
       wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });

@@ -21,6 +21,7 @@ const checks: SectionCheck[] = [
   { key: 'ingresses', title: /ingresses/i, mustHave: { role: 'columnheader', name: /hosts/i } },
   { key: 'persistentvolumeclaims', title: /persistent volume claims/i, mustHave: { role: 'columnheader', name: /storage|size|capacity/i } },
   { key: 'persistentvolumes', title: /persistent volumes/i, mustHave: { role: 'columnheader', name: /capacity/i } },
+  { key: 'helmreleases', title: /helm releases/i, mustHave: { role: 'columnheader', name: /^chart$/i } },
 ];
 
 test('sidebar navigation renders the correct main view', async ({ page, contextName, namespace }) => {

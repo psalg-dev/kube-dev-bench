@@ -14,6 +14,7 @@ const sections: Array<{ key: string; title: RegExp; createLabel?: RegExp }> = [
   { key: 'ingresses', title: /ingresses/i, createLabel: /create new/i },
   { key: 'persistentvolumeclaims', title: /persistent volume claims/i, createLabel: /create new/i },
   { key: 'persistentvolumes', title: /persistent volumes/i, createLabel: /create new/i },
+  { key: 'helmreleases', title: /helm releases/i },
 ];
 
 test('navigates all resource sections', async ({ page, contextName, namespace }) => {

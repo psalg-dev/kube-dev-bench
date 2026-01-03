@@ -37,6 +37,8 @@ func main() {
 	app.StartReplicaSetPolling()
 	// Start monitor polling to emit warnings and errors for the frontend
 	app.StartMonitorPolling()
+	// Start helm releases polling to emit events for the frontend
+	app.StartHelmReleasePolling()
 
 	// Create application with options
 	err := wails.Run(&options.App{
