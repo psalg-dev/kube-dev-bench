@@ -330,6 +330,7 @@ describe('ConnectionWizard', () => {
     });
 
     it('displays error when file browsing fails', async () => {
+      const user = userEvent.setup();
       mockGetKubeConfigs.mockResolvedValue([]);
       mockSelectKubeConfigFile.mockRejectedValue(new Error('File dialog error'));
 
@@ -340,11 +341,15 @@ describe('ConnectionWizard', () => {
         expect(screen.getByRole('button', { name: /Browse for File/i })).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /Browse for File/i }));
+      await user.click(screen.getByRole('button', { name: /Browse for File/i }));
+
+      await waitFor(() => {
+        expect(mockSelectKubeConfigFile).toHaveBeenCalled();
+      }, { timeout: 5_000 });
 
       await waitFor(() => {
         expect(screen.getByText(/Failed to load kubeconfig file/i)).toBeInTheDocument();
-      });
+      }, { timeout: 5_000 });
     });
   });
 
