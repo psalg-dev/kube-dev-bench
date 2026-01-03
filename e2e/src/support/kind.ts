@@ -54,6 +54,13 @@ export async function writeKubeconfigFile(dir: string, kubeconfigYaml: string) {
   return kubeconfigPath;
 }
 
+export async function writeNamedKubeconfigFile(dir: string, fileName: string, kubeconfigYaml: string) {
+  await fs.mkdir(dir, { recursive: true });
+  const kubeconfigPath = path.join(dir, fileName);
+  await fs.writeFile(kubeconfigPath, kubeconfigYaml, 'utf-8');
+  return kubeconfigPath;
+}
+
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
   const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
   if (get.code === 0) return;
@@ -72,10 +79,35 @@ export async function deleteNamespace(kubeconfigPath: string, namespace: string)
   });
 }
 
-export async function helm(args: string[], opts: { kubeconfigPath: string; timeoutMs?: number }) {
+export async function helm(
+  args: string[],
+  opts: { kubeconfigPath: string; timeoutMs?: number; homeDir?: string; env?: NodeJS.ProcessEnv }
+) {
   try {
+    const env: NodeJS.ProcessEnv = { ...opts.env };
+
+    if (opts.homeDir) {
+      const helmCacheHome = path.join(opts.homeDir, '.cache', 'helm');
+      const helmConfigHome = path.join(opts.homeDir, '.config', 'helm');
+      const helmDataHome = path.join(opts.homeDir, '.local', 'share', 'helm');
+
+      await Promise.all([
+        fs.mkdir(helmCacheHome, { recursive: true }),
+        fs.mkdir(helmConfigHome, { recursive: true }),
+        fs.mkdir(helmDataHome, { recursive: true }),
+      ]);
+
+      // Ensure helm does not share cache/config between parallel workers.
+      env.HOME = opts.homeDir;
+      env.USERPROFILE = opts.homeDir;
+      env.HELM_CACHE_HOME = helmCacheHome;
+      env.HELM_CONFIG_HOME = helmConfigHome;
+      env.HELM_DATA_HOME = helmDataHome;
+    }
+
     return await exec('helm', ['--kubeconfig', opts.kubeconfigPath, ...args], {
       timeoutMs: opts.timeoutMs ?? 120_000,
+      env,
     });
   } catch (err: unknown) {
     // If helm isn't installed/available on PATH, Node will throw ENOENT.

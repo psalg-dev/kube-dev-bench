@@ -509,3 +509,68 @@ export function StreamPodLogsWith(arg1, arg2, arg3) {
 export function SuspendCronJob(arg1, arg2) {
   return window['go']['main']['App']['SuspendCronJob'](arg1, arg2);
 }
+
+// --- Helm ---
+export function GetHelmReleases(arg1) {
+  return window['go']['main']['App']['GetHelmReleases'](arg1);
+}
+
+export function GetHelmRepositories() {
+  return window['go']['main']['App']['GetHelmRepositories']();
+}
+
+export function AddHelmRepository(arg1, arg2) {
+  return window['go']['main']['App']['AddHelmRepository'](arg1, arg2);
+}
+
+export function RemoveHelmRepository(arg1) {
+  return window['go']['main']['App']['RemoveHelmRepository'](arg1);
+}
+
+export function UpdateHelmRepositories() {
+  return window['go']['main']['App']['UpdateHelmRepositories']();
+}
+
+export function SearchHelmCharts(arg1) {
+  return window['go']['main']['App']['SearchHelmCharts'](arg1);
+}
+
+export function GetHelmChartVersions(arg1, arg2) {
+  return window['go']['main']['App']['GetHelmChartVersions'](arg1, arg2);
+}
+
+export function InstallHelmChart(arg1) {
+  return window['go']['main']['App']['InstallHelmChart'](arg1);
+}
+
+export function UpgradeHelmRelease(arg1) {
+  return window['go']['main']['App']['UpgradeHelmRelease'](arg1);
+}
+
+export function UninstallHelmRelease(arg1, arg2) {
+  return window['go']['main']['App']['UninstallHelmRelease'](arg1, arg2);
+}
+
+export function RollbackHelmRelease(arg1, arg2, arg3) {
+  return window['go']['main']['App']['RollbackHelmRelease'](arg1, arg2, arg3);
+}
+
+export function GetHelmReleaseHistory(arg1, arg2) {
+  return window['go']['main']['App']['GetHelmReleaseHistory'](arg1, arg2);
+}
+
+export function GetHelmReleaseValues(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetHelmReleaseValues'](arg1, arg2, arg3);
+}
+
+export function GetHelmReleaseManifest(arg1, arg2) {
+  return window['go']['main']['App']['GetHelmReleaseManifest'](arg1, arg2);
+}
+
+export function GetHelmReleaseNotes(arg1, arg2) {
+  return window['go']['main']['App']['GetHelmReleaseNotes'](arg1, arg2);
+}
+
+export function StartHelmReleasePolling() {
+  return window['go']['main']['App']['StartHelmReleasePolling']();
+}

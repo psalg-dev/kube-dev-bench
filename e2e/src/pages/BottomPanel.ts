@@ -6,7 +6,9 @@ export class BottomPanel {
 
   constructor(page: Page) {
     this.page = page;
-    this.root = page.locator('.bottom-panel');
+    // NOTE: There are multiple panels using `.bottom-panel` (e.g. the monitor panel).
+    // The resource details panel always has a "Summary" tab button.
+    this.root = page.locator('.bottom-panel').filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
   }
 
   tab(label: string): Locator {

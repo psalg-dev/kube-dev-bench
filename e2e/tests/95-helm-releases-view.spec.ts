@@ -3,9 +3,51 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { helm } from '../src/support/kind.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
 import { Notifications } from '../src/pages/Notifications.js';
+import os from 'node:os';
+import path from 'node:path';
+import fs from 'node:fs/promises';
 
 function escapeRegExp(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function writeLocalChart(opts: { chartRoot: string; chartName: string }) {
+  const { chartRoot, chartName } = opts;
+  const templatesDir = path.join(chartRoot, 'templates');
+  await fs.mkdir(templatesDir, { recursive: true });
+
+  // A minimal, network-free chart: ConfigMap only.
+  const chartYaml = [
+    'apiVersion: v2',
+    `name: ${chartName}`,
+    'description: KubeDevBench E2E local chart',
+    'type: application',
+    'version: 0.1.0',
+    'appVersion: "1.0.0"',
+    '',
+  ].join('\n');
+
+  const valuesYaml = ['testValue: "1"', ''].join('\n');
+
+  const cmYaml = [
+    'apiVersion: v1',
+    'kind: ConfigMap',
+    'metadata:',
+    '  name: {{ .Release.Name }}-e2e',
+    'data:',
+    '  testValue: {{ .Values.testValue | quote }}',
+    '',
+  ].join('\n');
+
+  // Notes file lets the UI exercise GetHelmReleaseNotes.
+  const notesTxt = ['E2E Notes', 'Release: {{ .Release.Name }}', 'Value: {{ .Values.testValue }}', ''].join('\n');
+
+  await Promise.all([
+    fs.writeFile(path.join(chartRoot, 'Chart.yaml'), chartYaml, 'utf-8'),
+    fs.writeFile(path.join(chartRoot, 'values.yaml'), valuesYaml, 'utf-8'),
+    fs.writeFile(path.join(templatesDir, 'configmap.yaml'), cmYaml, 'utf-8'),
+    fs.writeFile(path.join(chartRoot, 'NOTES.txt'), notesTxt, 'utf-8'),
+  ]);
 }
 
 function uniqueName(prefix: string) {
@@ -54,12 +96,12 @@ test.describe('Helm Releases View', () => {
 });
 
 test.describe('Helm Release Operations', () => {
-  test('installs, views, and uninstalls a Helm release', async ({ page, contextName, namespace, kubeconfigPath }) => {
+  test('installs, views, and uninstalls a Helm release', async ({ page, contextName, namespace, kubeconfigPath, homeDir }) => {
     test.setTimeout(300_000); // 5 minutes for full Helm workflow
 
     // Helm operation tests require the helm CLI. Locally we skip if it's missing,
     // but in CI we fail fast so the environment gets fixed.
-    const helmVersion = await helm(['version', '--short'], { kubeconfigPath, timeoutMs: 20_000 });
+    const helmVersion = await helm(['version', '--short'], { kubeconfigPath, homeDir, timeoutMs: 20_000 });
     if (helmVersion.code === 127) {
       if (process.env.CI) {
         throw new Error(
@@ -72,27 +114,16 @@ test.describe('Helm Release Operations', () => {
 
     const releaseName = uniqueName('e2e-helm');
 
-    // Add bitnami repo if not exists
-    const repoAdd = await helm(['repo', 'add', 'bitnami', 'https://charts.bitnami.com/bitnami', '--force-update'], {
-      kubeconfigPath,
-      timeoutMs: 60_000,
-    });
-    if (repoAdd.code !== 0 && !repoAdd.stderr.includes('already exists')) {
-      console.log('Helm repo add output:', repoAdd.stdout, repoAdd.stderr);
-    }
+    const chartName = 'kdb-e2e-chart';
+    const chartDir = path.join(os.tmpdir(), `kdb-e2e-helm-chart-${releaseName}`);
+    await writeLocalChart({ chartRoot: chartDir, chartName });
 
-    // Update repos
-    await helm(['repo', 'update'], { kubeconfigPath, timeoutMs: 120_000 });
-
-    // Install a minimal chart (nginx is relatively fast to install)
+    // Install a local, ConfigMap-only chart to avoid network/image-pull flakiness.
     const install = await helm([
-      'install', releaseName, 'bitnami/nginx',
+      'install', releaseName, chartDir,
       '--namespace', namespace,
-      '--set', 'service.type=ClusterIP',
-      '--set', 'replicaCount=1',
-      '--wait',
-      '--timeout', '180s',
-    ], { kubeconfigPath, timeoutMs: 240_000 });
+      '--set', 'testValue=1',
+    ], { kubeconfigPath, homeDir, timeoutMs: 120_000 });
 
     if (install.code !== 0) {
       console.log('Helm install failed:', install.stdout, install.stderr);
@@ -135,13 +166,23 @@ test.describe('Helm Release Operations', () => {
         if (tab === 'Summary') {
           // Summary tab should show release name and chart info
           await expect(panel.root).toContainText(releaseName);
-          await expect(panel.root).toContainText('nginx');
+          await expect(panel.root).toContainText(chartName);
         } else if (tab === 'Values') {
           // Values tab should have a checkbox for "Show all values"
           await expect(panel.root.getByText(/show all values/i)).toBeVisible({ timeout: 10_000 });
         } else if (tab === 'History') {
-          // History tab should show revision 1
-          await expect(panel.root.getByText('1')).toBeVisible({ timeout: 10_000 });
+          // History tab should show at least one revision (often rendered as "1(current)").
+          // Use DOM locators instead of ARIA roles; in CI the accessibility tree can lag during rapid re-renders.
+          await expect(panel.root.getByText(/loading history/i)).toBeHidden({ timeout: 30_000 });
+          await panel.expectNoErrorText();
+
+          const historyTable = panel.root.locator('table');
+          await expect(historyTable).toBeVisible({ timeout: 30_000 });
+          await expect(historyTable.locator('thead th', { hasText: /^Revision$/ })).toBeVisible({ timeout: 30_000 });
+
+          const rows = historyTable.locator('tbody tr');
+          await expect.poll(async () => await rows.count(), { timeout: 30_000 }).toBeGreaterThan(0);
+          await expect(rows.first().locator('td').first()).toContainText(/^1/i, { timeout: 30_000 });
         } else if (tab === 'Manifest') {
           // Manifest tab should show YAML content
           await panel.expectCodeMirrorVisible();
@@ -167,17 +208,21 @@ test.describe('Helm Release Operations', () => {
       // Cleanup: Ensure the release is uninstalled even if test fails
       await helm(['uninstall', releaseName, '--namespace', namespace, '--ignore-not-found'], {
         kubeconfigPath,
+        homeDir,
         timeoutMs: 60_000,
       }).catch(() => {});
+
+      // Best-effort cleanup of temp chart dir.
+      await fs.rm(chartDir, { recursive: true, force: true }).catch(() => {});
     }
   });
 
-  test('shows release history with rollback option', async ({ page, contextName, namespace, kubeconfigPath }) => {
+  test('shows release history with rollback option', async ({ page, contextName, namespace, kubeconfigPath, homeDir }) => {
     test.setTimeout(360_000); // 6 minutes for upgrade and rollback test
 
     // Helm operation tests require the helm CLI. Locally we skip if it's missing,
     // but in CI we fail fast so the environment gets fixed.
-    const helmVersion = await helm(['version', '--short'], { kubeconfigPath, timeoutMs: 20_000 });
+    const helmVersion = await helm(['version', '--short'], { kubeconfigPath, homeDir, timeoutMs: 20_000 });
     if (helmVersion.code === 127) {
       if (process.env.CI) {
         throw new Error(
@@ -190,22 +235,16 @@ test.describe('Helm Release Operations', () => {
 
     const releaseName = uniqueName('e2e-helm-hist');
 
-    // Add bitnami repo if not exists
-    await helm(['repo', 'add', 'bitnami', 'https://charts.bitnami.com/bitnami', '--force-update'], {
-      kubeconfigPath,
-      timeoutMs: 60_000,
-    });
-    await helm(['repo', 'update'], { kubeconfigPath, timeoutMs: 120_000 });
+    const chartName = 'kdb-e2e-chart';
+    const chartDir = path.join(os.tmpdir(), `kdb-e2e-helm-chart-${releaseName}`);
+    await writeLocalChart({ chartRoot: chartDir, chartName });
 
-    // Install chart
+    // Install a local, ConfigMap-only chart to avoid network/image-pull flakiness.
     const install = await helm([
-      'install', releaseName, 'bitnami/nginx',
+      'install', releaseName, chartDir,
       '--namespace', namespace,
-      '--set', 'service.type=ClusterIP',
-      '--set', 'replicaCount=1',
-      '--wait',
-      '--timeout', '180s',
-    ], { kubeconfigPath, timeoutMs: 240_000 });
+      '--set', 'testValue=1',
+    ], { kubeconfigPath, homeDir, timeoutMs: 120_000 });
 
     if (install.code !== 0) {
       test.skip(true, 'Helm install failed - skipping test');
@@ -215,13 +254,10 @@ test.describe('Helm Release Operations', () => {
     try {
       // Upgrade the release to create revision 2
       const upgrade = await helm([
-        'upgrade', releaseName, 'bitnami/nginx',
+        'upgrade', releaseName, chartDir,
         '--namespace', namespace,
-        '--set', 'service.type=ClusterIP',
-        '--set', 'replicaCount=2',
-        '--wait',
-        '--timeout', '180s',
-      ], { kubeconfigPath, timeoutMs: 240_000 });
+        '--set', 'testValue=2',
+      ], { kubeconfigPath, homeDir, timeoutMs: 120_000 });
 
       if (upgrade.code !== 0) {
         console.log('Helm upgrade failed:', upgrade.stdout, upgrade.stderr);
@@ -245,20 +281,35 @@ test.describe('Helm Release Operations', () => {
       // Go to History tab
       await panel.clickTab('History');
 
+      // Prefer DOM locators for stability under parallel runs.
+      await expect(panel.root.getByText(/loading history/i)).toBeHidden({ timeout: 30_000 });
+      await panel.expectNoErrorText();
+
+      const historyDomTable = panel.root.locator('table');
+      await expect(historyDomTable).toBeVisible({ timeout: 30_000 });
+      await expect(historyDomTable.locator('thead th', { hasText: /^Revision$/ })).toBeVisible({ timeout: 30_000 });
+
+      const rows = historyDomTable.locator('tbody tr');
+      await expect.poll(async () => await rows.count(), { timeout: 30_000 }).toBeGreaterThan(1);
+
       // Should show revision 2 (current) and revision 1 (previous)
-      await expect(panel.root.getByText('2')).toBeVisible({ timeout: 10_000 });
-      await expect(panel.root.getByText('(current)')).toBeVisible({ timeout: 10_000 });
+      await expect(rows.nth(0).locator('td').first()).toContainText(/^2/i, { timeout: 30_000 });
+      await expect(rows.nth(1).locator('td').first()).toHaveText(/^1$/i, { timeout: 30_000 });
 
       // Should have a rollback button for revision 1
-      const rollbackBtn = panel.root.getByRole('button', { name: /rollback/i });
-      await expect(rollbackBtn).toBeVisible({ timeout: 10_000 });
+      const rollbackBtn = rows.nth(1).getByRole('button', { name: /rollback/i });
+      await expect(rollbackBtn).toBeVisible({ timeout: 30_000 });
 
     } finally {
       // Cleanup
       await helm(['uninstall', releaseName, '--namespace', namespace, '--ignore-not-found'], {
         kubeconfigPath,
+        homeDir,
         timeoutMs: 60_000,
       }).catch(() => {});
+
+      // Best-effort cleanup of temp chart dir.
+      await fs.rm(chartDir, { recursive: true, force: true }).catch(() => {});
     }
   });
 });

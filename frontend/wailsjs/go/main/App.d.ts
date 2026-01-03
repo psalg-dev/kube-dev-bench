@@ -257,3 +257,39 @@ export function StreamPodLogs(arg1:string):Promise<void>;
 export function StreamPodLogsWith(arg1:string,arg2:number,arg3:boolean):Promise<void>;
 
 export function SuspendCronJob(arg1:string,arg2:string):Promise<void>;
+
+// --- Helm ---
+// NOTE: Helm models are not currently present in `wailsjs/go/models.ts`.
+// Use `any`/`Record<string, any>` here to keep the bindings usable without regenerating.
+
+export function GetHelmReleases(arg1:string):Promise<Array<Record<string, any>>>;
+
+export function GetHelmRepositories():Promise<Array<Record<string, any>>>;
+
+export function AddHelmRepository(arg1:string,arg2:string):Promise<void>;
+
+export function RemoveHelmRepository(arg1:string):Promise<void>;
+
+export function UpdateHelmRepositories():Promise<void>;
+
+export function SearchHelmCharts(arg1:string):Promise<Array<Record<string, any>>>;
+
+export function GetHelmChartVersions(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+
+export function InstallHelmChart(arg1:any):Promise<void>;
+
+export function UpgradeHelmRelease(arg1:any):Promise<void>;
+
+export function UninstallHelmRelease(arg1:string,arg2:string):Promise<void>;
+
+export function RollbackHelmRelease(arg1:string,arg2:string,arg3:number):Promise<void>;
+
+export function GetHelmReleaseHistory(arg1:string,arg2:string):Promise<Array<Record<string, any>>>;
+
+export function GetHelmReleaseValues(arg1:string,arg2:string,arg3:boolean):Promise<string>;
+
+export function GetHelmReleaseManifest(arg1:string,arg2:string):Promise<string>;
+
+export function GetHelmReleaseNotes(arg1:string,arg2:string):Promise<string>;
+
+export function StartHelmReleasePolling():Promise<void>;

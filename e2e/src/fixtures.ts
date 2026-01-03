@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import { test as base, chromium, type Browser, type Page, type WorkerInfo } from '@playwright/test';
 import { repoRoot } from './support/paths.js';
 import { readRunState } from './support/run-state.js';
-import { ensureNamespace, deleteNamespace, writeKubeconfigFile } from './support/kind.js';
+import { ensureNamespace, deleteNamespace, writeNamedKubeconfigFile } from './support/kind.js';
 import type { WailsDevInstance } from './support/wails.js';
 
 type WorkerFixtures = {
@@ -29,10 +29,10 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await use(dir);
   }, { scope: 'worker' }],
 
-  kubeconfigPath: [async ({ homeDir }, use: (value: string) => Promise<void>) => {
+  kubeconfigPath: [async ({ homeDir }, use: (value: string) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
     const kubeDir = path.join(repoRoot, 'e2e', '.playwright-artifacts-' + state.runId, 'kube');
-    const kubeconfigPath = await writeKubeconfigFile(kubeDir, state.kubeconfigYaml);
+    const kubeconfigPath = await writeNamedKubeconfigFile(kubeDir, `kubeconfig-w${workerInfo.workerIndex}`, state.kubeconfigYaml);
     await use(kubeconfigPath);
   }, { scope: 'worker' }],
 
