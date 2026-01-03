@@ -12,7 +12,7 @@ import './ResourceEventsTab.css';
  * @param {string} resourceName - Alias for name (for compatibility)
  * @param {number} refreshInterval - Refresh interval in ms (default: 5000)
  */
-export default function ResourceEventsTab({ namespace, kind, resourceKind, name, resourceName, refreshInterval = 5000 }) {
+export default function ResourceEventsTab({ namespace, kind, resourceKind, name, resourceName, refreshInterval = 5000, limit = null }) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,7 +30,17 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
     
     try {
       const result = await AppAPI.GetResourceEvents(namespace || '', actualKind, actualName);
-      setEvents(Array.isArray(result) ? result : []);
+      const arr = Array.isArray(result) ? result : [];
+      arr.sort((a, b) => {
+        const ta = a?.lastTimestamp ? new Date(a.lastTimestamp).getTime() : 0;
+        const tb = b?.lastTimestamp ? new Date(b.lastTimestamp).getTime() : 0;
+        return tb - ta;
+      });
+      if (typeof limit === 'number' && isFinite(limit) && limit > 0) {
+        setEvents(arr.slice(0, limit));
+      } else {
+        setEvents(arr);
+      }
     } catch (err) {
       setError(err?.message || String(err));
       if (isInitial) setEvents([]);
@@ -45,7 +55,7 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [namespace, actualKind, actualName, refreshInterval]);
+  }, [namespace, actualKind, actualName, refreshInterval, limit]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '-';

@@ -15,16 +15,16 @@ export default function YamlTab({ content, loading = false, error = null }) {
   const viewRef = useRef(null);
 
   const cmTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
+    '&': { backgroundColor: 'var(--gh-bg, #0d1117)', color: 'var(--gh-text, #c9d1d9)' },
     '&.cm-editor': { height: '100%', width: '100%' },
-    '.cm-content': { caretColor: '#fff', textAlign: 'left' },
+    '.cm-content': { caretColor: 'transparent', textAlign: 'left' },
     '.cm-line': { textAlign: 'left' },
     '.cm-scroller': {
-      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      fontFamily: 'var(--gh-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace)',
       lineHeight: '1.45'
     },
     '.cm-whitespace': { opacity: 0.35 },
-    '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' },
+    '.cm-gutters': { background: 'var(--gh-bg-alt, #161b22)', color: 'var(--gh-text-muted, #8b949e)', borderRight: '1px solid var(--gh-border, #30363d)' },
     '.cm-gutterElement': { padding: '0 8px' },
   }, { dark: true }), []);
 
@@ -41,85 +41,83 @@ export default function YamlTab({ content, loading = false, error = null }) {
     EditorState.readOnly.of(true),
   ], [cmTheme]);
 
+  // Initialize CodeMirror once (avoid destroy/recreate on content changes)
   useEffect(() => {
     if (!editorParentRef.current) return;
+    if (viewRef.current) return;
 
     try {
-      if (!viewRef.current) {
-        const state = EditorState.create({
-          doc: content || '',
-          extensions: cmExtensions
-        });
-        viewRef.current = new EditorView({
-          state,
-          parent: editorParentRef.current
-        });
-      } else {
-        // Update existing editor content
-        viewRef.current.dispatch({
-          changes: {
-            from: 0,
-            to: viewRef.current.state.doc.length,
-            insert: content || ''
-          }
-        });
-      }
+      const state = EditorState.create({
+        doc: content || '',
+        extensions: cmExtensions
+      });
+      viewRef.current = new EditorView({
+        state,
+        parent: editorParentRef.current
+      });
     } catch (e) {
-      console.error('Error creating/updating CodeMirror editor:', e);
+      console.error('Error creating CodeMirror YAML editor:', e);
     }
 
-    // Cleanup function
     return () => {
       if (viewRef.current) {
         try {
           viewRef.current.destroy();
-          viewRef.current = null;
         } catch (e) {
-          console.error('Error destroying CodeMirror editor:', e);
+          console.error('Error destroying CodeMirror YAML editor:', e);
+        } finally {
+          viewRef.current = null;
         }
       }
     };
-  }, [content, cmExtensions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cmExtensions]);
 
-  if (loading) {
-    return (
-      <div style={{
-        padding: 20,
-        textAlign: 'center',
-        color: '#8b949e',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        Loading YAML...
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{
-        padding: 20,
-        color: '#f85149',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column'
-      }}>
-        <div style={{ marginBottom: 8 }}>Error loading YAML:</div>
-        <div style={{ fontSize: '14px' }}>{error}</div>
-      </div>
-    );
-  }
+  // Update existing editor content when `content` changes
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const next = content || '';
+    const current = view.state.doc.toString();
+    if (current === next) return;
+    view.dispatch({ changes: { from: 0, to: current.length, insert: next } });
+  }, [content]);
 
   return (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden' }}>
-      <div
-        ref={editorParentRef}
-        style={{ height: '100%', width: '100%' }}
-      />
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
+      <div ref={editorParentRef} style={{ height: '100%', width: '100%' }} />
+
+      {loading && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          left: 12,
+          padding: '6px 10px',
+          background: 'rgba(0,0,0,0.35)',
+          border: '1px solid var(--gh-border, #30363d)',
+          color: 'var(--gh-text-muted, #8b949e)',
+          fontSize: 12
+        }}>
+          Loading YAML...
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          position: 'absolute',
+          top: 12,
+          left: 12,
+          padding: '6px 10px',
+          background: 'rgba(248,81,73,0.12)',
+          border: '1px solid rgba(248,81,73,0.4)',
+          color: '#f85149',
+          fontSize: 12,
+          maxWidth: 'calc(100% - 24px)'
+        }}>
+          <div style={{ marginBottom: 4 }}>Error loading YAML:</div>
+          <div style={{ fontSize: 12, whiteSpace: 'pre-wrap' }}>{error}</div>
+        </div>
+      )}
     </div>
   );
 }

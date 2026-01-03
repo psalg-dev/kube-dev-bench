@@ -60,13 +60,22 @@ function renderPanelContent(row, tab) {
             error={null}
             fields={quickInfoFields}
           />
-          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>StatefulSet Details</div>
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
-              <strong>Replicas:</strong> {row.replicas || '0'}<br />
-              <strong>Ready:</strong> {row.ready || '0'}<br />
-              <strong>Image:</strong> {row.image || '-'}<br />
-              <strong>Namespace:</strong> {row.namespace || '-'}
+          {/* Logs + Event History at a glance */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+              <AggregateLogsTab
+                title="Logs"
+                reloadKey={`${row.namespace}/${row.name}`}
+                loadLogs={() => AppAPI.GetStatefulSetLogs(row.namespace, row.name)}
+              />
+            </div>
+            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
+              <ResourceEventsTab
+                namespace={row.namespace}
+                kind="StatefulSet"
+                name={row.name}
+                limit={20}
+              />
             </div>
           </div>
         </div>

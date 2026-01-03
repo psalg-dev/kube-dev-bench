@@ -66,15 +66,9 @@ function renderPanelContent(row, tab) {
             error={null}
             fields={quickInfoFields}
           />
-          {/* Right side content area for additional information */}
-          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>CronJob Details</div>
-            <div style={{ color: '#8b949e' }}>
-              <strong>Schedule:</strong> {row.schedule || '-'}<br />
-              <strong>Suspend:</strong> {row.suspend ? 'Yes' : 'No'}<br />
-              <strong>Next Run:</strong> {row.nextRun || '-'}<br />
-              <strong>Image:</strong> {row.image || '-'}
-            </div>
+          {/* Event History at a glance */}
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <ResourceEventsTab namespace={row.namespace} kind="CronJob" name={row.name} limit={20} />
           </div>
         </div>
       </div>

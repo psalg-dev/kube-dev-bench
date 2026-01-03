@@ -65,16 +65,22 @@ function renderPanelContent(row, tab) {
             error={null}
             fields={quickInfoFields}
           />
-          {/* Right side content area for additional information */}
-          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Job Details</div>
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
-              <strong>Completions:</strong> {row.completions || '0'}<br />
-              <strong>Succeeded:</strong> {row.succeeded || '0'}<br />
-              <strong>Active:</strong> {row.active || '0'}<br />
-              <strong>Failed:</strong> {row.failed || '0'}<br />
-              <strong>Duration:</strong> {row.duration || '-'}<br />
-              <strong>Image:</strong> {row.image || '-'}
+          {/* Logs + Event History at a glance */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+              <AggregateLogsTab
+                title="Logs"
+                reloadKey={`${row.namespace}/${row.name}`}
+                loadLogs={() => AppAPI.GetJobLogs(row.namespace, row.name)}
+              />
+            </div>
+            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
+              <ResourceEventsTab
+                namespace={row.namespace}
+                kind="Job"
+                name={row.name}
+                limit={20}
+              />
             </div>
           </div>
         </div>

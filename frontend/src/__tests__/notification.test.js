@@ -74,5 +74,82 @@ describe('notification system', () => {
     const text = container.querySelector('.gh-notification__text').textContent;
     expect(text).toContain('[object Object]');
   });
+
+  it('animates progress bar width based on duration', () => {
+    const origRAF = global.requestAnimationFrame;
+    global.requestAnimationFrame = (cb) => {
+      cb();
+      return 0;
+    };
+
+    showSuccess('progress', { duration: 1000 });
+    const container = getContainer();
+    const note = container.firstChild;
+    const progress = note.querySelector('.gh-notification__progress');
+
+    expect(progress.style.transition).toContain('1000ms');
+
+    expect(progress.style.width).toBe('0%');
+    // Notification should still be present before duration elapses
+    expect(container.children.length).toBe(1);
+
+    global.requestAnimationFrame = origRAF;
+  });
+
+  it('supports dragging notifications and stops on mouseup', () => {
+    showSuccess('drag me', { duration: 5000 });
+    const container = getContainer();
+    const note = container.firstChild;
+
+    vi.spyOn(note, 'getBoundingClientRect').mockReturnValue({
+      left: 50,
+      top: 80,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      x: 50,
+      y: 80,
+      toJSON: () => ({}),
+    });
+
+    note.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 60, clientY: 100 }));
+    expect(note.style.position).toBe('fixed');
+    expect(note.style.left).toBe('50px');
+    expect(note.style.top).toBe('80px');
+
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 70, clientY: 110 }));
+    expect(note.style.left).toBe('60px');
+    expect(note.style.top).toBe('90px');
+
+    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 70, clientY: 110 }));
+    const afterLeft = note.style.left;
+    const afterTop = note.style.top;
+    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 300 }));
+    expect(note.style.left).toBe(afterLeft);
+    expect(note.style.top).toBe(afterTop);
+  });
+
+  it('does not start dragging when clicking the close button', () => {
+    showWarning('close drag', { duration: 5000 });
+    const container = getContainer();
+    const note = container.firstChild;
+    const close = note.querySelector('.gh-notification__close');
+
+    vi.spyOn(note, 'getBoundingClientRect').mockReturnValue({
+      left: 10,
+      top: 20,
+      right: 0,
+      bottom: 0,
+      width: 0,
+      height: 0,
+      x: 10,
+      y: 20,
+      toJSON: () => ({}),
+    });
+
+    close.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 15, clientY: 25 }));
+    expect(note.style.position).not.toBe('fixed');
+  });
 });
 

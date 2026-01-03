@@ -64,10 +64,11 @@ describe('YamlTab', () => {
     expect(dispatchSpy).not.toHaveBeenCalled();
   });
 
-  it('recreates editor on content change (current implementation)', () => {
-    render(<YamlTab content="kind: Pod" />);
+  it('updates editor content on content change (no recreate)', () => {
+    const { rerender } = render(<YamlTab content="kind: Pod" />);
     const firstCtor = getCtorCount();
-    render(<YamlTab content="kind: Deployment" />);
-    expect(getCtorCount()).toBe(firstCtor + 1); // recreated instead of dispatch
+    rerender(<YamlTab content="kind: Deployment" />);
+    expect(getCtorCount()).toBe(firstCtor); // no recreate
+    expect(dispatchSpy).toHaveBeenCalled();
   });
 });

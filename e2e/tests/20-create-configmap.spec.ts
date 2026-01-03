@@ -23,5 +23,10 @@ test('creates a ConfigMap via overlay and table refreshes', async ({ page, conte
   const notifications = new Notifications(page);
   await notifications.expectSuccessContains('created successfully');
 
+  // Verify manual dismissal removes the notification (newer feature).
+  const successNote = page.locator('.gh-notification--success', { hasText: /created successfully/i }).first();
+  await successNote.locator('.gh-notification__close').click();
+  await expect(successNote).toHaveCount(0);
+
   await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible({ timeout: 60_000 });
 });

@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import * as AppAPI from '../../../wailsjs/go/main/App';
-import { EditorState } from '@codemirror/state';
-import { EditorView, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { Compartment, EditorState } from '@codemirror/state';
+import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
+import { foldGutter, foldKeymap, defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { yaml as yamlLang } from '@codemirror/lang-yaml';
 
 // Minimal file browser for PVCs (Enhanced)
 // Props: namespace, pvcName
@@ -19,6 +20,7 @@ export default function FilesTab({ namespace, pvcName }) {
 
   const editorParentRef = useRef(null);
   const cmViewRef = useRef(null);
+  const languageCompartmentRef = useRef(new Compartment());
 
   const cmTheme = useMemo(() => EditorView.theme({
     '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
@@ -34,20 +36,28 @@ export default function FilesTab({ namespace, pvcName }) {
     cmTheme,
     lineNumbers(),
     highlightActiveLineGutter(),
+    foldGutter(),
+    keymap.of(foldKeymap),
+    languageCompartmentRef.current.of([]),
     syntaxHighlighting(defaultHighlightStyle),
     EditorView.lineWrapping,
     EditorView.editable.of(false),
     EditorState.readOnly.of(true)
   ], [cmTheme]);
 
-  const initOrUpdateEditor = useCallback((text) => {
+  const initOrUpdateEditor = useCallback((text, filePath = '') => {
     if (!editorParentRef.current) return;
+    const lower = (filePath || '').toLowerCase();
+    const languageExt = (lower.endsWith('.yaml') || lower.endsWith('.yml')) ? [yamlLang()] : [];
     if (!cmViewRef.current) {
       const state = EditorState.create({ doc: text || '', extensions: cmExtensions });
       cmViewRef.current = new EditorView({ state, parent: editorParentRef.current });
-    } else {
-      cmViewRef.current.dispatch({ changes: { from: 0, to: cmViewRef.current.state.doc.length, insert: text || '' } });
     }
+
+    cmViewRef.current.dispatch({
+      effects: languageCompartmentRef.current.reconfigure(languageExt),
+      changes: { from: 0, to: cmViewRef.current.state.doc.length, insert: text || '' }
+    });
   }, [cmExtensions]);
 
   useEffect(() => () => { if (cmViewRef.current) { try { cmViewRef.current.destroy(); } catch(e) {} cmViewRef.current = null; } }, []);
@@ -116,7 +126,7 @@ export default function FilesTab({ namespace, pvcName }) {
       }
       const fc = { path: res.path, truncated: !!res.truncated, isBinary: !!res.isBinary, size: res.size, text };
       setFileContent(fc);
-      if (!fc.isBinary) initOrUpdateEditor(fc.text);
+      if (!fc.isBinary) initOrUpdateEditor(fc.text, fc.path);
     } catch (e) {
       setContentError(e?.message || String(e));
     } finally {

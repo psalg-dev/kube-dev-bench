@@ -72,44 +72,9 @@ function renderPanelContent(row, tab) {
             error={null}
             fields={quickInfoFields}
           />
-          {/* Right side content area for additional information */}
-          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Persistent Volume Details</div>
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
-              <strong>Status:</strong> {row.status || '-'}<br />
-              <strong>Capacity:</strong> {row.capacity || '-'}<br />
-              <strong>Access Modes:</strong> {row.accessModes || '-'}<br />
-              <strong>Reclaim Policy:</strong> {row.reclaimPolicy || '-'}<br />
-              <strong>Claim:</strong> {row.claim || '-'}<br />
-              <strong>Storage Class:</strong> {row.storageClass || '-'}
-            </div>
-            {annotations && Object.keys(annotations).length > 0 && (
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Annotations</div>
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4,
-                  maxHeight: 180,
-                  overflowY: 'auto',
-                  paddingRight: 4,
-                  fontSize: 12,
-                  scrollbarWidth: 'thin'
-                }}>
-                  {Object.entries(annotations).map(([k, v]) => (
-                    <div key={k} style={{ display: 'flex', alignItems: 'flex-start' }}>
-                      <span style={{ color: 'var(--gh-text-muted, #8b949e)', minWidth: 200, wordBreak: 'break-all' }}>{k}:</span>
-                      <span style={{ marginLeft: 4, wordBreak: 'break-all', flex: 1 }}>{v || '-'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {(!annotations || Object.keys(annotations).length === 0) && (
-              <div style={{ marginTop: 16, fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>
-                No annotations
-              </div>
-            )}
+          {/* Event History at a glance */}
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <ResourceEventsTab namespace="" resourceKind="PersistentVolume" resourceName={row.name} limit={20} />
           </div>
         </div>
       </div>

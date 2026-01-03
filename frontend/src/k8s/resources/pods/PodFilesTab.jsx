@@ -1,6 +1,8 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import { EditorView, lineNumbers } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
+import { EditorView, keymap, lineNumbers } from '@codemirror/view';
+import { Compartment, EditorState } from '@codemirror/state';
+import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { yaml as yamlLang } from '@codemirror/lang-yaml';
 
 /* PodFilesTab
  * Shows directory listing for a pod container.
@@ -38,6 +40,7 @@ export default function PodFilesTab({ podName }) {
   // Refs for CodeMirror preview
   const previewEditorParentRef = useRef(null);
   const previewEditorViewRef = useRef(null);
+  const previewLanguageCompartmentRef = useRef(new Compartment());
   const MIN_PREVIEW_WIDTH = 360;
   const MAX_PREVIEW_WIDTH_RATIO = 0.75; // 75% of available width
   const getDynamicMaxWidth = () => {
@@ -382,11 +385,17 @@ export default function PodFilesTab({ podName }) {
     // Create editor if missing
     if (!previewEditorViewRef.current) {
       try {
+        const lower = (previewPath || '').toLowerCase();
+        const languageExt = (lower.endsWith('.yaml') || lower.endsWith('.yml')) ? [yamlLang()] : [];
         const state = EditorState.create({
           doc: text,
           extensions: [
             previewCMTheme,
             lineNumbers(),
+            foldGutter(),
+            keymap.of(foldKeymap),
+            previewLanguageCompartmentRef.current.of(languageExt),
+            syntaxHighlighting(defaultHighlightStyle),
             EditorView.lineWrapping,
             EditorState.readOnly.of(true),
             EditorView.editable.of(false)
@@ -399,9 +408,16 @@ export default function PodFilesTab({ podName }) {
     } else {
       // Update doc if changed
       const view = previewEditorViewRef.current;
+      const lower = (previewPath || '').toLowerCase();
+      const languageExt = (lower.endsWith('.yaml') || lower.endsWith('.yml')) ? [yamlLang()] : [];
       const current = view.state.doc.toString();
       if (current !== text) {
-        view.dispatch({ changes: { from: 0, to: current.length, insert: text } });
+        view.dispatch({
+          effects: previewLanguageCompartmentRef.current.reconfigure(languageExt),
+          changes: { from: 0, to: current.length, insert: text }
+        });
+      } else {
+        view.dispatch({ effects: previewLanguageCompartmentRef.current.reconfigure(languageExt) });
       }
     }
 
