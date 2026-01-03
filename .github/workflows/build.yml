@@ -125,6 +125,11 @@ jobs:
         with:
           version: 'v1.29.0'
 
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
       - name: Install KinD
         run: |
           curl -sSL -o kind https://kind.sigs.k8s.io/dl/v0.23.0/kind-linux-amd64

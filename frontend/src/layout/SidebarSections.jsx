@@ -15,6 +15,7 @@ const resourceSections = [
   { key: 'ingresses', label: 'Ingresses' },
   { key: 'persistentvolumeclaims', label: 'Persistent Volume Claims' },
   { key: 'persistentvolumes', label: 'Persistent Volumes' },
+  { key: 'helmreleases', label: 'Helm Releases' },
 ];
 
 function PodCountsDisplay({ podStatus }) {

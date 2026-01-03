@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext.jsx';
 import { AppLayout } from './layout/AppLayout.jsx';
 import ConnectionWizard from './layout/connection/ConnectionWizard.jsx';
@@ -17,11 +17,16 @@ import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable.j
 import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewTable.jsx';
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable.jsx';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable.jsx';
+import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable.jsx';
+import HelmInstallDialog from './k8s/resources/helmreleases/HelmInstallDialog.jsx';
+import HelmRepositoriesDialog from './k8s/resources/helmreleases/HelmRepositoriesDialog.jsx';
 import { showResourceOverlay } from './resource-overlay.js';
 
 function MainApp({ selectedSection, setSelectedSection }) {
   const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled } = useClusterState();
   const firstNs = useMemo(() => (Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : ''), [selectedNamespaces]);
+  const [showHelmInstall, setShowHelmInstall] = useState(false);
+  const [showHelmRepos, setShowHelmRepos] = useState(false);
 
   // Global hotkey & sidebar toggle
   useEffect(() => {
@@ -75,6 +80,8 @@ function MainApp({ selectedSection, setSelectedSection }) {
         return <PersistentVolumeClaimsOverviewTable {...commonNsProps} onIngressCreate={()=>showResourceOverlay('persistentvolumeclaim')} />;
       case 'persistentvolumes':
         return <PersistentVolumesOverviewTable namespace={firstNs} />;
+      case 'helmreleases':
+        return <HelmReleasesOverviewTable {...commonNsProps} />;
       default:
         return null;
     }
@@ -113,6 +120,8 @@ function MainApp({ selectedSection, setSelectedSection }) {
           return <PersistentVolumeClaimsOverviewTable {...commonNsProps} onIngressCreate={()=>showResourceOverlay('persistentvolumeclaim')} />;
         case 'persistentvolumes':
           return <PersistentVolumesOverviewTable namespace={firstNs} />;
+        case 'helmreleases':
+          return <HelmReleasesOverviewTable {...commonNsProps} />;
         default:
           return null;
       }
@@ -129,25 +138,39 @@ function MainApp({ selectedSection, setSelectedSection }) {
   }
 
   return (
-    <AppLayout
-      contextSelectEl={<ContextSelect
-        value={selectedContext}
-        options={contexts}
-        disabled={contextDisabled}
-        onChange={(v) => actions.selectContext(v)}
-        onMenuOpen={() => actions.reloadContexts()}
-      />}
-      namespaceSelectEl={<NamespaceMultiSelect
-        values={selectedNamespaces}
-        options={namespaces}
-        disabled={namespaceDisabled}
-        onChange={(vals) => actions.selectNamespaces(vals)}
-        onMenuOpen={() => actions.reloadNamespaces()}
-      />}
-      selectedSection={selectedSection}
-      onSelectSection={handleSelectSection}
-      mainContentEl={mainContentEl}
-    />
+    <>
+      <AppLayout
+        contextSelectEl={<ContextSelect
+          value={selectedContext}
+          options={contexts}
+          disabled={contextDisabled}
+          onChange={(v) => actions.selectContext(v)}
+          onMenuOpen={() => actions.reloadContexts()}
+        />}
+        namespaceSelectEl={<NamespaceMultiSelect
+          values={selectedNamespaces}
+          options={namespaces}
+          disabled={namespaceDisabled}
+          onChange={(vals) => actions.selectNamespaces(vals)}
+          onMenuOpen={() => actions.reloadNamespaces()}
+        />}
+        selectedSection={selectedSection}
+        onSelectSection={handleSelectSection}
+        mainContentEl={mainContentEl}
+      />
+      {showHelmInstall && (
+        <HelmInstallDialog
+          namespace={firstNs}
+          onClose={() => setShowHelmInstall(false)}
+          onSuccess={() => setShowHelmInstall(false)}
+        />
+      )}
+      {showHelmRepos && (
+        <HelmRepositoriesDialog
+          onClose={() => setShowHelmRepos(false)}
+        />
+      )}
+    </>
   );
 }
 

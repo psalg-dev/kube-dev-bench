@@ -74,6 +74,17 @@ export class SidebarPage {
   }
 
   async goToSection(key: string) {
-    await this.page.locator(`#section-${key}`).click();
+    const section = this.page.locator(`#section-${key}`);
+    // Wait for the section to exist
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    await section.scrollIntoViewIfNeeded();
+
+    // Use Playwright's click so it will auto-retry if the element is briefly
+    // detached/covered during React updates (common under parallel load).
+    await section.click({ timeout: 30_000 });
+
+    // Confirm the sidebar selection state changed before test assertions
+    // check the main view title.
+    await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
   }
 }

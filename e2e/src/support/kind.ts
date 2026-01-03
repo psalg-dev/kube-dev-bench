@@ -71,3 +71,19 @@ export async function deleteNamespace(kubeconfigPath: string, namespace: string)
     timeoutMs: 60_000,
   });
 }
+
+export async function helm(args: string[], opts: { kubeconfigPath: string; timeoutMs?: number }) {
+  try {
+    return await exec('helm', ['--kubeconfig', opts.kubeconfigPath, ...args], {
+      timeoutMs: opts.timeoutMs ?? 120_000,
+    });
+  } catch (err: unknown) {
+    // If helm isn't installed/available on PATH, Node will throw ENOENT.
+    // For E2E, treat this as a normal non-zero exit so tests can `test.skip()`.
+    const anyErr = err as { code?: string; message?: string };
+    if (anyErr?.code === 'ENOENT') {
+      return { code: 127, stdout: '', stderr: anyErr.message ?? 'spawn helm ENOENT' };
+    }
+    throw err;
+  }
+}

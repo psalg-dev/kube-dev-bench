@@ -275,6 +275,7 @@ type ResourceCounts struct {
 	Ingresses              int             `json:"ingresses"`
 	PersistentVolumeClaims int             `json:"persistentvolumeclaims"`
 	PersistentVolumes      int             `json:"persistentvolumes"`
+	HelmReleases           int             `json:"helmreleases"`
 }
 
 // MonitorIssue represents a single warning or error detected in the cluster
@@ -301,4 +302,72 @@ type MonitorInfo struct {
 	ErrorCount   int            `json:"errorCount"`
 	Warnings     []MonitorIssue `json:"warnings"`
 	Errors       []MonitorIssue `json:"errors"`
+}
+
+// HelmReleaseInfo describes a Helm release's basic info
+type HelmReleaseInfo struct {
+	Name       string            `json:"name"`
+	Namespace  string            `json:"namespace"`
+	Revision   int               `json:"revision"`
+	Chart      string            `json:"chart"`
+	ChartVersion string          `json:"chartVersion"`
+	AppVersion string            `json:"appVersion"`
+	Status     string            `json:"status"`
+	Age        string            `json:"age"`
+	Updated    string            `json:"updated"`
+	Labels     map[string]string `json:"labels"`
+}
+
+// HelmRepositoryInfo describes a Helm repository
+type HelmRepositoryInfo struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+}
+
+// HelmChartInfo describes a Helm chart available in a repository
+type HelmChartInfo struct {
+	Name        string   `json:"name"`
+	Repo        string   `json:"repo"`
+	Version     string   `json:"version"`
+	AppVersion  string   `json:"appVersion"`
+	Description string   `json:"description"`
+	Versions    []string `json:"versions"`
+}
+
+// HelmChartVersionInfo describes a specific version of a Helm chart
+type HelmChartVersionInfo struct {
+	Version     string `json:"version"`
+	AppVersion  string `json:"appVersion"`
+	Description string `json:"description"`
+	Created     string `json:"created"`
+}
+
+// HelmHistoryInfo describes a revision in Helm release history
+type HelmHistoryInfo struct {
+	Revision    int    `json:"revision"`
+	Updated     string `json:"updated"`
+	Status      string `json:"status"`
+	Chart       string `json:"chart"`
+	AppVersion  string `json:"appVersion"`
+	Description string `json:"description"`
+}
+
+// HelmInstallRequest contains parameters for installing a Helm chart
+type HelmInstallRequest struct {
+	ReleaseName string            `json:"releaseName"`
+	Namespace   string            `json:"namespace"`
+	ChartRef    string            `json:"chartRef"` // repo/chart format
+	Version     string            `json:"version"`
+	Values      map[string]interface{} `json:"values"`
+	CreateNs    bool              `json:"createNamespace"`
+}
+
+// HelmUpgradeRequest contains parameters for upgrading a Helm release
+type HelmUpgradeRequest struct {
+	ReleaseName string            `json:"releaseName"`
+	Namespace   string            `json:"namespace"`
+	ChartRef    string            `json:"chartRef"`
+	Version     string            `json:"version"`
+	Values      map[string]interface{} `json:"values"`
+	ReuseValues bool              `json:"reuseValues"`
 }

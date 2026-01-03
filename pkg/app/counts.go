@@ -135,6 +135,9 @@ func (a *App) refreshResourceCounts() {
 		if pvcs, err := a.GetPersistentVolumeClaims(ns); err == nil {
 			agg.PersistentVolumeClaims += len(pvcs)
 		}
+		if helmReleases, err := a.GetHelmReleases(ns); err == nil {
+			agg.HelmReleases += len(helmReleases)
+		}
 	}
 	if pvs, err := a.GetPersistentVolumes(); err == nil {
 		agg.PersistentVolumes = len(pvs)
@@ -169,7 +172,8 @@ func resourceCountsEqual(aCnt, bCnt ResourceCounts) bool {
 		aCnt.Secrets == bCnt.Secrets &&
 		aCnt.Ingresses == bCnt.Ingresses &&
 		aCnt.PersistentVolumeClaims == bCnt.PersistentVolumeClaims &&
-		aCnt.PersistentVolumes == bCnt.PersistentVolumes
+		aCnt.PersistentVolumes == bCnt.PersistentVolumes &&
+		aCnt.HelmReleases == bCnt.HelmReleases
 }
 
 // GetResourceCounts returns the latest cached snapshot (no recomputation).
