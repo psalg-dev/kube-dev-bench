@@ -315,25 +315,46 @@ export function SwarmStateProvider({ children }) {
       dispatch({ type: 'SET_NODES', data });
     }));
     offs.push(EventsOn('swarm:networks:update', (data) => {
-      dispatch({ type: 'SET_NETWORKS', data });
+      // Some callers emit this as a refresh signal without payload.
+      if (Array.isArray(data)) {
+        dispatch({ type: 'SET_NETWORKS', data });
+      } else {
+        refreshNetworks();
+      }
     }));
     offs.push(EventsOn('swarm:configs:update', (data) => {
-      dispatch({ type: 'SET_CONFIGS', data });
+      if (Array.isArray(data)) {
+        dispatch({ type: 'SET_CONFIGS', data });
+      } else {
+        refreshConfigs();
+      }
     }));
     offs.push(EventsOn('swarm:secrets:update', (data) => {
-      dispatch({ type: 'SET_SECRETS', data });
+      if (Array.isArray(data)) {
+        dispatch({ type: 'SET_SECRETS', data });
+      } else {
+        refreshSecrets();
+      }
     }));
     offs.push(EventsOn('swarm:stacks:update', (data) => {
-      dispatch({ type: 'SET_STACKS', data });
+      if (Array.isArray(data)) {
+        dispatch({ type: 'SET_STACKS', data });
+      } else {
+        refreshStacks();
+      }
     }));
     offs.push(EventsOn('swarm:volumes:update', (data) => {
-      dispatch({ type: 'SET_VOLUMES', data });
+      if (Array.isArray(data)) {
+        dispatch({ type: 'SET_VOLUMES', data });
+      } else {
+        refreshVolumes();
+      }
     }));
 
     return () => {
       offs.forEach(off => { if (typeof off === 'function') off(); });
     };
-  }, []);
+  }, [refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);
 
   const actions = {
     connect,

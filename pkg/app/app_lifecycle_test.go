@@ -129,8 +129,9 @@ func TestStartup_LoadsConfig(t *testing.T) {
 	}
 
 	app := &App{
-		configPath:      configPath,
-		countsRefreshCh: make(chan struct{}, 1),
+		configPath:           configPath,
+		countsRefreshCh:      make(chan struct{}, 1),
+		disableStartupDocker: true,
 	}
 
 	ctx := context.Background()

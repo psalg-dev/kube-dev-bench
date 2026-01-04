@@ -130,3 +130,10 @@ type SwarmVolumeInfo struct {
 	Labels     map[string]string `json:"labels"`
 	CreatedAt  string            `json:"createdAt"`
 }
+
+// PruneSwarmVolumesResult describes the outcome of pruning unused volumes.
+// Wails supports returning a single struct more reliably than multiple values.
+type PruneSwarmVolumesResult struct {
+	VolumesDeleted []string `json:"volumesDeleted"`
+	SpaceReclaimed uint64   `json:"spaceReclaimed"`
+}

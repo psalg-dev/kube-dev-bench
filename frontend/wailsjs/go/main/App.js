@@ -30,8 +30,16 @@ export function CreateSwarmConfig(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSwarmConfig'](arg1, arg2, arg3);
 }
 
+export function CreateSwarmNetwork(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CreateSwarmNetwork'](arg1, arg2, arg3);
+}
+
 export function CreateSwarmSecret(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSwarmSecret'](arg1, arg2, arg3);
+}
+
+export function CreateSwarmVolume(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['CreateSwarmVolume'](arg1, arg2, arg3, arg4);
 }
 
 export function DeleteConfigMap(arg1, arg2) {
@@ -490,6 +498,14 @@ export function PortForwardPodWith(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['PortForwardPodWith'](arg1, arg2, arg3, arg4);
 }
 
+export function PruneSwarmNetworks() {
+  return window['go']['main']['App']['PruneSwarmNetworks']();
+}
+
+export function PruneSwarmVolumes() {
+  return window['go']['main']['App']['PruneSwarmVolumes']();
+}
+
 export function RemoveHelmRepository(arg1) {
   return window['go']['main']['App']['RemoveHelmRepository'](arg1);
 }
@@ -748,6 +764,14 @@ export function UpdateSecretDataKey(arg1, arg2, arg3, arg4) {
 
 export function UpdateSwarmNodeAvailability(arg1, arg2) {
   return window['go']['main']['App']['UpdateSwarmNodeAvailability'](arg1, arg2);
+}
+
+export function UpdateSwarmNodeLabels(arg1, arg2) {
+  return window['go']['main']['App']['UpdateSwarmNodeLabels'](arg1, arg2);
+}
+
+export function UpdateSwarmNodeRole(arg1, arg2) {
+  return window['go']['main']['App']['UpdateSwarmNodeRole'](arg1, arg2);
 }
 
 export function UpdateSwarmServiceImage(arg1, arg2) {

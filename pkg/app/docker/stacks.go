@@ -4,12 +4,29 @@ import (
 	"context"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
+
+type swarmStacksClient interface {
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceRemove(context.Context, string) error
+	NetworkList(context.Context, types.NetworkListOptions) ([]types.NetworkResource, error)
+	NetworkRemove(context.Context, string) error
+	ConfigList(context.Context, types.ConfigListOptions) ([]swarm.Config, error)
+	ConfigRemove(context.Context, string) error
+	SecretList(context.Context, types.SecretListOptions) ([]swarm.Secret, error)
+	SecretRemove(context.Context, string) error
+	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+}
 
 // GetSwarmStacks returns all Docker Stacks
 // Note: Docker Stacks are identified by the com.docker.stack.namespace label
 func GetSwarmStacks(ctx context.Context, cli *client.Client) ([]SwarmStackInfo, error) {
+	return getSwarmStacks(ctx, cli)
+}
+
+func getSwarmStacks(ctx context.Context, cli swarmStacksClient) ([]SwarmStackInfo, error) {
 	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
@@ -37,7 +54,7 @@ func GetSwarmStacks(ctx context.Context, cli *client.Client) ([]SwarmStackInfo, 
 
 // GetSwarmStackServices returns all services belonging to a specific stack
 func GetSwarmStackServices(ctx context.Context, cli *client.Client, stackName string) ([]SwarmServiceInfo, error) {
-	services, err := GetSwarmServices(ctx, cli)
+	services, err := getSwarmServices(ctx, cli)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +73,10 @@ func GetSwarmStackServices(ctx context.Context, cli *client.Client, stackName st
 // RemoveSwarmStack removes all services belonging to a stack
 // This mimics `docker stack rm` behavior
 func RemoveSwarmStack(ctx context.Context, cli *client.Client, stackName string) error {
+	return removeSwarmStack(ctx, cli, stackName)
+}
+
+func removeSwarmStack(ctx context.Context, cli swarmStacksClient, stackName string) error {
 	// Get all services in the stack
 	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {

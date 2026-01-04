@@ -10,8 +10,20 @@ import (
 	"github.com/docker/docker/client"
 )
 
+type swarmServicesClient interface {
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error)
+	ServiceRemove(context.Context, string) error
+	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+}
+
 // GetSwarmServices returns all Swarm services
 func GetSwarmServices(ctx context.Context, cli *client.Client) ([]SwarmServiceInfo, error) {
+	return getSwarmServices(ctx, cli)
+}
+
+func getSwarmServices(ctx context.Context, cli swarmServicesClient) ([]SwarmServiceInfo, error) {
 	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
@@ -42,6 +54,10 @@ func GetSwarmServices(ctx context.Context, cli *client.Client) ([]SwarmServiceIn
 
 // GetSwarmService returns a specific Swarm service by ID or name
 func GetSwarmService(ctx context.Context, cli *client.Client, serviceID string) (*SwarmServiceInfo, error) {
+	return getSwarmService(ctx, cli, serviceID)
+}
+
+func getSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) (*SwarmServiceInfo, error) {
 	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return nil, err
@@ -115,6 +131,10 @@ func serviceToInfo(svc swarm.Service, runningTasks uint64) SwarmServiceInfo {
 
 // ScaleSwarmService scales a replicated service to the specified number of replicas
 func ScaleSwarmService(ctx context.Context, cli *client.Client, serviceID string, replicas uint64) error {
+	return scaleSwarmService(ctx, cli, serviceID, replicas)
+}
+
+func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string, replicas uint64) error {
 	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err
@@ -134,11 +154,19 @@ func ScaleSwarmService(ctx context.Context, cli *client.Client, serviceID string
 
 // RemoveSwarmService removes a Swarm service
 func RemoveSwarmService(ctx context.Context, cli *client.Client, serviceID string) error {
+	return removeSwarmService(ctx, cli, serviceID)
+}
+
+func removeSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
 	return cli.ServiceRemove(ctx, serviceID)
 }
 
 // UpdateSwarmServiceImage updates the image of a Swarm service
 func UpdateSwarmServiceImage(ctx context.Context, cli *client.Client, serviceID string, image string) error {
+	return updateSwarmServiceImage(ctx, cli, serviceID, image)
+}
+
+func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, serviceID string, image string) error {
 	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err
@@ -157,6 +185,10 @@ func UpdateSwarmServiceImage(ctx context.Context, cli *client.Client, serviceID 
 
 // RestartSwarmService forces a rolling restart of a Swarm service
 func RestartSwarmService(ctx context.Context, cli *client.Client, serviceID string) error {
+	return restartSwarmService(ctx, cli, serviceID)
+}
+
+func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
 	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err

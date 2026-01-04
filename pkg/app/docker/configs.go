@@ -9,8 +9,20 @@ import (
 	"github.com/docker/docker/client"
 )
 
+type swarmConfigsClient interface {
+	ConfigList(context.Context, types.ConfigListOptions) ([]swarm.Config, error)
+	ConfigInspectWithRaw(context.Context, string) (swarm.Config, []byte, error)
+	ConfigCreate(context.Context, swarm.ConfigSpec) (types.ConfigCreateResponse, error)
+	ConfigUpdate(context.Context, string, swarm.Version, swarm.ConfigSpec) error
+	ConfigRemove(context.Context, string) error
+}
+
 // GetSwarmConfigs returns all Swarm configs
 func GetSwarmConfigs(ctx context.Context, cli *client.Client) ([]SwarmConfigInfo, error) {
+	return getSwarmConfigs(ctx, cli)
+}
+
+func getSwarmConfigs(ctx context.Context, cli swarmConfigsClient) ([]SwarmConfigInfo, error) {
 	configs, err := cli.ConfigList(ctx, types.ConfigListOptions{})
 	if err != nil {
 		return nil, err
@@ -27,6 +39,10 @@ func GetSwarmConfigs(ctx context.Context, cli *client.Client) ([]SwarmConfigInfo
 
 // GetSwarmConfig returns a specific Swarm config by ID or name
 func GetSwarmConfig(ctx context.Context, cli *client.Client, configID string) (*SwarmConfigInfo, error) {
+	return getSwarmConfig(ctx, cli, configID)
+}
+
+func getSwarmConfig(ctx context.Context, cli swarmConfigsClient, configID string) (*SwarmConfigInfo, error) {
 	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
 	if err != nil {
 		return nil, err
@@ -38,6 +54,10 @@ func GetSwarmConfig(ctx context.Context, cli *client.Client, configID string) (*
 
 // GetSwarmConfigData returns the data content of a Swarm config
 func GetSwarmConfigData(ctx context.Context, cli *client.Client, configID string) ([]byte, error) {
+	return getSwarmConfigData(ctx, cli, configID)
+}
+
+func getSwarmConfigData(ctx context.Context, cli swarmConfigsClient, configID string) ([]byte, error) {
 	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
 	if err != nil {
 		return nil, err
@@ -65,6 +85,10 @@ func configToInfo(cfg swarm.Config) SwarmConfigInfo {
 
 // CreateSwarmConfig creates a new Swarm config
 func CreateSwarmConfig(ctx context.Context, cli *client.Client, name string, data []byte, labels map[string]string) (string, error) {
+	return createSwarmConfig(ctx, cli, name, data, labels)
+}
+
+func createSwarmConfig(ctx context.Context, cli swarmConfigsClient, name string, data []byte, labels map[string]string) (string, error) {
 	spec := swarm.ConfigSpec{
 		Annotations: swarm.Annotations{
 			Name:   name,
@@ -82,6 +106,10 @@ func CreateSwarmConfig(ctx context.Context, cli *client.Client, name string, dat
 
 // UpdateSwarmConfig updates a Swarm config (note: configs are immutable, this creates a new version)
 func UpdateSwarmConfig(ctx context.Context, cli *client.Client, configID string, newData []byte) error {
+	return updateSwarmConfig(ctx, cli, configID, newData)
+}
+
+func updateSwarmConfig(ctx context.Context, cli swarmConfigsClient, configID string, newData []byte) error {
 	// Get the current config
 	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
 	if err != nil {
@@ -96,5 +124,9 @@ func UpdateSwarmConfig(ctx context.Context, cli *client.Client, configID string,
 
 // RemoveSwarmConfig removes a Swarm config
 func RemoveSwarmConfig(ctx context.Context, cli *client.Client, configID string) error {
+	return removeSwarmConfig(ctx, cli, configID)
+}
+
+func removeSwarmConfig(ctx context.Context, cli swarmConfigsClient, configID string) error {
 	return cli.ConfigRemove(ctx, configID)
 }

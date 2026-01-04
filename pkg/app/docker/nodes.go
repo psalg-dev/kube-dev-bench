@@ -5,12 +5,26 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
+type swarmNodesClient interface {
+	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	NodeInspectWithRaw(context.Context, string) (swarm.Node, []byte, error)
+	NodeUpdate(context.Context, string, swarm.Version, swarm.NodeSpec) error
+	NodeRemove(context.Context, string, types.NodeRemoveOptions) error
+	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+}
+
 // GetSwarmNodes returns all Swarm nodes
 func GetSwarmNodes(ctx context.Context, cli *client.Client) ([]SwarmNodeInfo, error) {
+	return getSwarmNodes(ctx, cli)
+}
+
+func getSwarmNodes(ctx context.Context, cli swarmNodesClient) ([]SwarmNodeInfo, error) {
 	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
 	if err != nil {
 		return nil, err
@@ -27,6 +41,10 @@ func GetSwarmNodes(ctx context.Context, cli *client.Client) ([]SwarmNodeInfo, er
 
 // GetSwarmNode returns a specific Swarm node by ID
 func GetSwarmNode(ctx context.Context, cli *client.Client, nodeID string) (*SwarmNodeInfo, error) {
+	return getSwarmNode(ctx, cli, nodeID)
+}
+
+func getSwarmNode(ctx context.Context, cli swarmNodesClient, nodeID string) (*SwarmNodeInfo, error) {
 	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
 	if err != nil {
 		return nil, err
@@ -59,6 +77,10 @@ func nodeToInfo(node swarm.Node) SwarmNodeInfo {
 
 // UpdateSwarmNodeAvailability updates a node's availability (active, pause, drain)
 func UpdateSwarmNodeAvailability(ctx context.Context, cli *client.Client, nodeID string, availability string) error {
+	return updateSwarmNodeAvailability(ctx, cli, nodeID, availability)
+}
+
+func updateSwarmNodeAvailability(ctx context.Context, cli swarmNodesClient, nodeID string, availability string) error {
 	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
 	if err != nil {
 		return err
@@ -82,6 +104,10 @@ func UpdateSwarmNodeAvailability(ctx context.Context, cli *client.Client, nodeID
 
 // UpdateSwarmNodeRole updates a node's role (worker, manager)
 func UpdateSwarmNodeRole(ctx context.Context, cli *client.Client, nodeID string, role string) error {
+	return updateSwarmNodeRole(ctx, cli, nodeID, role)
+}
+
+func updateSwarmNodeRole(ctx context.Context, cli swarmNodesClient, nodeID string, role string) error {
 	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
 	if err != nil {
 		return err
@@ -103,6 +129,10 @@ func UpdateSwarmNodeRole(ctx context.Context, cli *client.Client, nodeID string,
 
 // UpdateSwarmNodeLabels updates a node's labels
 func UpdateSwarmNodeLabels(ctx context.Context, cli *client.Client, nodeID string, labels map[string]string) error {
+	return updateSwarmNodeLabels(ctx, cli, nodeID, labels)
+}
+
+func updateSwarmNodeLabels(ctx context.Context, cli swarmNodesClient, nodeID string, labels map[string]string) error {
 	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
 	if err != nil {
 		return err
@@ -114,13 +144,21 @@ func UpdateSwarmNodeLabels(ctx context.Context, cli *client.Client, nodeID strin
 
 // RemoveSwarmNode removes a node from the swarm
 func RemoveSwarmNode(ctx context.Context, cli *client.Client, nodeID string, force bool) error {
+	return removeSwarmNode(ctx, cli, nodeID, force)
+}
+
+func removeSwarmNode(ctx context.Context, cli swarmNodesClient, nodeID string, force bool) error {
 	return cli.NodeRemove(ctx, nodeID, types.NodeRemoveOptions{Force: force})
 }
 
 // GetSwarmNodeTasks returns all tasks running on a specific node
 func GetSwarmNodeTasks(ctx context.Context, cli *client.Client, nodeID string) ([]SwarmTaskInfo, error) {
+	return getSwarmNodeTasks(ctx, cli, nodeID)
+}
+
+func getSwarmNodeTasks(ctx context.Context, cli swarmNodesClient, nodeID string) ([]SwarmTaskInfo, error) {
 	// Use TaskList with filter for the node
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, types.TaskListOptions{Filters: filters.NewArgs(filters.Arg("node", nodeID))})
 	if err != nil {
 		return nil, err
 	}
@@ -143,12 +181,10 @@ func GetSwarmNodeTasks(ctx context.Context, cli *client.Client, nodeID string) (
 		}
 	}
 
-	result := make([]SwarmTaskInfo, 0)
+	result := make([]SwarmTaskInfo, 0, len(tasks))
 	for _, task := range tasks {
-		if task.NodeID == nodeID {
-			info := taskToInfo(task, serviceNames, nodeNames)
-			result = append(result, info)
-		}
+		info := taskToInfo(task, serviceNames, nodeNames)
+		result = append(result, info)
 	}
 
 	return result, nil

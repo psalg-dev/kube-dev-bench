@@ -19,7 +19,11 @@ export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
 export function CreateSwarmConfig(arg1:string,arg2:string,arg3:Record<string, string>):Promise<string>;
 
+export function CreateSwarmNetwork(arg1:string,arg2:string,arg3:docker.CreateNetworkOptions):Promise<string>;
+
 export function CreateSwarmSecret(arg1:string,arg2:string,arg3:Record<string, string>):Promise<string>;
+
+export function CreateSwarmVolume(arg1:string,arg2:string,arg3:Record<string, string>,arg4:Record<string, string>):Promise<docker.SwarmVolumeInfo>;
 
 export function DeleteConfigMap(arg1:string,arg2:string):Promise<void>;
 
@@ -249,6 +253,10 @@ export function PortForwardPod(arg1:string,arg2:string,arg3:number):Promise<stri
 
 export function PortForwardPodWith(arg1:string,arg2:string,arg3:number,arg4:number):Promise<string>;
 
+export function PruneSwarmNetworks():Promise<Array<string>>;
+
+export function PruneSwarmVolumes():Promise<docker.PruneSwarmVolumesResult>;
+
 export function RemoveHelmRepository(arg1:string):Promise<void>;
 
 export function RemoveSwarmConfig(arg1:string):Promise<void>;
@@ -378,6 +386,10 @@ export function UpdateHelmRepositories():Promise<void>;
 export function UpdateSecretDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function UpdateSwarmNodeAvailability(arg1:string,arg2:string):Promise<void>;
+
+export function UpdateSwarmNodeLabels(arg1:string,arg2:Record<string, string>):Promise<void>;
+
+export function UpdateSwarmNodeRole(arg1:string,arg2:string):Promise<void>;
 
 export function UpdateSwarmServiceImage(arg1:string,arg2:string):Promise<void>;
 

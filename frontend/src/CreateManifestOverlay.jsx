@@ -113,6 +113,17 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   const [swarmName, setSwarmName] = useState('');
   const [swarmLabels, setSwarmLabels] = useState('');
 
+  // Swarm structured create fields (used for networks/volumes)
+  const [swarmNetworkDriver, setSwarmNetworkDriver] = useState('overlay');
+  const [swarmNetworkScope, setSwarmNetworkScope] = useState('swarm');
+  const [swarmNetworkAttachable, setSwarmNetworkAttachable] = useState(true);
+  const [swarmNetworkInternal, setSwarmNetworkInternal] = useState(false);
+  const [swarmNetworkSubnet, setSwarmNetworkSubnet] = useState('');
+  const [swarmNetworkGateway, setSwarmNetworkGateway] = useState('');
+
+  const [swarmVolumeDriver, setSwarmVolumeDriver] = useState('local');
+  const [swarmVolumeDriverOpts, setSwarmVolumeDriverOpts] = useState('');
+
   const initial = useMemo(() => {
     if (platform === 'swarm') {
       const payload = getDefaultSwarmPayload(kind);
@@ -152,6 +163,20 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
       const payload = getDefaultSwarmPayload(kind);
       setSwarmName(payload.name || '');
       setSwarmLabels('');
+
+      const k = normalizeSwarmKind(kind);
+      if (k === 'network') {
+        setSwarmNetworkDriver('overlay');
+        setSwarmNetworkScope('swarm');
+        setSwarmNetworkAttachable(true);
+        setSwarmNetworkInternal(false);
+        setSwarmNetworkSubnet('');
+        setSwarmNetworkGateway('');
+      }
+      if (k === 'volume') {
+        setSwarmVolumeDriver('local');
+        setSwarmVolumeDriverOpts('');
+      }
     }
   }, [open, initial]);
 
@@ -210,11 +235,6 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
       setSubmitting(true);
       setError('');
       const manifest = getCurrentText();
-      if (!manifest.trim()) {
-        setError(platform === 'swarm' ? 'Payload is empty.' : 'Manifest is empty.');
-        setSubmitting(false);
-        return;
-      }
 
       if (platform === 'swarm') {
         const k = normalizeSwarmKind(kind);
@@ -225,8 +245,15 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           return;
         }
 
+        const labels = parseKeyValueLabels(swarmLabels);
+
         // Only implement supported backend RPCs.
         if (k === 'config') {
+          if (!manifest.trim()) {
+            setError('Payload is empty.');
+            setSubmitting(false);
+            return;
+          }
           await AppAPI.CreateSwarmConfig(name, manifest, parseKeyValueLabels(swarmLabels));
           showSuccess(`Swarm config "${name}" was created successfully!`);
           try { EventsEmit('swarm:configs:update', null); } catch {}
@@ -235,6 +262,11 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
         }
 
         if (k === 'secret') {
+          if (!manifest.trim()) {
+            setError('Payload is empty.');
+            setSubmitting(false);
+            return;
+          }
           await AppAPI.CreateSwarmSecret(name, manifest, parseKeyValueLabels(swarmLabels));
           showSuccess(`Swarm secret "${name}" was created successfully!`);
           try { EventsEmit('swarm:secrets:update', null); } catch {}
@@ -242,8 +274,39 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           return;
         }
 
+        if (k === 'network') {
+          const opts = {
+            scope: (swarmNetworkScope || '').trim(),
+            attachable: !!swarmNetworkAttachable,
+            internal: !!swarmNetworkInternal,
+            labels,
+            subnet: (swarmNetworkSubnet || '').trim(),
+            gateway: (swarmNetworkGateway || '').trim(),
+          };
+          await AppAPI.CreateSwarmNetwork(name, (swarmNetworkDriver || '').trim() || 'overlay', opts);
+          showSuccess(`Swarm network "${name}" was created successfully!`);
+          try { EventsEmit('swarm:networks:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
+        if (k === 'volume') {
+          const driverOpts = parseKeyValueLabels(swarmVolumeDriverOpts);
+          await AppAPI.CreateSwarmVolume(name, (swarmVolumeDriver || '').trim() || 'local', labels, driverOpts);
+          showSuccess(`Swarm volume "${name}" was created successfully!`);
+          try { EventsEmit('swarm:volumes:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
         setError(`Create is not implemented for Swarm ${k || 'resource'} yet.`);
         showError(`Create is not implemented for Swarm ${k || 'resource'} yet.`);
+        setSubmitting(false);
+        return;
+      }
+
+      if (!manifest.trim()) {
+        setError('Manifest is empty.');
         setSubmitting(false);
         return;
       }
@@ -264,6 +327,8 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   }
 
   const isSwarm = platform === 'swarm';
+  const swarmKind = isSwarm ? normalizeSwarmKind(kind) : '';
+  const showSwarmEditor = !isSwarm || (swarmKind !== 'network' && swarmKind !== 'volume');
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
@@ -298,7 +363,96 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
               </div>
             </div>
           )}
-          <div ref={editorParentRef} style={{ width: '100%', height: '55vh', minHeight: '55vh' }} />
+          {isSwarm && swarmKind === 'network' && (
+            <div style={{ padding: 12, borderBottom: '1px solid #353a42', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver</div>
+                <select
+                  value={swarmNetworkDriver}
+                  onChange={(e) => setSwarmNetworkDriver(e.target.value)}
+                  aria-label="Network driver"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                >
+                  <option value="overlay">overlay</option>
+                  <option value="bridge">bridge</option>
+                  <option value="macvlan">macvlan</option>
+                  <option value="host">host</option>
+                </select>
+              </div>
+              <div style={{ flex: '1 1 160px', minWidth: 140 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Scope</div>
+                <select
+                  value={swarmNetworkScope}
+                  onChange={(e) => setSwarmNetworkScope(e.target.value)}
+                  aria-label="Network scope"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                >
+                  <option value="swarm">swarm</option>
+                  <option value="local">local</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', paddingBottom: 2 }}>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#bbb' }}>
+                  <input type="checkbox" checked={swarmNetworkAttachable} onChange={(e) => setSwarmNetworkAttachable(e.target.checked)} />
+                  Attachable
+                </label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#bbb' }}>
+                  <input type="checkbox" checked={swarmNetworkInternal} onChange={(e) => setSwarmNetworkInternal(e.target.checked)} />
+                  Internal
+                </label>
+              </div>
+              <div style={{ flex: '1 1 200px', minWidth: 180 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Subnet (CIDR)</div>
+                <input
+                  value={swarmNetworkSubnet}
+                  onChange={(e) => setSwarmNetworkSubnet(e.target.value)}
+                  placeholder="10.0.0.0/24"
+                  aria-label="Network subnet"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                />
+              </div>
+              <div style={{ flex: '1 1 200px', minWidth: 180 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Gateway</div>
+                <input
+                  value={swarmNetworkGateway}
+                  onChange={(e) => setSwarmNetworkGateway(e.target.value)}
+                  placeholder="10.0.0.1"
+                  aria-label="Network gateway"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                />
+              </div>
+            </div>
+          )}
+          {isSwarm && swarmKind === 'volume' && (
+            <div style={{ padding: 12, borderBottom: '1px solid #353a42', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <div style={{ flex: '1 1 200px', minWidth: 160 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver</div>
+                <select
+                  value={swarmVolumeDriver}
+                  onChange={(e) => setSwarmVolumeDriver(e.target.value)}
+                  aria-label="Volume driver"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                >
+                  <option value="local">local</option>
+                  <option value="nfs">nfs</option>
+                </select>
+              </div>
+              <div style={{ flex: '2 1 320px', minWidth: 240 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver options (one per line: key=value)</div>
+                <textarea
+                  value={swarmVolumeDriverOpts}
+                  onChange={(e) => setSwarmVolumeDriverOpts(e.target.value)}
+                  placeholder="o=addr=10.0.0.10,rw\nversion=4"
+                  aria-label="Volume driver options"
+                  rows={3}
+                  style={{ width: '100%', resize: 'vertical', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                />
+              </div>
+            </div>
+          )}
+          {showSwarmEditor && (
+            <div ref={editorParentRef} style={{ width: '100%', height: '55vh', minHeight: '55vh' }} />
+          )}
           {error && (
             <div style={{ position: 'absolute', top: 8, left: 10, color: '#f85149', background: 'rgba(248,81,73,0.1)', padding: '4px 8px', borderRadius: 0, border: '1px solid rgba(248,81,73,0.4)' }}>
               {error}

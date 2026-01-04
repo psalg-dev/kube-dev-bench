@@ -39,6 +39,11 @@ func TestGetHelmRepoFile(t *testing.T) {
 }
 
 func TestGetHelmRepositories_NoFile(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HELM_CONFIG_HOME", filepath.Join(tmp, "config"))
+	t.Setenv("HELM_CACHE_HOME", filepath.Join(tmp, "cache"))
+	t.Setenv("HELM_DATA_HOME", filepath.Join(tmp, "data"))
+
 	app := &App{}
 
 	repos, err := app.GetHelmRepositories()
@@ -57,6 +62,11 @@ func TestGetHelmRepositories_NoFile(t *testing.T) {
 }
 
 func TestSearchHelmCharts_NoRepoFile(t *testing.T) {
+	tmp := t.TempDir()
+	t.Setenv("HELM_CONFIG_HOME", filepath.Join(tmp, "config"))
+	t.Setenv("HELM_CACHE_HOME", filepath.Join(tmp, "cache"))
+	t.Setenv("HELM_DATA_HOME", filepath.Join(tmp, "data"))
+
 	app := &App{}
 
 	charts, err := app.SearchHelmCharts("nginx")

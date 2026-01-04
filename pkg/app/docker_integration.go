@@ -232,6 +232,24 @@ func (a *App) UpdateSwarmNodeAvailability(nodeID string, availability string) er
 	return docker.UpdateSwarmNodeAvailability(a.ctx, cli, nodeID, availability)
 }
 
+// UpdateSwarmNodeRole updates a node's role (worker, manager)
+func (a *App) UpdateSwarmNodeRole(nodeID string, role string) error {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return err
+	}
+	return docker.UpdateSwarmNodeRole(a.ctx, cli, nodeID, role)
+}
+
+// UpdateSwarmNodeLabels updates a node's labels
+func (a *App) UpdateSwarmNodeLabels(nodeID string, labels map[string]string) error {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return err
+	}
+	return docker.UpdateSwarmNodeLabels(a.ctx, cli, nodeID, labels)
+}
+
 // GetSwarmNodeTasks returns all tasks running on a specific node
 func (a *App) GetSwarmNodeTasks(nodeID string) ([]docker.SwarmTaskInfo, error) {
 	cli, err := a.getDockerClient()
@@ -277,6 +295,24 @@ func (a *App) RemoveSwarmNetwork(networkID string) error {
 		return err
 	}
 	return docker.RemoveSwarmNetwork(a.ctx, cli, networkID)
+}
+
+// CreateSwarmNetwork creates a new Docker network
+func (a *App) CreateSwarmNetwork(name string, driver string, opts docker.CreateNetworkOptions) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.CreateSwarmNetwork(a.ctx, cli, name, driver, opts)
+}
+
+// PruneSwarmNetworks removes all unused networks
+func (a *App) PruneSwarmNetworks() ([]string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.PruneSwarmNetworks(a.ctx, cli)
 }
 
 // ==================== Swarm Configs ====================
@@ -430,6 +466,28 @@ func (a *App) RemoveSwarmVolume(volumeName string, force bool) error {
 		return err
 	}
 	return docker.RemoveSwarmVolume(a.ctx, cli, volumeName, force)
+}
+
+// CreateSwarmVolume creates a new Docker volume
+func (a *App) CreateSwarmVolume(name string, driver string, labels map[string]string, driverOpts map[string]string) (*docker.SwarmVolumeInfo, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.CreateSwarmVolume(a.ctx, cli, name, driver, labels, driverOpts)
+}
+
+// PruneSwarmVolumes removes all unused volumes
+func (a *App) PruneSwarmVolumes() (*docker.PruneSwarmVolumesResult, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	deleted, reclaimed, err := docker.PruneSwarmVolumes(a.ctx, cli)
+	if err != nil {
+		return nil, err
+	}
+	return &docker.PruneSwarmVolumesResult{VolumesDeleted: deleted, SpaceReclaimed: reclaimed}, nil
 }
 
 // ==================== Swarm Logs ====================
@@ -616,8 +674,6 @@ func (a *App) StartSwarmResourceCountsPolling() {
 				// Only log on first failure to avoid spam
 				continue
 			}
-			fmt.Printf("[DEBUG] Emitting swarm:resourcecounts:update: services=%d, tasks=%d, nodes=%d, networks=%d, volumes=%d\n",
-				counts.Services, counts.Tasks, counts.Nodes, counts.Networks, counts.Volumes)
 			wailsRuntime.EventsEmit(a.ctx, "swarm:resourcecounts:update", counts)
 		}
 	}()

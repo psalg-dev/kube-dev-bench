@@ -1440,6 +1440,28 @@ export namespace app {
 
 export namespace docker {
 	
+	export class CreateNetworkOptions {
+	    Scope: string;
+	    Attachable: boolean;
+	    Internal: boolean;
+	    Labels: Record<string, string>;
+	    Subnet: string;
+	    Gateway: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateNetworkOptions(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.Scope = source["Scope"];
+	        this.Attachable = source["Attachable"];
+	        this.Internal = source["Internal"];
+	        this.Labels = source["Labels"];
+	        this.Subnet = source["Subnet"];
+	        this.Gateway = source["Gateway"];
+	    }
+	}
 	export class DockerConfig {
 	    host: string;
 	    tlsEnabled: boolean;
@@ -1482,6 +1504,20 @@ export namespace docker {
 	        this.isManager = source["isManager"];
 	        this.serverVersion = source["serverVersion"];
 	        this.error = source["error"];
+	    }
+	}
+	export class PruneSwarmVolumesResult {
+	    volumesDeleted: string[];
+	    spaceReclaimed: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PruneSwarmVolumesResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.volumesDeleted = source["volumesDeleted"];
+	        this.spaceReclaimed = source["spaceReclaimed"];
 	    }
 	}
 	export class SwarmConfigInfo {

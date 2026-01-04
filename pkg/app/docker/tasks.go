@@ -10,8 +10,21 @@ import (
 	"github.com/docker/docker/client"
 )
 
+type swarmTasksClient interface {
+	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	NodeInspectWithRaw(context.Context, string) (swarm.Node, []byte, error)
+}
+
 // GetSwarmTasks returns all Swarm tasks
 func GetSwarmTasks(ctx context.Context, cli *client.Client) ([]SwarmTaskInfo, error) {
+	return getSwarmTasks(ctx, cli)
+}
+
+func getSwarmTasks(ctx context.Context, cli swarmTasksClient) ([]SwarmTaskInfo, error) {
 	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
 	if err != nil {
 		return nil, err
@@ -46,6 +59,10 @@ func GetSwarmTasks(ctx context.Context, cli *client.Client) ([]SwarmTaskInfo, er
 
 // GetSwarmTasksByService returns all tasks for a specific service
 func GetSwarmTasksByService(ctx context.Context, cli *client.Client, serviceID string) ([]SwarmTaskInfo, error) {
+	return getSwarmTasksByService(ctx, cli, serviceID)
+}
+
+func getSwarmTasksByService(ctx context.Context, cli swarmTasksClient, serviceID string) ([]SwarmTaskInfo, error) {
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
 
@@ -82,6 +99,10 @@ func GetSwarmTasksByService(ctx context.Context, cli *client.Client, serviceID s
 
 // GetSwarmTask returns a specific Swarm task by ID
 func GetSwarmTask(ctx context.Context, cli *client.Client, taskID string) (*SwarmTaskInfo, error) {
+	return getSwarmTask(ctx, cli, taskID)
+}
+
+func getSwarmTask(ctx context.Context, cli swarmTasksClient, taskID string) (*SwarmTaskInfo, error) {
 	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
 	if err != nil {
 		return nil, err

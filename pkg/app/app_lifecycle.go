@@ -40,6 +40,10 @@ type App struct {
 
 	// testClientset is used for testing only (dependency injection)
 	testClientset interface{}
+
+	// disableStartupDocker is used for unit tests only, to prevent Startup from
+	// invoking Docker auto-connect and emitting Wails events with a non-Wails ctx.
+	disableStartupDocker bool
 }
 
 // NewApp creates a new App application struct
@@ -122,7 +126,9 @@ func (a *App) Startup(ctx context.Context) {
 	go a.runResourceCountsAggregator()
 
 	// Initialize Docker/Swarm connection in background
-	a.startupDocker(ctx)
+	if !a.disableStartupDocker {
+		a.startupDocker(ctx)
+	}
 }
 
 // GetCurrentConfig returns the currently loaded configuration

@@ -10,8 +10,26 @@ import (
 	"runtime"
 
 	"github.com/Microsoft/go-winio"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
+
+var dialPipe = winio.DialPipe
+
+var newDockerClientWithOpts = client.NewClientWithOpts
+
+type dockerConnectionClient interface {
+	Ping(context.Context) (types.Ping, error)
+	ServerVersion(context.Context) (types.Version, error)
+	SwarmInspect(context.Context) (swarm.Swarm, error)
+	Info(context.Context) (types.Info, error)
+	Close() error
+}
+
+var newDockerConnectionClient = func(config DockerConfig) (dockerConnectionClient, error) {
+	return NewClient(config)
+}
 
 // DefaultDockerHost returns the platform-specific default Docker host
 // On Windows, it checks for Docker Desktop's desktop-linux context first
@@ -30,7 +48,7 @@ func DefaultDockerHost() string {
 
 // pipeExists checks if a named pipe exists on Windows
 func pipeExists(pipePath string) bool {
-	conn, err := winio.DialPipe(pipePath, nil)
+	conn, err := dialPipe(pipePath, nil)
 	if err != nil {
 		return false
 	}
@@ -60,7 +78,7 @@ func NewClient(config DockerConfig) (*client.Client, error) {
 		opts = append(opts, client.WithHTTPClient(httpClient))
 	}
 
-	return client.NewClientWithOpts(opts...)
+	return newDockerClientWithOpts(opts...)
 }
 
 // createTLSHTTPClient creates an HTTP client with TLS configuration
@@ -101,7 +119,7 @@ func createTLSHTTPClient(config DockerConfig) (*http.Client, error) {
 
 // TestConnection tests the connection to a Docker daemon
 func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnectionStatus, error) {
-	cli, err := NewClient(config)
+	cli, err := newDockerConnectionClient(config)
 	if err != nil {
 		return &DockerConnectionStatus{
 			Connected: false,
@@ -161,6 +179,14 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 
 // IsSwarmActive checks if Docker Swarm is active on the connected daemon
 func IsSwarmActive(ctx context.Context, cli *client.Client) bool {
+	return isSwarmActive(ctx, cli)
+}
+
+type dockerSwarmInspector interface {
+	SwarmInspect(context.Context) (swarm.Swarm, error)
+}
+
+func isSwarmActive(ctx context.Context, cli dockerSwarmInspector) bool {
 	_, err := cli.SwarmInspect(ctx)
 	return err == nil
 }

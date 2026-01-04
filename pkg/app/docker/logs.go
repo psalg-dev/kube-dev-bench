@@ -6,11 +6,22 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
+type swarmLogsClient interface {
+	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
+	ContainerLogs(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
+	ServiceLogs(context.Context, string, types.ContainerLogsOptions) (io.ReadCloser, error)
+}
+
 // GetTaskLogs streams logs from a task's container
 func GetTaskLogs(ctx context.Context, cli *client.Client, taskID string, tail string, follow bool) (io.ReadCloser, error) {
+	return getTaskLogs(ctx, cli, taskID, tail, follow)
+}
+
+func getTaskLogs(ctx context.Context, cli swarmLogsClient, taskID string, tail string, follow bool) (io.ReadCloser, error) {
 	// Get the task to find its container ID
 	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
 	if err != nil {
@@ -39,6 +50,10 @@ func GetTaskLogs(ctx context.Context, cli *client.Client, taskID string, tail st
 
 // GetServiceLogs streams logs from all containers of a service
 func GetServiceLogs(ctx context.Context, cli *client.Client, serviceID string, tail string, follow bool) (io.ReadCloser, error) {
+	return getServiceLogs(ctx, cli, serviceID, tail, follow)
+}
+
+func getServiceLogs(ctx context.Context, cli swarmLogsClient, serviceID string, tail string, follow bool) (io.ReadCloser, error) {
 	options := types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
