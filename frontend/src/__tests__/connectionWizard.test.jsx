@@ -39,6 +39,7 @@ vi.mock('../../wailsjs/go/main/App', () => ({
 // Mock swarmApi
 vi.mock('../docker/swarmApi', () => ({
   GetDockerConnectionStatus: vi.fn().mockResolvedValue({ error: 'no connections' }),
+  GetDefaultDockerHost: vi.fn().mockResolvedValue(''),
   TestDockerConnection: vi.fn(),
   getSwarmConnections: vi.fn().mockResolvedValue([]),
   saveSwarmConnection: vi.fn(),

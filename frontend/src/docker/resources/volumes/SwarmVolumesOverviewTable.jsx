@@ -127,6 +127,8 @@ export default function SwarmVolumesOverviewTable() {
       loading={loading}
       emptyMessage="No volumes found"
       rowKeyAccessor={row => row.name}
+      createPlatform="swarm"
+      createKind="volume"
     />
   );
 }

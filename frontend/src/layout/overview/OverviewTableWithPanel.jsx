@@ -11,13 +11,16 @@ import CreateManifestOverlay from '../../CreateManifestOverlay';
  * @param {function(row, tab): React.ReactNode} renderPanelContent - Function to render panel content for a row and tab.
  * @param {function(row): React.ReactNode} panelHeader - Optional function to render panel header.
  * @param {string} title - Table title.
- * @param {string} [resourceKind] - Kubernetes resource kind for the create-manifest overlay (e.g., 'job').
- * @param {string} [namespace] - Current namespace to prefill in manifests.
+ * @param {string} [resourceKind] - Kubernetes resource kind for the create overlay (e.g., 'job').
+ * @param {string} [namespace] - Current namespace to prefill in Kubernetes manifests.
+ * @param {'k8s'|'swarm'} [createPlatform] - Which platform the create overlay should target.
+ * @param {string} [createKind] - Kind for the create overlay (overrides resourceKind when provided).
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [activeTab, setActiveTab] = useState(tabs[0]?.key || 'summary');
+  const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
+  const [activeTab, setActiveTab] = useState(safeTabs[0]?.key || 'summary');
   // Filter text state
   const [filterText, setFilterText] = useState('');
   // Create overlay state
@@ -26,13 +29,13 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   const openBottomPanel = (row) => {
     setSelectedRow(row);
     setBottomOpen(true);
-    setActiveTab(tabs[0]?.key || 'summary');
+    setActiveTab(safeTabs[0]?.key || 'summary');
   };
 
   const closeBottomPanel = () => {
     setBottomOpen(false);
     setSelectedRow(null);
-    setActiveTab(tabs[0]?.key || 'summary'); // Reset to default tab
+    setActiveTab(safeTabs[0]?.key || 'summary'); // Reset to default tab
   };
 
   useEffect(() => {
@@ -136,18 +139,19 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       <BottomPanel
         open={bottomOpen}
         onClose={closeBottomPanel}
-        tabs={tabs}
+        tabs={safeTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
       >
-        {selectedRow && renderPanelContent(selectedRow, activeTab)}
+        {selectedRow && typeof renderPanelContent === 'function' ? renderPanelContent(selectedRow, activeTab) : null}
       </BottomPanel>
 
       {/* Create manifest overlay */}
       <CreateManifestOverlay
         open={showCreate}
-        kind={resourceKind}
+        platform={createPlatform}
+        kind={createKind ?? resourceKind}
         namespace={namespace}
         onClose={() => setShowCreate(false)}
       />

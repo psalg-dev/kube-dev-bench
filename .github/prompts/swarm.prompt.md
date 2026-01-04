@@ -20,6 +20,8 @@ You will need to:
 ## Acceptance Criteria
 - Users can connect to Docker Swarm clusters using a connection wizard.
 - Resource views for Docker Swarm resources are implemented and follow the same interaction patterns as Kubernetes resources
+- Resource views for Docker Swarm have a plus button which allows for ad-hoc resource creation where applicable.
+- The user interface clearly distinguishes between Kubernetes and Docker Swarm resources.
 - Notifications are displayed for user actions related to Docker Swarm.
 - New Code is unit tested and the feature as a whole is end-to-end tested.
 - Documentation is updated to reflect the new Docker Swarm support.

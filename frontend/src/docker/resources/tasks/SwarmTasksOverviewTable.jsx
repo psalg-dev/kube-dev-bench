@@ -150,6 +150,8 @@ export default function SwarmTasksOverviewTable() {
       data={tasks}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
+      createPlatform="swarm"
+      createKind="task"
     />
   );
 }

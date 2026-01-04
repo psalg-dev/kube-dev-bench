@@ -21,17 +21,60 @@ import SwarmConfigsOverviewTable from "./docker/resources/configs/SwarmConfigsOv
 import SwarmSecretsOverviewTable from "./docker/resources/secrets/SwarmSecretsOverviewTable";
 import SwarmStacksOverviewTable from "./docker/resources/stacks/SwarmStacksOverviewTable";
 import SwarmVolumesOverviewTable from "./docker/resources/volumes/SwarmVolumesOverviewTable";
+import SwarmStateContext from "./docker/SwarmStateContext.jsx";
+import SwarmResourceCountsContext from "./docker/SwarmResourceCountsContext.jsx";
 import {createRoot} from "react-dom/client";
 import React from 'react';
 
+// React roots are bound to a specific DOM container. Recreating containers (via innerHTML)
+// or re-calling createRoot causes unmount/remount cycles which show up as visible flicker.
+const rootByContainerId = new Map();
+
+function getMainPanelsEl() {
+    return document.getElementById('main-panels');
+}
+
+function ensurePanelContainer(containerId, className = 'main-panel') {
+    const mainPanels = getMainPanelsEl();
+    if (!mainPanels) return null;
+    let el = document.getElementById(containerId);
+    if (!el) {
+        el = document.createElement('div');
+        el.id = containerId;
+        el.className = className;
+        mainPanels.appendChild(el);
+    } else if (className && el.className !== className) {
+        el.className = className;
+    }
+    return el;
+}
+
+function showOnlyContainers(visibleId, allIds) {
+    for (const id of allIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        el.style.display = id === visibleId ? '' : 'none';
+    }
+}
+
 export function renderPodsMainContent(selectedNamespaces) {
     const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
-    document.getElementById("main-panels").innerHTML = `
-      <div class="main-panel main-panel-pods">
-        <div id="pod-overview-react"></div>
-      </div>
-    `;
-    const podOverviewContainer = document.getElementById('pod-overview-react');
+
+    const podPanelId = 'pods-main-panel';
+    const podInnerId = 'pod-overview-react';
+
+    // Keep a stable panel container to prevent unmount/remount flicker.
+    const panel = ensurePanelContainer(podPanelId, 'main-panel main-panel-pods');
+    if (!panel) return;
+
+    // Ensure the inner mount point exists.
+    let podOverviewContainer = document.getElementById(podInnerId);
+    if (!podOverviewContainer) {
+        podOverviewContainer = document.createElement('div');
+        podOverviewContainer.id = podInnerId;
+        panel.appendChild(podOverviewContainer);
+    }
+
     if (podOverviewContainer) {
         renderPodOverviewTable({
             container: podOverviewContainer,
@@ -42,9 +85,19 @@ export function renderPodsMainContent(selectedNamespaces) {
             }
         });
     }
+
+    // Hide other panels that may exist.
+    // We only know about resource containers below, so keep this minimal.
+    const mainPanels = getMainPanelsEl();
+    if (mainPanels) {
+        for (const child of Array.from(mainPanels.children)) {
+            if (child?.id && child.id !== podPanelId) child.style.display = 'none';
+        }
+    }
+    panel.style.display = '';
 }
 
-export function renderResourceMainContent(selectedNamespaces, selectedSection) {
+export function renderResourceMainContent(selectedNamespaces, selectedSection, options = {}) {
     const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
     const sections = [
         {
@@ -195,12 +248,41 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection) {
     ];
 
     const targetSection = selectedSection || 'deployments';
-    sections.filter(x => x.section === targetSection).forEach((section) => {
-        document.getElementById("main-panels").innerHTML = `<div class="main-panel" id="${section.id}"></div>`;
-        const container = document.getElementById(section.id);
-        if (container) {
-            const root = createRoot(container);
-            root.render(React.createElement(section.table, section.props));
-        }
-    })
+
+    const allContainerIds = sections.map(s => s.id).concat(['pods-main-panel']);
+    const target = sections.find(x => x.section === targetSection);
+    if (!target) return;
+
+    const container = ensurePanelContainer(target.id, 'main-panel');
+    if (!container) return;
+    showOnlyContainers(target.id, allContainerIds);
+
+    let root = rootByContainerId.get(target.id);
+    if (!root) {
+        root = createRoot(container);
+        rootByContainerId.set(target.id, root);
+    }
+
+    const baseEl = React.createElement(target.table, target.props);
+
+    // NOTE: main-content.js renders into a separate React root.
+    // React context does NOT cross roots, so we explicitly bridge Swarm contexts
+    // for Swarm-related views.
+    if (target.section?.startsWith('swarm-') && options?.swarmState) {
+        const swarmCountsValue = options?.swarmCounts ?? { counts: null, lastUpdated: 0, refetch: () => {} };
+        root.render(
+            React.createElement(
+                SwarmStateContext.Provider,
+                { value: options.swarmState },
+                React.createElement(
+                    SwarmResourceCountsContext.Provider,
+                    { value: swarmCountsValue },
+                    baseEl
+                )
+            )
+        );
+        return;
+    }
+
+    root.render(baseEl);
 }

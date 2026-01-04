@@ -7,10 +7,12 @@ import { renderPodsMainContent, renderResourceMainContent } from '../main-conten
 import { ResourceCountsProvider } from '../state/ResourceCountsContext.jsx';
 import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext.jsx';
 import { SwarmResourceCountsProvider } from '../docker/SwarmResourceCountsContext.jsx';
+import { useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext.jsx';
 
 function MainContentBinder({ selectedSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
   const swarmState = useSwarmState();
+  const swarmCounts = useSwarmResourceCounts();
 
   const isSwarmSection = selectedSection?.startsWith('swarm-');
 
@@ -19,9 +21,9 @@ function MainContentBinder({ selectedSection }) {
       renderPodsMainContent(selectedNamespaces);
     } else {
       // BUGFIX: pass selectedSection so correct resource renders (was defaulting to deployments)
-      renderResourceMainContent(selectedNamespaces, selectedSection);
+      renderResourceMainContent(selectedNamespaces, selectedSection, { swarmState, swarmCounts });
     }
-  }, [selectedSection, selectedNamespaces]);
+  }, [selectedSection, selectedNamespaces, swarmState, swarmCounts]);
 
   // Render main content whenever dependencies change
   useEffect(() => {

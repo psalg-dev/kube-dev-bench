@@ -113,6 +113,8 @@ export default function SwarmSecretsOverviewTable() {
       loading={loading}
       emptyMessage="No secrets found"
       rowKeyAccessor={row => row.id}
+      createPlatform="swarm"
+      createKind="secret"
     />
   );
 }

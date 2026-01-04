@@ -59,7 +59,7 @@ vi.mock('@codemirror/language', () => ({
 }));
 
 // Centralized Wails mocks (no longer mocking notifications globally)
-import { createResourceMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
+import { createResourceMock, createSwarmConfigMock, createSwarmSecretMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
 
 // Local notification mocks for this test file
 const showSuccessMock = vi.fn();
@@ -164,6 +164,41 @@ describe('CreateManifestOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(screen.getByText(/Manifest is empty/)).toBeInTheDocument());
     expect(createResourceMock).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('swarm: creates config via CreateSwarmConfig', async () => {
+    createSwarmConfigMock.mockResolvedValueOnce('cfg-id');
+    const onClose = vi.fn();
+    render(<CreateManifestOverlay open platform="swarm" kind="config" onClose={onClose} />);
+    // name field is required
+    fireEvent.change(screen.getByLabelText(/swarm resource name/i), { target: { value: 'my-config' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(createSwarmConfigMock).toHaveBeenCalled());
+    expect(createSwarmConfigMock).toHaveBeenCalledWith('my-config', expect.any(String), {});
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: creates secret via CreateSwarmSecret (labels parsed)', async () => {
+    createSwarmSecretMock.mockResolvedValueOnce('sec-id');
+    const onClose = vi.fn();
+    render(<CreateManifestOverlay open platform="swarm" kind="secret" onClose={onClose} />);
+    fireEvent.change(screen.getByLabelText(/swarm resource name/i), { target: { value: 'my-secret' } });
+    fireEvent.change(screen.getByLabelText(/swarm labels/i), { target: { value: 'a=b\n# comment\nempty=\n' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(createSwarmSecretMock).toHaveBeenCalled());
+    expect(createSwarmSecretMock).toHaveBeenCalledWith('my-secret', expect.any(String), { a: 'b', empty: '' });
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: shows not-implemented error for unsupported kinds', async () => {
+    const onClose = vi.fn();
+    render(<CreateManifestOverlay open platform="swarm" kind="service" onClose={onClose} />);
+    fireEvent.change(screen.getByLabelText(/swarm resource name/i), { target: { value: 'my-service' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(showErrorMock).toHaveBeenCalled());
     expect(onClose).not.toHaveBeenCalled();
   });
 });

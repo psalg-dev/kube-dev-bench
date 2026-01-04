@@ -6,6 +6,8 @@ import { vi } from 'vitest';
 export const createResourceMock = vi.fn();
 export const eventsEmitMock = vi.fn();
 export const eventsOnMock = vi.fn();
+export const createSwarmConfigMock = vi.fn();
+export const createSwarmSecretMock = vi.fn();
 
 // Generic mock for other App API functions to avoid individual test failures.
 // Note: Vitest is configured with restoreMocks=true, so we must provide a stable
@@ -38,6 +40,10 @@ vi.mock('../../wailsjs/go/main/App', () => {
   for (const name of appFunctionNames) {
     if (name === 'CreateResource') {
       exports[name] = (...args) => createResourceMock(...args);
+    } else if (name === 'CreateSwarmConfig') {
+      exports[name] = (...args) => createSwarmConfigMock(...args);
+    } else if (name === 'CreateSwarmSecret') {
+      exports[name] = (...args) => createSwarmSecretMock(...args);
     } else {
       const fn = (...args) => genericAPIMock(name, ...args);
       appApiMocks[name] = fn;
@@ -59,6 +65,8 @@ vi.mock('../../wailsjs/runtime/runtime.js', () => ({
 
 export function resetAllMocks() {
   createResourceMock.mockReset();
+  createSwarmConfigMock.mockReset();
+  createSwarmSecretMock.mockReset();
   eventsEmitMock.mockReset();
   eventsOnMock.mockReset();
   genericAPIMock.mockReset();

@@ -7,6 +7,72 @@ import * as AppAPI from '../wailsjs/go/main/App';
 import { EventsEmit } from '../wailsjs/runtime';
 import { showSuccess, showError } from './notification';
 
+function normalizeSwarmKind(kind) {
+  const k = (kind || '').toString().trim().toLowerCase();
+  // allow both singular and plural forms from callers
+  if (k.endsWith('s')) {
+    const singular = k.slice(0, -1);
+    if (['service', 'task', 'node', 'network', 'config', 'secret', 'stack', 'volume'].includes(singular)) return singular;
+  }
+  return k;
+}
+
+function getDefaultSwarmPayload(kind) {
+  switch (normalizeSwarmKind(kind)) {
+    case 'config':
+      return {
+        name: 'my-config',
+        data: '# Example Swarm config\nKEY=value\n',
+        labels: {},
+        editorMode: 'text',
+      };
+    case 'secret':
+      return {
+        name: 'my-secret',
+        data: 'supersecret',
+        labels: {},
+        editorMode: 'text',
+      };
+    case 'service':
+      return {
+        name: 'my-service',
+        data: `version: "3.8"\nservices:\n  my-service:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    ports:\n      - "8080:80"\n`,
+        labels: {},
+        editorMode: 'yaml',
+      };
+    case 'stack':
+      return {
+        name: 'my-stack',
+        data: `version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    ports:\n      - "8080:80"\n`,
+        labels: {},
+        editorMode: 'yaml',
+      };
+    default:
+      return {
+        name: '',
+        data: '',
+        labels: {},
+        editorMode: 'text',
+      };
+  }
+}
+
+function parseKeyValueLabels(input) {
+  const out = {};
+  const lines = (input || '').split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const idx = line.indexOf('=');
+    if (idx <= 0) continue;
+    const k = line.slice(0, idx).trim();
+    const v = line.slice(idx + 1).trim();
+    if (!k) continue;
+    out[k] = v;
+  }
+  return out;
+}
+
 function getDefaultManifest(kind, namespace) {
   const ns = namespace || 'default';
   switch ((kind || '').toLowerCase()) {
@@ -38,14 +104,22 @@ function getDefaultManifest(kind, namespace) {
   }
 }
 
-export default function CreateManifestOverlay({ open, kind, namespace, onClose }) {
+export default function CreateManifestOverlay({ open, kind, namespace, onClose, platform = 'k8s' }) {
   const editorParentRef = useRef(null);
   const viewRef = useRef(null);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [swarmName, setSwarmName] = useState('');
+  const [swarmLabels, setSwarmLabels] = useState('');
 
-  const initial = useMemo(() => getDefaultManifest(kind, namespace), [kind, namespace]);
+  const initial = useMemo(() => {
+    if (platform === 'swarm') {
+      const payload = getDefaultSwarmPayload(kind);
+      return payload.data;
+    }
+    return getDefaultManifest(kind, namespace);
+  }, [kind, namespace, platform]);
 
   const cmTheme = useMemo(() => EditorView.theme({
     '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
@@ -59,6 +133,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
 
   const cmExtensions = useMemo(() => [
     cmTheme,
+    // For swarm we still use YAML highlighting for compose-like payloads.
     yamlLang(),
     lineNumbers(),
     highlightActiveLineGutter(),
@@ -73,6 +148,11 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
     setError('');
     setSubmitting(false);
     setText(initial);
+    if (platform === 'swarm') {
+      const payload = getDefaultSwarmPayload(kind);
+      setSwarmName(payload.name || '');
+      setSwarmLabels('');
+    }
   }, [open, initial]);
 
   useEffect(() => {
@@ -114,7 +194,14 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
 
   if (!open) return null;
 
-  const title = kind ? `New ${kind} manifest` : 'New manifest';
+  const title = (() => {
+    if (platform === 'swarm') {
+      const k = normalizeSwarmKind(kind);
+      if (!k) return 'New Swarm resource';
+      return `New Swarm ${k}`;
+    }
+    return kind ? `New ${kind} manifest` : 'New manifest';
+  })();
 
   const getCurrentText = () => (viewRef.current ? viewRef.current.state.doc.toString() : text || '');
 
@@ -124,10 +211,43 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
       setError('');
       const manifest = getCurrentText();
       if (!manifest.trim()) {
-        setError('Manifest is empty.');
+        setError(platform === 'swarm' ? 'Payload is empty.' : 'Manifest is empty.');
         setSubmitting(false);
         return;
       }
+
+      if (platform === 'swarm') {
+        const k = normalizeSwarmKind(kind);
+        const name = (swarmName || '').trim();
+        if (!name && (k === 'config' || k === 'secret' || k === 'stack' || k === 'service' || k === 'network' || k === 'volume')) {
+          setError('Name is required.');
+          setSubmitting(false);
+          return;
+        }
+
+        // Only implement supported backend RPCs.
+        if (k === 'config') {
+          await AppAPI.CreateSwarmConfig(name, manifest, parseKeyValueLabels(swarmLabels));
+          showSuccess(`Swarm config "${name}" was created successfully!`);
+          try { EventsEmit('swarm:configs:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
+        if (k === 'secret') {
+          await AppAPI.CreateSwarmSecret(name, manifest, parseKeyValueLabels(swarmLabels));
+          showSuccess(`Swarm secret "${name}" was created successfully!`);
+          try { EventsEmit('swarm:secrets:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
+        setError(`Create is not implemented for Swarm ${k || 'resource'} yet.`);
+        showError(`Create is not implemented for Swarm ${k || 'resource'} yet.`);
+        setSubmitting(false);
+        return;
+      }
+
       const ns = namespace || '';
       await AppAPI.CreateResource(ns, manifest);
       const kindText = (kind || 'resource').toString();
@@ -143,6 +263,8 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
     }
   }
 
+  const isSwarm = platform === 'swarm';
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
       <div style={{ width: '70%', maxWidth: 900, height: '75vh', background: 'var(--gh-table-header-bg, #2d323b)', border: '1px solid #353a42', boxShadow: '0 8px 20px rgba(0,0,0,0.35)', color: '#fff', display: 'grid', gridTemplateRows: 'auto 1fr auto' }} onClick={(e) => e.stopPropagation()}>
@@ -151,6 +273,31 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
           <button onClick={onClose} aria-label="Close" title="Close" style={{ background: 'transparent', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 0, position: 'relative' }}>
+          {isSwarm && (
+            <div style={{ padding: 12, borderBottom: '1px solid #353a42', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Name</div>
+                <input
+                  value={swarmName}
+                  onChange={(e) => setSwarmName(e.target.value)}
+                  placeholder="name"
+                  aria-label="Swarm resource name"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Labels (one per line: key=value)</div>
+                <textarea
+                  value={swarmLabels}
+                  onChange={(e) => setSwarmLabels(e.target.value)}
+                  placeholder="com.example.owner=dev\ncom.example.env=local"
+                  aria-label="Swarm labels"
+                  rows={3}
+                  style={{ width: '100%', resize: 'vertical', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                />
+              </div>
+            </div>
+          )}
           <div ref={editorParentRef} style={{ width: '100%', height: '55vh', minHeight: '55vh' }} />
           {error && (
             <div style={{ position: 'absolute', top: 8, left: 10, color: '#f85149', background: 'rgba(248,81,73,0.1)', padding: '4px 8px', borderRadius: 0, border: '1px solid rgba(248,81,73,0.4)' }}>
@@ -159,7 +306,13 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose }
           )}
         </div>
         <div style={{ padding: 12, borderTop: '1px solid #353a42', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ color: '#bbb', fontSize: 12 }}>Namespace: <strong style={{ color: '#fff' }}>{namespace || 'default'}</strong></div>
+          <div style={{ color: '#bbb', fontSize: 12 }}>
+            {isSwarm ? (
+              <span>Target: <strong style={{ color: '#fff' }}>Docker Swarm</strong></span>
+            ) : (
+              <span>Namespace: <strong style={{ color: '#fff' }}>{namespace || 'default'}</strong></span>
+            )}
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={handleCreate} disabled={submitting} style={{ padding: '8px 12px', background: submitting ? '#2ea44f' : '#2ea44f', opacity: submitting ? 0.7 : 1, color: '#fff', border: '1px solid #2ea44f', borderRadius: 0, cursor: submitting ? 'not-allowed' : 'pointer' }}>Create</button>
           </div>
