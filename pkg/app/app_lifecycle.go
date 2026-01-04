@@ -120,6 +120,9 @@ func (a *App) Startup(ctx context.Context) {
 		a.countsRefreshCh = make(chan struct{}, 1)
 	}
 	go a.runResourceCountsAggregator()
+
+	// Initialize Docker/Swarm connection in background
+	a.startupDocker(ctx)
 }
 
 // GetCurrentConfig returns the currently loaded configuration

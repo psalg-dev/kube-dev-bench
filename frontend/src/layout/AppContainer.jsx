@@ -5,9 +5,14 @@ import ConnectionWizard from './connection/ConnectionWizard.jsx';
 import { ContextSelect, NamespaceMultiSelect } from '../Dropdowns.jsx';
 import { renderPodsMainContent, renderResourceMainContent } from '../main-content';
 import { ResourceCountsProvider } from '../state/ResourceCountsContext.jsx';
+import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext.jsx';
+import { SwarmResourceCountsProvider } from '../docker/SwarmResourceCountsContext.jsx';
 
 function MainContentBinder({ selectedSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
+  const swarmState = useSwarmState();
+
+  const isSwarmSection = selectedSection?.startsWith('swarm-');
 
   const renderMainContent = useCallback(() => {
     if (selectedSection === 'pods') {
@@ -20,9 +25,17 @@ function MainContentBinder({ selectedSection }) {
 
   // Render main content whenever dependencies change
   useEffect(() => {
-    if (!clusterConnected || showWizard) return;
-    renderMainContent();
-  }, [clusterConnected, showWizard, renderMainContent]);
+    if (showWizard) return;
+    // For Swarm sections, render if swarm is connected
+    // For K8s sections, render if cluster is connected
+    if (isSwarmSection) {
+      if (swarmState?.connected) {
+        renderMainContent();
+      }
+    } else if (clusterConnected) {
+      renderMainContent();
+    }
+  }, [clusterConnected, showWizard, renderMainContent, isSwarmSection, swarmState?.connected]);
 
   // Hotkey & button handlers (wizard & sidebar toggle)
   useEffect(() => {
@@ -59,9 +72,19 @@ function MainContentBinder({ selectedSection }) {
 
 function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection }) {
   const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled } = useClusterState();
+  const swarmState = useSwarmState();
+
+  const handleWizardComplete = () => {
+    actions.closeWizard();
+    // Refresh Docker Swarm connection status after wizard closes
+    if (swarmState?.actions?.refreshConnectionStatus) {
+      swarmState.actions.refreshConnectionStatus();
+    }
+    onWizardComplete();
+  };
 
   if (showWizard) {
-    return <ConnectionWizard onComplete={() => { actions.closeWizard(); onWizardComplete(); }} />;
+    return <ConnectionWizard onComplete={handleWizardComplete} />;
   }
   return (
     <AppLayout
@@ -141,8 +164,12 @@ export default function AppContainer() {
   return (
     <ClusterStateProvider key={reloadKey}>
       <ResourceCountsProvider>
-        <LayoutOrWizard onWizardComplete={handleWizardComplete} selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
-        <MainContentBinder selectedSection={selectedSection} />
+        <SwarmStateProvider>
+          <SwarmResourceCountsProvider>
+            <LayoutOrWizard onWizardComplete={handleWizardComplete} selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+            <MainContentBinder selectedSection={selectedSection} />
+          </SwarmResourceCountsProvider>
+        </SwarmStateProvider>
       </ResourceCountsProvider>
     </ClusterStateProvider>
   );

@@ -12,6 +12,15 @@ import IngressesOverviewTable from "./k8s/resources/ingresses/IngressesOverviewT
 import PersistentVolumeClaimsOverviewTable from "./k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable";
 import PersistentVolumesOverviewTable from "./k8s/resources/persistentvolumes/PersistentVolumesOverviewTable";
 import HelmReleasesOverviewTable from "./k8s/resources/helmreleases/HelmReleasesOverviewTable";
+// Docker Swarm imports
+import SwarmServicesOverviewTable from "./docker/resources/services/SwarmServicesOverviewTable";
+import SwarmTasksOverviewTable from "./docker/resources/tasks/SwarmTasksOverviewTable";
+import SwarmNodesOverviewTable from "./docker/resources/nodes/SwarmNodesOverviewTable";
+import SwarmNetworksOverviewTable from "./docker/resources/networks/SwarmNetworksOverviewTable";
+import SwarmConfigsOverviewTable from "./docker/resources/configs/SwarmConfigsOverviewTable";
+import SwarmSecretsOverviewTable from "./docker/resources/secrets/SwarmSecretsOverviewTable";
+import SwarmStacksOverviewTable from "./docker/resources/stacks/SwarmStacksOverviewTable";
+import SwarmVolumesOverviewTable from "./docker/resources/volumes/SwarmVolumesOverviewTable";
 import {createRoot} from "react-dom/client";
 import React from 'react';
 
@@ -133,6 +142,55 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection) {
             section: 'helmreleases',
             table: HelmReleasesOverviewTable,
             props: {namespaces: selectedNamespaces, namespace: firstNs}
+        },
+        // Docker Swarm sections
+        {
+            id: 'swarm-services-overview-react',
+            section: 'swarm-services',
+            table: SwarmServicesOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-tasks-overview-react',
+            section: 'swarm-tasks',
+            table: SwarmTasksOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-nodes-overview-react',
+            section: 'swarm-nodes',
+            table: SwarmNodesOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-networks-overview-react',
+            section: 'swarm-networks',
+            table: SwarmNetworksOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-configs-overview-react',
+            section: 'swarm-configs',
+            table: SwarmConfigsOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-secrets-overview-react',
+            section: 'swarm-secrets',
+            table: SwarmSecretsOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-stacks-overview-react',
+            section: 'swarm-stacks',
+            table: SwarmStacksOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-volumes-overview-react',
+            section: 'swarm-volumes',
+            table: SwarmVolumesOverviewTable,
+            props: {}
         }
     ];
 
