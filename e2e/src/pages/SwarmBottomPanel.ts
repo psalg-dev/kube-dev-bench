@@ -109,16 +109,27 @@ export class SwarmBottomPanel {
 export class SwarmScaleDialog {
   constructor(private readonly page: Page) {}
 
+  private get heading() {
+    // Swarm scale UI is a custom modal overlay without role="dialog".
+    return this.page.getByRole('heading', { name: /^Scale\s+service:/i });
+  }
+
   private get dialog() {
-    return this.page.locator('.scale-dialog, [data-testid="scale-dialog"], [role="dialog"]');
+    // The h3 lives inside the modal content container.
+    return this.heading.locator('..');
   }
 
   async expectVisible() {
-    await expect(this.dialog).toBeVisible({ timeout: 10_000 });
+    await expect(this.heading).toBeVisible({ timeout: 10_000 });
   }
 
   async expectHidden() {
-    await expect(this.dialog).toBeHidden({ timeout: 10_000 });
+    await expect(this.heading).toBeHidden({ timeout: 10_000 });
+  }
+
+  async fillReplicasRaw(value: string) {
+    const input = this.dialog.locator('input[type="number"]');
+    await input.fill(value);
   }
 
   async setReplicas(count: number) {
@@ -126,14 +137,20 @@ export class SwarmScaleDialog {
     await input.fill(String(count));
   }
 
-  async confirm() {
-    const confirmBtn = this.dialog.getByRole('button', { name: /confirm|scale|ok/i });
+  async submit() {
+    const confirmBtn = this.dialog.getByRole('button', { name: /^scale/i });
+    await expect(confirmBtn).toBeVisible();
     await confirmBtn.click();
+  }
+
+  async confirm() {
+    await this.submit();
     await this.expectHidden();
   }
 
   async cancel() {
-    const cancelBtn = this.dialog.getByRole('button', { name: /cancel/i });
+    const cancelBtn = this.dialog.getByRole('button', { name: /^cancel$/i });
+    await expect(cancelBtn).toBeVisible();
     await cancelBtn.click();
     await this.expectHidden();
   }

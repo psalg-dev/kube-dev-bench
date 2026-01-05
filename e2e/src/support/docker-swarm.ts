@@ -1,4 +1,7 @@
 import { exec } from './exec.js';
+import os from 'node:os';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 function splitLines(s: string): string[] {
   return s
@@ -9,6 +12,120 @@ function splitLines(s: string): string[] {
 
 async function docker(args: string[], timeoutMs = 60_000) {
   return exec('docker', args, { timeoutMs });
+}
+
+async function writeTempFile(prefix: string, content: string): Promise<string> {
+  const dir = os.tmpdir();
+  const file = path.join(dir, `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`);
+  await fs.writeFile(file, content, 'utf-8');
+  return file;
+}
+
+export async function ensureSwarmConfig(opts: { name: string; content: string }) {
+  const { name, content } = opts;
+
+  const list = await docker(['config', 'ls', '--format', '{{.Name}}'], 30_000);
+  if (list.code === 0 && splitLines(list.stdout).includes(name)) return;
+
+  const tmp = await writeTempFile('kdb-e2e-config', content);
+  try {
+    const res = await docker(['config', 'create', name, tmp], 60_000);
+    // If it already exists (race between workers), ignore.
+    if (res.code !== 0 && !/already exists/i.test(res.stderr + res.stdout)) {
+      throw new Error(`docker config create failed: ${res.stderr || res.stdout}`);
+    }
+  } finally {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+  }
+}
+
+export async function ensureSwarmSecret(opts: { name: string; content: string }) {
+  const { name, content } = opts;
+
+  const list = await docker(['secret', 'ls', '--format', '{{.Name}}'], 30_000);
+  if (list.code === 0 && splitLines(list.stdout).includes(name)) return;
+
+  const tmp = await writeTempFile('kdb-e2e-secret', content);
+  try {
+    const res = await docker(['secret', 'create', name, tmp], 60_000);
+    if (res.code !== 0 && !/already exists/i.test(res.stderr + res.stdout)) {
+      throw new Error(`docker secret create failed: ${res.stderr || res.stdout}`);
+    }
+  } finally {
+    await fs.rm(tmp, { force: true }).catch(() => undefined);
+  }
+}
+
+export async function ensureSwarmNetwork(opts: { name: string }) {
+  const { name } = opts;
+
+  const list = await docker(['network', 'ls', '--filter', `name=^${name}$`, '--format', '{{.Name}}'], 30_000);
+  if (list.code === 0 && splitLines(list.stdout).includes(name)) return;
+
+  const res = await docker(['network', 'create', '--driver', 'overlay', '--attachable', name], 60_000);
+  // If it already exists (race between workers), ignore.
+  if (res.code !== 0 && !/already exists/i.test(res.stderr + res.stdout)) {
+    throw new Error(`docker network create failed: ${res.stderr || res.stdout}`);
+  }
+}
+
+export async function deploySwarmStackFromFile(opts: { stackName: string; stackFilePath: string }) {
+  const { stackName, stackFilePath } = opts;
+  const res = await docker(['stack', 'deploy', '-c', stackFilePath, stackName], 120_000);
+  if (res.code !== 0) {
+    throw new Error(`docker stack deploy failed: ${res.stderr || res.stdout}`);
+  }
+}
+
+export async function waitForStackServicesReady(opts: {
+  stackName: string;
+  expectedServiceSuffixes: string[];
+  timeoutMs?: number;
+}) {
+  const { stackName, expectedServiceSuffixes, timeoutMs = 120_000 } = opts;
+  const expectedNames = new Set(expectedServiceSuffixes.map((s) => `${stackName}_${s}`));
+
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const res = await docker(['stack', 'services', stackName, '--format', '{{.Name}} {{.Replicas}}'], 20_000).catch(
+      () => ({ code: 1, stdout: '', stderr: '' })
+    );
+
+    if (res.code === 0) {
+      const lines = splitLines(res.stdout);
+      const replicasByName = new Map<string, string>();
+      for (const line of lines) {
+        const [name, replicas] = line.split(/\s+/, 2);
+        if (!name || !replicas) continue;
+        replicasByName.set(name, replicas);
+      }
+
+      let allReady = true;
+      for (const name of expectedNames) {
+        const rep = replicasByName.get(name);
+        if (!rep) {
+          allReady = false;
+          break;
+        }
+        // Typical format: "1/1" or "0/1".
+        if (!/^\d+\/\d+$/.test(rep)) {
+          allReady = false;
+          break;
+        }
+        const [running, desired] = rep.split('/').map((x) => Number(x));
+        if (!Number.isFinite(running) || !Number.isFinite(desired) || running < desired || desired === 0) {
+          allReady = false;
+          break;
+        }
+      }
+
+      if (allReady) return;
+    }
+
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
+  throw new Error(`Timed out waiting for stack services to be ready: ${stackName}`);
 }
 
 export async function isLocalSwarmActive(): Promise<boolean> {

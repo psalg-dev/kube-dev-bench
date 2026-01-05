@@ -3,9 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test",
-    "test:headed": "playwright test --headed",
-    "test:debug": "playwright test --debug",
+    "test": "node ./scripts/run-playwright.mjs test",
+    "test:headed": "node ./scripts/run-playwright.mjs test --headed",
+    "test:debug": "node ./scripts/run-playwright.mjs test --debug",
     "install:browsers": "playwright install --with-deps chromium"
   },
   "devDependencies": {

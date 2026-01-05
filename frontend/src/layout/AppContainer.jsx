@@ -73,8 +73,26 @@ function MainContentBinder({ selectedSection }) {
 }
 
 function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection }) {
-  const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled } = useClusterState();
+  const {
+    showWizard,
+    actions,
+    contexts,
+    namespaces,
+    selectedContext,
+    selectedNamespaces,
+    contextDisabled,
+    namespaceDisabled,
+    kubernetesAvailable,
+  } = useClusterState();
   const swarmState = useSwarmState();
+
+  // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs detected),
+  // ensure we land on a Swarm view so the main content isn't blank.
+  useEffect(() => {
+    if (kubernetesAvailable === false && !String(selectedSection).startsWith('swarm-')) {
+      setSelectedSection('swarm-services');
+    }
+  }, [kubernetesAvailable, selectedSection, setSelectedSection]);
 
   const handleWizardComplete = () => {
     actions.closeWizard();
@@ -90,6 +108,7 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection 
   }
   return (
     <AppLayout
+      kubernetesAvailable={kubernetesAvailable}
       contextSelectEl={<ContextSelect
         value={selectedContext}
         options={contexts}
@@ -105,7 +124,10 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection 
         onMenuOpen={() => actions.reloadNamespaces()}
       />}
       selectedSection={selectedSection}
-      onSelectSection={setSelectedSection}
+      onSelectSection={(section) => {
+        if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) return;
+        setSelectedSection(section);
+      }}
     />
   );
 }
@@ -145,16 +167,48 @@ export default function AppContainer() {
       // Navigate to the section
       setSelectedSection(section);
 
-      // Wait for content to render, then find and click the row
-      setTimeout(() => {
-        const rows = document.querySelectorAll('tbody tr');
-        for (const row of rows) {
-          if (row.textContent.includes(name) && row.textContent.includes(namespace)) {
-            row.click();
-            break;
+      // Wait for content to render, then find and click the row.
+      // A single fixed timeout is flaky under load; poll briefly until the table is ready.
+      const deadline = Date.now() + 8000;
+      const targetName = String(name || '');
+      const targetNamespace = String(namespace || '');
+      const shouldMatchNamespace = targetNamespace.length > 0;
+
+      const trySelectRow = () => {
+        const panels = document.getElementById('main-panels');
+        const candidates = panels ? Array.from(panels.children) : [];
+        const visiblePanel = candidates.find((el) => {
+          try {
+            return window.getComputedStyle(el).display !== 'none';
+          } catch {
+            return false;
           }
+        });
+
+        const root = visiblePanel || document.getElementById('maincontent') || document;
+        const rows = root.querySelectorAll('table.gh-table tbody tr');
+        for (const row of rows) {
+          const text = row.textContent || '';
+          if (!text.includes(targetName)) continue;
+          if (shouldMatchNamespace && !text.includes(targetNamespace)) continue;
+
+          const detailsBtn = Array.from(row.querySelectorAll('button')).find(
+            (b) => (b.textContent || '').trim().toLowerCase() === 'details'
+          );
+
+          (detailsBtn || row).click();
+          return true;
         }
-      }, 500);
+        return false;
+      };
+
+      const poll = () => {
+        if (trySelectRow()) return;
+        if (Date.now() >= deadline) return;
+        setTimeout(poll, 150);
+      };
+
+      poll();
     };
 
     window.addEventListener('navigate-to-resource', handleNavigateToResource);

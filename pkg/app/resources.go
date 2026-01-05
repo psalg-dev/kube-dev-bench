@@ -16,8 +16,59 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
+func normalizeYAMLForParsing(input string) string {
+	// Normalize line endings and remove common invisible characters that can break YAML parsing.
+	s := strings.ReplaceAll(input, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+
+	// Trim UTF-8 BOM (U+FEFF) at start, and remove any stray occurrences.
+	s = strings.TrimPrefix(s, "\uFEFF")
+	s = strings.ReplaceAll(s, "\uFEFF", "")
+
+	// Remove zero-width spaces that can be introduced by copy/paste.
+	s = strings.ReplaceAll(s, "\u200B", "")
+
+	// Replace leading indentation that uses tabs or NBSP with spaces (YAML forbids tabs for indentation).
+	// We only normalize indentation prefix, so we don't alter literal values inside the document.
+	lines := strings.Split(s, "\n")
+	for i, line := range lines {
+		if line == "" {
+			continue
+		}
+		// Convert leading \t or NBSP (U+00A0) into 2 spaces per character.
+		j := 0
+		for j < len(line) {
+			c := line[j]
+			if c == '\t' {
+				j++
+				continue
+			}
+			// NBSP in UTF-8 is 0xC2 0xA0
+			if c == 0xC2 && j+1 < len(line) && line[j+1] == 0xA0 {
+				j += 2
+				continue
+			}
+			break
+		}
+		if j == 0 {
+			continue
+		}
+		prefix := line[:j]
+		rest := line[j:]
+		// Replace each tab with 2 spaces. Replace each NBSP byte-pair with 2 spaces.
+		prefix = strings.ReplaceAll(prefix, "\t", "  ")
+		prefix = strings.ReplaceAll(prefix, string([]byte{0xC2, 0xA0}), "  ")
+		lines[i] = prefix + rest
+	}
+	s = strings.Join(lines, "\n")
+
+	return s
+}
+
 // CreateResource creates a resource in the cluster from YAML
 func (a *App) CreateResource(namespace string, yamlContent string) error {
+	yamlContent = normalizeYAMLForParsing(yamlContent)
+
 	// Parse YAML into map
 	var obj map[string]interface{}
 	if err := yaml.Unmarshal([]byte(yamlContent), &obj); err != nil {

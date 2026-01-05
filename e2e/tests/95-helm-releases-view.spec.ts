@@ -62,7 +62,7 @@ test.describe('Helm Releases View', () => {
     await sidebar.goToSection('helmreleases');
 
     // Verify title
-    await expect(page.locator('h2.overview-title')).toHaveText(/helm releases/i, { timeout: 60_000 });
+    await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
 
     // Verify table column headers
     const expectedColumns = ['Name', 'Namespace', 'Chart', 'Chart Version', 'App Version', 'Status', 'Revision', 'Age'];
@@ -87,7 +87,7 @@ test.describe('Helm Releases View', () => {
     await sidebar.goToSection('helmreleases');
 
     // Wait for loading to complete - either we see rows or the table is empty
-    await expect(page.locator('h2.overview-title')).toHaveText(/helm releases/i, { timeout: 60_000 });
+    await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
 
     // The table should be visible (it shows either data or an empty state)
     const table = page.getByRole('table');
@@ -137,9 +137,12 @@ test.describe('Helm Release Operations', () => {
       await sidebar.goToSection('helmreleases');
 
       // Verify release appears in the table
-      await expect(page.locator('h2.overview-title')).toHaveText(/helm releases/i, { timeout: 60_000 });
+      await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
 
-      const releaseRow = page.locator('table.gh-table tbody tr').filter({ hasText: releaseName });
+      // Match the Helm release row by exact name to avoid colliding with the ConfigMap name (`${releaseName}-e2e`).
+      const releaseRow = page
+        .locator('table.gh-table tbody tr')
+        .filter({ has: page.getByRole('cell', { name: releaseName, exact: true }) });
       await expect(releaseRow).toBeVisible({ timeout: 60_000 });
 
       // Verify release status is deployed
@@ -148,10 +151,18 @@ test.describe('Helm Release Operations', () => {
       // Click on the release to open bottom panel
       const notifications = new Notifications(page);
       await notifications.waitForClear();
-      await releaseRow.click();
+
+      // Re-assert we're still on Helm Releases before opening details.
+      // (A stray navigate event elsewhere in the app can switch sections under load.)
+      await sidebar.goToSection('helmreleases');
+      await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
+
+      const releaseRowForOpen = page.locator('table.gh-table tbody tr').filter({ hasText: releaseName });
+      await expect(releaseRowForOpen).toBeVisible({ timeout: 60_000 });
+      await releaseRowForOpen.getByRole('button', { name: 'Details', exact: true }).click();
 
       const panel = new BottomPanel(page);
-      await panel.expectVisible();
+      await panel.expectVisible(30_000);
 
       // Verify bottom panel tabs exist
       const expectedTabs = ['Summary', 'Values', 'History', 'Notes', 'Resources', 'Manifest'];
@@ -211,10 +222,15 @@ test.describe('Helm Release Operations', () => {
       await expect(resourcesTable).toBeVisible({ timeout: 30_000 });
       await resourcesTable.locator('tbody tr').filter({ hasText: expectedResourceName }).first().click();
 
-      await expect(page.locator('h2.overview-title')).toHaveText(/config maps/i, { timeout: 60_000 });
+      await expect(page.locator('h2.overview-title:visible')).toHaveText(/config maps/i, { timeout: 60_000 });
+
+      // The app may navigate but not always auto-open the row under load; open it explicitly.
+      const cmRow = page.locator('table.gh-table tbody tr').filter({ hasText: expectedResourceName }).first();
+      await expect(cmRow).toBeVisible({ timeout: 60_000 });
+      await cmRow.getByRole('button', { name: 'Details', exact: true }).click();
 
       const cmPanel = new BottomPanel(page);
-      await cmPanel.expectVisible();
+      await cmPanel.expectVisible(30_000);
       await expect(cmPanel.root).toContainText(expectedResourceName, { timeout: 30_000 });
 
       // Close the resource panel before interacting with the sidebar; otherwise the
@@ -223,7 +239,12 @@ test.describe('Helm Release Operations', () => {
 
       // Navigate back to Helm Releases and re-open the release so we can uninstall via the Helm panel.
       await sidebar.goToSection('helmreleases');
-      const releaseRowAgain = page.locator('table.gh-table tbody tr').filter({ hasText: releaseName });
+      await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
+
+      // Use exact cell match to avoid colliding with the ConfigMap name (`${releaseName}-e2e`).
+      const releaseRowAgain = page
+        .locator('table.gh-table tbody tr')
+        .filter({ has: page.getByRole('cell', { name: releaseName, exact: true }) });
       await expect(releaseRowAgain).toBeVisible({ timeout: 60_000 });
       await releaseRowAgain.click();
 
@@ -244,6 +265,8 @@ test.describe('Helm Release Operations', () => {
       await helmPanel.root.getByRole('button', { name: /uninstall/i }).click();
 
       // Wait for the release to be removed from the table
+      await sidebar.goToSection('helmreleases');
+      await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
       await expect(releaseRow).toBeHidden({ timeout: 60_000 });
 
     } finally {

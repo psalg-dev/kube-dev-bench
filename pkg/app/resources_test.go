@@ -23,6 +23,24 @@ func TestCreateResource_InvalidYAML(t *testing.T) {
 	}
 }
 
+func TestCreateResource_NormalizesYAMLInputBeforeParsing(t *testing.T) {
+	app := &App{
+		ctx:                context.Background(),
+		currentKubeContext: "test-context",
+	}
+
+	// Includes UTF-8 BOM, CRLF, and a tab-indented line. This should not fail at YAML parsing.
+	yamlContent := "\uFEFFapiVersion: v1\r\nkind: ConfigMap\r\nmetadata:\r\n\tname: test-configmap\r\n"
+	err := app.CreateResource("default", yamlContent)
+	if err == nil {
+		// If a real kubeconfig is available in the test environment, CreateResource may succeed.
+		return
+	}
+	if contains(err.Error(), "YAML parse error") {
+		t.Fatalf("Expected YAML to parse after normalization; got: %v", err)
+	}
+}
+
 func TestCreateResource_MissingAPIVersion(t *testing.T) {
 	app := &App{
 		ctx:                context.Background(),

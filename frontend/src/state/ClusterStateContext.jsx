@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import {
+  GetKubeConfigs,
   GetKubeContexts,
   GetNamespaces,
   GetCurrentConfig,
@@ -23,6 +24,7 @@ const initialState = {
   connectionStatus: null,
   showWizard: false,
   initialized: false,
+  kubernetesAvailable: true,
 };
 export { initialState };
 
@@ -46,6 +48,24 @@ function reducer(state, action) {
       return { ...state, initialized: true };
     case 'DISABLE_NAMESPACES':
       return { ...state, namespaceDisabled: true };
+    case 'SET_KUBERNETES_AVAILABLE':
+      return {
+        ...state,
+        kubernetesAvailable: action.value,
+        // When kubernetes is not available, keep kube dropdowns disabled and selections empty.
+        ...(action.value
+          ? {}
+          : {
+              contexts: [],
+              namespaces: [],
+              selectedContext: '',
+              selectedNamespaces: [],
+              contextDisabled: true,
+              namespaceDisabled: true,
+              connectionStatus: null,
+              showWizard: false,
+            }),
+      };
     default:
       return state;
   }
@@ -69,6 +89,18 @@ export function ClusterStateProvider({ children }) {
     (async () => {
       dispatch({ type: 'SET_LOADING', loading: true });
       try {
+        // Swarm-only mode: if no kubeconfigs exist on the system, don't force the k8s wizard.
+        // This keeps the app usable for Docker Swarm features without any Kubernetes setup.
+        const kubeConfigs = await GetKubeConfigs();
+        const hasKubeConfigs = Array.isArray(kubeConfigs) && kubeConfigs.length > 0;
+        if (!hasKubeConfigs) {
+          dispatch({ type: 'SET_KUBERNETES_AVAILABLE', value: false });
+          dispatch({ type: 'SET_INITIALIZED' });
+          dispatch({ type: 'SET_LOADING', loading: false });
+          return;
+        }
+        dispatch({ type: 'SET_KUBERNETES_AVAILABLE', value: true });
+
         const config = await GetCurrentConfig();
         const contexts = await GetKubeContexts();
         if (!contexts || contexts.length === 0) {

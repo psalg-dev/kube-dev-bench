@@ -57,7 +57,8 @@ function DockerSwarmSidebar({ selectedSection, onSelectSection }) {
  * that queries by id (#kubecontext-root, #namespace-root, #sidebar-sections, etc.) continues to work.
  * Future phases will replace these id-based mutations with declarative React state.
  */
-export function AppLayout({ contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl }) {
+export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl }) {
+  const hideKubernetesSelectors = kubernetesAvailable === false;
   return (
     <div id="layout">
       <aside id="sidebar">
@@ -65,14 +66,18 @@ export function AppLayout({ contextSelectEl, namespaceSelectEl, selectedSection,
           <span style={{fontSize:14, color:'var(--gh-text-secondary, #ccc)'}}>Connection</span>
           <button id="show-wizard-btn" style={{background:'transparent', border:'1px solid var(--gh-border, #444)', color:'var(--gh-text-secondary, #ccc)', padding:'4px 8px', borderRadius:0, cursor:'pointer', fontSize:12}} title="Show Connection Wizard">⚙️</button>
         </div>
-        <label htmlFor="kubecontext-root">Context:</label>
-        <div className="input" id="kubecontext-root">{contextSelectEl}</div>
-        <label htmlFor="namespace-root">Namespaces:</label>
-        <div className="input" id="namespace-root">{namespaceSelectEl}</div>
+        <label htmlFor="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>Context:</label>
+        <div className="input" id="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>{contextSelectEl}</div>
+        <label htmlFor="namespace-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>Namespaces:</label>
+        <div className="input" id="namespace-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>{namespaceSelectEl}</div>
         <hr className="sidebar-separator" />
         <div id="sidebar-sections" style={{flex:1}}>
-          <SidebarSections selected={selectedSection} onSelect={onSelectSection} />
-          <hr className="sidebar-separator" />
+          {kubernetesAvailable !== false && (
+            <>
+              <SidebarSections selected={selectedSection} onSelect={onSelectSection} />
+              <hr className="sidebar-separator" />
+            </>
+          )}
           <DockerSwarmSidebar selectedSection={selectedSection} onSelectSection={onSelectSection} />
         </div>
         <button id="sidebar-toggle" title="Collapse Sidebar">

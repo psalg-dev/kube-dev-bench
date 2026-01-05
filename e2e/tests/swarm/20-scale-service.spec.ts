@@ -8,25 +8,14 @@
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel, SwarmScaleDialog } from '../../src/pages/SwarmBottomPanel.js';
-import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
-import { bootstrapApp } from '../../src/support/bootstrap.js';
+import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
 
 test.describe('Docker Swarm Service Scaling', () => {
-  test.beforeEach(async ({ page, contextName, namespace }) => {
+  test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
-    await bootstrapApp({ page, contextName, namespace });
-    
-    // Ensure connected to Swarm
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      const wizard = new SwarmConnectionWizardPage(page);
-      const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-      if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await gearBtn.click();
-        await wizard.connectToLocalDocker();
-      }
-    }
+    await page.goto('/');
+    await bootstrapSwarm({ page, skipIfConnected: true });
   });
 
   test('shows scale button for replicated services', async ({ page }) => {
@@ -40,7 +29,8 @@ test.describe('Docker Swarm Service Scaling', () => {
     await sidebar.goToServices();
     
     // Wait for table to load
-    const firstRow = page.locator('table tbody tr').first();
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const firstRow = servicesTable.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 30_000 });
     
     // Click to open details
@@ -69,7 +59,8 @@ test.describe('Docker Swarm Service Scaling', () => {
     await sidebar.goToServices();
     
     // Find a replicated service (look for mode "replicated" in table)
-    const serviceRows = page.locator('table tbody tr');
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const serviceRows = servicesTable.locator('tbody tr');
     await expect(serviceRows.first()).toBeVisible({ timeout: 30_000 });
     
     // Click first row to open details
@@ -115,7 +106,8 @@ test.describe('Docker Swarm Service Scaling', () => {
 
     await sidebar.goToServices();
     
-    const serviceRows = page.locator('table tbody tr');
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const serviceRows = servicesTable.locator('tbody tr');
     await expect(serviceRows.first()).toBeVisible({ timeout: 30_000 });
     await serviceRows.first().click();
     
@@ -156,7 +148,8 @@ test.describe('Docker Swarm Service Scaling', () => {
 
     await sidebar.goToServices();
     
-    const serviceRows = page.locator('table tbody tr');
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const serviceRows = servicesTable.locator('tbody tr');
     await expect(serviceRows.first()).toBeVisible({ timeout: 30_000 });
     await serviceRows.first().click();
     
@@ -195,7 +188,8 @@ test.describe('Docker Swarm Service Scaling', () => {
 
     await sidebar.goToServices();
     
-    const serviceRows = page.locator('table tbody tr');
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const serviceRows = servicesTable.locator('tbody tr');
     await expect(serviceRows.first()).toBeVisible({ timeout: 30_000 });
     await serviceRows.first().click();
     
@@ -214,17 +208,11 @@ test.describe('Docker Swarm Service Scaling', () => {
       await scaleDialog.expectVisible();
       
       // Try invalid value (negative)
-      const input = page.locator('[role="dialog"] input[type="number"]');
-      await input.fill('-1');
-      
-      // Confirm button should be disabled or show error
-      const confirmBtn = page.locator('[role="dialog"]').getByRole('button', { name: /confirm|scale|ok/i });
-      
-      // Either the button is disabled or an error message is shown
-      const isDisabled = await confirmBtn.isDisabled().catch(() => false);
-      const hasError = await page.getByText(/invalid|error|positive/i).isVisible().catch(() => false);
-      
-      expect(isDisabled || hasError).toBeTruthy();
+      await scaleDialog.fillReplicasRaw('-1');
+
+      // Current UI behavior: click Scale shows a warning and keeps dialog open
+      await scaleDialog.submit();
+      await expect(page.getByText(/replicas cannot be negative/i)).toBeVisible({ timeout: 10_000 });
       
       await scaleDialog.cancel();
     } else {

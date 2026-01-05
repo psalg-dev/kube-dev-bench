@@ -11,6 +11,7 @@ export type WailsDevInstance = {
 };
 
 async function waitForHttpOk(url: string, timeoutMs: number) {
+  const allowNotFound = url.endsWith('/');
   const start = Date.now();
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -18,7 +19,8 @@ async function waitForHttpOk(url: string, timeoutMs: number) {
       const ok = await new Promise<boolean>((resolve) => {
         const req = http.get(url, (res: http.IncomingMessage) => {
           res.resume();
-          resolve((res.statusCode ?? 0) >= 200 && (res.statusCode ?? 0) < 500);
+          const status = res.statusCode ?? 0;
+          resolve(status >= 200 && status < (allowNotFound ? 500 : 400));
         });
         req.on('error', () => resolve(false));
         req.setTimeout(2_000, () => {
@@ -42,6 +44,25 @@ function killProcessTreeBestEffort(child: ChildProcess) {
   try { child.kill('SIGKILL'); } catch {}
 }
 
+function isoNow() {
+  return new Date().toISOString();
+}
+
+function wireTimestampedStream(input: NodeJS.ReadableStream | null | undefined, write: (line: string) => void) {
+  if (!input) return;
+  let buffer = '';
+  input.on('data', (d: Buffer) => {
+    buffer += d.toString('utf-8');
+    buffer = buffer.replace(/\r\n/g, '\n');
+    const parts = buffer.split('\n');
+    buffer = parts.pop() ?? '';
+    for (const line of parts) write(`${isoNow()} ${line}\n`);
+  });
+  input.once('end', () => {
+    if (buffer.length > 0) write(`${isoNow()} ${buffer}\n`);
+  });
+}
+
 export async function startWailsDev(opts: {
   repoRoot: string;
   port: number;
@@ -54,18 +75,30 @@ export async function startWailsDev(opts: {
   // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
   const baseURL = `http://127.0.0.1:${port}`;
 
+  // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
+  const platform = process.platform as unknown as string;
+  const isWin32 = platform === 'win32';
+
   // Wails on Windows may remove a fixed resource syso file during `wails dev` startup.
   // When running multiple instances in the same repo, one instance can delete it and the
   // next one may fail fatally if it doesn't exist. Ensure the file exists before each start.
   const resSysoPath = path.join(repoRoot, 'KubeDevBench-res.syso');
-  try {
-    await fsp.stat(resSysoPath);
-  } catch {
+  const keepResSysoBestEffort = async () => {
     try {
-      await fsp.writeFile(resSysoPath, '', 'utf-8');
+      await fsp.writeFile(resSysoPath, '', { encoding: 'utf-8', flag: 'a' });
     } catch {
       // ignore; if Wails doesn't need it in this environment that's fine
     }
+  };
+
+  // For Windows, keep the file present throughout startup so overlapping `wails dev`
+  // builds can't fail on a transient missing file.
+  let resSysoInterval: NodeJS.Timeout | undefined;
+  if (isWin32) {
+    await keepResSysoBestEffort();
+    resSysoInterval = setInterval(() => {
+      void keepResSysoBestEffort();
+    }, 250);
   }
 
   // Per-worker isolation: Wails/Go config dirs on Windows use APPDATA/LOCALAPPDATA, not HOME.
@@ -73,11 +106,32 @@ export async function startWailsDev(opts: {
   const appDataDir = path.join(homeDir, 'AppData', 'Roaming');
   const localAppDataDir = path.join(homeDir, 'AppData', 'Local');
   const tmpDir = path.join(homeDir, 'tmp');
+  const kubeDir = path.join(homeDir, '.kube');
+  const kubeConfigPath = path.join(kubeDir, 'config');
   await Promise.all([
     fsp.mkdir(appDataDir, { recursive: true }),
     fsp.mkdir(localAppDataDir, { recursive: true }),
     fsp.mkdir(tmpDir, { recursive: true }),
+    fsp.mkdir(kubeDir, { recursive: true }),
   ]);
+
+  // Ensure a minimal kubeconfig exists. The app may attempt to read it during
+  // initialization, and in E2E we isolate HOME/USERPROFILE so the default
+  // ~/.kube/config path would otherwise be missing.
+  try {
+    await fsp.stat(kubeConfigPath);
+  } catch {
+    const minimalKubeconfig = [
+      'apiVersion: v1',
+      'kind: Config',
+      'clusters: []',
+      'contexts: []',
+      'current-context: ""',
+      'users: []',
+      '',
+    ].join('\n');
+    await fsp.writeFile(kubeConfigPath, minimalKubeconfig, 'utf-8');
+  }
 
   const logDir = path.join(repoRoot, 'e2e', 'test-results', 'wails-logs');
   await fsp.mkdir(logDir, { recursive: true });
@@ -89,9 +143,10 @@ export async function startWailsDev(opts: {
 
   const args = [
     'dev',
-    // Use a shared external frontend server (vite preview) so multiple Wails instances
-    // don't each start their own Vite dev watcher.
+    // Use a shared external frontend server so Wails instances don't each run a full frontend build.
     ...(opts.frontendDevServerURL ? ['-frontenddevserverurl', opts.frontendDevServerURL] : []),
+    // Skip frontend build. (Wails still runs a Vite dev watcher, but avoids expensive build steps.)
+    '-s',
     '-devserver',
     `127.0.0.1:${port}`,
     '-noreload',
@@ -103,11 +158,17 @@ export async function startWailsDev(opts: {
     '-nocolour',
   ];
 
+  // Optional override for Docker host during E2E.
+  // If unset, the backend auto-detects the correct platform default (on Windows
+  // this prefers Docker Desktop's dockerDesktopLinuxEngine pipe when present).
+  const dockerHostOverride = process.env.E2E_DOCKER_HOST;
+
   const child = spawn('wails', args, {
     cwd: repoRoot,
     env: {
       ...process.env,
       VITE_HOST: '127.0.0.1',
+      ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
       HOME: homeDir,
       USERPROFILE: homeDir,
       APPDATA: appDataDir,
@@ -123,19 +184,25 @@ export async function startWailsDev(opts: {
   // Best-effort: surface logs for debugging when things fail
   logStream.write(`\nwails: wails ${args.join(' ')}\n`);
 
-  child.stdout?.on('data', (d: Buffer) => logStream.write(d));
-  child.stderr?.on('data', (d: Buffer) => logStream.write(d));
+  wireTimestampedStream(child.stdout, (line) => logStream.write(line));
+  wireTimestampedStream(child.stderr, (line) => logStream.write(line));
   child.once('close', () => {
     try { logStream.write(`\n=== wails dev exited (port=${port}) ===\n`); } catch {}
   });
 
   try {
-    await waitForHttpOk(baseURL, readyTimeoutMs);
+    await waitForHttpOk(`${baseURL}/`, readyTimeoutMs);
+    // `waitForHttpOk('/')` can pass while Wails is still booting/building and before the
+    // runtime endpoints are actually ready. Ensure the runtime script is available too.
+    await waitForHttpOk(`${baseURL}/wails/runtime.js`, readyTimeoutMs);
   } catch (err) {
+    if (resSysoInterval) clearInterval(resSysoInterval);
     killProcessTreeBestEffort(child);
     try { logStream.end(`\n=== worker failed to become ready (port=${port}) ===\n`); } catch {}
     throw err;
   }
+
+  if (resSysoInterval) clearInterval(resSysoInterval);
 
   return { port, baseURL, process: child };
 }

@@ -26,8 +26,7 @@ test.describe.serial('proxy settings', () => {
       await expect(page.getByRole('heading', { name: /proxy settings/i })).toBeVisible();
 
       // Select manual configuration
-      const manualRadio = page.locator('div').filter({ hasText: /Manual Configuration/ }).first();
-      await manualRadio.click();
+      await page.locator('input[name="proxyAuthType"][value="basic"]').check();
       await expect(page.locator('#proxyURL')).toBeVisible();
 
       // Fill proxy data
@@ -66,8 +65,7 @@ test.describe.serial('proxy settings', () => {
       await expect(page.locator('#proxyUsername')).toHaveValue('user1');
 
       // Switch to No Proxy
-      const noProxyRadio = page.locator('div').filter({ hasText: /No Proxy/ }).first();
-      await noProxyRadio.click();
+      await page.locator('input[name="proxyAuthType"][value="none"]').check();
       await page.locator('#save-proxy-btn').click();
 
       // Close and reopen to verify
@@ -78,8 +76,7 @@ test.describe.serial('proxy settings', () => {
       await page.locator('#global-proxy-settings-btn').click();
       await expect(page.getByRole('heading', { name: /proxy settings/i })).toBeVisible();
       // Verify No Proxy is selected (the first radio option with No Proxy text should be selected)
-      const noProxyDiv = page.locator('div').filter({ hasText: /No Proxy/ }).first();
-      await expect(noProxyDiv.locator('input[type="radio"]')).toBeChecked();
+      await expect(page.locator('input[name="proxyAuthType"][value="none"]')).toBeChecked();
 
     } else {
       // Legacy flow

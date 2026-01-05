@@ -36,11 +36,28 @@ import SwarmVolumesOverviewTable from './docker/resources/volumes/SwarmVolumesOv
 import { showResourceOverlay } from './resource-overlay.js';
 
 function MainApp({ selectedSection, setSelectedSection }) {
-  const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled } = useClusterState();
+  const {
+    showWizard,
+    actions,
+    contexts,
+    namespaces,
+    selectedContext,
+    selectedNamespaces,
+    contextDisabled,
+    namespaceDisabled,
+    kubernetesAvailable,
+  } = useClusterState();
   const swarmState = useSwarmState();
   const firstNs = useMemo(() => (Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : ''), [selectedNamespaces]);
   const [showHelmInstall, setShowHelmInstall] = useState(false);
   const [showHelmRepos, setShowHelmRepos] = useState(false);
+
+  // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs), force Swarm as the active view.
+  useEffect(() => {
+    if (kubernetesAvailable === false && !String(selectedSection).startsWith('swarm-')) {
+      setSelectedSection('swarm-services');
+    }
+  }, [kubernetesAvailable, selectedSection, setSelectedSection]);
 
   // Global hotkey & sidebar toggle
   useEffect(() => {
@@ -161,6 +178,9 @@ function MainApp({ selectedSection, setSelectedSection }) {
   );
 
   const handleSelectSection = (section) => {
+    if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) {
+      return;
+    }
     setSelectedSection(section);
   };
 
@@ -171,6 +191,7 @@ function MainApp({ selectedSection, setSelectedSection }) {
   return (
     <>
       <AppLayout
+        kubernetesAvailable={kubernetesAvailable}
         contextSelectEl={<ContextSelect
           value={selectedContext}
           options={contexts}

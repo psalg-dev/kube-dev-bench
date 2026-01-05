@@ -166,6 +166,7 @@ export default function SwarmSecretsOverviewTable() {
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
       createPlatform="swarm"
       createKind="secret"
+      tableTestId="swarm-secrets-table"
     />
   );
 }

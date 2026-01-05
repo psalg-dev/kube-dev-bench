@@ -4,5 +4,7 @@
 [] cluster debug helpers
 [] extended kubectl support
 [] full coverage reporting
-[] swarm support
+[x] swarm support
 [x] helm support
+[] volume cloning?
+[] Node updates?

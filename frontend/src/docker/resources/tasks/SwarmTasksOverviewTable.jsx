@@ -153,6 +153,7 @@ export default function SwarmTasksOverviewTable() {
       data={tasks}
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
+      tableTestId="swarm-tasks-table"
       createPlatform="swarm"
       createKind="service"
       createButtonTitle="Create service (tasks are created by services)"

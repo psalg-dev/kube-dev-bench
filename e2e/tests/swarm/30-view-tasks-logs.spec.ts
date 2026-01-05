@@ -9,23 +9,13 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
-import { bootstrapApp } from '../../src/support/bootstrap.js';
+import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
 
 test.describe('Docker Swarm Tasks View', () => {
-  test.beforeEach(async ({ page, contextName, namespace }) => {
+  test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
-    await bootstrapApp({ page, contextName, namespace });
-    
-    // Ensure connected to Swarm
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      const wizard = new SwarmConnectionWizardPage(page);
-      const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-      if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await gearBtn.click();
-        await wizard.connectToLocalDocker();
-      }
-    }
+    await page.goto('/');
+    await bootstrapSwarm({ page, skipIfConnected: true });
   });
 
   test('displays tasks table', async ({ page }) => {
@@ -39,11 +29,12 @@ test.describe('Docker Swarm Tasks View', () => {
     await sidebar.goToTasks();
     
     // Verify tasks table is visible
-    await expect(page.locator('table, [data-testid="tasks-table"]')).toBeVisible({ timeout: 30_000 });
+    const tasksTable = page.locator('[data-testid="swarm-tasks-table"]');
+    await expect(tasksTable).toBeVisible({ timeout: 30_000 });
     
     // Verify table headers
-    await expect(page.getByRole('columnheader', { name: /id|task/i })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: /state|status/i })).toBeVisible();
+    await expect(tasksTable.getByRole('columnheader', { name: /id|task/i })).toBeVisible();
+    await expect(tasksTable.getByRole('columnheader', { name: /state|status/i })).toBeVisible();
   });
 
   test('shows task count in sidebar', async ({ page }) => {
@@ -70,7 +61,8 @@ test.describe('Docker Swarm Tasks View', () => {
     await sidebar.goToTasks();
     
     // Wait for table to load
-    const firstRow = page.locator('table tbody tr').first();
+    const tasksTable = page.locator('[data-testid="swarm-tasks-table"]');
+    const firstRow = tasksTable.locator('tbody tr').first();
     if (await firstRow.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await firstRow.click();
       
@@ -93,7 +85,8 @@ test.describe('Docker Swarm Tasks View', () => {
 
     await sidebar.goToTasks();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const tasksTable = page.locator('[data-testid="swarm-tasks-table"]');
+    const firstRow = tasksTable.locator('tbody tr').first();
     if (await firstRow.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await firstRow.click();
       
@@ -112,16 +105,7 @@ test.describe('Docker Swarm Task Logs', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
-    
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      const wizard = new SwarmConnectionWizardPage(page);
-      const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-      if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await gearBtn.click();
-        await wizard.connectToLocalDocker();
-      }
-    }
+    await bootstrapSwarm({ page, skipIfConnected: true });
   });
 
   test('can view task logs from service details', async ({ page }) => {
@@ -135,7 +119,8 @@ test.describe('Docker Swarm Task Logs', () => {
     await sidebar.goToServices();
     
     // Wait for services table
-    const firstRow = page.locator('table tbody tr').first();
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const firstRow = servicesTable.locator('tbody tr').first();
     if (await firstRow.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await firstRow.click();
       
@@ -165,7 +150,8 @@ test.describe('Docker Swarm Task Logs', () => {
 
     await sidebar.goToServices();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const firstRow = servicesTable.locator('tbody tr').first();
     if (await firstRow.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await firstRow.click();
       
@@ -202,7 +188,8 @@ test.describe('Docker Swarm Task Logs', () => {
 
     await sidebar.goToServices();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+    const firstRow = servicesTable.locator('tbody tr').first();
     if (await firstRow.isVisible({ timeout: 10_000 }).catch(() => false)) {
       await firstRow.click();
       

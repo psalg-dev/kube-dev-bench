@@ -19,8 +19,9 @@ import { showNotification } from '../../notification.js';
  * @param {string} [createButtonTitle] - Optional title/tooltip for the create (+) button.
  * @param {string|{message:string,type?:'success'|'error'|'warning',duration?:number}} [createNotice] - Optional notification shown when opening create overlay.
  * @param {string} [createHint] - Optional inline hint shown inside the create overlay.
+ * @param {string} [tableTestId] - Optional test id for the main table (used by E2E tests).
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
@@ -125,7 +126,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </div>
       </div>
 
-      <table className="gh-table" style={{ width: '100%' }}>
+      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%' }}>
         <thead>
           <tr>
             {columns.map(col => <th key={col.accessorKey || col.key}>{col.header || col.label}</th>)}

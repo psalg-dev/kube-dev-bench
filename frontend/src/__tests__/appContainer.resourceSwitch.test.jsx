@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 
 // Mock the kube API calls used during ClusterStateProvider initialization INCLUDING GetResourceCounts
 vi.mock('../k8s/resources/kubeApi.js', () => ({
+  GetKubeConfigs: vi.fn(() => Promise.resolve([{ path: '/tmp/kubeconfig', name: 'kubeconfig', contexts: ['ctx1'] }])),
   GetCurrentConfig: vi.fn(() => Promise.resolve({ currentContext: 'ctx1', preferredNamespaces: ['ns1'] })),
   GetKubeContexts: vi.fn(() => Promise.resolve(['ctx1', 'ctx2'])),
   GetNamespaces: vi.fn(() => Promise.resolve(['ns1', 'ns2'])),

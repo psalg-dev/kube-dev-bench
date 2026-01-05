@@ -150,6 +150,7 @@ export default function SwarmNetworksOverviewTable() {
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
       createPlatform="swarm"
       createKind="network"
+      tableTestId="swarm-networks-table"
     />
   );
 }

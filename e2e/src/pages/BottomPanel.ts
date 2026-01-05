@@ -15,12 +15,12 @@ export class BottomPanel {
     return this.root.getByRole('button', { name: label, exact: true });
   }
 
-  async expectVisible() {
-    await expect(this.root).toBeVisible();
+  async expectVisible(timeoutMs: number = 10_000) {
+    await expect(this.root).toBeVisible({ timeout: timeoutMs });
   }
 
-  async expectHidden() {
-    await expect(this.root).toBeHidden();
+  async expectHidden(timeoutMs: number = 10_000) {
+    await expect(this.root).toBeHidden({ timeout: timeoutMs });
   }
 
   async expectTabs(labels: string[]) {

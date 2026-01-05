@@ -34,6 +34,12 @@ var newDockerConnectionClient = func(config DockerConfig) (dockerConnectionClien
 // DefaultDockerHost returns the platform-specific default Docker host
 // On Windows, it checks for Docker Desktop's desktop-linux context first
 func DefaultDockerHost() string {
+	// Allow explicit overrides (useful for CI/E2E and advanced users).
+	// This matches Docker tooling expectations on all platforms.
+	if envHost := os.Getenv("DOCKER_HOST"); envHost != "" {
+		return envHost
+	}
+
 	if runtime.GOOS == "windows" {
 		// Docker Desktop with WSL2 backend uses a different pipe
 		desktopPipe := `\\.\pipe\dockerDesktopLinuxEngine`

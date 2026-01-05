@@ -160,6 +160,7 @@ export default function SwarmConfigsOverviewTable() {
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
       createPlatform="swarm"
       createKind="config"
+      tableTestId="swarm-configs-table"
     />
   );
 }

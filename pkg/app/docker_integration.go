@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -48,18 +50,14 @@ func (a *App) GetDockerConnectionStatus() (*docker.DockerConnectionStatus, error
 
 // ConnectToDocker connects to a Docker daemon with the specified configuration
 func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnectionStatus, error) {
-	// Test connection first
-	status, err := docker.TestConnection(a.ctx, config)
-	if err != nil {
-		return status, err
-	}
-
+	// Test connection first (with host fallbacks where appropriate)
+	resolvedConfig, status := a.resolveWorkingDockerConfig(config)
 	if !status.Connected {
 		return status, nil
 	}
 
 	// Create the client
-	cli, err := docker.NewClient(config)
+	cli, err := docker.NewClient(resolvedConfig)
 	if err != nil {
 		return &docker.DockerConnectionStatus{
 			Connected: false,
@@ -73,12 +71,12 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 		dockerClient.Close()
 	}
 	dockerClient = cli
-	configCopy := config
+	configCopy := resolvedConfig
 	dockerConfig = &configCopy
 	dockerClientMu.Unlock()
 
 	// Save Docker configuration
-	if err := a.saveDockerConfig(config); err != nil {
+	if err := a.saveDockerConfig(resolvedConfig); err != nil {
 		fmt.Printf("Warning: failed to save Docker config: %v\n", err)
 	}
 
@@ -86,6 +84,55 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 	wailsRuntime.EventsEmit(a.ctx, "docker:connected", status)
 
 	return status, nil
+}
+
+// resolveWorkingDockerConfig tries to find a Docker host that actually works.
+// This is primarily to make the UI "Connect" button reliable on Windows where
+// Docker Desktop may expose either docker_engine or dockerDesktopLinuxEngine.
+func (a *App) resolveWorkingDockerConfig(config docker.DockerConfig) (docker.DockerConfig, *docker.DockerConnectionStatus) {
+	seen := map[string]struct{}{}
+	add := func(host string, out *[]string) {
+		if host == "" {
+			return
+		}
+		if _, ok := seen[host]; ok {
+			return
+		}
+		seen[host] = struct{}{}
+		*out = append(*out, host)
+	}
+
+	candidates := []string{}
+	add(config.Host, &candidates)
+	add(docker.DefaultDockerHost(), &candidates)
+
+	if runtime.GOOS == "windows" {
+		// Add common Docker Desktop pipes as fallbacks.
+		add("npipe:////./pipe/dockerDesktopLinuxEngine", &candidates)
+		add("npipe:////./pipe/docker_engine", &candidates)
+
+		// If the user passed a Windows pipe in UNC form, normalize into npipe://.
+		if strings.HasPrefix(config.Host, `\\.\pipe\`) {
+			pipeName := strings.TrimPrefix(config.Host, `\\.\pipe\`)
+			add("npipe:////./pipe/"+pipeName, &candidates)
+		}
+	}
+
+	var lastStatus *docker.DockerConnectionStatus
+	for _, host := range candidates {
+		cfg := config
+		cfg.Host = host
+		status, _ := docker.TestConnection(a.ctx, cfg)
+		lastStatus = status
+		if status != nil && status.Connected {
+			return cfg, status
+		}
+	}
+
+	if lastStatus == nil {
+		lastStatus = &docker.DockerConnectionStatus{Connected: false, Error: "No Docker hosts to try"}
+	}
+	return config, lastStatus
 }
 
 // TestDockerConnection tests a Docker connection without storing it

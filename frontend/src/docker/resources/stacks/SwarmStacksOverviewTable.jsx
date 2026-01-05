@@ -145,6 +145,7 @@ export default function SwarmStacksOverviewTable() {
       createPlatform="swarm"
       createKind="stack"
       createButtonTitle="Deploy stack (Compose YAML)"
+      tableTestId="swarm-stacks-table"
     />
   );
 }

@@ -231,6 +231,7 @@ export default function SwarmServicesOverviewTable() {
       data={services}
       tabs={bottomTabs}
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
+      tableTestId="swarm-services-table"
       createPlatform="swarm"
       createKind="service"
     />

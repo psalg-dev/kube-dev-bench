@@ -30,7 +30,7 @@ test('sidebar navigation renders the correct main view', async ({ page, contextN
 
   for (const c of checks) {
     await sidebar.goToSection(c.key);
-    await expect(page.locator('h2.overview-title')).toHaveText(c.title, { timeout: 60_000 });
+    await expect(page.locator('h2.overview-title:visible')).toHaveText(c.title, { timeout: 60_000 });
 
     if (c.mustHave.role === 'columnheader') {
       await expect(page.getByRole('columnheader', { name: c.mustHave.name! })).toBeVisible({ timeout: 60_000 });

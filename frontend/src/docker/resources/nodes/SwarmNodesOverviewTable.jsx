@@ -201,6 +201,7 @@ export default function SwarmNodesOverviewTable() {
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
       createPlatform="swarm"
       createKind="node"
+      tableTestId="swarm-nodes-table"
     />
   );
 }

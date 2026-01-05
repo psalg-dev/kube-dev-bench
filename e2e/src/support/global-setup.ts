@@ -1,14 +1,24 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import type { FullConfig } from '@playwright/test';
 import { ensureKindCluster } from './kind.js';
+import type { KindInfo } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
 import { exec } from './exec.js';
 import { startFrontendPreviewServer } from './frontend-preview.js';
-import { cleanupLocalDockerSwarmResources } from './docker-swarm.js';
+import {
+  cleanupLocalDockerSwarmResources,
+  deploySwarmStackFromFile,
+  ensureSwarmConfig,
+  ensureSwarmNetwork,
+  ensureSwarmSecret,
+  isLocalSwarmActive,
+  waitForStackServicesReady,
+} from './docker-swarm.js';
 
 async function isHttpOk(url: string): Promise<boolean> {
   try {
@@ -41,9 +51,15 @@ async function killWindowsListenerOnPort(port: number) {
   }
 }
 
-export default async function globalSetup() {
+function isMissingBinaryError(err: unknown): boolean {
+  const anyErr = err as { code?: string; message?: string };
+  return anyErr?.code === 'ENOENT' || /ENOENT/i.test(anyErr?.message ?? '');
+}
+
+export default async function globalSetup(config: FullConfig) {
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
+  const skipKind = process.env.E2E_SKIP_KIND === '1';
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
   const platform = process.platform as unknown as string;
@@ -64,7 +80,39 @@ export default async function globalSetup() {
   // If Swarm is active, clean all Swarm resources so the test run starts from a known state.
   await cleanupLocalDockerSwarmResources({ log: (msg) => console.log(msg) });
 
-  const kind = await ensureKindCluster(clusterName);
+  // Deploy deterministic Swarm fixtures once per run.
+  // This avoids slow per-test fixture setup that can exceed individual test timeouts.
+  const swarmActive = await isLocalSwarmActive();
+  if (swarmActive) {
+    const fixtureStackName = 'kdb-e2e-fixtures';
+    await ensureSwarmConfig({ name: 'kdb_e2e_config', content: 'kube-dev-bench e2e config\n' });
+    await ensureSwarmSecret({ name: 'kdb_e2e_secret', content: 'kube-dev-bench e2e secret\n' });
+    await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+
+    const stackFilePath = withinRepo('stack.yml');
+    await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+    await waitForStackServicesReady({
+      stackName: fixtureStackName,
+      expectedServiceSuffixes: ['a-replicated', 'b-logger'],
+      timeoutMs: process.env.CI ? 300_000 : 240_000,
+    });
+  }
+
+  let kind: KindInfo | null = null;
+  if (!skipKind) {
+    try {
+      kind = await ensureKindCluster(clusterName);
+    } catch (err: unknown) {
+      // If someone wants to run Swarm-only E2Es without KinD installed, allow opting out.
+      // Keep default behavior strict: without `E2E_SKIP_KIND=1`, bubble errors.
+      if (isMissingBinaryError(err) && skipKind) {
+        console.log('[e2e] kind not found; continuing without Kubernetes run state (E2E_SKIP_KIND=1)');
+        kind = null;
+      } else {
+        throw err;
+      }
+    }
+  }
 
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
@@ -111,9 +159,9 @@ export default async function globalSetup() {
 
     await writeRunState({
       runId,
-      clusterName: kind.clusterName,
-      contextName: kind.contextName,
-      kubeconfigYaml: kind.kubeconfigYaml,
+      clusterName: kind?.clusterName ?? clusterName,
+      contextName: kind?.contextName,
+      kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
       frontendBaseURL: frontend.baseURL,
@@ -122,11 +170,15 @@ export default async function globalSetup() {
       sharedWailsPid: instance.process.pid ?? undefined,
     });
   } else {
+    // Prefer the actual worker count Playwright will use. This includes CLI overrides
+    // like `npx playwright test --workers=4`, which are not reflected in env vars.
+    const configuredWorkers = Number.isFinite(config?.workers) && (config?.workers ?? 0) > 0
+      ? (config.workers as number)
+      : undefined;
+
     const defaultInstanceCount = process.env.PW_WORKERS
       ? Number(process.env.PW_WORKERS)
-      : isWin32
-        ? 1
-        : 4;
+      : (configuredWorkers ?? (isWin32 ? 1 : 4));
 
     const instanceCountRaw = process.env.E2E_WAILS_INSTANCES
       ? Number(process.env.E2E_WAILS_INSTANCES)
@@ -159,9 +211,9 @@ export default async function globalSetup() {
 
     await writeRunState({
       runId,
-      clusterName: kind.clusterName,
-      contextName: kind.contextName,
-      kubeconfigYaml: kind.kubeconfigYaml,
+      clusterName: kind?.clusterName ?? clusterName,
+      contextName: kind?.contextName,
+      kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
       frontendBaseURL: frontend.baseURL,

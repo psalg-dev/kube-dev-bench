@@ -13,6 +13,7 @@ vi.mock('../notification', () => ({
 
 // Backend kube API mock (define inside factory to avoid hoisting reference issues)
 vi.mock('../k8s/resources/kubeApi.js', () => ({
+  GetKubeConfigs: vi.fn(() => Promise.resolve([{ path: '/tmp/kubeconfig', name: 'kubeconfig', contexts: ['ctxA'] }])),
   GetKubeContexts: vi.fn(),
   GetNamespaces: vi.fn(),
   GetCurrentConfig: vi.fn(),

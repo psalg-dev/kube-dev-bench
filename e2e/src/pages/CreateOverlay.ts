@@ -45,12 +45,26 @@ export class CreateOverlay {
     // Replace all content
     const isMac = process.platform === 'darwin';
     await this.page.keyboard.press(isMac ? 'Meta+A' : 'Control+A');
-    await this.page.keyboard.type(yaml, { delay: 0 });
+
+    // insertText is more reliable than typing key-by-key for multiline YAML
+    await this.page.keyboard.insertText(yaml);
   }
 
   async create() {
     await this.page.getByRole('button', { name: /^create$/i }).click();
-    // Overlay closes on success; error toast otherwise
-    await expect(this.page.getByRole('button', { name: 'Close' })).toBeHidden({ timeout: 60_000 });
+
+    // Overlay closes on success; on failure it shows an inline error (e.g. YAML parse error).
+    const closeBtn = this.page.getByRole('button', { name: 'Close' });
+    const parseError = this.page.getByText(/YAML parse error/i).first();
+
+    await Promise.race([
+      closeBtn.waitFor({ state: 'hidden', timeout: 60_000 }),
+      parseError.waitFor({ state: 'visible', timeout: 60_000 }),
+    ]);
+
+    if (await closeBtn.isVisible()) {
+      const msg = (await parseError.textContent())?.trim() || 'Unknown error';
+      throw new Error(`Create failed: ${msg}`);
+    }
   }
 }

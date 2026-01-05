@@ -13,7 +13,9 @@ function uniqueName(prefix: string) {
 
 async function openRowDetailsByName(page: any, name: string) {
   await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
-  const row = page.locator('table.gh-table tbody tr').filter({ hasText: name }).first();
+  const table = page.locator('#main-panels > div:visible table.gh-table');
+  await expect(table).toBeVisible({ timeout: 60_000 });
+  const row = table.locator('tbody tr').filter({ hasText: name }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
   await row.click();
 }

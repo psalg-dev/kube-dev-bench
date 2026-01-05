@@ -160,6 +160,7 @@ export default function SwarmVolumesOverviewTable() {
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
       createPlatform="swarm"
       createKind="volume"
+      tableTestId="swarm-volumes-table"
     />
   );
 }

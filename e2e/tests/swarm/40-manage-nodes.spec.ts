@@ -8,25 +8,14 @@
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
-import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
-import { bootstrapApp } from '../../src/support/bootstrap.js';
+import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
 
 test.describe('Docker Swarm Nodes View', () => {
-  test.beforeEach(async ({ page, contextName, namespace }) => {
+  test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
-    await bootstrapApp({ page, contextName, namespace });
-    
-    // Ensure connected to Swarm
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      const wizard = new SwarmConnectionWizardPage(page);
-      const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-      if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await gearBtn.click();
-        await wizard.connectToLocalDocker();
-      }
-    }
+    await page.goto('/');
+    await bootstrapSwarm({ page, skipIfConnected: true });
   });
 
   test('displays nodes table', async ({ page }) => {
@@ -40,12 +29,13 @@ test.describe('Docker Swarm Nodes View', () => {
     await sidebar.goToNodes();
     
     // Verify nodes table is visible
-    await expect(page.locator('table, [data-testid="nodes-table"]')).toBeVisible({ timeout: 30_000 });
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    await expect(nodesTable).toBeVisible({ timeout: 30_000 });
     
     // Verify table headers
-    await expect(page.getByRole('columnheader', { name: /hostname|name/i })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: /status|state/i })).toBeVisible();
-    await expect(page.getByRole('columnheader', { name: /role/i })).toBeVisible();
+    await expect(nodesTable.getByRole('columnheader', { name: /hostname|name/i })).toBeVisible();
+    await expect(nodesTable.getByRole('columnheader', { name: /status|state/i })).toBeVisible();
+    await expect(nodesTable.getByRole('columnheader', { name: /role/i })).toBeVisible();
   });
 
   test('shows node count in sidebar', async ({ page }) => {
@@ -72,7 +62,8 @@ test.describe('Docker Swarm Nodes View', () => {
     await sidebar.goToNodes();
     
     // Wait for table to load
-    const firstRow = page.locator('table tbody tr').first();
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    const firstRow = nodesTable.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 30_000 });
     
     // Click first node row
@@ -93,7 +84,8 @@ test.describe('Docker Swarm Nodes View', () => {
 
     await sidebar.goToNodes();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    const firstRow = nodesTable.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 30_000 });
     await firstRow.click();
     
@@ -114,7 +106,8 @@ test.describe('Docker Swarm Nodes View', () => {
 
     await sidebar.goToNodes();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    const firstRow = nodesTable.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 30_000 });
     await firstRow.click();
     
@@ -145,10 +138,12 @@ test.describe('Docker Swarm Nodes View', () => {
     await sidebar.goToNodes();
     
     // Wait for table to load
-    await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 30_000 });
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    await expect(nodesTable.locator('tbody tr').first()).toBeVisible({ timeout: 30_000 });
     
-    // Should show status column with ready/down status
-    const statusCell = page.locator('table tbody tr').first().locator('td').nth(1);
+    // Should show state/status column with ready/down status
+    // Current table columns: Hostname, Role, Availability, State, ...
+    const statusCell = nodesTable.locator('tbody tr').first().locator('td').nth(3);
     const statusText = await statusCell.textContent();
     
     // Status should be "ready", "down", or similar
@@ -166,7 +161,8 @@ test.describe('Docker Swarm Nodes View', () => {
     await sidebar.goToNodes();
     
     // Wait for table to load
-    await expect(page.locator('table tbody tr').first()).toBeVisible({ timeout: 30_000 });
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    await expect(nodesTable.locator('tbody tr').first()).toBeVisible({ timeout: 30_000 });
     
     // Should show role (manager or worker)
     await expect(page.getByText(/manager|worker|leader/i).first()).toBeVisible();
@@ -174,19 +170,10 @@ test.describe('Docker Swarm Nodes View', () => {
 });
 
 test.describe('Docker Swarm Node Management', () => {
-  test.beforeEach(async ({ page, contextName, namespace }) => {
+  test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
-    await bootstrapApp({ page, contextName, namespace });
-    
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      const wizard = new SwarmConnectionWizardPage(page);
-      const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-      if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await gearBtn.click();
-        await wizard.connectToLocalDocker();
-      }
-    }
+    await page.goto('/');
+    await bootstrapSwarm({ page, skipIfConnected: true });
   });
 
   test('can update node availability (drain/active)', async ({ page }) => {
@@ -199,7 +186,8 @@ test.describe('Docker Swarm Node Management', () => {
 
     await sidebar.goToNodes();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    const firstRow = nodesTable.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 30_000 });
     await firstRow.click();
     
@@ -242,7 +230,8 @@ test.describe('Docker Swarm Node Management', () => {
 
     await sidebar.goToNodes();
     
-    const firstRow = page.locator('table tbody tr').first();
+    const nodesTable = page.locator('[data-testid="swarm-nodes-table"]');
+    const firstRow = nodesTable.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 30_000 });
     await firstRow.click();
     
