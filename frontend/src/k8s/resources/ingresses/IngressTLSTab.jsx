@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { formatDateDMY } from '../../../utils/dateUtils.js';
 
 export default function IngressTLSTab({ namespace, ingressName }) {
   const [items, setItems] = useState([]);
@@ -46,7 +47,7 @@ export default function IngressTLSTab({ namespace, ingressName }) {
   const fmt = (s) => {
     if (!s || s === '-') return '-';
     try {
-      return new Date(s).toLocaleString();
+      return formatDateDMY(s);
     } catch {
       return s;
     }

@@ -8,6 +8,11 @@ export const eventsEmitMock = vi.fn();
 export const eventsOnMock = vi.fn();
 export const createSwarmConfigMock = vi.fn();
 export const createSwarmSecretMock = vi.fn();
+export const createSwarmServiceMock = vi.fn();
+export const createSwarmStackMock = vi.fn();
+export const updateSwarmNodeAvailabilityMock = vi.fn();
+export const updateSwarmNodeRoleMock = vi.fn();
+export const updateSwarmNodeLabelsMock = vi.fn();
 
 // Generic mock for other App API functions to avoid individual test failures.
 // Note: Vitest is configured with restoreMocks=true, so we must provide a stable
@@ -23,12 +28,13 @@ const appFunctionNames = [
   'GetDockerConnectionStatus','ConnectToDocker','TestDockerConnection','DisconnectDocker','GetDockerConfig','AutoConnectDocker','GetDefaultDockerHost',
   'GetSwarmServices','GetSwarmService','ScaleSwarmService','RemoveSwarmService','UpdateSwarmServiceImage','RestartSwarmService',
   'GetSwarmTasks','GetSwarmTasksByService','GetSwarmTask',
-  'GetSwarmNodes','GetSwarmNode','UpdateSwarmNodeAvailability','GetSwarmNodeTasks','RemoveSwarmNode',
+  'GetSwarmNodes','GetSwarmNode','UpdateSwarmNodeAvailability','UpdateSwarmNodeRole','UpdateSwarmNodeLabels','GetSwarmNodeTasks','RemoveSwarmNode',
   'GetSwarmNetworks','GetSwarmNetwork','RemoveSwarmNetwork',
   'GetSwarmConfigs','GetSwarmConfig','GetSwarmConfigData','CreateSwarmConfig','RemoveSwarmConfig',
   'GetSwarmSecrets','GetSwarmSecret','CreateSwarmSecret','RemoveSwarmSecret',
   'GetSwarmStacks','GetSwarmStackServices','RemoveSwarmStack',
   'GetSwarmVolumes','GetSwarmVolume','RemoveSwarmVolume',
+  'CreateSwarmService','CreateSwarmStack','CreateSwarmNetwork','CreateSwarmVolume',
   'GetSwarmServiceLogs','GetSwarmTaskLogs',
   'GetSwarmResourceCounts',
   // Helm functions
@@ -44,6 +50,16 @@ vi.mock('../../wailsjs/go/main/App', () => {
       exports[name] = (...args) => createSwarmConfigMock(...args);
     } else if (name === 'CreateSwarmSecret') {
       exports[name] = (...args) => createSwarmSecretMock(...args);
+    } else if (name === 'CreateSwarmService') {
+      exports[name] = (...args) => createSwarmServiceMock(...args);
+    } else if (name === 'CreateSwarmStack') {
+      exports[name] = (...args) => createSwarmStackMock(...args);
+    } else if (name === 'UpdateSwarmNodeAvailability') {
+      exports[name] = (...args) => updateSwarmNodeAvailabilityMock(...args);
+    } else if (name === 'UpdateSwarmNodeRole') {
+      exports[name] = (...args) => updateSwarmNodeRoleMock(...args);
+    } else if (name === 'UpdateSwarmNodeLabels') {
+      exports[name] = (...args) => updateSwarmNodeLabelsMock(...args);
     } else {
       const fn = (...args) => genericAPIMock(name, ...args);
       appApiMocks[name] = fn;
@@ -67,6 +83,11 @@ export function resetAllMocks() {
   createResourceMock.mockReset();
   createSwarmConfigMock.mockReset();
   createSwarmSecretMock.mockReset();
+  createSwarmServiceMock.mockReset();
+  createSwarmStackMock.mockReset();
+  updateSwarmNodeAvailabilityMock.mockReset();
+  updateSwarmNodeRoleMock.mockReset();
+  updateSwarmNodeLabelsMock.mockReset();
   eventsEmitMock.mockReset();
   eventsOnMock.mockReset();
   genericAPIMock.mockReset();

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { GetPodEvents } from '../../../../wailsjs/go/main/App';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 export default function PodEventsTab({ namespace, podName }) {
   const [events, setEvents] = useState([]);
@@ -56,7 +57,7 @@ export default function PodEventsTab({ namespace, podName }) {
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>{e.reason}</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)', whiteSpace: 'pre-wrap' }}>{e.message}</td>
                   <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)', textAlign: 'right' }}>{e.count}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>{new Date(e.lastTimestamp).toLocaleString()}</td>
+                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>{formatTimestampDMYHMS(e.lastTimestamp)}</td>
                 </tr>
               ))}
             </tbody>

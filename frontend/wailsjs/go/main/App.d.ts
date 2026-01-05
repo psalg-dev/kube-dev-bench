@@ -23,6 +23,10 @@ export function CreateSwarmNetwork(arg1:string,arg2:string,arg3:docker.CreateNet
 
 export function CreateSwarmSecret(arg1:string,arg2:string,arg3:Record<string, string>):Promise<string>;
 
+export function CreateSwarmService(arg1:docker.CreateServiceOptions):Promise<string>;
+
+export function CreateSwarmStack(arg1:string,arg2:string):Promise<string>;
+
 export function CreateSwarmVolume(arg1:string,arg2:string,arg3:Record<string, string>,arg4:Record<string, string>):Promise<docker.SwarmVolumeInfo>;
 
 export function DeleteConfigMap(arg1:string,arg2:string):Promise<void>;

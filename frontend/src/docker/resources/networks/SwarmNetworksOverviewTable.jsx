@@ -3,6 +3,8 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
   GetSwarmNetworks,
   RemoveSwarmNetwork,
@@ -26,11 +28,7 @@ const columns = [
   { key: 'createdAt', label: 'Created', cell: ({ getValue }) => {
     const val = getValue();
     if (!val) return '-';
-    try {
-      return new Date(val).toLocaleString();
-    } catch {
-      return val;
-    }
+    return formatTimestampDMYHMS(val);
   }},
 ];
 
@@ -124,10 +122,20 @@ export default function SwarmNetworksOverviewTable() {
 
     loadNetworks();
 
+    const off = EventsOn('swarm:networks:update', (data) => {
+      if (!active) return;
+      if (Array.isArray(data)) {
+        setNetworks(data);
+      } else {
+        refresh();
+      }
+    });
+
     return () => {
       active = false;
+      if (typeof off === 'function') off();
     };
-  }, [refreshKey]);
+  }, [refreshKey, refresh]);
 
   if (loading) {
     return <div className="main-panel-loading">Loading networks...</div>;

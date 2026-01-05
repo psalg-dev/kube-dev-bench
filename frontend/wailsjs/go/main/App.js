@@ -38,6 +38,14 @@ export function CreateSwarmSecret(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSwarmSecret'](arg1, arg2, arg3);
 }
 
+export function CreateSwarmService(arg1) {
+  return window['go']['main']['App']['CreateSwarmService'](arg1);
+}
+
+export function CreateSwarmStack(arg1, arg2) {
+  return window['go']['main']['App']['CreateSwarmStack'](arg1, arg2);
+}
+
 export function CreateSwarmVolume(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateSwarmVolume'](arg1, arg2, arg3, arg4);
 }

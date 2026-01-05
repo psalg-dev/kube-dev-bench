@@ -128,8 +128,11 @@ export default function SwarmTasksOverviewTable() {
     loadTasks();
 
     const off = EventsOn('swarm:tasks:update', (data) => {
-      if (active && Array.isArray(data)) {
+      if (!active) return;
+      if (Array.isArray(data)) {
         setTasks(data);
+      } else {
+        loadTasks();
       }
     });
 
@@ -151,7 +154,9 @@ export default function SwarmTasksOverviewTable() {
       tabs={bottomTabs}
       renderPanelContent={renderPanelContent}
       createPlatform="swarm"
-      createKind="task"
+      createKind="service"
+      createButtonTitle="Create service (tasks are created by services)"
+      createHint="Tasks can’t be created directly. Creating a service will create tasks."
     />
   );
 }

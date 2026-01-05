@@ -1,114 +1,143 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { EventsOn } from '../../../../wailsjs/runtime';
 import { useSwarmState } from '../../SwarmStateContext.jsx';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
-import { RemoveSwarmVolume } from '../../swarmApi.js';
+import { GetSwarmVolumes, RemoveSwarmVolume } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
-import { formatAge } from '../../../utils/timeUtils.js';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 
 const columns = [
-  { id: 'name', header: 'Name', accessorKey: 'name', size: 200 },
-  { id: 'driver', header: 'Driver', accessorKey: 'driver', size: 120 },
-  { id: 'scope', header: 'Scope', accessorKey: 'scope', size: 100 },
-  { id: 'created', header: 'Created', accessorFn: row => formatAge(row.createdAt), size: 120 },
-  { id: 'labels', header: 'Labels', accessorFn: row => {
-    if (!row.labels) return '-';
-    const count = Object.keys(row.labels).length;
-    return count > 0 ? `${count} label${count > 1 ? 's' : ''}` : '-';
-  }, size: 100 },
+  { key: 'name', label: 'Name' },
+  { key: 'driver', label: 'Driver' },
+  { key: 'scope', label: 'Scope' },
+  {
+    key: 'createdAt',
+    label: 'Created',
+    cell: ({ getValue }) => {
+      const val = getValue();
+      if (!val) return '-';
+      return formatTimestampDMYHMS(val);
+    },
+  },
+  {
+    key: 'labels',
+    label: 'Labels',
+    cell: ({ getValue }) => {
+      const labels = getValue();
+      if (!labels) return '-';
+      const count = Object.keys(labels).length;
+      return count > 0 ? `${count} label${count > 1 ? 's' : ''}` : '-';
+    },
+  },
 ];
 
-function VolumeBottomPanel({ item, closePanel, refreshList }) {
+const bottomTabs = [
+  { key: 'summary', label: 'Summary' },
+];
+
+function renderPanelContent(row, tab, onRefresh) {
+  if (tab !== 'summary') return null;
+
   const handleDelete = async () => {
-    if (window.confirm(`Delete volume "${item.name}"?`)) {
-      try {
-        await RemoveSwarmVolume(item.name, false);
-        showSuccess(`Volume "${item.name}" deleted`);
-        closePanel();
-        refreshList();
-      } catch (err) {
-        showError(`Failed to delete volume: ${err}`);
-      }
+    if (!window.confirm(`Delete volume "${row.name}"?`)) return;
+    try {
+      await RemoveSwarmVolume(row.name, false);
+      showSuccess(`Volume "${row.name}" deleted`);
+      onRefresh?.();
+    } catch (err) {
+      showError(`Failed to delete volume: ${err}`);
     }
   };
 
-  const tabs = [
-    {
-      key: 'summary',
-      label: 'Summary',
-      render: () => (
-        <div style={{ padding: 24 }}>
-          <SummaryTabHeader
-            title={item.name}
-            labels={item.labels}
-          />
-          <QuickInfoSection>
-            <QuickInfoSection.Row label="Name" value={item.name} copyable mono />
-            <QuickInfoSection.Row label="Driver" value={item.driver || '-'} />
-            <QuickInfoSection.Row label="Scope" value={item.scope || '-'} />
-            <QuickInfoSection.Row label="Mountpoint" value={item.mountpoint || '-'} mono />
-            <QuickInfoSection.Row label="Created" value={item.createdAt ? new Date(item.createdAt).toLocaleString() : '-'} />
-          </QuickInfoSection>
-          {item.options && Object.keys(item.options).length > 0 && (
-            <>
-              <h4 style={{ margin: '24px 0 12px', color: 'var(--gh-text)', fontSize: 14, fontWeight: 600 }}>
-                Options
-              </h4>
-              <QuickInfoSection>
-                {Object.entries(item.options).map(([key, val]) => (
-                  <QuickInfoSection.Row key={key} label={key} value={val} mono />
-                ))}
-              </QuickInfoSection>
-            </>
-          )}
-        </div>
-      ),
-    },
+  const quickInfoFields = [
+    { key: 'name', label: 'Name' },
+    { key: 'driver', label: 'Driver' },
+    { key: 'scope', label: 'Scope' },
+    { key: 'mountpoint', label: 'Mountpoint', type: 'break-word' },
+    { key: 'createdAt', label: 'Created', type: 'date' },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--gh-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--gh-text)' }}>{item.name}</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <SummaryTabHeader
+        name={row.name}
+        labels={row.labels}
+        actions={(
           <SwarmResourceActions
+            resourceType="volume"
+            name={row.name}
             onDelete={handleDelete}
           />
-        </div>
-      </div>
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        <div style={{ padding: 8, borderBottom: '1px solid var(--gh-border)' }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              style={{
-                background: 'var(--gh-btn-primary-bg)',
-                border: '1px solid var(--gh-border)',
-                color: '#fff',
-                padding: '6px 12px',
-                borderRadius: 6,
-                marginRight: 8,
-                cursor: 'pointer',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        {tabs[0].render()}
+        )}
+      />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+        <QuickInfoSection
+          resourceName={row.name}
+          data={row}
+          loading={false}
+          error={null}
+          fields={quickInfoFields}
+        />
       </div>
     </div>
   );
 }
 
 export default function SwarmVolumesOverviewTable() {
-  const { volumes, refreshVolumes, loading, connected } = useSwarmState();
+  const swarm = useSwarmState();
+  const connected = swarm?.connected;
+  const [volumes, setVolumes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const renderBottomPanel = (item, closePanel, refreshList) => (
-    <VolumeBottomPanel item={item} closePanel={closePanel} refreshList={refreshList} />
-  );
+  const refresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!connected) {
+      setVolumes([]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    const loadVolumes = async () => {
+      try {
+        const data = await GetSwarmVolumes();
+        if (active) {
+          setVolumes(Array.isArray(data) ? data : []);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load volumes:', err);
+        if (active) {
+          setVolumes([]);
+          setLoading(false);
+        }
+      }
+    };
+
+    loadVolumes();
+
+    const off = EventsOn('swarm:volumes:update', (data) => {
+      if (!active) return;
+      if (Array.isArray(data)) {
+        setVolumes(data);
+      } else {
+        refresh();
+      }
+    });
+
+    return () => {
+      active = false;
+      if (typeof off === 'function') off();
+    };
+  }, [connected, refreshKey, refresh]);
 
   if (!connected) {
     return (
@@ -118,15 +147,17 @@ export default function SwarmVolumesOverviewTable() {
     );
   }
 
+  if (loading) {
+    return <div className="main-panel-loading">Loading Swarm volumes...</div>;
+  }
+
   return (
     <OverviewTableWithPanel
-      data={volumes}
+      title="Swarm Volumes"
       columns={columns}
-      renderBottomPanel={renderBottomPanel}
-      refreshData={refreshVolumes}
-      loading={loading}
-      emptyMessage="No volumes found"
-      rowKeyAccessor={row => row.name}
+      data={volumes}
+      tabs={bottomTabs}
+      renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
       createPlatform="swarm"
       createKind="volume"
     />

@@ -14,10 +14,33 @@ import {
 } from '../../swarmApi.js';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import { showSuccess, showError } from '../../../notification.js';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 
 const columns = [
   { key: 'name', label: 'Name' },
-  { key: 'image', label: 'Image' },
+  {
+    key: 'image',
+    label: 'Image',
+    cell: ({ getValue }) => {
+      const val = getValue();
+      if (!val) return '-';
+      return (
+        <span
+          title={val}
+          style={{
+            display: 'inline-block',
+            maxWidth: 360,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            verticalAlign: 'bottom',
+          }}
+        >
+          {val}
+        </span>
+      );
+    },
+  },
   { key: 'mode', label: 'Mode' },
   { key: 'replicas', label: 'Replicas', cell: ({ getValue }) => {
     const val = getValue();
@@ -32,11 +55,7 @@ const columns = [
   { key: 'createdAt', label: 'Created', cell: ({ getValue }) => {
     const val = getValue();
     if (!val) return '-';
-    try {
-      return new Date(val).toLocaleString();
-    } catch {
-      return val;
-    }
+    return formatTimestampDMYHMS(val);
   }},
 ];
 
@@ -190,6 +209,8 @@ export default function SwarmServicesOverviewTable() {
     const off = EventsOn('swarm:services:update', (data) => {
       if (active && Array.isArray(data)) {
         setServices(data);
+      } else if (active) {
+        refresh();
       }
     });
 

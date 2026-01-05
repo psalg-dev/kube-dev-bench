@@ -1462,6 +1462,66 @@ export namespace docker {
 	        this.Gateway = source["Gateway"];
 	    }
 	}
+	export class SwarmPortInfo {
+	    protocol: string;
+	    targetPort: number;
+	    publishedPort: number;
+	    publishMode: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SwarmPortInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.protocol = source["protocol"];
+	        this.targetPort = source["targetPort"];
+	        this.publishedPort = source["publishedPort"];
+	        this.publishMode = source["publishMode"];
+	    }
+	}
+	export class CreateServiceOptions {
+	    name: string;
+	    image: string;
+	    mode: string;
+	    replicas: number;
+	    labels: Record<string, string>;
+	    env: Record<string, string>;
+	    ports: SwarmPortInfo[];
+	
+	    static createFrom(source: any = {}) {
+	        return new CreateServiceOptions(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.image = source["image"];
+	        this.mode = source["mode"];
+	        this.replicas = source["replicas"];
+	        this.labels = source["labels"];
+	        this.env = source["env"];
+	        this.ports = this.convertValues(source["ports"], SwarmPortInfo);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class DockerConfig {
 	    host: string;
 	    tlsEnabled: boolean;
@@ -1596,24 +1656,7 @@ export namespace docker {
 	        this.leader = source["leader"];
 	    }
 	}
-	export class SwarmPortInfo {
-	    protocol: string;
-	    targetPort: number;
-	    publishedPort: number;
-	    publishMode: string;
 	
-	    static createFrom(source: any = {}) {
-	        return new SwarmPortInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.protocol = source["protocol"];
-	        this.targetPort = source["targetPort"];
-	        this.publishedPort = source["publishedPort"];
-	        this.publishMode = source["publishMode"];
-	    }
-	}
 	export class SwarmResourceCounts {
 	    services: number;
 	    tasks: number;

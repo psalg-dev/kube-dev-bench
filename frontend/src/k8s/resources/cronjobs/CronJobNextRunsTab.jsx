@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) {
   const [detail, setDetail] = useState(null);
@@ -40,17 +41,6 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No upcoming runs available.</div>;
   }
 
-  const formatDate = (dateStr) => {
-    if (!dateStr || dateStr === '-') return '-';
-    try {
-      const d = new Date(dateStr);
-      if (Number.isNaN(d.getTime())) return String(dateStr);
-      return d.toLocaleString();
-    } catch {
-      return String(dateStr);
-    }
-  };
-
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>Next Runs (Next 5)</h4>
@@ -65,7 +55,7 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
           {runs.map((t, idx) => (
             <tr key={`${t}|${idx}`} style={{ borderBottom: '1px solid #21262d' }}>
               <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 60 }}>{idx + 1}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{formatDate(t)}</td>
+              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{formatTimestampDMYHMS(t)}</td>
             </tr>
           ))}
         </tbody>

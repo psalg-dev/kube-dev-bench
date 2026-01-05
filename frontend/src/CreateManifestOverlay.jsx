@@ -2,10 +2,24 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { yaml as yamlLang } from '@codemirror/lang-yaml';
-import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
+import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle, indentOnInput, indentUnit } from '@codemirror/language';
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import * as AppAPI from '../wailsjs/go/main/App';
 import { EventsEmit } from '../wailsjs/runtime';
 import { showSuccess, showError } from './notification';
+import ViewToggle from './components/forms/ViewToggle';
+import ServiceForm from './components/forms/ServiceForm';
+import useSwarmServiceForm, { getDefaultServiceForm } from './hooks/useSwarmServiceForm';
+import {
+  validateServiceForm,
+  yamlToServiceForm,
+  yamlToConfigForm,
+  configFormToYaml,
+  yamlToSecretForm,
+  secretFormToYaml,
+  yamlToNodeForm,
+  nodeFormToYaml,
+} from './utils/swarmYamlUtils';
 
 function normalizeSwarmKind(kind) {
   const k = (kind || '').toString().trim().toLowerCase();
@@ -36,7 +50,7 @@ function getDefaultSwarmPayload(kind) {
     case 'service':
       return {
         name: 'my-service',
-        data: `version: "3.8"\nservices:\n  my-service:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    ports:\n      - "8080:80"\n`,
+        data: `name: my-service\nimage: nginx:latest\nmode: replicated\nreplicas: 1\nports:\n  # - protocol: tcp\n  #   targetPort: 80\n  #   publishedPort: 8080\n  #   publishMode: ingress\nenv:\n  # KEY: value\nlabels:\n  # com.example.label: value\n`,
         labels: {},
         editorMode: 'yaml',
       };
@@ -73,6 +87,87 @@ function parseKeyValueLabels(input) {
   return out;
 }
 
+function keyValueRowsToObject(rows) {
+  const out = {};
+  for (const row of rows || []) {
+    const k = (row?.key || '').trim();
+    if (!k) continue;
+    out[k] = (row?.value || '').toString();
+  }
+  return out;
+}
+
+function objectToKeyValueRows(obj) {
+  const o = obj || {};
+  return Object.keys(o).sort().map((k) => ({ id: `kv_${k}`, key: k, value: (o[k] ?? '').toString() }));
+}
+
+function KeyValueEditor({
+  title,
+  rows,
+  onChange,
+  keyPlaceholder,
+  valuePlaceholder,
+  addButtonLabel,
+  ariaPrefix,
+}) {
+  return (
+    <div style={{ minWidth: 0, width: '100%', maxWidth: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
+        <div style={{ fontSize: 12, color: '#bbb' }}>{title}</div>
+        <button
+          type="button"
+          onClick={() => onChange([...(rows || []), { id: `kv_${Date.now()}_${Math.random().toString(16).slice(2)}`, key: '', value: '' }])}
+          style={{ padding: '6px 10px', background: 'transparent', color: '#fff', border: '1px solid #30363d', borderRadius: 0, cursor: 'pointer', fontSize: 12 }}
+          aria-label={addButtonLabel}
+        >
+          {addButtonLabel}
+        </button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', maxWidth: '100%' }}>
+        {(rows || []).map((row, idx) => (
+          <React.Fragment key={row.id || idx}>
+            <input
+              value={row.key}
+              onChange={(e) => {
+                const next = [...rows];
+                next[idx] = { ...next[idx], key: e.target.value };
+                onChange(next);
+              }}
+              placeholder={keyPlaceholder}
+              aria-label={`${ariaPrefix} key`}
+              style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+            />
+            <input
+              value={row.value}
+              onChange={(e) => {
+                const next = [...rows];
+                next[idx] = { ...next[idx], value: e.target.value };
+                onChange(next);
+              }}
+              placeholder={valuePlaceholder}
+              aria-label={`${ariaPrefix} value`}
+              style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const next = (rows || []).filter((_, i) => i !== idx);
+                onChange(next.length ? next : [{ id: `kv_${Date.now()}_${Math.random().toString(16).slice(2)}`, key: '', value: '' }]);
+              }}
+              style={{ padding: '8px 10px', background: 'transparent', color: '#fff', border: '1px solid #30363d', borderRadius: 0, cursor: 'pointer' }}
+              aria-label={`Remove ${ariaPrefix.toLowerCase()} row`}
+              title="Remove"
+            >
+              ×
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function getDefaultManifest(kind, namespace) {
   const ns = namespace || 'default';
   switch ((kind || '').toLowerCase()) {
@@ -104,14 +199,24 @@ function getDefaultManifest(kind, namespace) {
   }
 }
 
-export default function CreateManifestOverlay({ open, kind, namespace, onClose, platform = 'k8s' }) {
+export default function CreateManifestOverlay({ open, kind, namespace, onClose, platform = 'k8s', createHint }) {
   const editorParentRef = useRef(null);
   const viewRef = useRef(null);
+  const swarmStackFileInputRef = useRef(null);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [swarmName, setSwarmName] = useState('');
-  const [swarmLabels, setSwarmLabels] = useState('');
+  const [swarmLabelRows, setSwarmLabelRows] = useState([{ id: 'kv_init', key: '', value: '' }]);
+  const [swarmSimpleViewMode, setSwarmSimpleViewMode] = useState('form');
+  const [swarmDataText, setSwarmDataText] = useState('');
+
+  const [swarmNodeId, setSwarmNodeId] = useState('');
+  const [swarmNodeAvailability, setSwarmNodeAvailability] = useState('active');
+  const [swarmNodeRole, setSwarmNodeRole] = useState('worker');
+
+  const swarmServiceForm = useSwarmServiceForm();
+  const [swarmStackName, setSwarmStackName] = useState('');
 
   // Swarm structured create fields (used for networks/volumes)
   const [swarmNetworkDriver, setSwarmNetworkDriver] = useState('overlay');
@@ -122,7 +227,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   const [swarmNetworkGateway, setSwarmNetworkGateway] = useState('');
 
   const [swarmVolumeDriver, setSwarmVolumeDriver] = useState('local');
-  const [swarmVolumeDriverOpts, setSwarmVolumeDriverOpts] = useState('');
+  const [swarmVolumeDriverOptRows, setSwarmVolumeDriverOptRows] = useState([{ id: 'kv_init_opts', key: '', value: '' }]);
 
   const initial = useMemo(() => {
     if (platform === 'swarm') {
@@ -135,8 +240,8 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   const cmTheme = useMemo(() => EditorView.theme({
     '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
     '&.cm-editor': { height: '100%', width: '100%' },
-    '.cm-content': { caretColor: '#fff', textAlign: 'left' },
-    '.cm-line': { textAlign: 'left' },
+    '.cm-content': { caretColor: '#fff', textAlign: 'left', whiteSpace: 'pre' },
+    '.cm-line': { textAlign: 'left', whiteSpace: 'pre' },
     '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: '1.45' },
     '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' },
     '.cm-gutterElement': { padding: '0 8px' },
@@ -149,9 +254,17 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
     lineNumbers(),
     highlightActiveLineGutter(),
     foldGutter(),
-    keymap.of(foldKeymap),
+    indentOnInput(),
+    indentUnit.of('  '),
+    EditorState.tabSize.of(2),
+    history(),
+    keymap.of([
+      ...defaultKeymap,
+      ...historyKeymap,
+      indentWithTab,
+      ...foldKeymap,
+    ]),
     syntaxHighlighting(defaultHighlightStyle),
-    EditorView.lineWrapping,
   ], [cmTheme]);
 
   useEffect(() => {
@@ -162,9 +275,31 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
     if (platform === 'swarm') {
       const payload = getDefaultSwarmPayload(kind);
       setSwarmName(payload.name || '');
-      setSwarmLabels('');
+      setSwarmLabelRows(objectToKeyValueRows(payload.labels || {}).concat([{ id: 'kv_new', key: '', value: '' }]));
 
-      const k = normalizeSwarmKind(kind);
+      const k0 = normalizeSwarmKind(kind);
+      if (k0 === 'config' || k0 === 'secret') {
+        setSwarmDataText(payload.data || '');
+        setSwarmSimpleViewMode('form');
+      }
+
+      if (k0 === 'node') {
+        setSwarmNodeId('');
+        setSwarmNodeAvailability('active');
+        setSwarmNodeRole('worker');
+        setSwarmSimpleViewMode('form');
+      }
+
+      const k = k0;
+      if (k === 'service') {
+        swarmServiceForm.setFormData(getDefaultServiceForm());
+        swarmServiceForm.setYamlText('');
+        swarmServiceForm.setViewMode('form');
+      }
+
+      if (k === 'stack') {
+        setSwarmStackName(payload.name || '');
+      }
       if (k === 'network') {
         setSwarmNetworkDriver('overlay');
         setSwarmNetworkScope('swarm');
@@ -175,10 +310,29 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
       }
       if (k === 'volume') {
         setSwarmVolumeDriver('local');
-        setSwarmVolumeDriverOpts('');
+        setSwarmVolumeDriverOptRows([{ id: 'kv_new_opts', key: '', value: '' }]);
       }
     }
   }, [open, initial]);
+
+  // When switching away from an editor view (e.g. Service Form mode), destroy CodeMirror to avoid stale hidden editors.
+  const isSwarm = platform === 'swarm';
+  const swarmKind = isSwarm ? normalizeSwarmKind(kind) : '';
+  const isSwarmSimpleKind = isSwarm && ['config', 'secret', 'node'].includes(swarmKind);
+  const showSwarmEditor = !isSwarm || (
+    swarmKind !== 'network' &&
+    swarmKind !== 'volume' &&
+    !(swarmKind === 'service' && swarmServiceForm.viewMode === 'form') &&
+    !(isSwarmSimpleKind && swarmSimpleViewMode === 'form')
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    if (!showSwarmEditor && viewRef.current) {
+      try { viewRef.current.destroy(); } catch {}
+      viewRef.current = null;
+    }
+  }, [open, showSwarmEditor]);
 
   useEffect(() => {
     if (!open) return;
@@ -189,6 +343,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
 
   useEffect(() => {
     if (!open) return;
+    if (!showSwarmEditor) return;
     // mount or update editor
     try {
       if (!viewRef.current && editorParentRef.current) {
@@ -204,7 +359,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
       // eslint-disable-next-line no-console
       console.error('Failed to mount manifest editor:', e);
     }
-  }, [open, text, cmExtensions]);
+  }, [open, showSwarmEditor, text, cmExtensions]);
 
   // NEW: destroy the view when overlay closes so it mounts fresh next time
   useEffect(() => {
@@ -230,6 +385,33 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
 
   const getCurrentText = () => (viewRef.current ? viewRef.current.state.doc.toString() : text || '');
 
+  async function readTextFile(file) {
+    if (!file) return '';
+    if (typeof file.text === 'function') {
+      return await file.text();
+    }
+    return await new Promise((resolve, reject) => {
+      try {
+        const reader = new FileReader();
+        reader.onerror = () => reject(reader.error || new Error('Failed to read file'));
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.readAsText(file);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
+  async function handleSwarmStackFileSelected(file) {
+    try {
+      const content = await readTextFile(file);
+      setError('');
+      setText(content);
+    } catch (e) {
+      setError(e?.message || String(e));
+    }
+  }
+
   async function handleCreate() {
     try {
       setSubmitting(true);
@@ -238,23 +420,42 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
 
       if (platform === 'swarm') {
         const k = normalizeSwarmKind(kind);
-        const name = (swarmName || '').trim();
-        if (!name && (k === 'config' || k === 'secret' || k === 'stack' || k === 'service' || k === 'network' || k === 'volume')) {
-          setError('Name is required.');
-          setSubmitting(false);
-          return;
-        }
-
-        const labels = parseKeyValueLabels(swarmLabels);
+        const labels = keyValueRowsToObject(swarmLabelRows);
 
         // Only implement supported backend RPCs.
         if (k === 'config') {
-          if (!manifest.trim()) {
+          let name = '';
+          let data = '';
+          let lbls = labels;
+
+          if (swarmSimpleViewMode === 'yaml') {
+            try {
+              const parsed = yamlToConfigForm(manifest);
+              name = (parsed.name || '').trim();
+              data = (parsed.data || '');
+              lbls = parsed.labels || {};
+            } catch (e) {
+              setError(e?.message || String(e));
+              setSubmitting(false);
+              return;
+            }
+          } else {
+            name = (swarmName || '').trim();
+            data = swarmDataText || '';
+          }
+
+          if (!name) {
+            setError('Name is required.');
+            setSubmitting(false);
+            return;
+          }
+          if (!String(data || '').trim()) {
             setError('Payload is empty.');
             setSubmitting(false);
             return;
           }
-          await AppAPI.CreateSwarmConfig(name, manifest, parseKeyValueLabels(swarmLabels));
+
+          await AppAPI.CreateSwarmConfig(name, data, lbls);
           showSuccess(`Swarm config "${name}" was created successfully!`);
           try { EventsEmit('swarm:configs:update', null); } catch {}
           onClose?.();
@@ -262,19 +463,141 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
         }
 
         if (k === 'secret') {
-          if (!manifest.trim()) {
+          let name = '';
+          let data = '';
+          let lbls = labels;
+
+          if (swarmSimpleViewMode === 'yaml') {
+            try {
+              const parsed = yamlToSecretForm(manifest);
+              name = (parsed.name || '').trim();
+              data = (parsed.data || '');
+              lbls = parsed.labels || {};
+            } catch (e) {
+              setError(e?.message || String(e));
+              setSubmitting(false);
+              return;
+            }
+          } else {
+            name = (swarmName || '').trim();
+            data = swarmDataText || '';
+          }
+
+          if (!name) {
+            setError('Name is required.');
+            setSubmitting(false);
+            return;
+          }
+          if (!String(data || '').trim()) {
             setError('Payload is empty.');
             setSubmitting(false);
             return;
           }
-          await AppAPI.CreateSwarmSecret(name, manifest, parseKeyValueLabels(swarmLabels));
+
+          await AppAPI.CreateSwarmSecret(name, data, lbls);
           showSuccess(`Swarm secret "${name}" was created successfully!`);
           try { EventsEmit('swarm:secrets:update', null); } catch {}
           onClose?.();
           return;
         }
 
+        if (k === 'node') {
+          let nodeId = '';
+          let availability = '';
+          let role = '';
+          let lbls = labels;
+
+          if (swarmSimpleViewMode === 'yaml') {
+            try {
+              const parsed = yamlToNodeForm(manifest);
+              nodeId = (parsed.id || '').trim();
+              availability = (parsed.availability || 'active').trim();
+              role = (parsed.role || 'worker').trim();
+              lbls = parsed.labels || {};
+            } catch (e) {
+              setError(e?.message || String(e));
+              setSubmitting(false);
+              return;
+            }
+          } else {
+            nodeId = (swarmNodeId || '').trim();
+            availability = (swarmNodeAvailability || 'active').trim();
+            role = (swarmNodeRole || 'worker').trim();
+          }
+
+          if (!nodeId) {
+            setError('Node ID is required.');
+            setSubmitting(false);
+            return;
+          }
+          if (!availability) availability = 'active';
+          if (!role) role = 'worker';
+
+          await AppAPI.UpdateSwarmNodeAvailability(nodeId, availability);
+          await AppAPI.UpdateSwarmNodeRole(nodeId, role);
+          await AppAPI.UpdateSwarmNodeLabels(nodeId, lbls);
+
+          showSuccess(`Swarm node "${nodeId}" was updated successfully!`);
+          try { EventsEmit('swarm:nodes:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
+        if (k === 'service') {
+          let data = swarmServiceForm.formData;
+
+          if (swarmServiceForm.viewMode === 'yaml') {
+            try {
+              data = yamlToServiceForm(manifest);
+            } catch (e) {
+              setError(e?.message || String(e));
+              setSubmitting(false);
+              return;
+            }
+          }
+
+          const errs = validateServiceForm(data);
+          swarmServiceForm.setFormData(data);
+          swarmServiceForm.validate(data);
+          if (Object.keys(errs).length) {
+            setSubmitting(false);
+            return;
+          }
+
+          const opts = swarmServiceForm.toCreateOptions(data);
+          await AppAPI.CreateSwarmService(opts);
+          showSuccess(`Swarm service "${opts.name}" was created successfully!`);
+          try { EventsEmit('swarm:services:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
+        if (k === 'stack') {
+          const name = (swarmStackName || '').trim();
+          if (!name) {
+            setError('Name is required.');
+            setSubmitting(false);
+            return;
+          }
+          if (!manifest.trim()) {
+            setError('Compose YAML is empty.');
+            setSubmitting(false);
+            return;
+          }
+          await AppAPI.CreateSwarmStack(name, manifest);
+          showSuccess(`Swarm stack "${name}" was deployed successfully!`);
+          try { EventsEmit('swarm:stacks:update', null); } catch {}
+          onClose?.();
+          return;
+        }
+
         if (k === 'network') {
+          const name = (swarmName || '').trim();
+          if (!name) {
+            setError('Name is required.');
+            setSubmitting(false);
+            return;
+          }
           const opts = {
             scope: (swarmNetworkScope || '').trim(),
             attachable: !!swarmNetworkAttachable,
@@ -291,7 +614,13 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
         }
 
         if (k === 'volume') {
-          const driverOpts = parseKeyValueLabels(swarmVolumeDriverOpts);
+          const name = (swarmName || '').trim();
+          if (!name) {
+            setError('Name is required.');
+            setSubmitting(false);
+            return;
+          }
+          const driverOpts = keyValueRowsToObject(swarmVolumeDriverOptRows);
           await AppAPI.CreateSwarmVolume(name, (swarmVolumeDriver || '').trim() || 'local', labels, driverOpts);
           showSuccess(`Swarm volume "${name}" was created successfully!`);
           try { EventsEmit('swarm:volumes:update', null); } catch {}
@@ -326,52 +655,278 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
     }
   }
 
-  const isSwarm = platform === 'swarm';
-  const swarmKind = isSwarm ? normalizeSwarmKind(kind) : '';
-  const showSwarmEditor = !isSwarm || (swarmKind !== 'network' && swarmKind !== 'volume');
+  async function handleServiceViewChange(nextMode) {
+    if (nextMode === swarmServiceForm.viewMode) return;
+
+    if (nextMode === 'yaml') {
+      const result = swarmServiceForm.switchTo('yaml');
+      if (result.ok) {
+        setText(swarmServiceForm.formToYaml(swarmServiceForm.formData));
+      }
+      return;
+    }
+
+    // YAML -> Form
+    const yamlText = getCurrentText();
+    try {
+      const nextForm = yamlToServiceForm(yamlText);
+      swarmServiceForm.setFormData(nextForm);
+      swarmServiceForm.setViewMode('form');
+      swarmServiceForm.validate(nextForm);
+      setError('');
+    } catch (e) {
+      const msg = e?.message || String(e);
+      setError(msg);
+      showError(msg);
+    }
+  }
+
+  async function handleSimpleViewChange(nextMode) {
+    if (nextMode === swarmSimpleViewMode) return;
+
+    if (nextMode === 'yaml') {
+      const k = swarmKind;
+      const labels = keyValueRowsToObject(swarmLabelRows);
+      if (k === 'config') {
+        setText(configFormToYaml({ name: swarmName, data: swarmDataText, labels }));
+      } else if (k === 'secret') {
+        setText(secretFormToYaml({ name: swarmName, data: swarmDataText, labels }));
+      } else if (k === 'node') {
+        setText(nodeFormToYaml({ id: swarmNodeId, availability: swarmNodeAvailability, role: swarmNodeRole, labels }));
+      }
+      setSwarmSimpleViewMode('yaml');
+      setError('');
+      return;
+    }
+
+    // YAML -> Form
+    const yamlText = getCurrentText();
+    try {
+      const k = swarmKind;
+      if (k === 'config') {
+        const nextForm = yamlToConfigForm(yamlText);
+        setSwarmName(nextForm.name || '');
+        setSwarmDataText(nextForm.data || '');
+        setSwarmLabelRows(objectToKeyValueRows(nextForm.labels || {}).concat([{ id: 'kv_new', key: '', value: '' }]));
+      } else if (k === 'secret') {
+        const nextForm = yamlToSecretForm(yamlText);
+        setSwarmName(nextForm.name || '');
+        setSwarmDataText(nextForm.data || '');
+        setSwarmLabelRows(objectToKeyValueRows(nextForm.labels || {}).concat([{ id: 'kv_new', key: '', value: '' }]));
+      } else if (k === 'node') {
+        const nextForm = yamlToNodeForm(yamlText);
+        setSwarmNodeId(nextForm.id || '');
+        setSwarmNodeAvailability(nextForm.availability || 'active');
+        setSwarmNodeRole(nextForm.role || 'worker');
+        setSwarmLabelRows(objectToKeyValueRows(nextForm.labels || {}).concat([{ id: 'kv_new', key: '', value: '' }]));
+      }
+      setSwarmSimpleViewMode('form');
+      setError('');
+    } catch (e) {
+      const msg = e?.message || String(e);
+      setError(msg);
+      showError(msg);
+    }
+  }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
-      <div style={{ width: '70%', maxWidth: 900, height: '75vh', background: 'var(--gh-table-header-bg, #2d323b)', border: '1px solid #353a42', boxShadow: '0 8px 20px rgba(0,0,0,0.35)', color: '#fff', display: 'grid', gridTemplateRows: 'auto 1fr auto' }} onClick={(e) => e.stopPropagation()}>
+    <div id={isSwarm ? 'swarm-create-overlay' : undefined} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+      <div style={{ width: '70%', maxWidth: 900, height: '75vh', background: 'var(--gh-table-header-bg, #2d323b)', border: '1px solid #353a42', boxShadow: '0 8px 20px rgba(0,0,0,0.35)', color: '#fff', display: 'grid', gridTemplateRows: 'auto 1fr auto', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #353a42', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{title}</span>
           <button onClick={onClose} aria-label="Close" title="Close" style={{ background: 'transparent', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
         </div>
-        <div style={{ padding: 0, position: 'relative' }}>
-          {isSwarm && (
-            <div style={{ padding: 12, borderBottom: '1px solid #353a42', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ padding: 0, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          {isSwarm && swarmKind === 'service' && (
+            <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {createHint ? (
+                <div id="swarm-service-hint" style={{ fontSize: 12, color: '#bbb', lineHeight: 1.35 }}>
+                  {String(createHint)}
+                </div>
+              ) : null}
+
+              <ViewToggle mode={swarmServiceForm.viewMode} onChange={handleServiceViewChange} />
+
+              {swarmServiceForm.viewMode === 'form' ? (
+                <ServiceForm
+                  data={swarmServiceForm.formData}
+                  onChange={(d) => {
+                    swarmServiceForm.setFormData(d);
+                    swarmServiceForm.validate(d);
+                  }}
+                  errors={swarmServiceForm.errors}
+                />
+              ) : null}
+            </div>
+          )}
+
+          {isSwarm && ['config', 'secret', 'node'].includes(swarmKind) && (
+            <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <ViewToggle mode={swarmSimpleViewMode} onChange={handleSimpleViewChange} />
+
+              {swarmSimpleViewMode === 'form' && swarmKind !== 'node' ? (
+                <>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Name</div>
+                    <input
+                      value={swarmName}
+                      onChange={(e) => setSwarmName(e.target.value)}
+                      placeholder={swarmKind === 'secret' ? 'my-secret' : 'my-config'}
+                      aria-label="Swarm resource name"
+                      style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <KeyValueEditor
+                    title="Labels"
+                    rows={swarmLabelRows}
+                    onChange={setSwarmLabelRows}
+                    keyPlaceholder="com.example.owner"
+                    valuePlaceholder="dev"
+                    addButtonLabel="Add label"
+                    ariaPrefix="Label"
+                  />
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>{swarmKind === 'secret' ? 'Value' : 'Data'}</div>
+                    <textarea
+                      value={swarmDataText}
+                      onChange={(e) => setSwarmDataText(e.target.value)}
+                      aria-label={swarmKind === 'secret' ? 'Swarm secret value' : 'Swarm config data'}
+                      style={{ width: '100%', minHeight: 140, padding: '10px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: 1.45 }}
+                    />
+                  </div>
+                </>
+              ) : null}
+
+              {swarmSimpleViewMode === 'form' && swarmKind === 'node' ? (
+                <>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Node ID</div>
+                    <input
+                      value={swarmNodeId}
+                      onChange={(e) => setSwarmNodeId(e.target.value)}
+                      placeholder="node-id"
+                      aria-label="Swarm node id"
+                      style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                    <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+                      <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Availability</div>
+                      <select
+                        value={swarmNodeAvailability}
+                        onChange={(e) => setSwarmNodeAvailability(e.target.value)}
+                        aria-label="Swarm node availability"
+                        style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                      >
+                        <option value="active">active</option>
+                        <option value="pause">pause</option>
+                        <option value="drain">drain</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+                      <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Role</div>
+                      <select
+                        value={swarmNodeRole}
+                        onChange={(e) => setSwarmNodeRole(e.target.value)}
+                        aria-label="Swarm node role"
+                        style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                      >
+                        <option value="worker">worker</option>
+                        <option value="manager">manager</option>
+                      </select>
+                    </div>
+                  </div>
+                  <KeyValueEditor
+                    title="Labels"
+                    rows={swarmLabelRows}
+                    onChange={setSwarmLabelRows}
+                    keyPlaceholder="com.example.owner"
+                    valuePlaceholder="dev"
+                    addButtonLabel="Add label"
+                    ariaPrefix="Label"
+                  />
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {isSwarm && swarmKind === 'stack' && (
+            <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Stack Name</div>
+                <input
+                  id="swarm-stack-name"
+                  value={swarmStackName}
+                  onChange={(e) => setSwarmStackName(e.target.value)}
+                  placeholder="my-stack"
+                  aria-label="Swarm stack name"
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => swarmStackFileInputRef.current?.click?.()}
+                  style={{ padding: '6px 10px', background: 'transparent', color: '#fff', border: '1px solid #30363d', borderRadius: 0, cursor: 'pointer', fontSize: 12 }}
+                >
+                  Upload YAML
+                </button>
+                <input
+                  ref={swarmStackFileInputRef}
+                  type="file"
+                  accept=".yml,.yaml,text/yaml,application/x-yaml,text/plain"
+                  aria-label="Swarm stack compose file"
+                  onChange={async (e) => {
+                    const file = e?.target?.files?.[0];
+                    // allow re-selecting the same file
+                    if (e?.target) e.target.value = '';
+                    if (!file) return;
+                    await handleSwarmStackFileSelected(file);
+                  }}
+                  style={{ display: 'none' }}
+                />
+              </div>
+              <div
+                id="swarm-stack-hint"
+                style={{ fontSize: 12, color: '#bbb', lineHeight: 1.35 }}
+              >
+                Deploying a stack will create services (and their tasks).
+              </div>
+            </div>
+          )}
+
+          {isSwarm && swarmKind !== 'service' && swarmKind !== 'stack' && !['config', 'secret', 'node'].includes(swarmKind) && (
+            <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Name</div>
                 <input
                   value={swarmName}
                   onChange={(e) => setSwarmName(e.target.value)}
                   placeholder="name"
                   aria-label="Swarm resource name"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Labels (one per line: key=value)</div>
-                <textarea
-                  value={swarmLabels}
-                  onChange={(e) => setSwarmLabels(e.target.value)}
-                  placeholder="com.example.owner=dev\ncom.example.env=local"
-                  aria-label="Swarm labels"
-                  rows={3}
-                  style={{ width: '100%', resize: 'vertical', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
-                />
-              </div>
+              <KeyValueEditor
+                title="Labels"
+                rows={swarmLabelRows}
+                onChange={setSwarmLabelRows}
+                keyPlaceholder="com.example.owner"
+                valuePlaceholder="dev"
+                addButtonLabel="Add label"
+                ariaPrefix="Label"
+              />
             </div>
           )}
           {isSwarm && swarmKind === 'network' && (
-            <div style={{ padding: 12, borderBottom: '1px solid #353a42', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: '1 1 180px', minWidth: 160 }}>
                 <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver</div>
                 <select
                   value={swarmNetworkDriver}
                   onChange={(e) => setSwarmNetworkDriver(e.target.value)}
                   aria-label="Network driver"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="overlay">overlay</option>
                   <option value="bridge">bridge</option>
@@ -385,7 +940,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   value={swarmNetworkScope}
                   onChange={(e) => setSwarmNetworkScope(e.target.value)}
                   aria-label="Network scope"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="swarm">swarm</option>
                   <option value="local">local</option>
@@ -408,7 +963,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   onChange={(e) => setSwarmNetworkSubnet(e.target.value)}
                   placeholder="10.0.0.0/24"
                   aria-label="Network subnet"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ flex: '1 1 200px', minWidth: 180 }}>
@@ -418,40 +973,40 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   onChange={(e) => setSwarmNetworkGateway(e.target.value)}
                   placeholder="10.0.0.1"
                   aria-label="Network gateway"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
           )}
           {isSwarm && swarmKind === 'volume' && (
-            <div style={{ padding: 12, borderBottom: '1px solid #353a42', display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div style={{ flex: '1 1 200px', minWidth: 160 }}>
                 <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver</div>
                 <select
                   value={swarmVolumeDriver}
                   onChange={(e) => setSwarmVolumeDriver(e.target.value)}
                   aria-label="Volume driver"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="local">local</option>
                   <option value="nfs">nfs</option>
                 </select>
               </div>
-              <div style={{ flex: '2 1 320px', minWidth: 240 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver options (one per line: key=value)</div>
-                <textarea
-                  value={swarmVolumeDriverOpts}
-                  onChange={(e) => setSwarmVolumeDriverOpts(e.target.value)}
-                  placeholder="o=addr=10.0.0.10,rw\nversion=4"
-                  aria-label="Volume driver options"
-                  rows={3}
-                  style={{ width: '100%', resize: 'vertical', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff' }}
+              <div style={{ flex: '2 1 420px', minWidth: 280 }}>
+                <KeyValueEditor
+                  title="Driver options"
+                  rows={swarmVolumeDriverOptRows}
+                  onChange={setSwarmVolumeDriverOptRows}
+                  keyPlaceholder="o"
+                  valuePlaceholder="addr=10.0.0.10,rw"
+                  addButtonLabel="Add option"
+                  ariaPrefix="Option"
                 />
               </div>
             </div>
           )}
           {showSwarmEditor && (
-            <div ref={editorParentRef} style={{ width: '100%', height: '55vh', minHeight: '55vh' }} />
+            <div id={isSwarm && swarmKind === 'stack' ? 'swarm-compose-editor' : undefined} ref={editorParentRef} style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }} />
           )}
           {error && (
             <div style={{ position: 'absolute', top: 8, left: 10, color: '#f85149', background: 'rgba(248,81,73,0.1)', padding: '4px 8px', borderRadius: 0, border: '1px solid rgba(248,81,73,0.4)' }}>
@@ -468,7 +1023,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
             )}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={handleCreate} disabled={submitting} style={{ padding: '8px 12px', background: submitting ? '#2ea44f' : '#2ea44f', opacity: submitting ? 0.7 : 1, color: '#fff', border: '1px solid #2ea44f', borderRadius: 0, cursor: submitting ? 'not-allowed' : 'pointer' }}>Create</button>
+            <button id={isSwarm ? 'swarm-create-btn' : undefined} onClick={handleCreate} disabled={submitting} style={{ padding: '8px 12px', background: submitting ? '#2ea44f' : '#2ea44f', opacity: submitting ? 0.7 : 1, color: '#fff', border: '1px solid #2ea44f', borderRadius: 0, cursor: submitting ? 'not-allowed' : 'pointer' }}>Create</button>
           </div>
         </div>
       </div>

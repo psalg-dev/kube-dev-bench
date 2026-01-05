@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils.js';
 
 /**
  * Reusable Quick Info Section component for resource summary tabs
@@ -84,6 +85,17 @@ function QuickInfoSection({
 
     if (field.type === 'age' && value) {
       return formatDuration(value);
+    }
+
+    // UI convention:
+    // - 'date' is a timestamp: dd.mm.yyyy HH:mm:ss
+    // - 'date-only' is a pure date: dd.mm.yyyy
+    if (field.type === 'date' && value) {
+      return formatTimestampDMYHMS(value);
+    }
+
+    if (field.type === 'date-only' && value) {
+      return formatDateDMY(value);
     }
 
     if (field.type === 'labels' && value) {

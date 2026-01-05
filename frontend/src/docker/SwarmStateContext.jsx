@@ -306,7 +306,12 @@ export function SwarmStateProvider({ children }) {
   useEffect(() => {
     const offs = [];
     offs.push(EventsOn('swarm:services:update', (data) => {
-      dispatch({ type: 'SET_SERVICES', data });
+      // Some callers emit this as a refresh signal without payload.
+      if (Array.isArray(data)) {
+        dispatch({ type: 'SET_SERVICES', data });
+      } else {
+        refreshServices();
+      }
     }));
     offs.push(EventsOn('swarm:tasks:update', (data) => {
       dispatch({ type: 'SET_TASKS', data });
@@ -354,7 +359,7 @@ export function SwarmStateProvider({ children }) {
     return () => {
       offs.forEach(off => { if (typeof off === 'function') off(); });
     };
-  }, [refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);
+  }, [refreshServices, refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);
 
   const actions = {
     connect,

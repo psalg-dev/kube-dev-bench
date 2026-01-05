@@ -4,39 +4,34 @@ import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import ConfigDataTab from './ConfigDataTab.jsx';
-import {
-  GetSwarmConfigs,
-  RemoveSwarmConfig,
-} from '../../swarmApi.js';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import { GetSwarmConfigs, RemoveSwarmConfig } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 
 const columns = [
   { key: 'name', label: 'Name' },
-  { key: 'dataSize', label: 'Size', cell: ({ getValue }) => {
-    const size = getValue();
-    if (size === undefined || size === null) return '-';
-    if (size < 1024) return `${size} B`;
-    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-    return `${(size / 1024 / 1024).toFixed(1)} MB`;
-  }},
-  { key: 'createdAt', label: 'Created', cell: ({ getValue }) => {
-    const val = getValue();
-    if (!val) return '-';
-    try {
-      return new Date(val).toLocaleString();
-    } catch {
-      return val;
-    }
-  }},
-  { key: 'updatedAt', label: 'Updated', cell: ({ getValue }) => {
-    const val = getValue();
-    if (!val) return '-';
-    try {
-      return new Date(val).toLocaleString();
-    } catch {
-      return val;
-    }
-  }},
+  {
+    key: 'dataSize',
+    label: 'Size',
+    cell: ({ getValue }) => {
+      const size = getValue();
+      if (size === undefined || size === null) return '-';
+      if (size < 1024) return `${size} B`;
+      if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+      return `${(size / 1024 / 1024).toFixed(1)} MB`;
+    },
+  },
+  {
+    key: 'createdAt',
+    label: 'Created',
+    cell: ({ getValue }) => formatTimestampDMYHMS(getValue()),
+  },
+  {
+    key: 'updatedAt',
+    label: 'Updated',
+    cell: ({ getValue }) => formatTimestampDMYHMS(getValue()),
+  },
 ];
 
 const bottomTabs = [
@@ -49,13 +44,17 @@ function renderPanelContent(row, tab, onRefresh) {
     const quickInfoFields = [
       { key: 'id', label: 'Config ID', type: 'break-word' },
       { key: 'name', label: 'Name' },
-      { key: 'dataSize', label: 'Data Size', getValue: (d) => {
-        const size = d.dataSize;
-        if (size === undefined || size === null) return '-';
-        if (size < 1024) return `${size} bytes`;
-        if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-        return `${(size / 1024 / 1024).toFixed(1)} MB`;
-      }},
+      {
+        key: 'dataSize',
+        label: 'Data Size',
+        getValue: (d) => {
+          const size = d.dataSize;
+          if (size === undefined || size === null) return '-';
+          if (size < 1024) return `${size} bytes`;
+          if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+          return `${(size / 1024 / 1024).toFixed(1)} MB`;
+        },
+      },
       { key: 'createdAt', label: 'Created', type: 'date' },
       { key: 'updatedAt', label: 'Updated', type: 'date' },
     ];
@@ -75,13 +74,13 @@ function renderPanelContent(row, tab, onRefresh) {
         <SummaryTabHeader
           name={row.name}
           labels={row.labels}
-          actions={
+          actions={(
             <SwarmResourceActions
               resourceType="config"
               name={row.name}
               onDelete={handleDelete}
             />
-          }
+          )}
         />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
@@ -109,7 +108,7 @@ export default function SwarmConfigsOverviewTable() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   }, []);
 
   useEffect(() => {
@@ -133,10 +132,20 @@ export default function SwarmConfigsOverviewTable() {
 
     loadConfigs();
 
+    const off = EventsOn('swarm:configs:update', (data) => {
+      if (!active) return;
+      if (Array.isArray(data)) {
+        setConfigs(data);
+      } else {
+        refresh();
+      }
+    });
+
     return () => {
       active = false;
+      if (typeof off === 'function') off();
     };
-  }, [refreshKey]);
+  }, [refreshKey, refresh]);
 
   if (loading) {
     return <div className="main-panel-loading">Loading Swarm configs...</div>;

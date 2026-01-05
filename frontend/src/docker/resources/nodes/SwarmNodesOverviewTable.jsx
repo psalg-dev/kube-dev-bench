@@ -174,8 +174,11 @@ export default function SwarmNodesOverviewTable() {
     loadNodes();
 
     const off = EventsOn('swarm:nodes:update', (data) => {
-      if (active && Array.isArray(data)) {
+      if (!active) return;
+      if (Array.isArray(data)) {
         setNodes(data);
+      } else {
+        refresh();
       }
     });
 

@@ -26,6 +26,7 @@ type fakeDockerClient struct {
 
 	ServiceListFn           func(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
 	ServiceInspectWithRawFn func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceCreateFn         func(context.Context, swarm.ServiceSpec, types.ServiceCreateOptions) (types.ServiceCreateResponse, error)
 	ServiceUpdateFn         func(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error)
 	ServiceRemoveFn         func(context.Context, string) error
 
@@ -134,6 +135,13 @@ func (f *fakeDockerClient) ServiceInspectWithRaw(ctx context.Context, serviceID 
 		return swarm.Service{}, nil, nil
 	}
 	return f.ServiceInspectWithRawFn(ctx, serviceID, opts)
+}
+
+func (f *fakeDockerClient) ServiceCreate(ctx context.Context, spec swarm.ServiceSpec, opts types.ServiceCreateOptions) (types.ServiceCreateResponse, error) {
+	if f.ServiceCreateFn == nil {
+		return types.ServiceCreateResponse{}, nil
+	}
+	return f.ServiceCreateFn(ctx, spec, opts)
 }
 
 func (f *fakeDockerClient) ServiceUpdate(ctx context.Context, serviceID string, version swarm.Version, spec swarm.ServiceSpec, opts types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {

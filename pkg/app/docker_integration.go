@@ -174,6 +174,15 @@ func (a *App) RestartSwarmService(serviceID string) error {
 	return docker.RestartSwarmService(a.ctx, cli, serviceID)
 }
 
+// CreateSwarmService creates a new Swarm service.
+func (a *App) CreateSwarmService(opts docker.CreateServiceOptions) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.CreateSwarmService(a.ctx, cli, opts)
+}
+
 // ==================== Swarm Tasks ====================
 
 // GetSwarmTasks returns all Swarm tasks
@@ -437,6 +446,15 @@ func (a *App) RemoveSwarmStack(stackName string) error {
 		return err
 	}
 	return docker.RemoveSwarmStack(a.ctx, cli, stackName)
+}
+
+// CreateSwarmStack deploys a stack from a docker-compose YAML.
+func (a *App) CreateSwarmStack(stackName string, composeYAML string) (string, error) {
+	// Stack deploy is CLI-based.
+	if err := docker.DeploySwarmStack(a.ctx, stackName, composeYAML); err != nil {
+		return "", err
+	}
+	return stackName, nil
 }
 
 // ==================== Swarm Volumes ====================

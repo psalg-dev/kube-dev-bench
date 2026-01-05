@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
+import { showNotification } from '../../notification.js';
 
 /**
  * Reusable overview table with bottom panel.
@@ -15,8 +16,11 @@ import CreateManifestOverlay from '../../CreateManifestOverlay';
  * @param {string} [namespace] - Current namespace to prefill in Kubernetes manifests.
  * @param {'k8s'|'swarm'} [createPlatform] - Which platform the create overlay should target.
  * @param {string} [createKind] - Kind for the create overlay (overrides resourceKind when provided).
+ * @param {string} [createButtonTitle] - Optional title/tooltip for the create (+) button.
+ * @param {string|{message:string,type?:'success'|'error'|'warning',duration?:number}} [createNotice] - Optional notification shown when opening create overlay.
+ * @param {string} [createHint] - Optional inline hint shown inside the create overlay.
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
@@ -81,15 +85,29 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     }
   }, [data, columns, normalizedFilter]);
 
+  const handleOpenCreate = () => {
+    if (createNotice) {
+      const notice = typeof createNotice === 'string' ? { message: createNotice } : createNotice;
+      const message = notice?.message;
+      if (message) {
+        showNotification(message, {
+          type: notice?.type || 'warning',
+          duration: typeof notice?.duration === 'number' ? notice.duration : 3000,
+        });
+      }
+    }
+    setShowCreate(true);
+  };
+
   return (
     <div>
       <div className="overview-header">
         {/* Left: create button */}
         <div className="overview-left">
           <button
-            title="Create new"
+            title={createButtonTitle || 'Create new'}
             aria-label="Create new"
-            onClick={() => setShowCreate(true)}
+            onClick={handleOpenCreate}
             className="overview-create-btn"
           >
             +
@@ -153,6 +171,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         platform={createPlatform}
         kind={createKind ?? resourceKind}
         namespace={namespace}
+        createHint={createHint}
         onClose={() => setShowCreate(false)}
       />
     </div>

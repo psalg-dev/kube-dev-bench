@@ -1,109 +1,127 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { EventsOn } from '../../../../wailsjs/runtime';
 import { useSwarmState } from '../../SwarmStateContext.jsx';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
-import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import StackServicesTab from './StackServicesTab.jsx';
-import { RemoveSwarmStack } from '../../swarmApi.js';
+import SwarmResourceActions from '../SwarmResourceActions.jsx';
+import { GetSwarmStacks, RemoveSwarmStack } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 
 const columns = [
-  { id: 'name', header: 'Name', accessorKey: 'name', size: 200 },
-  { id: 'services', header: 'Services', accessorFn: row => row.serviceCount || 0, size: 100 },
-  { id: 'networks', header: 'Networks', accessorFn: row => row.networkCount || 0, size: 100 },
-  { id: 'configs', header: 'Configs', accessorFn: row => row.configCount || 0, size: 100 },
-  { id: 'secrets', header: 'Secrets', accessorFn: row => row.secretCount || 0, size: 100 },
+  { key: 'name', label: 'Name' },
+  { key: 'services', label: 'Services' },
+  { key: 'orchestrator', label: 'Orchestrator' },
 ];
 
-function StackBottomPanel({ item, closePanel, refreshList }) {
-  const [activeTab, setActiveTab] = useState('summary');
+const bottomTabs = [
+  { key: 'summary', label: 'Summary' },
+  { key: 'services', label: 'Services' },
+];
 
-  const handleDelete = async () => {
-    if (window.confirm(`Remove stack "${item.name}"? This will remove all services, networks, and other resources in this stack.`)) {
+function renderPanelContent(row, tab, onRefresh) {
+  if (tab === 'summary') {
+    const handleDelete = async () => {
       try {
-        await RemoveSwarmStack(item.name);
-        showSuccess(`Stack "${item.name}" removed`);
-        closePanel();
-        refreshList();
+        await RemoveSwarmStack(row.name);
+        showSuccess(`Removed stack "${row.name}"`);
+        onRefresh?.();
       } catch (err) {
         showError(`Failed to remove stack: ${err}`);
       }
-    }
-  };
+    };
 
-  const tabs = [
-    {
-      key: 'summary',
-      label: 'Summary',
-      render: () => (
-        <div style={{ padding: 24 }}>
-          <SummaryTabHeader
-            title={item.name}
-          />
-          <QuickInfoSection>
-            <QuickInfoSection.Row label="Name" value={item.name} />
-            <QuickInfoSection.Row label="Services" value={String(item.serviceCount || 0)} />
-            <QuickInfoSection.Row label="Networks" value={String(item.networkCount || 0)} />
-            <QuickInfoSection.Row label="Configs" value={String(item.configCount || 0)} />
-            <QuickInfoSection.Row label="Secrets" value={String(item.secretCount || 0)} />
-          </QuickInfoSection>
-        </div>
-      ),
-    },
-    {
-      key: 'services',
-      label: 'Services',
-      render: () => <StackServicesTab stackName={item.name} />,
-    },
-  ];
+    const quickInfoFields = [
+      { key: 'name', label: 'Stack Name' },
+      { key: 'services', label: 'Services' },
+      { key: 'orchestrator', label: 'Orchestrator' },
+    ];
 
-  const activeTabObj = tabs.find(t => t.key === activeTab) || tabs[0];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--gh-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--gh-text)' }}>{item.name}</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <SwarmResourceActions
-            onDelete={handleDelete}
-            deleteLabel="Remove Stack"
+    return (
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <SummaryTabHeader
+          name={row.name}
+          actions={(
+            <SwarmResourceActions
+              resourceType="stack"
+              name={row.name}
+              onDelete={handleDelete}
+            />
+          )}
+        />
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <QuickInfoSection
+            resourceName={row.name}
+            data={row}
+            loading={false}
+            error={null}
+            fields={quickInfoFields}
           />
         </div>
       </div>
-      <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: 8, borderBottom: '1px solid var(--gh-border)', display: 'flex', gap: 8 }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              style={{
-                background: tab.key === activeTab ? 'var(--gh-btn-primary-bg)' : 'var(--gh-bg-secondary)',
-                border: '1px solid var(--gh-border)',
-                color: tab.key === activeTab ? '#fff' : 'var(--gh-text)',
-                padding: '6px 12px',
-                borderRadius: 6,
-                cursor: 'pointer',
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1, position: 'relative' }}>
-          {activeTabObj.render()}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  }
+
+  if (tab === 'services') {
+    return <StackServicesTab stackName={row.name} />;
+  }
+
+  return null;
 }
 
 export default function SwarmStacksOverviewTable() {
-  const { stacks, refreshStacks, loading, connected } = useSwarmState();
+  const swarm = useSwarmState();
+  const connected = swarm?.connected;
+  const [stacks, setStacks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const renderBottomPanel = (item, closePanel, refreshList) => (
-    <StackBottomPanel item={item} closePanel={closePanel} refreshList={refreshList} />
-  );
+  const refresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!connected) {
+      setStacks([]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+
+    const loadStacks = async () => {
+      try {
+        const data = await GetSwarmStacks();
+        if (active) {
+          setStacks(Array.isArray(data) ? data : []);
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load stacks:', err);
+        if (active) {
+          setStacks([]);
+          setLoading(false);
+        }
+      }
+    };
+
+    loadStacks();
+
+    const off = EventsOn('swarm:stacks:update', (data) => {
+      if (!active) return;
+      if (Array.isArray(data)) {
+        setStacks(data);
+      } else {
+        refresh();
+      }
+    });
+
+    return () => {
+      active = false;
+      if (typeof off === 'function') off();
+    };
+  }, [connected, refreshKey, refresh]);
 
   if (!connected) {
     return (
@@ -113,15 +131,20 @@ export default function SwarmStacksOverviewTable() {
     );
   }
 
+  if (loading) {
+    return <div className="main-panel-loading">Loading Swarm stacks...</div>;
+  }
+
   return (
     <OverviewTableWithPanel
-      data={stacks}
+      title="Swarm Stacks"
       columns={columns}
-      renderBottomPanel={renderBottomPanel}
-      refreshData={refreshStacks}
-      loading={loading}
-      emptyMessage="No stacks found"
-      rowKeyAccessor={row => row.name}
+      data={stacks}
+      tabs={bottomTabs}
+      renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
+      createPlatform="swarm"
+      createKind="stack"
+      createButtonTitle="Deploy stack (Compose YAML)"
     />
   );
 }
