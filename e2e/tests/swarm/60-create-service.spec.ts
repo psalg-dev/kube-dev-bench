@@ -7,11 +7,12 @@ import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizard
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
+import { bootstrapApp } from '../../src/support/bootstrap.js';
 
 test.describe('Docker Swarm Create Service', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, contextName, namespace }) => {
     test.setTimeout(120_000);
-    await page.goto('/');
+    await bootstrapApp({ page, contextName, namespace });
 
     const sidebar = new SwarmSidebarPage(page);
     if (!(await sidebar.isSwarmConnected())) {

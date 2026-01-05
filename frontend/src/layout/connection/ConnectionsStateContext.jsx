@@ -23,6 +23,14 @@ import {
   GetDefaultDockerHost,
 } from '../../docker/swarmApi.js';
 
+function withTimeout(promise, timeoutMs, timeoutMessage) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+}
+
 const ConnectionsStateContext = createContext(null);
 
 const initialState = {
@@ -398,13 +406,17 @@ export function ConnectionsStateProvider({ children }) {
 
     testSwarmConnection: async (config) => {
       try {
-        const result = await TestDockerConnection(
-          config.host,
-          config.tlsEnabled || false,
-          config.tlsCert || '',
-          config.tlsKey || '',
-          config.tlsCA || '',
-          config.tlsVerify !== false
+        const result = await withTimeout(
+          TestDockerConnection(
+            config.host,
+            config.tlsEnabled || false,
+            config.tlsCert || '',
+            config.tlsKey || '',
+            config.tlsCA || '',
+            config.tlsVerify !== false
+          ),
+          15_000,
+          'Docker connection test timed out'
         );
         return result;
       } catch (err) {
@@ -423,7 +435,11 @@ export function ConnectionsStateProvider({ children }) {
           tlsCA: config.tlsCA || '',
           tlsVerify: config.tlsVerify !== false,
         };
-        const result = await ConnectToDocker(dockerConfig);
+        const result = await withTimeout(
+          ConnectToDocker(dockerConfig),
+          30_000,
+          'Docker connect timed out'
+        );
         return result;
       } catch (err) {
         dispatch({ type: 'SET_ERROR', error: `Failed to connect to Docker: ${err}` });

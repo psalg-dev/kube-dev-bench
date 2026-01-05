@@ -54,6 +54,20 @@ export async function startWailsDev(opts: {
   // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
   const baseURL = `http://127.0.0.1:${port}`;
 
+  // Wails on Windows may remove a fixed resource syso file during `wails dev` startup.
+  // When running multiple instances in the same repo, one instance can delete it and the
+  // next one may fail fatally if it doesn't exist. Ensure the file exists before each start.
+  const resSysoPath = path.join(repoRoot, 'KubeDevBench-res.syso');
+  try {
+    await fsp.stat(resSysoPath);
+  } catch {
+    try {
+      await fsp.writeFile(resSysoPath, '', 'utf-8');
+    } catch {
+      // ignore; if Wails doesn't need it in this environment that's fine
+    }
+  }
+
   // Per-worker isolation: Wails/Go config dirs on Windows use APPDATA/LOCALAPPDATA, not HOME.
   // If these aren't isolated, settings (like proxy) can leak between parallel workers.
   const appDataDir = path.join(homeDir, 'AppData', 'Roaming');

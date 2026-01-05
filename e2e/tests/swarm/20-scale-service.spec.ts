@@ -10,11 +10,12 @@ import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel, SwarmScaleDialog } from '../../src/pages/SwarmBottomPanel.js';
 import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
+import { bootstrapApp } from '../../src/support/bootstrap.js';
 
 test.describe('Docker Swarm Service Scaling', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, contextName, namespace }) => {
     test.setTimeout(120_000);
-    await page.goto('/');
+    await bootstrapApp({ page, contextName, namespace });
     
     // Ensure connected to Swarm
     const sidebar = new SwarmSidebarPage(page);

@@ -98,8 +98,15 @@ export class SwarmSidebarPage {
    * Check if Swarm is connected by looking at sidebar state.
    */
   async isSwarmConnected(): Promise<boolean> {
-    // Check for any visible Swarm section - if visible, we're connected
+    // Swarm auto-connect runs on startup; give it a short window before deciding.
     const servicesSection = this.page.locator('#section-swarm-services');
-    return servicesSection.isVisible().catch(() => false);
+    if (await servicesSection.isVisible().catch(() => false)) return true;
+
+    try {
+      await servicesSection.waitFor({ state: 'visible', timeout: 10_000 });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

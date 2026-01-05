@@ -9,11 +9,12 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
+import { bootstrapApp } from '../../src/support/bootstrap.js';
 
 test.describe('Docker Swarm Tasks View', () => {
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page, contextName, namespace }) => {
     test.setTimeout(120_000);
-    await page.goto('/');
+    await bootstrapApp({ page, contextName, namespace });
     
     // Ensure connected to Swarm
     const sidebar = new SwarmSidebarPage(page);

@@ -11,124 +11,67 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
+import { ConnectionWizardPage } from '../../src/pages/ConnectionWizardPage.js';
 
 test.describe('Docker Swarm Connection', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');
+    // The Swarm connection flow should not require Kubernetes setup.
+    // Ensure the Connections wizard is visible (it may be hidden if a kubeconfig already exists).
+    const wizard = new ConnectionWizardPage(page);
+    await wizard.openWizardIfHidden();
   });
 
-  test('opens Swarm connection wizard from sidebar', async ({ page }) => {
-    const wizard = new SwarmConnectionWizardPage(page);
-    
-    // Look for Swarm gear button in sidebar
-    const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-    
-    // The button might not be visible if Swarm sidebar isn't shown
-    // First check if we need to switch to Swarm mode
-    if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await gearBtn.click();
-      await wizard.ensureWizardVisible();
-      
-      // Verify wizard has expected elements
-      await expect(page.getByText(/local socket/i)).toBeVisible();
-      await expect(page.getByText(/tcp/i)).toBeVisible();
-    } else {
-      test.skip();
-    }
+  test('shows Docker Swarm connections in the Connections wizard', async ({ page }) => {
+    await page.locator('#connection-section-docker-swarm').click();
+    await expect(page.getByText(/docker swarm connections/i)).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('#add-swarm-btn')).toBeVisible();
   });
 
-  test('connects to local Docker socket', async ({ page }) => {
+  test('tests local Docker connection', async ({ page }) => {
     test.setTimeout(60_000);
-    
-    const wizard = new SwarmConnectionWizardPage(page);
-    const sidebar = new SwarmSidebarPage(page);
-    
-    // Check if already connected
-    if (await sidebar.isSwarmConnected()) {
-      // Already connected, verify sidebar is visible
-      await sidebar.expectVisible();
-      return;
-    }
 
-    // Open wizard if needed
-    const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-    if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await gearBtn.click();
-      await wizard.ensureWizardVisible();
-      
-      // Select local socket and connect
-      await wizard.selectLocalSocket();
-      await wizard.clickConnect();
-      
-      // Verify connection succeeded
-      await wizard.ensureWizardHidden();
-      
-      // Verify Swarm sections appear in sidebar
-      await expect(page.locator('#section-swarm-services')).toBeVisible({ timeout: 30_000 });
-    } else {
-      test.skip();
-    }
+    await page.locator('#connection-section-docker-swarm').click();
+
+    const first = page.locator('.connection-item').first();
+    await expect(first).toBeVisible({ timeout: 30_000 });
+
+    await first.getByRole('button', { name: /^test$/i }).click();
+    await expect(first.getByText(/connection successful|connection failed|\bfailed\b|\berror\b/i)).toBeVisible({ timeout: 30_000 });
   });
 
-  test('tests connection before connecting', async ({ page }) => {
+  test('connects to local Docker from the Connections wizard', async ({ page }) => {
     test.setTimeout(60_000);
-    
-    const wizard = new SwarmConnectionWizardPage(page);
-    
-    const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-    if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await gearBtn.click();
-      await wizard.ensureWizardVisible();
-      
-      // Test the connection
-      await wizard.selectLocalSocket();
-      await wizard.testConnection();
-      
-      // Should show test result (success or failure)
-      await expect(
-        page.getByText(/connected|connection.*successful|swarm.*active/i)
-          .or(page.getByText(/failed|error|not.*swarm/i))
-      ).toBeVisible({ timeout: 15_000 });
-    } else {
-      test.skip();
-    }
+
+    await page.locator('#connection-section-docker-swarm').click();
+
+    const first = page.locator('.connection-item').first();
+    await expect(first).toBeVisible({ timeout: 30_000 });
+
+    await first.getByRole('button', { name: /^connect$/i }).click();
+
+    // The card should indicate connected.
+    await expect(first.getByText(/^connected$/i)).toBeVisible({ timeout: 30_000 });
   });
 
   test('shows error for invalid connection', async ({ page }) => {
     test.setTimeout(60_000);
-    
-    const wizard = new SwarmConnectionWizardPage(page);
-    
-    const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-    if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await gearBtn.click();
-      await wizard.ensureWizardVisible();
-      
-      // Try to connect to invalid host
-      await wizard.selectTcp();
-      await wizard.setHost('tcp://invalid-host:9999');
-      await wizard.testConnection();
-      
-      // Should show error
-      await expect(page.getByText(/failed|error|cannot connect|timeout/i)).toBeVisible({ timeout: 30_000 });
-    } else {
-      test.skip();
-    }
-  });
 
-  test('can skip Swarm wizard', async ({ page }) => {
-    const wizard = new SwarmConnectionWizardPage(page);
-    
-    const gearBtn = page.locator('#swarm-show-wizard-btn, [data-testid="swarm-wizard-btn"]');
-    if (await gearBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await gearBtn.click();
-      await wizard.ensureWizardVisible();
-      
-      // Skip the wizard
-      await wizard.skip();
-      await wizard.ensureWizardHidden();
-    } else {
-      test.skip();
-    }
+    await page.locator('#connection-section-docker-swarm').click();
+
+    await page.locator('#add-swarm-btn').click();
+    await expect(page.locator('.add-swarm-overlay')).toBeVisible({ timeout: 10_000 });
+
+    await page.locator('#connectionName').fill('invalid');
+    await page.locator('#dockerHost').fill('tcp://invalid-host:9999');
+    await page.getByRole('button', { name: /test connection/i }).click();
+
+    const overlay = page.locator('.add-swarm-overlay');
+    await expect(overlay.getByText(/timed out|connection failed|\bfailed\b|\berror\b|timeout/i).first()).toBeVisible({
+      timeout: 30_000,
+    });
+
+    await page.getByRole('button', { name: /cancel/i }).click();
+    await expect(page.locator('.add-swarm-overlay')).toBeHidden({ timeout: 10_000 });
   });
 });

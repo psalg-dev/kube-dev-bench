@@ -8,6 +8,7 @@ import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
 import { exec } from './exec.js';
 import { startFrontendPreviewServer } from './frontend-preview.js';
+import { cleanupLocalDockerSwarmResources } from './docker-swarm.js';
 
 async function isHttpOk(url: string): Promise<boolean> {
   try {
@@ -58,6 +59,10 @@ export default async function globalSetup() {
         `Run: cd frontend && npm install && npm run build`
     );
   }
+
+  // Docker Swarm E2Es assume Swarm is already initialized.
+  // If Swarm is active, clean all Swarm resources so the test run starts from a known state.
+  await cleanupLocalDockerSwarmResources({ log: (msg) => console.log(msg) });
 
   const kind = await ensureKindCluster(clusterName);
 
@@ -117,7 +122,17 @@ export default async function globalSetup() {
       sharedWailsPid: instance.process.pid ?? undefined,
     });
   } else {
-    const instanceCount = Math.max(1, Number(process.env.E2E_WAILS_INSTANCES || 4));
+    const defaultInstanceCount = process.env.PW_WORKERS
+      ? Number(process.env.PW_WORKERS)
+      : isWin32
+        ? 1
+        : 4;
+
+    const instanceCountRaw = process.env.E2E_WAILS_INSTANCES
+      ? Number(process.env.E2E_WAILS_INSTANCES)
+      : defaultInstanceCount;
+
+    const instanceCount = Number.isFinite(instanceCountRaw) ? Math.max(1, instanceCountRaw) : (isWin32 ? 1 : 4);
     const basePort = Number(process.env.E2E_WAILS_BASE_PORT || 34200);
     const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number }> = [];
 

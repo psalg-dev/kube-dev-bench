@@ -36,31 +36,32 @@ export class SwarmConnectionWizardPage {
    * Select local socket connection type.
    */
   async selectLocalSocket() {
-    const radioLabel = this.page.getByText('Local Socket');
-    await radioLabel.click();
+    await this.ensureWizardVisible();
+    await this.wizard.getByText('Local Socket', { exact: true }).click();
   }
 
   /**
    * Select TCP connection type.
    */
   async selectTcp() {
-    const radioLabel = this.page.getByText('TCP (Unencrypted)');
-    await radioLabel.click();
+    await this.ensureWizardVisible();
+    await this.wizard.getByText('TCP (Unencrypted)', { exact: true }).click();
   }
 
   /**
    * Select TLS connection type.
    */
   async selectTls() {
-    const radioLabel = this.page.getByText('TLS (Secure)');
-    await radioLabel.click();
+    await this.ensureWizardVisible();
+    await this.wizard.getByText('TCP with TLS', { exact: true }).click();
   }
 
   /**
    * Set the Docker host address.
    */
   async setHost(host: string) {
-    const input = this.page.locator('#swarm-host-input, input[placeholder*="docker"]').first();
+    await this.ensureWizardVisible();
+    const input = this.wizard.locator('input[type="text"]').first();
     await input.fill(host);
   }
 
@@ -68,7 +69,8 @@ export class SwarmConnectionWizardPage {
    * Test the connection and wait for result.
    */
   async testConnection() {
-    const testBtn = this.page.getByRole('button', { name: /test connection/i });
+    await this.ensureWizardVisible();
+    const testBtn = this.wizard.getByRole('button', { name: /test connection/i });
     await testBtn.click();
     // Wait for test to complete (either success or error message appears)
     await this.page.waitForFunction(
@@ -87,7 +89,8 @@ export class SwarmConnectionWizardPage {
    * Click the Connect button to establish connection.
    */
   async clickConnect() {
-    const connectBtn = this.page.getByRole('button', { name: /^connect$/i });
+    await this.ensureWizardVisible();
+    const connectBtn = this.wizard.getByRole('button', { name: /^connect$/i });
     await expect(connectBtn).toBeEnabled({ timeout: 10_000 });
     await connectBtn.click();
   }
@@ -96,6 +99,12 @@ export class SwarmConnectionWizardPage {
    * Connect to a local Docker socket (simplified flow).
    */
   async connectToLocalDocker() {
+    if (!(await this.isVisible().catch(() => false))) {
+      await this.openFromSidebarGear();
+    } else {
+      await this.ensureWizardVisible();
+    }
+
     await this.selectLocalSocket();
     await this.clickConnect();
     await this.ensureWizardHidden();
