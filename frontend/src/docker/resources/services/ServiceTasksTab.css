@@ -16,6 +16,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  text-align: left;
 }
 
 .tasks-table th {
@@ -28,6 +29,7 @@
 }
 
 .tasks-table td {
+  text-align: left;
   padding: 8px 12px;
   border-bottom: 1px solid var(--gh-border, #30363d);
   color: var(--gh-text, #c9d1d9);
