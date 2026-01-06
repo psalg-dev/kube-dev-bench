@@ -77,6 +77,11 @@ export async function startWailsDev(opts: {
   // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
   const baseURL = `http://127.0.0.1:${port}`;
 
+  console.log(
+    `[e2e][wails] ${new Date().toISOString()} starting wails dev port=${port} baseURL=${baseURL} ` +
+      `frontend=${opts.frontendDevServerURL ?? 'internal'} repoRoot=${repoRoot}`
+  );
+
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
   const platform = process.platform as unknown as string;
   const isWin32 = platform === 'win32';
@@ -139,6 +144,8 @@ export async function startWailsDev(opts: {
   await fsp.mkdir(logDir, { recursive: true });
   const logPath = path.join(logDir, `wails-${port}.log`);
   const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+
+  console.log(`[e2e][wails] ${new Date().toISOString()} logs -> ${logPath}`);
 
   logStream.write(`\n=== worker (port=${port}) ${new Date().toISOString()} ===\n`);
   logStream.write(`cwd: ${repoRoot}\n`);
@@ -214,6 +221,8 @@ export async function startWailsDev(opts: {
     try { logStream.end(`\n=== worker failed to become ready (port=${port}) ===\n`); } catch {}
     throw err;
   }
+
+  console.log(`[e2e][wails] ${new Date().toISOString()} ready ${baseURL}`);
 
   // Keep the interval running for the lifetime of the process. On Windows, Wails can
   // delete this file during various dev-mode steps; keeping it present avoids flake

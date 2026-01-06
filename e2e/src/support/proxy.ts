@@ -58,8 +58,11 @@ export async function startProxyServer(opts: {
 
   // If already running, reuse it.
   if (await isHttpOk(`${baseURL}/health`)) {
+    console.log(`[e2e][proxy] ${new Date().toISOString()} reusing existing proxy at ${baseURL}`);
     return { port, baseURL, process: null };
   }
+
+  console.log(`[e2e][proxy] ${new Date().toISOString()} starting proxy on ${baseURL}`);
 
   const logDir = path.join(repoRoot, 'e2e', 'test-results', 'proxy-logs');
   await fsp.mkdir(logDir, { recursive: true });
@@ -91,6 +94,8 @@ export async function startProxyServer(opts: {
     try { logStream.end(`\n=== proxy failed to become ready (port=${port}) ===\n`); } catch {}
     throw err;
   }
+
+  console.log(`[e2e][proxy] ${new Date().toISOString()} proxy ready at ${baseURL} pid=${child.pid ?? 'unknown'}`);
 
   return { port, baseURL, process: child };
 }

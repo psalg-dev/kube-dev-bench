@@ -57,7 +57,30 @@ function isMissingBinaryError(err: unknown): boolean {
   return anyErr?.code === 'ENOENT' || /ENOENT/i.test(anyErr?.message ?? '');
 }
 
+function isoNow() {
+  return new Date().toISOString();
+}
+
+function fmtMs(ms: number) {
+  if (ms < 1_000) return `${ms}ms`;
+  return `${(ms / 1_000).toFixed(1)}s`;
+}
+
+async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const start = Date.now();
+  console.log(`[e2e][setup] ${isoNow()} ▶ ${label}`);
+  try {
+    const res = await fn();
+    console.log(`[e2e][setup] ${isoNow()} ✓ ${label} (${fmtMs(Date.now() - start)})`);
+    return res;
+  } catch (err) {
+    console.log(`[e2e][setup] ${isoNow()} ✗ ${label} (${fmtMs(Date.now() - start)})`);
+    throw err;
+  }
+}
+
 export default async function globalSetup(config: FullConfig) {
+  const setupStart = Date.now();
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
   const skipKind = process.env.E2E_SKIP_KIND === '1';
@@ -66,58 +89,73 @@ export default async function globalSetup(config: FullConfig) {
   const platform = process.platform as unknown as string;
   const isWin32 = platform === 'win32';
 
+  console.log(
+    `[e2e][setup] ${isoNow()} starting runId=${runId} platform=${platform} ` +
+      `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}`
+  );
+
   // Ensure frontend build exists (wails dev will serve from dist)
   const distIndex = withinRepo('frontend', 'dist', 'index.html');
-  try {
-    await fs.stat(distIndex);
-  } catch {
-    throw new Error(
-      `Missing frontend build at ${distIndex}.\n` +
-        `Run: cd frontend && npm install && npm run build`
-    );
-  }
+  await timed('verify frontend dist exists', async () => {
+    try {
+      await fs.stat(distIndex);
+    } catch {
+      throw new Error(
+        `Missing frontend build at ${distIndex}.\n` +
+          `Run: cd frontend && npm install && npm run build`
+      );
+    }
+  });
 
   // Docker Swarm E2Es assume Swarm is already initialized.
   // If Swarm is active, clean all Swarm resources so the test run starts from a known state.
-  await cleanupLocalDockerSwarmResources({ log: (msg) => console.log(msg) });
+  await timed('cleanup local Docker Swarm resources (best-effort)', async () => {
+    await cleanupLocalDockerSwarmResources({ log: (msg) => console.log(msg) });
+  });
 
   // Deploy deterministic Swarm fixtures once per run.
   // This avoids slow per-test fixture setup that can exceed individual test timeouts.
-  const swarmActive = await isLocalSwarmActive();
+  const swarmActive = await timed('detect Docker Swarm', async () => isLocalSwarmActive());
   if (swarmActive) {
     const fixtureStackName = 'kdb-e2e-fixtures';
-    await ensureSwarmConfig({ name: 'kdb_e2e_config', content: 'kube-dev-bench e2e config\n' });
-    await ensureSwarmSecret({ name: 'kdb_e2e_secret', content: 'kube-dev-bench e2e secret\n' });
-    await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+    await timed('ensure Swarm fixtures (config/secret/network)', async () => {
+      await ensureSwarmConfig({ name: 'kdb_e2e_config', content: 'kube-dev-bench e2e config\n' });
+      await ensureSwarmSecret({ name: 'kdb_e2e_secret', content: 'kube-dev-bench e2e secret\n' });
+      await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+    });
 
     const stackFilePath = withinRepo('stack.yml');
-    try {
-      await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
-    } catch (err: unknown) {
-      const msg = String((err as { message?: string })?.message ?? err);
-      // Occasionally Docker reports the external overlay network as missing right after
-      // cleanup/creation. Re-ensure the network and retry once to de-flake global setup.
-      if (
-        /network\s+kdb_e2e_net\s+not\s+found/i.test(msg) ||
-        /network\s+"?kdb_e2e_net"?\s+is\s+declared\s+as\s+external,\s+but\s+could\s+not\s+be\s+found/i.test(msg)
-      ) {
-        await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+    await timed(`deploy Swarm stack '${fixtureStackName}'`, async () => {
+      try {
         await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
-      } else {
-        throw err;
+      } catch (err: unknown) {
+        const msg = String((err as { message?: string })?.message ?? err);
+        // Occasionally Docker reports the external overlay network as missing right after
+        // cleanup/creation. Re-ensure the network and retry once to de-flake global setup.
+        if (
+          /network\s+kdb_e2e_net\s+not\s+found/i.test(msg) ||
+          /network\s+"?kdb_e2e_net"?\s+is\s+declared\s+as\s+external,\s+but\s+could\s+not\s+be\s+found/i.test(msg)
+        ) {
+          await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+          await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+        } else {
+          throw err;
+        }
       }
-    }
-    await waitForStackServicesReady({
-      stackName: fixtureStackName,
-      expectedServiceSuffixes: ['a-replicated', 'b-logger'],
-      timeoutMs: process.env.CI ? 300_000 : 240_000,
+      await waitForStackServicesReady({
+        stackName: fixtureStackName,
+        expectedServiceSuffixes: ['a-replicated', 'b-logger'],
+        timeoutMs: process.env.CI ? 300_000 : 240_000,
+      });
     });
+  } else {
+    console.log(`[e2e][setup] ${isoNow()} Docker Swarm not active; skipping Swarm fixtures`);
   }
 
   let kind: KindInfo | null = null;
   if (!skipKind) {
     try {
-      kind = await ensureKindCluster(clusterName);
+      kind = await timed(`ensure KinD cluster '${clusterName}'`, async () => ensureKindCluster(clusterName));
     } catch (err: unknown) {
       // If someone wants to run Swarm-only E2Es without KinD installed, allow opting out.
       // Keep default behavior strict: without `E2E_SKIP_KIND=1`, bubble errors.
@@ -151,20 +189,26 @@ export default async function globalSetup(config: FullConfig) {
   };
 
   try {
-    proxy = await ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 });
+    proxy = await timed('start local CONNECT proxy', async () =>
+      ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 })
+    );
+    console.log(`[e2e][setup] ${isoNow()} proxy ready at ${proxy.baseURL} pid=${proxy.pid ?? 'reused'}`);
 
   // Serve the built frontend via a single vite preview server.
   // This avoids each Wails instance spawning its own frontend dev watcher.
   const frontendPort = Number(process.env.E2E_FRONTEND_PORT || 35173);
     if (isWin32) {
-      await killWindowsListenerOnPort(frontendPort);
+      await timed(`clear Windows listener on port ${frontendPort}`, async () => killWindowsListenerOnPort(frontendPort));
     }
 
-    frontend = await startFrontendPreviewServer({
-      repoRoot: withinRepo(),
-      port: frontendPort,
-      readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
-    });
+    frontend = await timed(`start Vite preview server port=${frontendPort}`, async () =>
+      startFrontendPreviewServer({
+        repoRoot: withinRepo(),
+        port: frontendPort,
+        readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
+      })
+    );
+    console.log(`[e2e][setup] ${isoNow()} frontend preview ready at ${frontend.baseURL} pid=${frontend.process?.pid ?? 'reused'}`);
 
   // Shared-server mode:
   // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
@@ -184,18 +228,22 @@ export default async function globalSetup(config: FullConfig) {
     if (isWin32) {
       // Always clear the port before starting. The listener may be stale and not
       // return HTTP (so isHttpOk() would be false) but still prevents binding.
-      await killWindowsListenerOnPort(34115);
+      await timed('clear Windows listener on port 34115', async () => killWindowsListenerOnPort(34115));
     }
 
-    const instance = await startWailsDev({
-      repoRoot: withinRepo(),
-      port: 34115,
-      homeDir,
-      frontendDevServerURL: frontend!.baseURL,
-      // Allow more time in CI/global setup while keeping per-test timeouts strict.
-      readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
-    });
+    const instance = await timed('start shared wails dev (port=34115)', async () =>
+      startWailsDev({
+        repoRoot: withinRepo(),
+        port: 34115,
+        homeDir,
+        frontendDevServerURL: frontend!.baseURL,
+        // Allow more time in CI/global setup while keeping per-test timeouts strict.
+        readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
+      })
+    );
     if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+
+    console.log(`[e2e][setup] ${isoNow()} shared wails ready at ${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
     await writeRunState({
       runId,
@@ -227,6 +275,11 @@ export default async function globalSetup(config: FullConfig) {
     const instanceCount = Number.isFinite(instanceCountRaw) ? Math.max(1, instanceCountRaw) : 4;
     const basePort = Number(process.env.E2E_WAILS_BASE_PORT || 34200);
     const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number }> = [];
+
+    console.log(
+      `[e2e][setup] ${isoNow()} starting wails pool instances=${instanceCount} basePort=${basePort} ` +
+        `workers=${String(config?.workers ?? 'unknown')} (configuredWorkers=${configuredWorkers ?? 'n/a'})`
+    );
 
     const repoRootForWails = async (i: number): Promise<string> => {
       // Windows-only mitigation (opt-in): create a per-instance overlay repo.
@@ -316,22 +369,27 @@ export default async function globalSetup(config: FullConfig) {
     for (let i = 0; i < instanceCount; i++) {
       const port = basePort + i;
       if (isWin32) {
-        await killWindowsListenerOnPort(port);
+        await timed(`clear Windows listener on port ${port}`, async () => killWindowsListenerOnPort(port));
       }
 
       const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, `home-w${i}`);
       await fs.mkdir(homeDir, { recursive: true });
 
-      const instance = await startWailsDev({
-        repoRoot: await repoRootForWails(i),
-        port,
-        homeDir,
-        frontendDevServerURL: frontend!.baseURL,
-        // Sequential startup in global setup; allow more time here.
-        readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
-      });
+      const repoRootResolved = await repoRootForWails(i);
+      const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
+        startWailsDev({
+          repoRoot: repoRootResolved,
+          port,
+          homeDir,
+          frontendDevServerURL: frontend!.baseURL,
+          // Sequential startup in global setup; allow more time here.
+          readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
+        })
+      );
 
       if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+
+      console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
       wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
     }
@@ -351,6 +409,7 @@ export default async function globalSetup(config: FullConfig) {
 
   // Ensure artifacts folder exists
   await fs.mkdir(path.join(e2eRoot, 'test-results'), { recursive: true });
+  console.log(`[e2e][setup] ${isoNow()} finished in ${fmtMs(Date.now() - setupStart)}`);
   } catch (err) {
     // If global setup fails before run-state is written, global teardown won't know
     // what to kill. Clean up best-effort to avoid leaving stray Wails/Vite/proxy processes.

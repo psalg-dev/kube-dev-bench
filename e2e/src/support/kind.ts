@@ -18,6 +18,7 @@ function isRecoverableKubeconfigError(output: string): boolean {
 
 export async function ensureKindCluster(clusterName: string): Promise<KindInfo> {
   for (let attempt = 1; attempt <= 2; attempt++) {
+    console.log(`[e2e][kind] ${new Date().toISOString()} ensureKindCluster name=${clusterName} attempt=${attempt}`);
     // Check cluster exists
     const list = await exec('kind', ['get', 'clusters'], { timeoutMs: 60_000 });
     if (list.code !== 0) {
@@ -30,12 +31,15 @@ export async function ensureKindCluster(clusterName: string): Promise<KindInfo> 
       .filter(Boolean);
 
     if (!clusters.includes(clusterName)) {
+      console.log(`[e2e][kind] ${new Date().toISOString()} creating cluster '${clusterName}' (wait=120s)`);
       const created = await exec('kind', ['create', 'cluster', '--name', clusterName, '--wait', '120s'], {
         timeoutMs: 5 * 60_000,
       });
       if (created.code !== 0) {
         throw new Error(`kind create cluster failed: ${created.stderr || created.stdout}`);
       }
+    } else {
+      console.log(`[e2e][kind] ${new Date().toISOString()} reusing existing cluster '${clusterName}'`);
     }
 
     const kc = await exec('kind', ['get', 'kubeconfig', '--name', clusterName], { timeoutMs: 60_000 });
@@ -43,11 +47,13 @@ export async function ensureKindCluster(clusterName: string): Promise<KindInfo> 
       const kubeconfigYaml = kc.stdout;
       // Convention: kind names the context like "kind-<clusterName>"
       const contextName = `kind-${clusterName}`;
+      console.log(`[e2e][kind] ${new Date().toISOString()} kubeconfig retrieved; context=${contextName}`);
       return { clusterName, kubeconfigYaml, contextName };
     }
 
     const output = `${kc.stderr || ''}\n${kc.stdout || ''}`.trim();
     if (attempt === 1 && isRecoverableKubeconfigError(output)) {
+      console.log(`[e2e][kind] ${new Date().toISOString()} kubeconfig error looks recoverable; recreating cluster '${clusterName}'`);
       // A previously-created cluster can become broken (e.g. control-plane container stopped).
       // Best-effort: delete and recreate once.
       await exec('kind', ['delete', 'cluster', '--name', clusterName], { timeoutMs: 120_000 });
