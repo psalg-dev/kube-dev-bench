@@ -50,8 +50,11 @@ test.describe('Docker Swarm Connection', () => {
 
     await first.getByRole('button', { name: /^connect$/i }).click();
 
-    // The card should indicate connected.
-    await expect(first.getByText(/^connected$/i)).toBeVisible({ timeout: 30_000 });
+    // Successful connect closes the wizard and returns to the main app.
+    await expect(page.locator('.connection-wizard-layout')).toBeHidden({ timeout: 30_000 });
+
+    // Swarm sections only render in the sidebar once connected.
+    await expect(page.locator('#section-swarm-services')).toBeVisible({ timeout: 30_000 });
   });
 
   test('shows error for invalid connection', async ({ page }) => {

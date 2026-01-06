@@ -305,6 +305,28 @@ export function SwarmStateProvider({ children }) {
   // Subscribe to backend events for real-time updates
   useEffect(() => {
     const offs = [];
+
+    // Keep Swarm connection status in sync even when Docker is connected
+    // outside of the Swarm wizard (e.g. via the generic Connections wizard).
+    try {
+      offs.push(
+        EventsOn('docker:connected', () => {
+          setTimeout(() => {
+            refreshConnectionStatus();
+          }, 250);
+        })
+      );
+      offs.push(
+        EventsOn('docker:disconnected', () => {
+          setTimeout(() => {
+            refreshConnectionStatus();
+          }, 250);
+        })
+      );
+    } catch (_) {
+      // When not running inside Wails, window.runtime is not available.
+    }
+
     offs.push(EventsOn('swarm:services:update', (data) => {
       // Some callers emit this as a refresh signal without payload.
       if (Array.isArray(data)) {
@@ -359,7 +381,7 @@ export function SwarmStateProvider({ children }) {
     return () => {
       offs.forEach(off => { if (typeof off === 'function') off(); });
     };
-  }, [refreshServices, refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);
+  }, [refreshConnectionStatus, refreshServices, refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);
 
   const actions = {
     connect,
