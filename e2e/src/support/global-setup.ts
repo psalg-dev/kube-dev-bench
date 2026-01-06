@@ -378,32 +378,78 @@ export default async function globalSetup(config: FullConfig) {
       return repoCopyRoot;
     };
 
-    for (let i = 0; i < instanceCount; i++) {
-      const port = basePort + i;
-      if (isWin32) {
+    // CI runners benefit a lot from starting Wails instances concurrently.
+    // Keep Windows sequential by default to avoid port/listener and filesystem overlay collisions.
+    const readyTimeoutMs = process.env.CI ? 300_000 : 240_000;
+
+    if (isWin32) {
+      for (let i = 0; i < instanceCount; i++) {
+        const port = basePort + i;
         await timed(`clear Windows listener on port ${port}`, async () => killWindowsListenerOnPort(port));
+
+        const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, `home-w${i}`);
+        await fs.mkdir(homeDir, { recursive: true });
+
+        const repoRootResolved = await repoRootForWails(i);
+        const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
+          startWailsDev({
+            repoRoot: repoRootResolved,
+            port,
+            homeDir,
+            frontendDevServerURL: frontend!.baseURL,
+            readyTimeoutMs,
+          })
+        );
+
+        if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+
+        console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
+        wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
       }
-
-      const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, `home-w${i}`);
-      await fs.mkdir(homeDir, { recursive: true });
-
-      const repoRootResolved = await repoRootForWails(i);
-      const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
-        startWailsDev({
-          repoRoot: repoRootResolved,
-          port,
-          homeDir,
-          frontendDevServerURL: frontend!.baseURL,
-          // Sequential startup in global setup; allow more time here.
-          readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
+    } else {
+      const instanceSpecs = await Promise.all(
+        Array.from({ length: instanceCount }, async (_, i) => {
+          const port = basePort + i;
+          const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, `home-w${i}`);
+          await fs.mkdir(homeDir, { recursive: true });
+          const repoRootResolved = await repoRootForWails(i);
+          return { i, port, homeDir, repoRootResolved };
         })
       );
 
-      if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+      const results = await Promise.allSettled(
+        instanceSpecs.map(({ i, port, homeDir, repoRootResolved }) =>
+          timed(`start wails dev instance #${i} port=${port}`, async () =>
+            startWailsDev({
+              repoRoot: repoRootResolved,
+              port,
+              homeDir,
+              frontendDevServerURL: frontend!.baseURL,
+              readyTimeoutMs,
+            })
+          )
+        )
+      );
 
-      console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
+      const failures: unknown[] = [];
 
-      wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
+      results.forEach((r, idx) => {
+        const { i, port } = instanceSpecs[idx];
+        if (r.status === 'fulfilled') {
+          const instance = r.value;
+          if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+          console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
+          wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
+        } else {
+          failures.push(r.reason);
+        }
+      });
+
+      if (failures.length > 0) {
+        // Ensure we stop any instances that did start, otherwise CI runners can leak processes.
+        await Promise.all(startedWailsPids.map((pid) => killPidBestEffort(pid)));
+        throw failures[0];
+      }
     }
 
     await writeRunState({
