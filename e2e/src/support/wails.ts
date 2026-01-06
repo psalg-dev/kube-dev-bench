@@ -210,17 +210,31 @@ export async function startWailsDev(opts: {
     });
   });
 
+  // CI-friendly: print periodic progress so logs don't look hung during long cold starts.
+  const waitStart = Date.now();
+  const heartbeatEveryMs = Number(process.env.E2E_WAILS_HEARTBEAT_MS || 15_000);
+  const heartbeat = setInterval(() => {
+    const elapsed = Date.now() - waitStart;
+    console.log(
+      `[e2e][wails] ${new Date().toISOString()} waiting for ready ${baseURL} ` +
+        `(${Math.round(elapsed / 1000)}s elapsed, timeout=${Math.round(readyTimeoutMs / 1000)}s)`
+    );
+  }, heartbeatEveryMs);
+
   try {
     await Promise.race([waitForHttpOk(`${baseURL}/`, readyTimeoutMs), exited]);
     // `waitForHttpOk('/')` can pass while Wails is still booting/building and before the
     // runtime endpoints are actually ready. Ensure the runtime script is available too.
     await Promise.race([waitForHttpOk(`${baseURL}/wails/runtime.js`, readyTimeoutMs), exited]);
   } catch (err) {
+    clearInterval(heartbeat);
     if (resSysoInterval) clearInterval(resSysoInterval);
     killProcessTreeBestEffort(child);
     try { logStream.end(`\n=== worker failed to become ready (port=${port}) ===\n`); } catch {}
     throw err;
   }
+
+  clearInterval(heartbeat);
 
   console.log(`[e2e][wails] ${new Date().toISOString()} ready ${baseURL}`);
 
