@@ -7,15 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"runtime"
 
-	"github.com/Microsoft/go-winio"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
-
-var dialPipe = winio.DialPipe
 
 var newDockerClientWithOpts = client.NewClientWithOpts
 
@@ -32,7 +28,6 @@ var newDockerConnectionClient = func(config DockerConfig) (dockerConnectionClien
 }
 
 // DefaultDockerHost returns the platform-specific default Docker host
-// On Windows, it checks for Docker Desktop's desktop-linux context first
 func DefaultDockerHost() string {
 	// Allow explicit overrides (useful for CI/E2E and advanced users).
 	// This matches Docker tooling expectations on all platforms.
@@ -40,26 +35,7 @@ func DefaultDockerHost() string {
 		return envHost
 	}
 
-	if runtime.GOOS == "windows" {
-		// Docker Desktop with WSL2 backend uses a different pipe
-		desktopPipe := `\\.\pipe\dockerDesktopLinuxEngine`
-		if pipeExists(desktopPipe) {
-			return "npipe:////./pipe/dockerDesktopLinuxEngine"
-		}
-		// Fall back to standard Docker pipe
-		return "npipe:////./pipe/docker_engine"
-	}
-	return "unix:///var/run/docker.sock"
-}
-
-// pipeExists checks if a named pipe exists on Windows
-func pipeExists(pipePath string) bool {
-	conn, err := dialPipe(pipePath, nil)
-	if err != nil {
-		return false
-	}
-	conn.Close()
-	return true
+	return platformDefaultDockerHost()
 }
 
 // NewClient creates a new Docker client with the specified configuration

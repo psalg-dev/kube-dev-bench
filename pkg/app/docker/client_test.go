@@ -3,12 +3,10 @@ package docker
 import (
 	"context"
 	"errors"
-	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
@@ -47,34 +45,22 @@ func (f *fakeConnClient) Info(context.Context) (types.Info, error) {
 }
 func (f *fakeConnClient) Close() error { f.closed = true; return nil }
 
-func Test_DefaultDockerHost_prefersDesktopLinuxPipeWhenPresent(t *testing.T) {
-	old := dialPipe
-	defer func() { dialPipe = old }()
-
-	dialPipe = func(path string, _ *time.Duration) (net.Conn, error) {
-		if path == `\\.\pipe\dockerDesktopLinuxEngine` {
-			c1, c2 := net.Pipe()
-			_ = c2.Close()
-			return c1, nil
+func Test_DefaultDockerHost_respectsEnvOverride(t *testing.T) {
+	const key = "DOCKER_HOST"
+	old, hadOld := os.LookupEnv(key)
+	if err := os.Setenv(key, "tcp://example:2375"); err != nil {
+		t.Fatalf("set env: %v", err)
+	}
+	t.Cleanup(func() {
+		if hadOld {
+			_ = os.Setenv(key, old)
+		} else {
+			_ = os.Unsetenv(key)
 		}
-		return nil, errors.New("not found")
-	}
+	})
 
-	if got := DefaultDockerHost(); got != "npipe:////./pipe/dockerDesktopLinuxEngine" {
-		t.Fatalf("expected desktop-linux engine pipe host, got %q", got)
-	}
-}
-
-func Test_DefaultDockerHost_fallsBackToDockerEngineWhenDesktopPipeMissing(t *testing.T) {
-	old := dialPipe
-	defer func() { dialPipe = old }()
-
-	dialPipe = func(string, *time.Duration) (net.Conn, error) {
-		return nil, errors.New("missing")
-	}
-
-	if got := DefaultDockerHost(); got != "npipe:////./pipe/docker_engine" {
-		t.Fatalf("expected docker_engine host, got %q", got)
+	if got := DefaultDockerHost(); got != "tcp://example:2375" {
+		t.Fatalf("expected env override, got %q", got)
 	}
 }
 
@@ -107,10 +93,7 @@ func Test_createTLSHTTPClient_setsInsecureSkipVerifyWhenTLSVerifyFalse(t *testin
 
 func Test_NewClient_TLSBranchCallsConstructor(t *testing.T) {
 	oldCtor := newDockerClientWithOpts
-	oldDial := dialPipe
-	defer func() { newDockerClientWithOpts = oldCtor; dialPipe = oldDial }()
-
-	dialPipe = func(string, *time.Duration) (net.Conn, error) { return nil, errors.New("missing") }
+	defer func() { newDockerClientWithOpts = oldCtor }()
 
 	called := false
 	newDockerClientWithOpts = func(...client.Opt) (*client.Client, error) {
@@ -118,7 +101,7 @@ func Test_NewClient_TLSBranchCallsConstructor(t *testing.T) {
 		return nil, nil
 	}
 
-	_, err := NewClient(DockerConfig{Host: "", TLSEnabled: true, TLSVerify: false})
+	_, err := NewClient(DockerConfig{Host: "tcp://example:2375", TLSEnabled: true, TLSVerify: false})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
