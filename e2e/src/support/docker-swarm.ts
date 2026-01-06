@@ -67,6 +67,16 @@ export async function ensureSwarmNetwork(opts: { name: string }) {
   if (res.code !== 0 && !/already exists/i.test(res.stderr + res.stdout)) {
     throw new Error(`docker network create failed: ${res.stderr || res.stdout}`);
   }
+
+  // Swarm network creation can be eventually-consistent; ensure it is visible before continuing.
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const inspect = await docker(['network', 'inspect', name], 10_000).catch(() => ({ code: 1, stdout: '', stderr: '' }));
+    if (inspect.code === 0) return;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  throw new Error(`docker network create did not become available in time: ${name}`);
 }
 
 export async function deploySwarmStackFromFile(opts: { stackName: string; stackFilePath: string }) {

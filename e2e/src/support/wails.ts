@@ -8,6 +8,8 @@ export type WailsDevInstance = {
   port: number;
   baseURL: string;
   process: ChildProcess;
+  /** Windows-only: interval used to keep KubeDevBench-res.syso present while Wails is running */
+  resSysoInterval?: NodeJS.Timeout;
 };
 
 async function waitForHttpOk(url: string, timeoutMs: number) {
@@ -98,7 +100,7 @@ export async function startWailsDev(opts: {
     await keepResSysoBestEffort();
     resSysoInterval = setInterval(() => {
       void keepResSysoBestEffort();
-    }, 250);
+    }, 50);
   }
 
   // Per-worker isolation: Wails/Go config dirs on Windows use APPDATA/LOCALAPPDATA, not HOME.
@@ -168,6 +170,9 @@ export async function startWailsDev(opts: {
     env: {
       ...process.env,
       VITE_HOST: '127.0.0.1',
+      // Avoid Vite dependency optimization cache corruption when multiple Wails instances
+      // start Vite concurrently (Windows E2E with multiple workers).
+      VITE_CACHE_DIR: path.join(tmpDir, 'vite-cache').replace(/\\/g, '/'),
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
       HOME: homeDir,
       USERPROFILE: homeDir,
@@ -186,15 +191,23 @@ export async function startWailsDev(opts: {
 
   wireTimestampedStream(child.stdout, (line) => logStream.write(line));
   wireTimestampedStream(child.stderr, (line) => logStream.write(line));
-  child.once('close', () => {
-    try { logStream.write(`\n=== wails dev exited (port=${port}) ===\n`); } catch {}
+
+  const exited = new Promise<never>((_, reject) => {
+    child.once('close', (code, signal) => {
+      try {
+        logStream.write(`\n=== wails dev exited (port=${port}) code=${code ?? 'null'} signal=${signal ?? 'null'} ===\n`);
+      } catch {
+        // ignore
+      }
+      reject(new Error(`wails dev exited before becoming ready (port=${port}, code=${code ?? 'null'}, signal=${signal ?? 'null'}). See ${logPath}`));
+    });
   });
 
   try {
-    await waitForHttpOk(`${baseURL}/`, readyTimeoutMs);
+    await Promise.race([waitForHttpOk(`${baseURL}/`, readyTimeoutMs), exited]);
     // `waitForHttpOk('/')` can pass while Wails is still booting/building and before the
     // runtime endpoints are actually ready. Ensure the runtime script is available too.
-    await waitForHttpOk(`${baseURL}/wails/runtime.js`, readyTimeoutMs);
+    await Promise.race([waitForHttpOk(`${baseURL}/wails/runtime.js`, readyTimeoutMs), exited]);
   } catch (err) {
     if (resSysoInterval) clearInterval(resSysoInterval);
     killProcessTreeBestEffort(child);
@@ -202,13 +215,19 @@ export async function startWailsDev(opts: {
     throw err;
   }
 
-  if (resSysoInterval) clearInterval(resSysoInterval);
-
-  return { port, baseURL, process: child };
+  // Keep the interval running for the lifetime of the process. On Windows, Wails can
+  // delete this file during various dev-mode steps; keeping it present avoids flake
+  // when multiple instances overlap.
+  return { port, baseURL, process: child, resSysoInterval };
 }
 
 export async function stopWailsDev(instance: WailsDevInstance) {
   const child = instance.process;
+
+  if (instance.resSysoInterval) {
+    clearInterval(instance.resSysoInterval);
+    instance.resSysoInterval = undefined;
+  }
 
   await new Promise<void>((resolve) => {
     if (child && !child.killed) child.once('close', () => resolve());

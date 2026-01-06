@@ -4,7 +4,6 @@
  */
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
-import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
 
 const swarmSections = [
@@ -29,6 +28,12 @@ const tableTestIdBySectionKey: Record<string, string> = {
   'swarm-volumes': 'swarm-volumes-table',
 };
 
+async function expectSwarmConnected(page: import('@playwright/test').Page) {
+  const sidebar = new SwarmSidebarPage(page);
+  await expect(page.locator('#section-swarm-services')).toBeVisible({ timeout: 60_000 });
+  return sidebar;
+}
+
 test.describe('Docker Swarm Sidebar Navigation', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
@@ -38,12 +43,7 @@ test.describe('Docker Swarm Sidebar Navigation', () => {
 
   for (const section of swarmSections) {
     test(`navigates to ${section.label} section`, async ({ page }) => {
-      const sidebar = new SwarmSidebarPage(page);
-      
-      if (!(await sidebar.isSwarmConnected())) {
-        test.skip();
-        return;
-      }
+      const sidebar = await expectSwarmConnected(page);
 
       await sidebar.goToSection(section.key);
       
@@ -58,12 +58,7 @@ test.describe('Docker Swarm Sidebar Navigation', () => {
   }
 
   test('all sections show resource counts', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    await expectSwarmConnected(page);
 
     // Check each section has a count displayed
     for (const section of swarmSections) {
@@ -78,12 +73,7 @@ test.describe('Docker Swarm Sidebar Navigation', () => {
   });
 
   test('clicking sections updates main content', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     // Navigate to services first
     await sidebar.goToServices();
@@ -109,12 +99,7 @@ test.describe('Docker Swarm Networks View', () => {
   });
 
   test('displays networks table with expected columns', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNetworks();
     
@@ -126,12 +111,7 @@ test.describe('Docker Swarm Networks View', () => {
   });
 
   test('shows default networks (ingress, docker_gwbridge)', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNetworks();
     
@@ -149,12 +129,7 @@ test.describe('Docker Swarm Volumes View', () => {
   });
 
   test('displays volumes table', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToVolumes();
     
@@ -170,12 +145,7 @@ test.describe('Docker Swarm Configs View', () => {
   });
 
   test('displays configs table', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToConfigs();
     
@@ -191,12 +161,7 @@ test.describe('Docker Swarm Secrets View', () => {
   });
 
   test('displays secrets table', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToSecrets();
     
@@ -212,12 +177,7 @@ test.describe('Docker Swarm Stacks View', () => {
   });
 
   test('displays stacks table', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToStacks();
     

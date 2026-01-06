@@ -8,15 +8,25 @@ export class CreateOverlay {
     // - Most resources: "Create new"
     // - Pods: a "+" button with aria-label "Create" and class "overview-create-btn"
     // Prefer a short, retrying strategy instead of relying on a single locator.
+    const clickTimeoutMs = 10_000;
     const attempts: Array<() => Promise<void>> = [
       async () => {
-        await this.page.getByRole('button', { name: /create new/i }).first().click({ timeout: 2_500 });
+        const btn = this.page.getByRole('button', { name: /create new/i }).first();
+        await btn.waitFor({ state: 'visible', timeout: clickTimeoutMs });
+        await btn.scrollIntoViewIfNeeded();
+        await btn.click({ timeout: clickTimeoutMs });
       },
       async () => {
-        await this.page.getByRole('button', { name: /^create$/i }).first().click({ timeout: 2_500 });
+        const btn = this.page.getByRole('button', { name: /^create$/i }).first();
+        await btn.waitFor({ state: 'visible', timeout: clickTimeoutMs });
+        await btn.scrollIntoViewIfNeeded();
+        await btn.click({ timeout: clickTimeoutMs });
       },
       async () => {
-        await this.page.locator('.overview-create-btn').first().click({ timeout: 2_500 });
+        const btn = this.page.locator('.overview-create-btn').first();
+        await btn.waitFor({ state: 'visible', timeout: clickTimeoutMs });
+        await btn.scrollIntoViewIfNeeded();
+        await btn.click({ timeout: clickTimeoutMs });
       },
     ];
 

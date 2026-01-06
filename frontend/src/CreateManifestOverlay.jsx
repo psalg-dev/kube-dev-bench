@@ -57,7 +57,7 @@ function getDefaultSwarmPayload(kind) {
     case 'stack':
       return {
         name: 'my-stack',
-        data: `version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    ports:\n      - "8080:80"\n`,
+        data: `version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    # Avoid publishing fixed host ports by default (they can conflict locally).\n    # ports:\n    #   - "8080:80"\n`,
         labels: {},
         editorMode: 'yaml',
       };

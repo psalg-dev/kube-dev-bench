@@ -1,5 +1,9 @@
 version: "3.8"
 
+# NOTE: This stack is used by Playwright E2E fixtures.
+# Keep it free of published host ports to avoid collisions ("port already allocated")
+# when running the full suite in parallel on developer machines.
+
 configs:
   e2e_config:
     external: true

@@ -103,13 +103,11 @@ test.describe('Helm Release Operations', () => {
     // but in CI we fail fast so the environment gets fixed.
     const helmVersion = await helm(['version', '--short'], { kubeconfigPath, homeDir, timeoutMs: 20_000 });
     if (helmVersion.code === 127) {
-      if (process.env.CI) {
-        throw new Error(
-          'Helm CLI is required in CI for Helm operation tests, but was not found on PATH (spawn helm ENOENT).'
-        );
+      if (process.env.E2E_SKIP_HELM === '1') {
+        test.skip(true, 'Helm CLI not found on PATH; skipping because E2E_SKIP_HELM=1');
+        return;
       }
-      test.skip(true, 'Helm CLI not found on PATH; skipping Helm operation test');
-      return;
+      throw new Error('Helm CLI not found on PATH. Install helm or set E2E_SKIP_HELM=1 to skip Helm E2Es.');
     }
 
     const releaseName = uniqueName('e2e-helm');
@@ -126,9 +124,8 @@ test.describe('Helm Release Operations', () => {
     ], { kubeconfigPath, homeDir, timeoutMs: 120_000 });
 
     if (install.code !== 0) {
-      console.log('Helm install failed:', install.stdout, install.stderr);
-      test.skip(true, 'Helm install failed - skipping test');
-      return;
+      const details = (install.stderr || install.stdout || '').trim();
+      throw new Error(`Helm install failed: ${details}`);
     }
 
     try {
@@ -289,13 +286,11 @@ test.describe('Helm Release Operations', () => {
     // but in CI we fail fast so the environment gets fixed.
     const helmVersion = await helm(['version', '--short'], { kubeconfigPath, homeDir, timeoutMs: 20_000 });
     if (helmVersion.code === 127) {
-      if (process.env.CI) {
-        throw new Error(
-          'Helm CLI is required in CI for Helm operation tests, but was not found on PATH (spawn helm ENOENT).'
-        );
+      if (process.env.E2E_SKIP_HELM === '1') {
+        test.skip(true, 'Helm CLI not found on PATH; skipping because E2E_SKIP_HELM=1');
+        return;
       }
-      test.skip(true, 'Helm CLI not found on PATH; skipping Helm operation test');
-      return;
+      throw new Error('Helm CLI not found on PATH. Install helm or set E2E_SKIP_HELM=1 to skip Helm E2Es.');
     }
 
     const releaseName = uniqueName('e2e-helm-hist');
@@ -312,8 +307,8 @@ test.describe('Helm Release Operations', () => {
     ], { kubeconfigPath, homeDir, timeoutMs: 120_000 });
 
     if (install.code !== 0) {
-      test.skip(true, 'Helm install failed - skipping test');
-      return;
+      const details = (install.stderr || install.stdout || '').trim();
+      throw new Error(`Helm install failed: ${details}`);
     }
 
     try {

@@ -11,6 +11,12 @@ import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
 
+async function expectSwarmConnected(page: import('@playwright/test').Page) {
+  const sidebar = new SwarmSidebarPage(page);
+  await expect(page.locator('#section-swarm-services')).toBeVisible({ timeout: 60_000 });
+  return sidebar;
+}
+
 test.describe('Docker Swarm Nodes View', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
@@ -19,12 +25,7 @@ test.describe('Docker Swarm Nodes View', () => {
   });
 
   test('displays nodes table', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -39,25 +40,19 @@ test.describe('Docker Swarm Nodes View', () => {
   });
 
   test('shows node count in sidebar', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
-    const count = await sidebar.getSectionCount('swarm-nodes');
-    // Should have at least 1 node (the local manager)
-    expect(count).toBeGreaterThanOrEqual(1);
+    // Trigger load of the Nodes view so the sidebar count populates.
+    await sidebar.goToNodes();
+
+    // Sidebar counts can briefly show '-' while data loads.
+    await expect
+      .poll(async () => (await sidebar.getSectionCount('swarm-nodes')) ?? 0, { timeout: 30_000 })
+      .toBeGreaterThanOrEqual(1);
   });
 
   test('opens node details panel on row click', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -75,12 +70,7 @@ test.describe('Docker Swarm Nodes View', () => {
   });
 
   test('node details shows hostname and role', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -97,12 +87,7 @@ test.describe('Docker Swarm Nodes View', () => {
   });
 
   test('node details shows Tasks tab', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -128,12 +113,7 @@ test.describe('Docker Swarm Nodes View', () => {
   });
 
   test('shows node status (ready/down)', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -151,12 +131,7 @@ test.describe('Docker Swarm Nodes View', () => {
   });
 
   test('shows manager/worker role', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -177,12 +152,7 @@ test.describe('Docker Swarm Node Management', () => {
   });
 
   test('can update node availability (drain/active)', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     
@@ -221,12 +191,7 @@ test.describe('Docker Swarm Node Management', () => {
   });
 
   test('can view node labels', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToNodes();
     

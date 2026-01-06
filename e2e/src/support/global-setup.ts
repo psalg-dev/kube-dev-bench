@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import type { FullConfig } from '@playwright/test';
 import { ensureKindCluster } from './kind.js';
 import type { KindInfo } from './kind.js';
@@ -90,7 +91,22 @@ export default async function globalSetup(config: FullConfig) {
     await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
 
     const stackFilePath = withinRepo('stack.yml');
-    await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+    try {
+      await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+    } catch (err: unknown) {
+      const msg = String((err as { message?: string })?.message ?? err);
+      // Occasionally Docker reports the external overlay network as missing right after
+      // cleanup/creation. Re-ensure the network and retry once to de-flake global setup.
+      if (
+        /network\s+kdb_e2e_net\s+not\s+found/i.test(msg) ||
+        /network\s+"?kdb_e2e_net"?\s+is\s+declared\s+as\s+external,\s+but\s+could\s+not\s+be\s+found/i.test(msg)
+      ) {
+        await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+        await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+      } else {
+        throw err;
+      }
+    }
     await waitForStackServicesReady({
       stackName: fixtureStackName,
       expectedServiceSuffixes: ['a-replicated', 'b-logger'],
@@ -116,16 +132,39 @@ export default async function globalSetup(config: FullConfig) {
 
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
-  const proxy = await ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 });
+  let proxy: Awaited<ReturnType<typeof ensureProxyServer>> | null = null;
+  let frontend: Awaited<ReturnType<typeof startFrontendPreviewServer>> | null = null;
+  const startedWailsPids: number[] = [];
+
+  const killPidBestEffort = async (pid: number) => {
+    try {
+      if (process.platform === 'win32') {
+        await exec('taskkill', ['/PID', String(pid), '/T', '/F'], { timeoutMs: 30_000 });
+      } else {
+        await exec('bash', ['-lc', `kill -TERM ${pid} 2>/dev/null || true; sleep 1; kill -KILL ${pid} 2>/dev/null || true`], {
+          timeoutMs: 30_000,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  try {
+    proxy = await ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 });
 
   // Serve the built frontend via a single vite preview server.
   // This avoids each Wails instance spawning its own frontend dev watcher.
   const frontendPort = Number(process.env.E2E_FRONTEND_PORT || 35173);
-  const frontend = await startFrontendPreviewServer({
-    repoRoot: withinRepo(),
-    port: frontendPort,
-    readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
-  });
+    if (isWin32) {
+      await killWindowsListenerOnPort(frontendPort);
+    }
+
+    frontend = await startFrontendPreviewServer({
+      repoRoot: withinRepo(),
+      port: frontendPort,
+      readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
+    });
 
   // Shared-server mode:
   // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
@@ -152,10 +191,11 @@ export default async function globalSetup(config: FullConfig) {
       repoRoot: withinRepo(),
       port: 34115,
       homeDir,
-      frontendDevServerURL: frontend.baseURL,
+      frontendDevServerURL: frontend!.baseURL,
       // Allow more time in CI/global setup while keeping per-test timeouts strict.
       readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
     });
+    if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
 
     await writeRunState({
       runId,
@@ -164,8 +204,8 @@ export default async function globalSetup(config: FullConfig) {
       kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      frontendBaseURL: frontend.baseURL,
-      frontendPid: frontend.process?.pid ?? undefined,
+      frontendBaseURL: frontend!.baseURL,
+      frontendPid: frontend!.process?.pid ?? undefined,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
     });
@@ -178,15 +218,100 @@ export default async function globalSetup(config: FullConfig) {
 
     const defaultInstanceCount = process.env.PW_WORKERS
       ? Number(process.env.PW_WORKERS)
-      : (configuredWorkers ?? (isWin32 ? 1 : 4));
+      : (configuredWorkers ?? 4);
 
     const instanceCountRaw = process.env.E2E_WAILS_INSTANCES
       ? Number(process.env.E2E_WAILS_INSTANCES)
       : defaultInstanceCount;
 
-    const instanceCount = Number.isFinite(instanceCountRaw) ? Math.max(1, instanceCountRaw) : (isWin32 ? 1 : 4);
+    const instanceCount = Number.isFinite(instanceCountRaw) ? Math.max(1, instanceCountRaw) : 4;
     const basePort = Number(process.env.E2E_WAILS_BASE_PORT || 34200);
     const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number }> = [];
+
+    const repoRootForWails = async (i: number): Promise<string> => {
+      // Windows-only mitigation (opt-in): create a per-instance overlay repo.
+      // NOTE: Go's embed can fail when embedding through Windows junctions.
+      // Therefore this strategy is disabled by default; enable only if needed.
+      const useOverlayRepo = process.env.E2E_WAILS_OVERLAY_REPO === '1';
+      if (!isWin32 || instanceCount <= 1 || !useOverlayRepo) return withinRepo();
+
+      const baseRepoRoot = withinRepo();
+      // IMPORTANT: keep copies OUTSIDE the repo root to avoid recursive copying.
+      const repoCopyRoot = path.join(os.tmpdir(), `kdb-e2e-wails-${runId}`, `wails-repo-w${i}`);
+      const marker = path.join(repoCopyRoot, '.kdb-e2e-wails-overlay-ready');
+
+      // If this overlay already exists from a previous run attempt, reuse it.
+      try {
+        await fs.stat(marker);
+        return repoCopyRoot;
+      } catch {
+        // continue
+      }
+
+      await fs.rm(repoCopyRoot, { recursive: true, force: true }).catch(() => undefined);
+      await fs.mkdir(repoCopyRoot, { recursive: true });
+
+      const ensureDirJunction = async (dirName: string) => {
+        const src = path.join(baseRepoRoot, dirName);
+        const dst = path.join(repoCopyRoot, dirName);
+        try {
+          const st = await fs.stat(src);
+          if (!st.isDirectory()) return;
+        } catch {
+          return;
+        }
+        await exec('cmd.exe', ['/c', 'mklink', '/J', dst, src], { timeoutMs: 30_000 });
+      };
+
+      // Junction large/mostly-static directories.
+      // (Avoid `build/` here; each instance should have its own build output location.)
+      await ensureDirJunction('frontend');
+      await ensureDirJunction('pkg');
+      await ensureDirJunction('kind');
+      await ensureDirJunction('scripts');
+      await ensureDirJunction('todos');
+      await ensureDirJunction('.github');
+      await ensureDirJunction('.claude');
+      await ensureDirJunction('e2e');
+
+      // Copy build/ (small but mutated by Wails) into the overlay.
+      const buildSrc = path.join(baseRepoRoot, 'build');
+      const buildDst = path.join(repoCopyRoot, 'build');
+      try {
+        const st = await fs.stat(buildSrc);
+        if (st.isDirectory()) {
+          const rc = await exec(
+            'cmd.exe',
+            ['/c', 'robocopy', buildSrc, buildDst, '/E', '/XO', '/MT:16', '/R:0', '/W:0', '/XD', 'node_modules'],
+            { timeoutMs: process.env.CI ? 300_000 : 120_000 }
+          );
+          if (rc.code > 7) {
+            throw new Error(`robocopy build/ failed (code=${rc.code}): ${rc.stderr || rc.stdout}`);
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // Copy root-level files (including the per-instance .syso).
+      const entries = await fs.readdir(baseRepoRoot, { withFileTypes: true });
+      for (const ent of entries) {
+        if (!ent.isFile()) continue;
+        if (ent.name === '.gitignore') {
+          // keep
+        }
+        const src = path.join(baseRepoRoot, ent.name);
+        const dst = path.join(repoCopyRoot, ent.name);
+        await fs.copyFile(src, dst).catch(() => undefined);
+      }
+
+      // Make sure the syso exists even if Wails deletes it during startup.
+      await fs.writeFile(path.join(repoCopyRoot, 'KubeDevBench-res.syso'), '', { flag: 'a' }).catch(() => undefined);
+
+      await fs.writeFile(marker, new Date().toISOString(), 'utf-8');
+
+      return repoCopyRoot;
+    };
 
     for (let i = 0; i < instanceCount; i++) {
       const port = basePort + i;
@@ -198,13 +323,15 @@ export default async function globalSetup(config: FullConfig) {
       await fs.mkdir(homeDir, { recursive: true });
 
       const instance = await startWailsDev({
-        repoRoot: withinRepo(),
+        repoRoot: await repoRootForWails(i),
         port,
         homeDir,
-        frontendDevServerURL: frontend.baseURL,
+        frontendDevServerURL: frontend!.baseURL,
         // Sequential startup in global setup; allow more time here.
         readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
       });
+
+      if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
 
       wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
     }
@@ -216,12 +343,26 @@ export default async function globalSetup(config: FullConfig) {
       kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      frontendBaseURL: frontend.baseURL,
-      frontendPid: frontend.process?.pid ?? undefined,
+      frontendBaseURL: frontend!.baseURL,
+      frontendPid: frontend!.process?.pid ?? undefined,
       wailsInstances,
     });
   }
 
   // Ensure artifacts folder exists
   await fs.mkdir(path.join(e2eRoot, 'test-results'), { recursive: true });
+  } catch (err) {
+    // If global setup fails before run-state is written, global teardown won't know
+    // what to kill. Clean up best-effort to avoid leaving stray Wails/Vite/proxy processes.
+    for (const pid of startedWailsPids) {
+      await killPidBestEffort(pid);
+    }
+    if (frontend?.process?.pid) {
+      await killPidBestEffort(frontend.process.pid);
+    }
+    if (proxy?.pid) {
+      await killPidBestEffort(proxy.pid);
+    }
+    throw err;
+  }
 }

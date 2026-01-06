@@ -67,6 +67,7 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
 
   // Create PV first (cluster-scoped)
   await sidebar.goToSection('persistentvolumes');
+  await expect(page.getByRole('heading', { name: 'Persistent Volumes' })).toBeVisible({ timeout: 60_000 });
   await overlay.openFromOverviewHeader();
   await overlay.fillYaml(pvYaml);
   await overlay.create();
@@ -74,6 +75,7 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
 
   // Then create PVC (namespaced)
   await sidebar.goToSection('persistentvolumeclaims');
+  await expect(page.getByRole('heading', { name: 'Persistent Volume Claims' })).toBeVisible({ timeout: 60_000 });
   await overlay.openFromOverviewHeader();
   await overlay.fillYaml(pvcYaml);
   await overlay.create();

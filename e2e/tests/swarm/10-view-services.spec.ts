@@ -14,6 +14,12 @@ const fixtureStackName = 'kdb-e2e-fixtures';
 const replicatedServiceName = `${fixtureStackName}_a-replicated`;
 const loggerServiceName = `${fixtureStackName}_b-logger`;
 
+async function expectSwarmConnected(page: import('@playwright/test').Page) {
+  const sidebar = new SwarmSidebarPage(page);
+  await expect(page.locator('#section-swarm-services')).toBeVisible({ timeout: 60_000 });
+  return sidebar;
+}
+
 test.describe('Docker Swarm Services', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
@@ -22,12 +28,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('displays services table', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToServices();
     
@@ -48,12 +49,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('shows service count in sidebar', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    await expectSwarmConnected(page);
 
     // Check that services section shows a count (number or dash)
     const servicesSection = page.locator('#section-swarm-services');
@@ -65,12 +61,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('opens service details panel on row click', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToServices();
     
@@ -91,12 +82,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('service details panel shows Summary tab content', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToServices();
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
@@ -116,12 +102,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('service details panel shows Tasks tab', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToServices();
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
@@ -138,12 +119,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('service details panel shows Logs tab', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToServices();
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
@@ -161,12 +137,7 @@ test.describe('Docker Swarm Services', () => {
   });
 
   test('closes bottom panel by clicking outside', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     await sidebar.goToServices();
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');

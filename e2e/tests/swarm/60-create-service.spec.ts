@@ -3,11 +3,16 @@
  */
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
-import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+
+async function expectSwarmConnected(page: import('@playwright/test').Page) {
+  const sidebar = new SwarmSidebarPage(page);
+  await expect(page.locator('#section-swarm-services')).toBeVisible({ timeout: 60_000 });
+  return sidebar;
+}
 
 test.describe('Docker Swarm Create Service', () => {
   test.beforeEach(async ({ page }) => {
@@ -17,11 +22,7 @@ test.describe('Docker Swarm Create Service', () => {
   });
 
   test('creates service via form', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     const svcName = uniqueSwarmName('svc');
 
@@ -46,11 +47,7 @@ test.describe('Docker Swarm Create Service', () => {
   });
 
   test('creates service via YAML toggle', async ({ page }) => {
-    const sidebar = new SwarmSidebarPage(page);
-    if (!(await sidebar.isSwarmConnected())) {
-      test.skip();
-      return;
-    }
+    const sidebar = await expectSwarmConnected(page);
 
     const svcName = uniqueSwarmName('svc-yaml');
 

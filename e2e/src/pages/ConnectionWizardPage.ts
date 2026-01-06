@@ -8,16 +8,16 @@ export class ConnectionWizardPage {
    * The new wizard uses AppLayout-style structure with #layout.connection-wizard-layout
    */
   private async isNewWizardVisible(): Promise<boolean> {
-    const newWizard = this.page.locator('.connection-wizard-layout');
-    return (await newWizard.count()) > 0;
+    const newWizard = this.page.locator('.connection-wizard-layout').first();
+    return await newWizard.isVisible().catch(() => false);
   }
 
   /**
    * Check if the legacy overlay wizard is visible
    */
   private async isLegacyWizardVisible(): Promise<boolean> {
-    const legacyWizard = this.page.locator('.connection-wizard-overlay');
-    return (await legacyWizard.count()) > 0;
+    const legacyWizard = this.page.locator('.connection-wizard-overlay').first();
+    return await legacyWizard.isVisible().catch(() => false);
   }
 
   async openWizardIfHidden() {
@@ -25,7 +25,9 @@ export class ConnectionWizardPage {
     if (await this.isNewWizardVisible() || await this.isLegacyWizardVisible()) {
       return;
     }
-    await this.page.locator('#show-wizard-btn').click();
+    const openBtn = this.page.locator('#show-wizard-btn');
+    await expect(openBtn).toBeVisible({ timeout: 30_000 });
+    await openBtn.click({ timeout: 30_000 });
     // Wait for either new or legacy wizard
     await expect(
       this.page.locator('.connection-wizard-layout, .connection-wizard-overlay').first()
