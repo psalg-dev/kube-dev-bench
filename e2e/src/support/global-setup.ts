@@ -17,6 +17,7 @@ import {
   ensureSwarmConfig,
   ensureSwarmNetwork,
   ensureSwarmSecret,
+  ensureLocalSwarmActive,
   isLocalSwarmActive,
   waitForStackServicesReady,
 } from './docker-swarm.js';
@@ -84,6 +85,7 @@ export default async function globalSetup(config: FullConfig) {
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
   const skipKind = process.env.E2E_SKIP_KIND === '1';
+  const isCI = process.env.CI === 'true' || process.env.CI === '1';
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
   const platform = process.platform as unknown as string;
@@ -93,6 +95,16 @@ export default async function globalSetup(config: FullConfig) {
     `[e2e][setup] ${isoNow()} starting runId=${runId} platform=${platform} ` +
       `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}`
   );
+
+  if (isCI) {
+    await timed('ensure Docker Swarm is active (CI)', async () =>
+      ensureLocalSwarmActive({
+        strict: true,
+        advertiseAddr: process.env.E2E_SWARM_ADVERTISE_ADDR || '127.0.0.1',
+        log: (msg) => console.log(msg),
+      })
+    );
+  }
 
   // Ensure frontend build exists (wails dev will serve from dist)
   const distIndex = withinRepo('frontend', 'dist', 'index.html');

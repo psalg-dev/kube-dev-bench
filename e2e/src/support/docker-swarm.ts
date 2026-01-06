@@ -14,6 +14,54 @@ async function docker(args: string[], timeoutMs = 60_000) {
   return exec('docker', args, { timeoutMs });
 }
 
+export async function ensureLocalSwarmActive(opts: {
+  /** Optional logger (CI-friendly). */
+  log?: (msg: string) => void;
+  /** Address to advertise for `docker swarm init`. Default: 127.0.0.1 */
+  advertiseAddr?: string;
+  /** When true, throw if Swarm cannot be initialized. Default: false */
+  strict?: boolean;
+} = {}): Promise<boolean> {
+  const log = opts.log ?? (() => undefined);
+  const advertiseAddr = opts.advertiseAddr ?? '127.0.0.1';
+  const strict = opts.strict ?? false;
+
+  const active = await isLocalSwarmActive();
+  if (active) return true;
+
+  log(`[swarm] Not active; attempting 'docker swarm init --advertise-addr ${advertiseAddr}'`);
+  try {
+    const res = await docker(['swarm', 'init', '--advertise-addr', advertiseAddr], 60_000);
+    const output = `${res.stderr || ''}\n${res.stdout || ''}`.trim();
+
+    // If it raced with another initializer, tolerate "already part of a swarm".
+    if (res.code !== 0 && !/already\s+part\s+of\s+a\s+swarm/i.test(output)) {
+      if (strict) {
+        throw new Error(`docker swarm init failed (code=${res.code}): ${output || 'no output'}`);
+      }
+      log(`[swarm] docker swarm init failed (code=${res.code}); continuing (non-strict): ${output || 'no output'}`);
+      return false;
+    }
+  } catch (err: unknown) {
+    const msg = String((err as { message?: string })?.message ?? err);
+    // If docker is missing, treat as not active unless strict.
+    if (/ENOENT/i.test(msg) || /spawn\s+docker/i.test(msg)) {
+      if (strict) throw err;
+      log('[swarm] docker not available; skipping swarm init');
+      return false;
+    }
+    if (strict) throw err;
+    log(`[swarm] swarm init threw; continuing (non-strict): ${msg}`);
+    return false;
+  }
+
+  const nowActive = await isLocalSwarmActive();
+  if (!nowActive && strict) {
+    throw new Error('docker swarm init completed but swarm is still not active');
+  }
+  return nowActive;
+}
+
 async function writeTempFile(prefix: string, content: string): Promise<string> {
   const dir = os.tmpdir();
   const file = path.join(dir, `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}.txt`);
