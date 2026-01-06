@@ -1,5 +1,19 @@
 import React, { useEffect, useState } from 'react';
+import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import { GetSwarmConfigData } from '../../swarmApi.js';
+
+function extractTemplateVariables(text) {
+  const s = String(text || '');
+  const re = /\{\{\s*([^}]+?)\s*\}\}/g;
+  const found = new Set();
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    const v = String(m[1] || '').trim();
+    if (v) found.add(v);
+    if (found.size > 50) break;
+  }
+  return Array.from(found);
+}
 
 export default function ConfigDataTab({ configId, configName }) {
   const [data, setData] = useState('');
@@ -48,24 +62,43 @@ export default function ConfigDataTab({ configId, configName }) {
     );
   }
 
+  const templateVars = extractTemplateVariables(data);
+
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}>
-      <pre
-        style={{
-          margin: 0,
-          padding: 16,
-          backgroundColor: 'var(--gh-input-bg, #0d1117)',
-          border: '1px solid var(--gh-border, #30363d)',
-          borderRadius: 6,
-          color: 'var(--gh-text, #c9d1d9)',
-          fontSize: 13,
-          fontFamily: 'monospace',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-      >
-        {data || '(empty)'}
-      </pre>
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', gap: 10, padding: 12 }}>
+      {templateVars.length > 0 ? (
+        <div
+          style={{
+            padding: 10,
+            border: '1px solid var(--gh-border, #30363d)',
+            borderRadius: 6,
+            backgroundColor: 'var(--gh-input-bg, #0d1117)',
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}
+        >
+          <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)', marginBottom: 6 }}>
+            Detected template variables
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {templateVars.map((v) => (
+              <span key={v} style={{ border: '1px solid var(--gh-border, #30363d)', borderRadius: 999, padding: '2px 8px' }}>
+                {v}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--gh-border, #30363d)', borderRadius: 6, overflow: 'hidden' }}>
+        <TextViewerTab
+          content={data || '(empty)'}
+          loading={false}
+          error={null}
+          filename={configName}
+        />
+      </div>
     </div>
   );
 }

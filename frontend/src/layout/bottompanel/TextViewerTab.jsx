@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
+import { Compartment, EditorState } from '@codemirror/state';
 import { foldGutter, foldKeymap } from '@codemirror/language';
+import { getCodeMirrorLanguageExtensions } from '../../utils/codeMirrorLanguage.js';
 
-export default function TextViewerTab({ content, loading = false, error = null, loadingLabel = 'Loading...' }) {
+export default function TextViewerTab({
+  content,
+  filename,
+  loading = false,
+  error = null,
+  loadingLabel = 'Loading...'
+}) {
   const editorParentRef = useRef(null);
   const viewRef = useRef(null);
+  const languageCompartmentRef = useRef(new Compartment());
 
   const cmTheme = useMemo(() => EditorView.theme({
     '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
@@ -21,6 +29,11 @@ export default function TextViewerTab({ content, loading = false, error = null, 
     '.cm-gutterElement': { padding: '0 8px' },
   }, { dark: true }), []);
 
+  const languageExtensions = useMemo(
+    () => getCodeMirrorLanguageExtensions(filename, content),
+    [filename, content]
+  );
+
   const cmExtensions = useMemo(() => [
     cmTheme,
     lineNumbers(),
@@ -30,41 +43,58 @@ export default function TextViewerTab({ content, loading = false, error = null, 
     EditorView.lineWrapping,
     EditorView.editable.of(false),
     EditorState.readOnly.of(true),
-  ], [cmTheme]);
+    languageCompartmentRef.current.of(languageExtensions),
+  ], [cmTheme, languageExtensions]);
 
   useEffect(() => {
     if (!editorParentRef.current) return;
 
+    if (viewRef.current) return;
     try {
-      if (!viewRef.current) {
-        const state = EditorState.create({
-          doc: content || '',
-          extensions: cmExtensions
-        });
-        viewRef.current = new EditorView({
-          state,
-          parent: editorParentRef.current
-        });
-      } else {
-        viewRef.current.dispatch({
-          changes: { from: 0, to: viewRef.current.state.doc.length, insert: content || '' }
-        });
-      }
+      const state = EditorState.create({
+        doc: content || '',
+        extensions: cmExtensions,
+      });
+      viewRef.current = new EditorView({
+        state,
+        parent: editorParentRef.current,
+      });
     } catch (e) {
-      console.error('Error creating/updating CodeMirror editor:', e);
+      console.error('Error creating CodeMirror editor:', e);
     }
 
     return () => {
       if (viewRef.current) {
         try {
           viewRef.current.destroy();
-          viewRef.current = null;
         } catch (e) {
           console.error('Error destroying CodeMirror editor:', e);
+        } finally {
+          viewRef.current = null;
         }
       }
     };
-  }, [content, cmExtensions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cmExtensions]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    const next = content || '';
+    const current = view.state.doc.toString();
+    if (current === next) return;
+    view.dispatch({ changes: { from: 0, to: current.length, insert: next } });
+  }, [content]);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+    try {
+      view.dispatch({ effects: languageCompartmentRef.current.reconfigure(languageExtensions) });
+    } catch (e) {
+      // Best-effort; keep viewer functional even if language reconfigure fails.
+    }
+  }, [languageExtensions]);
 
   if (loading) {
     return (

@@ -69,6 +69,23 @@ export namespace app {
 	export class ConfigMapDataInfo {
 	    key: string;
 	    value: string;
+		export class SwarmTLSInfo {
+			trustRoot: string;
+			issuerSubject: string;
+			issuerPublicKey: string;
+
+			static createFrom(source: any = {}) {
+				return new SwarmTLSInfo(source);
+			}
+
+			constructor(source: any = {}) {
+				if ('string' === typeof source) source = JSON.parse(source);
+				this.trustRoot = source["trustRoot"];
+				this.issuerSubject = source["issuerSubject"];
+				this.issuerPublicKey = source["issuerPublicKey"];
+			}
+		}
+
 	    size: number;
 	    isBinary: boolean;
 	
@@ -83,6 +100,7 @@ export namespace app {
 	        this.size = source["size"];
 	        this.isBinary = source["isBinary"];
 	    }
+			tls: SwarmTLSInfo;
 	}
 	export class ConfigMapInfo {
 	    name: string;
@@ -103,7 +121,26 @@ export namespace app {
 	        this.age = source["age"];
 	        this.keys = source["keys"];
 	        this.size = source["size"];
+				this.tls = this.convertValues(source["tls"], SwarmTLSInfo);
 	        this.labels = source["labels"];
+
+			convertValues(a: any, classs: any, asMap: boolean = false): any {
+			    if (!a) {
+			        return a;
+			    }
+			    if (a.slice && a.map) {
+			        return (a as any[]).map(elem => this.convertValues(elem, classs));
+			    } else if ("object" === typeof a) {
+			        if (asMap) {
+			            for (const key of Object.keys(a)) {
+			                a[key] = new classs(a[key]);
+			            }
+			            return a;
+			        }
+			        return new classs(a);
+			    }
+			    return a;
+			}
 	    }
 	}
 	export class MountInfo {
@@ -1602,6 +1639,99 @@ export namespace docker {
 	        this.labels = source["labels"];
 	    }
 	}
+
+	export class SwarmServiceRef {
+	    serviceId: string;
+	    serviceName: string;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmServiceRef(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.serviceId = source["serviceId"];
+	        this.serviceName = source["serviceName"];
+	    }
+	}
+
+	export class SwarmConfigUpdateResult {
+	    oldConfigId: string;
+	    oldConfigName: string;
+	    newConfigId: string;
+	    newConfigName: string;
+	    updated: SwarmServiceRef[];
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmConfigUpdateResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.oldConfigId = source["oldConfigId"];
+	        this.oldConfigName = source["oldConfigName"];
+	        this.newConfigId = source["newConfigId"];
+	        this.newConfigName = source["newConfigName"];
+	        this.updated = this.convertValues(source["updated"], SwarmServiceRef);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+	export class SwarmSecretUpdateResult {
+	    oldSecretId: string;
+	    oldSecretName: string;
+	    newSecretId: string;
+	    newSecretName: string;
+	    updated: SwarmServiceRef[];
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmSecretUpdateResult(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.oldSecretId = source["oldSecretId"];
+	        this.oldSecretName = source["oldSecretName"];
+	        this.newSecretId = source["newSecretId"];
+	        this.newSecretName = source["newSecretName"];
+	        this.updated = this.convertValues(source["updated"], SwarmServiceRef);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class SwarmNetworkInfo {
 	    id: string;
 	    name: string;
@@ -1610,6 +1740,8 @@ export namespace docker {
 	    attachable: boolean;
 	    internal: boolean;
 	    labels: Record<string, string>;
+	    options: Record<string, string>;
+	    ipam: SwarmNetworkIPAMConfig[];
 	    createdAt: string;
 	
 	    static createFrom(source: any = {}) {
@@ -1625,7 +1757,46 @@ export namespace docker {
 	        this.attachable = source["attachable"];
 	        this.internal = source["internal"];
 	        this.labels = source["labels"];
+	        this.options = source["options"];
+	        this.ipam = this.convertValues(source["ipam"], SwarmNetworkIPAMConfig);
 	        this.createdAt = source["createdAt"];
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+	export class SwarmNetworkIPAMConfig {
+	    subnet: string;
+	    gateway: string;
+	    ipRange: string;
+	    auxAddresses: Record<string, string>;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmNetworkIPAMConfig(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.subnet = source["subnet"];
+	        this.gateway = source["gateway"];
+	        this.ipRange = source["ipRange"];
+	        this.auxAddresses = source["auxAddresses"];
 	    }
 	}
 	export class SwarmNodeInfo {
@@ -1636,6 +1807,10 @@ export namespace docker {
 	    state: string;
 	    address: string;
 	    engineVersion: string;
+	    os: string;
+	    arch: string;
+	    nanoCpus: number;
+	    memoryBytes: number;
 	    labels: Record<string, string>;
 	    leader: boolean;
 	
@@ -1652,8 +1827,119 @@ export namespace docker {
 	        this.state = source["state"];
 	        this.address = source["address"];
 	        this.engineVersion = source["engineVersion"];
+	        this.os = source["os"];
+	        this.arch = source["arch"];
+	        this.nanoCpus = source["nanoCpus"];
+	        this.memoryBytes = source["memoryBytes"];
 	        this.labels = source["labels"];
 	        this.leader = source["leader"];
+	    }
+	}
+
+	export class SwarmMountInfo {
+	    type: string;
+	    source: string;
+	    target: string;
+	    readOnly: boolean;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmMountInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.source = source["source"];
+	        this.target = source["target"];
+	        this.readOnly = source["readOnly"];
+	    }
+	}
+
+	export class SwarmUpdateConfigInfo {
+	    parallelism: number;
+	    delay: string;
+	    failureAction: string;
+	    monitor: string;
+	    maxFailureRatio: number;
+	    order: string;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmUpdateConfigInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.parallelism = source["parallelism"];
+	        this.delay = source["delay"];
+	        this.failureAction = source["failureAction"];
+	        this.monitor = source["monitor"];
+	        this.maxFailureRatio = source["maxFailureRatio"];
+	        this.order = source["order"];
+	    }
+	}
+
+	export class SwarmResourceLimitsInfo {
+	    nanoCpus: number;
+	    memoryBytes: number;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmResourceLimitsInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.nanoCpus = source["nanoCpus"];
+	        this.memoryBytes = source["memoryBytes"];
+	    }
+	}
+
+	export class SwarmResourcesInfo {
+	    limits: SwarmResourceLimitsInfo;
+	    reservations: SwarmResourceLimitsInfo;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmResourcesInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.limits = this.convertValues(source["limits"], SwarmResourceLimitsInfo);
+	        this.reservations = this.convertValues(source["reservations"], SwarmResourceLimitsInfo);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+
+	export class SwarmPlacementInfo {
+	    constraints: string[];
+	    preferences: string[];
+	    maxReplicas: number;
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmPlacementInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.constraints = source["constraints"];
+	        this.preferences = source["preferences"];
+	        this.maxReplicas = source["maxReplicas"];
 	    }
 	}
 	
@@ -1688,6 +1974,8 @@ export namespace docker {
 	    name: string;
 	    createdAt: string;
 	    updatedAt: string;
+		driverName: string;
+		driverOptions: Record<string, string>;
 	    labels: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
@@ -1700,6 +1988,8 @@ export namespace docker {
 	        this.name = source["name"];
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
+			this.driverName = source["driverName"];
+			this.driverOptions = source["driverOptions"];
 	        this.labels = source["labels"];
 	    }
 	}
@@ -1711,6 +2001,11 @@ export namespace docker {
 	    runningTasks: number;
 	    mode: string;
 	    ports: SwarmPortInfo[];
+	    env: string[];
+	    mounts: SwarmMountInfo[];
+	    updateConfig: SwarmUpdateConfigInfo;
+	    resources: SwarmResourcesInfo;
+	    placement: SwarmPlacementInfo;
 	    labels: Record<string, string>;
 	    createdAt: string;
 	    updatedAt: string;
@@ -1728,6 +2023,11 @@ export namespace docker {
 	        this.runningTasks = source["runningTasks"];
 	        this.mode = source["mode"];
 	        this.ports = this.convertValues(source["ports"], SwarmPortInfo);
+	        this.env = source["env"];
+	        this.mounts = this.convertValues(source["mounts"], SwarmMountInfo);
+	        this.updateConfig = this.convertValues(source["updateConfig"], SwarmUpdateConfigInfo);
+	        this.resources = this.convertValues(source["resources"], SwarmResourcesInfo);
+	        this.placement = this.convertValues(source["placement"], SwarmPlacementInfo);
 	        this.labels = source["labels"];
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
@@ -1751,6 +2051,21 @@ export namespace docker {
 		    return a;
 		}
 	}
+
+	export class SwarmTaskNetworkInfo {
+	    networkId: string;
+	    addresses: string[];
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmTaskNetworkInfo(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.networkId = source["networkId"];
+	        this.addresses = source["addresses"];
+	    }
+	}
 	export class SwarmStackInfo {
 	    name: string;
 	    services: number;
@@ -1767,6 +2082,43 @@ export namespace docker {
 	        this.orchestrator = source["orchestrator"];
 	    }
 	}
+
+	export class SwarmStackResources {
+	    networks: SwarmNetworkInfo[];
+	    volumes: SwarmVolumeInfo[];
+	    configs: SwarmConfigInfo[];
+	    secrets: SwarmSecretInfo[];
+
+	    static createFrom(source: any = {}) {
+	        return new SwarmStackResources(source);
+	    }
+
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.networks = this.convertValues(source["networks"], SwarmNetworkInfo);
+	        this.volumes = this.convertValues(source["volumes"], SwarmVolumeInfo);
+	        this.configs = this.convertValues(source["configs"], SwarmConfigInfo);
+	        this.secrets = this.convertValues(source["secrets"], SwarmSecretInfo);
+	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class SwarmTaskInfo {
 	    id: string;
 	    serviceId: string;
@@ -1777,6 +2129,9 @@ export namespace docker {
 	    state: string;
 	    desiredState: string;
 	    containerId: string;
+	    image: string;
+	    mounts: SwarmMountInfo[];
+	    networks: SwarmTaskNetworkInfo[];
 	    error: string;
 	    createdAt: string;
 	    updatedAt: string;
@@ -1796,10 +2151,31 @@ export namespace docker {
 	        this.state = source["state"];
 	        this.desiredState = source["desiredState"];
 	        this.containerId = source["containerId"];
+	        this.image = source["image"];
+	        this.mounts = this.convertValues(source["mounts"], SwarmMountInfo);
+	        this.networks = this.convertValues(source["networks"], SwarmTaskNetworkInfo);
 	        this.error = source["error"];
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
 	    }
+
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class SwarmVolumeInfo {
 	    name: string;

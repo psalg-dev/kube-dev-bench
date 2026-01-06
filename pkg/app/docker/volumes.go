@@ -6,6 +6,8 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 )
@@ -16,6 +18,10 @@ type swarmVolumesClient interface {
 	VolumeCreate(context.Context, volume.CreateOptions) (volume.Volume, error)
 	VolumeRemove(context.Context, string, bool) error
 	VolumesPrune(context.Context, filters.Args) (types.VolumesPruneReport, error)
+}
+
+type swarmVolumeUsageClient interface {
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
 }
 
 func buildVolumeCreateOptions(name string, driver string, labels map[string]string, driverOpts map[string]string) volume.CreateOptions {
@@ -117,6 +123,33 @@ func pruneSwarmVolumes(ctx context.Context, cli swarmVolumesClient) ([]string, u
 		return nil, 0, err
 	}
 	return report.VolumesDeleted, report.SpaceReclaimed, nil
+}
+
+// GetSwarmVolumeUsage returns services that reference the given volume (by mount source).
+func GetSwarmVolumeUsage(ctx context.Context, cli *client.Client, volumeName string) ([]SwarmServiceRef, error) {
+	return getSwarmVolumeUsage(ctx, cli, volumeName)
+}
+
+func getSwarmVolumeUsage(ctx context.Context, cli swarmVolumeUsageClient, volumeName string) ([]SwarmServiceRef, error) {
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	out := make([]SwarmServiceRef, 0)
+	for _, svc := range services {
+		cs := svc.Spec.TaskTemplate.ContainerSpec
+		if cs == nil {
+			continue
+		}
+		for _, m := range cs.Mounts {
+			if m.Type == mount.TypeVolume && m.Source == volumeName {
+				out = append(out, SwarmServiceRef{ServiceID: svc.ID, ServiceName: svc.Spec.Name})
+				break
+			}
+		}
+	}
+	return out, nil
 }
 
 // formatVolumeAge formats a volume creation time as an age string

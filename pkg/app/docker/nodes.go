@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"encoding/base64"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -64,8 +65,24 @@ func nodeToInfo(node swarm.Node) SwarmNodeInfo {
 		State:         string(node.Status.State),
 		Address:       node.Status.Addr,
 		EngineVersion: node.Description.Engine.EngineVersion,
+		OS:            node.Description.Platform.OS,
+		Arch:          node.Description.Platform.Architecture,
+		NanoCPUs:      node.Description.Resources.NanoCPUs,
+		MemoryBytes:   node.Description.Resources.MemoryBytes,
 		Labels:        node.Spec.Labels,
 		Leader:        node.ManagerStatus != nil && node.ManagerStatus.Leader,
+	}
+
+	// Docker's swarm.TLSInfo is a struct (not a pointer) and contains byte slices.
+	// Only expose TLS details when the daemon provided actual values.
+	if len(node.Description.TLSInfo.TrustRoot) > 0 ||
+		len(node.Description.TLSInfo.CertIssuerSubject) > 0 ||
+		len(node.Description.TLSInfo.CertIssuerPublicKey) > 0 {
+		info.TLS = &SwarmTLSInfo{
+			TrustRoot:           node.Description.TLSInfo.TrustRoot,
+			CertIssuerSubject:   base64.StdEncoding.EncodeToString(node.Description.TLSInfo.CertIssuerSubject),
+			CertIssuerPublicKey: base64.StdEncoding.EncodeToString(node.Description.TLSInfo.CertIssuerPublicKey),
+		}
 	}
 
 	if info.Labels == nil {
