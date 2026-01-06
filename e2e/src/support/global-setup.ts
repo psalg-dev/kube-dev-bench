@@ -1,13 +1,26 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import os from 'node:os';
+import type { FullConfig } from '@playwright/test';
 import { ensureKindCluster } from './kind.js';
+import type { KindInfo } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
 import { exec } from './exec.js';
 import { startFrontendPreviewServer } from './frontend-preview.js';
+import {
+  cleanupLocalDockerSwarmResources,
+  deploySwarmStackFromFile,
+  ensureSwarmConfig,
+  ensureSwarmNetwork,
+  ensureSwarmSecret,
+  ensureLocalSwarmActive,
+  isLocalSwarmActive,
+  waitForStackServicesReady,
+} from './docker-swarm.js';
 
 async function isHttpOk(url: string): Promise<boolean> {
   try {
@@ -40,39 +53,174 @@ async function killWindowsListenerOnPort(port: number) {
   }
 }
 
-export default async function globalSetup() {
+function isMissingBinaryError(err: unknown): boolean {
+  const anyErr = err as { code?: string; message?: string };
+  return anyErr?.code === 'ENOENT' || /ENOENT/i.test(anyErr?.message ?? '');
+}
+
+function isoNow() {
+  return new Date().toISOString();
+}
+
+function fmtMs(ms: number) {
+  if (ms < 1_000) return `${ms}ms`;
+  return `${(ms / 1_000).toFixed(1)}s`;
+}
+
+async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const start = Date.now();
+  console.log(`[e2e][setup] ${isoNow()} ▶ ${label}`);
+  try {
+    const res = await fn();
+    console.log(`[e2e][setup] ${isoNow()} ✓ ${label} (${fmtMs(Date.now() - start)})`);
+    return res;
+  } catch (err) {
+    console.log(`[e2e][setup] ${isoNow()} ✗ ${label} (${fmtMs(Date.now() - start)})`);
+    throw err;
+  }
+}
+
+export default async function globalSetup(config: FullConfig) {
+  const setupStart = Date.now();
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
+  const skipKind = process.env.E2E_SKIP_KIND === '1';
+  const isCI = process.env.CI === 'true' || process.env.CI === '1';
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
   const platform = process.platform as unknown as string;
   const isWin32 = platform === 'win32';
 
-  // Ensure frontend build exists (wails dev will serve from dist)
-  const distIndex = withinRepo('frontend', 'dist', 'index.html');
-  try {
-    await fs.stat(distIndex);
-  } catch {
-    throw new Error(
-      `Missing frontend build at ${distIndex}.\n` +
-        `Run: cd frontend && npm install && npm run build`
+  console.log(
+    `[e2e][setup] ${isoNow()} starting runId=${runId} platform=${platform} ` +
+      `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}`
+  );
+
+  if (isCI) {
+    await timed('ensure Docker Swarm is active (CI)', async () =>
+      ensureLocalSwarmActive({
+        strict: true,
+        advertiseAddr: process.env.E2E_SWARM_ADVERTISE_ADDR || '127.0.0.1',
+        log: (msg) => console.log(msg),
+      })
     );
   }
 
-  const kind = await ensureKindCluster(clusterName);
+  // Ensure frontend build exists (wails dev will serve from dist)
+  const distIndex = withinRepo('frontend', 'dist', 'index.html');
+  await timed('verify frontend dist exists', async () => {
+    try {
+      await fs.stat(distIndex);
+    } catch {
+      throw new Error(
+        `Missing frontend build at ${distIndex}.\n` +
+          `Run: cd frontend && npm install && npm run build`
+      );
+    }
+  });
+
+  // Docker Swarm E2Es assume Swarm is already initialized.
+  // If Swarm is active, clean all Swarm resources so the test run starts from a known state.
+  await timed('cleanup local Docker Swarm resources (best-effort)', async () => {
+    await cleanupLocalDockerSwarmResources({ log: (msg) => console.log(msg) });
+  });
+
+  // Deploy deterministic Swarm fixtures once per run.
+  // This avoids slow per-test fixture setup that can exceed individual test timeouts.
+  const swarmActive = await timed('detect Docker Swarm', async () => isLocalSwarmActive());
+  if (swarmActive) {
+    const fixtureStackName = 'kdb-e2e-fixtures';
+    await timed('ensure Swarm fixtures (config/secret/network)', async () => {
+      await ensureSwarmConfig({ name: 'kdb_e2e_config', content: 'kube-dev-bench e2e config\n' });
+      await ensureSwarmSecret({ name: 'kdb_e2e_secret', content: 'kube-dev-bench e2e secret\n' });
+      await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+    });
+
+    const stackFilePath = withinRepo('stack.yml');
+    await timed(`deploy Swarm stack '${fixtureStackName}'`, async () => {
+      try {
+        await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+      } catch (err: unknown) {
+        const msg = String((err as { message?: string })?.message ?? err);
+        // Occasionally Docker reports the external overlay network as missing right after
+        // cleanup/creation. Re-ensure the network and retry once to de-flake global setup.
+        if (
+          /network\s+kdb_e2e_net\s+not\s+found/i.test(msg) ||
+          /network\s+"?kdb_e2e_net"?\s+is\s+declared\s+as\s+external,\s+but\s+could\s+not\s+be\s+found/i.test(msg)
+        ) {
+          await ensureSwarmNetwork({ name: 'kdb_e2e_net' });
+          await deploySwarmStackFromFile({ stackName: fixtureStackName, stackFilePath });
+        } else {
+          throw err;
+        }
+      }
+      await waitForStackServicesReady({
+        stackName: fixtureStackName,
+        expectedServiceSuffixes: ['a-replicated', 'b-logger'],
+        timeoutMs: process.env.CI ? 300_000 : 240_000,
+      });
+    });
+  } else {
+    console.log(`[e2e][setup] ${isoNow()} Docker Swarm not active; skipping Swarm fixtures`);
+  }
+
+  let kind: KindInfo | null = null;
+  if (!skipKind) {
+    try {
+      kind = await timed(`ensure KinD cluster '${clusterName}'`, async () => ensureKindCluster(clusterName));
+    } catch (err: unknown) {
+      // If someone wants to run Swarm-only E2Es without KinD installed, allow opting out.
+      // Keep default behavior strict: without `E2E_SKIP_KIND=1`, bubble errors.
+      if (isMissingBinaryError(err) && skipKind) {
+        console.log('[e2e] kind not found; continuing without Kubernetes run state (E2E_SKIP_KIND=1)');
+        kind = null;
+      } else {
+        throw err;
+      }
+    }
+  }
 
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
-  const proxy = await ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 });
+  let proxy: Awaited<ReturnType<typeof ensureProxyServer>> | null = null;
+  let frontend: Awaited<ReturnType<typeof startFrontendPreviewServer>> | null = null;
+  const startedWailsPids: number[] = [];
+
+  const killPidBestEffort = async (pid: number) => {
+    try {
+      if (process.platform === 'win32') {
+        await exec('taskkill', ['/PID', String(pid), '/T', '/F'], { timeoutMs: 30_000 });
+      } else {
+        await exec('bash', ['-lc', `kill -TERM ${pid} 2>/dev/null || true; sleep 1; kill -KILL ${pid} 2>/dev/null || true`], {
+          timeoutMs: 30_000,
+        });
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  try {
+    proxy = await timed('start local CONNECT proxy', async () =>
+      ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 })
+    );
+    console.log(`[e2e][setup] ${isoNow()} proxy ready at ${proxy.baseURL} pid=${proxy.pid ?? 'reused'}`);
 
   // Serve the built frontend via a single vite preview server.
   // This avoids each Wails instance spawning its own frontend dev watcher.
   const frontendPort = Number(process.env.E2E_FRONTEND_PORT || 35173);
-  const frontend = await startFrontendPreviewServer({
-    repoRoot: withinRepo(),
-    port: frontendPort,
-    readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
-  });
+    if (isWin32) {
+      await timed(`clear Windows listener on port ${frontendPort}`, async () => killWindowsListenerOnPort(frontendPort));
+    }
+
+    frontend = await timed(`start Vite preview server port=${frontendPort}`, async () =>
+      startFrontendPreviewServer({
+        repoRoot: withinRepo(),
+        port: frontendPort,
+        readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
+      })
+    );
+    console.log(`[e2e][setup] ${isoNow()} frontend preview ready at ${frontend.baseURL} pid=${frontend.process?.pid ?? 'reused'}`);
 
   // Shared-server mode:
   // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
@@ -92,69 +240,200 @@ export default async function globalSetup() {
     if (isWin32) {
       // Always clear the port before starting. The listener may be stale and not
       // return HTTP (so isHttpOk() would be false) but still prevents binding.
-      await killWindowsListenerOnPort(34115);
+      await timed('clear Windows listener on port 34115', async () => killWindowsListenerOnPort(34115));
     }
 
-    const instance = await startWailsDev({
-      repoRoot: withinRepo(),
-      port: 34115,
-      homeDir,
-      frontendDevServerURL: frontend.baseURL,
-      // Allow more time in CI/global setup while keeping per-test timeouts strict.
-      readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
-    });
+    const instance = await timed('start shared wails dev (port=34115)', async () =>
+      startWailsDev({
+        repoRoot: withinRepo(),
+        port: 34115,
+        homeDir,
+        frontendDevServerURL: frontend!.baseURL,
+        // Allow more time in CI/global setup while keeping per-test timeouts strict.
+        readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
+      })
+    );
+    if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+
+    console.log(`[e2e][setup] ${isoNow()} shared wails ready at ${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
     await writeRunState({
       runId,
-      clusterName: kind.clusterName,
-      contextName: kind.contextName,
-      kubeconfigYaml: kind.kubeconfigYaml,
+      clusterName: kind?.clusterName ?? clusterName,
+      contextName: kind?.contextName,
+      kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      frontendBaseURL: frontend.baseURL,
-      frontendPid: frontend.process?.pid ?? undefined,
+      frontendBaseURL: frontend!.baseURL,
+      frontendPid: frontend!.process?.pid ?? undefined,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
     });
   } else {
-    const instanceCount = Math.max(1, Number(process.env.E2E_WAILS_INSTANCES || 4));
+    // Prefer the actual worker count Playwright will use. This includes CLI overrides
+    // like `npx playwright test --workers=4`, which are not reflected in env vars.
+    const configuredWorkers = Number.isFinite(config?.workers) && (config?.workers ?? 0) > 0
+      ? (config.workers as number)
+      : undefined;
+
+    const defaultInstanceCount = process.env.PW_WORKERS
+      ? Number(process.env.PW_WORKERS)
+      : (configuredWorkers ?? 4);
+
+    const instanceCountRaw = process.env.E2E_WAILS_INSTANCES
+      ? Number(process.env.E2E_WAILS_INSTANCES)
+      : defaultInstanceCount;
+
+    const instanceCount = Number.isFinite(instanceCountRaw) ? Math.max(1, instanceCountRaw) : 4;
     const basePort = Number(process.env.E2E_WAILS_BASE_PORT || 34200);
     const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number }> = [];
+
+    console.log(
+      `[e2e][setup] ${isoNow()} starting wails pool instances=${instanceCount} basePort=${basePort} ` +
+        `workers=${String(config?.workers ?? 'unknown')} (configuredWorkers=${configuredWorkers ?? 'n/a'})`
+    );
+
+    const repoRootForWails = async (i: number): Promise<string> => {
+      // Windows-only mitigation (opt-in): create a per-instance overlay repo.
+      // NOTE: Go's embed can fail when embedding through Windows junctions.
+      // Therefore this strategy is disabled by default; enable only if needed.
+      const useOverlayRepo = process.env.E2E_WAILS_OVERLAY_REPO === '1';
+      if (!isWin32 || instanceCount <= 1 || !useOverlayRepo) return withinRepo();
+
+      const baseRepoRoot = withinRepo();
+      // IMPORTANT: keep copies OUTSIDE the repo root to avoid recursive copying.
+      const repoCopyRoot = path.join(os.tmpdir(), `kdb-e2e-wails-${runId}`, `wails-repo-w${i}`);
+      const marker = path.join(repoCopyRoot, '.kdb-e2e-wails-overlay-ready');
+
+      // If this overlay already exists from a previous run attempt, reuse it.
+      try {
+        await fs.stat(marker);
+        return repoCopyRoot;
+      } catch {
+        // continue
+      }
+
+      await fs.rm(repoCopyRoot, { recursive: true, force: true }).catch(() => undefined);
+      await fs.mkdir(repoCopyRoot, { recursive: true });
+
+      const ensureDirJunction = async (dirName: string) => {
+        const src = path.join(baseRepoRoot, dirName);
+        const dst = path.join(repoCopyRoot, dirName);
+        try {
+          const st = await fs.stat(src);
+          if (!st.isDirectory()) return;
+        } catch {
+          return;
+        }
+        await exec('cmd.exe', ['/c', 'mklink', '/J', dst, src], { timeoutMs: 30_000 });
+      };
+
+      // Junction large/mostly-static directories.
+      // (Avoid `build/` here; each instance should have its own build output location.)
+      await ensureDirJunction('frontend');
+      await ensureDirJunction('pkg');
+      await ensureDirJunction('kind');
+      await ensureDirJunction('scripts');
+      await ensureDirJunction('todos');
+      await ensureDirJunction('.github');
+      await ensureDirJunction('.claude');
+      await ensureDirJunction('e2e');
+
+      // Copy build/ (small but mutated by Wails) into the overlay.
+      const buildSrc = path.join(baseRepoRoot, 'build');
+      const buildDst = path.join(repoCopyRoot, 'build');
+      try {
+        const st = await fs.stat(buildSrc);
+        if (st.isDirectory()) {
+          const rc = await exec(
+            'cmd.exe',
+            ['/c', 'robocopy', buildSrc, buildDst, '/E', '/XO', '/MT:16', '/R:0', '/W:0', '/XD', 'node_modules'],
+            { timeoutMs: process.env.CI ? 300_000 : 120_000 }
+          );
+          if (rc.code > 7) {
+            throw new Error(`robocopy build/ failed (code=${rc.code}): ${rc.stderr || rc.stdout}`);
+          }
+        }
+      } catch {
+        // ignore
+      }
+
+      // Copy root-level files (including the per-instance .syso).
+      const entries = await fs.readdir(baseRepoRoot, { withFileTypes: true });
+      for (const ent of entries) {
+        if (!ent.isFile()) continue;
+        if (ent.name === '.gitignore') {
+          // keep
+        }
+        const src = path.join(baseRepoRoot, ent.name);
+        const dst = path.join(repoCopyRoot, ent.name);
+        await fs.copyFile(src, dst).catch(() => undefined);
+      }
+
+      // Make sure the syso exists even if Wails deletes it during startup.
+      await fs.writeFile(path.join(repoCopyRoot, 'KubeDevBench-res.syso'), '', { flag: 'a' }).catch(() => undefined);
+
+      await fs.writeFile(marker, new Date().toISOString(), 'utf-8');
+
+      return repoCopyRoot;
+    };
 
     for (let i = 0; i < instanceCount; i++) {
       const port = basePort + i;
       if (isWin32) {
-        await killWindowsListenerOnPort(port);
+        await timed(`clear Windows listener on port ${port}`, async () => killWindowsListenerOnPort(port));
       }
 
       const homeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, `home-w${i}`);
       await fs.mkdir(homeDir, { recursive: true });
 
-      const instance = await startWailsDev({
-        repoRoot: withinRepo(),
-        port,
-        homeDir,
-        frontendDevServerURL: frontend.baseURL,
-        // Sequential startup in global setup; allow more time here.
-        readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
-      });
+      const repoRootResolved = await repoRootForWails(i);
+      const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
+        startWailsDev({
+          repoRoot: repoRootResolved,
+          port,
+          homeDir,
+          frontendDevServerURL: frontend!.baseURL,
+          // Sequential startup in global setup; allow more time here.
+          readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
+        })
+      );
+
+      if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
+
+      console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
       wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
     }
 
     await writeRunState({
       runId,
-      clusterName: kind.clusterName,
-      contextName: kind.contextName,
-      kubeconfigYaml: kind.kubeconfigYaml,
+      clusterName: kind?.clusterName ?? clusterName,
+      contextName: kind?.contextName,
+      kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      frontendBaseURL: frontend.baseURL,
-      frontendPid: frontend.process?.pid ?? undefined,
+      frontendBaseURL: frontend!.baseURL,
+      frontendPid: frontend!.process?.pid ?? undefined,
       wailsInstances,
     });
   }
 
   // Ensure artifacts folder exists
   await fs.mkdir(path.join(e2eRoot, 'test-results'), { recursive: true });
+  console.log(`[e2e][setup] ${isoNow()} finished in ${fmtMs(Date.now() - setupStart)}`);
+  } catch (err) {
+    // If global setup fails before run-state is written, global teardown won't know
+    // what to kill. Clean up best-effort to avoid leaving stray Wails/Vite/proxy processes.
+    for (const pid of startedWailsPids) {
+      await killPidBestEffort(pid);
+    }
+    if (frontend?.process?.pid) {
+      await killPidBestEffort(frontend.process.pid);
+    }
+    if (proxy?.pid) {
+      await killPidBestEffort(proxy.pid);
+    }
+    throw err;
+  }
 }

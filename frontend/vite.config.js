@@ -77,10 +77,18 @@ async function setupLogging(configEnv) {
 export default defineConfig(async ({ command, mode }) => {
   const { customLogger } = await setupLogging({ command, mode });
   const hostOverride = process.env.VITE_HOST;
+  const cacheDirOverride = process.env.VITE_CACHE_DIR;
+  const isE2E = Boolean(cacheDirOverride);
 
   return {
     plugins: [react()],
     customLogger,
+    // Allow E2E runs to isolate Vite's dependency optimization cache per process.
+    // This prevents flake when multiple Wails instances start Vite concurrently.
+    cacheDir: cacheDirOverride || undefined,
+    // In E2E, disable dependency optimization to avoid rare optimizer crashes when
+    // multiple Vite dev servers are started concurrently.
+    optimizeDeps: isE2E ? { disabled: true } : undefined,
     server: {
       host: hostOverride || undefined,
       watch: {

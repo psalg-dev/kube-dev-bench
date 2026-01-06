@@ -136,6 +136,15 @@ jobs:
           chmod +x kind
           sudo mv kind /usr/local/bin/kind
 
+      - name: Initialize Docker Swarm (for Swarm E2Es)
+        run: |
+          state=$(docker info --format '{{.Swarm.LocalNodeState}}' 2>/dev/null || echo "inactive")
+          echo "Swarm state before: ${state}"
+          if [ "${state}" != "active" ]; then
+            docker swarm init --advertise-addr 127.0.0.1
+          fi
+          docker info --format '{{.Swarm.LocalNodeState}}'
+
       - name: Create KinD cluster
         run: |
           kind create cluster --name kdb-e2e --wait 120s

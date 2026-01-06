@@ -4,6 +4,7 @@ import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import * as AppAPI from "../../../../wailsjs/go/main/App.js";
+import { formatDateDMY, formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 export default function PodSummaryTab({ podName }) {
   const [data, setData] = useState(null);
@@ -248,7 +249,7 @@ export default function PodSummaryTab({ podName }) {
                           <li key={key} style={{ borderBottom: '1px solid var(--gh-border, #30363d)', paddingBottom: 8 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                               <span style={{ color: '#8b949e', fontSize: 12 }}>{e.type || '-'}</span>
-                              <span style={{ color: '#8b949e', fontSize: 12 }}>{e.lastTimestamp ? new Date(e.lastTimestamp).toLocaleString() : '-'}</span>
+                              <span style={{ color: '#8b949e', fontSize: 12 }}>{formatTimestampDMYHMS(e.lastTimestamp)}</span>
                             </div>
                             <div style={{ marginTop: 4, fontWeight: 600 }}>{e.reason || '-'}</div>
                             <div style={{ marginTop: 4, whiteSpace: 'pre-wrap', color: 'var(--gh-text, #c9d1d9)' }}>{e.message || '-'}</div>

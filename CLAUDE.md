@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-KubeDevBench is a desktop Kubernetes client built with a Go backend (Wails framework) and React frontend (Vite). It provides features for managing Kubernetes clusters including pod management, deployments, cronjobs, and resource operations.
+KubeDevBench is a desktop Kubernetes and Docker Swarm client built with a Go backend (Wails framework) and React frontend (Vite). It provides features for managing Kubernetes clusters including pod management, deployments, cronjobs, and resource operations. It also supports Docker Swarm cluster management with services, tasks, nodes, and related resources.
 
 ## Commands
 
@@ -46,6 +46,18 @@ cd kind && docker compose up -d    # Start KinD cluster
 docker compose exec kind kubectl get nodes  # Verify cluster
 ```
 
+### Docker Swarm E2E Tests
+```bash
+# Run all Swarm E2E tests (requires Docker with Swarm mode enabled)
+cd e2e && npx playwright test tests/swarm/
+
+# Run a specific Swarm test
+cd e2e && npx playwright test tests/swarm/10-view-services.spec.ts
+
+# Initialize Swarm mode if not already active
+docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
+```
+
 ## Architecture
 
 ### Backend (Go)
@@ -55,20 +67,55 @@ docker compose exec kind kubectl get nodes  # Verify cluster
   - `kubeconfig.go` - Kubeconfig management
   - `resource_actions.go` - Scale, restart, delete operations
   - `types.go` - Shared type definitions
+  - `docker_integration.go` - Docker Swarm integration with Wails bindings
+- `pkg/app/docker/` - Docker Swarm client and handlers
+  - `client.go` - Docker client factory with socket/TCP/TLS support
+  - `types.go` - Docker Swarm type definitions
+  - Resource handlers: `services.go`, `tasks.go`, `nodes.go`, `networks.go`, `configs.go`, `secrets.go`, `stacks.go`, `volumes.go`, `logs.go`
 
 ### Frontend (React)
 - `frontend/src/state/ClusterStateContext.jsx` - Central cluster connection state management
 - `frontend/src/layout/` - UI layout components
-  - `connection/ConnectionWizard.jsx` - Kubeconfig selection and connection
   - `AppLayout.jsx` - Main app layout with stable DOM ids for testing
+  - `connection/` - Unified connection management UI (refactored)
+    - `ConnectionWizard.jsx` - Main connection wizard container using shared layout
+    - `ConnectionsStateContext.jsx` - Centralized state for Kubernetes and Docker connections, pinned connections, and proxy settings
+    - `ConnectionsSidebar.jsx` - Sidebar with "Kubernetes", "Docker Swarm", and pinned sections with counts
+    - `ConnectionsMainView.jsx` - Main content area showing connection lists per section
+    - `KubernetesConnectionsList.jsx` - Lists discovered kubeconfig files with connect/pin actions
+    - `DockerSwarmConnectionsList.jsx` - Lists detected Docker Swarm connections
+    - `AddKubeConfigOverlay.jsx` - Overlay for adding new kubeconfig (paste or browse)
+    - `AddSwarmConnectionOverlay.jsx` - Overlay for manually adding Docker Swarm connections
+    - `ConnectionProxySettings.jsx` - Per-connection proxy configuration
 - `frontend/src/k8s/resources/` - K8s resource view components
+- `frontend/src/docker/` - Docker Swarm frontend components
+  - `SwarmStateContext.jsx` - Docker connection and resource state management
+  - `SwarmResourceCountsContext.jsx` - Resource counts context
+  - `SwarmConnectionWizard.jsx` - Docker connection wizard (legacy, being replaced)
+  - `SwarmSidebarSections.jsx` - Sidebar navigation for Swarm resources
+  - `swarmApi.js` - API wrapper for Docker Swarm Wails bindings
+  - `resources/` - Swarm resource view components (services, tasks, nodes, networks, configs, secrets, stacks, volumes)
 - `frontend/wailsjs/go/main/App.js` - Auto-generated Wails bindings (frontend calls Go functions here)
+
+### Frontend Utilities
+- `frontend/src/utils/timeUtils.js` - Time formatting utilities (relative time, durations, etc.)
 
 ### Frontend-Backend Communication
 Frontend calls Go functions via Wails bindings at `frontend/wailsjs/go/main/App`. Key RPCs:
+
+Kubernetes:
 - `SavePrimaryKubeConfig`, `SetKubeConfigPath` - Kubeconfig management
 - `GetConnectionStatus`, `GetKubeConfigs` - Connection state
+- `GetProxyConfig`, `SetProxyConfig`, `DetectSystemProxy` - Proxy configuration
 - Resource operations exposed per resource type
+
+Docker Swarm (via `docker_integration.go`):
+- `GetDockerConnectionStatus`, `TestDockerConnection`, `ConnectToDocker` - Connection management
+- `GetDefaultDockerHost` - Platform-specific Docker socket detection
+- `GetDockerServices`, `ScaleDockerService`, `RemoveDockerService` - Service operations
+- `GetDockerTasks`, `GetDockerNodes`, `GetDockerNetworks` - Resource listing
+- `GetDockerConfigs`, `GetDockerSecrets`, `GetDockerVolumes` - Config/secret/volume operations
+- `GetDockerServiceLogs`, `GetDockerTaskLogs` - Log streaming
 
 When modifying Go method signatures in `pkg/app/`, rebuild Wails to regenerate bindings.
 
@@ -78,8 +125,22 @@ When modifying Go method signatures in `pkg/app/`, rebuild Wails to regenerate b
   - `kind/manager.sh` - Cluster lifecycle management
 - `e2e/` - Playwright E2E tests
   - `e2e/setup/` - Global setup/teardown (KinD provisioning)
+  - `e2e/src/pages/` - Page objects for E2E tests
+    - `SwarmConnectionWizardPage.ts` - Page object for Swarm connection wizard
+    - `SwarmSidebarPage.ts` - Page object for Swarm sidebar navigation
+    - `SwarmBottomPanel.ts` - Page object for Swarm bottom panel (logs, etc.)
+  - `e2e/src/support/swarm-bootstrap.ts` - Swarm test bootstrap utilities (connect, create test resources)
+  - `e2e/tests/swarm/` - Docker Swarm E2E test specs
+    - `00-connect-to-swarm.spec.ts` - Connection flow tests
+    - `10-view-services.spec.ts` - Service listing and details
+    - `20-scale-service.spec.ts` - Service scaling operations
+    - `30-view-tasks-logs.spec.ts` - Task and log viewing
+    - `40-manage-nodes.spec.ts` - Node management tests
+    - `50-navigate-sections.spec.ts` - Sidebar navigation tests
 - `frontend/src/__tests__/` - Vitest unit tests
   - `wailsMocks.js` - Centralized Wails mock utilities
+  - `swarmStateContext.test.jsx` - Tests for Docker Swarm state context
+  - `swarmResourceCountsContext.test.jsx` - Tests for Swarm resource counts context
 
 ## Conventions
 
@@ -89,7 +150,22 @@ UI elements use stable id-based selectors for tests:
 - `#primaryConfigContent` - Kubeconfig paste textarea
 - `#sidebar`, `#maincontent` - Layout sections
 
+Connection wizard selectors:
+- `#connections-sidebar` - Connection wizard sidebar
+- `#connections-main` - Connection wizard main content area
+- `#kubernetes-section`, `#docker-swarm-section` - Sidebar section items
+- `.kubeconfig-list-item`, `.swarm-connection-item` - Connection list items
+- `#add-kubeconfig-btn`, `#add-swarm-btn` - Add connection buttons
+
 Preserve these ids; if changing, update all usages in tests and `main-content.js`.
+
+### Connection Wizard Architecture
+The connection wizard uses a unified layout matching the main app view:
+- **Sidebar sections**: "Kubernetes", "Docker Swarm", and "Pinned" with connection counts
+- **Main view**: Shows connections for the selected section
+- **Pin support**: Connections can be pinned via localStorage persistence
+- **Proxy settings**: Per-connection proxy configuration available
+- **Auto-detection**: Docker Swarm connections are auto-detected (local Docker socket)
 
 ### Testing
 Go Code and Frontend Code should be unit tested.

@@ -3,6 +3,7 @@
 // can be added without touching many UI files.
 
 import {
+  GetKubeConfigs,
   GetConfigMaps,
   GetCronJobs,
   GetCurrentConfig,
@@ -40,6 +41,7 @@ import {
 
 // Direct re-exports for now. Wrapper functions retained for possible future enhancements.
 export {
+  GetKubeConfigs,
   GetConfigMaps,
   GetCronJobs,
   GetCurrentConfig,

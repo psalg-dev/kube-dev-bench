@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
+import { showNotification } from '../../notification.js';
 
 /**
  * Reusable overview table with bottom panel.
@@ -11,13 +12,20 @@ import CreateManifestOverlay from '../../CreateManifestOverlay';
  * @param {function(row, tab): React.ReactNode} renderPanelContent - Function to render panel content for a row and tab.
  * @param {function(row): React.ReactNode} panelHeader - Optional function to render panel header.
  * @param {string} title - Table title.
- * @param {string} [resourceKind] - Kubernetes resource kind for the create-manifest overlay (e.g., 'job').
- * @param {string} [namespace] - Current namespace to prefill in manifests.
+ * @param {string} [resourceKind] - Kubernetes resource kind for the create overlay (e.g., 'job').
+ * @param {string} [namespace] - Current namespace to prefill in Kubernetes manifests.
+ * @param {'k8s'|'swarm'} [createPlatform] - Which platform the create overlay should target.
+ * @param {string} [createKind] - Kind for the create overlay (overrides resourceKind when provided).
+ * @param {string} [createButtonTitle] - Optional title/tooltip for the create (+) button.
+ * @param {string|{message:string,type?:'success'|'error'|'warning',duration?:number}} [createNotice] - Optional notification shown when opening create overlay.
+ * @param {string} [createHint] - Optional inline hint shown inside the create overlay.
+ * @param {string} [tableTestId] - Optional test id for the main table (used by E2E tests).
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [activeTab, setActiveTab] = useState(tabs[0]?.key || 'summary');
+  const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
+  const [activeTab, setActiveTab] = useState(safeTabs[0]?.key || 'summary');
   // Filter text state
   const [filterText, setFilterText] = useState('');
   // Create overlay state
@@ -26,13 +34,13 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   const openBottomPanel = (row) => {
     setSelectedRow(row);
     setBottomOpen(true);
-    setActiveTab(tabs[0]?.key || 'summary');
+    setActiveTab(safeTabs[0]?.key || 'summary');
   };
 
   const closeBottomPanel = () => {
     setBottomOpen(false);
     setSelectedRow(null);
-    setActiveTab(tabs[0]?.key || 'summary'); // Reset to default tab
+    setActiveTab(safeTabs[0]?.key || 'summary'); // Reset to default tab
   };
 
   useEffect(() => {
@@ -78,15 +86,29 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     }
   }, [data, columns, normalizedFilter]);
 
+  const handleOpenCreate = () => {
+    if (createNotice) {
+      const notice = typeof createNotice === 'string' ? { message: createNotice } : createNotice;
+      const message = notice?.message;
+      if (message) {
+        showNotification(message, {
+          type: notice?.type || 'warning',
+          duration: typeof notice?.duration === 'number' ? notice.duration : 3000,
+        });
+      }
+    }
+    setShowCreate(true);
+  };
+
   return (
     <div>
       <div className="overview-header">
         {/* Left: create button */}
         <div className="overview-left">
           <button
-            title="Create new"
+            title={createButtonTitle || 'Create new'}
             aria-label="Create new"
-            onClick={() => setShowCreate(true)}
+            onClick={handleOpenCreate}
             className="overview-create-btn"
           >
             +
@@ -104,7 +126,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </div>
       </div>
 
-      <table className="gh-table" style={{ width: '100%' }}>
+      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%' }}>
         <thead>
           <tr>
             {columns.map(col => <th key={col.accessorKey || col.key}>{col.header || col.label}</th>)}
@@ -136,19 +158,21 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       <BottomPanel
         open={bottomOpen}
         onClose={closeBottomPanel}
-        tabs={tabs}
+        tabs={safeTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
       >
-        {selectedRow && renderPanelContent(selectedRow, activeTab)}
+        {selectedRow && typeof renderPanelContent === 'function' ? renderPanelContent(selectedRow, activeTab) : null}
       </BottomPanel>
 
       {/* Create manifest overlay */}
       <CreateManifestOverlay
         open={showCreate}
-        kind={resourceKind}
+        platform={createPlatform}
+        kind={createKind ?? resourceKind}
         namespace={namespace}
+        createHint={createHint}
         onClose={() => setShowCreate(false)}
       />
     </div>

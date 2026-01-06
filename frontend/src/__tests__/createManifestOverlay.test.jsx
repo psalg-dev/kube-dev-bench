@@ -46,7 +46,8 @@ vi.mock('@codemirror/state', () => ({
           __set: (v) => { content = v; }
         },
       };
-    }
+    },
+    tabSize: { of: () => ({}) },
   }
 }));
 
@@ -56,10 +57,12 @@ vi.mock('@codemirror/language', () => ({
   foldKeymap: [],
   syntaxHighlighting: () => ({}),
   defaultHighlightStyle: {},
+  indentOnInput: () => ({}),
+  indentUnit: { of: () => ({}) },
 }));
 
 // Centralized Wails mocks (no longer mocking notifications globally)
-import { createResourceMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
+import { createResourceMock, createSwarmConfigMock, createSwarmSecretMock, createSwarmServiceMock, createSwarmStackMock, updateSwarmNodeAvailabilityMock, updateSwarmNodeRoleMock, updateSwarmNodeLabelsMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
 
 // Local notification mocks for this test file
 const showSuccessMock = vi.fn();
@@ -164,6 +167,177 @@ describe('CreateManifestOverlay', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(screen.getByText(/Manifest is empty/)).toBeInTheDocument());
     expect(createResourceMock).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('swarm: creates config via CreateSwarmConfig', async () => {
+    createSwarmConfigMock.mockResolvedValueOnce('cfg-id');
+    const onClose = vi.fn();
+    render(<CreateManifestOverlay open platform="swarm" kind="config" onClose={onClose} />);
+    // name field is required
+    fireEvent.change(screen.getByLabelText(/swarm resource name/i), { target: { value: 'my-config' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(createSwarmConfigMock).toHaveBeenCalled());
+    expect(createSwarmConfigMock).toHaveBeenCalledWith('my-config', expect.any(String), {});
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: config YAML tab uses CodeMirror and renders YAML wrapper', async () => {
+    const before = __getCtorCount();
+    render(<CreateManifestOverlay open platform="swarm" kind="config" onClose={vi.fn()} />);
+
+    // starts in Form mode (no CodeMirror)
+    expect(__getCtorCount()).toBe(before);
+
+    fireEvent.click(screen.getByRole('button', { name: 'YAML' }));
+    await waitFor(() => expect(__getCtorCount()).toBe(before + 1));
+
+    const inst = __getLastInstance();
+    const doc = inst.state.doc.toString();
+    expect(doc).toMatch(/name:/);
+    expect(doc).toMatch(/data:/);
+  });
+
+  it('swarm: creates secret via CreateSwarmSecret (labels parsed)', async () => {
+    createSwarmSecretMock.mockResolvedValueOnce('sec-id');
+    const onClose = vi.fn();
+    render(<CreateManifestOverlay open platform="swarm" kind="secret" onClose={onClose} />);
+    fireEvent.change(screen.getByLabelText(/swarm resource name/i), { target: { value: 'my-secret' } });
+
+    // Fill labels via structured key/value editor
+    const labelKeys1 = screen.getAllByLabelText(/label key/i);
+    const labelVals1 = screen.getAllByLabelText(/label value/i);
+    fireEvent.change(labelKeys1[0], { target: { value: 'a' } });
+    fireEvent.change(labelVals1[0], { target: { value: 'b' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /add label/i }));
+    const labelKeys2 = screen.getAllByLabelText(/label key/i);
+    const labelVals2 = screen.getAllByLabelText(/label value/i);
+    fireEvent.change(labelKeys2[1], { target: { value: 'empty' } });
+    fireEvent.change(labelVals2[1], { target: { value: '' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+    await waitFor(() => expect(createSwarmSecretMock).toHaveBeenCalled());
+    expect(createSwarmSecretMock).toHaveBeenCalledWith('my-secret', expect.any(String), { a: 'b', empty: '' });
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: updates node via UpdateSwarmNodeAvailability/Role/Labels', async () => {
+    updateSwarmNodeAvailabilityMock.mockResolvedValueOnce(undefined);
+    updateSwarmNodeRoleMock.mockResolvedValueOnce(undefined);
+    updateSwarmNodeLabelsMock.mockResolvedValueOnce(undefined);
+    const onClose = vi.fn();
+
+    render(<CreateManifestOverlay open platform="swarm" kind="node" onClose={onClose} />);
+
+    fireEvent.change(screen.getByLabelText(/swarm node id/i), { target: { value: 'node-1' } });
+
+    const labelKeys1 = screen.getAllByLabelText(/label key/i);
+    const labelVals1 = screen.getAllByLabelText(/label value/i);
+    fireEvent.change(labelKeys1[0], { target: { value: 'a' } });
+    fireEvent.change(labelVals1[0], { target: { value: 'b' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => expect(updateSwarmNodeAvailabilityMock).toHaveBeenCalled());
+    expect(updateSwarmNodeAvailabilityMock).toHaveBeenCalledWith('node-1', expect.any(String));
+    expect(updateSwarmNodeRoleMock).toHaveBeenCalledWith('node-1', expect.any(String));
+    expect(updateSwarmNodeLabelsMock).toHaveBeenCalledWith('node-1', { a: 'b' });
+    expect(eventsEmitMock).toHaveBeenCalledWith('swarm:nodes:update', null);
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: creates service via form (CreateSwarmService)', async () => {
+    createSwarmServiceMock.mockResolvedValueOnce('svc-id');
+    const onClose = vi.fn();
+
+    render(<CreateManifestOverlay open platform="swarm" kind="service" onClose={onClose} />);
+
+    fireEvent.change(screen.getByLabelText(/name \*/i), { target: { value: 'my-nginx' } });
+    fireEvent.change(screen.getByLabelText(/image \*/i), { target: { value: 'nginx:latest' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => expect(createSwarmServiceMock).toHaveBeenCalled());
+    expect(createSwarmServiceMock).toHaveBeenCalledWith(expect.objectContaining({
+      name: 'my-nginx',
+      image: 'nginx:latest',
+      mode: 'replicated',
+      replicas: 1,
+      labels: expect.any(Object),
+      env: expect.any(Object),
+      ports: expect.any(Array),
+    }));
+    expect(eventsEmitMock).toHaveBeenCalledWith('swarm:services:update', null);
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: shows inline createHint for service overlay when provided', async () => {
+    render(
+      <CreateManifestOverlay
+        open
+        platform="swarm"
+        kind="service"
+        createHint="Tasks can’t be created directly. Creating a service will create tasks."
+        onClose={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/tasks can’t be created directly/i)).toBeInTheDocument();
+  });
+
+  it('swarm: service YAML view uses CodeMirror editor', async () => {
+    const before = __getCtorCount();
+    render(<CreateManifestOverlay open platform="swarm" kind="service" onClose={vi.fn()} />);
+
+    // Starts in Form mode (no CodeMirror mounted)
+    expect(__getCtorCount()).toBe(before);
+
+    fireEvent.click(screen.getByRole('button', { name: 'YAML' }));
+    await waitFor(() => expect(__getCtorCount()).toBe(before + 1));
+
+    const inst = __getLastInstance();
+    expect(inst.state.doc.toString()).toMatch(/name:/);
+    expect(inst.state.doc.toString()).toMatch(/image:/);
+  });
+
+  it('swarm: creates stack via YAML editor (CreateSwarmStack)', async () => {
+    createSwarmStackMock.mockResolvedValueOnce('stack-id');
+    const onClose = vi.fn();
+
+    render(<CreateManifestOverlay open platform="swarm" kind="stack" onClose={onClose} />);
+    expect(screen.getByText(/deploying a stack will create services/i)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/swarm stack name/i), { target: { value: 'my-stack' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create' }));
+
+    await waitFor(() => expect(createSwarmStackMock).toHaveBeenCalled());
+    expect(createSwarmStackMock).toHaveBeenCalledWith('my-stack', expect.any(String));
+    expect(eventsEmitMock).toHaveBeenCalledWith('swarm:stacks:update', null);
+    expect(showSuccessMock).toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('swarm: stack browse button prefills editor but does not auto-create', async () => {
+    const onClose = vi.fn();
+    render(<CreateManifestOverlay open platform="swarm" kind="stack" onClose={onClose} />);
+
+    const input = screen.getByLabelText(/swarm stack compose file/i);
+    const content = 'version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n';
+    const file = new File([content], 'stack.yml', { type: 'text/yaml' });
+
+    fireEvent.change(input, { target: { files: [file] } });
+
+    await waitFor(() => {
+      const inst = __getLastInstance();
+      expect(inst.state.doc.toString()).toBe(content);
+    });
+
+    expect(createSwarmStackMock).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();
   });
 });

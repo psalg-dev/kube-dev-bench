@@ -477,16 +477,13 @@ describe('HelmInstallDialog', () => {
 
     render(<HelmInstallDialog namespace="default" onClose={vi.fn()} onSuccess={vi.fn()} />);
 
-    await waitFor(() => {
-      const searchInput = screen.getByPlaceholderText(/search charts/i);
-      fireEvent.change(searchInput, { target: { value: 'nginx' } });
-    });
+    const searchInput = await screen.findByPlaceholderText(/search charts/i);
+    fireEvent.change(searchInput, { target: { value: 'nginx' } });
 
     const searchBtn = screen.getByRole('button', { name: /search/i });
+    await waitFor(() => expect(searchBtn).not.toBeDisabled());
     fireEvent.click(searchBtn);
 
-    await waitFor(() => {
-      expect(screen.getByText('bitnami/nginx')).toBeInTheDocument();
-    });
+    expect(await screen.findByText('bitnami/nginx')).toBeInTheDocument();
   });
 });

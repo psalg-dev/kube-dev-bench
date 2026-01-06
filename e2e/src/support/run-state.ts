@@ -4,9 +4,11 @@ import { e2eRoot } from './paths.js';
 
 export type RunState = {
   runId: string;
-  clusterName: string;
-  contextName: string;
-  kubeconfigYaml: string;
+  // Kubernetes-related fields. Present for KinD-backed E2E runs.
+  // Swarm-only runs may omit these when `E2E_SKIP_KIND=1`.
+  clusterName?: string;
+  contextName?: string;
+  kubeconfigYaml?: string;
   wailsInstances?: Array<{ baseURL: string; pid?: number; port?: number }>;
   frontendBaseURL?: string;
   frontendPid?: number;

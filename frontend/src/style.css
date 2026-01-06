@@ -25,7 +25,59 @@ body {
     text-align: center;
 }
 
-/* Connection Wizard Styles */
+/* Connection Wizard Styles - New Layout (matching AppLayout) */
+.connection-wizard-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  position: relative;
+  background: var(--gh-bg, #0d1117);
+}
+
+.connection-wizard-layout #sidebar {
+  width: var(--sidebar-width, 320px);
+  min-width: var(--sidebar-width, 320px);
+  max-width: var(--sidebar-width, 320px);
+  background: var(--gh-bg-sidebar, #161b22);
+  border-right: 1px solid var(--gh-border, #30363d);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 24px;
+  height: calc(100vh - var(--footer-height, 30px));
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.connection-wizard-layout #maincontent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  height: calc(100vh - var(--footer-height, 30px));
+  overflow: hidden;
+}
+
+.connection-wizard-layout #main-panels {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.connection-wizard-layout #footer {
+  height: var(--footer-height, 30px);
+  background: var(--gh-bg-footer, #161b22);
+  border-top: 1px solid var(--gh-border, #30363d);
+  display: flex;
+  align-items: center;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+/* Legacy Connection Wizard Styles (overlay mode) */
 .connection-wizard-overlay {
   position: fixed;
   top: 0;

@@ -11,6 +11,14 @@ export async function bootstrapApp(opts: {
   const { page, contextName, namespace } = opts;
   const state = await readRunState();
 
+  if (!state.kubeconfigYaml) {
+    throw new Error(
+      'Missing kubeconfig in E2E run state. ' +
+        'This usually means KinD setup was skipped (set `E2E_SKIP_KIND=1`) or failed. ' +
+        'Kubernetes E2E tests require KinD/kubeconfig; Swarm-only tests should use `bootstrapSwarm()`.'
+    );
+  }
+
   await page.goto('/');
 
   const wizard = new ConnectionWizardPage(page);

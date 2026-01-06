@@ -4,6 +4,10 @@ import { AppLayout } from './layout/AppLayout.jsx';
 import ConnectionWizard from './layout/connection/ConnectionWizard.jsx';
 import { ContextSelect, NamespaceMultiSelect } from './Dropdowns.jsx';
 import { ResourceCountsProvider } from './state/ResourceCountsContext.jsx';
+// Docker Swarm providers
+import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext.jsx';
+import { SwarmResourceCountsProvider } from './docker/SwarmResourceCountsContext.jsx';
+import SwarmConnectionWizard from './docker/SwarmConnectionWizard.jsx';
 // Resource overview tables
 import PodOverviewTable from './k8s/resources/pods/PodOverviewTable.jsx';
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable.jsx';
@@ -20,13 +24,40 @@ import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/Pe
 import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable.jsx';
 import HelmInstallDialog from './k8s/resources/helmreleases/HelmInstallDialog.jsx';
 import HelmRepositoriesDialog from './k8s/resources/helmreleases/HelmRepositoriesDialog.jsx';
+// Docker Swarm resource views
+import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable.jsx';
+import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable.jsx';
+import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable.jsx';
+import SwarmNetworksOverviewTable from './docker/resources/networks/SwarmNetworksOverviewTable.jsx';
+import SwarmConfigsOverviewTable from './docker/resources/configs/SwarmConfigsOverviewTable.jsx';
+import SwarmSecretsOverviewTable from './docker/resources/secrets/SwarmSecretsOverviewTable.jsx';
+import SwarmStacksOverviewTable from './docker/resources/stacks/SwarmStacksOverviewTable.jsx';
+import SwarmVolumesOverviewTable from './docker/resources/volumes/SwarmVolumesOverviewTable.jsx';
 import { showResourceOverlay } from './resource-overlay.js';
 
 function MainApp({ selectedSection, setSelectedSection }) {
-  const { showWizard, actions, contexts, namespaces, selectedContext, selectedNamespaces, contextDisabled, namespaceDisabled } = useClusterState();
+  const {
+    showWizard,
+    actions,
+    contexts,
+    namespaces,
+    selectedContext,
+    selectedNamespaces,
+    contextDisabled,
+    namespaceDisabled,
+    kubernetesAvailable,
+  } = useClusterState();
+  const swarmState = useSwarmState();
   const firstNs = useMemo(() => (Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : ''), [selectedNamespaces]);
   const [showHelmInstall, setShowHelmInstall] = useState(false);
   const [showHelmRepos, setShowHelmRepos] = useState(false);
+
+  // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs), force Swarm as the active view.
+  useEffect(() => {
+    if (kubernetesAvailable === false && !String(selectedSection).startsWith('swarm-')) {
+      setSelectedSection('swarm-services');
+    }
+  }, [kubernetesAvailable, selectedSection, setSelectedSection]);
 
   // Global hotkey & sidebar toggle
   useEffect(() => {
@@ -82,6 +113,23 @@ function MainApp({ selectedSection, setSelectedSection }) {
         return <PersistentVolumesOverviewTable namespace={firstNs} />;
       case 'helmreleases':
         return <HelmReleasesOverviewTable {...commonNsProps} />;
+      // Docker Swarm views
+      case 'swarm-services':
+        return <SwarmServicesOverviewTable />;
+      case 'swarm-tasks':
+        return <SwarmTasksOverviewTable />;
+      case 'swarm-nodes':
+        return <SwarmNodesOverviewTable />;
+      case 'swarm-networks':
+        return <SwarmNetworksOverviewTable />;
+      case 'swarm-configs':
+        return <SwarmConfigsOverviewTable />;
+      case 'swarm-secrets':
+        return <SwarmSecretsOverviewTable />;
+      case 'swarm-stacks':
+        return <SwarmStacksOverviewTable />;
+      case 'swarm-volumes':
+        return <SwarmVolumesOverviewTable />;
       default:
         return null;
     }
@@ -130,6 +178,9 @@ function MainApp({ selectedSection, setSelectedSection }) {
   );
 
   const handleSelectSection = (section) => {
+    if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) {
+      return;
+    }
     setSelectedSection(section);
   };
 
@@ -140,6 +191,7 @@ function MainApp({ selectedSection, setSelectedSection }) {
   return (
     <>
       <AppLayout
+        kubernetesAvailable={kubernetesAvailable}
         contextSelectEl={<ContextSelect
           value={selectedContext}
           options={contexts}
@@ -170,6 +222,9 @@ function MainApp({ selectedSection, setSelectedSection }) {
           onClose={() => setShowHelmRepos(false)}
         />
       )}
+      {swarmState.showWizard && (
+        <SwarmConnectionWizard onClose={() => swarmState.actions.closeWizard()} />
+      )}
     </>
   );
 }
@@ -180,7 +235,11 @@ export default function AppContainer() {
   return (
     <ClusterStateProvider key={reloadKey}>
       <ResourceCountsProvider>
-        <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+        <SwarmStateProvider>
+          <SwarmResourceCountsProvider>
+            <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+          </SwarmResourceCountsProvider>
+        </SwarmStateProvider>
       </ResourceCountsProvider>
     </ClusterStateProvider>
   );

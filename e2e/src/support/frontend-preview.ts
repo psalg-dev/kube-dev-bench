@@ -58,8 +58,11 @@ export async function startFrontendPreviewServer(opts: {
 
   // If already running, reuse it.
   if (await isHttpOk(`${baseURL}/`)) {
+    console.log(`[e2e][frontend] ${new Date().toISOString()} reusing existing preview server at ${baseURL}`);
     return { port, baseURL, process: null };
   }
+
+  console.log(`[e2e][frontend] ${new Date().toISOString()} starting Vite preview on ${baseURL}`);
 
   const logDir = path.join(repoRoot, 'e2e', 'test-results', 'frontend-logs');
   await fsp.mkdir(logDir, { recursive: true });
@@ -95,6 +98,8 @@ export async function startFrontendPreviewServer(opts: {
     try { logStream.end(`\n=== frontend preview failed to become ready (port=${port}) ===\n`); } catch {}
     throw err;
   }
+
+  console.log(`[e2e][frontend] ${new Date().toISOString()} preview ready at ${baseURL} pid=${child.pid ?? 'unknown'}`);
 
   return { port, baseURL, process: child };
 }

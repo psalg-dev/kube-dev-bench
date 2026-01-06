@@ -133,7 +133,7 @@ func (a *App) GetHelmRepositories() ([]HelmRepositoryInfo, error) {
 		return nil, fmt.Errorf("failed to load helm repositories: %w", err)
 	}
 
-	var result []HelmRepositoryInfo
+	result := []HelmRepositoryInfo{}
 	for _, r := range f.Repositories {
 		result = append(result, HelmRepositoryInfo{
 			Name: r.Name,
@@ -265,7 +265,7 @@ func (a *App) SearchHelmCharts(keyword string) ([]HelmChartInfo, error) {
 		return nil, fmt.Errorf("failed to load helm repositories: %w", err)
 	}
 
-	var result []HelmChartInfo
+	result := []HelmChartInfo{}
 	keyword = strings.ToLower(keyword)
 
 	for _, entry := range f.Repositories {

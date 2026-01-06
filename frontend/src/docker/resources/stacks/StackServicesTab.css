@@ -1,0 +1,62 @@
+.stack-services-container {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.stack-services-loading,
+.stack-services-empty,
+.stack-services-error {
+  padding: 32px;
+  text-align: center;
+  color: var(--gh-text-secondary);
+}
+
+.stack-services-error {
+  color: #f85149;
+}
+
+.stack-services-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.stack-services-table th,
+.stack-services-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+}
+
+.stack-services-table th {
+  font-weight: 600;
+  color: var(--gh-text-secondary, #8b949e);
+  background: var(--gh-bg-secondary, #161b22);
+  position: sticky;
+  top: 0;
+}
+
+.stack-services-table td {
+  color: var(--gh-text, #c9d1d9);
+}
+
+.stack-services-table td.mono {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.stack-services-table tbody tr:hover {
+  background: var(--gh-bg-tertiary, #21262d);
+}
+
+.replica-ok {
+  color: #3fb950;
+  font-weight: 500;
+}
+
+.replica-warn {
+  color: #d29922;
+  font-weight: 500;
+}

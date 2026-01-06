@@ -1,0 +1,55 @@
+.service-tasks-tab {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.tasks-loading,
+.tasks-empty {
+  padding: 32px;
+  text-align: center;
+  color: var(--gh-text-secondary, #8b949e);
+}
+
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tasks-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--gh-table-header-bg, #161b22);
+  color: var(--gh-table-header-text, #c9d1d9);
+  font-weight: 600;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+}
+
+.tasks-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+  color: var(--gh-text, #c9d1d9);
+}
+
+.tasks-table tr:hover td {
+  background: var(--gh-table-row-hover, rgba(177, 186, 196, 0.08));
+}
+
+.task-state {
+  font-weight: 500;
+}
+
+.task-error {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gh-text-secondary, #8b949e);
+}
+
+.task-error:not(:empty):hover {
+  white-space: normal;
+  word-break: break-word;
+}

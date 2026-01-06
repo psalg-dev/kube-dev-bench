@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { showError, showSuccess } from '../../../notification';
 
@@ -46,7 +47,7 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
     if (!dateStr || dateStr === '-') return '-';
     try {
       const date = new Date(dateStr);
-      return date.toLocaleString();
+      return formatTimestampDMYHMS(date);
     } catch {
       return dateStr;
     }

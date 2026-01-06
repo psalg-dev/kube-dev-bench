@@ -32,12 +32,31 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   kubeconfigPath: [async ({ homeDir }, use: (value: string) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
     const kubeDir = path.join(repoRoot, 'e2e', '.playwright-artifacts-' + state.runId, 'kube');
-    const kubeconfigPath = await writeNamedKubeconfigFile(kubeDir, `kubeconfig-w${workerInfo.workerIndex}`, state.kubeconfigYaml);
+    if (!state.kubeconfigYaml) {
+      throw new Error(
+        'kubeconfigYaml missing from E2E run state. ' +
+          'If you are running Swarm-only E2Es, do not request `kubeconfigPath`/`namespace`/`contextName` fixtures. ' +
+          'Otherwise, ensure KinD setup ran successfully (and do not set `E2E_SKIP_KIND=1`).'
+      );
+    }
+
+    const kubeconfigPath = await writeNamedKubeconfigFile(
+      kubeDir,
+      `kubeconfig-w${workerInfo.workerIndex}`,
+      state.kubeconfigYaml
+    );
     await use(kubeconfigPath);
   }, { scope: 'worker' }],
 
   contextName: [async ({}, use: (value: string) => Promise<void>) => {
     const state = await readRunState();
+    if (!state.contextName) {
+      throw new Error(
+        'contextName missing from E2E run state. ' +
+          'If you are running Swarm-only E2Es, do not request the `contextName` fixture. ' +
+          'Otherwise, ensure KinD setup ran successfully (and do not set `E2E_SKIP_KIND=1`).'
+      );
+    }
     await use(state.contextName);
   }, { scope: 'worker' }],
 
@@ -96,6 +115,13 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     if (!baseURL) {
       throw new Error('No app baseURL available (missing sharedBaseURL or wailsInstances).');
     }
+
+    // Playwright stores intermediate trace artifacts under:
+    //   <outputDir>/.playwright-artifacts-<workerIndex>/traces
+    // On some Windows setups, these directories are not created automatically before trace writing,
+    // resulting in ENOENT during context.close(). Create them proactively.
+    const pwArtifactsRoot = path.join(repoRoot, 'e2e', 'test-results', `.playwright-artifacts-${workerInfo.workerIndex}`);
+    await fs.mkdir(path.join(pwArtifactsRoot, 'traces'), { recursive: true });
 
     const context = await browser.newContext({ baseURL });
     const page = await context.newPage();

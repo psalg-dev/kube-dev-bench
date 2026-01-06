@@ -13,7 +13,9 @@ function uniqueName(prefix: string) {
 
 async function openRowDetailsByName(page: any, name: string) {
   await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
-  const row = page.locator('table.gh-table tbody tr').filter({ hasText: name }).first();
+  const table = page.locator('#main-panels > div:visible table.gh-table');
+  await expect(table).toBeVisible({ timeout: 60_000 });
+  const row = table.locator('tbody tr').filter({ hasText: name }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
   await row.click();
 }
@@ -65,6 +67,7 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
 
   // Create PV first (cluster-scoped)
   await sidebar.goToSection('persistentvolumes');
+  await expect(page.getByRole('heading', { name: 'Persistent Volumes' })).toBeVisible({ timeout: 60_000 });
   await overlay.openFromOverviewHeader();
   await overlay.fillYaml(pvYaml);
   await overlay.create();
@@ -72,6 +75,7 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
 
   // Then create PVC (namespaced)
   await sidebar.goToSection('persistentvolumeclaims');
+  await expect(page.getByRole('heading', { name: 'Persistent Volume Claims' })).toBeVisible({ timeout: 60_000 });
   await overlay.openFromOverviewHeader();
   await overlay.fillYaml(pvcYaml);
   await overlay.create();

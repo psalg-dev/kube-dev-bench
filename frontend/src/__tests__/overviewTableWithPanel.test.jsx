@@ -5,11 +5,17 @@ import { render, screen, fireEvent } from '@testing-library/react';
 // Mock CreateManifestOverlay to a lightweight stub
 vi.mock('../CreateManifestOverlay', () => ({
   __esModule: true,
-  default: ({ open, kind }) => open ? <div data-testid="create-overlay">overlay-{kind}</div> : null
+  default: ({ open, kind, platform }) => open ? <div data-testid="create-overlay">overlay-{platform}-{kind}</div> : null
+}));
+
+vi.mock('../notification.js', () => ({
+  __esModule: true,
+  showNotification: vi.fn(),
 }));
 
 // Import component under test AFTER mocks
 import OverviewTableWithPanel from '../layout/overview/OverviewTableWithPanel.jsx';
+import { showNotification } from '../notification.js';
 
 function setup(props = {}) {
   const columns = [
@@ -117,7 +123,25 @@ describe('OverviewTableWithPanel', () => {
     setup();
     const plusBtn = screen.getByRole('button', { name: /create new/i });
     fireEvent.click(plusBtn);
-    expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-pod');
+    expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-k8s-pod');
+  });
+
+  it('shows create notice (warning) before opening overlay', () => {
+    setup({
+      createNotice: 'This is an informational notice.',
+      createButtonTitle: 'Create something',
+      createPlatform: 'swarm',
+      createKind: 'service',
+    });
+
+    const plusBtn = screen.getByRole('button', { name: /create new/i });
+    fireEvent.click(plusBtn);
+
+    expect(showNotification).toHaveBeenCalledWith(
+      'This is an informational notice.',
+      expect.objectContaining({ type: 'warning' })
+    );
+    expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-swarm-service');
   });
 });
 

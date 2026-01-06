@@ -11,7 +11,9 @@ function uniqueName(prefix: string) {
 
 async function openRowDetailsByName(page: any, name: string) {
   await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
-  const row = page.locator('table.gh-table tbody tr').filter({ hasText: name }).first();
+  const table = page.locator('#main-panels > div:visible table.gh-table');
+  await expect(table).toBeVisible({ timeout: 60_000 });
+  const row = table.locator('tbody tr').filter({ hasText: name }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
   await row.click();
 }
@@ -82,7 +84,7 @@ test('bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet)
 
   // Find a ReplicaSet row for this deployment by label/name match.
   // (ReplicaSet name is typically ${deployName}-<hash>)
-  const rsRow = page.locator('table.gh-table tbody tr').filter({ hasText: deployName }).first();
+  const rsRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect(rsRow).toBeVisible({ timeout: 60_000 });
   await rsRow.click();
   await panel.expectVisible();
@@ -101,7 +103,7 @@ test('bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet)
   await sidebar.goToSection('pods');
 
   // Wait for at least one pod from the deployment to appear and be Running.
-  const podRow = page.locator('table.gh-table tbody tr').filter({ hasText: deployName }).first();
+  const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect(podRow).toBeVisible({ timeout: 90_000 });
   await expect(podRow).toContainText('Running', { timeout: 90_000 });
 
