@@ -28,7 +28,15 @@ export class SwarmSidebarPage {
     if (/\bselected\b/.test(currentClass)) return;
 
     await section.scrollIntoViewIfNeeded();
-    await section.click({ timeout: 30_000 });
+
+    // CI can occasionally have transient overlays (notifications, resizer handles)
+    // intercept pointer events. Prefer a normal click, but fall back to forced
+    // click to ensure navigation remains deterministic.
+    try {
+      await section.click({ timeout: 15_000 });
+    } catch {
+      await section.click({ timeout: 30_000, force: true });
+    }
     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
   }
 

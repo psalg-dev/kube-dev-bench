@@ -67,19 +67,21 @@ function wireTimestampedStream(input: NodeJS.ReadableStream | null | undefined, 
 
 export async function startWailsDev(opts: {
   repoRoot: string;
+  logRepoRoot?: string;
   port: number;
   homeDir: string;
-  frontendDevServerURL?: string;
+  assetDir?: string;
   readyTimeoutMs?: number;
 }) : Promise<WailsDevInstance> {
   const { repoRoot, port, homeDir } = opts;
+  const logRepoRoot = opts.logRepoRoot ?? repoRoot;
   const readyTimeoutMs = opts.readyTimeoutMs ?? 30_000;
   // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
   const baseURL = `http://127.0.0.1:${port}`;
 
   console.log(
     `[e2e][wails] ${new Date().toISOString()} starting wails dev port=${port} baseURL=${baseURL} ` +
-      `frontend=${opts.frontendDevServerURL ?? 'internal'} repoRoot=${repoRoot}`
+      `assets=${opts.assetDir ?? 'embed'} repoRoot=${repoRoot}`
   );
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
@@ -160,7 +162,7 @@ export async function startWailsDev(opts: {
     await fsp.writeFile(kubeConfigPath, minimalKubeconfig, 'utf-8');
   }
 
-  const logDir = path.join(repoRoot, 'e2e', 'test-results', 'wails-logs');
+  const logDir = path.join(logRepoRoot, 'e2e', 'test-results', 'wails-logs');
   await fsp.mkdir(logDir, { recursive: true });
   const logPath = path.join(logDir, `wails-${port}.log`);
   const logStream = fs.createWriteStream(logPath, { flags: 'a' });
@@ -172,10 +174,13 @@ export async function startWailsDev(opts: {
 
   const args = [
     'dev',
-    // Use a shared external frontend server so Wails instances don't each run a full frontend build.
-    ...(opts.frontendDevServerURL ? ['-frontenddevserverurl', opts.frontendDevServerURL] : []),
-    // Skip frontend build. (Wails still runs a Vite dev watcher, but avoids expensive build steps.)
+    // Serve built assets directly. This avoids Wails spawning a per-instance Vite dev watcher
+    // (which is extremely slow/flaky under parallel E2E on Windows).
+    ...(opts.assetDir ? ['-assetdir', opts.assetDir] : []),
+    // Skip frontend build.
     '-s',
+    // Skip generating extra embed files during startup; we serve assets from dist.
+    ...(opts.assetDir ? ['-skipembedcreate'] : []),
     '-devserver',
     `127.0.0.1:${port}`,
     '-noreload',
@@ -196,10 +201,6 @@ export async function startWailsDev(opts: {
     cwd: repoRoot,
     env: {
       ...process.env,
-      VITE_HOST: '127.0.0.1',
-      // Avoid Vite dependency optimization cache corruption when multiple Wails instances
-      // start Vite concurrently (Windows E2E with multiple workers).
-      VITE_CACHE_DIR: path.join(tmpDir, 'vite-cache').replace(/\\/g, '/'),
       // Let the Go backend bypass native OS file dialogs during E2E.
       KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),

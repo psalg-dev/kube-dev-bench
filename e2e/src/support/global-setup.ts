@@ -10,7 +10,6 @@ import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
 import { exec } from './exec.js';
-import { startFrontendPreviewServer } from './frontend-preview.js';
 import {
   cleanupLocalDockerSwarmResources,
   deploySwarmStackFromFile,
@@ -183,7 +182,6 @@ export default async function globalSetup(config: FullConfig) {
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
   let proxy: Awaited<ReturnType<typeof ensureProxyServer>> | null = null;
-  let frontend: Awaited<ReturnType<typeof startFrontendPreviewServer>> | null = null;
   const startedWailsPids: number[] = [];
 
   const killPidBestEffort = async (pid: number) => {
@@ -206,21 +204,7 @@ export default async function globalSetup(config: FullConfig) {
     );
     console.log(`[e2e][setup] ${isoNow()} proxy ready at ${proxy.baseURL} pid=${proxy.pid ?? 'reused'}`);
 
-  // Serve the built frontend via a single vite preview server.
-  // This avoids each Wails instance spawning its own frontend dev watcher.
-  const frontendPort = Number(process.env.E2E_FRONTEND_PORT || 35173);
-    if (isWin32) {
-      await timed(`clear Windows listener on port ${frontendPort}`, async () => killWindowsListenerOnPort(frontendPort));
-    }
-
-    frontend = await timed(`start Vite preview server port=${frontendPort}`, async () =>
-      startFrontendPreviewServer({
-        repoRoot: withinRepo(),
-        port: frontendPort,
-        readyTimeoutMs: process.env.CI ? 60_000 : 20_000,
-      })
-    );
-    console.log(`[e2e][setup] ${isoNow()} frontend preview ready at ${frontend.baseURL} pid=${frontend.process?.pid ?? 'reused'}`);
+    const assetDir = withinRepo('frontend', 'dist');
 
   // Shared-server mode:
   // - Windows: multiple `wails dev` processes in the same repo can collide on temp resource files.
@@ -246,9 +230,10 @@ export default async function globalSetup(config: FullConfig) {
     const instance = await timed('start shared wails dev (port=34115)', async () =>
       startWailsDev({
         repoRoot: withinRepo(),
+        logRepoRoot: withinRepo(),
         port: 34115,
         homeDir,
-        frontendDevServerURL: frontend!.baseURL,
+        assetDir,
         // Allow more time in CI/global setup while keeping per-test timeouts strict.
         readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
       })
@@ -264,8 +249,6 @@ export default async function globalSetup(config: FullConfig) {
       kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      frontendBaseURL: frontend!.baseURL,
-      frontendPid: frontend!.process?.pid ?? undefined,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
       sharedHomeDir: homeDir,
@@ -299,7 +282,8 @@ export default async function globalSetup(config: FullConfig) {
       // Windows-only mitigation (opt-in): create a per-instance overlay repo.
       // NOTE: Go's embed can fail when embedding through Windows junctions.
       // Therefore this strategy is disabled by default; enable only if needed.
-      const useOverlayRepo = process.env.E2E_WAILS_OVERLAY_REPO === '1';
+      const overlayEnv = process.env.E2E_WAILS_OVERLAY_REPO;
+      const useOverlayRepo = overlayEnv === '1' || (overlayEnv !== '0' && isWin32 && instanceCount > 1);
       if (!isWin32 || instanceCount <= 1 || !useOverlayRepo) return withinRepo();
 
       const baseRepoRoot = withinRepo();
@@ -330,9 +314,18 @@ export default async function globalSetup(config: FullConfig) {
         await exec('cmd.exe', ['/c', 'mklink', '/J', dst, src], { timeoutMs: 30_000 });
       };
 
+      const ensureJunction = async (src: string, dst: string) => {
+        try {
+          const st = await fs.stat(src);
+          if (!st.isDirectory()) return;
+        } catch {
+          return;
+        }
+        await exec('cmd.exe', ['/c', 'mklink', '/J', dst, src], { timeoutMs: 30_000 });
+      };
+
       // Junction large/mostly-static directories.
       // (Avoid `build/` here; each instance should have its own build output location.)
-      await ensureDirJunction('frontend');
       await ensureDirJunction('pkg');
       await ensureDirJunction('kind');
       await ensureDirJunction('scripts');
@@ -340,6 +333,52 @@ export default async function globalSetup(config: FullConfig) {
       await ensureDirJunction('.github');
       await ensureDirJunction('.claude');
       await ensureDirJunction('e2e');
+
+      // Copy only the embedded frontend assets (main.go uses //go:embed all:frontend/dist).
+      // This must be a real directory (not a junction), otherwise go:embed can fail.
+      const frontendDistSrc = path.join(baseRepoRoot, 'frontend', 'dist');
+      const frontendDistDst = path.join(repoCopyRoot, 'frontend', 'dist');
+      const frontendRootDst = path.join(repoCopyRoot, 'frontend');
+      await fs.mkdir(frontendRootDst, { recursive: true }).catch(() => undefined);
+
+      // Wails dev expects a frontend project (package.json) even when skipping frontend build.
+      // Copy lightweight config files and junction heavy folders.
+      const frontendFilesToCopy = [
+        'package.json',
+        'package-lock.json',
+        'package.json.md5',
+        'vite.config.js',
+        'vitest.config.js',
+        'test.setup.js',
+        'index.html',
+      ];
+      for (const name of frontendFilesToCopy) {
+        const src = path.join(baseRepoRoot, 'frontend', name);
+        const dst = path.join(frontendRootDst, name);
+        await fs.copyFile(src, dst).catch(() => undefined);
+      }
+
+      // Junction large frontend folders to avoid copying gigabytes.
+      await ensureJunction(path.join(baseRepoRoot, 'frontend', 'node_modules'), path.join(frontendRootDst, 'node_modules'));
+      await ensureJunction(path.join(baseRepoRoot, 'frontend', 'src'), path.join(frontendRootDst, 'src'));
+      await ensureJunction(path.join(baseRepoRoot, 'frontend', 'scripts'), path.join(frontendRootDst, 'scripts'));
+      await ensureJunction(path.join(baseRepoRoot, 'frontend', 'wailsjs'), path.join(frontendRootDst, 'wailsjs'));
+
+      try {
+        const st = await fs.stat(frontendDistSrc);
+        if (st.isDirectory()) {
+          const rc = await exec(
+            'cmd.exe',
+            ['/c', 'robocopy', frontendDistSrc, frontendDistDst, '/E', '/XO', '/MT:16', '/R:0', '/W:0'],
+            { timeoutMs: process.env.CI ? 300_000 : 120_000 }
+          );
+          if (rc.code > 7) {
+            throw new Error(`robocopy frontend/dist failed (code=${rc.code}): ${rc.stderr || rc.stdout}`);
+          }
+        }
+      } catch {
+        // ignore
+      }
 
       // Copy build/ (small but mutated by Wails) into the overlay.
       const buildSrc = path.join(baseRepoRoot, 'build');
@@ -393,9 +432,10 @@ export default async function globalSetup(config: FullConfig) {
       const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
         startWailsDev({
           repoRoot: repoRootResolved,
+          logRepoRoot: withinRepo(),
           port,
           homeDir,
-          frontendDevServerURL: frontend!.baseURL,
+          assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
           // Sequential startup in global setup; allow more time here.
           readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
         })
@@ -421,8 +461,6 @@ export default async function globalSetup(config: FullConfig) {
       kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
-      frontendBaseURL: frontend!.baseURL,
-      frontendPid: frontend!.process?.pid ?? undefined,
       wailsInstances,
     });
   }
@@ -435,9 +473,6 @@ export default async function globalSetup(config: FullConfig) {
     // what to kill. Clean up best-effort to avoid leaving stray Wails/Vite/proxy processes.
     for (const pid of startedWailsPids) {
       await killPidBestEffort(pid);
-    }
-    if (frontend?.process?.pid) {
-      await killPidBestEffort(frontend.process.pid);
     }
     if (proxy?.pid) {
       await killPidBestEffort(proxy.pid);
