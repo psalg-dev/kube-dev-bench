@@ -34,50 +34,48 @@ export class ConnectionWizardPage {
       .locator('.connection-wizard-layout, .connection-wizard-overlay')
       .first();
 
-    // On cold start the wizard often opens automatically; give it a moment to render
-    // before we assume we must click the gear button.
     if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
       return OPEN_WIZARD_STATUS.AlreadyVisible;
     }
 
-    try {
-      await expect(wizard).toBeVisible({ timeout: 5_000 });
-      return OPEN_WIZARD_STATUS.AutoOpened;
-    } catch {
-      // Wizard did not auto-open; fall back to the explicit open button.
-    }
-
-    // Wait for the page to be ready before looking for the wizard button
-    // This prevents flakes when the page is still initializing
     await this.page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
-    
     const openBtn = this.page.locator('#show-wizard-btn');
-    
-    // Check if we're already in a connected state (button won't exist)
+    const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
     const mainApp = this.page.locator('#kubecontext-root, #swarm-sidebar');
-    const hasMainApp = await mainApp.isVisible().catch(() => false);
-    
-    if (hasMainApp) {
-      // Already connected, wizard button won't appear
-      // Force open the wizard if needed
-      const isWizardVisible = await wizard.isVisible().catch(() => false);
-      if (isWizardVisible) {
-        return OPEN_WIZARD_STATUS.AlreadyVisible;
+
+    const deadline = Date.now() + 30_000;
+    while (Date.now() < deadline) {
+      if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
+        return OPEN_WIZARD_STATUS.AutoOpened;
       }
-      // Try to find and click the button, but don't fail if it's not there
-      const btnExists = await openBtn.count() > 0;
-      if (btnExists) {
+
+      if ((await openBtn.count()) > 0) {
         await openBtn.click({ timeout: 10_000 });
         await expect(wizard).toBeVisible({ timeout: 30_000 });
         return OPEN_WIZARD_STATUS.ClickedButton;
       }
-      // If button doesn't exist and app is connected, return as if wizard is "already visible"
-      return OPEN_WIZARD_STATUS.AlreadyVisible;
+
+      if ((await swarmOpenBtn.count()) > 0) {
+        await swarmOpenBtn.click({ timeout: 10_000 });
+        await expect(wizard).toBeVisible({ timeout: 30_000 });
+        return OPEN_WIZARD_STATUS.ClickedButton;
+      }
+
+      if (await mainApp.isVisible().catch(() => false)) {
+        const wizVisible = await wizard.isVisible().catch(() => false);
+        if (wizVisible) return OPEN_WIZARD_STATUS.AlreadyVisible;
+      }
+
+      await this.page.waitForTimeout(250);
     }
-    
-    await expect(openBtn).toBeVisible({ timeout: 30_000 });
-    await openBtn.click({ timeout: 30_000 });
-    await expect(wizard).toBeVisible({ timeout: 30_000 });
+
+    // Final attempt: if wizard is now visible, treat as auto-opened.
+    if (await wizard.isVisible().catch(() => false)) {
+      return OPEN_WIZARD_STATUS.AutoOpened;
+    }
+
+    // If we reach here, neither wizard nor open buttons appeared in time.
+    await expect(openBtn).toBeVisible({ timeout: 1_000 });
     return OPEN_WIZARD_STATUS.ClickedButton;
   }
 
