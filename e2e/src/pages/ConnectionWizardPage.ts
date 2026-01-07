@@ -31,7 +31,7 @@ export class ConnectionWizardPage {
 
   async openWizardIfHidden(): Promise<OpenWizardIfHiddenStatus> {
     const wizard = this.page
-      .locator('.connection-wizard-layout, .connection-wizard-overlay')
+      .locator('.connection-wizard-layout, .connection-wizard-overlay, .swarm-connection-wizard-overlay')
       .first();
 
     if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
@@ -75,8 +75,13 @@ export class ConnectionWizardPage {
     }
 
     // If we reach here, neither wizard nor open buttons appeared in time.
-    await expect(openBtn).toBeVisible({ timeout: 1_000 });
-    return OPEN_WIZARD_STATUS.ClickedButton;
+    const btnCounts = {
+      showWizard: await openBtn.count().catch(() => 0),
+      swarmShowWizard: await swarmOpenBtn.count().catch(() => 0),
+    };
+    throw new Error(
+      `Connection wizard not available: buttons missing (showWizard=${btnCounts.showWizard}, swarmShowWizard=${btnCounts.swarmShowWizard}) and wizard not visible.`
+    );
   }
 
   async ensureWizardVisible() {
