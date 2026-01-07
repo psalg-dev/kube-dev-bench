@@ -268,6 +268,8 @@ export default async function globalSetup(config: FullConfig) {
       frontendPid: frontend!.process?.pid ?? undefined,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
+      sharedHomeDir: homeDir,
+      sharedDialogDir: path.join(homeDir, 'tmp', 'kdb-e2e-dialogs'),
     });
   } else {
     // Prefer the actual worker count Playwright will use. This includes CLI overrides
@@ -286,7 +288,7 @@ export default async function globalSetup(config: FullConfig) {
 
     const instanceCount = Number.isFinite(instanceCountRaw) ? Math.max(1, instanceCountRaw) : 4;
     const basePort = Number(process.env.E2E_WAILS_BASE_PORT || 34200);
-    const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number }> = [];
+    const wailsInstances: Array<{ baseURL: string; pid?: number; port?: number; homeDir?: string; dialogDir?: string }> = [];
 
     console.log(
       `[e2e][setup] ${isoNow()} starting wails pool instances=${instanceCount} basePort=${basePort} ` +
@@ -403,7 +405,13 @@ export default async function globalSetup(config: FullConfig) {
 
       console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
-      wailsInstances.push({ baseURL: instance.baseURL, pid: instance.process.pid ?? undefined, port });
+      wailsInstances.push({
+        baseURL: instance.baseURL,
+        pid: instance.process.pid ?? undefined,
+        port,
+        homeDir,
+        dialogDir: path.join(homeDir, 'tmp', 'kdb-e2e-dialogs'),
+      });
     }
 
     await writeRunState({

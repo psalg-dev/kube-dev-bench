@@ -24,6 +24,25 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
   // Per-worker: isolated home dir + wails dev instance + k8s namespace
   homeDir: [async ({}, use: (value: string) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
+
+    // When Wails instances are pre-started in global setup, they already have an
+    // assigned per-instance home dir. Use that so tests can coordinate via FS.
+    if (state.sharedBaseURL && state.sharedHomeDir) {
+      await fs.mkdir(state.sharedHomeDir, { recursive: true });
+      await use(state.sharedHomeDir);
+      return;
+    }
+
+    if (Array.isArray(state.wailsInstances) && state.wailsInstances.length > 0) {
+      const inst = state.wailsInstances[workerInfo.workerIndex % state.wailsInstances.length];
+      if (inst?.homeDir) {
+        await fs.mkdir(inst.homeDir, { recursive: true });
+        await use(inst.homeDir);
+        return;
+      }
+    }
+
+    // Fallback: derive a per-worker home dir from runId.
     const dir = path.join(repoRoot, 'e2e', '.playwright-artifacts-' + state.runId, `home-w${workerInfo.workerIndex}`);
     await fs.mkdir(dir, { recursive: true });
     await use(dir);

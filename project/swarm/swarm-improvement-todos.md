@@ -29,6 +29,27 @@ Tags:
 - 2026-01-06: Implemented P2 polish: Config compare/diff + syntax highlighting heuristics + template variable detection; added Inspect JSON tabs for configs/secrets/volumes; added Secret reveal confirmation + driver/external info; added shutdown cleanup for swarm volume helper containers (BE+FE); Go+unit tests passing.
 - 2026-01-06: Added Nodes Summary TLS info section (FE); unit tests passing.
 - 2026-01-06: Added Nodes Logs tab (task logs fallback, clearly labeled) (FE); unit tests passing.
+- 2026-01-07: E2E Swarm specs 71–75 implemented and iterated for CI/Windows stability; remaining work is hardening the last flaky assertions.
+- 2026-01-07: E2E: Volumes Files spec (71) switched download verification to toast-only (avoid filesystem flake under Wails/Windows).
+- 2026-01-07: E2E: Stacks update spec (75) changed to verify redeploy completion via docker CLI postcondition (service image updated), with toast as best-effort.
+- 2026-01-07: Note: Footer may show “Not connected to cluster” (Kubernetes state) even while Swarm flows work; do not treat as Swarm failure signal.
+
+---
+
+## Current E2E State (Swarm specs 71–75)
+
+Status snapshot (as of 2026-01-07):
+- Specs present: [e2e/tests/swarm/71-volumes-files.spec.ts](../../e2e/tests/swarm/71-volumes-files.spec.ts), [72-configs.spec.ts](../../e2e/tests/swarm/72-configs.spec.ts), [73-secrets.spec.ts](../../e2e/tests/swarm/73-secrets.spec.ts), [74-networks-volumes-usage.spec.ts](../../e2e/tests/swarm/74-networks-volumes-usage.spec.ts), [75-nodes-services-stacks.spec.ts](../../e2e/tests/swarm/75-nodes-services-stacks.spec.ts)
+- Spec 71: download assertion is toast-only; upload/edit/create/delete/unsaved-changes assertions remain UI-driven.
+- Spec 75: stack update is verified via `docker service inspect <stack>_web` image tag change; row clicks use `force: true` to avoid pointer interception.
+
+Known flaky symptoms (historical):
+- Pointer interception overlays can cause Playwright click retries (seen especially when opening stack rows).
+- Stack redeploy toast sometimes doesn’t render reliably; avoid toast-only assertions for redeploy completion.
+
+Next steps if anything still flakes:
+- If stack update still flakes: capture Playwright trace + screenshot, then add an explicit “wait until update modal closes” or poll service update status (tasks converge).
+- If any download-like flows flake again: prefer toast and/or app-visible state changes, not filesystem reads.
 
 ---
 

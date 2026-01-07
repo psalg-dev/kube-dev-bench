@@ -157,7 +157,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 	oldName := oldSec.Spec.Name
 
 	stamp := swarmSecretNowUTC().Format("2006-01-02T150405Z")
-	newName := fmt.Sprintf("%s@%s", oldName, stamp)
+	newName := swarmTimestampedName(oldName, stamp)
 	newSpec := oldSec.Spec
 	newSpec.Annotations.Name = newName
 	newSpec.Data = newData

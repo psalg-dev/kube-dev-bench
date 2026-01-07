@@ -9,12 +9,14 @@ export type RunState = {
   clusterName?: string;
   contextName?: string;
   kubeconfigYaml?: string;
-  wailsInstances?: Array<{ baseURL: string; pid?: number; port?: number }>;
+  wailsInstances?: Array<{ baseURL: string; pid?: number; port?: number; homeDir?: string; dialogDir?: string }>;
   frontendBaseURL?: string;
   frontendPid?: number;
   sharedBaseURL?: string;
   sharedWailsPid?: number;
   sharedVitePid?: number;
+  sharedHomeDir?: string;
+  sharedDialogDir?: string;
   proxyBaseURL?: string;
   proxyPid?: number;
 };

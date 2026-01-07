@@ -174,7 +174,7 @@ func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClie
 
 	// Create a new config with timestamp-suffixed name.
 	stamp := swarmConfigNowUTC().Format("2006-01-02T150405Z")
-	newName := fmt.Sprintf("%s@%s", oldName, stamp)
+	newName := swarmTimestampedName(oldName, stamp)
 	newSpec := oldCfg.Spec
 	newSpec.Annotations.Name = newName
 	newSpec.Data = newData

@@ -61,7 +61,7 @@ func (a *App) DownloadFromSwarmVolume(volumeName string, srcPath string) (string
 		}
 	}
 
-	destPath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+	destPath, err := a.saveFileDialogWithE2E(runtime.SaveDialogOptions{
 		Title:           "Save From Volume",
 		DefaultFilename: defaultName,
 		Filters: []runtime.FileFilter{
@@ -159,7 +159,7 @@ func (a *App) UploadToSwarmVolume(volumeName string, destPath string) (string, e
 		isDirIntent = true
 	}
 
-	localPath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+	localPath, err := a.openFileDialogWithE2E(runtime.OpenDialogOptions{
 		Title: "Select File To Upload",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "All Files", Pattern: "*"},

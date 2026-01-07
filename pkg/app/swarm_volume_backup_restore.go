@@ -96,7 +96,7 @@ func (a *App) BackupSwarmVolume(volumeName string) (string, error) {
 		return "", err
 	}
 
-	destPath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+	destPath, err := a.saveFileDialogWithE2E(runtime.SaveDialogOptions{
 		Title:           "Backup Volume",
 		DefaultFilename: filepath.Base(volumeName) + ".tar",
 		Filters: []runtime.FileFilter{
@@ -151,7 +151,7 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 		return "", fmt.Errorf("volume name required")
 	}
 
-	archivePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+	archivePath, err := a.openFileDialogWithE2E(runtime.OpenDialogOptions{
 		Title: "Select Volume Backup (.tar/.tar.gz/.tgz)",
 		Filters: []runtime.FileFilter{
 			{DisplayName: "Tar Archive", Pattern: "*.tar"},

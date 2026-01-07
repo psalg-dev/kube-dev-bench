@@ -21,6 +21,12 @@ export class SwarmSidebarPage {
   async goToSection(sectionKey: string) {
     const section = this.page.locator(`#section-${sectionKey}`);
     await expect(section).toBeVisible({ timeout: 30_000 });
+
+    // If we're already on the target section, don't click again.
+    // Re-clicking can be flaky when transient overlays intercept pointer events.
+    const currentClass = (await section.getAttribute('class').catch(() => '')) ?? '';
+    if (/\bselected\b/.test(currentClass)) return;
+
     await section.scrollIntoViewIfNeeded();
     await section.click({ timeout: 30_000 });
     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });

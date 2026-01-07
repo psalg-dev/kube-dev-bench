@@ -37,7 +37,7 @@ func (a *App) ExportSwarmConfig(configID string, defaultFilename string) (string
 		name = "config.txt"
 	}
 
-	destPath, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+	destPath, err := a.saveFileDialogWithE2E(runtime.SaveDialogOptions{
 		Title:           "Save Config",
 		DefaultFilename: name,
 		Filters: []runtime.FileFilter{

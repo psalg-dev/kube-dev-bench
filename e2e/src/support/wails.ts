@@ -113,14 +113,34 @@ export async function startWailsDev(opts: {
   const appDataDir = path.join(homeDir, 'AppData', 'Roaming');
   const localAppDataDir = path.join(homeDir, 'AppData', 'Local');
   const tmpDir = path.join(homeDir, 'tmp');
+  const e2eDialogDir = path.join(tmpDir, 'kdb-e2e-dialogs');
   const kubeDir = path.join(homeDir, '.kube');
   const kubeConfigPath = path.join(kubeDir, 'config');
   await Promise.all([
     fsp.mkdir(appDataDir, { recursive: true }),
     fsp.mkdir(localAppDataDir, { recursive: true }),
     fsp.mkdir(tmpDir, { recursive: true }),
+    fsp.mkdir(e2eDialogDir, { recursive: true }),
     fsp.mkdir(kubeDir, { recursive: true }),
   ]);
+
+  // Marker file so the Go backend can auto-detect the E2E dialog dir via os.TempDir().
+  // (Useful if KDB_E2E_DIALOG_DIR is not propagated by the runner on some platforms.)
+  try {
+    await fsp.writeFile(path.join(e2eDialogDir, 'enabled.txt'), `port=${port}\n`, 'utf-8');
+  } catch {
+    // ignore
+  }
+
+  // Repo-local mapping fallback (used when env vars are stripped):
+  // write the resolved dialog dir to e2e/.run/dialog-dirs/<port>.txt.
+  try {
+    const mappingDir = path.join(repoRoot, 'e2e', '.run', 'dialog-dirs');
+    await fsp.mkdir(mappingDir, { recursive: true });
+    await fsp.writeFile(path.join(mappingDir, `${port}.txt`), e2eDialogDir, 'utf-8');
+  } catch {
+    // ignore
+  }
 
   // Ensure a minimal kubeconfig exists. The app may attempt to read it during
   // initialization, and in E2E we isolate HOME/USERPROFILE so the default
@@ -180,6 +200,8 @@ export async function startWailsDev(opts: {
       // Avoid Vite dependency optimization cache corruption when multiple Wails instances
       // start Vite concurrently (Windows E2E with multiple workers).
       VITE_CACHE_DIR: path.join(tmpDir, 'vite-cache').replace(/\\/g, '/'),
+      // Let the Go backend bypass native OS file dialogs during E2E.
+      KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
       HOME: homeDir,
       USERPROFILE: homeDir,
