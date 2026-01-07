@@ -33,9 +33,15 @@ export class SwarmSidebarPage {
     // intercept pointer events. Prefer a normal click, but fall back to forced
     // click to ensure navigation remains deterministic.
     try {
-      await section.click({ timeout: 15_000 });
+      await section.click({ timeout: 5_000 });
     } catch {
-      await section.click({ timeout: 30_000, force: true });
+      // If the overlay truly sits above the sidebar, a forced mouse click can still
+      // land on the overlay. Triggering the DOM click handler is more reliable.
+      try {
+        await section.evaluate((el) => (el as HTMLElement).click());
+      } catch {
+        await section.click({ timeout: 30_000, force: true });
+      }
     }
     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
   }
