@@ -1,5 +1,14 @@
 import { expect, type Page } from '@playwright/test';
 
+const OPEN_WIZARD_STATUS = {
+  AlreadyVisible: 'already-visible',
+  AutoOpened: 'auto-opened',
+  ClickedButton: 'clicked-button',
+} as const;
+
+export type OpenWizardIfHiddenStatus =
+  (typeof OPEN_WIZARD_STATUS)[keyof typeof OPEN_WIZARD_STATUS];
+
 export class ConnectionWizardPage {
   constructor(private readonly page: Page) {}
 
@@ -20,18 +29,29 @@ export class ConnectionWizardPage {
     return await legacyWizard.isVisible().catch(() => false);
   }
 
-  async openWizardIfHidden() {
-    // Check for new layout or legacy overlay
-    if (await this.isNewWizardVisible() || await this.isLegacyWizardVisible()) {
-      return;
+  async openWizardIfHidden(): Promise<OpenWizardIfHiddenStatus> {
+    const wizard = this.page
+      .locator('.connection-wizard-layout, .connection-wizard-overlay')
+      .first();
+
+    // On cold start the wizard often opens automatically; give it a moment to render
+    // before we assume we must click the gear button.
+    if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
+      return OPEN_WIZARD_STATUS.AlreadyVisible;
     }
+
+    try {
+      await expect(wizard).toBeVisible({ timeout: 5_000 });
+      return OPEN_WIZARD_STATUS.AutoOpened;
+    } catch {
+      // Wizard did not auto-open; fall back to the explicit open button.
+    }
+
     const openBtn = this.page.locator('#show-wizard-btn');
     await expect(openBtn).toBeVisible({ timeout: 30_000 });
     await openBtn.click({ timeout: 30_000 });
-    // Wait for either new or legacy wizard
-    await expect(
-      this.page.locator('.connection-wizard-layout, .connection-wizard-overlay').first()
-    ).toBeVisible({ timeout: 30_000 });
+    await expect(wizard).toBeVisible({ timeout: 30_000 });
+    return OPEN_WIZARD_STATUS.ClickedButton;
   }
 
   async ensureWizardVisible() {

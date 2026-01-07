@@ -47,7 +47,8 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // If we are not in Swarm mode yet, connect via the main Connections wizard.
   // This is the same flow used by the dedicated Swarm connection E2E.
   const connectionsWizard = new ConnectionWizardPage(page);
-  await connectionsWizard.openWizardIfHidden();
+  const openWizardStatus = await connectionsWizard.openWizardIfHidden();
+  console.log(`[swarm-bootstrap] openWizardIfHidden: ${openWizardStatus}`);
 
   // If the wizard was already open, ensure it's actually visible and ready.
   await connectionsWizard.ensureWizardVisible();
