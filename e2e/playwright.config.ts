@@ -12,7 +12,7 @@ export default defineConfig({
     ? Number(process.env.PW_WORKERS)
     : process.platform === 'win32'
       ? 1
-      : 4,
+      : 3,
   retries: process.env.CI ? 1 : 0,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI
