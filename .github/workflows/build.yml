@@ -178,7 +178,7 @@ jobs:
         run: xvfb-run -a npx playwright test
         env:
           CI: true
-          PW_WORKERS: '4'
+          PW_WORKERS: '3'
           KIND_CLUSTER_NAME: 'kdb-e2e'
 
       - name: Upload e2e test results
