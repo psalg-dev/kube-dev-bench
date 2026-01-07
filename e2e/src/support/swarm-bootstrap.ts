@@ -37,6 +37,11 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
     await page.goto('/');
   }
 
+  // Wait for page to be fully loaded before checking connection state
+  // This prevents race conditions where the page is still initializing
+  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+  await page.waitForTimeout(1000); // Allow UI to settle
+
   // If the Swarm sidebar is already present, we're effectively "in Swarm mode".
   const isConnected = await sidebar.isSwarmConnected();
 
