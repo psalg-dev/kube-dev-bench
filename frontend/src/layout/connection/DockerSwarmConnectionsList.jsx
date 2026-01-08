@@ -68,6 +68,7 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
     swarmConnections,
     swarmDetecting,
     pinnedConnections,
+    hooks,
     actions,
   } = useConnectionsState();
 
@@ -150,6 +151,21 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
   const handleProxySettings = (e, connection) => {
     e.stopPropagation();
     actions.showProxySettings(true, { type: 'swarm', ...connection });
+  };
+
+  const handleHooksSettings = (e, connection) => {
+    e.stopPropagation();
+    actions.showHooksSettings(true, { type: 'swarm', id: connection.id, ...connection });
+  };
+
+  const hookCountFor = (connection) => {
+    const id = connection.host || connection.id;
+    const list = Array.isArray(hooks) ? hooks : [];
+    return list.filter((h) => {
+      const scope = h?.scope || 'global';
+      if (scope === 'global') return true;
+      return h?.scope === 'connection' && h?.connectionType === 'swarm' && h?.connectionId === id;
+    }).length;
   };
 
   return (
@@ -312,6 +328,46 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
                       title="Proxy settings"
                     >
                       🌐
+                    </button>
+
+                    <button
+                      id={`swarm-hooks-btn-${String(connection.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)}`}
+                      onClick={(e) => handleHooksSettings(e, connection)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--gh-border, #444)',
+                        color: 'var(--gh-text-secondary, #ccc)',
+                        padding: '4px 8px',
+                        borderRadius: 0,
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        position: 'relative',
+                      }}
+                      title="Hooks"
+                    >
+                      🪝
+                      {hookCountFor(connection) > 0 && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: -6,
+                            right: -6,
+                            background: 'var(--gh-accent, #0969da)',
+                            color: '#fff',
+                            fontSize: 10,
+                            lineHeight: '14px',
+                            minWidth: 14,
+                            height: 14,
+                            borderRadius: 0,
+                            padding: '0 4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {hookCountFor(connection)}
+                        </span>
+                      )}
                     </button>
                     <button
                       onClick={(e) => handleTestConnection(e, connection)}

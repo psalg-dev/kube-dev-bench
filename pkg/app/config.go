@@ -88,6 +88,18 @@ func (a *App) getKubeConfigPath() string {
 
 // SetKubeConfigPath sets the kubeconfig file path to use
 func (a *App) SetKubeConfigPath(path string) error {
+	// Run pre-connect hooks before validating the kubeconfig.
+	// This allows users to prepare environment or materialize files.
+	preEnv := map[string]string{
+		"KDB_CONNECTION_TYPE": "kubernetes",
+		"KDB_CONNECTION_ID":   path,
+		"KUBECONFIG":          path,
+		"KUBE_CONTEXT":        a.currentKubeContext,
+	}
+	if _, err := a.runPreConnectHooks("kubernetes", path, preEnv); err != nil {
+		return fmt.Errorf("pre-connect hook aborted connection: %w", err)
+	}
+
 	// Validate the file exists and is readable
 	if _, err := os.Stat(path); err != nil {
 		return fmt.Errorf("kubeconfig file not accessible: %w", err)
@@ -101,7 +113,13 @@ func (a *App) SetKubeConfigPath(path string) error {
 
 	// Store the path in our app config
 	a.kubeConfig = path
-	return a.saveConfig()
+	if err := a.saveConfig(); err != nil {
+		return err
+	}
+
+	// Fire post-connect hooks asynchronously after the kubeconfig is accepted.
+	a.runPostConnectHooksAsync("kubernetes", path, preEnv)
+	return nil
 }
 
 // SetCurrentKubeContext stores the selected context name

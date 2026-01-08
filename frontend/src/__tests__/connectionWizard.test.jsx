@@ -19,6 +19,16 @@ const mockGetProxyConfig = vi.fn();
 const mockSetProxyConfig = vi.fn();
 const mockDetectSystemProxy = vi.fn();
 
+// Hooks mocks
+const mockGetHooksConfig = vi.fn();
+const mockSaveHook = vi.fn();
+const mockDeleteHook = vi.fn();
+const mockTestHook = vi.fn();
+const mockSelectHookScript = vi.fn();
+
+// Wails runtime EventsOn mock (ConnectionsStateContext subscribes to hook events)
+const mockEventsOn = vi.fn(() => () => {});
+
 vi.mock('../../wailsjs/go/main/App', () => ({
   GetKubeConfigs: (...args) => mockGetKubeConfigs(...args),
   SelectKubeConfigFile: (...args) => mockSelectKubeConfigFile(...args),
@@ -34,6 +44,16 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   GetProxyConfig: (...args) => mockGetProxyConfig(...args),
   SetProxyConfig: (...args) => mockSetProxyConfig(...args),
   DetectSystemProxy: (...args) => mockDetectSystemProxy(...args),
+
+  GetHooksConfig: (...args) => mockGetHooksConfig(...args),
+  SaveHook: (...args) => mockSaveHook(...args),
+  DeleteHook: (...args) => mockDeleteHook(...args),
+  TestHook: (...args) => mockTestHook(...args),
+  SelectHookScript: (...args) => mockSelectHookScript(...args),
+}));
+
+vi.mock('../../../wailsjs/runtime/runtime.js', () => ({
+  EventsOn: (...args) => mockEventsOn(...args),
 }));
 
 // Mock swarmApi
@@ -89,6 +109,12 @@ describe('ConnectionWizard', () => {
     mockGetProxyConfig.mockResolvedValue({ HttpProxy: '', HttpsProxy: '', NoProxy: '' });
     mockDetectSystemProxy.mockResolvedValue({ HTTP_PROXY: '', HTTPS_PROXY: '', NO_PROXY: '' });
     mockSetProxyConfig.mockResolvedValue();
+
+    mockGetHooksConfig.mockResolvedValue({ hooks: [] });
+    mockSaveHook.mockResolvedValue({});
+    mockDeleteHook.mockResolvedValue();
+    mockTestHook.mockResolvedValue({ success: true, exitCode: 0, stdout: '', stderr: '' });
+    mockSelectHookScript.mockResolvedValue('');
   });
 
   describe('Layout structure', () => {

@@ -62,6 +62,7 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
     loading,
     error,
     pinnedConnections,
+    hooks,
     actions,
   } = useConnectionsState();
 
@@ -96,6 +97,21 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
   const handleProxySettings = (e, config) => {
     e.stopPropagation();
     actions.showProxySettings(true, { type: 'kubernetes', ...config });
+  };
+
+  const handleHooksSettings = (e, config) => {
+    e.stopPropagation();
+    actions.showHooksSettings(true, { type: 'kubernetes', id: config.path, ...config });
+  };
+
+  const hookCountFor = (config) => {
+    const id = config.path;
+    const list = Array.isArray(hooks) ? hooks : [];
+    return list.filter((h) => {
+      const scope = h?.scope || 'global';
+      if (scope === 'global') return true;
+      return h?.scope === 'connection' && h?.connectionType === 'kubernetes' && h?.connectionId === id;
+    }).length;
   };
 
   return (
@@ -230,6 +246,46 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
                       title="Proxy settings"
                     >
                       🌐
+                    </button>
+
+                    <button
+                      id={`kube-hooks-btn-${String(config.path).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)}`}
+                      onClick={(e) => handleHooksSettings(e, config)}
+                      style={{
+                        background: 'transparent',
+                        border: '1px solid var(--gh-border, #444)',
+                        color: 'var(--gh-text-secondary, #ccc)',
+                        padding: '4px 8px',
+                        borderRadius: 0,
+                        cursor: 'pointer',
+                        fontSize: 12,
+                        position: 'relative',
+                      }}
+                      title="Hooks"
+                    >
+                      🪝
+                      {hookCountFor(config) > 0 && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: -6,
+                            right: -6,
+                            background: 'var(--gh-accent, #0969da)',
+                            color: '#fff',
+                            fontSize: 10,
+                            lineHeight: '14px',
+                            minWidth: 14,
+                            height: 14,
+                            borderRadius: 0,
+                            padding: '0 4px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {hookCountFor(config)}
+                        </span>
+                      )}
                     </button>
                     <button
                       onClick={(e) => {
