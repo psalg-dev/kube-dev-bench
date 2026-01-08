@@ -14,8 +14,24 @@ export function AutoConnectDocker() {
   return window['go']['main']['App']['AutoConnectDocker']();
 }
 
+export function BackupSwarmVolume(arg1) {
+  return window['go']['main']['App']['BackupSwarmVolume'](arg1);
+}
+
 export function ClearProxyConfig() {
   return window['go']['main']['App']['ClearProxyConfig']();
+}
+
+export function CloneSwarmConfig(arg1, arg2) {
+  return window['go']['main']['App']['CloneSwarmConfig'](arg1, arg2);
+}
+
+export function CloneSwarmSecret(arg1, arg2, arg3) {
+  return window['go']['main']['App']['CloneSwarmSecret'](arg1, arg2, arg3);
+}
+
+export function CloneSwarmVolume(arg1, arg2) {
+  return window['go']['main']['App']['CloneSwarmVolume'](arg1, arg2);
 }
 
 export function ConnectToDocker(arg1) {
@@ -30,32 +46,12 @@ export function CreateSwarmConfig(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSwarmConfig'](arg1, arg2, arg3);
 }
 
-export function CloneSwarmConfig(arg1, arg2) {
-  return window['go']['main']['App']['CloneSwarmConfig'](arg1, arg2);
-}
-
-export function ExportSwarmConfig(arg1, arg2) {
-  return window['go']['main']['App']['ExportSwarmConfig'](arg1, arg2);
-}
-
 export function CreateSwarmNetwork(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSwarmNetwork'](arg1, arg2, arg3);
 }
 
 export function CreateSwarmSecret(arg1, arg2, arg3) {
   return window['go']['main']['App']['CreateSwarmSecret'](arg1, arg2, arg3);
-}
-
-export function CloneSwarmSecret(arg1, arg2, arg3) {
-  return window['go']['main']['App']['CloneSwarmSecret'](arg1, arg2, arg3);
-}
-
-export function GetSwarmSecretUsage(arg1) {
-  return window['go']['main']['App']['GetSwarmSecretUsage'](arg1);
-}
-
-export function UpdateSwarmSecretData(arg1, arg2) {
-  return window['go']['main']['App']['UpdateSwarmSecretData'](arg1, arg2);
 }
 
 export function CreateSwarmService(arg1) {
@@ -70,16 +66,8 @@ export function CreateSwarmVolume(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['CreateSwarmVolume'](arg1, arg2, arg3, arg4);
 }
 
-export function BackupSwarmVolume(arg1) {
-  return window['go']['main']['App']['BackupSwarmVolume'](arg1);
-}
-
-export function RestoreSwarmVolume(arg1) {
-  return window['go']['main']['App']['RestoreSwarmVolume'](arg1);
-}
-
-export function CloneSwarmVolume(arg1, arg2) {
-  return window['go']['main']['App']['CloneSwarmVolume'](arg1, arg2);
+export function CreateSwarmVolumeDirectory(arg1, arg2) {
+  return window['go']['main']['App']['CreateSwarmVolumeDirectory'](arg1, arg2);
 }
 
 export function DeleteConfigMap(arg1, arg2) {
@@ -96,6 +84,10 @@ export function DeleteDaemonSet(arg1, arg2) {
 
 export function DeleteDeployment(arg1, arg2) {
   return window['go']['main']['App']['DeleteDeployment'](arg1, arg2);
+}
+
+export function DeleteHook(arg1) {
+  return window['go']['main']['App']['DeleteHook'](arg1);
 }
 
 export function DeleteIngress(arg1, arg2) {
@@ -134,6 +126,10 @@ export function DeleteStatefulSet(arg1, arg2) {
   return window['go']['main']['App']['DeleteStatefulSet'](arg1, arg2);
 }
 
+export function DeleteSwarmVolumeFile(arg1, arg2, arg3) {
+  return window['go']['main']['App']['DeleteSwarmVolumeFile'](arg1, arg2, arg3);
+}
+
 export function DetectSystemProxy() {
   return window['go']['main']['App']['DetectSystemProxy']();
 }
@@ -142,8 +138,16 @@ export function DisconnectDocker() {
   return window['go']['main']['App']['DisconnectDocker']();
 }
 
+export function DownloadFromSwarmVolume(arg1, arg2) {
+  return window['go']['main']['App']['DownloadFromSwarmVolume'](arg1, arg2);
+}
+
 export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
+}
+
+export function ExportSwarmConfig(arg1, arg2) {
+  return window['go']['main']['App']['ExportSwarmConfig'](arg1, arg2);
 }
 
 export function GetConfigMapConsumers(arg1, arg2) {
@@ -156,14 +160,6 @@ export function GetConfigMapDataByName(arg1, arg2) {
 
 export function GetConfigMaps(arg1) {
   return window['go']['main']['App']['GetConfigMaps'](arg1);
-}
-
-export function GetSwarmConfigUsage(arg1) {
-  return window['go']['main']['App']['GetSwarmConfigUsage'](arg1);
-}
-
-export function UpdateSwarmConfigData(arg1, arg2) {
-  return window['go']['main']['App']['UpdateSwarmConfigData'](arg1, arg2);
 }
 
 export function GetConnectionStatus() {
@@ -248,6 +244,10 @@ export function GetHelmReleases(arg1) {
 
 export function GetHelmRepositories() {
   return window['go']['main']['App']['GetHelmRepositories']();
+}
+
+export function GetHooksConfig() {
+  return window['go']['main']['App']['GetHooksConfig']();
 }
 
 export function GetIngressDetail(arg1, arg2) {
@@ -442,6 +442,10 @@ export function GetSwarmConfigInspectJSON(arg1) {
   return window['go']['main']['App']['GetSwarmConfigInspectJSON'](arg1);
 }
 
+export function GetSwarmConfigUsage(arg1) {
+  return window['go']['main']['App']['GetSwarmConfigUsage'](arg1);
+}
+
 export function GetSwarmConfigs() {
   return window['go']['main']['App']['GetSwarmConfigs']();
 }
@@ -450,16 +454,16 @@ export function GetSwarmNetwork(arg1) {
   return window['go']['main']['App']['GetSwarmNetwork'](arg1);
 }
 
-export function GetSwarmNetworkServices(arg1) {
-  return window['go']['main']['App']['GetSwarmNetworkServices'](arg1);
-}
-
 export function GetSwarmNetworkContainers(arg1) {
   return window['go']['main']['App']['GetSwarmNetworkContainers'](arg1);
 }
 
 export function GetSwarmNetworkInspectJSON(arg1) {
   return window['go']['main']['App']['GetSwarmNetworkInspectJSON'](arg1);
+}
+
+export function GetSwarmNetworkServices(arg1) {
+  return window['go']['main']['App']['GetSwarmNetworkServices'](arg1);
 }
 
 export function GetSwarmNetworks() {
@@ -490,6 +494,10 @@ export function GetSwarmSecretInspectJSON(arg1) {
   return window['go']['main']['App']['GetSwarmSecretInspectJSON'](arg1);
 }
 
+export function GetSwarmSecretUsage(arg1) {
+  return window['go']['main']['App']['GetSwarmSecretUsage'](arg1);
+}
+
 export function GetSwarmSecrets() {
   return window['go']['main']['App']['GetSwarmSecrets']();
 }
@@ -506,20 +514,16 @@ export function GetSwarmServices() {
   return window['go']['main']['App']['GetSwarmServices']();
 }
 
-export function GetSwarmStackServices(arg1) {
-  return window['go']['main']['App']['GetSwarmStackServices'](arg1);
+export function GetSwarmStackComposeYAML(arg1) {
+  return window['go']['main']['App']['GetSwarmStackComposeYAML'](arg1);
 }
 
 export function GetSwarmStackResources(arg1) {
   return window['go']['main']['App']['GetSwarmStackResources'](arg1);
 }
 
-export function GetSwarmStackComposeYAML(arg1) {
-  return window['go']['main']['App']['GetSwarmStackComposeYAML'](arg1);
-}
-
-export function RollbackSwarmStack(arg1) {
-  return window['go']['main']['App']['RollbackSwarmStack'](arg1);
+export function GetSwarmStackServices(arg1) {
+  return window['go']['main']['App']['GetSwarmStackServices'](arg1);
 }
 
 export function GetSwarmStacks() {
@@ -546,52 +550,24 @@ export function GetSwarmVolume(arg1) {
   return window['go']['main']['App']['GetSwarmVolume'](arg1);
 }
 
-export function GetVolumeInfo(arg1) {
-  return window['go']['main']['App']['GetVolumeInfo'](arg1);
-}
-
-export function GetSwarmVolumeUsage(arg1) {
-  return window['go']['main']['App']['GetSwarmVolumeUsage'](arg1);
+export function GetSwarmVolumeFileContent(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetSwarmVolumeFileContent'](arg1, arg2, arg3);
 }
 
 export function GetSwarmVolumeInspectJSON(arg1) {
   return window['go']['main']['App']['GetSwarmVolumeInspectJSON'](arg1);
 }
 
-export function DownloadFromSwarmVolume(arg1, arg2) {
-  return window['go']['main']['App']['DownloadFromSwarmVolume'](arg1, arg2);
-}
-
-export function UploadToSwarmVolume(arg1, arg2) {
-  return window['go']['main']['App']['UploadToSwarmVolume'](arg1, arg2);
-}
-
-export function WriteSwarmVolumeFile(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['WriteSwarmVolumeFile'](arg1, arg2, arg3, arg4);
-}
-
-export function DeleteSwarmVolumeFile(arg1, arg2, arg3) {
-  return window['go']['main']['App']['DeleteSwarmVolumeFile'](arg1, arg2, arg3);
-}
-
-export function CreateSwarmVolumeDirectory(arg1, arg2) {
-  return window['go']['main']['App']['CreateSwarmVolumeDirectory'](arg1, arg2);
-}
-
-export function IsSwarmVolumeReadOnly(arg1) {
-  return window['go']['main']['App']['IsSwarmVolumeReadOnly'](arg1);
-}
-
-export function ListSwarmVolumeFiles(arg1, arg2) {
-  return window['go']['main']['App']['ListSwarmVolumeFiles'](arg1, arg2);
-}
-
-export function GetSwarmVolumeFileContent(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetSwarmVolumeFileContent'](arg1, arg2, arg3);
+export function GetSwarmVolumeUsage(arg1) {
+  return window['go']['main']['App']['GetSwarmVolumeUsage'](arg1);
 }
 
 export function GetSwarmVolumes() {
   return window['go']['main']['App']['GetSwarmVolumes']();
+}
+
+export function GetVolumeInfo(arg1) {
+  return window['go']['main']['App']['GetVolumeInfo'](arg1);
 }
 
 export function Greet(arg1) {
@@ -606,12 +582,20 @@ export function IsProxyEnabled() {
   return window['go']['main']['App']['IsProxyEnabled']();
 }
 
+export function IsSwarmVolumeReadOnly(arg1) {
+  return window['go']['main']['App']['IsSwarmVolumeReadOnly'](arg1);
+}
+
 export function ListPVCFiles(arg1, arg2, arg3) {
   return window['go']['main']['App']['ListPVCFiles'](arg1, arg2, arg3);
 }
 
 export function ListPortForwards() {
   return window['go']['main']['App']['ListPortForwards']();
+}
+
+export function ListSwarmVolumeFiles(arg1, arg2) {
+  return window['go']['main']['App']['ListSwarmVolumeFiles'](arg1, arg2);
 }
 
 export function PortForwardPod(arg1, arg2, arg3) {
@@ -690,6 +674,10 @@ export function RestartSwarmService(arg1) {
   return window['go']['main']['App']['RestartSwarmService'](arg1);
 }
 
+export function RestoreSwarmVolume(arg1) {
+  return window['go']['main']['App']['RestoreSwarmVolume'](arg1);
+}
+
 export function ResumeCronJob(arg1, arg2) {
   return window['go']['main']['App']['ResumeCronJob'](arg1, arg2);
 }
@@ -702,8 +690,16 @@ export function RollbackHelmRelease(arg1, arg2, arg3) {
   return window['go']['main']['App']['RollbackHelmRelease'](arg1, arg2, arg3);
 }
 
+export function RollbackSwarmStack(arg1) {
+  return window['go']['main']['App']['RollbackSwarmStack'](arg1);
+}
+
 export function SaveCustomKubeConfig(arg1, arg2) {
   return window['go']['main']['App']['SaveCustomKubeConfig'](arg1, arg2);
+}
+
+export function SaveHook(arg1) {
+  return window['go']['main']['App']['SaveHook'](arg1);
 }
 
 export function SavePrimaryKubeConfig(arg1) {
@@ -724,6 +720,10 @@ export function SearchHelmCharts(arg1) {
 
 export function SearchPodFiles(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['SearchPodFiles'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function SelectHookScript() {
+  return window['go']['main']['App']['SelectHookScript']();
 }
 
 export function SelectKubeConfigFile() {
@@ -764,6 +764,10 @@ export function SetRememberNamespace(arg1) {
 
 export function ShellPod(arg1, arg2) {
   return window['go']['main']['App']['ShellPod'](arg1, arg2);
+}
+
+export function Shutdown(arg1) {
+  return window['go']['main']['App']['Shutdown'](arg1);
 }
 
 export function StartCronJobPolling() {
@@ -870,6 +874,10 @@ export function TestDockerConnection(arg1) {
   return window['go']['main']['App']['TestDockerConnection'](arg1);
 }
 
+export function TestHook(arg1) {
+  return window['go']['main']['App']['TestHook'](arg1);
+}
+
 export function UninstallHelmRelease(arg1, arg2) {
   return window['go']['main']['App']['UninstallHelmRelease'](arg1, arg2);
 }
@@ -886,6 +894,10 @@ export function UpdateSecretDataKey(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['UpdateSecretDataKey'](arg1, arg2, arg3, arg4);
 }
 
+export function UpdateSwarmConfigData(arg1, arg2) {
+  return window['go']['main']['App']['UpdateSwarmConfigData'](arg1, arg2);
+}
+
 export function UpdateSwarmNodeAvailability(arg1, arg2) {
   return window['go']['main']['App']['UpdateSwarmNodeAvailability'](arg1, arg2);
 }
@@ -898,10 +910,22 @@ export function UpdateSwarmNodeRole(arg1, arg2) {
   return window['go']['main']['App']['UpdateSwarmNodeRole'](arg1, arg2);
 }
 
+export function UpdateSwarmSecretData(arg1, arg2) {
+  return window['go']['main']['App']['UpdateSwarmSecretData'](arg1, arg2);
+}
+
 export function UpdateSwarmServiceImage(arg1, arg2) {
   return window['go']['main']['App']['UpdateSwarmServiceImage'](arg1, arg2);
 }
 
 export function UpgradeHelmRelease(arg1) {
   return window['go']['main']['App']['UpgradeHelmRelease'](arg1);
+}
+
+export function UploadToSwarmVolume(arg1, arg2) {
+  return window['go']['main']['App']['UploadToSwarmVolume'](arg1, arg2);
+}
+
+export function WriteSwarmVolumeFile(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['WriteSwarmVolumeFile'](arg1, arg2, arg3, arg4);
 }

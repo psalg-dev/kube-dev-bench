@@ -14,6 +14,11 @@ import {
   GetProxyConfig,
   SetProxyConfig,
   DetectSystemProxy,
+  GetHooksConfig,
+  SaveHook,
+  DeleteHook,
+  TestHook,
+  SelectHookScript,
 } from '../../../wailsjs/go/main/App';
 import {
   GetDockerConnectionStatus,
@@ -22,6 +27,9 @@ import {
   ConnectToDocker,
   GetDefaultDockerHost,
 } from '../../docker/swarmApi.js';
+
+import { EventsOn } from '../../../wailsjs/runtime/runtime.js';
+import { showError, showSuccess, showWarning } from '../../notification.js';
 
 function withTimeout(promise, timeoutMs, timeoutMessage) {
   let timeoutId;
@@ -59,11 +67,18 @@ const initialState = {
   },
   systemProxy: {},
 
+  // Connection hooks
+  hooks: [],
+
   // Overlay state
   showAddKubeConfigOverlay: false,
   showAddSwarmOverlay: false,
   showProxySettings: false,
   editingConnectionProxy: null, // connection being edited for proxy settings
+
+  showHooksSettings: false,
+  editingHook: null,
+  editingConnectionHooks: null, // connection being edited for hooks settings
 };
 
 export { initialState };
@@ -112,12 +127,25 @@ function reducer(state, action) {
       return { ...state, proxyConfig: action.config };
     case 'SET_SYSTEM_PROXY':
       return { ...state, systemProxy: action.proxy };
+
+    case 'SET_HOOKS':
+      return { ...state, hooks: action.hooks };
     case 'SHOW_ADD_KUBECONFIG_OVERLAY':
       return { ...state, showAddKubeConfigOverlay: action.show };
     case 'SHOW_ADD_SWARM_OVERLAY':
       return { ...state, showAddSwarmOverlay: action.show };
     case 'SHOW_PROXY_SETTINGS':
       return { ...state, showProxySettings: action.show, editingConnectionProxy: action.connection || null };
+
+    case 'SHOW_HOOKS_SETTINGS':
+      return {
+        ...state,
+        showHooksSettings: action.show,
+        editingConnectionHooks: action.connection || null,
+        editingHook: action.show ? state.editingHook : null,
+      };
+    case 'SET_EDITING_HOOK':
+      return { ...state, editingHook: action.hook };
     default:
       return state;
   }
@@ -251,12 +279,64 @@ export function ConnectionsStateProvider({ children }) {
     }
   }, []);
 
+  // Load hooks config
+  const loadHooks = useCallback(async () => {
+    try {
+      const cfg = await GetHooksConfig();
+      const hooks = Array.isArray(cfg?.hooks) ? cfg.hooks : [];
+      dispatch({ type: 'SET_HOOKS', hooks });
+      return hooks;
+    } catch (err) {
+      console.error('Failed to load hooks config:', err);
+      dispatch({ type: 'SET_HOOKS', hooks: [] });
+      return [];
+    }
+  }, []);
+
   // Initialize on mount
   useEffect(() => {
     loadKubeConfigs();
     detectSwarmConnections();
     loadProxyConfig();
-  }, [loadKubeConfigs, detectSwarmConnections, loadProxyConfig]);
+    loadHooks();
+  }, [loadKubeConfigs, detectSwarmConnections, loadProxyConfig, loadHooks]);
+
+  // Subscribe to hook events for notifications
+  useEffect(() => {
+    const offs = [];
+    try {
+      offs.push(
+        EventsOn('hook:started', (payload) => {
+          const hookName = payload?.hook?.name || 'Hook';
+          showWarning(`Running hook: ${hookName}`, { duration: 1500, dismissible: true });
+        })
+      );
+      offs.push(
+        EventsOn('hook:completed', (payload) => {
+          const hookName = payload?.hook?.name || 'Hook';
+          const res = payload?.result;
+          if (res?.success) {
+            showSuccess(`Hook completed: ${hookName}`, { duration: 2000, dismissible: true });
+          } else {
+            const msg = res?.error || res?.stderr || 'Hook failed';
+            showWarning(`Hook failed: ${hookName}\n${msg}`, { duration: 3000, dismissible: true });
+          }
+        })
+      );
+    } catch {
+      // ignore; EventsOn may not be available in some test environments
+    }
+
+    return () => {
+      for (const off of offs) {
+        try {
+          if (typeof off === 'function') off();
+        } catch {
+          // ignore
+        }
+      }
+    };
+  }, []);
 
   // Actions
   const actions = {
@@ -279,8 +359,65 @@ export function ConnectionsStateProvider({ children }) {
     showProxySettings: (show, connection = null) =>
       dispatch({ type: 'SHOW_PROXY_SETTINGS', show, connection }),
 
+    showHooksSettings: (show, connection = null) =>
+      dispatch({ type: 'SHOW_HOOKS_SETTINGS', show, connection }),
+
+    setEditingHook: (hook) => dispatch({ type: 'SET_EDITING_HOOK', hook }),
+
     loadKubeConfigs,
     detectSwarmConnections,
+    loadHooks,
+
+    browseHookScript: async () => {
+      try {
+        const p = await SelectHookScript();
+        return p || '';
+      } catch (err) {
+        dispatch({ type: 'SET_ERROR', error: 'Failed to select hook script: ' + err });
+        return '';
+      }
+    },
+
+    saveHook: async (hook) => {
+      try {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        dispatch({ type: 'SET_ERROR', error: '' });
+        const saved = await SaveHook(hook);
+        await loadHooks();
+        return saved;
+      } catch (err) {
+        dispatch({ type: 'SET_ERROR', error: 'Failed to save hook: ' + err });
+        return null;
+      } finally {
+        dispatch({ type: 'SET_LOADING', loading: false });
+      }
+    },
+
+    deleteHook: async (hookId) => {
+      try {
+        dispatch({ type: 'SET_LOADING', loading: true });
+        dispatch({ type: 'SET_ERROR', error: '' });
+        await DeleteHook(hookId);
+        await loadHooks();
+        return true;
+      } catch (err) {
+        dispatch({ type: 'SET_ERROR', error: 'Failed to delete hook: ' + err });
+        return false;
+      } finally {
+        dispatch({ type: 'SET_LOADING', loading: false });
+      }
+    },
+
+    testHook: async (hookId) => {
+      try {
+        dispatch({ type: 'SET_ERROR', error: '' });
+        const res = await TestHook(hookId);
+        return res;
+      } catch (err) {
+        dispatch({ type: 'SET_ERROR', error: 'Failed to test hook: ' + err });
+        return null;
+      }
+    },
 
     browseKubeConfigFile: async () => {
       try {
@@ -379,6 +516,10 @@ export function ConnectionsStateProvider({ children }) {
 
         return true;
       } catch (err) {
+        const msg = String(err || '');
+        if (msg.includes('pre-connect hook aborted')) {
+          showError('Connection aborted by hook', { duration: 3000 });
+        }
         dispatch({ type: 'SET_ERROR', error: 'Failed to connect: ' + err });
         return false;
       } finally {
@@ -441,6 +582,11 @@ export function ConnectionsStateProvider({ children }) {
           30_000,
           'Docker connect timed out'
         );
+
+		// Surface hook-abort errors as notifications.
+		if (result && !result.connected && String(result.error || '').includes('pre-connect hook aborted')) {
+			showError('Docker connection aborted by hook', { duration: 3000 });
+		}
         return result;
       } catch (err) {
         dispatch({ type: 'SET_ERROR', error: `Failed to connect to Docker: ${err}` });

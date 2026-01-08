@@ -24,6 +24,10 @@ export const appApiMocks = {};
 
 const appFunctionNames = [
   'CreateResource','DeletePod','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','ResizePersistentVolumeClaim','GetServiceSummary','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetReplicaSets','GetResourceCounts','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
+  // Proxy functions
+  'GetProxyConfig','SetProxyConfig','DetectSystemProxy','ClearProxyConfig',
+  // Hooks functions
+  'GetHooksConfig','SaveHook','DeleteHook','TestHook','SelectHookScript',
   // Docker / Swarm functions
   'GetDockerConnectionStatus','ConnectToDocker','TestDockerConnection','DisconnectDocker','GetDockerConfig','AutoConnectDocker','GetDefaultDockerHost',
   'GetSwarmServices','GetSwarmService','ScaleSwarmService','RemoveSwarmService','UpdateSwarmServiceImage','RestartSwarmService',
