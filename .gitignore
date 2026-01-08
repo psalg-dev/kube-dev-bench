@@ -22,3 +22,4 @@ coverage.out
 e2e-test-results*/
 e2e-test-results*.zip
 /.tmp
+/coverage*

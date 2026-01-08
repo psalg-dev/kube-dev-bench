@@ -1,7 +1,7 @@
 [] open ai integration for error / warning resolution assist
 [] talk to your cluster?
 [] global command prompt
-[] pre / post connect callbacks
+[x] pre / post connect callbacks
 [] cluster debug helpers
 [] kubectl shortcuts
 [x] full coverage reporting
