@@ -12,20 +12,22 @@ export class Notifications {
     await expect(this.page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: timeoutMs });
   }
 
-  async expectSuccessContains(text: string | RegExp) {
+  async expectSuccessContains(text: string | RegExp, opts: { timeoutMs?: number } = {}) {
+    const timeoutMs = opts.timeoutMs ?? 60_000;
     const msg = this.page
       .locator('.gh-notification--success .gh-notification__text')
       .filter({ hasText: this.asTextMatcher(text) })
       .first();
-    await expect(msg).toBeVisible({ timeout: 60_000 });
+    await expect(msg).toBeVisible({ timeout: timeoutMs });
   }
 
-  async expectErrorContains(text: string | RegExp) {
+  async expectErrorContains(text: string | RegExp, opts: { timeoutMs?: number } = {}) {
+    const timeoutMs = opts.timeoutMs ?? 60_000;
     const msg = this.page
       .locator('.gh-notification--error .gh-notification__text')
       .filter({ hasText: this.asTextMatcher(text) })
       .first();
-    await expect(msg).toBeVisible({ timeout: 60_000 });
+    await expect(msg).toBeVisible({ timeout: timeoutMs });
   }
 
   notificationText(text: string | RegExp) {

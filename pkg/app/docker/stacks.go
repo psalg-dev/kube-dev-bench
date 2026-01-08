@@ -127,3 +127,23 @@ func removeSwarmStack(ctx context.Context, cli swarmStacksClient, stackName stri
 
 	return nil
 }
+
+// RollbackSwarmStack performs a best-effort rollback of all services in a stack.
+// Note: Swarm does not have a native "stack rollback" primitive; this iterates services.
+func RollbackSwarmStack(ctx context.Context, cli *client.Client, stackName string) error {
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, svc := range services {
+		if svc.Spec.Labels["com.docker.stack.namespace"] != stackName {
+			continue
+		}
+		if err := RollbackSwarmService(ctx, cli, svc.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

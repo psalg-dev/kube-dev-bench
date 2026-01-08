@@ -406,15 +406,16 @@ export function ConnectionsStateProvider({ children }) {
 
     testSwarmConnection: async (config) => {
       try {
+        const dockerConfig = {
+          host: config.host,
+          tlsEnabled: config.tlsEnabled || false,
+          tlsCert: config.tlsCert || '',
+          tlsKey: config.tlsKey || '',
+          tlsCA: config.tlsCA || '',
+          tlsVerify: config.tlsVerify !== false,
+        };
         const result = await withTimeout(
-          TestDockerConnection(
-            config.host,
-            config.tlsEnabled || false,
-            config.tlsCert || '',
-            config.tlsKey || '',
-            config.tlsCA || '',
-            config.tlsVerify !== false
-          ),
+          TestDockerConnection(dockerConfig),
           15_000,
           'Docker connection test timed out'
         );

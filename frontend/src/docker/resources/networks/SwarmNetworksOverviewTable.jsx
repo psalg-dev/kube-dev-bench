@@ -3,6 +3,10 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
+import NetworkConnectedServicesSection from './NetworkConnectedServicesSection.jsx';
+import NetworkConnectedContainersSection from './NetworkConnectedContainersSection.jsx';
+import NetworkInspectTab from './NetworkInspectTab.jsx';
+import { NetworkIPAMSection, NetworkOptionsSection } from './NetworkDetailsSections.jsx';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
@@ -34,62 +38,85 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'services', label: 'Connected Services' },
+  { key: 'containers', label: 'Containers' },
+  { key: 'inspect', label: 'Inspect' },
 ];
 
 function renderPanelContent(row, tab, onRefresh) {
+  const quickInfoFields = [
+    { key: 'id', label: 'Network ID', type: 'break-word' },
+    { key: 'name', label: 'Name' },
+    { key: 'driver', label: 'Driver' },
+    { key: 'scope', label: 'Scope' },
+    { key: 'attachable', label: 'Attachable', getValue: (d) => d.attachable ? 'Yes' : 'No' },
+    { key: 'internal', label: 'Internal', getValue: (d) => d.internal ? 'Yes' : 'No' },
+    { key: 'labels', label: 'Labels', type: 'labels' },
+    { key: 'createdAt', label: 'Created', type: 'date' },
+  ];
+
+  // Can't delete built-in networks
+  const isBuiltIn = ['bridge', 'host', 'none', 'ingress', 'docker_gwbridge'].includes(row.name);
+
+  const handleDelete = async () => {
+    try {
+      await RemoveSwarmNetwork(row.id);
+      showSuccess(`Network ${row.name} removed`);
+      onRefresh?.();
+    } catch (err) {
+      showError(`Failed to remove network: ${err}`);
+    }
+  };
+
+  let rightContent = null;
   if (tab === 'summary') {
-    const quickInfoFields = [
-      { key: 'id', label: 'Network ID', type: 'break-word' },
-      { key: 'name', label: 'Name' },
-      { key: 'driver', label: 'Driver' },
-      { key: 'scope', label: 'Scope' },
-      { key: 'attachable', label: 'Attachable', getValue: (d) => d.attachable ? 'Yes' : 'No' },
-      { key: 'internal', label: 'Internal', getValue: (d) => d.internal ? 'Yes' : 'No' },
-      { key: 'createdAt', label: 'Created', type: 'date' },
-    ];
-
-    // Can't delete built-in networks
-    const isBuiltIn = ['bridge', 'host', 'none', 'ingress', 'docker_gwbridge'].includes(row.name);
-
-    const handleDelete = async () => {
-      try {
-        await RemoveSwarmNetwork(row.id);
-        showSuccess(`Network ${row.name} removed`);
-        onRefresh?.();
-      } catch (err) {
-        showError(`Failed to remove network: ${err}`);
-      }
-    };
-
-    return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader
-          name={row.name}
-          labels={row.labels}
-          actions={
-            !isBuiltIn && (
-              <SwarmResourceActions
-                resourceType="network"
-                name={row.name}
-                onDelete={handleDelete}
-              />
-            )
-          }
-        />
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
-          <QuickInfoSection
-            resourceName={row.name}
-            data={row}
-            loading={false}
-            error={null}
-            fields={quickInfoFields}
-          />
-        </div>
+    rightContent = (
+      <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+        <NetworkOptionsSection options={row.options} />
+        <NetworkIPAMSection ipam={row.ipam} />
+      </div>
+    );
+  } else if (tab === 'services') {
+    rightContent = <NetworkConnectedServicesSection networkId={row.id} />;
+  } else if (tab === 'containers') {
+    rightContent = <NetworkConnectedContainersSection networkId={row.id} />;
+  } else if (tab === 'inspect') {
+    rightContent = (
+      <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <NetworkInspectTab networkId={row.id} />
       </div>
     );
   }
 
-  return null;
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <SummaryTabHeader
+        name={row.name}
+        labels={row.labels}
+        actions={
+          !isBuiltIn && (
+            <SwarmResourceActions
+              resourceType="network"
+              name={row.name}
+              onDelete={handleDelete}
+            />
+          )
+        }
+      />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+        <QuickInfoSection
+          resourceName={row.name}
+          data={row}
+          loading={false}
+          error={null}
+          fields={quickInfoFields}
+        />
+        <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
+          {rightContent}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function SwarmNetworksOverviewTable() {

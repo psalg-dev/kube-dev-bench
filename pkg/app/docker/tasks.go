@@ -144,6 +144,30 @@ func taskToInfo(task swarm.Task, serviceNames, nodeNames map[string]string) Swar
 		UpdatedAt:    task.UpdatedAt.Format(time.RFC3339),
 	}
 
+	if task.Spec.ContainerSpec != nil {
+		info.Image = task.Spec.ContainerSpec.Image
+		if task.Spec.ContainerSpec.Mounts != nil {
+			info.Mounts = mountsToInfo(task.Spec.ContainerSpec.Mounts)
+		}
+	}
+
+	if len(task.NetworksAttachments) > 0 {
+		nets := make([]SwarmTaskNetworkInfo, 0, len(task.NetworksAttachments))
+		for _, na := range task.NetworksAttachments {
+			if na.Network.ID == "" {
+				continue
+			}
+			addrs := append([]string{}, na.Addresses...)
+			nets = append(nets, SwarmTaskNetworkInfo{
+				NetworkID: na.Network.ID,
+				Addresses: addrs,
+			})
+		}
+		if len(nets) > 0 {
+			info.Networks = nets
+		}
+	}
+
 	// Get container ID if available
 	if task.Status.ContainerStatus != nil {
 		info.ContainerID = task.Status.ContainerStatus.ContainerID

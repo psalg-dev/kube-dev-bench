@@ -2,10 +2,12 @@ package docker
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -183,6 +185,65 @@ func serviceToInfo(svc swarm.Service, runningTasks uint64) SwarmServiceInfo {
 	// Get image from container spec
 	if svc.Spec.TaskTemplate.ContainerSpec != nil {
 		info.Image = svc.Spec.TaskTemplate.ContainerSpec.Image
+		if svc.Spec.TaskTemplate.ContainerSpec.Env != nil {
+			info.Env = append([]string{}, svc.Spec.TaskTemplate.ContainerSpec.Env...)
+		}
+		if svc.Spec.TaskTemplate.ContainerSpec.Mounts != nil {
+			info.Mounts = mountsToInfo(svc.Spec.TaskTemplate.ContainerSpec.Mounts)
+		}
+	}
+
+	if svc.Spec.UpdateConfig != nil {
+		info.UpdateConfig = &SwarmUpdateConfigInfo{
+			Parallelism:     svc.Spec.UpdateConfig.Parallelism,
+			Delay:           svc.Spec.UpdateConfig.Delay.String(),
+			FailureAction:   string(svc.Spec.UpdateConfig.FailureAction),
+			Monitor:         svc.Spec.UpdateConfig.Monitor.String(),
+			MaxFailureRatio: float64(svc.Spec.UpdateConfig.MaxFailureRatio),
+			Order:           string(svc.Spec.UpdateConfig.Order),
+		}
+	}
+
+	if svc.Spec.TaskTemplate.Resources != nil {
+		info.Resources = &SwarmResourcesInfo{}
+		if svc.Spec.TaskTemplate.Resources.Limits != nil {
+			info.Resources.Limits = &SwarmResourceLimitsInfo{
+				NanoCPUs:    svc.Spec.TaskTemplate.Resources.Limits.NanoCPUs,
+				MemoryBytes: svc.Spec.TaskTemplate.Resources.Limits.MemoryBytes,
+			}
+		}
+		if svc.Spec.TaskTemplate.Resources.Reservations != nil {
+			info.Resources.Reservations = &SwarmResourceLimitsInfo{
+				NanoCPUs:    svc.Spec.TaskTemplate.Resources.Reservations.NanoCPUs,
+				MemoryBytes: svc.Spec.TaskTemplate.Resources.Reservations.MemoryBytes,
+			}
+		}
+		if info.Resources.Limits == nil && info.Resources.Reservations == nil {
+			info.Resources = nil
+		}
+	}
+
+	if svc.Spec.TaskTemplate.Placement != nil {
+		p := svc.Spec.TaskTemplate.Placement
+		out := &SwarmPlacementInfo{
+			Constraints: append([]string{}, p.Constraints...),
+			MaxReplicas: p.MaxReplicas,
+		}
+		if len(p.Preferences) > 0 {
+			prefs := make([]string, 0, len(p.Preferences))
+			for _, pref := range p.Preferences {
+				if pref.Spread != nil {
+					prefs = append(prefs, fmt.Sprintf("spread:%s", pref.Spread.SpreadDescriptor))
+					continue
+				}
+				prefs = append(prefs, fmt.Sprintf("%+v", pref))
+			}
+			out.Preferences = prefs
+		}
+		if len(out.Constraints) == 0 && len(out.Preferences) == 0 && out.MaxReplicas == 0 {
+			out = nil
+		}
+		info.Placement = out
 	}
 
 	// Determine mode and replicas
@@ -215,6 +276,22 @@ func serviceToInfo(svc swarm.Service, runningTasks uint64) SwarmServiceInfo {
 	}
 
 	return info
+}
+
+func mountsToInfo(mounts []mount.Mount) []SwarmMountInfo {
+	if len(mounts) == 0 {
+		return nil
+	}
+	out := make([]SwarmMountInfo, 0, len(mounts))
+	for _, m := range mounts {
+		out = append(out, SwarmMountInfo{
+			Type:     string(m.Type),
+			Source:   m.Source,
+			Target:   m.Target,
+			ReadOnly: m.ReadOnly,
+		})
+	}
+	return out
 }
 
 // ScaleSwarmService scales a replicated service to the specified number of replicas
@@ -286,5 +363,21 @@ func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID
 	svc.Spec.TaskTemplate.ForceUpdate++
 
 	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	return err
+}
+
+// RollbackSwarmService performs a best-effort rollback to the previous service specification.
+// This mirrors `docker service rollback` behavior when supported by the Docker API.
+func RollbackSwarmService(ctx context.Context, cli *client.Client, serviceID string) error {
+	return rollbackSwarmService(ctx, cli, serviceID)
+}
+
+func rollbackSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{Rollback: "previous"})
 	return err
 }

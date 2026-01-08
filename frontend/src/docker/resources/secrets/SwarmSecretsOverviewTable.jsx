@@ -5,6 +5,10 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
+import SecretEditModal from './SecretEditModal.jsx';
+import SecretCloneModal from './SecretCloneModal.jsx';
+import SecretUsedBySection from './SecretUsedBySection.jsx';
+import SecretInspectTab from './SecretInspectTab.jsx';
 import { GetSwarmSecrets, RemoveSwarmSecret } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
@@ -43,10 +47,13 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
+  { key: 'inspect', label: 'Inspect' },
 ];
 
-function renderPanelContent(row, tab, onRefresh) {
-  if (tab !== 'summary') return null;
+function SecretSummaryPanel({ row, onRefresh }) {
+  const [showEdit, setShowEdit] = useState(false);
+  const [showRotate, setShowRotate] = useState(false);
+  const [showClone, setShowClone] = useState(false);
 
   const handleDelete = async () => {
     if (!window.confirm(`Delete secret "${row.name}"?`)) return;
@@ -64,7 +71,28 @@ function renderPanelContent(row, tab, onRefresh) {
     { key: 'name', label: 'Name' },
     { key: 'createdAt', label: 'Created', type: 'date' },
     { key: 'updatedAt', label: 'Updated', type: 'date' },
+    {
+      key: 'driverName',
+      label: 'Driver',
+      getValue: (d) => d?.driverName || '-',
+    },
+    {
+      key: 'external',
+      label: 'External',
+      getValue: (d) => (d?.driverName ? 'Yes' : 'No'),
+    },
   ];
+
+  const buttonStyle = {
+    padding: '6px 12px',
+    borderRadius: 4,
+    border: '1px solid var(--gh-border, #30363d)',
+    backgroundColor: 'var(--gh-button-bg, #21262d)',
+    color: 'var(--gh-text, #c9d1d9)',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 500,
+  };
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -72,13 +100,25 @@ function renderPanelContent(row, tab, onRefresh) {
         name={row.name}
         labels={row.labels}
         actions={(
-          <SwarmResourceActions
-            resourceType="secret"
-            name={row.name}
-            onDelete={handleDelete}
-          />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button id="swarm-secret-edit-btn" style={buttonStyle} onClick={() => setShowEdit(true)}>
+              Edit
+            </button>
+            <button id="swarm-secret-rotate-btn" style={buttonStyle} onClick={() => setShowRotate(true)}>
+              Rotate
+            </button>
+            <button id="swarm-secret-clone-btn" style={buttonStyle} onClick={() => setShowClone(true)}>
+              Clone
+            </button>
+            <SwarmResourceActions
+              resourceType="secret"
+              name={row.name}
+              onDelete={handleDelete}
+            />
+          </div>
         )}
       />
+
       <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
         <QuickInfoSection
           resourceName={row.name}
@@ -87,9 +127,41 @@ function renderPanelContent(row, tab, onRefresh) {
           error={null}
           fields={quickInfoFields}
         />
+        <SecretUsedBySection secretId={row.id} />
       </div>
+
+      <SecretEditModal
+        open={showEdit}
+        secretId={row.id}
+        secretName={row.name}
+        onClose={() => setShowEdit(false)}
+        onSaved={() => onRefresh?.()}
+      />
+
+      <SecretEditModal
+        open={showRotate}
+        secretId={row.id}
+        secretName={row.name}
+        titleVerb="Rotate"
+        onClose={() => setShowRotate(false)}
+        onSaved={() => onRefresh?.()}
+      />
+
+      <SecretCloneModal
+        open={showClone}
+        sourceId={row.id}
+        sourceName={row.name}
+        onClose={() => setShowClone(false)}
+        onCreated={() => onRefresh?.()}
+      />
     </div>
   );
+}
+
+function renderPanelContent(row, tab, onRefresh) {
+  if (tab === 'summary') return <SecretSummaryPanel row={row} onRefresh={onRefresh} />;
+  if (tab === 'inspect') return <SecretInspectTab secretId={row.id} />;
+  return null;
 }
 
 export default function SwarmSecretsOverviewTable() {

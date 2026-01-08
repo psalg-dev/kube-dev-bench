@@ -103,7 +103,23 @@ func networkResourceToInfo(net types.NetworkResource) SwarmNetworkInfo {
 		Attachable: net.Attachable,
 		Internal:   net.Internal,
 		Labels:     net.Labels,
+		Options:    net.Options,
 		CreatedAt:  net.Created.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	if info.Options == nil {
+		info.Options = make(map[string]string)
+	}
+
+	if len(net.IPAM.Config) > 0 {
+		for _, cfg := range net.IPAM.Config {
+			info.IPAM = append(info.IPAM, SwarmNetworkIPAMConfig{
+				Subnet:       cfg.Subnet,
+				Gateway:      cfg.Gateway,
+				IPRange:      cfg.IPRange,
+				AuxAddresses: map[string]string{},
+			})
+		}
 	}
 
 	if info.Labels == nil {

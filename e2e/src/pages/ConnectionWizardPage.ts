@@ -1,5 +1,14 @@
 import { expect, type Page } from '@playwright/test';
 
+const OPEN_WIZARD_STATUS = {
+  AlreadyVisible: 'already-visible',
+  AutoOpened: 'auto-opened',
+  ClickedButton: 'clicked-button',
+} as const;
+
+export type OpenWizardIfHiddenStatus =
+  (typeof OPEN_WIZARD_STATUS)[keyof typeof OPEN_WIZARD_STATUS];
+
 export class ConnectionWizardPage {
   constructor(private readonly page: Page) {}
 
@@ -20,18 +29,85 @@ export class ConnectionWizardPage {
     return await legacyWizard.isVisible().catch(() => false);
   }
 
-  async openWizardIfHidden() {
-    // Check for new layout or legacy overlay
-    if (await this.isNewWizardVisible() || await this.isLegacyWizardVisible()) {
-      return;
+  async openWizardIfHidden(): Promise<OpenWizardIfHiddenStatus> {
+    const wizard = this.page
+      .locator('.connection-wizard-layout, .connection-wizard-overlay, .swarm-connection-wizard-overlay')
+      .first();
+
+    if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
+      return OPEN_WIZARD_STATUS.AlreadyVisible;
     }
+
+    const deadline = Date.now() + 90_000;
+
+    await this.page.waitForLoadState('domcontentloaded', {
+      timeout: Math.max(1_000, Math.min(30_000, deadline - Date.now())),
+    });
+
+    // The Vite dev server can briefly serve an HTML shell while modules are still loading.
+    // Wait for React to mount something under #app, with a one-time reload recovery.
+    const appRoot = this.page.locator('#app').first();
+    await appRoot.waitFor({ state: 'attached', timeout: Math.max(1_000, deadline - Date.now()) });
+
+    const waitForAppMount = async (timeoutMs: number) => {
+      await this.page
+        .locator('#app > *')
+        .first()
+        .waitFor({ state: 'attached', timeout: Math.max(1_000, timeoutMs) });
+    };
+
+    try {
+      await waitForAppMount(Math.min(20_000, deadline - Date.now()));
+    } catch {
+      // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` can leave the page blank.
+      // A single reload tends to recover without adding additional flake.
+      console.warn('[e2e] App did not mount under #app; reloading once to recover');
+      await this.page.reload({ waitUntil: 'domcontentloaded' });
+      await waitForAppMount(deadline - Date.now());
+    }
+
     const openBtn = this.page.locator('#show-wizard-btn');
-    await expect(openBtn).toBeVisible({ timeout: 30_000 });
-    await openBtn.click({ timeout: 30_000 });
-    // Wait for either new or legacy wizard
-    await expect(
-      this.page.locator('.connection-wizard-layout, .connection-wizard-overlay').first()
-    ).toBeVisible({ timeout: 30_000 });
+    const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
+    const mainApp = this.page.locator('#kubecontext-root, #swarm-sidebar');
+
+    while (Date.now() < deadline) {
+      if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
+        return OPEN_WIZARD_STATUS.AutoOpened;
+      }
+
+      if (await openBtn.isVisible().catch(() => false)) {
+        await openBtn.click({ timeout: 10_000 });
+        await expect(wizard).toBeVisible({ timeout: 30_000 });
+        return OPEN_WIZARD_STATUS.ClickedButton;
+      }
+
+      if (await swarmOpenBtn.isVisible().catch(() => false)) {
+        await swarmOpenBtn.click({ timeout: 10_000 });
+        await expect(wizard).toBeVisible({ timeout: 30_000 });
+        return OPEN_WIZARD_STATUS.ClickedButton;
+      }
+
+      if (await mainApp.isVisible().catch(() => false)) {
+        const wizVisible = await wizard.isVisible().catch(() => false);
+        if (wizVisible) return OPEN_WIZARD_STATUS.AlreadyVisible;
+      }
+
+      await this.page.waitForTimeout(250);
+    }
+
+    // Final attempt: if wizard is now visible, treat as auto-opened.
+    if (await wizard.isVisible().catch(() => false)) {
+      return OPEN_WIZARD_STATUS.AutoOpened;
+    }
+
+    // If we reach here, neither wizard nor open buttons appeared in time.
+    const btnCounts = {
+      showWizard: await openBtn.count().catch(() => 0),
+      swarmShowWizard: await swarmOpenBtn.count().catch(() => 0),
+    };
+    throw new Error(
+      `Connection wizard not available: buttons missing (showWizard=${btnCounts.showWizard}, swarmShowWizard=${btnCounts.swarmShowWizard}) and wizard not visible.`
+    );
   }
 
   async ensureWizardVisible() {

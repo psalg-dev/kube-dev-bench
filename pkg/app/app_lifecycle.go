@@ -24,6 +24,11 @@ type App struct {
 	isInsecureConnection bool      // tracks if we're using insecure TLS
 	insecureWarnOnce     sync.Once // ensures we log TLS fallback warning only once
 
+	// swarmVolumeHelpers caches per-volume helper container IDs for volume file browsing.
+	// This allows reuse across Browse/Read calls (Phase 1) without creating a new container each time.
+	swarmVolumeHelpersMu sync.Mutex
+	swarmVolumeHelpers   map[string]string
+
 	// Proxy configuration
 	proxyURL      string // HTTP/HTTPS proxy URL (e.g., http://proxy.example.com:8080)
 	proxyAuthType string // "none", "basic", "system"
@@ -89,6 +94,7 @@ func NewApp() *App {
 		logCancels:           make(map[string]context.CancelFunc),
 		isInsecureConnection: false, // Initialize to secure by default
 		countsRefreshCh:      make(chan struct{}, 1),
+		swarmVolumeHelpers:   make(map[string]string),
 	}
 }
 
@@ -129,6 +135,23 @@ func (a *App) Startup(ctx context.Context) {
 	if !a.disableStartupDocker {
 		a.startupDocker(ctx)
 	}
+}
+
+// Shutdown is called by Wails when the app is closing.
+// Best-effort cleanup only; errors are logged and ignored.
+func (a *App) Shutdown(ctx context.Context) {
+	// Cancel any active log streams.
+	a.logMu.Lock()
+	for k, cancel := range a.logCancels {
+		if cancel != nil {
+			cancel()
+		}
+		delete(a.logCancels, k)
+	}
+	a.logMu.Unlock()
+
+	// Remove any helper containers created for Swarm volume browsing.
+	_ = a.cleanupSwarmVolumeHelpers(ctx)
 }
 
 // GetCurrentConfig returns the currently loaded configuration

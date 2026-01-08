@@ -2,16 +2,53 @@ package docker
 
 // SwarmServiceInfo describes a Swarm service
 type SwarmServiceInfo struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Image        string            `json:"image"`
-	Replicas     uint64            `json:"replicas"`
-	RunningTasks uint64            `json:"runningTasks"`
-	Mode         string            `json:"mode"` // "replicated" or "global"
-	Ports        []SwarmPortInfo   `json:"ports"`
-	Labels       map[string]string `json:"labels"`
-	CreatedAt    string            `json:"createdAt"`
-	UpdatedAt    string            `json:"updatedAt"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Image        string                 `json:"image"`
+	Replicas     uint64                 `json:"replicas"`
+	RunningTasks uint64                 `json:"runningTasks"`
+	Mode         string                 `json:"mode"` // "replicated" or "global"
+	Ports        []SwarmPortInfo        `json:"ports"`
+	Env          []string               `json:"env"`
+	Mounts       []SwarmMountInfo       `json:"mounts"`
+	UpdateConfig *SwarmUpdateConfigInfo `json:"updateConfig"`
+	Resources    *SwarmResourcesInfo    `json:"resources"`
+	Placement    *SwarmPlacementInfo    `json:"placement"`
+	Labels       map[string]string      `json:"labels"`
+	CreatedAt    string                 `json:"createdAt"`
+	UpdatedAt    string                 `json:"updatedAt"`
+}
+
+type SwarmMountInfo struct {
+	Type     string `json:"type"`
+	Source   string `json:"source"`
+	Target   string `json:"target"`
+	ReadOnly bool   `json:"readOnly"`
+}
+
+type SwarmUpdateConfigInfo struct {
+	Parallelism     uint64  `json:"parallelism"`
+	Delay           string  `json:"delay"`
+	FailureAction   string  `json:"failureAction"`
+	Monitor         string  `json:"monitor"`
+	MaxFailureRatio float64 `json:"maxFailureRatio"`
+	Order           string  `json:"order"`
+}
+
+type SwarmResourceLimitsInfo struct {
+	NanoCPUs    int64 `json:"nanoCpus"`
+	MemoryBytes int64 `json:"memoryBytes"`
+}
+
+type SwarmResourcesInfo struct {
+	Limits       *SwarmResourceLimitsInfo `json:"limits"`
+	Reservations *SwarmResourceLimitsInfo `json:"reservations"`
+}
+
+type SwarmPlacementInfo struct {
+	Constraints []string `json:"constraints"`
+	Preferences []string `json:"preferences"`
+	MaxReplicas uint64   `json:"maxReplicas"`
 }
 
 // SwarmPortInfo describes a published port
@@ -24,18 +61,26 @@ type SwarmPortInfo struct {
 
 // SwarmTaskInfo describes a Swarm task (container instance)
 type SwarmTaskInfo struct {
-	ID           string `json:"id"`
-	ServiceID    string `json:"serviceId"`
-	ServiceName  string `json:"serviceName"`
-	NodeID       string `json:"nodeId"`
-	NodeName     string `json:"nodeName"`
-	Slot         int    `json:"slot"`
-	State        string `json:"state"` // running, pending, failed, etc.
-	DesiredState string `json:"desiredState"`
-	ContainerID  string `json:"containerId"`
-	Error        string `json:"error"`
-	CreatedAt    string `json:"createdAt"`
-	UpdatedAt    string `json:"updatedAt"`
+	ID           string                 `json:"id"`
+	ServiceID    string                 `json:"serviceId"`
+	ServiceName  string                 `json:"serviceName"`
+	NodeID       string                 `json:"nodeId"`
+	NodeName     string                 `json:"nodeName"`
+	Slot         int                    `json:"slot"`
+	State        string                 `json:"state"` // running, pending, failed, etc.
+	DesiredState string                 `json:"desiredState"`
+	ContainerID  string                 `json:"containerId"`
+	Image        string                 `json:"image"`
+	Mounts       []SwarmMountInfo       `json:"mounts"`
+	Networks     []SwarmTaskNetworkInfo `json:"networks"`
+	Error        string                 `json:"error"`
+	CreatedAt    string                 `json:"createdAt"`
+	UpdatedAt    string                 `json:"updatedAt"`
+}
+
+type SwarmTaskNetworkInfo struct {
+	NetworkID string   `json:"networkId"`
+	Addresses []string `json:"addresses"`
 }
 
 // SwarmNodeInfo describes a Swarm node
@@ -47,20 +92,40 @@ type SwarmNodeInfo struct {
 	State         string            `json:"state"`        // "ready", "down", etc.
 	Address       string            `json:"address"`
 	EngineVersion string            `json:"engineVersion"`
+	OS            string            `json:"os"`
+	Arch          string            `json:"arch"`
+	NanoCPUs      int64             `json:"nanoCpus"`
+	MemoryBytes   int64             `json:"memoryBytes"`
 	Labels        map[string]string `json:"labels"`
 	Leader        bool              `json:"leader"`
+	TLS           *SwarmTLSInfo     `json:"tls"`
+}
+
+type SwarmTLSInfo struct {
+	TrustRoot           string `json:"trustRoot"`
+	CertIssuerSubject   string `json:"certIssuerSubject"`
+	CertIssuerPublicKey string `json:"certIssuerPublicKey"`
 }
 
 // SwarmNetworkInfo describes a Swarm network
 type SwarmNetworkInfo struct {
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	Driver     string            `json:"driver"`
-	Scope      string            `json:"scope"` // "swarm", "local"
-	Attachable bool              `json:"attachable"`
-	Internal   bool              `json:"internal"`
-	Labels     map[string]string `json:"labels"`
-	CreatedAt  string            `json:"createdAt"`
+	ID         string                   `json:"id"`
+	Name       string                   `json:"name"`
+	Driver     string                   `json:"driver"`
+	Scope      string                   `json:"scope"` // "swarm", "local"
+	Attachable bool                     `json:"attachable"`
+	Internal   bool                     `json:"internal"`
+	Labels     map[string]string        `json:"labels"`
+	Options    map[string]string        `json:"options"`
+	IPAM       []SwarmNetworkIPAMConfig `json:"ipam"`
+	CreatedAt  string                   `json:"createdAt"`
+}
+
+type SwarmNetworkIPAMConfig struct {
+	Subnet       string            `json:"subnet"`
+	Gateway      string            `json:"gateway"`
+	IPRange      string            `json:"ipRange"`
+	AuxAddresses map[string]string `json:"auxAddresses"`
 }
 
 // SwarmConfigInfo describes a Swarm config
@@ -73,13 +138,42 @@ type SwarmConfigInfo struct {
 	Labels    map[string]string `json:"labels"`
 }
 
+// SwarmServiceRef is a lightweight reference to a Swarm service.
+// Used by "Used By" sections for configs/secrets/volumes.
+type SwarmServiceRef struct {
+	ServiceID   string `json:"serviceId"`
+	ServiceName string `json:"serviceName"`
+}
+
+// SwarmConfigUpdateResult describes the outcome of a config "edit" operation.
+// Note: Swarm configs are immutable; editing creates a new config and migrates services.
+type SwarmConfigUpdateResult struct {
+	OldConfigID   string            `json:"oldConfigId"`
+	OldConfigName string            `json:"oldConfigName"`
+	NewConfigID   string            `json:"newConfigId"`
+	NewConfigName string            `json:"newConfigName"`
+	Updated       []SwarmServiceRef `json:"updated"`
+}
+
+// SwarmSecretUpdateResult describes the outcome of a secret "edit" operation.
+// Note: Swarm secrets are immutable; editing creates a new secret and migrates services.
+type SwarmSecretUpdateResult struct {
+	OldSecretID   string            `json:"oldSecretId"`
+	OldSecretName string            `json:"oldSecretName"`
+	NewSecretID   string            `json:"newSecretId"`
+	NewSecretName string            `json:"newSecretName"`
+	Updated       []SwarmServiceRef `json:"updated"`
+}
+
 // SwarmSecretInfo describes a Swarm secret
 type SwarmSecretInfo struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	CreatedAt string            `json:"createdAt"`
-	UpdatedAt string            `json:"updatedAt"`
-	Labels    map[string]string `json:"labels"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	CreatedAt     string            `json:"createdAt"`
+	UpdatedAt     string            `json:"updatedAt"`
+	Labels        map[string]string `json:"labels"`
+	DriverName    string            `json:"driverName"`
+	DriverOptions map[string]string `json:"driverOptions"`
 }
 
 // SwarmStackInfo describes a Docker Stack

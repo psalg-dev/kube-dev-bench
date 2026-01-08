@@ -3,6 +3,7 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
   GetSwarmTasks,
   GetSwarmTaskLogs,
@@ -45,6 +46,15 @@ const bottomTabs = [
   { key: 'logs', label: 'Logs' },
 ];
 
+function formatMount(m) {
+  if (!m) return '-';
+  const type = m.type || 'mount';
+  const src = m.source || '-';
+  const tgt = m.target || '-';
+  const ro = m.readOnly ? ' (ro)' : '';
+  return `${type}:${src} -> ${tgt}${ro}`;
+}
+
 function renderPanelContent(row, tab) {
   if (tab === 'summary') {
     const quickInfoFields = [
@@ -61,6 +71,27 @@ function renderPanelContent(row, tab) {
         rightField: { key: 'desiredState', label: 'Desired State' }
       },
       { key: 'containerId', label: 'Container ID', type: 'break-word' },
+      { key: 'image', label: 'Image', type: 'break-word' },
+      {
+        key: 'networks',
+        label: 'Networks',
+        type: 'list',
+        getValue: (d) => {
+          const nets = Array.isArray(d.networks) ? d.networks : [];
+          return nets.flatMap((n) => {
+            const id = n.networkId ? `${String(n.networkId).slice(0, 12)}...` : 'unknown';
+            const addrs = Array.isArray(n.addresses) ? n.addresses : [];
+            if (!addrs.length) return [`${id}`];
+            return addrs.map((a) => `${id}: ${a}`);
+          });
+        },
+      },
+      {
+        key: 'mounts',
+        label: 'Mounts',
+        type: 'list',
+        getValue: (d) => (Array.isArray(d.mounts) ? d.mounts : []).map(formatMount),
+      },
       { key: 'error', label: 'Error', type: 'break-word' },
       { key: 'createdAt', label: 'Created', type: 'date' },
       { key: 'updatedAt', label: 'Updated', type: 'date' },
@@ -77,6 +108,45 @@ function renderPanelContent(row, tab) {
             error={null}
             fields={quickInfoFields}
           />
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '12px 16px 0 16px' }}>
+              <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: 'var(--gh-text, #c9d1d9)' }}>
+                Timeline (derived)
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div>
+                  <div style={{ marginBottom: 2 }}>Created</div>
+                  <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.createdAt ? formatTimestampDMYHMS(row.createdAt) : '-'}</div>
+                </div>
+                <div>
+                  <div style={{ marginBottom: 2 }}>Updated</div>
+                  <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.updatedAt ? formatTimestampDMYHMS(row.updatedAt) : '-'}</div>
+                </div>
+                <div>
+                  <div style={{ marginBottom: 2 }}>Current State</div>
+                  <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.state || '-'}</div>
+                </div>
+                <div>
+                  <div style={{ marginBottom: 2 }}>Desired State</div>
+                  <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.desiredState || '-'}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ flex: 1, minHeight: 0, position: 'relative', marginTop: 12 }}>
+            {row.containerId ? (
+              <AggregateLogsTab
+                title="Task Logs (preview)"
+                reloadKey={row.id}
+                loadLogs={() => GetSwarmTaskLogs(row.id, '100')}
+              />
+            ) : (
+              <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+                No container associated with this task yet.
+              </div>
+            )}
+            </div>
+          </div>
         </div>
       </div>
     );

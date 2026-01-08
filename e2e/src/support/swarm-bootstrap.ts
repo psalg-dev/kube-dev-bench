@@ -37,6 +37,11 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
     await page.goto('/');
   }
 
+  // Wait for page to be fully loaded before checking connection state
+  // This prevents race conditions where the page is still initializing
+  await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+  await page.waitForTimeout(1000); // Allow UI to settle
+
   // If the Swarm sidebar is already present, we're effectively "in Swarm mode".
   const isConnected = await sidebar.isSwarmConnected();
 
@@ -47,10 +52,32 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // If we are not in Swarm mode yet, connect via the main Connections wizard.
   // This is the same flow used by the dedicated Swarm connection E2E.
   const connectionsWizard = new ConnectionWizardPage(page);
-  await connectionsWizard.openWizardIfHidden();
+  const openWizardStatus = await connectionsWizard.openWizardIfHidden();
+  console.log(`[swarm-bootstrap] openWizardIfHidden: ${openWizardStatus}`);
 
-  // If the wizard was already open, ensure it's actually visible and ready.
-  await connectionsWizard.ensureWizardVisible();
+  // Ensure wizard visibility only if it is actually present; otherwise, if we
+  // are already connected (sidebar present), skip forcing the wizard.
+  const wizHandle = page
+    .locator('.connection-wizard-layout, .connection-wizard-overlay, .swarm-connection-wizard-overlay')
+    .first();
+  const wizIsVisible = await wizHandle.isVisible().catch(() => false);
+
+  if (!wizIsVisible) {
+    // If Swarm sidebar is already available, we can proceed without the wizard
+    if (await sidebar.isSwarmConnected()) {
+      return { sidebar, wizard };
+    }
+    // As a fallback, try opening the Swarm wizard from the sidebar gear if present
+    const swarmBtn = page.locator('#swarm-show-wizard-btn');
+    if ((await swarmBtn.count()) > 0) {
+      await swarmBtn.click({ timeout: 10_000 }).catch(() => undefined);
+    }
+  }
+
+  // If a wizard is present (new or legacy), ensure it's visible before interacting
+  if (await wizHandle.count()) {
+    await connectionsWizard.ensureWizardVisible();
+  }
 
   // Ensure we are on the Docker Swarm section (not Kubernetes) and stay there long enough
   // to click Connect. When running with no Kubernetes contexts, the wizard is always shown,

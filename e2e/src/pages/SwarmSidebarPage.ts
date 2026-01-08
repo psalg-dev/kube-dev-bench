@@ -21,8 +21,28 @@ export class SwarmSidebarPage {
   async goToSection(sectionKey: string) {
     const section = this.page.locator(`#section-${sectionKey}`);
     await expect(section).toBeVisible({ timeout: 30_000 });
+
+    // If we're already on the target section, don't click again.
+    // Re-clicking can be flaky when transient overlays intercept pointer events.
+    const currentClass = (await section.getAttribute('class').catch(() => '')) ?? '';
+    if (/\bselected\b/.test(currentClass)) return;
+
     await section.scrollIntoViewIfNeeded();
-    await section.click({ timeout: 30_000 });
+
+    // CI can occasionally have transient overlays (notifications, resizer handles)
+    // intercept pointer events. Prefer a normal click, but fall back to forced
+    // click to ensure navigation remains deterministic.
+    try {
+      await section.click({ timeout: 5_000 });
+    } catch {
+      // If the overlay truly sits above the sidebar, a forced mouse click can still
+      // land on the overlay. Triggering the DOM click handler is more reliable.
+      try {
+        await section.evaluate((el) => (el as HTMLElement).click());
+      } catch {
+        await section.click({ timeout: 30_000, force: true });
+      }
+    }
     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
   }
 

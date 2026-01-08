@@ -19,15 +19,27 @@ export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
 export function CreateSwarmConfig(arg1:string,arg2:string,arg3:Record<string, string>):Promise<string>;
 
+export function CloneSwarmConfig(arg1:string,arg2:string):Promise<string>;
+
+export function ExportSwarmConfig(arg1:string,arg2:string):Promise<string>;
+
 export function CreateSwarmNetwork(arg1:string,arg2:string,arg3:docker.CreateNetworkOptions):Promise<string>;
 
 export function CreateSwarmSecret(arg1:string,arg2:string,arg3:Record<string, string>):Promise<string>;
+
+export function CloneSwarmSecret(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function CreateSwarmService(arg1:docker.CreateServiceOptions):Promise<string>;
 
 export function CreateSwarmStack(arg1:string,arg2:string):Promise<string>;
 
 export function CreateSwarmVolume(arg1:string,arg2:string,arg3:Record<string, string>,arg4:Record<string, string>):Promise<docker.SwarmVolumeInfo>;
+
+export function BackupSwarmVolume(arg1:string):Promise<string>;
+
+export function RestoreSwarmVolume(arg1:string):Promise<string>;
+
+export function CloneSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function DeleteConfigMap(arg1:string,arg2:string):Promise<void>;
 
@@ -202,10 +214,21 @@ export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>
 export function GetSwarmConfig(arg1:string):Promise<docker.SwarmConfigInfo>;
 
 export function GetSwarmConfigData(arg1:string):Promise<string>;
+export function GetSwarmConfigInspectJSON(arg1:string):Promise<string>;
+
+export function GetSwarmConfigUsage(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
+
+export function UpdateSwarmConfigData(arg1:string,arg2:string):Promise<docker.SwarmConfigUpdateResult>;
 
 export function GetSwarmConfigs():Promise<Array<docker.SwarmConfigInfo>>;
 
 export function GetSwarmNetwork(arg1:string):Promise<docker.SwarmNetworkInfo>;
+
+export function GetSwarmNetworkContainers(arg1:string):Promise<Array<docker.SwarmTaskInfo>>;
+
+export function GetSwarmNetworkInspectJSON(arg1:string):Promise<string>;
+
+export function GetSwarmNetworkServices(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
 
 export function GetSwarmNetworks():Promise<Array<docker.SwarmNetworkInfo>>;
 
@@ -218,8 +241,13 @@ export function GetSwarmNodes():Promise<Array<docker.SwarmNodeInfo>>;
 export function GetSwarmResourceCounts():Promise<docker.SwarmResourceCounts>;
 
 export function GetSwarmSecret(arg1:string):Promise<docker.SwarmSecretInfo>;
+export function GetSwarmSecretInspectJSON(arg1:string):Promise<string>;
 
 export function GetSwarmSecrets():Promise<Array<docker.SwarmSecretInfo>>;
+
+export function GetSwarmSecretUsage(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
+
+export function UpdateSwarmSecretData(arg1:string,arg2:string):Promise<docker.SwarmSecretUpdateResult>;
 
 export function GetSwarmService(arg1:string):Promise<docker.SwarmServiceInfo>;
 
@@ -241,6 +269,25 @@ export function GetSwarmTasksByService(arg1:string):Promise<Array<docker.SwarmTa
 
 export function GetSwarmVolume(arg1:string):Promise<docker.SwarmVolumeInfo>;
 
+export function GetVolumeInfo(arg1:string):Promise<docker.SwarmVolumeInfo>;
+
+export function GetSwarmVolumeUsage(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
+export function GetSwarmVolumeInspectJSON(arg1:string):Promise<string>;
+
+export function DownloadFromSwarmVolume(arg1:string,arg2:string):Promise<string>;
+
+export function UploadToSwarmVolume(arg1:string,arg2:string):Promise<string>;
+
+export function WriteSwarmVolumeFile(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function DeleteSwarmVolumeFile(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
+export function CreateSwarmVolumeDirectory(arg1:string,arg2:string):Promise<void>;
+
+export function GetSwarmVolumeFileContent(arg1:string,arg2:string,arg3:number):Promise<app.PodFileContent>;
+
+export function IsSwarmVolumeReadOnly(arg1:string):Promise<boolean>;
+
 export function GetSwarmVolumes():Promise<Array<docker.SwarmVolumeInfo>>;
 
 export function Greet(arg1:string):Promise<string>;
@@ -250,6 +297,8 @@ export function InstallHelmChart(arg1:app.HelmInstallRequest):Promise<void>;
 export function IsProxyEnabled():Promise<boolean>;
 
 export function ListPVCFiles(arg1:string,arg2:string,arg3:string):Promise<Array<app.PodFileEntry>>;
+
+export function ListSwarmVolumeFiles(arg1:string,arg2:string):Promise<Array<app.PodFileEntry>>;
 
 export function ListPortForwards():Promise<Array<app.PortForwardInfo>>;
 
@@ -388,6 +437,12 @@ export function UpdateConfigMapDataKey(arg1:string,arg2:string,arg3:string,arg4:
 export function UpdateHelmRepositories():Promise<void>;
 
 export function UpdateSecretDataKey(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function GetSwarmStackResources(arg1:string):Promise<docker.SwarmStackResources>;
+
+export function GetSwarmStackComposeYAML(arg1:string):Promise<string>;
+
+export function RollbackSwarmStack(arg1:string):Promise<void>;
 
 export function UpdateSwarmNodeAvailability(arg1:string,arg2:string):Promise<void>;
 

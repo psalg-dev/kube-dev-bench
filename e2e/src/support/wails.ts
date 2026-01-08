@@ -13,7 +13,6 @@ export type WailsDevInstance = {
 };
 
 async function waitForHttpOk(url: string, timeoutMs: number) {
-  const allowNotFound = url.endsWith('/');
   const start = Date.now();
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -22,7 +21,10 @@ async function waitForHttpOk(url: string, timeoutMs: number) {
         const req = http.get(url, (res: http.IncomingMessage) => {
           res.resume();
           const status = res.statusCode ?? 0;
-          resolve(status >= 200 && status < (allowNotFound ? 500 : 400));
+          // For E2E, we need the server to serve real content.
+          // During `wails dev` startup, the devserver port may accept connections
+          // but still return 404/5xx while the backend/UI are booting.
+          resolve(status >= 200 && status < 400);
         });
         req.on('error', () => resolve(false));
         req.setTimeout(2_000, () => {
@@ -67,19 +69,21 @@ function wireTimestampedStream(input: NodeJS.ReadableStream | null | undefined, 
 
 export async function startWailsDev(opts: {
   repoRoot: string;
+  logRepoRoot?: string;
   port: number;
   homeDir: string;
-  frontendDevServerURL?: string;
+  assetDir?: string;
   readyTimeoutMs?: number;
 }) : Promise<WailsDevInstance> {
   const { repoRoot, port, homeDir } = opts;
+  const logRepoRoot = opts.logRepoRoot ?? repoRoot;
   const readyTimeoutMs = opts.readyTimeoutMs ?? 30_000;
   // Use 127.0.0.1 (not localhost) to avoid IPv6 ::1 resolution issues on Windows.
   const baseURL = `http://127.0.0.1:${port}`;
 
   console.log(
     `[e2e][wails] ${new Date().toISOString()} starting wails dev port=${port} baseURL=${baseURL} ` +
-      `frontend=${opts.frontendDevServerURL ?? 'internal'} repoRoot=${repoRoot}`
+      `assets=${opts.assetDir ?? 'embed'} repoRoot=${repoRoot}`
   );
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
@@ -113,14 +117,34 @@ export async function startWailsDev(opts: {
   const appDataDir = path.join(homeDir, 'AppData', 'Roaming');
   const localAppDataDir = path.join(homeDir, 'AppData', 'Local');
   const tmpDir = path.join(homeDir, 'tmp');
+  const e2eDialogDir = path.join(tmpDir, 'kdb-e2e-dialogs');
   const kubeDir = path.join(homeDir, '.kube');
   const kubeConfigPath = path.join(kubeDir, 'config');
   await Promise.all([
     fsp.mkdir(appDataDir, { recursive: true }),
     fsp.mkdir(localAppDataDir, { recursive: true }),
     fsp.mkdir(tmpDir, { recursive: true }),
+    fsp.mkdir(e2eDialogDir, { recursive: true }),
     fsp.mkdir(kubeDir, { recursive: true }),
   ]);
+
+  // Marker file so the Go backend can auto-detect the E2E dialog dir via os.TempDir().
+  // (Useful if KDB_E2E_DIALOG_DIR is not propagated by the runner on some platforms.)
+  try {
+    await fsp.writeFile(path.join(e2eDialogDir, 'enabled.txt'), `port=${port}\n`, 'utf-8');
+  } catch {
+    // ignore
+  }
+
+  // Repo-local mapping fallback (used when env vars are stripped):
+  // write the resolved dialog dir to e2e/.run/dialog-dirs/<port>.txt.
+  try {
+    const mappingDir = path.join(repoRoot, 'e2e', '.run', 'dialog-dirs');
+    await fsp.mkdir(mappingDir, { recursive: true });
+    await fsp.writeFile(path.join(mappingDir, `${port}.txt`), e2eDialogDir, 'utf-8');
+  } catch {
+    // ignore
+  }
 
   // Ensure a minimal kubeconfig exists. The app may attempt to read it during
   // initialization, and in E2E we isolate HOME/USERPROFILE so the default
@@ -140,7 +164,7 @@ export async function startWailsDev(opts: {
     await fsp.writeFile(kubeConfigPath, minimalKubeconfig, 'utf-8');
   }
 
-  const logDir = path.join(repoRoot, 'e2e', 'test-results', 'wails-logs');
+  const logDir = path.join(logRepoRoot, 'e2e', 'test-results', 'wails-logs');
   await fsp.mkdir(logDir, { recursive: true });
   const logPath = path.join(logDir, `wails-${port}.log`);
   const logStream = fs.createWriteStream(logPath, { flags: 'a' });
@@ -152,10 +176,13 @@ export async function startWailsDev(opts: {
 
   const args = [
     'dev',
-    // Use a shared external frontend server so Wails instances don't each run a full frontend build.
-    ...(opts.frontendDevServerURL ? ['-frontenddevserverurl', opts.frontendDevServerURL] : []),
-    // Skip frontend build. (Wails still runs a Vite dev watcher, but avoids expensive build steps.)
+    // Serve built assets directly. This avoids Wails spawning a per-instance Vite dev watcher
+    // (which is extremely slow/flaky under parallel E2E on Windows).
+    ...(opts.assetDir ? ['-assetdir', opts.assetDir] : []),
+    // Skip frontend build.
     '-s',
+    // Skip generating extra embed files during startup; we serve assets from dist.
+    ...(opts.assetDir ? ['-skipembedcreate'] : []),
     '-devserver',
     `127.0.0.1:${port}`,
     '-noreload',
@@ -176,10 +203,8 @@ export async function startWailsDev(opts: {
     cwd: repoRoot,
     env: {
       ...process.env,
-      VITE_HOST: '127.0.0.1',
-      // Avoid Vite dependency optimization cache corruption when multiple Wails instances
-      // start Vite concurrently (Windows E2E with multiple workers).
-      VITE_CACHE_DIR: path.join(tmpDir, 'vite-cache').replace(/\\/g, '/'),
+      // Let the Go backend bypass native OS file dialogs during E2E.
+      KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
       HOME: homeDir,
       USERPROFILE: homeDir,

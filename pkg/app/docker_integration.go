@@ -344,6 +344,33 @@ func (a *App) GetSwarmNetwork(networkID string) (*docker.SwarmNetworkInfo, error
 	return docker.GetSwarmNetwork(a.ctx, cli, networkID)
 }
 
+// GetSwarmNetworkServices returns Swarm services connected to a network.
+func (a *App) GetSwarmNetworkServices(networkID string) ([]docker.SwarmServiceRef, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmNetworkServices(a.ctx, cli, networkID)
+}
+
+// GetSwarmNetworkContainers returns Swarm tasks/containers connected to a network.
+func (a *App) GetSwarmNetworkContainers(networkID string) ([]docker.SwarmTaskInfo, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmNetworkContainers(a.ctx, cli, networkID)
+}
+
+// GetSwarmNetworkInspectJSON returns the raw Docker network inspect JSON (pretty-printed).
+func (a *App) GetSwarmNetworkInspectJSON(networkID string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.GetSwarmNetworkInspectJSON(a.ctx, cli, networkID)
+}
+
 // RemoveSwarmNetwork removes a Docker network
 func (a *App) RemoveSwarmNetwork(networkID string) error {
 	cli, err := a.getDockerClient()
@@ -404,6 +431,15 @@ func (a *App) GetSwarmConfigData(configID string) (string, error) {
 	return string(data), nil
 }
 
+// GetSwarmConfigInspectJSON returns Docker's config inspect payload as indented JSON.
+func (a *App) GetSwarmConfigInspectJSON(configID string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.GetSwarmConfigInspectJSON(a.ctx, cli, configID)
+}
+
 // CreateSwarmConfig creates a new Swarm config
 func (a *App) CreateSwarmConfig(name string, data string, labels map[string]string) (string, error) {
 	cli, err := a.getDockerClient()
@@ -411,6 +447,46 @@ func (a *App) CreateSwarmConfig(name string, data string, labels map[string]stri
 		return "", err
 	}
 	return docker.CreateSwarmConfig(a.ctx, cli, name, []byte(data), labels)
+}
+
+// CloneSwarmConfig creates a new config with the same data/labels as an existing config.
+func (a *App) CloneSwarmConfig(configID string, newName string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	info, err := docker.GetSwarmConfig(a.ctx, cli, configID)
+	if err != nil {
+		return "", err
+	}
+	data, err := docker.GetSwarmConfigData(a.ctx, cli, configID)
+	if err != nil {
+		return "", err
+	}
+	labels := info.Labels
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	return docker.CreateSwarmConfig(a.ctx, cli, newName, data, labels)
+}
+
+// GetSwarmConfigUsage returns services that reference the given Swarm config.
+func (a *App) GetSwarmConfigUsage(configID string) ([]docker.SwarmServiceRef, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmConfigUsage(a.ctx, cli, configID)
+}
+
+// UpdateSwarmConfigData performs a config "edit" by creating a new timestamp-suffixed config,
+// migrating all services that reference the old config, and then deleting the old config.
+func (a *App) UpdateSwarmConfigData(configID string, newData string) (*docker.SwarmConfigUpdateResult, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.UpdateSwarmConfigDataImmutable(a.ctx, cli, configID, []byte(newData))
 }
 
 // RemoveSwarmConfig removes a Swarm config
@@ -442,6 +518,15 @@ func (a *App) GetSwarmSecret(secretID string) (*docker.SwarmSecretInfo, error) {
 	return docker.GetSwarmSecret(a.ctx, cli, secretID)
 }
 
+// GetSwarmSecretInspectJSON returns Docker's secret inspect payload as indented JSON.
+func (a *App) GetSwarmSecretInspectJSON(secretID string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.GetSwarmSecretInspectJSON(a.ctx, cli, secretID)
+}
+
 // CreateSwarmSecret creates a new Swarm secret
 func (a *App) CreateSwarmSecret(name string, data string, labels map[string]string) (string, error) {
 	cli, err := a.getDockerClient()
@@ -455,6 +540,51 @@ func (a *App) CreateSwarmSecret(name string, data string, labels map[string]stri
 		decodedData = []byte(data)
 	}
 	return docker.CreateSwarmSecret(a.ctx, cli, name, decodedData, labels)
+}
+
+// CloneSwarmSecret creates a new secret with the same labels/driver metadata as the source secret.
+// Note: Swarm secret values cannot be read back; caller must provide the new value.
+func (a *App) CloneSwarmSecret(sourceSecretID string, newName string, newValue string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	info, err := docker.GetSwarmSecret(a.ctx, cli, sourceSecretID)
+	if err != nil {
+		return "", err
+	}
+	labels := info.Labels
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	decodedData, err := base64.StdEncoding.DecodeString(newValue)
+	if err != nil {
+		decodedData = []byte(newValue)
+	}
+	return docker.CreateSwarmSecret(a.ctx, cli, newName, decodedData, labels)
+}
+
+// GetSwarmSecretUsage returns services that reference the given Swarm secret.
+func (a *App) GetSwarmSecretUsage(secretID string) ([]docker.SwarmServiceRef, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmSecretUsage(a.ctx, cli, secretID)
+}
+
+// UpdateSwarmSecretData performs a secret "edit" by creating a new timestamp-suffixed secret,
+// migrating all services that reference the old secret, and then deleting the old secret.
+func (a *App) UpdateSwarmSecretData(secretID string, newData string) (*docker.SwarmSecretUpdateResult, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	decodedData, err := base64.StdEncoding.DecodeString(newData)
+	if err != nil {
+		decodedData = []byte(newData)
+	}
+	return docker.UpdateSwarmSecretDataImmutable(a.ctx, cli, secretID, decodedData)
 }
 
 // RemoveSwarmSecret removes a Swarm secret
@@ -484,6 +614,33 @@ func (a *App) GetSwarmStackServices(stackName string) ([]docker.SwarmServiceInfo
 		return nil, err
 	}
 	return docker.GetSwarmStackServices(a.ctx, cli, stackName)
+}
+
+// GetSwarmStackResources returns stack-related networks/volumes/configs/secrets.
+func (a *App) GetSwarmStackResources(stackName string) (*docker.SwarmStackResources, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmStackResources(a.ctx, cli, stackName)
+}
+
+// GetSwarmStackComposeYAML returns a derived docker-compose YAML generated from current service specs.
+func (a *App) GetSwarmStackComposeYAML(stackName string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.GetSwarmStackComposeYAML(a.ctx, cli, stackName)
+}
+
+// RollbackSwarmStack rolls back all services in a stack (best-effort).
+func (a *App) RollbackSwarmStack(stackName string) error {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return err
+	}
+	return docker.RollbackSwarmStack(a.ctx, cli, stackName)
 }
 
 // RemoveSwarmStack removes a Docker Stack
@@ -522,6 +679,29 @@ func (a *App) GetSwarmVolume(volumeName string) (*docker.SwarmVolumeInfo, error)
 		return nil, err
 	}
 	return docker.GetSwarmVolume(a.ctx, cli, volumeName)
+}
+
+// GetVolumeInfo returns volume information (alias of GetSwarmVolume).
+func (a *App) GetVolumeInfo(volumeName string) (*docker.SwarmVolumeInfo, error) {
+	return a.GetSwarmVolume(volumeName)
+}
+
+// GetSwarmVolumeInspectJSON returns Docker's volume inspect payload as indented JSON.
+func (a *App) GetSwarmVolumeInspectJSON(volumeName string) (string, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return "", err
+	}
+	return docker.GetSwarmVolumeInspectJSON(a.ctx, cli, volumeName)
+}
+
+// GetSwarmVolumeUsage returns services that reference the given volume.
+func (a *App) GetSwarmVolumeUsage(volumeName string) ([]docker.SwarmServiceRef, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmVolumeUsage(a.ctx, cli, volumeName)
 }
 
 // RemoveSwarmVolume removes a Docker volume
