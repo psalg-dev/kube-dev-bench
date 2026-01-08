@@ -50,6 +50,30 @@ func (a *App) GetDockerConnectionStatus() (*docker.DockerConnectionStatus, error
 
 // ConnectToDocker connects to a Docker daemon with the specified configuration
 func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnectionStatus, error) {
+	// Run pre-connect hooks before attempting to resolve/test the Docker host.
+	tlsVerify := "0"
+	if config.TLSVerify {
+		tlsVerify = "1"
+	}
+	tlsEnabled := "0"
+	if config.TLSEnabled {
+		tlsEnabled = "1"
+	}
+
+	preEnv := map[string]string{
+		"KDB_CONNECTION_TYPE":    "swarm",
+		"KDB_CONNECTION_ID":      config.Host,
+		"DOCKER_HOST":            config.Host,
+		"DOCKER_TLS_VERIFY":      tlsVerify,
+		"KDB_DOCKER_TLS_ENABLED": tlsEnabled,
+		"KDB_DOCKER_TLS_CERT":    config.TLSCert,
+		"KDB_DOCKER_TLS_KEY":     config.TLSKey,
+		"KDB_DOCKER_TLS_CA":      config.TLSCA,
+	}
+	if _, err := a.runPreConnectHooks("swarm", config.Host, preEnv); err != nil {
+		return &docker.DockerConnectionStatus{Connected: false, Error: "pre-connect hook aborted connection: " + err.Error()}, nil
+	}
+
 	// Test connection first (with host fallbacks where appropriate)
 	resolvedConfig, status := a.resolveWorkingDockerConfig(config)
 	if !status.Connected {
@@ -82,6 +106,9 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 
 	// Emit docker:connected event so frontend can refetch counts
 	wailsRuntime.EventsEmit(a.ctx, "docker:connected", status)
+
+	// Fire post-connect hooks asynchronously after successful connection.
+	a.runPostConnectHooksAsync("swarm", resolvedConfig.Host, preEnv)
 
 	return status, nil
 }

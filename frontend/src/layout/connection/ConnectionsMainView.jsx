@@ -5,6 +5,7 @@ import DockerSwarmConnectionsList from './DockerSwarmConnectionsList.jsx';
 import AddKubeConfigOverlay from './AddKubeConfigOverlay.jsx';
 import AddSwarmConnectionOverlay from './AddSwarmConnectionOverlay.jsx';
 import ConnectionProxySettings from './ConnectionProxySettings.jsx';
+import ConnectionHooksSettings from './ConnectionHooksSettings.jsx';
 
 function ConnectionsMainView({ onConnect }) {
   const {
@@ -12,6 +13,7 @@ function ConnectionsMainView({ onConnect }) {
     showAddKubeConfigOverlay,
     showAddSwarmOverlay,
     showProxySettings,
+    showHooksSettings,
     pinnedConnections,
     actions,
   } = useConnectionsState();
@@ -81,6 +83,12 @@ function ConnectionsMainView({ onConnect }) {
       {showProxySettings && (
         <ConnectionProxySettings
           onClose={() => actions.showProxySettings(false)}
+        />
+      )}
+
+      {showHooksSettings && (
+        <ConnectionHooksSettings
+          onClose={() => actions.showHooksSettings(false)}
         />
       )}
     </div>
