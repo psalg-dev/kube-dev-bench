@@ -38,38 +38,18 @@ export class ConnectionWizardPage {
       return OPEN_WIZARD_STATUS.AlreadyVisible;
     }
 
-    const deadline = Date.now() + 90_000;
+    await this.page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
 
-    await this.page.waitForLoadState('domcontentloaded', {
-      timeout: Math.max(1_000, Math.min(30_000, deadline - Date.now())),
-    });
-
-    // The Vite dev server can briefly serve an HTML shell while modules are still loading.
-    // Wait for React to mount something under #app, with a one-time reload recovery.
-    const appRoot = this.page.locator('#app').first();
-    await appRoot.waitFor({ state: 'attached', timeout: Math.max(1_000, deadline - Date.now()) });
-
-    const waitForAppMount = async (timeoutMs: number) => {
-      await this.page
-        .locator('#app > *')
-        .first()
-        .waitFor({ state: 'attached', timeout: Math.max(1_000, timeoutMs) });
-    };
-
-    try {
-      await waitForAppMount(Math.min(20_000, deadline - Date.now()));
-    } catch {
-      // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` can leave the page blank.
-      // A single reload tends to recover without adding additional flake.
-      console.warn('[e2e] App did not mount under #app; reloading once to recover');
-      await this.page.reload({ waitUntil: 'domcontentloaded' });
-      await waitForAppMount(deadline - Date.now());
-    }
+    // The dev server can briefly serve a blank/transitioning document during startup.
+    // Ensure the main app layout or a wizard has mounted before we start polling for buttons.
+    const mountedRoot = this.page.locator('#layout, .connection-wizard-layout, .connection-wizard-overlay').first();
+    await mountedRoot.waitFor({ state: 'attached', timeout: 60_000 });
 
     const openBtn = this.page.locator('#show-wizard-btn');
     const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
     const mainApp = this.page.locator('#kubecontext-root, #swarm-sidebar');
 
+    const deadline = Date.now() + 60_000;
     while (Date.now() < deadline) {
       if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
         return OPEN_WIZARD_STATUS.AutoOpened;
