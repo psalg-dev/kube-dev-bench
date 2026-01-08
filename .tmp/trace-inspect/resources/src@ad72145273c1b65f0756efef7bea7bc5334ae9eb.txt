@@ -39,29 +39,23 @@ export class ConnectionWizardPage {
     }
 
     await this.page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
-
-    // The dev server can briefly serve a blank/transitioning document during startup.
-    // Ensure the main app layout or a wizard has mounted before we start polling for buttons.
-    const mountedRoot = this.page.locator('#layout, .connection-wizard-layout, .connection-wizard-overlay').first();
-    await mountedRoot.waitFor({ state: 'attached', timeout: 60_000 });
-
     const openBtn = this.page.locator('#show-wizard-btn');
     const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
     const mainApp = this.page.locator('#kubecontext-root, #swarm-sidebar');
 
-    const deadline = Date.now() + 60_000;
+    const deadline = Date.now() + 30_000;
     while (Date.now() < deadline) {
       if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
         return OPEN_WIZARD_STATUS.AutoOpened;
       }
 
-      if (await openBtn.isVisible().catch(() => false)) {
+      if ((await openBtn.count()) > 0) {
         await openBtn.click({ timeout: 10_000 });
         await expect(wizard).toBeVisible({ timeout: 30_000 });
         return OPEN_WIZARD_STATUS.ClickedButton;
       }
 
-      if (await swarmOpenBtn.isVisible().catch(() => false)) {
+      if ((await swarmOpenBtn.count()) > 0) {
         await swarmOpenBtn.click({ timeout: 10_000 });
         await expect(wizard).toBeVisible({ timeout: 30_000 });
         return OPEN_WIZARD_STATUS.ClickedButton;

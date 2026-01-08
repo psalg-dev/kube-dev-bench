@@ -13,7 +13,6 @@ export type WailsDevInstance = {
 };
 
 async function waitForHttpOk(url: string, timeoutMs: number) {
-  const allowNotFound = url.endsWith('/');
   const start = Date.now();
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -22,7 +21,10 @@ async function waitForHttpOk(url: string, timeoutMs: number) {
         const req = http.get(url, (res: http.IncomingMessage) => {
           res.resume();
           const status = res.statusCode ?? 0;
-          resolve(status >= 200 && status < (allowNotFound ? 500 : 400));
+          // For E2E, we need the server to serve real content.
+          // During `wails dev` startup, the devserver port may accept connections
+          // but still return 404/5xx while the backend/UI are booting.
+          resolve(status >= 200 && status < 400);
         });
         req.on('error', () => resolve(false));
         req.setTimeout(2_000, () => {
