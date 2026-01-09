@@ -15,6 +15,7 @@ const swarmSections = [
   { key: 'swarm-configs', label: 'Configs' },
   { key: 'swarm-secrets', label: 'Secrets' },
   { key: 'swarm-volumes', label: 'Volumes' },
+  { key: 'swarm-registries', label: 'Registries' },
 ];
 
 const tableTestIdBySectionKey: Record<string, string> = {
@@ -26,6 +27,7 @@ const tableTestIdBySectionKey: Record<string, string> = {
   'swarm-configs': 'swarm-configs-table',
   'swarm-secrets': 'swarm-secrets-table',
   'swarm-volumes': 'swarm-volumes-table',
+  'swarm-registries': 'swarm-registries-table',
 };
 
 async function expectSwarmConnected(page: import('@playwright/test').Page) {

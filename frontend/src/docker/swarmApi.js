@@ -24,6 +24,7 @@ import {
   GetSwarmTasks,
   GetSwarmTasksByService,
   GetSwarmTask,
+  GetSwarmTaskHealthLogs,
   
   // Nodes
   GetSwarmNodes,
@@ -98,6 +99,20 @@ import {
   
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Registries
+  GetRegistries,
+  AddRegistry,
+  RemoveRegistry,
+  TestRegistryConnection,
+  ListRegistryRepositories,
+  ListRegistryTags,
+  GetImageDigest,
+
+  // Docker Hub integration
+  SearchDockerHubRepositories,
+  GetDockerHubRepositoryDetails,
+  PullDockerImageLatest,
 } from '../../wailsjs/go/main/App';
 
 // Direct re-exports
@@ -123,6 +138,7 @@ export {
   GetSwarmTasks,
   GetSwarmTasksByService,
   GetSwarmTask,
+  GetSwarmTaskHealthLogs,
   
   // Nodes
   GetSwarmNodes,
@@ -197,4 +213,18 @@ export {
   
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Registries
+  GetRegistries,
+  AddRegistry,
+  RemoveRegistry,
+  TestRegistryConnection,
+  ListRegistryRepositories,
+  ListRegistryTags,
+  GetImageDigest,
+
+  // Docker Hub integration
+  SearchDockerHubRepositories,
+  GetDockerHubRepositoryDetails,
+  PullDockerImageLatest,
 };

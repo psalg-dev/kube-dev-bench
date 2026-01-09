@@ -70,12 +70,32 @@ type SwarmTaskInfo struct {
 	State        string                 `json:"state"` // running, pending, failed, etc.
 	DesiredState string                 `json:"desiredState"`
 	ContainerID  string                 `json:"containerId"`
+	HealthStatus string                 `json:"healthStatus"` // starting, healthy, unhealthy, none
+	HealthCheck  *SwarmHealthCheckInfo  `json:"healthCheck"`
 	Image        string                 `json:"image"`
 	Mounts       []SwarmMountInfo       `json:"mounts"`
 	Networks     []SwarmTaskNetworkInfo `json:"networks"`
 	Error        string                 `json:"error"`
 	CreatedAt    string                 `json:"createdAt"`
 	UpdatedAt    string                 `json:"updatedAt"`
+}
+
+// SwarmHealthCheckInfo describes container healthcheck configuration.
+// Values mirror Docker healthcheck fields but are encoded for frontend display.
+type SwarmHealthCheckInfo struct {
+	Test        []string `json:"test"`
+	Interval    string   `json:"interval"`
+	Timeout     string   `json:"timeout"`
+	Retries     int      `json:"retries"`
+	StartPeriod string   `json:"startPeriod"`
+}
+
+// SwarmHealthLogEntry describes a single healthcheck execution result.
+type SwarmHealthLogEntry struct {
+	Start    string `json:"start"`
+	End      string `json:"end"`
+	ExitCode int    `json:"exitCode"`
+	Output   string `json:"output"`
 }
 
 type SwarmTaskNetworkInfo struct {

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GetSwarmTasksByService } from '../../swarmApi.js';
 import { EventsOn } from '../../../../wailsjs/runtime';
 import './ServiceTasksTab.css';
+import HealthStatusBadge from '../tasks/HealthStatusBadge.jsx';
 
 export default function ServiceTasksTab({ serviceId, serviceName }) {
   const [tasks, setTasks] = useState([]);
@@ -79,6 +80,7 @@ export default function ServiceTasksTab({ serviceId, serviceName }) {
             <th>Node</th>
             <th>Slot</th>
             <th>State</th>
+            <th>Health</th>
             <th>Desired State</th>
             <th>Container ID</th>
             <th>Error</th>
@@ -97,6 +99,9 @@ export default function ServiceTasksTab({ serviceId, serviceName }) {
                 >
                   {task.state}
                 </span>
+              </td>
+              <td>
+                <HealthStatusBadge status={task.healthStatus} />
               </td>
               <td>{task.desiredState}</td>
               <td title={task.containerId}>

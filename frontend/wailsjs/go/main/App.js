@@ -6,6 +6,10 @@ export function AddHelmRepository(arg1, arg2) {
   return window['go']['main']['App']['AddHelmRepository'](arg1, arg2);
 }
 
+export function AddRegistry(arg1) {
+  return window['go']['main']['App']['AddRegistry'](arg1);
+}
+
 export function ArchivePVCPath(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchivePVCPath'](arg1, arg2, arg3, arg4);
 }
@@ -218,6 +222,10 @@ export function GetDockerConnectionStatus() {
   return window['go']['main']['App']['GetDockerConnectionStatus']();
 }
 
+export function GetDockerHubRepositoryDetails(arg1) {
+  return window['go']['main']['App']['GetDockerHubRepositoryDetails'](arg1);
+}
+
 export function GetHelmChartVersions(arg1, arg2) {
   return window['go']['main']['App']['GetHelmChartVersions'](arg1, arg2);
 }
@@ -248,6 +256,10 @@ export function GetHelmRepositories() {
 
 export function GetHooksConfig() {
   return window['go']['main']['App']['GetHooksConfig']();
+}
+
+export function GetImageDigest(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetImageDigest'](arg1, arg2, arg3);
 }
 
 export function GetIngressDetail(arg1, arg2) {
@@ -368,6 +380,10 @@ export function GetProxyConfig() {
 
 export function GetProxyDisplayURL() {
   return window['go']['main']['App']['GetProxyDisplayURL']();
+}
+
+export function GetRegistries() {
+  return window['go']['main']['App']['GetRegistries']();
 }
 
 export function GetRememberContext() {
@@ -534,6 +550,10 @@ export function GetSwarmTask(arg1) {
   return window['go']['main']['App']['GetSwarmTask'](arg1);
 }
 
+export function GetSwarmTaskHealthLogs(arg1) {
+  return window['go']['main']['App']['GetSwarmTaskHealthLogs'](arg1);
+}
+
 export function GetSwarmTaskLogs(arg1, arg2) {
   return window['go']['main']['App']['GetSwarmTaskLogs'](arg1, arg2);
 }
@@ -594,6 +614,14 @@ export function ListPortForwards() {
   return window['go']['main']['App']['ListPortForwards']();
 }
 
+export function ListRegistryRepositories(arg1) {
+  return window['go']['main']['App']['ListRegistryRepositories'](arg1);
+}
+
+export function ListRegistryTags(arg1, arg2) {
+  return window['go']['main']['App']['ListRegistryTags'](arg1, arg2);
+}
+
 export function ListSwarmVolumeFiles(arg1, arg2) {
   return window['go']['main']['App']['ListSwarmVolumeFiles'](arg1, arg2);
 }
@@ -614,8 +642,16 @@ export function PruneSwarmVolumes() {
   return window['go']['main']['App']['PruneSwarmVolumes']();
 }
 
+export function PullDockerImageLatest(arg1, arg2) {
+  return window['go']['main']['App']['PullDockerImageLatest'](arg1, arg2);
+}
+
 export function RemoveHelmRepository(arg1) {
   return window['go']['main']['App']['RemoveHelmRepository'](arg1);
+}
+
+export function RemoveRegistry(arg1) {
+  return window['go']['main']['App']['RemoveRegistry'](arg1);
 }
 
 export function RemoveSwarmConfig(arg1) {
@@ -712,6 +748,10 @@ export function ScaleResource(arg1, arg2, arg3, arg4) {
 
 export function ScaleSwarmService(arg1, arg2) {
   return window['go']['main']['App']['ScaleSwarmService'](arg1, arg2);
+}
+
+export function SearchDockerHubRepositories(arg1) {
+  return window['go']['main']['App']['SearchDockerHubRepositories'](arg1);
 }
 
 export function SearchHelmCharts(arg1) {
@@ -876,6 +916,10 @@ export function TestDockerConnection(arg1) {
 
 export function TestHook(arg1) {
   return window['go']['main']['App']['TestHook'](arg1);
+}
+
+export function TestRegistryConnection(arg1) {
+  return window['go']['main']['App']['TestRegistryConnection'](arg1);
 }
 
 export function UninstallHelmRelease(arg1, arg2) {

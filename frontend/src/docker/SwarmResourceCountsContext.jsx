@@ -1,14 +1,17 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { GetSwarmResourceCounts } from './swarmApi.js';
+import { GetRegistries } from './swarmApi.js';
 import { EventsOn } from '../../wailsjs/runtime';
 import SwarmStateContext from './SwarmStateContext.jsx';
 
-const SwarmResourceCountsContext = createContext({ counts: null, lastUpdated: 0, refetch: () => {} });
+const SwarmResourceCountsContext = createContext({ counts: null, registriesCount: null, lastUpdated: 0, refetch: () => {} });
 
 export function SwarmResourceCountsProvider({ children }) {
   const [counts, setCounts] = useState(null);
+  const [registriesCount, setRegistriesCount] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(0);
   const lastSigRef = useRef(null);
+  const lastRegistriesFetchRef = useRef(0);
 
   const swarmContext = useContext(SwarmStateContext);
   const connected = !!swarmContext?.connected;
@@ -53,7 +56,10 @@ export function SwarmResourceCountsProvider({ children }) {
     }
   }, [computeSig, normalize]);
 
-  const refetch = useCallback(() => {
+  const refetch = useCallback((opts) => {
+    const forceRegistries = !!opts?.forceRegistries;
+
+    // Swarm resource counts (only succeeds when connected)
     GetSwarmResourceCounts()
       .then((data) => {
         applyCounts(data);
@@ -61,7 +67,22 @@ export function SwarmResourceCountsProvider({ children }) {
       .catch(() => {
         // Docker might not be connected - that's OK
       });
-  }, [applyCounts]);
+
+    // Registry config count is independent of Docker connectivity.
+    const now = Date.now();
+    const stale = now - lastRegistriesFetchRef.current > 10_000;
+    if (forceRegistries || stale || registriesCount === null) {
+      lastRegistriesFetchRef.current = now;
+      GetRegistries()
+        .then((items) => {
+          const next = Array.isArray(items) ? items.length : 0;
+          setRegistriesCount(next);
+        })
+        .catch(() => {
+          // Best effort; keep last known value
+        });
+    }
+  }, [applyCounts, registriesCount]);
 
   useEffect(() => {
     let active = true;
@@ -78,14 +99,14 @@ export function SwarmResourceCountsProvider({ children }) {
       });
       offConnected = EventsOn('docker:connected', () => {
         if (!active) return;
-        setTimeout(refetch, 500);
+        setTimeout(() => refetch({ forceRegistries: true }), 500);
       });
     } catch (_) {
       // When not running inside Wails, window.runtime is not available.
     }
 
     // Always try an initial fetch. If Docker isn't connected yet, it will fail silently.
-    refetch();
+    refetch({ forceRegistries: true });
 
     // Primary update mechanism: poll when connected.
     // This avoids any event timing issues and matches backend's 2s polling cadence.
@@ -105,7 +126,7 @@ export function SwarmResourceCountsProvider({ children }) {
   }, [refetch, applyCounts, connected]);
 
   return (
-    <SwarmResourceCountsContext.Provider value={{ counts, lastUpdated, refetch }}>
+    <SwarmResourceCountsContext.Provider value={{ counts, registriesCount, lastUpdated, refetch }}>
       {children}
     </SwarmResourceCountsContext.Provider>
   );

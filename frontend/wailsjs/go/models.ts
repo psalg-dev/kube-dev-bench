@@ -1744,6 +1744,44 @@ export namespace docker {
 		    return a;
 		}
 	}
+	export class SwarmHealthCheckInfo {
+	    test: string[];
+	    interval: string;
+	    timeout: string;
+	    retries: number;
+	    startPeriod: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SwarmHealthCheckInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.test = source["test"];
+	        this.interval = source["interval"];
+	        this.timeout = source["timeout"];
+	        this.retries = source["retries"];
+	        this.startPeriod = source["startPeriod"];
+	    }
+	}
+	export class SwarmHealthLogEntry {
+	    start: string;
+	    end: string;
+	    exitCode: number;
+	    output: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SwarmHealthLogEntry(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.start = source["start"];
+	        this.end = source["end"];
+	        this.exitCode = source["exitCode"];
+	        this.output = source["output"];
+	    }
+	}
 	export class SwarmMountInfo {
 	    type: string;
 	    source: string;
@@ -2231,6 +2269,8 @@ export namespace docker {
 	    state: string;
 	    desiredState: string;
 	    containerId: string;
+	    healthStatus: string;
+	    healthCheck?: SwarmHealthCheckInfo;
 	    image: string;
 	    mounts: SwarmMountInfo[];
 	    networks: SwarmTaskNetworkInfo[];
@@ -2253,6 +2293,8 @@ export namespace docker {
 	        this.state = source["state"];
 	        this.desiredState = source["desiredState"];
 	        this.containerId = source["containerId"];
+	        this.healthStatus = source["healthStatus"];
+	        this.healthCheck = this.convertValues(source["healthCheck"], SwarmHealthCheckInfo);
 	        this.image = source["image"];
 	        this.mounts = this.convertValues(source["mounts"], SwarmMountInfo);
 	        this.networks = this.convertValues(source["networks"], SwarmTaskNetworkInfo);
@@ -2315,6 +2357,131 @@ export namespace jobs {
 	        this.duration = source["duration"];
 	        this.labels = source["labels"];
 	    }
+	}
+
+}
+
+export namespace registry {
+	
+	export class DockerHubRepoDetails {
+	    name: string;
+	    namespace: string;
+	    fullName: string;
+	    description: string;
+	    sizeBytes: number;
+	    starCount: number;
+	    pullCount: number;
+	    lastUpdated: string;
+	    isPrivate: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new DockerHubRepoDetails(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.fullName = source["fullName"];
+	        this.description = source["description"];
+	        this.sizeBytes = source["sizeBytes"];
+	        this.starCount = source["starCount"];
+	        this.pullCount = source["pullCount"];
+	        this.lastUpdated = source["lastUpdated"];
+	        this.isPrivate = source["isPrivate"];
+	    }
+	}
+	export class DockerHubRepoSearchResult {
+	    name: string;
+	    namespace: string;
+	    fullName: string;
+	    description: string;
+	    sizeBytes: number;
+	    starCount: number;
+	    pullCount: number;
+	    isOfficial: boolean;
+	    isAutomated: boolean;
+	    lastUpdated: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DockerHubRepoSearchResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.fullName = source["fullName"];
+	        this.description = source["description"];
+	        this.sizeBytes = source["sizeBytes"];
+	        this.starCount = source["starCount"];
+	        this.pullCount = source["pullCount"];
+	        this.isOfficial = source["isOfficial"];
+	        this.isAutomated = source["isAutomated"];
+	        this.lastUpdated = source["lastUpdated"];
+	    }
+	}
+	export class RegistryCredentials {
+	    username: string;
+	    password: string;
+	    token: string;
+	    region: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RegistryCredentials(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.username = source["username"];
+	        this.password = source["password"];
+	        this.token = source["token"];
+	        this.region = source["region"];
+	    }
+	}
+	export class RegistryConfig {
+	    name: string;
+	    url: string;
+	    type: string;
+	    credentials: RegistryCredentials;
+	    timeoutSeconds: number;
+	    insecureSkipTlsVerify: boolean;
+	    allowInsecureHttp: boolean;
+	    disableTlsVerification: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new RegistryConfig(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.url = source["url"];
+	        this.type = source["type"];
+	        this.credentials = this.convertValues(source["credentials"], RegistryCredentials);
+	        this.timeoutSeconds = source["timeoutSeconds"];
+	        this.insecureSkipTlsVerify = source["insecureSkipTlsVerify"];
+	        this.allowInsecureHttp = source["allowInsecureHttp"];
+	        this.disableTlsVerification = source["disableTlsVerification"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

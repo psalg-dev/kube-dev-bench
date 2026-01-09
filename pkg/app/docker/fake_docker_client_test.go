@@ -49,8 +49,16 @@ type fakeDockerClient struct {
 	SecretCreateFn         func(context.Context, swarm.SecretSpec) (types.SecretCreateResponse, error)
 	SecretRemoveFn         func(context.Context, string) error
 
-	ContainerLogsFn func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
-	ServiceLogsFn   func(context.Context, string, types.ContainerLogsOptions) (io.ReadCloser, error)
+	ContainerLogsFn    func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
+	ServiceLogsFn      func(context.Context, string, types.ContainerLogsOptions) (io.ReadCloser, error)
+	ContainerInspectFn func(context.Context, string) (types.ContainerJSON, error)
+}
+
+func (f *fakeDockerClient) ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error) {
+	if f.ContainerInspectFn == nil {
+		return types.ContainerJSON{}, nil
+	}
+	return f.ContainerInspectFn(ctx, containerID)
 }
 
 func (f *fakeDockerClient) NetworkList(ctx context.Context, opts types.NetworkListOptions) ([]types.NetworkResource, error) {

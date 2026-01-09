@@ -14,6 +14,7 @@ vi.mock('../docker/swarmApi.js', () => ({
     stacks: 1,
     volumes: 4,
   })),
+  GetRegistries: vi.fn(() => Promise.resolve([])),
 }));
 
 // Mock wails runtime

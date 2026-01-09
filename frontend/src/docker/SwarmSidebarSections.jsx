@@ -11,10 +11,11 @@ const swarmSections = [
   { key: 'swarm-configs', label: 'Configs', countKey: 'configs' },
   { key: 'swarm-secrets', label: 'Secrets', countKey: 'secrets' },
   { key: 'swarm-volumes', label: 'Volumes', countKey: 'volumes' },
+  { key: 'swarm-registries', label: 'Registries', countKey: 'registries' },
 ];
 
 export function SwarmSidebarSections({ selected, onSelect }) {
-  const { counts } = useSwarmResourceCounts();
+  const { counts, registriesCount } = useSwarmResourceCounts();
 
   return (
     <div>
@@ -34,7 +35,7 @@ export function SwarmSidebarSections({ selected, onSelect }) {
           gap: 8,
           justifyContent: 'space-between',
         };
-        const value = counts?.[sec.countKey];
+        const value = sec.countKey === 'registries' ? registriesCount : counts?.[sec.countKey];
         const isNumber = typeof value === 'number';
         return (
           <div

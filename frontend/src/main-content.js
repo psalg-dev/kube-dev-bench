@@ -21,6 +21,7 @@ import SwarmConfigsOverviewTable from "./docker/resources/configs/SwarmConfigsOv
 import SwarmSecretsOverviewTable from "./docker/resources/secrets/SwarmSecretsOverviewTable";
 import SwarmStacksOverviewTable from "./docker/resources/stacks/SwarmStacksOverviewTable";
 import SwarmVolumesOverviewTable from "./docker/resources/volumes/SwarmVolumesOverviewTable";
+import SwarmRegistriesOverview from "./docker/registry/SwarmRegistriesOverview.jsx";
 import SwarmStateContext from "./docker/SwarmStateContext.jsx";
 import SwarmResourceCountsContext from "./docker/SwarmResourceCountsContext.jsx";
 import {createRoot} from "react-dom/client";
@@ -243,6 +244,12 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
             id: 'swarm-volumes-overview-react',
             section: 'swarm-volumes',
             table: SwarmVolumesOverviewTable,
+            props: {}
+        },
+        {
+            id: 'swarm-registries-overview-react',
+            section: 'swarm-registries',
+            table: SwarmRegistriesOverview,
             props: {}
         }
     ];

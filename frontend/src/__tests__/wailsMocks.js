@@ -45,6 +45,8 @@ const appFunctionNames = [
   'CreateSwarmService','CreateSwarmStack','CreateSwarmNetwork','CreateSwarmVolume',
   'GetSwarmServiceLogs','GetSwarmTaskLogs',
   'GetSwarmResourceCounts',
+  // Registry Integration
+  'GetRegistries','AddRegistry','RemoveRegistry','TestRegistryConnection','ListRegistryRepositories','ListRegistryTags','GetImageDigest',
   // Helm functions
   'GetHelmReleases','GetHelmRepositories','AddHelmRepository','RemoveHelmRepository','UpdateHelmRepositories','SearchHelmCharts','GetHelmChartVersions','InstallHelmChart','UpgradeHelmRelease','UninstallHelmRelease','RollbackHelmRelease','GetHelmReleaseHistory','GetHelmReleaseValues','GetHelmReleaseManifest','GetHelmReleaseNotes','StartHelmReleasePolling'
 ];
