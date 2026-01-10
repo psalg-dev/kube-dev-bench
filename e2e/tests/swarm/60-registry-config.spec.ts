@@ -46,8 +46,13 @@ test.describe('Docker Swarm Registries', () => {
     await page.getByRole('button', { name: /^Save$/i }).click();
     await notifications.expectSuccessContains(`Saved registry ${name}`, { timeoutMs: 30_000 });
 
-    const card = page.locator('.registry-card').filter({ hasText: name }).first();
-    await expect(card).toBeVisible({ timeout: 30_000 });
+    // Registry list uses a table, find the row containing the registry name
+    const row = page.locator('.registry-table tbody tr').filter({ hasText: name }).first();
+    await expect(row).toBeVisible({ timeout: 30_000 });
+
+    // Click the row to open the bottom panel which has the Remove button
+    await row.click();
+    await page.waitForSelector('.bottom-panel', { state: 'visible', timeout: 10_000 });
 
     // Remove it.
     page.once('dialog', async (d) => {
@@ -55,9 +60,9 @@ test.describe('Docker Swarm Registries', () => {
       await d.accept();
     });
 
-    await card.getByRole('button', { name: /^Remove$/i }).click();
+    await page.locator('.bottom-panel button[title="Remove registry"]').click();
     await notifications.expectSuccessContains(`Removed registry ${name}`, { timeoutMs: 30_000 });
 
-    await expect(card).toBeHidden({ timeout: 30_000 });
+    await expect(row).toBeHidden({ timeout: 30_000 });
   });
 });

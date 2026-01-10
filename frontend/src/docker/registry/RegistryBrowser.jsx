@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { GetDockerHubRepositoryDetails, GetImageDigest, ListRegistryRepositories, ListRegistryTags, PullDockerImageLatest, SearchDockerHubRepositories } from '../swarmApi.js';
+import { GetDockerHubRepositoryDetails, GetImageDigest, GetRegistryRepositoryDetails, ListRegistryRepositories, ListRegistryTags, PullDockerImageLatest, SearchDockerHubRepositories, SearchRegistryRepositories } from '../swarmApi.js';
 import { showError, showSuccess } from '../../notification.js';
 import './registry.css';
 
@@ -110,10 +110,14 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     };
   }, [registryName, selectedRepo]);
 
-  const isDockerHub = String(registryType).toLowerCase() === 'dockerhub';
+  const typeLower = String(registryType).toLowerCase();
+  const isDockerHub = typeLower === 'dockerhub';
+  const isArtifactory = typeLower === 'artifactory';
+  const isV2Search = isArtifactory || typeLower === 'generic_v2';
+  const supportsSearch = isDockerHub || isV2Search;
 
   useEffect(() => {
-    if (!isDockerHub) return;
+    if (!supportsSearch) return;
 
     // Debounced search: automatically search 2s after user stops typing.
     if (searchDebounceRef.current) {
@@ -141,7 +145,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery, isDockerHub]);
+  }, [searchQuery, supportsSearch]);
 
   const dockerHubRepoURL = (fullName) => {
     const s = String(fullName || '').trim();
@@ -189,6 +193,12 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     }
   };
 
+  const formatRepoURL = (details) => {
+    if (isDockerHub) return dockerHubRepoURL(details?.fullName);
+    const u = String(details?.url || '').trim();
+    return u;
+  };
+
   const runSearch = async () => {
     const q = String(searchQuery || '').trim();
     if (!q) {
@@ -200,14 +210,16 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     }
     setSearchLoading(true);
     try {
-      const results = await SearchDockerHubRepositories(q);
+      const results = isDockerHub
+        ? await SearchDockerHubRepositories(q)
+        : await SearchRegistryRepositories(registryName, q);
       const list = Array.isArray(results) ? results : [];
       setSearchResults(list);
       setSelectedSearchRepo(null);
       setInspectDetails(null);
       setInspectError('');
     } catch (e) {
-      showError(`Docker Hub search failed: ${e}`);
+      showError(`${isDockerHub ? 'Docker Hub' : 'Registry'} search failed: ${e}`);
     } finally {
       setSearchLoading(false);
     }
@@ -229,6 +241,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     setInspectDetails({
       fullName,
       description: repo.description || '',
+      url: repo.url || '',
       sizeBytes: typeof repo.sizeBytes === 'number' ? repo.sizeBytes : 0,
       starCount: typeof repo.starCount === 'number' ? repo.starCount : 0,
       pullCount: typeof repo.pullCount === 'number' ? repo.pullCount : 0,
@@ -236,7 +249,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     });
     setInspectError('');
 
-    if (!isDockerHub) return;
+    if (!supportsSearch) return;
     if (!fullName) {
       setInspectError('Selected result has no repository name.');
       return;
@@ -244,8 +257,11 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
 
     const reqId = ++inspectReqIdRef.current;
     setInspectLoading(true);
-    GetDockerHubRepositoryDetails(fullName)
-      .then((d) => {
+    const p = isDockerHub
+      ? GetDockerHubRepositoryDetails(fullName)
+      : GetRegistryRepositoryDetails(registryName, fullName);
+
+    p.then((d) => {
         if (inspectReqIdRef.current !== reqId) return;
         // Merge details but never lose the target fullName; Wails can decode an empty object
         // (or a zero-value struct) which would otherwise wipe the fallback.
@@ -305,7 +321,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
         <div className="registry-browser__list">
           <div className="registry-browser__listHeader registry-browser__listHeaderRow">
             <span>Tags</span>
-            {isDockerHub && selectedRepo ? (
+            {selectedRepo ? (
               <button
                 className="registry-action-btn"
                 disabled={pulling}
@@ -333,10 +349,10 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
         </div>
       </div>
 
-      {isDockerHub ? (
+      {supportsSearch ? (
         <div className="registry-search">
           <div className="registry-search__header">
-            <div className="registry-search__title">Search Docker Hub</div>
+            <div className="registry-search__title">Search {isDockerHub ? 'Docker Hub' : (isArtifactory ? 'Artifactory' : 'Registry')}</div>
             <div className="registry-search__controls">
               <input
                 type="search"
@@ -353,7 +369,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                   }
                 }}
                 placeholder="Search repositories…"
-                aria-label="Search Docker Hub"
+                aria-label={isDockerHub ? 'Search Docker Hub' : 'Search registry'}
               />
               <button className="registry-action-btn" onClick={runSearch} disabled={searchLoading}>
                 Search
@@ -363,19 +379,25 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
 
           <table className="gh-table" style={{ width: '100%' }}>
             <thead>
-              <tr>
-                <th>Name</th>
-                <th>Description</th>
-                <th>Stars</th>
-                <th>Pulls</th>
-                <th>Updated</th>
-              </tr>
+              {isDockerHub ? (
+                <tr>
+                  <th>Name</th>
+                  <th>Description</th>
+                  <th>Stars</th>
+                  <th>Pulls</th>
+                  <th>Updated</th>
+                </tr>
+              ) : (
+                <tr>
+                  <th>Name</th>
+                </tr>
+              )}
             </thead>
             <tbody>
               {searchLoading ? (
-                <tr><td colSpan={5} className="main-panel-loading">Searching…</td></tr>
+                <tr><td colSpan={isDockerHub ? 5 : 1} className="main-panel-loading">Searching…</td></tr>
               ) : searchResults.length === 0 ? (
-                <tr><td colSpan={5} className="main-panel-loading">No results.</td></tr>
+                <tr><td colSpan={isDockerHub ? 5 : 1} className="main-panel-loading">No results.</td></tr>
               ) : (
                 searchResults.map((r) => {
                   const rowFullName = (r.fullName || (r.namespace && r.name ? `${r.namespace}/${r.name}` : '') || r.name || '').trim();
@@ -398,15 +420,19 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                         onClick={() => selectSearchRepo({ ...r, fullName: rowFullName })}
                       >
                         <td>{rowFullName || '-'}</td>
-                        <td>{r.description || '-'}</td>
-                        <td>{typeof r.starCount === 'number' ? r.starCount : '-'}</td>
-                        <td>{typeof r.pullCount === 'number' ? r.pullCount : '-'}</td>
-                        <td>{r.lastUpdated ? String(r.lastUpdated).slice(0, 10) : '-'}</td>
+                        {isDockerHub ? (
+                          <>
+                            <td>{r.description || '-'}</td>
+                            <td>{typeof r.starCount === 'number' ? r.starCount : '-'}</td>
+                            <td>{typeof r.pullCount === 'number' ? r.pullCount : '-'}</td>
+                            <td>{r.lastUpdated ? String(r.lastUpdated).slice(0, 10) : '-'}</td>
+                          </>
+                        ) : null}
                       </tr>
 
                       {isSelected ? (
                         <tr>
-                          <td colSpan={5} style={{ paddingTop: 0 }}>
+                          <td colSpan={isDockerHub ? 5 : 1} style={{ paddingTop: 0 }}>
                             <div className="registry-search__inspect" style={{ marginTop: 0 }}>
                               {inspectLoading ? (
                                 <div className="registry-browser__muted" style={{ marginBottom: 8 }}>Loading details…</div>
@@ -422,40 +448,46 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                                     <div>
                                       <div className="registry-search__inspectLabel">URL</div>
                                       <div className="registry-search__inspectValue">
-                                        {dockerHubRepoURL(details.fullName || rowFullName) ? (
+                                        {formatRepoURL(details) ? (
                                           <a
-                                            href={dockerHubRepoURL(details.fullName || rowFullName)}
+                                            href={formatRepoURL(details)}
                                             target="_blank"
                                             rel="noreferrer"
                                             style={{ color: 'inherit', textDecoration: 'underline' }}
                                           >
-                                            {dockerHubRepoURL(details.fullName || rowFullName)}
+                                            {formatRepoURL(details)}
                                           </a>
                                         ) : (
                                           '-'
                                         )}
                                       </div>
                                     </div>
-                                    <div>
-                                      <div className="registry-search__inspectLabel">Description</div>
-                                      <div className="registry-search__inspectValue">{details.description || '-'}</div>
-                                    </div>
+                                    {isDockerHub ? (
+                                      <div>
+                                        <div className="registry-search__inspectLabel">Description</div>
+                                        <div className="registry-search__inspectValue">{details.description || '-'}</div>
+                                      </div>
+                                    ) : null}
                                     <div>
                                       <div className="registry-search__inspectLabel">Size</div>
                                       <div className="registry-search__inspectValue">{formatBytes(typeof details.sizeBytes === 'number' ? details.sizeBytes : 0)}</div>
                                     </div>
-                                    <div>
-                                      <div className="registry-search__inspectLabel">Stars</div>
-                                      <div className="registry-search__inspectValue">{details.starCount ?? '-'}</div>
-                                    </div>
-                                    <div>
-                                      <div className="registry-search__inspectLabel">Pulls</div>
-                                      <div className="registry-search__inspectValue">{details.pullCount ?? '-'}</div>
-                                    </div>
-                                    <div>
-                                      <div className="registry-search__inspectLabel">Last Updated</div>
-                                      <div className="registry-search__inspectValue">{details.lastUpdated ? String(details.lastUpdated).slice(0, 19) : '-'}</div>
-                                    </div>
+                                    {isDockerHub ? (
+                                      <>
+                                        <div>
+                                          <div className="registry-search__inspectLabel">Stars</div>
+                                          <div className="registry-search__inspectValue">{details.starCount ?? '-'}</div>
+                                        </div>
+                                        <div>
+                                          <div className="registry-search__inspectLabel">Pulls</div>
+                                          <div className="registry-search__inspectValue">{details.pullCount ?? '-'}</div>
+                                        </div>
+                                        <div>
+                                          <div className="registry-search__inspectLabel">Last Updated</div>
+                                          <div className="registry-search__inspectValue">{details.lastUpdated ? String(details.lastUpdated).slice(0, 19) : '-'}</div>
+                                        </div>
+                                      </>
+                                    ) : null}
                                     <div className="registry-search__inspectActions">
                                       <button
                                         className="registry-action-btn"

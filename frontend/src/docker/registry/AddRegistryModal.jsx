@@ -5,6 +5,7 @@ import './registry.css';
 
 const REGISTRY_TYPES = [
   { value: 'dockerhub', label: 'Docker Hub' },
+  { value: 'artifactory', label: 'Artifactory' },
   { value: 'generic_v2', label: 'Generic v2' },
   { value: 'ecr', label: 'ECR' },
 ];
@@ -21,6 +22,21 @@ function defaultStateForType(type) {
       name: 'Docker Hub',
       type,
       url: 'https://registry-1.docker.io',
+      authMethod: 'basic',
+      username: '',
+      password: '',
+      token: '',
+      timeoutSeconds: 30,
+      insecureSkipTlsVerify: false,
+      allowInsecureHttp: false,
+    };
+  }
+
+  if (type === 'artifactory') {
+    return {
+      name: 'Artifactory',
+      type,
+      url: '',
       authMethod: 'basic',
       username: '',
       password: '',

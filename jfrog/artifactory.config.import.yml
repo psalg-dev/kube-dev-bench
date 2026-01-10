@@ -1,0 +1,18 @@
+version: 1
+
+# This file is mounted into the JFrog Container Registry container at
+# /var/opt/jfrog/artifactory/etc/artifactory.config.import.yml.
+#
+# It is used for deterministic local/E2E bootstrapping, especially when the
+# repository-management REST API is not available.
+#
+# Notes:
+# - We intentionally do NOT include a licenseKey here.
+# - The onboarding repo types should seed the Docker repository needed for E2E.
+
+GeneralConfiguration:
+  baseUrl: "http://localhost:8082"
+
+OnboardingConfiguration:
+  repoTypes:
+    - docker

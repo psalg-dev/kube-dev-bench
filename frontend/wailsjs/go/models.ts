@@ -2483,6 +2483,39 @@ export namespace registry {
 		    return a;
 		}
 	}
+	
+	export class RegistryRepoDetails {
+	    name: string;
+	    fullName: string;
+	    url: string;
+	    sizeBytes: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new RegistryRepoDetails(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.fullName = source["fullName"];
+	        this.url = source["url"];
+	        this.sizeBytes = source["sizeBytes"];
+	    }
+	}
+	export class RegistryRepoSearchResult {
+	    name: string;
+	    fullName: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new RegistryRepoSearchResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.fullName = source["fullName"];
+	    }
+	}
 
 }
 

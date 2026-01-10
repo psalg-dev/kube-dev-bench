@@ -386,6 +386,10 @@ export function GetRegistries() {
   return window['go']['main']['App']['GetRegistries']();
 }
 
+export function GetRegistryRepositoryDetails(arg1, arg2) {
+  return window['go']['main']['App']['GetRegistryRepositoryDetails'](arg1, arg2);
+}
+
 export function GetRememberContext() {
   return window['go']['main']['App']['GetRememberContext']();
 }
@@ -760,6 +764,10 @@ export function SearchHelmCharts(arg1) {
 
 export function SearchPodFiles(arg1, arg2, arg3, arg4, arg5, arg6) {
   return window['go']['main']['App']['SearchPodFiles'](arg1, arg2, arg3, arg4, arg5, arg6);
+}
+
+export function SearchRegistryRepositories(arg1, arg2) {
+  return window['go']['main']['App']['SearchRegistryRepositories'](arg1, arg2);
 }
 
 export function SelectHookScript() {

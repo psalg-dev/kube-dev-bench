@@ -19,6 +19,7 @@ export type RunState = {
   sharedDialogDir?: string;
   proxyBaseURL?: string;
   proxyPid?: number;
+  jfrogLogPath?: string;
 };
 
 const stateDir = path.join(e2eRoot, '.run');

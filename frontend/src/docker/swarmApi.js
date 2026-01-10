@@ -108,6 +108,8 @@ import {
   ListRegistryRepositories,
   ListRegistryTags,
   GetImageDigest,
+  SearchRegistryRepositories,
+  GetRegistryRepositoryDetails,
 
   // Docker Hub integration
   SearchDockerHubRepositories,
@@ -222,6 +224,8 @@ export {
   ListRegistryRepositories,
   ListRegistryTags,
   GetImageDigest,
+  SearchRegistryRepositories,
+  GetRegistryRepositoryDetails,
 
   // Docker Hub integration
   SearchDockerHubRepositories,

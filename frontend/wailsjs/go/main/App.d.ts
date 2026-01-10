@@ -198,6 +198,8 @@ export function GetProxyDisplayURL():Promise<string>;
 
 export function GetRegistries():Promise<Array<registry.RegistryConfig>>;
 
+export function GetRegistryRepositoryDetails(arg1:string,arg2:string):Promise<registry.RegistryRepoDetails>;
+
 export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
@@ -385,6 +387,8 @@ export function SearchDockerHubRepositories(arg1:string):Promise<Array<registry.
 export function SearchHelmCharts(arg1:string):Promise<Array<app.HelmChartInfo>>;
 
 export function SearchPodFiles(arg1:string,arg2:string,arg3:string,arg4:string,arg5:number,arg6:number):Promise<Array<app.PodFileEntry>>;
+
+export function SearchRegistryRepositories(arg1:string,arg2:string):Promise<Array<registry.RegistryRepoSearchResult>>;
 
 export function SelectHookScript():Promise<string>;
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -96,6 +97,48 @@ func (a *App) GetImageDigest(registryName, repository, tag string) (string, erro
 	return c.GetManifestDigest(ctx, repository, tag)
 }
 
+// SearchRegistryRepositories searches a non-DockerHub registry for repositories.
+// Currently implemented for v2-compatible registries (e.g., Artifactory) via catalog listing.
+func (a *App) SearchRegistryRepositories(registryName, query string) ([]registry.RegistryRepoSearchResult, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.Type == registry.RegistryTypeDockerHub {
+		return nil, fmt.Errorf("search not supported for registry type: %s", cfg.Type)
+	}
+	v2c, err := registry.NewV2Client(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return registry.SearchV2Repositories(ctx, v2c, query, 100)
+}
+
+// GetRegistryRepositoryDetails inspects a non-DockerHub registry repository.
+// SizeBytes is computed best-effort from the manifest for the preferred tag.
+func (a *App) GetRegistryRepositoryDetails(registryName, fullName string) (registry.RegistryRepoDetails, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return registry.RegistryRepoDetails{}, err
+	}
+	if cfg.Type == registry.RegistryTypeDockerHub {
+		return registry.RegistryRepoDetails{}, fmt.Errorf("details not supported for registry type: %s", cfg.Type)
+	}
+	v2c, err := registry.NewV2Client(cfg)
+	if err != nil {
+		return registry.RegistryRepoDetails{}, err
+	}
+	return registry.GetV2RepoDetails(ctx, v2c, cfg.URL, fullName)
+}
+
 // SearchDockerHubRepositories searches Docker Hub for repositories by query.
 func (a *App) SearchDockerHubRepositories(query string) ([]registry.DockerHubRepoSearchResult, error) {
 	ctx := a.ctx
@@ -141,6 +184,12 @@ func (a *App) PullDockerImageLatest(image string, registryName string) error {
 		if err != nil {
 			return err
 		}
+
+		// For non-DockerHub registries, ensure the image reference includes the registry host.
+		if cfg.Type != registry.RegistryTypeDockerHub {
+			image = ensureImageHasRegistryHost(image, cfg.URL)
+		}
+
 		if strings.TrimSpace(cfg.Credentials.Username) != "" || strings.TrimSpace(cfg.Credentials.Password) != "" {
 			serverAddr := strings.TrimSpace(cfg.URL)
 			if cfg.Type == registry.RegistryTypeDockerHub {
@@ -166,6 +215,34 @@ func (a *App) PullDockerImageLatest(image string, registryName string) error {
 	defer r.Close()
 	_, _ = io.Copy(io.Discard, r)
 	return nil
+}
+
+func ensureImageHasRegistryHost(image, registryURL string) string {
+	img := strings.TrimSpace(image)
+	if img == "" {
+		return img
+	}
+	u, err := url.Parse(strings.TrimSpace(registryURL))
+	if err != nil {
+		return img
+	}
+	host := strings.TrimSpace(u.Host)
+	if host == "" {
+		return img
+	}
+
+	// If image already includes an explicit registry host, don't touch it.
+	first := img
+	if idx := strings.Index(img, "/"); idx >= 0 {
+		first = img[:idx]
+	}
+	if strings.Contains(first, ".") || strings.Contains(first, ":") || first == "localhost" {
+		return img
+	}
+	if strings.HasPrefix(img, host+"/") {
+		return img
+	}
+	return host + "/" + img
 }
 
 // Docker-related fields are added to the App struct via this file

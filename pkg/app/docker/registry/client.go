@@ -30,6 +30,8 @@ func NewClient(cfg RegistryConfig) (RegistryClient, error) {
 	switch cfg.Type {
 	case RegistryTypeGenericV2:
 		return NewV2Client(cfg)
+	case RegistryTypeArtifactory:
+		return NewV2Client(cfg)
 	case RegistryTypeDockerHub:
 		return NewDockerHubClient(cfg)
 	default:
@@ -258,6 +260,91 @@ type catalogResponse struct {
 type tagsResponse struct {
 	Name string   `json:"name"`
 	Tags []string `json:"tags"`
+}
+
+type v2ManifestList struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	MediaType     string `json:"mediaType"`
+	Manifests     []struct {
+		MediaType string `json:"mediaType"`
+		Digest    string `json:"digest"`
+		Platform  struct {
+			Architecture string `json:"architecture"`
+			OS           string `json:"os"`
+			Variant      string `json:"variant"`
+		} `json:"platform"`
+	} `json:"manifests"`
+}
+
+type v2ImageManifest struct {
+	SchemaVersion int    `json:"schemaVersion"`
+	MediaType     string `json:"mediaType"`
+	Layers        []struct {
+		Size int64 `json:"size"`
+	} `json:"layers"`
+}
+
+func (c *v2Client) GetImageSizeBytes(ctx context.Context, repository, reference string) (int64, error) {
+	repository = strings.TrimSpace(repository)
+	reference = strings.TrimSpace(reference)
+	if repository == "" {
+		return 0, fmt.Errorf("repository is required")
+	}
+	if reference == "" {
+		return 0, fmt.Errorf("reference is required")
+	}
+
+	p := fmt.Sprintf("/v2/%s/manifests/%s", repository, reference)
+	headers := map[string]string{
+		"Accept": strings.Join([]string{
+			"application/vnd.docker.distribution.manifest.v2+json",
+			"application/vnd.oci.image.manifest.v1+json",
+			"application/vnd.docker.distribution.manifest.list.v2+json",
+			"application/vnd.oci.image.index.v1+json",
+		}, ", "),
+	}
+
+	_, body, err := c.do(ctx, http.MethodGet, p, nil, headers)
+	if err != nil {
+		return 0, err
+	}
+	if len(body) == 0 {
+		return 0, nil
+	}
+
+	// Try manifest list / index first.
+	var ml v2ManifestList
+	if err := json.Unmarshal(body, &ml); err == nil && len(ml.Manifests) > 0 {
+		// Prefer linux/amd64; fall back to the first manifest.
+		chosen := ""
+		for _, m := range ml.Manifests {
+			if m.Platform.OS == "linux" && m.Platform.Architecture == "amd64" && strings.TrimSpace(m.Digest) != "" {
+				chosen = strings.TrimSpace(m.Digest)
+				break
+			}
+		}
+		if chosen == "" {
+			chosen = strings.TrimSpace(ml.Manifests[0].Digest)
+		}
+		if chosen == "" {
+			return 0, nil
+		}
+		return c.GetImageSizeBytes(ctx, repository, chosen)
+	}
+
+	// Try image manifest (schema2/OCI).
+	var im v2ImageManifest
+	if err := json.Unmarshal(body, &im); err == nil && len(im.Layers) > 0 {
+		var total int64
+		for _, l := range im.Layers {
+			if l.Size > 0 {
+				total += l.Size
+			}
+		}
+		return total, nil
+	}
+
+	return 0, nil
 }
 
 func (c *v2Client) ListRepositories(ctx context.Context) ([]string, error) {

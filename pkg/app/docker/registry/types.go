@@ -4,11 +4,12 @@ package registry
 type RegistryType string
 
 const (
-	RegistryTypeDockerHub RegistryType = "dockerhub"
-	RegistryTypeECR       RegistryType = "ecr"
-	RegistryTypeACR       RegistryType = "acr"
-	RegistryTypeGitLab    RegistryType = "gitlab"
-	RegistryTypeGenericV2 RegistryType = "generic_v2"
+	RegistryTypeDockerHub   RegistryType = "dockerhub"
+	RegistryTypeArtifactory RegistryType = "artifactory"
+	RegistryTypeECR         RegistryType = "ecr"
+	RegistryTypeACR         RegistryType = "acr"
+	RegistryTypeGitLab      RegistryType = "gitlab"
+	RegistryTypeGenericV2   RegistryType = "generic_v2"
 )
 
 // RegistryCredentials holds optional authentication information.
@@ -73,4 +74,19 @@ type DockerHubRepoDetails struct {
 
 	// These are included when available.
 	IsPrivate bool `json:"isPrivate"`
+}
+
+// RegistryRepoSearchResult is a generic v2-registry search result.
+// FullName is the repository name as returned by the registry catalog.
+type RegistryRepoSearchResult struct {
+	Name     string `json:"name"`
+	FullName string `json:"fullName"`
+}
+
+// RegistryRepoDetails is a generic v2-registry repository details response.
+type RegistryRepoDetails struct {
+	Name      string `json:"name"`
+	FullName  string `json:"fullName"`
+	URL       string `json:"url"`
+	SizeBytes int64  `json:"sizeBytes"`
 }
