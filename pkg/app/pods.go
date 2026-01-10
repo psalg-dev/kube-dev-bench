@@ -28,11 +28,12 @@ import (
 // Robust session management
 
 type ShellSession struct {
-	Cmd    *exec.Cmd
-	PTY    io.ReadWriteCloser // PTY for interactive local shell
-	Stdin  io.WriteCloser     // For in-cluster exec or non-PTY shells
-	Cancel context.CancelFunc // For stopping session
-	SizeQ  *terminalSizeQueue // For in-cluster exec resize handling
+	Cmd      *exec.Cmd
+	PTY      io.ReadWriteCloser // PTY for interactive local shell
+	Stdin    io.WriteCloser     // For in-cluster exec or non-PTY shells
+	Cancel   context.CancelFunc // For stopping session
+	SizeQ    *terminalSizeQueue // For in-cluster exec resize handling
+	ResizeFn func(cols, rows int) error
 }
 
 // terminalSizeQueue implements remotecommand.TerminalSizeQueue
@@ -142,7 +143,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 		return err
 	}
 	if shell == "" || shell == "auto" {
-		shell = "/bin/bash"
+		shell = "/bin/sh"
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -258,11 +259,17 @@ func (a *App) ResizeShellSession(sessionID string, cols, rows int) error {
 		if f, ok := sess.PTY.(*os.File); ok {
 			return pty.Setsize(f, &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)})
 		}
+		if sess.ResizeFn != nil {
+			return sess.ResizeFn(cols, rows)
+		}
 		return nil
 	}
 	if sess.SizeQ != nil {
 		sess.SizeQ.Push(uint16(cols), uint16(rows))
 		return nil
+	}
+	if sess.ResizeFn != nil {
+		return sess.ResizeFn(cols, rows)
 	}
 	return nil
 }

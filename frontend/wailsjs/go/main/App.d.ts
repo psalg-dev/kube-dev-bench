@@ -444,6 +444,8 @@ export function StartSwarmResourceCountsPolling():Promise<void>;
 
 export function StartSwarmServicePolling():Promise<void>;
 
+export function StartSwarmTaskExecSession(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function StartSwarmTaskPolling():Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;

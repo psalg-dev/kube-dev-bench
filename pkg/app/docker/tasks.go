@@ -3,6 +3,7 @@ package docker
 import (
 	"context"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
@@ -28,6 +29,7 @@ type cachedHealthStatus struct {
 }
 
 var swarmTaskHealthCache = struct {
+	mu    sync.RWMutex
 	items map[string]cachedHealthStatus
 }{
 	items: map[string]cachedHealthStatus{},
@@ -309,7 +311,10 @@ func populateSwarmTaskHealth(ctx context.Context, cli swarmTasksClient, info *Sw
 	}
 
 	// Cheap TTL cache: StartSwarmTaskPolling runs every second.
-	if entry, ok := swarmTaskHealthCache.items[info.ContainerID]; ok {
+	swarmTaskHealthCache.mu.RLock()
+	entry, ok := swarmTaskHealthCache.items[info.ContainerID]
+	swarmTaskHealthCache.mu.RUnlock()
+	if ok {
 		if time.Since(entry.fetchedAt) <= swarmTaskHealthCacheTTL {
 			if entry.status != "" {
 				info.HealthStatus = entry.status
@@ -323,7 +328,10 @@ func populateSwarmTaskHealth(ctx context.Context, cli swarmTasksClient, info *Sw
 	ci, err := cli.ContainerInspect(ctx, info.ContainerID)
 	if err != nil {
 		info.HealthStatus = "none"
-		swarmTaskHealthCache.items[info.ContainerID] = cachedHealthStatus{status: "none", fetchedAt: time.Now()}
+		now := time.Now()
+		swarmTaskHealthCache.mu.Lock()
+		swarmTaskHealthCache.items[info.ContainerID] = cachedHealthStatus{status: "none", fetchedAt: now}
+		swarmTaskHealthCache.mu.Unlock()
 		return
 	}
 
@@ -336,5 +344,8 @@ func populateSwarmTaskHealth(ctx context.Context, cli swarmTasksClient, info *Sw
 	}
 
 	info.HealthStatus = status
-	swarmTaskHealthCache.items[info.ContainerID] = cachedHealthStatus{status: status, fetchedAt: time.Now()}
+	now := time.Now()
+	swarmTaskHealthCache.mu.Lock()
+	swarmTaskHealthCache.items[info.ContainerID] = cachedHealthStatus{status: status, fetchedAt: now}
+	swarmTaskHealthCache.mu.Unlock()
 }

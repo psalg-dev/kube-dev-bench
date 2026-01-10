@@ -878,6 +878,10 @@ export function StartSwarmServicePolling() {
   return window['go']['main']['App']['StartSwarmServicePolling']();
 }
 
+export function StartSwarmTaskExecSession(arg1, arg2, arg3) {
+  return window['go']['main']['App']['StartSwarmTaskExecSession'](arg1, arg2, arg3);
+}
+
 export function StartSwarmTaskPolling() {
   return window['go']['main']['App']['StartSwarmTaskPolling']();
 }

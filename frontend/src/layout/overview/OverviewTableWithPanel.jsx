@@ -9,7 +9,7 @@ import { showNotification } from '../../notification.js';
  * @param {Object[]} columns - Array of { key, label } for table columns.
  * @param {Object[]} data - Array of row objects.
  * @param {Object[]} tabs - Array of { key, label } for panel tabs.
- * @param {function(row, tab): React.ReactNode} renderPanelContent - Function to render panel content for a row and tab.
+ * @param {function(row, tab, panelApi): React.ReactNode} renderPanelContent - Function to render panel content for a row and tab.
  * @param {function(row): React.ReactNode} panelHeader - Optional function to render panel header.
  * @param {string} title - Table title.
  * @param {string} [resourceKind] - Kubernetes resource kind for the create overlay (e.g., 'job').
@@ -163,7 +163,9 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         onTabChange={setActiveTab}
         headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
       >
-        {selectedRow && typeof renderPanelContent === 'function' ? renderPanelContent(selectedRow, activeTab) : null}
+        {selectedRow && typeof renderPanelContent === 'function'
+          ? renderPanelContent(selectedRow, activeTab, { activeTab, setActiveTab })
+          : null}
       </BottomPanel>
 
       {/* Create manifest overlay */}

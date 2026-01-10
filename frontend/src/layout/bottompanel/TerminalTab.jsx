@@ -6,7 +6,7 @@ import { EventsOn } from '../../../wailsjs/runtime';
 import * as AppAPI from '../../../wailsjs/go/main/App';
 import { v4 as uuidv4 } from 'uuid';
 
-export default function TerminalTab({ command, podExec, namespace, podName, shell }) {
+export default function TerminalTab({ command, podExec, namespace, podName, swarmExec, swarmTaskId, shell }) {
   const termRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
@@ -74,11 +74,16 @@ export default function TerminalTab({ command, podExec, namespace, podName, shel
     });
     unsubscribersRef.current.push(offOut, offExit);
 
-    // Start session: local shell or pod exec
+    // Start session: local shell, pod exec, or swarm task exec
     if (podExec && namespace && podName) {
       const sh = shell && shell.trim() ? shell.trim() : 'auto';
       AppAPI.StartPodExecSession(sessionID, namespace, podName, sh).catch(err => {
         xterm.write(`\r\nPod exec error: ${err?.message || err}\r\n`);
+      });
+    } else if (swarmExec && swarmTaskId) {
+      const sh = shell && shell.trim() ? shell.trim() : 'auto';
+      AppAPI.StartSwarmTaskExecSession(sessionID, swarmTaskId, sh).catch(err => {
+        xterm.write(`\r\nSwarm exec error: ${err?.message || err}\r\n`);
       });
     } else {
       AppAPI.StartShellSession(sessionID, command || '').catch(err => {
@@ -117,7 +122,7 @@ export default function TerminalTab({ command, podExec, namespace, podName, shel
       if (sid) AppAPI.StopShellSession(sid).catch(() => {});
       sessionIDRef.current = '';
     };
-  }, [command, podExec, namespace, podName, shell]);
+  }, [command, podExec, namespace, podName, shell, swarmExec, swarmTaskId]);
 
   return (
     <div style={{ width: '100%', height: '100%', background: '#181c20', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-start', textAlign: 'left' }}>

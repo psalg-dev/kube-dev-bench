@@ -3,6 +3,7 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
+import ConsoleTab from '../../../layout/bottompanel/ConsoleTab.jsx';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
   GetSwarmTasks,
@@ -50,6 +51,7 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'logs', label: 'Logs' },
+  { key: 'exec', label: 'Exec' },
 ];
 
 function HealthCheckSection({ row }) {
@@ -168,7 +170,7 @@ function HealthCheckSection({ row }) {
   );
 }
 
-function TaskSummaryPanel({ row }) {
+function TaskSummaryPanel({ row, onExec }) {
   const quickInfoFields = [
     { key: 'id', label: 'Task ID', type: 'break-word' },
     { key: 'serviceId', label: 'Service ID', type: 'break-word' },
@@ -212,7 +214,33 @@ function TaskSummaryPanel({ row }) {
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <SummaryTabHeader name={`Task: ${row.id?.substring(0, 12) || 'unknown'}`} />
+      <SummaryTabHeader
+        name={`Task: ${row.id?.substring(0, 12) || 'unknown'}`}
+        actions={(
+          <button
+            onClick={() => onExec && onExec()}
+            disabled={!row?.containerId || (row?.state || '').toLowerCase() !== 'running'}
+            title={
+              !row?.containerId
+                ? 'No container associated with this task yet'
+                : (row?.state || '').toLowerCase() !== 'running'
+                  ? 'Exec is only available for running tasks'
+                  : 'Open interactive exec'
+            }
+            style={{
+              padding: '4px 10px',
+              borderRadius: 6,
+              border: '1px solid var(--gh-border, #30363d)',
+              background: 'var(--gh-bg, #0d1117)',
+              color: 'var(--gh-text, #c9d1d9)',
+              cursor: (!row?.containerId || (row?.state || '').toLowerCase() !== 'running') ? 'not-allowed' : 'pointer',
+              opacity: (!row?.containerId || (row?.state || '').toLowerCase() !== 'running') ? 0.5 : 1,
+            }}
+          >
+            Exec
+          </button>
+        )}
+      />
       <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
         <QuickInfoSection
           resourceName={row.id}
@@ -276,9 +304,9 @@ function formatMount(m) {
   return `${type}:${src} -> ${tgt}${ro}`;
 }
 
-function renderPanelContent(row, tab) {
+function renderPanelContent(row, tab, panelApi) {
   if (tab === 'summary') {
-    return <TaskSummaryPanel row={row} />;
+    return <TaskSummaryPanel row={row} onExec={() => panelApi?.setActiveTab && panelApi.setActiveTab('exec')} />;
   }
 
   if (tab === 'logs') {
@@ -294,6 +322,31 @@ function renderPanelContent(row, tab) {
         title="Task Logs"
         reloadKey={row.id}
         loadLogs={() => GetSwarmTaskLogs(row.id, '500')}
+      />
+    );
+  }
+
+  if (tab === 'exec') {
+    if (!row?.containerId) {
+      return (
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+          No container associated with this task yet.
+        </div>
+      );
+    }
+    if ((row?.state || '').toLowerCase() !== 'running') {
+      return (
+        <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+          Exec is only available for running tasks.
+        </div>
+      );
+    }
+
+    return (
+      <ConsoleTab
+        swarmExec={true}
+        swarmTaskId={row.id}
+        shell="auto"
       />
     );
   }

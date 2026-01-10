@@ -32,6 +32,7 @@ const appFunctionNames = [
   'GetDockerConnectionStatus','ConnectToDocker','TestDockerConnection','DisconnectDocker','GetDockerConfig','AutoConnectDocker','GetDefaultDockerHost',
   'GetSwarmServices','GetSwarmService','ScaleSwarmService','RemoveSwarmService','UpdateSwarmServiceImage','RestartSwarmService',
   'GetSwarmTasks','GetSwarmTasksByService','GetSwarmTask',
+  'StartSwarmTaskExecSession',
   'GetSwarmNodes','GetSwarmNode','UpdateSwarmNodeAvailability','UpdateSwarmNodeRole','UpdateSwarmNodeLabels','GetSwarmNodeTasks','RemoveSwarmNode',
   'GetSwarmNetworks','GetSwarmNetwork','RemoveSwarmNetwork',
   'GetSwarmNetworkServices','GetSwarmNetworkContainers','GetSwarmNetworkInspectJSON',
