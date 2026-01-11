@@ -178,6 +178,28 @@ export default function SwarmNetworksOverviewTable() {
       createPlatform="swarm"
       createKind="network"
       tableTestId="swarm-networks-table"
+      getRowActions={(row) => {
+        const isBuiltIn = ['bridge', 'host', 'none', 'ingress', 'docker_gwbridge'].includes(row.name);
+        return [
+          {
+            label: 'Delete',
+            icon: '🗑️',
+            danger: true,
+            disabled: isBuiltIn,
+            onClick: async () => {
+              if (isBuiltIn) return;
+              if (!window.confirm(`Delete network "${row.name}"?`)) return;
+              try {
+                await RemoveSwarmNetwork(row.id);
+                showSuccess(`Network ${row.name} removed`);
+                refresh();
+              } catch (err) {
+                showError(`Failed to remove network: ${err}`);
+              }
+            },
+          },
+        ];
+      }}
     />
   );
 }

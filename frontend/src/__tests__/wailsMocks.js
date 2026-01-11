@@ -32,6 +32,7 @@ const appFunctionNames = [
   'GetDockerConnectionStatus','ConnectToDocker','TestDockerConnection','DisconnectDocker','GetDockerConfig','AutoConnectDocker','GetDefaultDockerHost',
   'GetSwarmServices','GetSwarmService','ScaleSwarmService','RemoveSwarmService','UpdateSwarmServiceImage','RestartSwarmService',
   'GetSwarmTasks','GetSwarmTasksByService','GetSwarmTask',
+  'StartSwarmTaskExecSession',
   'GetSwarmNodes','GetSwarmNode','UpdateSwarmNodeAvailability','UpdateSwarmNodeRole','UpdateSwarmNodeLabels','GetSwarmNodeTasks','RemoveSwarmNode',
   'GetSwarmNetworks','GetSwarmNetwork','RemoveSwarmNetwork',
   'GetSwarmNetworkServices','GetSwarmNetworkContainers','GetSwarmNetworkInspectJSON',
@@ -45,6 +46,8 @@ const appFunctionNames = [
   'CreateSwarmService','CreateSwarmStack','CreateSwarmNetwork','CreateSwarmVolume',
   'GetSwarmServiceLogs','GetSwarmTaskLogs',
   'GetSwarmResourceCounts',
+  // Registry Integration
+  'GetRegistries','AddRegistry','RemoveRegistry','TestRegistryConnection','ListRegistryRepositories','ListRegistryTags','GetImageDigest',
   // Helm functions
   'GetHelmReleases','GetHelmRepositories','AddHelmRepository','RemoveHelmRepository','UpdateHelmRepositories','SearchHelmCharts','GetHelmChartVersions','InstallHelmChart','UpgradeHelmRelease','UninstallHelmRelease','RollbackHelmRelease','GetHelmReleaseHistory','GetHelmReleaseValues','GetHelmReleaseManifest','GetHelmReleaseNotes','StartHelmReleasePolling'
 ];

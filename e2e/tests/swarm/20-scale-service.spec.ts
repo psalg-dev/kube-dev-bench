@@ -17,7 +17,20 @@ const replicatedServiceName = `${fixtureStackName}_a-replicated`;
 async function expectReplicasInServicesTable(page: import('@playwright/test').Page, expected: string) {
   const servicesTable = page.locator('[data-testid="swarm-services-table"]');
   const row = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
-  const replicasCell = row.locator('td').nth(3);
+
+  const headers = servicesTable.locator('thead tr th');
+  const headerCount = await headers.count();
+  let replicasIdx = -1;
+  for (let i = 0; i < headerCount; i++) {
+    const text = (await headers.nth(i).textContent())?.trim() || '';
+    if (/^replicas$/i.test(text)) {
+      replicasIdx = i;
+      break;
+    }
+  }
+  expect(replicasIdx, 'Replicas column not found in services table header').toBeGreaterThanOrEqual(0);
+
+  const replicasCell = row.locator('td').nth(replicasIdx);
 
   await expect
     .poll(async () => (await replicasCell.textContent())?.trim(), { timeout: 30_000 })

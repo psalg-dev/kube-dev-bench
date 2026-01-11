@@ -10,6 +10,8 @@ import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
 import { exec } from './exec.js';
+import { ensureJFrogJcrBootstrapped } from './jfrog.js';
+import { ensureArtifactory } from './artifactory-bootstrap.js';
 import {
   cleanupLocalDockerSwarmResources,
   deploySwarmStackFromFile,
@@ -179,6 +181,40 @@ export default async function globalSetup(config: FullConfig) {
     }
   }
 
+  // JFrog Artifactory/JCR bootstrap (used by Swarm registry E2Es).
+  // Run it once per test run so registry tests are reliable.
+  // Always capture logs for debugging setup vs data issues.
+  let jfrogLogPath: string | undefined;
+  try {
+    const jfrog = await timed('ensure JFrog JCR is running + bootstrapped', async () =>
+      ensureJFrogJcrBootstrapped({ runId })
+    );
+    jfrogLogPath = jfrog.logPath;
+
+    try {
+      await timed('verify Artifactory Docker /v2/ endpoint', async () => {
+        await ensureArtifactory();
+      });
+    } catch (verifyErr: unknown) {
+      // Stale local volumes can leave Artifactory in a state where the admin password
+      // doesn't match what our bootstrap expects, or the docker-local repo is missing.
+      // One deterministic recovery attempt: reset volume and re-bootstrap.
+      console.log(`[e2e][setup] ${isoNow()} Artifactory verification failed; retrying with JFrog reset`);
+
+      const jfrog2 = await timed('reset JFrog JCR volume and re-bootstrap', async () =>
+        ensureJFrogJcrBootstrapped({ runId, reset: true })
+      );
+      jfrogLogPath = jfrog2.logPath;
+
+      await timed('re-verify Artifactory Docker /v2/ endpoint', async () => {
+        await ensureArtifactory();
+      });
+    }
+  } catch (err: unknown) {
+    const msg = String((err as { message?: string })?.message ?? err);
+    throw new Error(`${msg}${jfrogLogPath ? `\nJFrog logs: ${jfrogLogPath}` : ''}`);
+  }
+
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
   let proxy: Awaited<ReturnType<typeof ensureProxyServer>> | null = null;
@@ -249,6 +285,7 @@ export default async function globalSetup(config: FullConfig) {
       kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
+      jfrogLogPath,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
       sharedHomeDir: homeDir,
@@ -461,6 +498,7 @@ export default async function globalSetup(config: FullConfig) {
       kubeconfigYaml: kind?.kubeconfigYaml,
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
+      jfrogLogPath,
       wailsInstances,
     });
   }

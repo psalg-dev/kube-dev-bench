@@ -23,3 +23,5 @@ e2e-test-results*/
 e2e-test-results*.zip
 /.tmp
 /coverage*
+/docker-hub-test-token
+/jfrog-token

@@ -1,0 +1,64 @@
+.swarmOverviewRoot {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.swarmOverviewHeader {
+  padding: 14px 16px;
+  border: 1px solid var(--gh-border, #30363d);
+  border-bottom: none;
+  background: var(--gh-bg-sidebar, #161b22);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.swarmOverviewTitle {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--gh-text, #c9d1d9);
+}
+
+.swarmOverviewMeta {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--gh-text-secondary, #8b949e);
+}
+
+.swarmOverviewTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.swarmOverviewTabBtn {
+  padding: 6px 10px;
+  border: 1px solid var(--gh-border, #30363d);
+  background: rgba(110, 118, 129, 0.06);
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.swarmOverviewTabBtn.active {
+  border-bottom: 2px solid var(--gh-accent, #238636);
+  background: rgba(56, 139, 253, 0.08);
+}
+
+.swarmOverviewContent {
+  border: 1px solid var(--gh-border, #30363d);
+  border-top: none;
+  background: var(--gh-bg, #0d1117);
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Ensure tables in the Swarm view are left-aligned */
+.swarmOverviewRoot table th,
+.swarmOverviewRoot table td {
+  text-align: left;
+}

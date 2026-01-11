@@ -16,7 +16,15 @@ export class SwarmBottomPanel {
   }
 
   tab(label: string): Locator {
-    return this.root.getByRole('button', { name: label, exact: true });
+    // BottomPanel renders a fixed structure:
+    // 0: resize handle
+    // 1: tabs header (contains tab buttons on the left, headerRight actions + close on the right)
+    // 2: content
+    // We must target the left tab strip to avoid matching headerRight buttons
+    // that can share the same accessible name (e.g. an "Exec" action button).
+    const header = this.root.locator('> div').nth(1);
+    const tabStrip = header.locator('> div').first();
+    return tabStrip.getByRole('button', { name: label, exact: true });
   }
 
   async expectVisible() {

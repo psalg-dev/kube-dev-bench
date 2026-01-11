@@ -1,0 +1,120 @@
+{
+    "localRepoConfigs":  [
+                             {
+                                 "type":  "local",
+                                 "key":  "example-repo-local",
+                                 "packageType":  "generic",
+                                 "baseConfig":  {
+                                                    "modelVersion":  2,
+                                                    "description":  "Example artifactory repository",
+                                                    "repoLayoutRef":  "simple-default",
+                                                    "includesPattern":  "**/*"
+                                                },
+                                 "repoTypeConfig":  {
+                                                        "archiveBrowsingEnabled":  false,
+                                                        "blackedOut":  false,
+                                                        "downloadRedirectConfig":  {
+                                                                                       "enabled":  false
+                                                                                   },
+                                                        "propertySetRefs":  [
+
+                                                                            ],
+                                                        "checksumPolicyType":  "client-checksums",
+                                                        "priorityResolution":  false,
+                                                        "maxUniqueSnapshots":  0,
+                                                        "handleReleases":  true,
+                                                        "handleSnapshots":  true,
+                                                        "snapshotVersionBehavior":  "unique"
+                                                    },
+                                 "packageTypeConfig":  {
+
+                                                       },
+                                 "securityConfig":  {
+                                                        "hideUnauthorizedResources":  false,
+                                                        "signedUrlTtl":  90
+                                                    },
+                                 "repoType":  "LOCAL"
+                             },
+                             {
+                                 "type":  "local",
+                                 "key":  "artifactory-build-info",
+                                 "packageType":  "buildinfo",
+                                 "baseConfig":  {
+                                                    "modelVersion":  2,
+                                                    "repoLayoutRef":  "simple-default",
+                                                    "includesPattern":  "**/*"
+                                                },
+                                 "repoTypeConfig":  {
+                                                        "archiveBrowsingEnabled":  false,
+                                                        "blackedOut":  false,
+                                                        "downloadRedirectConfig":  {
+                                                                                       "enabled":  false
+                                                                                   },
+                                                        "propertySetRefs":  [
+
+                                                                            ],
+                                                        "checksumPolicyType":  "client-checksums",
+                                                        "priorityResolution":  false,
+                                                        "maxUniqueSnapshots":  0,
+                                                        "handleReleases":  true,
+                                                        "handleSnapshots":  true,
+                                                        "snapshotVersionBehavior":  "unique"
+                                                    },
+                                 "packageTypeConfig":  {
+
+                                                       },
+                                 "securityConfig":  {
+                                                        "hideUnauthorizedResources":  false,
+                                                        "signedUrlTtl":  90
+                                                    },
+                                 "repoType":  "LOCAL"
+                             },
+                             {
+                                 "type":  "local",
+                                 "key":  "docker-local",
+                                 "packageType":  "docker",
+                                 "baseConfig":  {
+                                                    "modelVersion":  2,
+                                                    "description":  "Local Docker registry for testing",
+                                                    "repoLayoutRef":  "simple-default",
+                                                    "includesPattern":  "**/*"
+                                                },
+                                 "repoTypeConfig":  {
+                                                        "archiveBrowsingEnabled":  false,
+                                                        "blackedOut":  false,
+                                                        "downloadRedirectConfig":  {
+                                                                                       "enabled":  false
+                                                                                   },
+                                                        "propertySetRefs":  [
+
+                                                                            ],
+                                                        "checksumPolicyType":  "client-checksums",
+                                                        "priorityResolution":  false,
+                                                        "maxUniqueSnapshots":  0,
+                                                        "handleReleases":  true,
+                                                        "handleSnapshots":  true,
+                                                        "snapshotVersionBehavior":  "unique"
+                                                    },
+                                 "packageTypeConfig":  {
+                                                           "dockerApiVersion":  "V2"
+                                                       },
+                                 "securityConfig":  {
+                                                        "hideUnauthorizedResources":  false,
+                                                        "signedUrlTtl":  90
+                                                    },
+                                 "repoType":  "LOCAL"
+                             }
+                         ],
+    "federatedRepoConfigs":  [
+
+                             ],
+    "releaseBundleRepoConfigs":  [
+
+                                 ],
+    "remoteRepoConfigs":  [
+
+                          ],
+    "virtualRepoConfigs":  [
+
+                           ]
+}

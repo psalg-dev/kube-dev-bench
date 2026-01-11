@@ -219,6 +219,11 @@ export default function SwarmVolumesOverviewTable() {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  const defaultCloneName = (base) => {
+    const iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    return `${base}@${iso}`;
+  };
+
   useEffect(() => {
     if (!connected) {
       setVolumes([]);
@@ -283,6 +288,65 @@ export default function SwarmVolumesOverviewTable() {
       createPlatform="swarm"
       createKind="volume"
       tableTestId="swarm-volumes-table"
+      getRowActions={(row) => ([
+        {
+          label: 'Backup',
+          icon: '💾',
+          onClick: async () => {
+            try {
+              const saved = await BackupSwarmVolume(row.name);
+              if (!saved) return;
+              showSuccess(`Backed up volume "${row.name}"`);
+            } catch (err) {
+              showError(`Failed to back up volume: ${err}`);
+            }
+          },
+        },
+        {
+          label: 'Restore…',
+          icon: '♻️',
+          onClick: async () => {
+            if (!window.confirm(`Restore a backup into volume "${row.name}"? This may overwrite files.`)) return;
+            try {
+              const selected = await RestoreSwarmVolume(row.name);
+              if (!selected) return;
+              showSuccess(`Restored backup into volume "${row.name}"`);
+            } catch (err) {
+              showError(`Failed to restore volume: ${err}`);
+            }
+          },
+        },
+        {
+          label: 'Clone…',
+          icon: '🧬',
+          onClick: async () => {
+            const newName = window.prompt('New volume name', defaultCloneName(row.name));
+            if (!newName) return;
+            try {
+              await CloneSwarmVolume(row.name, newName);
+              showSuccess(`Cloned volume to "${newName}"`);
+              refresh();
+            } catch (err) {
+              showError(`Failed to clone volume: ${err}`);
+            }
+          },
+        },
+        {
+          label: 'Delete',
+          icon: '🗑️',
+          danger: true,
+          onClick: async () => {
+            if (!window.confirm(`Delete volume "${row.name}"?`)) return;
+            try {
+              await RemoveSwarmVolume(row.name, false);
+              showSuccess(`Volume "${row.name}" deleted`);
+              refresh();
+            } catch (err) {
+              showError(`Failed to delete volume: ${err}`);
+            }
+          },
+        },
+      ])}
     />
   );
 }

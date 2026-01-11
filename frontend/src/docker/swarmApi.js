@@ -15,6 +15,11 @@ import {
   // Services
   GetSwarmServices,
   GetSwarmService,
+  CheckServiceImageUpdates,
+  GetImageUpdateSettings,
+  SetImageUpdateSettings,
+  GetSwarmMetricsHistory,
+  GetClusterTopology,
   ScaleSwarmService,
   RemoveSwarmService,
   UpdateSwarmServiceImage,
@@ -24,6 +29,7 @@ import {
   GetSwarmTasks,
   GetSwarmTasksByService,
   GetSwarmTask,
+  GetSwarmTaskHealthLogs,
   
   // Nodes
   GetSwarmNodes,
@@ -98,6 +104,22 @@ import {
   
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Registries
+  GetRegistries,
+  AddRegistry,
+  RemoveRegistry,
+  TestRegistryConnection,
+  ListRegistryRepositories,
+  ListRegistryTags,
+  GetImageDigest,
+  SearchRegistryRepositories,
+  GetRegistryRepositoryDetails,
+
+  // Docker Hub integration
+  SearchDockerHubRepositories,
+  GetDockerHubRepositoryDetails,
+  PullDockerImageLatest,
 } from '../../wailsjs/go/main/App';
 
 // Direct re-exports
@@ -114,6 +136,11 @@ export {
   // Services
   GetSwarmServices,
   GetSwarmService,
+  CheckServiceImageUpdates,
+  GetImageUpdateSettings,
+  SetImageUpdateSettings,
+  GetSwarmMetricsHistory,
+  GetClusterTopology,
   ScaleSwarmService,
   RemoveSwarmService,
   UpdateSwarmServiceImage,
@@ -123,6 +150,7 @@ export {
   GetSwarmTasks,
   GetSwarmTasksByService,
   GetSwarmTask,
+  GetSwarmTaskHealthLogs,
   
   // Nodes
   GetSwarmNodes,
@@ -197,4 +225,20 @@ export {
   
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Registries
+  GetRegistries,
+  AddRegistry,
+  RemoveRegistry,
+  TestRegistryConnection,
+  ListRegistryRepositories,
+  ListRegistryTags,
+  GetImageDigest,
+  SearchRegistryRepositories,
+  GetRegistryRepositoryDetails,
+
+  // Docker Hub integration
+  SearchDockerHubRepositories,
+  GetDockerHubRepositoryDetails,
+  PullDockerImageLatest,
 };

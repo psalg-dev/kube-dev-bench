@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { GetSwarmNodeTasks } from '../../swarmApi.js';
+import HealthStatusBadge from '../tasks/HealthStatusBadge.jsx';
 
 export default function NodeTasksTab({ nodeId, nodeName }) {
   const [tasks, setTasks] = useState([]);
@@ -60,6 +61,7 @@ export default function NodeTasksTab({ nodeId, nodeName }) {
             <th>Task ID</th>
             <th>Service</th>
             <th>State</th>
+            <th>Health</th>
             <th>Desired</th>
             <th>Container</th>
           </tr>
@@ -73,6 +75,9 @@ export default function NodeTasksTab({ nodeId, nodeName }) {
                 <span style={{ color: getStateColor(task.state), fontWeight: 500 }}>
                   {task.state}
                 </span>
+              </td>
+              <td>
+                <HealthStatusBadge status={task.healthStatus} />
               </td>
               <td>{task.desiredState}</td>
               <td title={task.containerId}>

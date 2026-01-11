@@ -141,6 +141,16 @@ describe('ConnectionWizard', () => {
       });
     });
 
+    it('can start on Docker Swarm section when requested', async () => {
+      render(<ConnectionWizard onComplete={vi.fn()} initialSection="docker-swarm" />);
+
+      await waitFor(() => {
+        const swarmSection = document.getElementById('connection-section-docker-swarm');
+        expect(swarmSection).toBeInTheDocument();
+        expect(swarmSection).toHaveClass('selected');
+      });
+    });
+
     it('shows Kubernetes section as selected by default', async () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 

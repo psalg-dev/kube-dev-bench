@@ -239,6 +239,23 @@ export default function SwarmSecretsOverviewTable() {
       createPlatform="swarm"
       createKind="secret"
       tableTestId="swarm-secrets-table"
+      getRowActions={(row) => ([
+        {
+          label: 'Delete',
+          icon: '🗑️',
+          danger: true,
+          onClick: async () => {
+            if (!window.confirm(`Delete secret "${row.name}"?`)) return;
+            try {
+              await RemoveSwarmSecret(row.id);
+              showSuccess(`Secret "${row.name}" deleted`);
+              refresh();
+            } catch (err) {
+              showError(`Failed to delete secret: ${err}`);
+            }
+          },
+        },
+      ])}
     />
   );
 }

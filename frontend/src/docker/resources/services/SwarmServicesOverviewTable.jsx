@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -6,6 +6,9 @@ import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
 import ServiceTasksTab from './ServiceTasksTab.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import UpdateServiceImageModal from './UpdateServiceImageModal.jsx';
+import ImageUpdateBadge from './ImageUpdateBadge.jsx';
+import ImageUpdateModal from './ImageUpdateModal.jsx';
+import ImageUpdateSettingsModal from './ImageUpdateSettingsModal.jsx';
 import {
   GetSwarmServices,
   ScaleSwarmService,
@@ -41,6 +44,14 @@ const columns = [
           {val}
         </span>
       );
+    },
+  },
+  {
+    key: 'imageUpdate',
+    label: 'Update',
+    cell: ({ getValue }) => {
+      const v = getValue();
+      return <ImageUpdateBadge value={v} onOpenDetails={v?.onOpenDetails} />;
     },
   },
   { key: 'mode', label: 'Mode' },
@@ -399,14 +410,74 @@ function renderPanelContent(row, tab, onRefresh) {
   return null;
 }
 
+function decorateServiceRows(list) {
+  const items = Array.isArray(list) ? list : [];
+  return items.map((s) => {
+    return {
+      ...s,
+      imageUpdate: {
+        serviceId: s?.id,
+        serviceName: s?.name,
+        image: s?.image,
+        imageUpdateAvailable: s?.imageUpdateAvailable,
+        imageLocalDigest: s?.imageLocalDigest,
+        imageRemoteDigest: s?.imageRemoteDigest,
+        imageCheckedAt: s?.imageCheckedAt,
+      },
+    };
+  });
+}
+
+function mergeImageUpdateMap(prev, updates) {
+  if (!updates || typeof updates !== 'object') return prev;
+  if (!Array.isArray(prev)) return prev;
+
+  return prev.map((s) => {
+    const id = s?.id;
+    if (!id) return s;
+    const u = updates[id];
+    if (!u) return s;
+
+    const imageUpdateAvailable = Boolean(u?.updateAvailable);
+    const imageLocalDigest = String(u?.localDigest || '').trim();
+    const imageRemoteDigest = String(u?.remoteDigest || '').trim();
+    const imageCheckedAt = String(u?.checkedAt || '').trim();
+
+    return {
+      ...s,
+      imageUpdateAvailable,
+      imageLocalDigest,
+      imageRemoteDigest,
+      imageCheckedAt,
+      imageUpdate: {
+        ...(s.imageUpdate || {}),
+        imageUpdateAvailable,
+        imageLocalDigest,
+        imageRemoteDigest,
+        imageCheckedAt,
+      },
+    };
+  });
+}
+
 export default function SwarmServicesOverviewTable() {
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [imageUpdateServiceId, setImageUpdateServiceId] = useState(null);
+  const [imageUpdateSettingsOpen, setImageUpdateSettingsOpen] = useState(false);
 
   const refresh = useCallback(() => {
     setRefreshKey(k => k + 1);
   }, []);
+
+  const promptReplicas = (current) => {
+    const value = window.prompt('Scale to replicas', String(current ?? 0));
+    if (value === null) return null;
+    const next = Number(String(value).trim());
+    if (!Number.isFinite(next) || next < 0) return null;
+    return Math.round(next);
+  };
 
   useEffect(() => {
     let active = true;
@@ -415,7 +486,7 @@ export default function SwarmServicesOverviewTable() {
       try {
         const data = await GetSwarmServices();
         if (active) {
-          setServices(data || []);
+          setServices(decorateServiceRows(data || []));
           setLoading(false);
         }
       } catch (err) {
@@ -432,32 +503,137 @@ export default function SwarmServicesOverviewTable() {
     // Subscribe to real-time updates
     const off = EventsOn('swarm:services:update', (data) => {
       if (active && Array.isArray(data)) {
-        setServices(data);
+        setServices(decorateServiceRows(data));
       } else if (active) {
         refresh();
       }
     });
 
+    const offUpdates = EventsOn('swarm:image:updates', (updates) => {
+      if (!active) return;
+      setServices((prev) => mergeImageUpdateMap(prev, updates));
+    });
+
     return () => {
       active = false;
       if (typeof off === 'function') off();
+      if (typeof offUpdates === 'function') offUpdates();
     };
   }, [refreshKey]);
+
+  const serviceForUpdateModal = useMemo(() => {
+    if (!imageUpdateServiceId) return null;
+    return (services || []).find((s) => s?.id === imageUpdateServiceId) || null;
+  }, [services, imageUpdateServiceId]);
+
+  const servicesWithHandlers = useMemo(() => {
+    return (services || []).map((s) => ({
+      ...s,
+      imageUpdate: {
+        ...(s.imageUpdate || {}),
+        onOpenDetails: (serviceId) => setImageUpdateServiceId(serviceId),
+      },
+    }));
+  }, [services]);
 
   if (loading) {
     return <div className="main-panel-loading">Loading Swarm services...</div>;
   }
 
   return (
-    <OverviewTableWithPanel
-      title="Swarm Services"
-      columns={columns}
-      data={services}
-      tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
-      tableTestId="swarm-services-table"
-      createPlatform="swarm"
-      createKind="service"
-    />
+    <>
+      <OverviewTableWithPanel
+        title="Swarm Services"
+        columns={columns}
+        data={servicesWithHandlers}
+        tabs={bottomTabs}
+        renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
+        tableTestId="swarm-services-table"
+        createPlatform="swarm"
+        createKind="service"
+        getRowActions={(row) => {
+          const canScale = (row?.mode || '').toLowerCase() === 'replicated';
+          return [
+            {
+              label: 'Restart',
+              icon: '🔄',
+              onClick: async () => {
+                try {
+                  await RestartSwarmService(row.id);
+                  showSuccess(`Restarted service ${row.name}`);
+                  refresh();
+                } catch (err) {
+                  showError(`Failed to restart service: ${err}`);
+                }
+              },
+            },
+            {
+              label: 'Scale…',
+              icon: '📏',
+              disabled: !canScale,
+              onClick: async () => {
+                if (!canScale) return;
+                const desired = promptReplicas(row?.replicas ?? 0);
+                if (desired === null) return;
+                try {
+                  await ScaleSwarmService(row.id, desired);
+                  showSuccess(`Scaled service ${row.name} to ${desired} replicas`);
+                  refresh();
+                } catch (err) {
+                  showError(`Failed to scale service: ${err}`);
+                }
+              },
+            },
+            {
+              label: 'Delete',
+              icon: '🗑️',
+              danger: true,
+              onClick: async () => {
+                if (!window.confirm(`Delete service "${row.name}"?`)) return;
+                try {
+                  await RemoveSwarmService(row.id);
+                  showSuccess(`Removed service ${row.name}`);
+                  refresh();
+                } catch (err) {
+                  showError(`Failed to remove service: ${err}`);
+                }
+              },
+            },
+          ];
+        }}
+        headerActions={
+          <button
+            id="swarm-image-update-settings-btn"
+            type="button"
+            onClick={() => setImageUpdateSettingsOpen(true)}
+            style={{
+              padding: '6px 10px',
+              borderRadius: 4,
+              border: '1px solid var(--gh-border, #30363d)',
+              backgroundColor: 'var(--gh-button-bg, #21262d)',
+              color: 'var(--gh-text, #c9d1d9)',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+              marginRight: 8,
+            }}
+            title="Image update detection settings"
+          >
+            Image Updates
+          </button>
+        }
+      />
+
+      <ImageUpdateModal
+        open={Boolean(imageUpdateServiceId)}
+        service={serviceForUpdateModal}
+        onClose={() => setImageUpdateServiceId(null)}
+      />
+
+      <ImageUpdateSettingsModal
+        open={imageUpdateSettingsOpen}
+        onClose={() => setImageUpdateSettingsOpen(false)}
+      />
+    </>
   );
 }

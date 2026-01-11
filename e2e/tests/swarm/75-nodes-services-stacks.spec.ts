@@ -150,7 +150,9 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
       const row = table.locator('tbody tr').filter({ hasText: svcName }).first();
       await expect(row).toBeVisible({ timeout: 60_000 });
-      await row.click();
+      // Click the explicit Details action. Clicking the row center can land on
+      // interactive cells (e.g. Update) and open a different panel.
+      await row.getByRole('button', { name: 'Details', exact: true }).click();
 
       await page.locator('#swarm-service-update-image-btn').click();
       await expect(page.getByText(`Update Service Image: ${svcName}`)).toBeVisible({ timeout: 30_000 });

@@ -475,24 +475,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     handleMenuClose();
   }
 
-  function panelHeader(selectedPod) {
-    return (
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-        <button
-          style={{ padding: '6px 16px', background: '#2d323b', color: '#fff', border: '1px solid #353a42', borderRadius: 4, cursor: 'pointer' }}
-          onClick={() => handleRestart(selectedPod.name, selectedPod.namespace)}
-        >
-          Restart
-        </button>
-        <button
-          style={{ padding: '6px 16px', background: '#b22222', color: '#fff', border: '1px solid #353a42', borderRadius: 4, cursor: 'pointer' }}
-          onClick={() => handleDelete(selectedPod.name, selectedPod.namespace)}
-        >
-          Delete
-        </button>
-      </div>
-    );
-  }
+  // Removed panelHeader - the PodSummaryTab already includes ResourceActions with Restart/Delete buttons
 
   const tabs = [
     { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} /> },
@@ -972,7 +955,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             tabs={tabs}
             activeTab={bottomActiveTab}
             onTabChange={(id) => setBottomActiveTab(id)}
-            headerRight={selectedRow ? panelHeader(selectedRow) : null}
+            headerRight={null}
           />
         )}
         <PortForwardDialog

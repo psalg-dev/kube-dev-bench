@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Mock CreateManifestOverlay to a lightweight stub
 vi.mock('../CreateManifestOverlay', () => ({
@@ -142,6 +142,62 @@ describe('OverviewTableWithPanel', () => {
       expect.objectContaining({ type: 'warning' })
     );
     expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-swarm-service');
+  });
+
+  it('opens row actions menu without opening the bottom panel', () => {
+    setup();
+    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    expect(rowActionsButtons.length).toBeGreaterThan(0);
+    fireEvent.click(rowActionsButtons[0]);
+
+    // Menu should show default items
+    const menu = document.querySelector('.row-actions-menu');
+    expect(menu).not.toBeNull();
+    expect(menu.textContent).toContain('Details');
+    expect(menu.textContent).toContain('Close');
+
+    // Clicking the ellipsis should not trigger row click -> bottom panel stays closed
+    expect(document.querySelector('.bottom-panel')).toBeNull();
+  });
+
+  it('does not show Close action for swarm row menus', () => {
+    setup({ createPlatform: 'swarm', createKind: 'service' });
+    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    fireEvent.click(rowActionsButtons[0]);
+
+    const menu = document.querySelector('.row-actions-menu');
+    expect(menu).not.toBeNull();
+    expect(menu.textContent).toContain('Details');
+    expect(menu.textContent).not.toContain('Close');
+  });
+
+  it('closes row actions menu on window blur', () => {
+    setup();
+    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    fireEvent.click(rowActionsButtons[0]);
+    expect(document.querySelector('.row-actions-menu')).not.toBeNull();
+
+    window.dispatchEvent(new Event('blur'));
+
+    return waitFor(() => {
+      expect(document.querySelector('.row-actions-menu')).toBeNull();
+    });
+  });
+
+  it('supports getRowActions using api.openDetails(tabKey)', () => {
+    setup({
+      getRowActions: (_row, api) => ([
+        { label: 'Open YAML', onClick: () => api.openDetails('yaml') },
+      ]),
+    });
+
+    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    fireEvent.click(rowActionsButtons[0]);
+    fireEvent.click(screen.getByText('Open YAML'));
+
+    const content = screen.getByTestId('panel-content');
+    expect(content.textContent).toBe('alpha-yaml');
+    expect(document.querySelector('.bottom-panel')).not.toBeNull();
   });
 });
 

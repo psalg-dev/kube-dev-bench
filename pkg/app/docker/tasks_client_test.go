@@ -31,6 +31,9 @@ func Test_getSwarmTasks_mapsServiceAndNodeNames(t *testing.T) {
 				},
 			}, nil
 		},
+		ContainerInspectFn: func(context.Context, string) (types.ContainerJSON, error) {
+			return types.ContainerJSON{}, nil
+		},
 		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
 			return []swarm.Service{{ID: "svc-1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svcname"}}}}, nil
 		},

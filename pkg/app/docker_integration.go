@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -14,10 +15,251 @@ import (
 	"time"
 
 	"gowails/pkg/app/docker"
+	"gowails/pkg/app/docker/registry"
+	"gowails/pkg/app/docker/topology"
 
+	"github.com/docker/docker/api/types"
+	registrytypes "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+// ==================== Registry Integration (Swarm) ====================
+
+// GetRegistries returns configured registries (with credentials redacted).
+func (a *App) GetRegistries() ([]registry.RegistryConfig, error) {
+	return registry.GetRegistries()
+}
+
+// AddRegistry creates or updates a registry configuration.
+func (a *App) AddRegistry(config registry.RegistryConfig) error {
+	return registry.SaveRegistry(config)
+}
+
+// RemoveRegistry deletes a registry configuration by name.
+func (a *App) RemoveRegistry(name string) error {
+	return registry.DeleteRegistry(name)
+}
+
+// TestRegistryConnection validates that the registry is reachable and auth works.
+func (a *App) TestRegistryConnection(config registry.RegistryConfig) error {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return registry.TestConnection(ctx, config)
+}
+
+func (a *App) ListRegistryRepositories(registryName string) ([]string, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return nil, err
+	}
+	c, err := registry.NewClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListRepositories(ctx)
+}
+
+func (a *App) ListRegistryTags(registryName, repository string) ([]string, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return nil, err
+	}
+	c, err := registry.NewClient(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return c.ListTags(ctx, repository)
+}
+
+// ==================== Cluster Topology (Swarm) ====================
+
+// GetClusterTopology returns a best-effort topology graph (nodes, services, links).
+func (a *App) GetClusterTopology() (topology.ClusterTopology, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return topology.ClusterTopology{}, err
+	}
+	return topology.BuildClusterTopology(ctx, cli)
+}
+
+func (a *App) GetImageDigest(registryName, repository, tag string) (string, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return "", err
+	}
+	c, err := registry.NewClient(cfg)
+	if err != nil {
+		return "", err
+	}
+	return c.GetManifestDigest(ctx, repository, tag)
+}
+
+// SearchRegistryRepositories searches a non-DockerHub registry for repositories.
+// Currently implemented for v2-compatible registries (e.g., Artifactory) via catalog listing.
+func (a *App) SearchRegistryRepositories(registryName, query string) ([]registry.RegistryRepoSearchResult, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return nil, err
+	}
+	if cfg.Type == registry.RegistryTypeDockerHub {
+		return nil, fmt.Errorf("search not supported for registry type: %s", cfg.Type)
+	}
+	v2c, err := registry.NewV2Client(cfg)
+	if err != nil {
+		return nil, err
+	}
+	return registry.SearchV2Repositories(ctx, v2c, query, 100)
+}
+
+// GetRegistryRepositoryDetails inspects a non-DockerHub registry repository.
+// SizeBytes is computed best-effort from the manifest for the preferred tag.
+func (a *App) GetRegistryRepositoryDetails(registryName, fullName string) (registry.RegistryRepoDetails, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cfg, err := registry.GetRegistryWithCredentials(registryName)
+	if err != nil {
+		return registry.RegistryRepoDetails{}, err
+	}
+	if cfg.Type == registry.RegistryTypeDockerHub {
+		return registry.RegistryRepoDetails{}, fmt.Errorf("details not supported for registry type: %s", cfg.Type)
+	}
+	v2c, err := registry.NewV2Client(cfg)
+	if err != nil {
+		return registry.RegistryRepoDetails{}, err
+	}
+	return registry.GetV2RepoDetails(ctx, v2c, cfg.URL, fullName)
+}
+
+// SearchDockerHubRepositories searches Docker Hub for repositories by query.
+func (a *App) SearchDockerHubRepositories(query string) ([]registry.DockerHubRepoSearchResult, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return registry.SearchDockerHubRepositories(ctx, query)
+}
+
+// GetDockerHubRepositoryDetails fetches detailed repository information for inspection.
+// fullName is either "namespace/name" or "name" (for official images).
+func (a *App) GetDockerHubRepositoryDetails(fullName string) (registry.DockerHubRepoDetails, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	return registry.GetDockerHubRepositoryDetails(ctx, fullName)
+}
+
+// PullDockerImageLatest pulls "image:latest" into the currently connected Docker daemon.
+// If registryName is provided, stored registry credentials will be used for registry auth.
+func (a *App) PullDockerImageLatest(image string, registryName string) error {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return err
+	}
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	image = strings.TrimSpace(image)
+	if image == "" {
+		return fmt.Errorf("image is required")
+	}
+	if !strings.Contains(image, ":") {
+		image = image + ":latest"
+	}
+
+	registryAuth := ""
+	if strings.TrimSpace(registryName) != "" {
+		cfg, err := registry.GetRegistryWithCredentials(registryName)
+		if err != nil {
+			return err
+		}
+
+		// For non-DockerHub registries, ensure the image reference includes the registry host.
+		if cfg.Type != registry.RegistryTypeDockerHub {
+			image = ensureImageHasRegistryHost(image, cfg.URL)
+		}
+
+		if strings.TrimSpace(cfg.Credentials.Username) != "" || strings.TrimSpace(cfg.Credentials.Password) != "" {
+			serverAddr := strings.TrimSpace(cfg.URL)
+			if cfg.Type == registry.RegistryTypeDockerHub {
+				// Docker Engine expects this special server address for Docker Hub auth.
+				serverAddr = "https://index.docker.io/v1/"
+			}
+			authCfg := registrytypes.AuthConfig{
+				Username:      strings.TrimSpace(cfg.Credentials.Username),
+				Password:      strings.TrimSpace(cfg.Credentials.Password),
+				ServerAddress: serverAddr,
+			}
+			b, _ := json.Marshal(authCfg)
+			registryAuth = base64.URLEncoding.EncodeToString(b)
+		}
+	}
+
+	pullCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+	r, err := cli.ImagePull(pullCtx, image, types.ImagePullOptions{RegistryAuth: registryAuth})
+	if err != nil {
+		return err
+	}
+	defer r.Close()
+	_, _ = io.Copy(io.Discard, r)
+	return nil
+}
+
+func ensureImageHasRegistryHost(image, registryURL string) string {
+	img := strings.TrimSpace(image)
+	if img == "" {
+		return img
+	}
+	u, err := url.Parse(strings.TrimSpace(registryURL))
+	if err != nil {
+		return img
+	}
+	host := strings.TrimSpace(u.Host)
+	if host == "" {
+		return img
+	}
+
+	// If image already includes an explicit registry host, don't touch it.
+	first := img
+	if idx := strings.Index(img, "/"); idx >= 0 {
+		first = img[:idx]
+	}
+	if strings.Contains(first, ".") || strings.Contains(first, ":") || first == "localhost" {
+		return img
+	}
+	if strings.HasPrefix(img, host+"/") {
+		return img
+	}
+	return host + "/" + img
+}
 
 // Docker-related fields are added to the App struct via this file
 
@@ -239,6 +481,16 @@ func (a *App) UpdateSwarmServiceImage(serviceID string, image string) error {
 	return docker.UpdateSwarmServiceImage(a.ctx, cli, serviceID, image)
 }
 
+// CheckServiceImageUpdates checks whether the given services have newer image digests available in their registries.
+// This is best-effort and requires the relevant registry to be configured in the app.
+func (a *App) CheckServiceImageUpdates(serviceIDs []string) (map[string]docker.ImageUpdateInfo, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.CheckSwarmServiceImageUpdates(a.ctx, cli, serviceIDs)
+}
+
 // RestartSwarmService restarts a Swarm service
 func (a *App) RestartSwarmService(serviceID string) error {
 	cli, err := a.getDockerClient()
@@ -284,6 +536,15 @@ func (a *App) GetSwarmTask(taskID string) (*docker.SwarmTaskInfo, error) {
 		return nil, err
 	}
 	return docker.GetSwarmTask(a.ctx, cli, taskID)
+}
+
+// GetSwarmTaskHealthLogs returns recent healthcheck results for a task (if available).
+func (a *App) GetSwarmTaskHealthLogs(taskID string) ([]docker.SwarmHealthLogEntry, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmTaskHealthLogs(a.ctx, cli, taskID)
 }
 
 // ==================== Swarm Nodes ====================
@@ -1051,4 +1312,92 @@ func (a *App) startupDocker(ctx context.Context) {
 	a.StartSwarmTaskPolling()
 	a.StartSwarmNodePolling()
 	a.StartSwarmResourceCountsPolling()
+	a.StartSwarmImageUpdatePolling()
+	a.StartSwarmMetricsPolling()
+}
+
+// GetSwarmMetricsHistory returns the in-memory Swarm metrics time series.
+func (a *App) GetSwarmMetricsHistory() ([]docker.SwarmMetricsPoint, error) {
+	return docker.GetSwarmMetricsHistory(), nil
+}
+
+// StartSwarmMetricsPolling emits swarm:metrics:update events.
+func (a *App) StartSwarmMetricsPolling() {
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			if a.ctx == nil {
+				continue
+			}
+			cli, err := a.getDockerClient()
+			if err != nil {
+				continue
+			}
+			p, breakdown, err := docker.CollectSwarmMetricsWithBreakdown(a.ctx, cli)
+			if err != nil {
+				continue
+			}
+			wailsRuntime.EventsEmit(a.ctx, "swarm:metrics:update", p)
+			if len(breakdown.Services) > 0 || len(breakdown.Nodes) > 0 {
+				wailsRuntime.EventsEmit(a.ctx, "swarm:metrics:breakdown", breakdown)
+			}
+		}
+	}()
+}
+
+// GetImageUpdateSettings returns the saved image update checker settings.
+func (a *App) GetImageUpdateSettings() (docker.ImageUpdateSettings, error) {
+	return docker.LoadImageUpdateSettings()
+}
+
+// SetImageUpdateSettings persists image update checker settings.
+func (a *App) SetImageUpdateSettings(settings docker.ImageUpdateSettings) error {
+	return docker.SaveImageUpdateSettings(settings)
+}
+
+// StartSwarmImageUpdatePolling periodically checks service images for updates and emits swarm:image:updates.
+func (a *App) StartSwarmImageUpdatePolling() {
+	go func() {
+		for {
+			time.Sleep(2 * time.Second)
+			if a.ctx == nil {
+				continue
+			}
+
+			settings, err := docker.LoadImageUpdateSettings()
+			if err != nil {
+				// If settings are corrupt/unreadable, don't spam.
+				time.Sleep(30 * time.Second)
+				continue
+			}
+			if !settings.Enabled {
+				time.Sleep(30 * time.Second)
+				continue
+			}
+
+			cli, err := a.getDockerClient()
+			if err != nil {
+				time.Sleep(settings.Interval())
+				continue
+			}
+
+			services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
+			if err != nil {
+				time.Sleep(settings.Interval())
+				continue
+			}
+			ids := make([]string, 0, len(services))
+			for _, s := range services {
+				if s.ID == "" {
+					continue
+				}
+				ids = append(ids, s.ID)
+			}
+
+			updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
+			wailsRuntime.EventsEmit(a.ctx, "swarm:image:updates", updates)
+
+			time.Sleep(settings.Interval())
+		}
+	}()
 }

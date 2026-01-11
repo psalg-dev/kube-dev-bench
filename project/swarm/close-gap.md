@@ -13,6 +13,36 @@ This document outlines the implementation plan for closing feature gaps between 
 | Health Check Display | Medium | Small | None |
 | Cluster Topology Visualizer | Low | Large | None |
 
+## Current Implementation Status (as of 2026-01-11)
+
+This is a quick snapshot so we can resume implementation later without re-discovering what already exists.
+
+**Completed (end-to-end)**
+
+- **Registry Integration (partial scope)**: Docker Hub + generic v2 (incl. Artifactory), encrypted persistence, Wails bindings, UI and E2Es.
+  - Backend: `pkg/app/docker/registry/*`, Wails bindings in `pkg/app/docker_integration.go`, tests in `pkg/app/docker_integration_registry_test.go`.
+  - Frontend: `frontend/src/docker/registry/*`, sidebar entry in `frontend/src/docker/SwarmSidebarSections.jsx`.
+  - E2E: `e2e/tests/swarm/60-registry-config.spec.ts`, `e2e/tests/swarm/61-artifactory-registry.spec.ts`.
+
+- **Task Exec/Shell**: interactive terminal exec into Swarm task containers (xterm.js UI + Wails event streaming).
+  - Backend: `pkg/app/swarm_exec.go` (Swarm exec), shared session plumbing in `pkg/app/pods.go`.
+  - E2E: `e2e/tests/swarm/75-task-exec.spec.ts`.
+
+- **Health Check Display (task-level)**: Health column + details section, plus backend stability fix.
+  - Backend health fields/types: `pkg/app/docker/types.go`; health population in `pkg/app/docker/tasks.go`.
+  - Frontend: `frontend/src/docker/resources/tasks/HealthStatusBadge.jsx` and task panel section in `frontend/src/docker/resources/tasks/SwarmTasksOverviewTable.jsx`.
+  - E2E: `e2e/tests/swarm/80-health-check-display.spec.ts`.
+  - Stability fix: guarded Swarm health TTL cache to prevent `fatal error: concurrent map writes` during polling.
+
+**Completed (end-to-end)**
+
+- Image Update Detection: digest checking (local+remote), cache + background polling, UI column + details modal + settings, events.
+
+**In progress**
+
+- Metrics Dashboard (backend collector + history/events + UI + unit tests + E2E smoke)
+- Cluster Topology Visualizer (backend builder + basic SVG UI + smoke E2E)
+
 ---
 
 ## 1. Registry Integration
@@ -21,17 +51,17 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 1.1 Backend - Registry Types & Configuration
 
-- [ ] **1.1.1** Create `pkg/app/docker/registry/types.go`
-  - [ ] Define `RegistryConfig` struct (name, url, type, auth credentials)
-  - [ ] Define `RegistryType` enum (dockerhub, ecr, acr, gitlab, generic_v2)
-  - [ ] Define `RegistryImage` struct (name, tags[], digest, lastUpdated)
-  - [ ] Define `RegistryCredentials` struct (username, password/token, region for ECR)
+- [x] **1.1.1** Create `pkg/app/docker/registry/types.go`
+  - [x] Define `RegistryConfig` struct (name, url, type, auth credentials)
+  - [x] Define `RegistryType` enum (dockerhub, ecr, acr, gitlab, generic_v2)
+  - [x] Define `RegistryImage` struct (name, tags[], digest, lastUpdated)
+  - [x] Define `RegistryCredentials` struct (username, password/token, region for ECR)
 
-- [ ] **1.1.2** Create `pkg/app/docker/registry/client.go`
-  - [ ] Implement `RegistryClient` interface with `ListRepositories()`, `ListTags()`, `GetManifest()`
-  - [ ] Implement Docker Hub client (using registry.hub.docker.com API)
-  - [ ] Implement generic Docker Registry v2 client
-  - [ ] Add HTTP client with configurable timeout and TLS settings
+- [x] **1.1.2** Create `pkg/app/docker/registry/client.go`
+  - [x] Implement `RegistryClient` interface with `ListRepositories()`, `ListTags()`, `GetManifest()`
+  - [x] Implement Docker Hub client (using registry.hub.docker.com API)
+  - [x] Implement generic Docker Registry v2 client
+  - [x] Add HTTP client with configurable timeout and TLS settings
 
 - [ ] **1.1.3** Create `pkg/app/docker/registry/ecr.go`
   - [ ] Implement AWS ECR client using AWS SDK
@@ -48,31 +78,31 @@ This document outlines the implementation plan for closing feature gaps between 
   - [ ] Support personal access token authentication
   - [ ] Handle GitLab-specific API endpoints
 
-- [ ] **1.1.6** Add unit tests for registry clients
-  - [ ] Test Docker Hub client with mock server
-  - [ ] Test v2 registry client with mock server
+- [x] **1.1.6** Add unit tests for registry clients
+  - [x] Test Docker Hub client with mock server
+  - [x] Test v2 registry client with mock server
   - [ ] Test credential validation
   - [ ] Aim for 70%+ coverage
 
 ### 1.2 Backend - Registry Persistence & Wails Bindings
 
-- [ ] **1.2.1** Create `pkg/app/docker/registry/storage.go`
-  - [ ] Implement secure credential storage (OS keychain integration or encrypted file)
-  - [ ] Add `SaveRegistry()`, `GetRegistries()`, `DeleteRegistry()` functions
-  - [ ] Store registries in `~/KubeDevBench/registries.json` (credentials encrypted)
+- [x] **1.2.1** Create `pkg/app/docker/registry/storage.go`
+  - [x] Implement encrypted file credential storage (AES-GCM; secret key persisted locally)
+  - [x] Add `SaveRegistry()`, `GetRegistries()`, `DeleteRegistry()` functions
+  - [x] Store registries in `~/KubeDevBench/registries.json` (credentials encrypted)
 
-- [ ] **1.2.2** Add Wails bindings in `pkg/app/docker_integration.go`
-  - [ ] `GetRegistries() []RegistryConfig`
-  - [ ] `AddRegistry(config RegistryConfig) error`
-  - [ ] `RemoveRegistry(name string) error`
-  - [ ] `TestRegistryConnection(config RegistryConfig) error`
-  - [ ] `ListRegistryRepositories(registryName string) []string`
-  - [ ] `ListRegistryTags(registryName, repository string) []string`
-  - [ ] `GetImageDigest(registryName, repository, tag string) string`
+- [x] **1.2.2** Add Wails bindings in `pkg/app/docker_integration.go`
+  - [x] `GetRegistries() []RegistryConfig`
+  - [x] `AddRegistry(config RegistryConfig) error`
+  - [x] `RemoveRegistry(name string) error`
+  - [x] `TestRegistryConnection(config RegistryConfig) error`
+  - [x] `ListRegistryRepositories(registryName string) []string`
+  - [x] `ListRegistryTags(registryName, repository string) []string`
+  - [x] `GetImageDigest(registryName, repository, tag string) string`
 
-- [ ] **1.2.3** Add unit tests for Wails bindings
-  - [ ] Test registry CRUD operations
-  - [ ] Test error handling for invalid configs
+- [x] **1.2.3** Add unit tests for Wails bindings
+  - [x] Test registry CRUD operations
+  - [x] Test error handling for invalid configs
 
 ### 1.3 Frontend - Registry Configuration UI
 
@@ -86,21 +116,21 @@ This document outlines the implementation plan for closing feature gaps between 
   - [ ] Show connection status indicator per registry
   - [ ] Add delete button with confirmation
 
-- [ ] **1.3.3** Create `frontend/src/docker/registry/AddRegistryModal.jsx`
-  - [ ] Form with registry type selector (Docker Hub, ECR, ACR, GitLab, Custom)
-  - [ ] Dynamic form fields based on registry type
-  - [ ] Test connection button before saving
-  - [ ] Validation for required fields
+- [x] **1.3.3** Create `frontend/src/docker/registry/AddRegistryModal.jsx`
+  - [x] Form with registry type selector (Docker Hub, ECR, ACR, GitLab, Custom)
+  - [x] Dynamic form fields based on registry type
+  - [x] Test connection button before saving
+  - [x] Validation for required fields
 
-- [ ] **1.3.4** Create `frontend/src/docker/registry/RegistryBrowser.jsx`
-  - [ ] Tree view of repositories within a registry
-  - [ ] Tag list for selected repository
-  - [ ] Search/filter functionality
+- [x] **1.3.4** Create `frontend/src/docker/registry/RegistryBrowser.jsx`
+  - [x] Tree view of repositories within a registry
+  - [x] Tag list for selected repository
+  - [x] Search/filter functionality
   - [ ] "Use this image" action to populate service create/update forms
 
-- [ ] **1.3.5** Add sidebar entry for Registries
-  - [ ] Add "Registries" section to `SwarmSidebarSections.jsx`
-  - [ ] Show count of configured registries
+- [x] **1.3.5** Add sidebar entry for Registries
+  - [x] Add "Registries" section to `SwarmSidebarSections.jsx`
+  - [x] Show count of configured registries
 
 - [ ] **1.3.6** Add unit tests for registry components
   - [ ] Test RegistryList rendering
@@ -109,10 +139,17 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 1.4 E2E Tests - Registry Integration
 
-- [ ] **1.4.1** Create `e2e/tests/swarm/60-registry-config.spec.ts`
-  - [ ] Test adding a registry configuration
-  - [ ] Test registry connection validation
-  - [ ] Test removing a registry
+- [x] **1.4.1** Create `e2e/tests/swarm/60-registry-config.spec.ts`
+  - [x] Test adding a registry configuration
+  - [x] Test registry connection validation
+  - [x] Test removing a registry
+
+- [x] **1.4.2** Create `e2e/tests/swarm/61-artifactory-registry.spec.ts`
+  - [x] Test browsing/searching an Artifactory Docker registry (generic v2)
+
+**Notes / deviations from the original plan**
+
+- The registry “list” UX is implemented as `frontend/src/docker/registry/SwarmRegistriesOverview.jsx` (table + bottom panel), rather than a separate `RegistryList.jsx` + `RegistryStateContext.jsx`.
 
 ---
 
@@ -122,28 +159,28 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 2.1 Backend - Image Version Checking
 
-- [ ] **2.1.1** Create `pkg/app/docker/registry/update_checker.go`
-  - [ ] Implement `CheckImageUpdate(image string) (*ImageUpdateInfo, error)`
-  - [ ] Parse image reference (registry/repo:tag or repo@digest)
-  - [ ] Compare local digest vs remote digest
+- [x] **2.1.1** Implement image update checker (deviation: implemented in `pkg/app/docker/image_updates.go`)
+  - [x] Implement `CheckImageUpdate(ctx, image string) (ImageUpdateInfo, error)`
+  - [x] Parse image reference (registry/repo:tag or repo@digest)
+  - [x] Compare local digest vs remote digest (now also derives local digest for tag-based services via task container image inspect)
   - [ ] Handle rate limiting for registry API calls
 
-- [ ] **2.1.2** Extend `SwarmServiceInfo` in `pkg/app/docker/types.go`
-  - [ ] Add `ImageUpdateAvailable bool` field
-  - [ ] Add `ImageLocalDigest string` field
-  - [ ] Add `ImageRemoteDigest string` field
-  - [ ] Add `ImageCheckedAt string` field
+- [x] **2.1.2** Extend `SwarmServiceInfo` in `pkg/app/docker/types.go`
+  - [x] Add `ImageUpdateAvailable bool` field
+  - [x] Add `ImageLocalDigest string` field
+  - [x] Add `ImageRemoteDigest string` field
+  - [x] Add `ImageCheckedAt string` field
 
-- [ ] **2.1.3** Add update checking to service polling
-  - [ ] Create background goroutine for periodic image update checks
-  - [ ] Configurable check interval (default: 5 minutes)
-  - [ ] Cache results to avoid excessive API calls
-  - [ ] Emit `swarm:image:updates` event when updates detected
+- [x] **2.1.3** Add update checking to service polling
+  - [x] Create background goroutine for periodic image update checks
+  - [x] Configurable check interval (default: 5 minutes)
+  - [x] Cache results to avoid excessive API calls
+  - [x] Emit `swarm:image:updates` event when checks run
 
-- [ ] **2.1.4** Add Wails bindings
-  - [ ] `CheckServiceImageUpdates(serviceIDs []string) map[string]ImageUpdateInfo`
-  - [ ] `GetImageUpdateSettings() ImageUpdateSettings`
-  - [ ] `SetImageUpdateSettings(settings ImageUpdateSettings) error`
+- [x] **2.1.4** Add Wails bindings
+  - [x] `CheckServiceImageUpdates(serviceIDs []string) map[string]ImageUpdateInfo`
+  - [x] `GetImageUpdateSettings() ImageUpdateSettings`
+  - [x] `SetImageUpdateSettings(settings ImageUpdateSettings) error`
 
 - [ ] **2.1.5** Add unit tests
   - [ ] Test digest comparison logic
@@ -152,27 +189,28 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 2.2 Frontend - Update Indicators
 
-- [ ] **2.2.1** Update `SwarmServicesOverviewTable.jsx`
-  - [ ] Add "Update Available" column with icon indicator
-  - [ ] Green checkmark = up to date
-  - [ ] Orange warning = update available
-  - [ ] Gray dash = unable to check
-  - [ ] Tooltip with digest info on hover
+- [x] **2.2.1** Update `SwarmServicesOverviewTable.jsx`
+  - [x] Add "Update" column with icon indicator
+  - [x] Green checkmark = up to date
+  - [x] Orange warning = update available
+  - [x] Gray dash = unable to check
+  - [x] Tooltip with digest info on hover
 
-- [ ] **2.2.2** Create `frontend/src/docker/resources/services/ImageUpdateBadge.jsx`
-  - [ ] Reusable component for update indicator
+- [x] **2.2.2** Create `frontend/src/docker/resources/services/ImageUpdateBadge.jsx`
+  - [x] Reusable component for update indicator
   - [ ] Click action to show update details modal
   - [ ] "Update Now" quick action button
 
 - [ ] **2.2.3** Create `frontend/src/docker/resources/services/ImageUpdateModal.jsx`
-  - [ ] Show current vs available image info
+  - [x] Show current vs available image info
   - [ ] Display changelog/release notes if available
-  - [ ] Confirm update button
+  - [x] Confirm/trigger update action
   - [ ] Option to update all services using this image
 
 - [ ] **2.2.4** Add settings for image update checking
-  - [ ] Add toggle to enable/disable auto-check
-  - [ ] Add interval configuration
+  - [x] Add toggle to enable/disable auto-check (backend settings + binding)
+  - [x] Add interval configuration (backend settings + binding)
+  - [x] Add UI for settings (modal)
   - [ ] Add per-registry enable/disable
 
 - [ ] **2.2.5** Add unit tests
@@ -181,8 +219,10 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 2.3 E2E Tests - Image Update Detection
 
-- [ ] **2.3.1** Create `e2e/tests/swarm/65-image-updates.spec.ts`
-  - [ ] Test update indicator display
+- [x] **2.3.1** Create `e2e/tests/swarm/65-image-updates.spec.ts`
+  - [x] Smoke: Update column exists
+  - [x] Smoke: Settings button exists
+  - [ ] Test update indicator display (deterministic)
   - [ ] Test manual refresh of update status
   - [ ] Test update action flow
 
@@ -200,11 +240,11 @@ This document outlines the implementation plan for closing feature gaps between 
   - [ ] Define `MetricsSnapshot` struct with timestamp
   - [ ] Define `MetricsHistory` struct for time-series data
 
-- [ ] **3.1.2** Create `pkg/app/docker/metrics/collector.go`
-  - [ ] Implement container stats collection using Docker API `ContainerStats()`
-  - [ ] Implement node-level aggregation
-  - [ ] Calculate CPU percentage from stats delta
-  - [ ] Handle per-service aggregation
+- [x] **3.1.2** Create `pkg/app/docker/metrics/collector.go`
+  - [x] Implement container stats collection using Docker API `ContainerStats()` (deviation: `pkg/app/docker/metrics_live.go`)
+  - [x] Implement node-level aggregation (best-effort)
+  - [x] Calculate CPU percentage from stats delta
+  - [x] Handle per-service aggregation
 
 - [ ] **3.1.3** Create `pkg/app/docker/metrics/history.go`
   - [ ] Implement in-memory metrics history buffer (ring buffer)
@@ -217,33 +257,34 @@ This document outlines the implementation plan for closing feature gaps between 
   - [ ] `GetClusterMetrics() ClusterMetrics`
   - [ ] `GetMetricsHistory(resourceType, resourceID string, duration time.Duration) MetricsHistory`
 
-- [ ] **3.1.5** Add metrics polling
-  - [ ] Create `StartMetricsPolling()` with configurable interval (default: 5s)
-  - [ ] Emit `swarm:metrics:update` event with current metrics
-  - [ ] Emit `swarm:metrics:history` event periodically with history data
+- [x] **3.1.5** Add metrics polling
+  - [x] Polling runs every 5s (deviation: `StartSwarmMetricsPolling()` in `pkg/app/docker_integration.go`)
+  - [x] Emit `swarm:metrics:update` event with current metrics
+  - [x] Emit `swarm:metrics:breakdown` event with per-service/per-node rollups (deviation)
 
-- [ ] **3.1.6** Add unit tests
-  - [ ] Test CPU calculation from stats
-  - [ ] Test memory percentage calculation
-  - [ ] Test history buffer behavior
+- [x] **3.1.6** Add unit tests
+  - [x] Test CPU calculation from stats (deviation: `pkg/app/docker/metrics_live_test.go`)
+  - [x] Test memory usage calculation (incl. cache subtraction)
+  - [x] Test history buffer behavior (deviation: `pkg/app/docker/metrics_test.go`)
 
 ### 3.2 Frontend - Metrics Dashboard UI
 
-- [ ] **3.2.1** Create `frontend/src/docker/metrics/MetricsStateContext.jsx`
-  - [ ] Context for real-time metrics data
-  - [ ] Subscribe to `swarm:metrics:update` events
-  - [ ] Provide hooks: `useNodeMetrics()`, `useServiceMetrics()`, `useClusterMetrics()`
+- [x] **3.2.1** Create `frontend/src/docker/metrics/MetricsStateContext.jsx`
+  - [x] Context for real-time metrics data
+  - [x] Subscribe to `swarm:metrics:update` events
+  - [x] Provide hook: `useClusterMetrics()`
+  - [ ] Provide hooks: `useNodeMetrics()`, `useServiceMetrics()` (pending backend support)
 
-- [ ] **3.2.2** Create `frontend/src/docker/metrics/MetricsDashboard.jsx`
-  - [ ] Main dashboard view with cluster overview
-  - [ ] Grid layout with key metrics cards
-  - [ ] Time range selector for historical data
+- [x] **3.2.2** Create `frontend/src/docker/metrics/MetricsDashboard.jsx`
+  - [x] Main dashboard view with cluster overview (implemented as `SwarmMetricsDashboard.jsx`)
+  - [x] Grid layout with key metrics cards
+  - [x] Time range selector for historical data (client-side filter)
 
-- [ ] **3.2.3** Create `frontend/src/docker/metrics/MetricsChart.jsx`
-  - [ ] Reusable chart component using lightweight chart library (e.g., uPlot or Chart.js)
-  - [ ] Support line charts for time-series data
-  - [ ] Support bar charts for comparison views
-  - [ ] Responsive sizing
+- [x] **3.2.3** Create `frontend/src/docker/metrics/MetricsChart.jsx`
+  - [x] Reusable lightweight SVG line chart (no external lib yet)
+  - [x] Support line charts for time-series data
+  - [ ] Bar charts / comparison views (not implemented)
+  - [ ] Responsive sizing (basic; configurable width/height)
 
 - [ ] **3.2.4** Create `frontend/src/docker/metrics/NodeMetricsCard.jsx`
   - [ ] Display CPU, memory, disk usage gauges
@@ -263,18 +304,17 @@ This document outlines the implementation plan for closing feature gaps between 
 - [ ] **3.2.7** Add sidebar entry for Metrics Dashboard
   - [ ] Add "Metrics" section to `SwarmSidebarSections.jsx`
 
-- [ ] **3.2.8** Add unit tests
-  - [ ] Test MetricsChart rendering
-  - [ ] Test MetricsDashboard layout
-  - [ ] Test data transformation for charts
+- [x] **3.2.8** Add unit tests
+  - [x] Test MetricsDashboard time-range filtering
+  - [x] Test context history load + event append
+  - [ ] Add more chart/data transformation tests (optional)
 
 ### 3.3 E2E Tests - Metrics Dashboard
 
-- [ ] **3.3.1** Create `e2e/tests/swarm/70-metrics-dashboard.spec.ts`
-  - [ ] Test metrics dashboard loads
-  - [ ] Test node metrics display
-  - [ ] Test service metrics display
-  - [ ] Test time range selection
+- [x] **3.3.1** Create `e2e/tests/swarm/70-metrics-dashboard.spec.ts`
+  - [x] Smoke: metrics dashboard loads (deviation: implemented as `e2e/tests/swarm/66-metrics-dashboard.spec.ts`)
+  - [x] Smoke: time range selector exists
+  - [ ] Node/service metrics display (pending backend metrics)
 
 ---
 
@@ -284,11 +324,10 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 4.1 Backend - Container Exec
 
-- [ ] **4.1.1** Create `pkg/app/docker/exec.go`
-  - [ ] Implement `CreateExec(containerID string, cmd []string) (execID string, error)`
-  - [ ] Implement `StartExec(execID string) (io.ReadWriteCloser, error)`
-  - [ ] Implement `ResizeExec(execID string, height, width uint) error`
-  - [ ] Handle TTY allocation
+- [x] **4.1.1** Interactive Swarm task exec implemented (note: in `pkg/app/swarm_exec.go`, not `pkg/app/docker/exec.go`)
+  - [x] Create/start exec with TTY and attach streaming
+  - [x] Resize support via shared `ResizeShellSession()` plumbing
+  - [x] Robust shell selection (defaults to `/bin/sh`, retries/fallbacks when needed)
 
 - [ ] **4.1.2** Add Wails bindings for exec
   - [ ] `CreateContainerExec(containerID string, cmd string) (string, error)`
@@ -344,10 +383,15 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 4.3 E2E Tests - Task Exec
 
-- [ ] **4.3.1** Create `e2e/tests/swarm/75-task-exec.spec.ts`
-  - [ ] Test opening exec modal from task view
-  - [ ] Test running a simple command
-  - [ ] Test closing exec session
+- [x] **4.3.1** Create `e2e/tests/swarm/75-task-exec.spec.ts`
+  - [x] Test opening exec from task view
+  - [x] Test running a simple command
+  - [x] Test closing exec session
+
+**Notes / deviations from the original plan**
+
+- The UI uses the existing bottom panel terminal UX (xterm.js) rather than a separate `frontend/src/docker/exec/*` feature folder.
+- “Quick exec” / one-shot commands and service-level “exec into task” dropdown are not implemented yet.
 
 ---
 
@@ -357,22 +401,22 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 5.1 Backend - Health Check Data
 
-- [ ] **5.1.1** Extend `SwarmTaskInfo` in `pkg/app/docker/types.go`
-  - [ ] Add `HealthStatus string` field (starting, healthy, unhealthy, none)
-  - [ ] Add `HealthCheckConfig *HealthCheckConfig` field
-  - [ ] Add `HealthLogs []HealthLogEntry` field (last N health check results)
+- [x] **5.1.1** Extend `SwarmTaskInfo` in `pkg/app/docker/types.go`
+  - [x] Add `HealthStatus string` field (starting, healthy, unhealthy, none)
+  - [x] Add `HealthCheckConfig *HealthCheckConfig` field
+  - [x] Add `HealthLogs []HealthLogEntry` field (last N health check results)
 
-- [ ] **5.1.2** Define health check types
-  - [ ] Create `HealthCheckConfig` struct (test, interval, timeout, retries, startPeriod)
-  - [ ] Create `HealthLogEntry` struct (start, end, exitCode, output)
+- [x] **5.1.2** Define health check types
+  - [x] Create `HealthCheckConfig` struct (test, interval, timeout, retries, startPeriod)
+  - [x] Create `HealthLogEntry` struct (start, end, exitCode, output)
 
-- [ ] **5.1.3** Update `taskToInfo()` in `pkg/app/docker/tasks.go`
-  - [ ] Extract health status from container status
-  - [ ] Include health check configuration from service spec
-  - [ ] Fetch recent health check logs
+- [x] **5.1.3** Update `taskToInfo()` in `pkg/app/docker/tasks.go`
+  - [x] Extract health status from container status
+  - [x] Include health check configuration from service spec
+  - [x] Fetch recent health check logs
 
-- [ ] **5.1.4** Add Wails binding
-  - [ ] `GetTaskHealthLogs(taskID string) []HealthLogEntry`
+- [x] **5.1.4** Add Wails binding
+  - [x] `GetSwarmTaskHealthLogs(taskID string) []HealthLogEntry`
 
 - [ ] **5.1.5** Add unit tests
   - [ ] Test health status extraction
@@ -380,24 +424,24 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 5.2 Frontend - Health Status UI
 
-- [ ] **5.2.1** Create `frontend/src/docker/resources/tasks/HealthStatusBadge.jsx`
-  - [ ] Color-coded badge (green=healthy, yellow=starting, red=unhealthy, gray=none)
-  - [ ] Icon indicator
-  - [ ] Tooltip with last check time
+- [x] **5.2.1** Create `frontend/src/docker/resources/tasks/HealthStatusBadge.jsx`
+  - [x] Color-coded badge (green=healthy, yellow=starting, red=unhealthy, gray=none)
+  - [x] Icon indicator
+  - [x] Tooltip with last check time
 
-- [ ] **5.2.2** Update `SwarmTasksOverviewTable.jsx`
-  - [ ] Add "Health" column after "State"
-  - [ ] Use HealthStatusBadge component
+- [x] **5.2.2** Update `SwarmTasksOverviewTable.jsx`
+  - [x] Add "Health" column after "State"
+  - [x] Use HealthStatusBadge component
   - [ ] Sortable/filterable by health status
 
-- [ ] **5.2.3** Create `frontend/src/docker/resources/tasks/HealthCheckDetails.jsx`
-  - [ ] Display health check configuration
-  - [ ] Show recent health check log entries
-  - [ ] Display failing output for unhealthy checks
+- [x] **5.2.3** Display task health check details (note: implemented inline in `SwarmTasksOverviewTable.jsx`)
+  - [x] Display health check configuration
+  - [x] Show recent health check log entries
+  - [x] Display failing output for unhealthy checks
 
-- [ ] **5.2.4** Add health details to task summary panel
-  - [ ] Add "Health Check" section to task detail view
-  - [ ] Show config and recent results
+- [x] **5.2.4** Add health details to task summary panel
+  - [x] Add "Health Check" section to task detail view
+  - [x] Show config and recent results
 
 - [ ] **5.2.5** Add health overview to service view
   - [ ] Show aggregate health status for service
@@ -409,9 +453,9 @@ This document outlines the implementation plan for closing feature gaps between 
 
 ### 5.3 E2E Tests - Health Check Display
 
-- [ ] **5.3.1** Create `e2e/tests/swarm/80-health-check-display.spec.ts`
-  - [ ] Test health status column in tasks table
-  - [ ] Test health details in task panel
+- [x] **5.3.1** Create `e2e/tests/swarm/80-health-check-display.spec.ts`
+  - [x] Test health status column in tasks table
+  - [x] Test health details in task panel
   - [ ] Test service aggregate health display
 
 ---

@@ -330,6 +330,97 @@ export default function SwarmNodesOverviewTable() {
       createPlatform="swarm"
       createKind="node"
       tableTestId="swarm-nodes-table"
+      getRowActions={(row) => {
+        const availability = String(row?.availability || '').toLowerCase();
+        const role = String(row?.role || '').toLowerCase();
+        const isLeader = Boolean(row?.leader);
+
+        return [
+          {
+            label: 'Drain',
+            icon: '🚧',
+            disabled: availability === 'drain',
+            onClick: async () => {
+              if (availability === 'drain') return;
+              try {
+                await UpdateSwarmNodeAvailability(row.id, 'drain');
+                showSuccess(`Node ${row.hostname} set to drain`);
+                refresh();
+              } catch (err) {
+                showError(`Failed to drain node: ${err}`);
+              }
+            },
+          },
+          {
+            label: 'Activate',
+            icon: '✅',
+            disabled: availability === 'active',
+            onClick: async () => {
+              if (availability === 'active') return;
+              try {
+                await UpdateSwarmNodeAvailability(row.id, 'active');
+                showSuccess(`Node ${row.hostname} activated`);
+                refresh();
+              } catch (err) {
+                showError(`Failed to activate node: ${err}`);
+              }
+            },
+          },
+          {
+            label: 'Promote…',
+            icon: '⬆️',
+            disabled: role !== 'worker',
+            onClick: async () => {
+              if (role !== 'worker') return;
+              if (!window.confirm(`Promote node "${row.hostname}" to manager?`)) return;
+              try {
+                await UpdateSwarmNodeRole(row.id, 'manager');
+                showSuccess(`Node ${row.hostname} promoted to manager`);
+                refresh();
+              } catch (err) {
+                showError(`Failed to promote node: ${err}`);
+              }
+            },
+          },
+          {
+            label: 'Demote…',
+            icon: '⬇️',
+            disabled: role !== 'manager' || isLeader,
+            onClick: async () => {
+              if (role !== 'manager') return;
+              if (isLeader) {
+                showError('Cannot demote the current leader node');
+                return;
+              }
+              if (!window.confirm(`Demote node "${row.hostname}" to worker?`)) return;
+              try {
+                await UpdateSwarmNodeRole(row.id, 'worker');
+                showSuccess(`Node ${row.hostname} demoted to worker`);
+                refresh();
+              } catch (err) {
+                showError(`Failed to demote node: ${err}`);
+              }
+            },
+          },
+          {
+            label: 'Remove',
+            icon: '🗑️',
+            danger: true,
+            disabled: role === 'manager',
+            onClick: async () => {
+              if (role === 'manager') return;
+              if (!window.confirm(`Remove node "${row.hostname}" from the swarm?`)) return;
+              try {
+                await RemoveSwarmNode(row.id, false);
+                showSuccess(`Node ${row.hostname} removed`);
+                refresh();
+              } catch (err) {
+                showError(`Failed to remove node: ${err}`);
+              }
+            },
+          },
+        ];
+      }}
     />
   );
 }
