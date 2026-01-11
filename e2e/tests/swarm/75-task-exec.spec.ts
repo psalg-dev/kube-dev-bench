@@ -24,6 +24,50 @@ async function waitForAnyRow(table: import('@playwright/test').Locator, timeoutM
   return detailsButtons;
 }
 
+async function openExecTerminalForAnyTask(opts: {
+  page: import('@playwright/test').Page;
+  tasksTable: import('@playwright/test').Locator;
+  maxRowsToTry?: number;
+}) {
+  const { page, tasksTable, maxRowsToTry = 6 } = opts;
+
+  const rows = tasksTable.locator('tbody tr');
+  const rowCount = await rows.count();
+  const tryCount = Math.min(rowCount, maxRowsToTry);
+
+  for (let i = 0; i < tryCount; i++) {
+    await rows.nth(i).getByRole('button', { name: /^details$/i }).click();
+
+    const panel = new SwarmBottomPanel(page);
+    await panel.expectVisible();
+    await panel.clickTab('Exec');
+
+    const terminal = panel.root.locator('.xterm').first();
+    const noContainer = panel.root.getByText(/no container associated with this task yet\./i);
+
+    const outcome = await Promise.race([
+      terminal
+        .waitFor({ state: 'visible', timeout: 45_000 })
+        .then(() => 'terminal' as const)
+        .catch(() => null),
+      noContainer
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .then(() => 'no-container' as const)
+        .catch(() => null),
+    ]);
+
+    if (outcome === 'terminal') {
+      return { panel, terminal };
+    }
+
+    await panel.closeByClickingOutside();
+  }
+
+  throw new Error(
+    `No Swarm task with an exec-capable container found (tried ${tryCount}/${rowCount} rows).`,
+  );
+}
+
 test.describe('Docker Swarm Task Exec', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(150_000);
@@ -40,16 +84,8 @@ test.describe('Docker Swarm Task Exec', () => {
     const tasksTable = page.locator('[data-testid="swarm-tasks-table"]');
     await expect(tasksTable).toBeVisible({ timeout: 30_000 });
 
-    const detailsButtons = await waitForAnyRow(tasksTable, 120_000);
-    await detailsButtons.first().click();
-
-    const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
-
-    await panel.clickTab('Exec');
-
-    const terminal = panel.root.locator('.xterm').first();
-    await expect(terminal).toBeVisible({ timeout: 30_000 });
+    await waitForAnyRow(tasksTable, 120_000);
+    const { panel, terminal } = await openExecTerminalForAnyTask({ page, tasksTable });
 
     // Fail fast if backend reports exec failure (e.g. missing shell).
     await expect(panel.root).not.toContainText(/swarm exec error|oci runtime exec failed/i, { timeout: 10_000 });

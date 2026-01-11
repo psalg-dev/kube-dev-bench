@@ -218,6 +218,28 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                 <td style={{ position: 'relative', textAlign: 'right' }}>
                   <button
                     type="button"
+                    aria-label="Details"
+                    title="Details"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openBottomPanel(row);
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      marginRight: 8,
+                      borderRadius: 4,
+                      border: '1px solid var(--gh-border, #30363d)',
+                      background: 'var(--gh-button-bg, #21262d)',
+                      color: 'var(--gh-text, #c9d1d9)',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      fontWeight: 500,
+                    }}
+                  >
+                    Details
+                  </button>
+                  <button
+                    type="button"
                     className="row-actions-button"
                     aria-label="Row actions"
                     title="Actions"
