@@ -61,7 +61,7 @@ export function serviceFormToYaml(formData) {
 
 export function yamlToServiceForm(yamlText) {
   const parsed = yaml.load(yamlText || '');
-  if (!parsed || typeof parsed !== 'object') {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     throw new Error('YAML must be a mapping/object.');
   }
 
