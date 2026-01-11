@@ -3,6 +3,7 @@
 import {registry} from '../models';
 import {app} from '../models';
 import {docker} from '../models';
+import {topology} from '../models';
 import {jobs} from '../models';
 import {context} from '../models';
 
@@ -15,6 +16,8 @@ export function ArchivePVCPath(arg1:string,arg2:string,arg3:string,arg4:number):
 export function AutoConnectDocker():Promise<docker.DockerConnectionStatus>;
 
 export function BackupSwarmVolume(arg1:string):Promise<string>;
+
+export function CheckServiceImageUpdates(arg1:Array<string>):Promise<Record<string, docker.ImageUpdateInfo>>;
 
 export function ClearProxyConfig():Promise<void>;
 
@@ -82,6 +85,8 @@ export function ExecCommand(arg1:string):Promise<void>;
 
 export function ExportSwarmConfig(arg1:string,arg2:string):Promise<string>;
 
+export function GetClusterTopology():Promise<topology.ClusterTopology>;
+
 export function GetConfigMapConsumers(arg1:string,arg2:string):Promise<Array<app.ConfigMapConsumer>>;
 
 export function GetConfigMapDataByName(arg1:string,arg2:string):Promise<Array<app.ConfigMapDataInfo>>;
@@ -135,6 +140,8 @@ export function GetHelmRepositories():Promise<Array<app.HelmRepositoryInfo>>;
 export function GetHooksConfig():Promise<app.HooksConfig>;
 
 export function GetImageDigest(arg1:string,arg2:string,arg3:string):Promise<string>;
+
+export function GetImageUpdateSettings():Promise<docker.ImageUpdateSettings>;
 
 export function GetIngressDetail(arg1:string,arg2:string):Promise<app.IngressDetail>;
 
@@ -239,6 +246,8 @@ export function GetSwarmConfigInspectJSON(arg1:string):Promise<string>;
 export function GetSwarmConfigUsage(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
 
 export function GetSwarmConfigs():Promise<Array<docker.SwarmConfigInfo>>;
+
+export function GetSwarmMetricsHistory():Promise<Array<docker.SwarmMetricsPoint>>;
 
 export function GetSwarmNetwork(arg1:string):Promise<docker.SwarmNetworkInfo>;
 
@@ -400,6 +409,8 @@ export function SetCurrentKubeContext(arg1:string):Promise<void>;
 
 export function SetCurrentNamespace(arg1:string):Promise<void>;
 
+export function SetImageUpdateSettings(arg1:docker.ImageUpdateSettings):Promise<void>;
+
 export function SetKubeConfigPath(arg1:string):Promise<void>;
 
 export function SetPreferredNamespaces(arg1:Array<string>):Promise<void>;
@@ -437,6 +448,10 @@ export function StartReplicaSetPolling():Promise<void>;
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
 
 export function StartStatefulSetPolling():Promise<void>;
+
+export function StartSwarmImageUpdatePolling():Promise<void>;
+
+export function StartSwarmMetricsPolling():Promise<void>;
 
 export function StartSwarmNodePolling():Promise<void>;
 

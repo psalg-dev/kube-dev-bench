@@ -22,6 +22,10 @@ export function BackupSwarmVolume(arg1) {
   return window['go']['main']['App']['BackupSwarmVolume'](arg1);
 }
 
+export function CheckServiceImageUpdates(arg1) {
+  return window['go']['main']['App']['CheckServiceImageUpdates'](arg1);
+}
+
 export function ClearProxyConfig() {
   return window['go']['main']['App']['ClearProxyConfig']();
 }
@@ -154,6 +158,10 @@ export function ExportSwarmConfig(arg1, arg2) {
   return window['go']['main']['App']['ExportSwarmConfig'](arg1, arg2);
 }
 
+export function GetClusterTopology() {
+  return window['go']['main']['App']['GetClusterTopology']();
+}
+
 export function GetConfigMapConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapConsumers'](arg1, arg2);
 }
@@ -260,6 +268,10 @@ export function GetHooksConfig() {
 
 export function GetImageDigest(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetImageDigest'](arg1, arg2, arg3);
+}
+
+export function GetImageUpdateSettings() {
+  return window['go']['main']['App']['GetImageUpdateSettings']();
 }
 
 export function GetIngressDetail(arg1, arg2) {
@@ -468,6 +480,10 @@ export function GetSwarmConfigUsage(arg1) {
 
 export function GetSwarmConfigs() {
   return window['go']['main']['App']['GetSwarmConfigs']();
+}
+
+export function GetSwarmMetricsHistory() {
+  return window['go']['main']['App']['GetSwarmMetricsHistory']();
 }
 
 export function GetSwarmNetwork(arg1) {
@@ -790,6 +806,10 @@ export function SetCurrentNamespace(arg1) {
   return window['go']['main']['App']['SetCurrentNamespace'](arg1);
 }
 
+export function SetImageUpdateSettings(arg1) {
+  return window['go']['main']['App']['SetImageUpdateSettings'](arg1);
+}
+
 export function SetKubeConfigPath(arg1) {
   return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
@@ -864,6 +884,14 @@ export function StartShellSession(arg1, arg2) {
 
 export function StartStatefulSetPolling() {
   return window['go']['main']['App']['StartStatefulSetPolling']();
+}
+
+export function StartSwarmImageUpdatePolling() {
+  return window['go']['main']['App']['StartSwarmImageUpdatePolling']();
+}
+
+export function StartSwarmMetricsPolling() {
+  return window['go']['main']['App']['StartSwarmMetricsPolling']();
 }
 
 export function StartSwarmNodePolling() {

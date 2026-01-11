@@ -172,11 +172,19 @@ function savePinnedConnections(connections) {
   }
 }
 
-export function ConnectionsStateProvider({ children }) {
+export function ConnectionsStateProvider({ children, initialSelectedSection }) {
   const [state, dispatch] = useReducer(reducer, {
     ...initialState,
+    selectedSection: initialSelectedSection || initialState.selectedSection,
     pinnedConnections: loadPinnedConnections(),
   });
+
+  // Allow callers to force the initially-selected section (e.g. open on Docker Swarm)
+  useEffect(() => {
+    if (initialSelectedSection) {
+      dispatch({ type: 'SET_SELECTED_SECTION', section: initialSelectedSection });
+    }
+  }, [initialSelectedSection]);
 
   // Save pinned connections whenever they change
   useEffect(() => {

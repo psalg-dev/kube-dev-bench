@@ -1656,6 +1656,20 @@ export namespace docker {
 	        this.error = source["error"];
 	    }
 	}
+	export class ImageUpdateSettings {
+	    enabled: boolean;
+	    intervalSeconds: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ImageUpdateSettings(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.intervalSeconds = source["intervalSeconds"];
+	    }
+	}
 	export class PruneSwarmVolumesResult {
 	    volumesDeleted: string[];
 	    spaceReclaimed: number;
@@ -1780,6 +1794,50 @@ export namespace docker {
 	        this.end = source["end"];
 	        this.exitCode = source["exitCode"];
 	        this.output = source["output"];
+	    }
+	}
+	export class SwarmMetricsPoint {
+	    timestamp: string;
+	    services: number;
+	    tasks: number;
+	    runningTasks: number;
+	    nodes: number;
+	    readyNodes: number;
+	    cpuCapacityNano: number;
+	    memoryCapacityBytes: number;
+	    cpuReservationsNano: number;
+	    memoryReservationsBytes: number;
+	    cpuLimitsNano: number;
+	    memoryLimitsBytes: number;
+	    cpuUsagePercent: number;
+	    memoryUsedBytes: number;
+	    networkRxBytes: number;
+	    networkTxBytes: number;
+	    runningContainers: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new SwarmMetricsPoint(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.timestamp = source["timestamp"];
+	        this.services = source["services"];
+	        this.tasks = source["tasks"];
+	        this.runningTasks = source["runningTasks"];
+	        this.nodes = source["nodes"];
+	        this.readyNodes = source["readyNodes"];
+	        this.cpuCapacityNano = source["cpuCapacityNano"];
+	        this.memoryCapacityBytes = source["memoryCapacityBytes"];
+	        this.cpuReservationsNano = source["cpuReservationsNano"];
+	        this.memoryReservationsBytes = source["memoryReservationsBytes"];
+	        this.cpuLimitsNano = source["cpuLimitsNano"];
+	        this.memoryLimitsBytes = source["memoryLimitsBytes"];
+	        this.cpuUsagePercent = source["cpuUsagePercent"];
+	        this.memoryUsedBytes = source["memoryUsedBytes"];
+	        this.networkRxBytes = source["networkRxBytes"];
+	        this.networkTxBytes = source["networkTxBytes"];
+	        this.runningContainers = source["runningContainers"];
 	    }
 	}
 	export class SwarmMountInfo {
@@ -2115,6 +2173,10 @@ export namespace docker {
 	    id: string;
 	    name: string;
 	    image: string;
+	    imageUpdateAvailable: boolean;
+	    imageLocalDigest: string;
+	    imageRemoteDigest: string;
+	    imageCheckedAt: string;
 	    replicas: number;
 	    runningTasks: number;
 	    mode: string;
@@ -2137,6 +2199,10 @@ export namespace docker {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.image = source["image"];
+	        this.imageUpdateAvailable = source["imageUpdateAvailable"];
+	        this.imageLocalDigest = source["imageLocalDigest"];
+	        this.imageRemoteDigest = source["imageRemoteDigest"];
+	        this.imageCheckedAt = source["imageCheckedAt"];
 	        this.replicas = source["replicas"];
 	        this.runningTasks = source["runningTasks"];
 	        this.mode = source["mode"];
@@ -2516,6 +2582,109 @@ export namespace registry {
 	        this.fullName = source["fullName"];
 	    }
 	}
+
+}
+
+export namespace topology {
+	
+	export class TopologyLink {
+	    from: string;
+	    to: string;
+	    type: string;
+	    weight: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TopologyLink(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.from = source["from"];
+	        this.to = source["to"];
+	        this.type = source["type"];
+	        this.weight = source["weight"];
+	    }
+	}
+	export class TopologyService {
+	    id: string;
+	    name: string;
+	    mode: string;
+	    desiredReplicas: number;
+	    taskCount: number;
+	    runningTasks: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TopologyService(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.mode = source["mode"];
+	        this.desiredReplicas = source["desiredReplicas"];
+	        this.taskCount = source["taskCount"];
+	        this.runningTasks = source["runningTasks"];
+	    }
+	}
+	export class TopologyNode {
+	    id: string;
+	    hostname: string;
+	    role: string;
+	    state: string;
+	    taskCount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new TopologyNode(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.hostname = source["hostname"];
+	        this.role = source["role"];
+	        this.state = source["state"];
+	        this.taskCount = source["taskCount"];
+	    }
+	}
+	export class ClusterTopology {
+	    timestamp: string;
+	    nodes: TopologyNode[];
+	    services: TopologyService[];
+	    links: TopologyLink[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ClusterTopology(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.timestamp = source["timestamp"];
+	        this.nodes = this.convertValues(source["nodes"], TopologyNode);
+	        this.services = this.convertValues(source["services"], TopologyService);
+	        this.links = this.convertValues(source["links"], TopologyLink);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
+	
 
 }
 

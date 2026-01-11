@@ -15,6 +15,11 @@ import {
   // Services
   GetSwarmServices,
   GetSwarmService,
+  CheckServiceImageUpdates,
+  GetImageUpdateSettings,
+  SetImageUpdateSettings,
+  GetSwarmMetricsHistory,
+  GetClusterTopology,
   ScaleSwarmService,
   RemoveSwarmService,
   UpdateSwarmServiceImage,
@@ -131,6 +136,11 @@ export {
   // Services
   GetSwarmServices,
   GetSwarmService,
+  CheckServiceImageUpdates,
+  GetImageUpdateSettings,
+  SetImageUpdateSettings,
+  GetSwarmMetricsHistory,
+  GetClusterTopology,
   ScaleSwarmService,
   RemoveSwarmService,
   UpdateSwarmServiceImage,

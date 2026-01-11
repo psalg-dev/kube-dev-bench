@@ -213,6 +213,9 @@ body, #layout {
   border-radius: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   border: 1px solid var(--gh-border);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 .main-panel-overview {
   flex-shrink: 0;
@@ -775,6 +778,12 @@ table tr:hover {
 /* Ensure table content is left-aligned by default */
 .gh-table th,
 .gh-table td {
+  text-align: left;
+}
+
+/* Ensure Swarm overview tables stay left-aligned */
+table[data-testid^="swarm-"] th,
+table[data-testid^="swarm-"] td {
   text-align: left;
 }
 

@@ -57,6 +57,15 @@
 }
 
 /* Standard table header cell padding across overview tables */
+table.gh-table {
+  overflow: visible;
+}
+
+/* The Actions column is always the last column; keep it right-aligned */
+table.gh-table thead th:last-child {
+  text-align: right;
+}
+
 .gh-table thead th {
   padding: 10px var(--gh-table-padding-x, 16px);
   background: var(--gh-bg);

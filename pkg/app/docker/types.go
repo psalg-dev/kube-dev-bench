@@ -2,21 +2,36 @@ package docker
 
 // SwarmServiceInfo describes a Swarm service
 type SwarmServiceInfo struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Image        string                 `json:"image"`
-	Replicas     uint64                 `json:"replicas"`
-	RunningTasks uint64                 `json:"runningTasks"`
-	Mode         string                 `json:"mode"` // "replicated" or "global"
-	Ports        []SwarmPortInfo        `json:"ports"`
-	Env          []string               `json:"env"`
-	Mounts       []SwarmMountInfo       `json:"mounts"`
-	UpdateConfig *SwarmUpdateConfigInfo `json:"updateConfig"`
-	Resources    *SwarmResourcesInfo    `json:"resources"`
-	Placement    *SwarmPlacementInfo    `json:"placement"`
-	Labels       map[string]string      `json:"labels"`
-	CreatedAt    string                 `json:"createdAt"`
-	UpdatedAt    string                 `json:"updatedAt"`
+	ID                   string                 `json:"id"`
+	Name                 string                 `json:"name"`
+	Image                string                 `json:"image"`
+	ImageUpdateAvailable bool                   `json:"imageUpdateAvailable"`
+	ImageLocalDigest     string                 `json:"imageLocalDigest"`
+	ImageRemoteDigest    string                 `json:"imageRemoteDigest"`
+	ImageCheckedAt       string                 `json:"imageCheckedAt"`
+	Replicas             uint64                 `json:"replicas"`
+	RunningTasks         uint64                 `json:"runningTasks"`
+	Mode                 string                 `json:"mode"` // "replicated" or "global"
+	Ports                []SwarmPortInfo        `json:"ports"`
+	Env                  []string               `json:"env"`
+	Mounts               []SwarmMountInfo       `json:"mounts"`
+	UpdateConfig         *SwarmUpdateConfigInfo `json:"updateConfig"`
+	Resources            *SwarmResourcesInfo    `json:"resources"`
+	Placement            *SwarmPlacementInfo    `json:"placement"`
+	Labels               map[string]string      `json:"labels"`
+	CreatedAt            string                 `json:"createdAt"`
+	UpdatedAt            string                 `json:"updatedAt"`
+}
+
+// ImageUpdateInfo describes the outcome of checking an image tag/digest in a registry.
+// This is used by the Swarm "Image Update Detection" feature.
+type ImageUpdateInfo struct {
+	Image           string `json:"image"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+	LocalDigest     string `json:"localDigest"`
+	RemoteDigest    string `json:"remoteDigest"`
+	CheckedAt       string `json:"checkedAt"`
+	Error           string `json:"error"`
 }
 
 type SwarmMountInfo struct {
@@ -213,6 +228,32 @@ type SwarmResourceCounts struct {
 	Secrets  int `json:"secrets"`
 	Stacks   int `json:"stacks"`
 	Volumes  int `json:"volumes"`
+}
+
+// SwarmMetricsPoint is a single point-in-time snapshot used by the Swarm Metrics Dashboard.
+type SwarmMetricsPoint struct {
+	Timestamp string `json:"timestamp"`
+
+	Services     int `json:"services"`
+	Tasks        int `json:"tasks"`
+	RunningTasks int `json:"runningTasks"`
+	Nodes        int `json:"nodes"`
+	ReadyNodes   int `json:"readyNodes"`
+
+	CpuCapacityNano         int64 `json:"cpuCapacityNano"`
+	MemoryCapacityBytes     int64 `json:"memoryCapacityBytes"`
+	CpuReservationsNano     int64 `json:"cpuReservationsNano"`
+	MemoryReservationsBytes int64 `json:"memoryReservationsBytes"`
+	CpuLimitsNano           int64 `json:"cpuLimitsNano"`
+	MemoryLimitsBytes       int64 `json:"memoryLimitsBytes"`
+
+	// Best-effort live usage derived from container stats on the connected Docker Engine.
+	// Values may be zero if stats cannot be collected.
+	CpuUsagePercent   float64 `json:"cpuUsagePercent"` // Percent of cluster capacity (approx)
+	MemoryUsedBytes   int64   `json:"memoryUsedBytes"`
+	NetworkRxBytes    int64   `json:"networkRxBytes"`
+	NetworkTxBytes    int64   `json:"networkTxBytes"`
+	RunningContainers int     `json:"runningContainers"`
 }
 
 // DockerConnectionStatus for connection state

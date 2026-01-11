@@ -3,6 +3,7 @@ import { useSwarmResourceCounts } from './SwarmResourceCountsContext.jsx';
 
 // Docker Swarm resource sections
 const swarmSections = [
+  { key: 'swarm-overview', label: 'Swarm' },
   { key: 'swarm-services', label: 'Services', countKey: 'services' },
   { key: 'swarm-tasks', label: 'Tasks', countKey: 'tasks' },
   { key: 'swarm-nodes', label: 'Nodes', countKey: 'nodes' },
@@ -35,6 +36,7 @@ export function SwarmSidebarSections({ selected, onSelect }) {
           gap: 8,
           justifyContent: 'space-between',
         };
+        const hasCount = Boolean(sec.countKey);
         const value = sec.countKey === 'registries' ? registriesCount : counts?.[sec.countKey];
         const isNumber = typeof value === 'number';
         return (
@@ -48,14 +50,18 @@ export function SwarmSidebarSections({ selected, onSelect }) {
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>{sec.label}</span>
             </span>
-            <span style={{
-              minWidth: '2em',
-              textAlign: 'right',
-              color: (isNumber && value > 0) ? '#8ecfff' : '#9aa0a6',
-              fontWeight: 700,
-            }}>
-              {isNumber ? value : '-'}
-            </span>
+            {hasCount ? (
+              <span style={{
+                minWidth: '2em',
+                textAlign: 'right',
+                color: (isNumber && value > 0) ? '#8ecfff' : '#9aa0a6',
+                fontWeight: 700,
+              }}>
+                {isNumber ? value : '-'}
+              </span>
+            ) : (
+              <span style={{ minWidth: '2em' }} />
+            )}
           </div>
         );
       })}

@@ -335,6 +335,23 @@ export default function SwarmStacksOverviewTable() {
       createKind="stack"
       createButtonTitle="Deploy stack (Compose YAML)"
       tableTestId="swarm-stacks-table"
+      getRowActions={(row) => ([
+        {
+          label: 'Delete',
+          icon: '🗑️',
+          danger: true,
+          onClick: async () => {
+            if (!window.confirm(`Delete stack "${row.name}"?`)) return;
+            try {
+              await RemoveSwarmStack(row.name);
+              showSuccess(`Removed stack "${row.name}"`);
+              refresh();
+            } catch (err) {
+              showError(`Failed to remove stack: ${err}`);
+            }
+          },
+        },
+      ])}
     />
   );
 }

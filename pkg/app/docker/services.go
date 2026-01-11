@@ -275,6 +275,8 @@ func serviceToInfo(svc swarm.Service, runningTasks uint64) SwarmServiceInfo {
 		info.Labels = make(map[string]string)
 	}
 
+	applyCachedImageUpdateFields(info.ID, &info)
+
 	return info
 }
 

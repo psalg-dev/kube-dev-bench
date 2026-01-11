@@ -73,9 +73,9 @@ function ConnectionsFooter() {
 /**
  * Main ConnectionWizard component wrapped with provider
  */
-const ConnectionWizard = ({ onComplete }) => {
+const ConnectionWizard = ({ onComplete, initialSection }) => {
   return (
-    <ConnectionsStateProvider>
+    <ConnectionsStateProvider initialSelectedSection={initialSection}>
       <ConnectionWizardLayout onComplete={onComplete} />
     </ConnectionsStateProvider>
   );

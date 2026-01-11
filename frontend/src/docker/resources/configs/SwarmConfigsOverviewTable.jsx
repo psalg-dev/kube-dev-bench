@@ -221,6 +221,11 @@ export default function SwarmConfigsOverviewTable() {
     setRefreshKey((k) => k + 1);
   }, []);
 
+  const makeDefaultCloneName = (base) => {
+    const iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+    return `${base}@${iso}`;
+  };
+
   useEffect(() => {
     let active = true;
 
@@ -271,6 +276,51 @@ export default function SwarmConfigsOverviewTable() {
       createPlatform="swarm"
       createKind="config"
       tableTestId="swarm-configs-table"
+      getRowActions={(row) => ([
+        {
+          label: 'Download',
+          icon: '⬇️',
+          onClick: async () => {
+            try {
+              const savedPath = await ExportSwarmConfig(row.id, `${row.name}.txt`);
+              if (!savedPath) return;
+              showSuccess(`Saved config ${row.name}`);
+            } catch (err) {
+              showError(`Failed to download config: ${err}`);
+            }
+          },
+        },
+        {
+          label: 'Clone…',
+          icon: '🧬',
+          onClick: async () => {
+            const newName = window.prompt('New config name', makeDefaultCloneName(row.name));
+            if (!newName) return;
+            try {
+              await CloneSwarmConfig(row.id, newName);
+              showSuccess(`Cloned config to ${newName}`);
+              refresh();
+            } catch (err) {
+              showError(`Failed to clone config: ${err}`);
+            }
+          },
+        },
+        {
+          label: 'Delete',
+          icon: '🗑️',
+          danger: true,
+          onClick: async () => {
+            if (!window.confirm(`Delete config "${row.name}"?`)) return;
+            try {
+              await RemoveSwarmConfig(row.id);
+              showSuccess(`Config ${row.name} removed`);
+              refresh();
+            } catch (err) {
+              showError(`Failed to remove config: ${err}`);
+            }
+          },
+        },
+      ])}
     />
   );
 }

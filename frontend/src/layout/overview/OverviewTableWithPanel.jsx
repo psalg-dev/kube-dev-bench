@@ -20,8 +20,12 @@ import { showNotification } from '../../notification.js';
  * @param {string|{message:string,type?:'success'|'error'|'warning',duration?:number}} [createNotice] - Optional notification shown when opening create overlay.
  * @param {string} [createHint] - Optional inline hint shown inside the create overlay.
  * @param {string} [tableTestId] - Optional test id for the main table (used by E2E tests).
+ * @param {React.ReactNode} [headerActions] - Optional additional actions shown in the header (to the right of the title).
+ * @param {function(row, api): Array<{label:string,onClick?:function,disabled?:boolean,danger?:boolean,icon?:React.ReactNode}>} [getRowActions]
+ *   Optional per-row extra actions for the row context menu (beyond the default Details).
+ *   The api includes: { openDetails(tabKey?:string), setActiveTab(tabKey:string) }.
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId, headerActions, getRowActions }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
@@ -30,6 +34,8 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   const [filterText, setFilterText] = useState('');
   // Create overlay state
   const [showCreate, setShowCreate] = useState(false);
+  // Row actions menu
+  const [openMenuKey, setOpenMenuKey] = useState(null);
 
   const openBottomPanel = (row) => {
     setSelectedRow(row);
@@ -37,10 +43,21 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     setActiveTab(safeTabs[0]?.key || 'summary');
   };
 
+  const openBottomPanelAtTab = (row, tabKey) => {
+    setSelectedRow(row);
+    setBottomOpen(true);
+    if (tabKey) setActiveTab(tabKey);
+    else setActiveTab(safeTabs[0]?.key || 'summary');
+  };
+
   const closeBottomPanel = () => {
     setBottomOpen(false);
     setSelectedRow(null);
     setActiveTab(safeTabs[0]?.key || 'summary'); // Reset to default tab
+  };
+
+  const closeRowMenu = () => {
+    setOpenMenuKey(null);
   };
 
   useEffect(() => {
@@ -68,6 +85,42 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [bottomOpen]);
+
+  // Close the row actions menu when clicking outside or pressing Escape
+  useEffect(() => {
+    if (!openMenuKey) return;
+
+    const handleClick = (e) => {
+      if (e.target.closest('.row-actions-menu') || e.target.closest('.row-actions-button')) return;
+      closeRowMenu();
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        closeRowMenu();
+      }
+    };
+
+    const handleFocusIn = (e) => {
+      if (e.target.closest('.row-actions-menu') || e.target.closest('.row-actions-button')) return;
+      closeRowMenu();
+    };
+
+    const handleWindowBlur = () => {
+      closeRowMenu();
+    };
+
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('blur', handleWindowBlur);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [openMenuKey]);
 
   // Memoized filter to avoid flicker and unnecessary recomputation
   const normalizedFilter = filterText.trim().toLowerCase();
@@ -100,6 +153,25 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     setShowCreate(true);
   };
 
+  const getRowKey = (row, idx) => {
+    return String(row?.id ?? row?.name ?? idx);
+  };
+
+  const buildMenuActions = (row) => {
+    const api = {
+      openDetails: (tabKey) => openBottomPanelAtTab(row, tabKey),
+      setActiveTab,
+    };
+    const extra = typeof getRowActions === 'function' ? (getRowActions(row, api) || []) : [];
+    const normalizedExtra = Array.isArray(extra) ? extra.filter(Boolean) : [];
+    const includeCloseItem = createPlatform !== 'swarm';
+    return [
+      { label: 'Details', icon: '🔎', onClick: () => openBottomPanel(row) },
+      ...normalizedExtra,
+      ...(includeCloseItem ? [{ label: 'Close', icon: '✖️', onClick: closeRowMenu }] : []),
+    ];
+  };
+
   return (
     <div>
       <div className="overview-header">
@@ -116,6 +188,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </div>
         <h2 className="overview-title">{title}</h2>
         <div className="overview-actions">
+          {headerActions}
           <input
             type="search"
             placeholder="Filter..."
@@ -142,8 +215,84 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                     {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}
                   </td>
                 ))}
-                <td>
-                  <button onClick={e => { e.stopPropagation(); openBottomPanel(row); }} style={{ padding: '2px 8px' }}>Details</button>
+                <td style={{ position: 'relative', textAlign: 'right' }}>
+                  <button
+                    type="button"
+                    className="row-actions-button"
+                    aria-label="Row actions"
+                    title="Actions"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const key = getRowKey(row, idx);
+                      setOpenMenuKey((cur) => (cur === key ? null : key));
+                    }}
+                    style={{
+                      padding: '2px 8px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--gh-table-header-text, #fff)',
+                      cursor: 'pointer',
+                    }}
+                  >...
+                  </button>
+
+                  {openMenuKey === getRowKey(row, idx) && (
+                    <div
+                      className="menu-content row-actions-menu"
+                      style={{
+                        position: 'absolute',
+                        right: 0,
+                        top: '100%',
+                        background: 'var(--gh-table-header-bg, #2d323b)',
+                        border: '1px solid #353a42',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                        zIndex: 1200,
+                        minWidth: 180,
+                        textAlign: 'left',
+                        padding: '4px 0',
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {(() => {
+                        const menuActions = buildMenuActions(row);
+                        return menuActions.map((a, i) => {
+                        const disabled = Boolean(a?.disabled);
+                        const danger = Boolean(a?.danger);
+                        return (
+                          <div
+                            key={`${a?.label || 'action'}-${i}`}
+                            className="context-menu-item"
+                            style={{
+                              padding: '8px 16px',
+                              cursor: disabled ? 'not-allowed' : 'pointer',
+                              color: danger ? '#f85149' : '#fff',
+                              opacity: disabled ? 0.55 : 1,
+                              fontSize: 15,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}
+                            onClick={() => {
+                              if (disabled) return;
+                              try {
+                                a?.onClick?.(row);
+                              } finally {
+                                closeRowMenu();
+                              }
+                            }}
+                          >
+                            {a?.icon ? (
+                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>{a.icon}</span>
+                            ) : (
+                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block' }} />
+                            )}
+                            <span>{a?.label}</span>
+                          </div>
+                        );
+                        });
+                      })()}
+                    </div>
+                  )}
                 </td>
               </tr>
             )

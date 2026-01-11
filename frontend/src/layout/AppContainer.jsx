@@ -9,7 +9,7 @@ import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext.j
 import { SwarmResourceCountsProvider } from '../docker/SwarmResourceCountsContext.jsx';
 import { useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext.jsx';
 
-function MainContentBinder({ selectedSection }) {
+function MainContentBinder({ selectedSection, setConnectionWizardInitialSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
   const swarmState = useSwarmState();
   const swarmCounts = useSwarmResourceCounts();
@@ -45,12 +45,11 @@ function MainContentBinder({ selectedSection }) {
     const keyHandler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
+        if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
         actions.openWizard();
       }
     };
     document.addEventListener('keydown', keyHandler);
-    const wizardBtn = document.getElementById('show-wizard-btn');
-    if (wizardBtn) wizardBtn.onclick = () => actions.openWizard();
     const sidebarToggleBtn = document.getElementById('sidebar-toggle');
     if (sidebarToggleBtn) {
       sidebarToggleBtn.onclick = () => {
@@ -64,7 +63,6 @@ function MainContentBinder({ selectedSection }) {
     }
     return () => {
       document.removeEventListener('keydown', keyHandler);
-      if (wizardBtn) wizardBtn.onclick = null;
       if (sidebarToggleBtn) sidebarToggleBtn.onclick = null;
     };
   }, [showWizard, actions]);
@@ -72,7 +70,7 @@ function MainContentBinder({ selectedSection }) {
   return null; // side-effect only (no longer needed for counts)
 }
 
-function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection }) {
+function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection, connectionWizardInitialSection, setConnectionWizardInitialSection }) {
   const {
     showWizard,
     actions,
@@ -96,6 +94,7 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection 
 
   const handleWizardComplete = () => {
     actions.closeWizard();
+    if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
     // Refresh Docker Swarm connection status after wizard closes
     if (swarmState?.actions?.refreshConnectionStatus) {
       swarmState.actions.refreshConnectionStatus();
@@ -104,11 +103,19 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection 
   };
 
   if (showWizard) {
-    return <ConnectionWizard onComplete={handleWizardComplete} />;
+    return <ConnectionWizard onComplete={handleWizardComplete} initialSection={connectionWizardInitialSection} />;
   }
   return (
     <AppLayout
       kubernetesAvailable={kubernetesAvailable}
+      onOpenConnectionsWizard={() => {
+        if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
+        actions.openWizard();
+      }}
+      onOpenSwarmConnectionsWizard={() => {
+        if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('docker-swarm');
+        actions.openWizard();
+      }}
       contextSelectEl={<ContextSelect
         value={selectedContext}
         options={contexts}
@@ -135,6 +142,7 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection 
 export default function AppContainer() {
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedSection, setSelectedSection] = useState('pods');
+  const [connectionWizardInitialSection, setConnectionWizardInitialSection] = useState('kubernetes');
   const handleWizardComplete = () => setReloadKey(k => k + 1);
 
   // Handle navigation to resources from monitor modal
@@ -222,8 +230,14 @@ export default function AppContainer() {
       <ResourceCountsProvider>
         <SwarmStateProvider>
           <SwarmResourceCountsProvider>
-            <LayoutOrWizard onWizardComplete={handleWizardComplete} selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
-            <MainContentBinder selectedSection={selectedSection} />
+            <LayoutOrWizard
+              onWizardComplete={handleWizardComplete}
+              selectedSection={selectedSection}
+              setSelectedSection={setSelectedSection}
+              connectionWizardInitialSection={connectionWizardInitialSection}
+              setConnectionWizardInitialSection={setConnectionWizardInitialSection}
+            />
+            <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>
       </ResourceCountsProvider>

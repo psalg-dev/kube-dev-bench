@@ -410,6 +410,25 @@ export default function SwarmTasksOverviewTable() {
       createKind="service"
       createButtonTitle="Create service (tasks are created by services)"
       createHint="Tasks can’t be created directly. Creating a service will create tasks."
+      getRowActions={(row, api) => {
+        const hasContainer = Boolean(row?.containerId);
+        const isRunning = String(row?.state || '').toLowerCase() === 'running';
+
+        return [
+          {
+            label: 'Logs',
+            icon: '📜',
+            disabled: !hasContainer,
+            onClick: () => api?.openDetails?.('logs'),
+          },
+          {
+            label: 'Exec',
+            icon: '🖥️',
+            disabled: !hasContainer || !isRunning,
+            onClick: () => api?.openDetails?.('exec'),
+          },
+        ];
+      }}
     />
   );
 }

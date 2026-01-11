@@ -22,6 +22,9 @@ import SwarmSecretsOverviewTable from "./docker/resources/secrets/SwarmSecretsOv
 import SwarmStacksOverviewTable from "./docker/resources/stacks/SwarmStacksOverviewTable";
 import SwarmVolumesOverviewTable from "./docker/resources/volumes/SwarmVolumesOverviewTable";
 import SwarmRegistriesOverview from "./docker/registry/SwarmRegistriesOverview.jsx";
+import SwarmMetricsDashboard from "./docker/metrics/SwarmMetricsDashboard.jsx";
+import TopologyView from "./docker/topology/TopologyView.jsx";
+import SwarmOverview from "./docker/SwarmOverview.jsx";
 import SwarmStateContext from "./docker/SwarmStateContext.jsx";
 import SwarmResourceCountsContext from "./docker/SwarmResourceCountsContext.jsx";
 import {createRoot} from "react-dom/client";
@@ -198,6 +201,24 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
             props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         // Docker Swarm sections
+        {
+            id: 'swarm-overview-react',
+            section: 'swarm-overview',
+            table: SwarmOverview,
+            props: {}
+        },
+        {
+            id: 'swarm-metrics-dashboard-react',
+            section: 'swarm-metrics',
+            table: SwarmOverview,
+            props: { initialTab: 'metrics' }
+        },
+        {
+            id: 'swarm-topology-view-react',
+            section: 'swarm-topology',
+            table: SwarmOverview,
+            props: { initialTab: 'topology' }
+        },
         {
             id: 'swarm-services-overview-react',
             section: 'swarm-services',

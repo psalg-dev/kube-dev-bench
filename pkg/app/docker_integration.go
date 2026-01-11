@@ -16,6 +16,7 @@ import (
 
 	"gowails/pkg/app/docker"
 	"gowails/pkg/app/docker/registry"
+	"gowails/pkg/app/docker/topology"
 
 	"github.com/docker/docker/api/types"
 	registrytypes "github.com/docker/docker/api/types/registry"
@@ -79,6 +80,21 @@ func (a *App) ListRegistryTags(registryName, repository string) ([]string, error
 		return nil, err
 	}
 	return c.ListTags(ctx, repository)
+}
+
+// ==================== Cluster Topology (Swarm) ====================
+
+// GetClusterTopology returns a best-effort topology graph (nodes, services, links).
+func (a *App) GetClusterTopology() (topology.ClusterTopology, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return topology.ClusterTopology{}, err
+	}
+	return topology.BuildClusterTopology(ctx, cli)
 }
 
 func (a *App) GetImageDigest(registryName, repository, tag string) (string, error) {
@@ -463,6 +479,16 @@ func (a *App) UpdateSwarmServiceImage(serviceID string, image string) error {
 		return err
 	}
 	return docker.UpdateSwarmServiceImage(a.ctx, cli, serviceID, image)
+}
+
+// CheckServiceImageUpdates checks whether the given services have newer image digests available in their registries.
+// This is best-effort and requires the relevant registry to be configured in the app.
+func (a *App) CheckServiceImageUpdates(serviceIDs []string) (map[string]docker.ImageUpdateInfo, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.CheckSwarmServiceImageUpdates(a.ctx, cli, serviceIDs)
 }
 
 // RestartSwarmService restarts a Swarm service
@@ -1286,4 +1312,92 @@ func (a *App) startupDocker(ctx context.Context) {
 	a.StartSwarmTaskPolling()
 	a.StartSwarmNodePolling()
 	a.StartSwarmResourceCountsPolling()
+	a.StartSwarmImageUpdatePolling()
+	a.StartSwarmMetricsPolling()
+}
+
+// GetSwarmMetricsHistory returns the in-memory Swarm metrics time series.
+func (a *App) GetSwarmMetricsHistory() ([]docker.SwarmMetricsPoint, error) {
+	return docker.GetSwarmMetricsHistory(), nil
+}
+
+// StartSwarmMetricsPolling emits swarm:metrics:update events.
+func (a *App) StartSwarmMetricsPolling() {
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			if a.ctx == nil {
+				continue
+			}
+			cli, err := a.getDockerClient()
+			if err != nil {
+				continue
+			}
+			p, breakdown, err := docker.CollectSwarmMetricsWithBreakdown(a.ctx, cli)
+			if err != nil {
+				continue
+			}
+			wailsRuntime.EventsEmit(a.ctx, "swarm:metrics:update", p)
+			if len(breakdown.Services) > 0 || len(breakdown.Nodes) > 0 {
+				wailsRuntime.EventsEmit(a.ctx, "swarm:metrics:breakdown", breakdown)
+			}
+		}
+	}()
+}
+
+// GetImageUpdateSettings returns the saved image update checker settings.
+func (a *App) GetImageUpdateSettings() (docker.ImageUpdateSettings, error) {
+	return docker.LoadImageUpdateSettings()
+}
+
+// SetImageUpdateSettings persists image update checker settings.
+func (a *App) SetImageUpdateSettings(settings docker.ImageUpdateSettings) error {
+	return docker.SaveImageUpdateSettings(settings)
+}
+
+// StartSwarmImageUpdatePolling periodically checks service images for updates and emits swarm:image:updates.
+func (a *App) StartSwarmImageUpdatePolling() {
+	go func() {
+		for {
+			time.Sleep(2 * time.Second)
+			if a.ctx == nil {
+				continue
+			}
+
+			settings, err := docker.LoadImageUpdateSettings()
+			if err != nil {
+				// If settings are corrupt/unreadable, don't spam.
+				time.Sleep(30 * time.Second)
+				continue
+			}
+			if !settings.Enabled {
+				time.Sleep(30 * time.Second)
+				continue
+			}
+
+			cli, err := a.getDockerClient()
+			if err != nil {
+				time.Sleep(settings.Interval())
+				continue
+			}
+
+			services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
+			if err != nil {
+				time.Sleep(settings.Interval())
+				continue
+			}
+			ids := make([]string, 0, len(services))
+			for _, s := range services {
+				if s.ID == "" {
+					continue
+				}
+				ids = append(ids, s.ID)
+			}
+
+			updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
+			wailsRuntime.EventsEmit(a.ctx, "swarm:image:updates", updates)
+
+			time.Sleep(settings.Interval())
+		}
+	}()
 }
