@@ -151,8 +151,10 @@ describe('OverviewTableWithPanel', () => {
     fireEvent.click(rowActionsButtons[0]);
 
     // Menu should show default items
-    expect(screen.getByText('Details')).toBeInTheDocument();
-    expect(screen.getByText('Close')).toBeInTheDocument();
+    const menu = document.querySelector('.row-actions-menu');
+    expect(menu).not.toBeNull();
+    expect(menu.textContent).toContain('Details');
+    expect(menu.textContent).toContain('Close');
 
     // Clicking the ellipsis should not trigger row click -> bottom panel stays closed
     expect(document.querySelector('.bottom-panel')).toBeNull();
@@ -163,15 +165,17 @@ describe('OverviewTableWithPanel', () => {
     const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
     fireEvent.click(rowActionsButtons[0]);
 
-    expect(screen.getByText('Details')).toBeInTheDocument();
-    expect(screen.queryByText('Close')).toBeNull();
+    const menu = document.querySelector('.row-actions-menu');
+    expect(menu).not.toBeNull();
+    expect(menu.textContent).toContain('Details');
+    expect(menu.textContent).not.toContain('Close');
   });
 
   it('closes row actions menu on window blur', () => {
     setup();
     const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
     fireEvent.click(rowActionsButtons[0]);
-    expect(screen.getByText('Details')).toBeInTheDocument();
+    expect(document.querySelector('.row-actions-menu')).not.toBeNull();
 
     window.dispatchEvent(new Event('blur'));
 
