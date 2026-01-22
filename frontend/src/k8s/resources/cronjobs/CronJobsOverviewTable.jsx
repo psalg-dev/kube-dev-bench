@@ -10,6 +10,8 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import { showSuccess, showError } from '../../../notification';
+import { StartJobFromCronJob, SuspendCronJob, ResumeCronJob } from '../kubeApi';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -186,6 +188,58 @@ export default function CronJobsOverviewTable({ namespaces }) {
     };
   }, [namespaces]);
 
+  const getRowActions = (row) => [
+    {
+      label: 'Start',
+      icon: '▶',
+      onClick: async () => {
+        try {
+          await StartJobFromCronJob(row.namespace, row.name);
+          showSuccess(`Job started from CronJob '${row.name}'`);
+        } catch (err) {
+          showError(`Failed to start job from CronJob '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+    {
+      label: 'Suspend',
+      icon: '⏸',
+      onClick: async () => {
+        try {
+          await SuspendCronJob(row.namespace, row.name);
+          showSuccess(`CronJob '${row.name}' suspended`);
+        } catch (err) {
+          showError(`Failed to suspend CronJob '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+    {
+      label: 'Resume',
+      icon: '▶',
+      onClick: async () => {
+        try {
+          await ResumeCronJob(row.namespace, row.name);
+          showSuccess(`CronJob '${row.name}' resumed`);
+        } catch (err) {
+          showError(`Failed to resume CronJob '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('cronjob', row.namespace, row.name);
+          showSuccess(`CronJob '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete CronJob '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       columns={columns}
@@ -196,6 +250,7 @@ export default function CronJobsOverviewTable({ namespaces }) {
       title="Cron Jobs"
       resourceKind="cronjob"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
+      getRowActions={getRowActions}
     />
   );
 }

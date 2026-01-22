@@ -57,7 +57,7 @@ function DockerSwarmSidebar({ selectedSection, onSelectSection, onOpenConnection
  * that queries by id (#kubecontext-root, #namespace-root, #sidebar-sections, etc.) continues to work.
  * Future phases will replace these id-based mutations with declarative React state.
  */
-export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard }) {
+export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard, onToggleHolmes, holmesPanelVisible }) {
   const hideKubernetesSelectors = kubernetesAvailable === false;
   return (
     <div id="layout">
@@ -91,6 +91,32 @@ export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelec
       </aside>
       <main id="maincontent">
         <div id="error-container" />
+        {/* Holmes AI toggle button */}
+        <button
+          id="holmes-toggle-btn"
+          onClick={onToggleHolmes}
+          title="Toggle Holmes AI (Ctrl+Shift+H)"
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            background: holmesPanelVisible ? 'var(--gh-accent, #238636)' : 'transparent',
+            border: '1px solid var(--gh-border, #30363d)',
+            color: holmesPanelVisible ? '#ffffff' : 'var(--gh-text-secondary, #8b949e)',
+            padding: '6px 10px',
+            borderRadius: 6,
+            cursor: 'pointer',
+            fontSize: 13,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            zIndex: 50,
+            transition: 'all 0.15s',
+          }}
+        >
+          <span>🔍</span>
+          <span>Holmes</span>
+        </button>
         <div id="main-panels">{mainContentEl}</div>
       </main>
       <footer id="footer">

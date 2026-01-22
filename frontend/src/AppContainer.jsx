@@ -8,6 +8,10 @@ import { ResourceCountsProvider } from './state/ResourceCountsContext.jsx';
 import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext.jsx';
 import { SwarmResourceCountsProvider } from './docker/SwarmResourceCountsContext.jsx';
 import SwarmConnectionWizard from './docker/SwarmConnectionWizard.jsx';
+// Holmes AI provider
+import { HolmesProvider, useHolmes } from './holmes/HolmesContext.jsx';
+import { HolmesPanel } from './holmes/HolmesPanel.jsx';
+import { HolmesConfigModal } from './holmes/HolmesConfigModal.jsx';
 // Resource overview tables
 import PodOverviewTable from './k8s/resources/pods/PodOverviewTable.jsx';
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable.jsx';
@@ -48,6 +52,7 @@ function MainApp({ selectedSection, setSelectedSection }) {
     kubernetesAvailable,
   } = useClusterState();
   const swarmState = useSwarmState();
+  const holmes = useHolmes();
   const firstNs = useMemo(() => (Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : ''), [selectedNamespaces]);
   const [showHelmInstall, setShowHelmInstall] = useState(false);
   const [showHelmRepos, setShowHelmRepos] = useState(false);
@@ -64,6 +69,8 @@ function MainApp({ selectedSection, setSelectedSection }) {
     if (showWizard) return;
     const keyHandler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); actions.openWizard(); }
+      // Ctrl+Shift+H toggles Holmes panel
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') { e.preventDefault(); holmes.togglePanel(); }
     };
     document.addEventListener('keydown', keyHandler);
     const wizardBtn = document.getElementById('show-wizard-btn');
@@ -209,7 +216,12 @@ function MainApp({ selectedSection, setSelectedSection }) {
         selectedSection={selectedSection}
         onSelectSection={handleSelectSection}
         mainContentEl={mainContentEl}
+        onToggleHolmes={holmes.togglePanel}
+        holmesPanelVisible={holmes.state.showPanel}
       />
+      {/* Holmes AI Panel */}
+      <HolmesPanel />
+      <HolmesConfigModal />
       {showHelmInstall && (
         <HelmInstallDialog
           namespace={firstNs}
@@ -237,7 +249,9 @@ export default function AppContainer() {
       <ResourceCountsProvider>
         <SwarmStateProvider>
           <SwarmResourceCountsProvider>
-            <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+            <HolmesProvider>
+              <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+            </HolmesProvider>
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>
       </ResourceCountsProvider>

@@ -10,6 +10,7 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import { showSuccess, showError } from '../../../notification';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -206,6 +207,38 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
     return () => { try { EventsOff('statefulsets:update'); } catch (_) {} };
   }, []);
 
+  const getRowActions = (row) => [
+    {
+      label: 'Restart',
+      icon: '🔄',
+      onClick: async () => {
+        try {
+          if (AppAPI.RestartStatefulSet) {
+            await AppAPI.RestartStatefulSet(row.namespace, row.name);
+            showSuccess(`StatefulSet '${row.name}' restarted`);
+          } else {
+            showError('RestartStatefulSet API unavailable');
+          }
+        } catch (err) {
+          showError(`Failed to restart StatefulSet '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('statefulset', row.namespace, row.name);
+          showSuccess(`StatefulSet '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete StatefulSet '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       columns={columns}
@@ -217,6 +250,7 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
       resourceKind="StatefulSet"
       namespace={namespace}
       loading={loading}
+      getRowActions={getRowActions}
     />
   );
 }

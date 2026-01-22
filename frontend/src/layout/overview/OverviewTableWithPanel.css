@@ -92,3 +92,28 @@ table.gh-table thead th:last-child {
   background: rgba(46, 164, 79, 0.18); /* subtle green highlight */
   color: #fff;
 }
+
+/* Inset actions button (ellipsis "..." in actions column) */
+.row-actions-button {
+  padding: 4px 10px;
+  background: var(--gh-button-bg, #21262d);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 4px;
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.row-actions-button:hover {
+  background: var(--gh-button-hover-bg, #30363d);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.row-actions-button:active {
+  background: var(--gh-button-active-bg, #161b22);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+}

@@ -9,6 +9,8 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import { showSuccess, showError } from '../../../notification';
+import { StartJob } from '../kubeApi';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -194,6 +196,34 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
     };
   }, [JSON.stringify(namespaces), namespace]);
 
+  const getRowActions = (row) => [
+    {
+      label: 'Start',
+      icon: '▶',
+      onClick: async () => {
+        try {
+          await StartJob(row.namespace, row.name);
+          showSuccess(`Job '${row.name}' started`);
+        } catch (err) {
+          showError(`Failed to start job '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('job', row.namespace, row.name);
+          showSuccess(`Job '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete job '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       columns={columns}
@@ -206,6 +236,7 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
       onRefresh={fetchJobs}
       resourceKind="Job"
       namespace={namespace}
+      getRowActions={getRowActions}
     />
   );
 }

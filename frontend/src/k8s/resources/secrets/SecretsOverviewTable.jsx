@@ -9,6 +9,7 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import { showSuccess, showError } from '../../../notification';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -158,6 +159,22 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }) {
     return () => { try { EventsOff('secrets:update'); } catch (_) {} };
   }, [namespaces]);
 
+  const getRowActions = (row) => [
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('secret', row.namespace, row.name);
+          showSuccess(`Secret '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete Secret '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       columns={columns}
@@ -167,6 +184,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }) {
       title="Secrets"
       resourceKind="secret"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
+      getRowActions={getRowActions}
     />
   );
 }

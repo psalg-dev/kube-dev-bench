@@ -200,11 +200,7 @@ export default function AppContainer() {
           if (!text.includes(targetName)) continue;
           if (shouldMatchNamespace && !text.includes(targetNamespace)) continue;
 
-          const detailsBtn = Array.from(row.querySelectorAll('button')).find(
-            (b) => (b.textContent || '').trim().toLowerCase() === 'details'
-          );
-
-          (detailsBtn || row).click();
+          row.click();
           return true;
         }
         return false;

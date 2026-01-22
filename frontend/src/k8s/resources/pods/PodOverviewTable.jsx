@@ -182,6 +182,42 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     setColumnFilters([{ id: 'name', value: filterValue }]);
   }, [filterValue]);
 
+  // Close row context menu on click outside, focus change, Escape key, or window blur
+  useEffect(() => {
+    if (openMenuIndex === null) return;
+
+    const handleClick = (e) => {
+      if (e.target.closest('.menu-content') || e.target.closest('.row-actions-button')) return;
+      setOpenMenuIndex(null);
+    };
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setOpenMenuIndex(null);
+      }
+    };
+
+    const handleFocusIn = (e) => {
+      if (e.target.closest('.menu-content') || e.target.closest('.row-actions-button')) return;
+      setOpenMenuIndex(null);
+    };
+
+    const handleWindowBlur = () => {
+      setOpenMenuIndex(null);
+    };
+
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('blur', handleWindowBlur);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('blur', handleWindowBlur);
+    };
+  }, [openMenuIndex]);
+
   // Handle escape key and click-outside for bottom panel
   useEffect(() => {
     if (!bottomOpen) return;
@@ -777,16 +813,13 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                       </td>
                   ))}
                   <td style={{position: 'relative', textAlign: 'right'}}>
-                    <button onClick={(e) => {
-                      e.stopPropagation();
-                      handleMenuClickRow(visibleRowStart + i);
-                    }} style={{
-                      padding: '2px 8px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--gh-table-header-text, #fff)',
-                      cursor: 'pointer'
-                    }}>...
+                    <button
+                      className="row-actions-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleMenuClickRow(visibleRowStart + i);
+                      }}
+                    >···
                     </button>
                     {openMenuIndex === (visibleRowStart + i) && (
                         <div
@@ -907,23 +940,6 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                             <span aria-hidden="true"
                                   style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🗑️</span>
                             <span>Delete</span>
-                          </div>
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '4px 16px',
-                                cursor: 'pointer',
-                                color: '#888',
-                                fontSize: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={handleMenuClose}
-                          >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>✖️</span>
-                            <span>Close</span>
                           </div>
                         </div>
                     )}

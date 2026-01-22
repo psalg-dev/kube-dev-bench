@@ -14,6 +14,10 @@ export function ArchivePVCPath(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchivePVCPath'](arg1, arg2, arg3, arg4);
 }
 
+export function AskHolmes(arg1) {
+  return window['go']['main']['App']['AskHolmes'](arg1);
+}
+
 export function AutoConnectDocker() {
   return window['go']['main']['App']['AutoConnectDocker']();
 }
@@ -260,6 +264,10 @@ export function GetHelmReleases(arg1) {
 
 export function GetHelmRepositories() {
   return window['go']['main']['App']['GetHelmRepositories']();
+}
+
+export function GetHolmesConfig() {
+  return window['go']['main']['App']['GetHolmesConfig']();
 }
 
 export function GetHooksConfig() {
@@ -806,6 +814,10 @@ export function SetCurrentNamespace(arg1) {
   return window['go']['main']['App']['SetCurrentNamespace'](arg1);
 }
 
+export function SetHolmesConfig(arg1) {
+  return window['go']['main']['App']['SetHolmesConfig'](arg1);
+}
+
 export function SetImageUpdateSettings(arg1) {
   return window['go']['main']['App']['SetImageUpdateSettings'](arg1);
 }
@@ -952,6 +964,10 @@ export function SuspendCronJob(arg1, arg2) {
 
 export function TestDockerConnection(arg1) {
   return window['go']['main']['App']['TestDockerConnection'](arg1);
+}
+
+export function TestHolmesConnection() {
+  return window['go']['main']['App']['TestHolmesConnection']();
 }
 
 export function TestHook(arg1) {

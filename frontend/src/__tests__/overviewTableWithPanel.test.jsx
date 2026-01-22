@@ -150,25 +150,14 @@ describe('OverviewTableWithPanel', () => {
     expect(rowActionsButtons.length).toBeGreaterThan(0);
     fireEvent.click(rowActionsButtons[0]);
 
-    // Menu should show default items
-    const menu = document.querySelector('.row-actions-menu');
-    expect(menu).not.toBeNull();
-    expect(menu.textContent).toContain('Details');
-    expect(menu.textContent).toContain('Close');
-
-    // Clicking the ellipsis should not trigger row click -> bottom panel stays closed
-    expect(document.querySelector('.bottom-panel')).toBeNull();
-  });
-
-  it('does not show Close action for swarm row menus', () => {
-    setup({ createPlatform: 'swarm', createKind: 'service' });
-    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
-    fireEvent.click(rowActionsButtons[0]);
-
+    // Menu should show default items (Close button removed - closes on click outside/focus loss)
     const menu = document.querySelector('.row-actions-menu');
     expect(menu).not.toBeNull();
     expect(menu.textContent).toContain('Details');
     expect(menu.textContent).not.toContain('Close');
+
+    // Clicking the ellipsis should not trigger row click -> bottom panel stays closed
+    expect(document.querySelector('.bottom-panel')).toBeNull();
   });
 
   it('closes row actions menu on window blur', () => {

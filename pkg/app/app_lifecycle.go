@@ -135,6 +135,9 @@ func (a *App) Startup(ctx context.Context) {
 	if !a.disableStartupDocker {
 		a.startupDocker(ctx)
 	}
+
+	// Initialize Holmes AI client if configured
+	a.initHolmes()
 }
 
 // Shutdown is called by Wails when the app is closing.

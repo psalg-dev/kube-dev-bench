@@ -222,6 +222,38 @@ export default function IngressesOverviewTable({ namespaces }) {
     };
   }, [namespaces]);
 
+  const getRowActions = (row) => [
+    {
+      label: 'Test Endpoint',
+      icon: '🔗',
+      disabled: !Array.isArray(row.hosts) || row.hosts.length === 0,
+      onClick: () => {
+        try {
+          const host = Array.isArray(row.hosts) && row.hosts.length ? row.hosts[0] : null;
+          if (!host) return;
+          const url = `https://${host}`;
+          window.open(url, '_blank', 'noopener,noreferrer');
+          showSuccess(`Opening ${url}`);
+        } catch (e) {
+          showError(`Failed to open endpoint: ${e?.message || e}`);
+        }
+      },
+    },
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('ingress', row.namespace, row.name);
+          showSuccess(`Ingress '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete Ingress '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       title="Ingresses"
@@ -233,6 +265,7 @@ export default function IngressesOverviewTable({ namespaces }) {
       panelHeader={panelHeader}
       resourceKind="ingress"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
+      getRowActions={getRowActions}
     />
   );
 }

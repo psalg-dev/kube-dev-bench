@@ -11,6 +11,7 @@ export namespace app {
 	    proxyAuthType: string;
 	    proxyUsername: string;
 	    proxyPassword: string;
+	    holmesConfig?: holmesgpt.HolmesConfigData;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -28,7 +29,26 @@ export namespace app {
 	        this.proxyAuthType = source["proxyAuthType"];
 	        this.proxyUsername = source["proxyUsername"];
 	        this.proxyPassword = source["proxyPassword"];
+	        this.holmesConfig = this.convertValues(source["holmesConfig"], holmesgpt.HolmesConfigData);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class ArchiveResult {
 	    path: string;
@@ -2389,6 +2409,80 @@ export namespace docker {
 	}
 	
 	
+
+}
+
+export namespace holmesgpt {
+	
+	export class HolmesConfigData {
+	    enabled: boolean;
+	    endpoint: string;
+	    apiKey?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesConfigData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.endpoint = source["endpoint"];
+	        this.apiKey = source["apiKey"];
+	    }
+	}
+	export class HolmesConnectionStatus {
+	    connected: boolean;
+	    endpoint: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesConnectionStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connected = source["connected"];
+	        this.endpoint = source["endpoint"];
+	        this.error = source["error"];
+	    }
+	}
+	export class HolmesResponse {
+	    response: string;
+	    rich_output?: Record<string, any>;
+	    // Go type: time
+	    timestamp: any;
+	    query_id?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.response = source["response"];
+	        this.rich_output = source["rich_output"];
+	        this.timestamp = this.convertValues(source["timestamp"], null);
+	        this.query_id = source["query_id"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 
 }
 

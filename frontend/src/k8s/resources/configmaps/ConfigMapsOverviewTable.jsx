@@ -9,6 +9,7 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
+import { showSuccess, showError } from '../../../notification';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -214,6 +215,22 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
     };
   }, [JSON.stringify(namespaces), namespace]);
 
+  const getRowActions = (row) => [
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('configmap', row.namespace, row.name);
+          showSuccess(`ConfigMap '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete ConfigMap '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       title="Config Maps"
@@ -226,6 +243,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
       resourceKind="configmap"
       namespace={namespace}
       onResourceCreate={onConfigMapCreate}
+      getRowActions={getRowActions}
     />
   );
 }

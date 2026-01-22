@@ -10,6 +10,7 @@ import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import PVAnnotationsTab from './PVAnnotationsTab.jsx';
 import PVCapacityUsageTab from './PVCapacityUsageTab.jsx';
+import { showSuccess, showError } from '../../../notification';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -211,6 +212,22 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
     );
   }
 
+  const getRowActions = (row) => [
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('pv', '', row.name);
+          showSuccess(`PersistentVolume '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete PersistentVolume '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       title="Persistent Volumes"
@@ -220,6 +237,7 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
       renderPanelContent={renderPanelContent}
       resourceKind="persistentvolume"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
+      getRowActions={getRowActions}
       onCreateResource={() => showResourceOverlay('persistentvolume', {
         namespace: namespaces && namespaces.length === 1 ? namespaces[0] : '',
         onSuccess: () => {
