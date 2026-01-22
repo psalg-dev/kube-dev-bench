@@ -74,12 +74,12 @@ func (a *App) collectMonitorInfo(namespaces []string) MonitorInfo {
 		}
 	}
 
-	return MonitorInfo{
+	return a.enrichMonitorInfo(MonitorInfo{
 		WarningCount: len(warnings),
 		ErrorCount:   len(errors),
 		Warnings:     warnings,
 		Errors:       errors,
-	}
+	})
 }
 
 // getOwnerInfo extracts owner kind and name from owner references
@@ -144,7 +144,7 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 
 				// Classify certain waiting reasons as errors
 				if reason == "CrashLoopBackOff" || reason == "ImagePullBackOff" ||
-				   reason == "ErrImagePull" || reason == "CreateContainerError" {
+					reason == "ErrImagePull" || reason == "CreateContainerError" {
 					issueType = "error"
 				}
 
@@ -215,7 +215,7 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 				issueType := "warning"
 
 				if reason == "ImagePullBackOff" || reason == "ErrImagePull" ||
-				   reason == "CreateContainerError" {
+					reason == "CreateContainerError" {
 					issueType = "error"
 				}
 

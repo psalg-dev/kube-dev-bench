@@ -1,5 +1,40 @@
 export namespace app {
 	
+	export class AlertInvestigation {
+	    alertName: string;
+	    // Go type: time
+	    timestamp: any;
+	    analysis: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AlertInvestigation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.alertName = source["alertName"];
+	        this.timestamp = this.convertValues(source["timestamp"], null);
+	        this.analysis = source["analysis"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class AppConfig {
 	    currentContext: string;
 	    currentNamespace: string;
@@ -946,6 +981,111 @@ export namespace app {
 	        this.contexts = source["contexts"];
 	    }
 	}
+	export class MonitorIssue {
+	    type: string;
+	    resource: string;
+	    namespace: string;
+	    name: string;
+	    reason: string;
+	    message: string;
+	    containerName: string;
+	    restartCount: number;
+	    age: string;
+	    podPhase: string;
+	    ownerKind: string;
+	    ownerName: string;
+	    nodeName: string;
+	    issueID: string;
+	    holmesAnalyzed: boolean;
+	    holmesAnalysis: string;
+	    // Go type: time
+	    holmesAnalyzedAt: any;
+	    dismissed: boolean;
+	    // Go type: time
+	    dismissedAt: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorIssue(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.resource = source["resource"];
+	        this.namespace = source["namespace"];
+	        this.name = source["name"];
+	        this.reason = source["reason"];
+	        this.message = source["message"];
+	        this.containerName = source["containerName"];
+	        this.restartCount = source["restartCount"];
+	        this.age = source["age"];
+	        this.podPhase = source["podPhase"];
+	        this.ownerKind = source["ownerKind"];
+	        this.ownerName = source["ownerName"];
+	        this.nodeName = source["nodeName"];
+	        this.issueID = source["issueID"];
+	        this.holmesAnalyzed = source["holmesAnalyzed"];
+	        this.holmesAnalysis = source["holmesAnalysis"];
+	        this.holmesAnalyzedAt = this.convertValues(source["holmesAnalyzedAt"], null);
+	        this.dismissed = source["dismissed"];
+	        this.dismissedAt = this.convertValues(source["dismissedAt"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class MonitorInfo {
+	    warningCount: number;
+	    errorCount: number;
+	    warnings: MonitorIssue[];
+	    errors: MonitorIssue[];
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.warningCount = source["warningCount"];
+	        this.errorCount = source["errorCount"];
+	        this.warnings = this.convertValues(source["warnings"], MonitorIssue);
+	        this.errors = this.convertValues(source["errors"], MonitorIssue);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	
 	export class OverviewInfo {
 	    pods: number;
@@ -1238,6 +1378,47 @@ export namespace app {
 	        this.local = source["local"];
 	        this.remote = source["remote"];
 	    }
+	}
+	export class PrometheusAlert {
+	    name: string;
+	    state: string;
+	    value: string;
+	    labels: Record<string, string>;
+	    annotations: Record<string, string>;
+	    // Go type: time
+	    activeAt: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrometheusAlert(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.state = source["state"];
+	        this.value = source["value"];
+	        this.labels = source["labels"];
+	        this.annotations = source["annotations"];
+	        this.activeAt = this.convertValues(source["activeAt"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class ProxyConfig {
 	    url: string;

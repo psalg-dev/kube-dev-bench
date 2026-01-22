@@ -10,6 +10,10 @@ export function AddRegistry(arg1) {
   return window['go']['main']['App']['AddRegistry'](arg1);
 }
 
+export function AnalyzeAllMonitorIssues() {
+  return window['go']['main']['App']['AnalyzeAllMonitorIssues']();
+}
+
 export function AnalyzeDaemonSet(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeDaemonSet'](arg1, arg2);
 }
@@ -24,6 +28,14 @@ export function AnalyzeDeployment(arg1, arg2) {
 
 export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeMonitorIssue(arg1) {
+  return window['go']['main']['App']['AnalyzeMonitorIssue'](arg1);
+}
+
+export function AnalyzeMonitorIssueStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeMonitorIssueStream'](arg1, arg2);
 }
 
 export function AnalyzePod(arg1, arg2) {
@@ -218,6 +230,10 @@ export function DisconnectDocker() {
   return window['go']['main']['App']['DisconnectDocker']();
 }
 
+export function DismissMonitorIssue(arg1) {
+  return window['go']['main']['App']['DismissMonitorIssue'](arg1);
+}
+
 export function DownloadFromSwarmVolume(arg1, arg2) {
   return window['go']['main']['App']['DownloadFromSwarmVolume'](arg1, arg2);
 }
@@ -228,6 +244,10 @@ export function ExecCommand(arg1) {
 
 export function ExportSwarmConfig(arg1, arg2) {
   return window['go']['main']['App']['ExportSwarmConfig'](arg1, arg2);
+}
+
+export function GetAlertInvestigationHistory() {
+  return window['go']['main']['App']['GetAlertInvestigationHistory']();
 }
 
 export function GetClusterTopology() {
@@ -292,6 +312,10 @@ export function GetDeploymentLogs(arg1, arg2) {
 
 export function GetDeployments(arg1) {
   return window['go']['main']['App']['GetDeployments'](arg1);
+}
+
+export function GetDismissedIssues() {
+  return window['go']['main']['App']['GetDismissedIssues']();
 }
 
 export function GetDockerConfig() {
@@ -464,6 +488,10 @@ export function GetPodSummary(arg1) {
 
 export function GetPodYAML(arg1) {
   return window['go']['main']['App']['GetPodYAML'](arg1);
+}
+
+export function GetPrometheusAlerts(arg1) {
+  return window['go']['main']['App']['GetPrometheusAlerts'](arg1);
 }
 
 export function GetProxyConfig() {
@@ -702,6 +730,10 @@ export function InstallHelmChart(arg1) {
   return window['go']['main']['App']['InstallHelmChart'](arg1);
 }
 
+export function InvestigatePrometheusAlert(arg1) {
+  return window['go']['main']['App']['InvestigatePrometheusAlert'](arg1);
+}
+
 export function IsProxyEnabled() {
   return window['go']['main']['App']['IsProxyEnabled']();
 }
@@ -846,6 +878,10 @@ export function SaveHook(arg1) {
   return window['go']['main']['App']['SaveHook'](arg1);
 }
 
+export function SaveMonitorIssueAnalysis(arg1, arg2) {
+  return window['go']['main']['App']['SaveMonitorIssueAnalysis'](arg1, arg2);
+}
+
 export function SavePrimaryKubeConfig(arg1) {
   return window['go']['main']['App']['SavePrimaryKubeConfig'](arg1);
 }
@@ -856,6 +892,10 @@ export function ScaleResource(arg1, arg2, arg3, arg4) {
 
 export function ScaleSwarmService(arg1, arg2) {
   return window['go']['main']['App']['ScaleSwarmService'](arg1, arg2);
+}
+
+export function ScanClusterHealth() {
+  return window['go']['main']['App']['ScanClusterHealth']();
 }
 
 export function SearchDockerHubRepositories(arg1) {

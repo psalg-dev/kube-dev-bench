@@ -169,7 +169,7 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 	}
 
 	// Holmes uses additionalEnvVars to set the OPENAI_API_KEY
-	// and modelList to configure the gpt-5 model for OpenAI
+	// LiteLLM automatically picks up OPENAI_API_KEY from the environment for OpenAI models
 	// See https://holmesgpt.dev/reference/helm-configuration/
 	values := map[string]interface{}{
 		"additionalEnvVars": []map[string]interface{}{
@@ -183,11 +183,12 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 				},
 			},
 		},
-		// Configure gpt-5 as a known model pointing to OpenAI
+		// Configure gpt-5.1 as the default model using environment variable for API key
+		// LiteLLM reads OPENAI_API_KEY from env automatically when api_key is prefixed with os.environ/
 		"modelList": map[string]interface{}{
-			"gpt-5": map[string]interface{}{
-				"api_key":     "{{ env.OPENAI_API_KEY }}",
-				"model":       "openai/gpt-5",
+			"gpt-5.1": map[string]interface{}{
+				"api_key":     "os.environ/OPENAI_API_KEY",
+				"model":       "openai/gpt-5.1",
 				"temperature": 0,
 			},
 		},

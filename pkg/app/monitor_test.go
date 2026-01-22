@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -282,6 +284,60 @@ func TestCheckEventIssues_WarningEvents(t *testing.T) {
 	}
 	if issue.Reason != "FailedScheduling" {
 		t.Errorf("Expected reason 'FailedScheduling', got '%s'", issue.Reason)
+	}
+}
+
+func TestCollectMonitorInfo_FiltersDismissedIssues(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	clientset := fake.NewSimpleClientset(&v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "dismissed-pod",
+			Namespace: "default",
+		},
+		Status: v1.PodStatus{
+			Phase: v1.PodRunning,
+			ContainerStatuses: []v1.ContainerStatus{
+				{
+					Name: "container",
+					State: v1.ContainerState{
+						Waiting: &v1.ContainerStateWaiting{
+							Reason:  "CrashLoopBackOff",
+							Message: "Back-off restarting failed container",
+						},
+					},
+				},
+			},
+		},
+	})
+	app := newTestApp(clientset)
+
+	issue := MonitorIssue{
+		Resource:  "Pod",
+		Namespace: "default",
+		Name:      "dismissed-pod",
+		Reason:    "CrashLoopBackOff",
+	}
+	issueID := generateIssueID(issue)
+	persisted := map[string]PersistedIssue{
+		issueID: {
+			IssueID:     issueID,
+			Dismissed:   true,
+			DismissedAt: time.Now(),
+		},
+	}
+	if err := savePersistedIssues(persisted); err != nil {
+		t.Fatalf("savePersistedIssues failed: %v", err)
+	}
+
+	info := app.collectMonitorInfo([]string{"default"})
+	if info.ErrorCount != 0 {
+		t.Fatalf("expected dismissed issue to be filtered, got %d errors", info.ErrorCount)
 	}
 }
 

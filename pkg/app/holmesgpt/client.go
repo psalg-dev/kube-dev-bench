@@ -96,6 +96,8 @@ func (c *HolmesClient) Ask(question string) (*HolmesResponse, error) {
 		AdditionalSystemPrompt: windowsCommandPrompt(),
 	}
 
+	logHolmesRequest(log, "Ask", c.endpoint+"/api/chat", reqBody)
+
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		log.Error("Ask: failed to marshal request", "error", err)
@@ -191,6 +193,7 @@ func (c *HolmesClient) Ask(question string) (*HolmesResponse, error) {
 		log.Info("Ask: request completed successfully",
 			"responseLen", responseLen,
 			"totalDuration", time.Since(startTime))
+		logHolmesResponse(log, "Ask", holmesResp.Response)
 
 		return &holmesResp, nil
 	}
@@ -214,6 +217,8 @@ func (c *HolmesClient) StreamAsk(ctx context.Context, question string, onEvent f
 		ResponseFormat:         c.responseFormat,
 		AdditionalSystemPrompt: windowsCommandPrompt(),
 	}
+
+	logHolmesRequest(log, "StreamAsk", c.endpoint+"/api/chat", reqBody)
 
 	body, err := json.Marshal(reqBody)
 	if err != nil {
@@ -353,6 +358,48 @@ func windowsCommandPrompt() string {
 		return ""
 	}
 	return strings.TrimSpace(windowsSystemPrompt)
+}
+
+func logHolmesRequest(log *Logger, operation, url string, req HolmesRequest) {
+	if log == nil {
+		return
+	}
+	questionLen := len(req.Ask)
+	systemPromptLen := len(req.AdditionalSystemPrompt)
+	responseFormatLen := len(req.ResponseFormat)
+	log.Info("LLM request",
+		"operation", operation,
+		"url", url,
+		"model", req.Model,
+		"stream", req.Stream,
+		"questionLen", questionLen,
+		"systemPromptLen", systemPromptLen,
+		"responseFormatLen", responseFormatLen)
+	log.Debug("LLM request payload",
+		"operation", operation,
+		"questionPreview", truncateForLog(req.Ask, 600),
+		"systemPromptPreview", truncateForLog(req.AdditionalSystemPrompt, 600),
+		"responseFormatPreview", truncateForLog(string(req.ResponseFormat), 600))
+}
+
+func logHolmesResponse(log *Logger, operation, response string) {
+	if log == nil {
+		return
+	}
+	log.Debug("LLM response preview",
+		"operation", operation,
+		"responseLen", len(response),
+		"responsePreview", truncateForLog(response, 800))
+}
+
+func truncateForLog(input string, max int) string {
+	if max <= 0 || input == "" {
+		return input
+	}
+	if len(input) <= max {
+		return input
+	}
+	return input[:max] + "..."
 }
 
 // TestConnection tests the connection to HolmesGPT by calling the health endpoint

@@ -51,7 +51,11 @@ const appFunctionNames = [
   // Helm functions
   'GetHelmReleases','GetHelmRepositories','AddHelmRepository','RemoveHelmRepository','UpdateHelmRepositories','SearchHelmCharts','GetHelmChartVersions','InstallHelmChart','UpgradeHelmRelease','UninstallHelmRelease','RollbackHelmRelease','GetHelmReleaseHistory','GetHelmReleaseValues','GetHelmReleaseManifest','GetHelmReleaseNotes','StartHelmReleasePolling',
   // Holmes AI functions
-  'AskHolmes','AskHolmesStream','AnalyzePod','AnalyzeDeployment','AnalyzeStatefulSet','AnalyzeDaemonSet','AnalyzeService','AnalyzeResource','GetHolmesConfig','SetHolmesConfig','TestHolmesConnection','CheckHolmesDeployment','DeployHolmesGPT','UndeployHolmesGPT'
+  'AskHolmes','AskHolmesStream','AnalyzePod','AnalyzeDeployment','AnalyzeStatefulSet','AnalyzeDaemonSet','AnalyzeService','AnalyzeResource','GetHolmesConfig','SetHolmesConfig','TestHolmesConnection','CheckHolmesDeployment','DeployHolmesGPT','UndeployHolmesGPT',
+  // Monitor enhancements
+  'ScanClusterHealth','AnalyzeMonitorIssue','AnalyzeMonitorIssueStream','AnalyzeAllMonitorIssues','DismissMonitorIssue','SaveMonitorIssueAnalysis','GetDismissedIssues',
+  // Prometheus alerts
+  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {

@@ -166,6 +166,48 @@ export function HolmesProvider({ children }) {
       }
 
       const eventType = payload.event;
+
+      if (eventType === 'stream_end') {
+        if (text) {
+          dispatch({ type: 'STREAM_DONE', text, timestamp: new Date().toISOString() });
+        } else {
+          dispatch({ type: 'SET_LOADING', loading: false });
+        }
+        return;
+      }
+
+      if (eventType === 'error') {
+        const parseErrorPayload = (value) => {
+          if (!value || typeof value !== 'string') {
+            return null;
+          }
+          try {
+            return JSON.parse(value);
+          } catch {
+            return null;
+          }
+        };
+
+        let errorMsg = payload.error || payload.data || 'Unknown stream error';
+        const parsedError = parseErrorPayload(payload.error);
+        const parsedData = parseErrorPayload(payload.data);
+        const parsed = parsedError || parsedData;
+        if (parsed) {
+          errorMsg = parsed.error || parsed.message || parsed.detail || parsed.description || parsed.msg || errorMsg;
+        }
+
+        if (typeof errorMsg === 'string') {
+          const lowerMsg = errorMsg.toLowerCase();
+          if (lowerMsg.includes('authenticationerror') || lowerMsg.includes('incorrect api key') || lowerMsg.includes('invalid api key')) {
+            errorMsg = 'Authentication failed. Please verify the Holmes API key.';
+          }
+        }
+
+        dispatch({ type: 'STREAM_ERROR', error: errorMsg });
+        showError('Holmes query failed: ' + errorMsg);
+        return;
+      }
+
       if (!payload.data) {
         return;
       }
@@ -241,13 +283,6 @@ export function HolmesProvider({ children }) {
         return;
       }
 
-      if (eventType === 'stream_end') {
-        if (text) {
-          dispatch({ type: 'STREAM_DONE', text, timestamp: new Date().toISOString() });
-        } else {
-          dispatch({ type: 'SET_LOADING', loading: false });
-        }
-      }
     });
     return unsubscribe;
   }, []);

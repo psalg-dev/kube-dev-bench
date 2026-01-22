@@ -7,4 +7,5 @@ modelList:
     api_key: "{{ env.OPENAI_API_KEY }}"
     model: openai/gpt-5
     temperature: 0
+    reasoning_effort: low
 

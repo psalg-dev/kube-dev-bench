@@ -12,6 +12,8 @@ export function AddHelmRepository(arg1:string,arg2:string):Promise<void>;
 
 export function AddRegistry(arg1:registry.RegistryConfig):Promise<void>;
 
+export function AnalyzeAllMonitorIssues():Promise<void>;
+
 export function AnalyzeDaemonSet(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeDaemonSetStream(arg1:string,arg2:string,arg3:string):Promise<void>;
@@ -19,6 +21,10 @@ export function AnalyzeDaemonSetStream(arg1:string,arg2:string,arg3:string):Prom
 export function AnalyzeDeployment(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeDeploymentStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function AnalyzeMonitorIssue(arg1:string):Promise<app.MonitorIssue>;
+
+export function AnalyzeMonitorIssueStream(arg1:string,arg2:string):Promise<void>;
 
 export function AnalyzePod(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
@@ -116,11 +122,15 @@ export function DetectSystemProxy():Promise<Record<string, string>>;
 
 export function DisconnectDocker():Promise<void>;
 
+export function DismissMonitorIssue(arg1:string):Promise<void>;
+
 export function DownloadFromSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function ExecCommand(arg1:string):Promise<void>;
 
 export function ExportSwarmConfig(arg1:string,arg2:string):Promise<string>;
+
+export function GetAlertInvestigationHistory():Promise<Array<app.AlertInvestigation>>;
 
 export function GetClusterTopology():Promise<topology.ClusterTopology>;
 
@@ -153,6 +163,8 @@ export function GetDeploymentDetail(arg1:string,arg2:string):Promise<app.Deploym
 export function GetDeploymentLogs(arg1:string,arg2:string):Promise<string>;
 
 export function GetDeployments(arg1:string):Promise<Array<app.DeploymentInfo>>;
+
+export function GetDismissedIssues():Promise<Array<app.MonitorIssue>>;
 
 export function GetDockerConfig():Promise<docker.DockerConfig>;
 
@@ -239,6 +251,8 @@ export function GetPodStatusCounts(arg1:string):Promise<app.PodStatusCounts>;
 export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 
 export function GetPodYAML(arg1:string):Promise<string>;
+
+export function GetPrometheusAlerts(arg1:string):Promise<Array<app.PrometheusAlert>>;
 
 export function GetProxyConfig():Promise<app.ProxyConfig>;
 
@@ -358,6 +372,8 @@ export function Greet(arg1:string):Promise<string>;
 
 export function InstallHelmChart(arg1:app.HelmInstallRequest):Promise<void>;
 
+export function InvestigatePrometheusAlert(arg1:app.PrometheusAlert):Promise<holmesgpt.HolmesResponse>;
+
 export function IsProxyEnabled():Promise<boolean>;
 
 export function IsSwarmVolumeReadOnly(arg1:string):Promise<boolean>;
@@ -430,11 +446,15 @@ export function SaveCustomKubeConfig(arg1:string,arg2:string):Promise<void>;
 
 export function SaveHook(arg1:app.HookConfig):Promise<app.HookConfig>;
 
+export function SaveMonitorIssueAnalysis(arg1:string,arg2:holmesgpt.HolmesResponse):Promise<void>;
+
 export function SavePrimaryKubeConfig(arg1:string):Promise<string>;
 
 export function ScaleResource(arg1:string,arg2:string,arg3:string,arg4:number):Promise<void>;
 
 export function ScaleSwarmService(arg1:string,arg2:number):Promise<void>;
+
+export function ScanClusterHealth():Promise<app.MonitorInfo>;
 
 export function SearchDockerHubRepositories(arg1:string):Promise<Array<registry.DockerHubRepoSearchResult>>;
 

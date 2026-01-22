@@ -1,6 +1,8 @@
 package app
 
 import (
+	"time"
+
 	jobs "gowails/pkg/app/jobs"
 )
 
@@ -303,6 +305,13 @@ type MonitorIssue struct {
 	OwnerKind     string `json:"ownerKind"`     // parent resource kind (e.g., "Deployment")
 	OwnerName     string `json:"ownerName"`     // parent resource name
 	NodeName      string `json:"nodeName"`      // node where pod is scheduled
+
+	IssueID          string    `json:"issueID"`          // stable ID for tracking
+	HolmesAnalyzed   bool      `json:"holmesAnalyzed"`   // whether Holmes analyzed this issue
+	HolmesAnalysis   string    `json:"holmesAnalysis"`   // analysis text (markdown)
+	HolmesAnalyzedAt time.Time `json:"holmesAnalyzedAt"` // when analyzed
+	Dismissed        bool      `json:"dismissed"`        // user dismissed this issue
+	DismissedAt      time.Time `json:"dismissedAt"`      // when dismissed
 }
 
 // MonitorInfo aggregates warnings and errors across monitored namespaces
