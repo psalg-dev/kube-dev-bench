@@ -18,6 +18,10 @@ export function AskHolmes(arg1) {
   return window['go']['main']['App']['AskHolmes'](arg1);
 }
 
+export function AskHolmesStream(arg1, arg2) {
+  return window['go']['main']['App']['AskHolmesStream'](arg1, arg2);
+}
+
 export function AutoConnectDocker() {
   return window['go']['main']['App']['AutoConnectDocker']();
 }
@@ -26,8 +30,20 @@ export function BackupSwarmVolume(arg1) {
   return window['go']['main']['App']['BackupSwarmVolume'](arg1);
 }
 
+export function CancelHolmesStream(arg1) {
+  return window['go']['main']['App']['CancelHolmesStream'](arg1);
+}
+
+export function CheckHolmesDeployment() {
+  return window['go']['main']['App']['CheckHolmesDeployment']();
+}
+
 export function CheckServiceImageUpdates(arg1) {
   return window['go']['main']['App']['CheckServiceImageUpdates'](arg1);
+}
+
+export function ClearHolmesConfig() {
+  return window['go']['main']['App']['ClearHolmesConfig']();
 }
 
 export function ClearProxyConfig() {
@@ -140,6 +156,10 @@ export function DeleteStatefulSet(arg1, arg2) {
 
 export function DeleteSwarmVolumeFile(arg1, arg2, arg3) {
   return window['go']['main']['App']['DeleteSwarmVolumeFile'](arg1, arg2, arg3);
+}
+
+export function DeployHolmesGPT(arg1) {
+  return window['go']['main']['App']['DeployHolmesGPT'](arg1);
 }
 
 export function DetectSystemProxy() {
@@ -674,6 +694,10 @@ export function PullDockerImageLatest(arg1, arg2) {
   return window['go']['main']['App']['PullDockerImageLatest'](arg1, arg2);
 }
 
+export function ReconnectHolmes() {
+  return window['go']['main']['App']['ReconnectHolmes']();
+}
+
 export function RemoveHelmRepository(arg1) {
   return window['go']['main']['App']['RemoveHelmRepository'](arg1);
 }
@@ -866,6 +890,10 @@ export function StartHelmReleasePolling() {
   return window['go']['main']['App']['StartHelmReleasePolling']();
 }
 
+export function StartHolmesPortForward(arg1) {
+  return window['go']['main']['App']['StartHolmesPortForward'](arg1);
+}
+
 export function StartJob(arg1, arg2) {
   return window['go']['main']['App']['StartJob'](arg1, arg2);
 }
@@ -930,6 +958,10 @@ export function Startup(arg1) {
   return window['go']['main']['App']['Startup'](arg1);
 }
 
+export function StopHolmesPortForward(arg1) {
+  return window['go']['main']['App']['StopHolmesPortForward'](arg1);
+}
+
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
 }
@@ -976,6 +1008,10 @@ export function TestHook(arg1) {
 
 export function TestRegistryConnection(arg1) {
   return window['go']['main']['App']['TestRegistryConnection'](arg1);
+}
+
+export function UndeployHolmesGPT(arg1, arg2) {
+  return window['go']['main']['App']['UndeployHolmesGPT'](arg1, arg2);
 }
 
 export function UninstallHelmRelease(arg1, arg2) {

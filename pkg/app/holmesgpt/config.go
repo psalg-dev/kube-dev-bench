@@ -1,11 +1,15 @@
 package holmesgpt
 
+import "encoding/json"
+
 // DefaultConfig returns a default Holmes configuration with disabled state
 func DefaultConfig() HolmesConfigData {
 	return HolmesConfigData{
-		Enabled:  false,
-		Endpoint: "",
-		APIKey:   "",
+		Enabled:        false,
+		Endpoint:       "",
+		APIKey:         "",
+		ModelKey:       "",
+		ResponseFormat: "",
 	}
 }
 
@@ -19,6 +23,10 @@ func (c *HolmesConfigData) Validate() error {
 	// Endpoint is required when enabled
 	if c.Endpoint == "" {
 		return ErrEndpointRequired
+	}
+
+	if c.ResponseFormat != "" && !json.Valid([]byte(c.ResponseFormat)) {
+		return ErrInvalidResponseFormat
 	}
 
 	return nil

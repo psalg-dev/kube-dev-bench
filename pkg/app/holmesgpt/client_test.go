@@ -329,6 +329,15 @@ func TestHolmesConfigData_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid response format JSON",
+			config: HolmesConfigData{
+				Enabled:        true,
+				Endpoint:       "http://localhost:8080",
+				ResponseFormat: "{invalid",
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

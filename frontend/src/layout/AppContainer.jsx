@@ -8,6 +8,11 @@ import { ResourceCountsProvider } from '../state/ResourceCountsContext.jsx';
 import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext.jsx';
 import { SwarmResourceCountsProvider } from '../docker/SwarmResourceCountsContext.jsx';
 import { useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext.jsx';
+// Holmes AI provider and components
+import { HolmesProvider, useHolmes } from '../holmes/HolmesContext.jsx';
+import { HolmesPanel } from '../holmes/HolmesPanel.jsx';
+import { HolmesConfigModal } from '../holmes/HolmesConfigModal.jsx';
+import { HolmesOnboardingWizard } from '../holmes/HolmesOnboardingWizard.jsx';
 
 function MainContentBinder({ selectedSection, setConnectionWizardInitialSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
@@ -83,6 +88,7 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
     kubernetesAvailable,
   } = useClusterState();
   const swarmState = useSwarmState();
+  const holmes = useHolmes();
 
   // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs detected),
   // ensure we land on a Swarm view so the main content isn't blank.
@@ -91,6 +97,19 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
       setSelectedSection('swarm-services');
     }
   }, [kubernetesAvailable, selectedSection, setSelectedSection]);
+
+  // Ctrl+Shift+H toggles Holmes panel
+  useEffect(() => {
+    if (showWizard) return;
+    const keyHandler = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+        e.preventDefault();
+        holmes.togglePanel();
+      }
+    };
+    document.addEventListener('keydown', keyHandler);
+    return () => document.removeEventListener('keydown', keyHandler);
+  }, [showWizard, holmes]);
 
   const handleWizardComplete = () => {
     actions.closeWizard();
@@ -106,36 +125,44 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
     return <ConnectionWizard onComplete={handleWizardComplete} initialSection={connectionWizardInitialSection} />;
   }
   return (
-    <AppLayout
-      kubernetesAvailable={kubernetesAvailable}
-      onOpenConnectionsWizard={() => {
-        if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
-        actions.openWizard();
-      }}
-      onOpenSwarmConnectionsWizard={() => {
-        if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('docker-swarm');
-        actions.openWizard();
-      }}
-      contextSelectEl={<ContextSelect
-        value={selectedContext}
-        options={contexts}
-        disabled={contextDisabled}
-        onChange={(v) => actions.selectContext(v)}
-        onMenuOpen={() => actions.reloadContexts()}
-      />}
-      namespaceSelectEl={<NamespaceMultiSelect
-        values={selectedNamespaces}
-        options={namespaces}
-        disabled={namespaceDisabled}
-        onChange={(vals) => actions.selectNamespaces(vals)}
-        onMenuOpen={() => actions.reloadNamespaces()}
-      />}
-      selectedSection={selectedSection}
-      onSelectSection={(section) => {
-        if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) return;
-        setSelectedSection(section);
-      }}
-    />
+    <>
+      <AppLayout
+        kubernetesAvailable={kubernetesAvailable}
+        onOpenConnectionsWizard={() => {
+          if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
+          actions.openWizard();
+        }}
+        onOpenSwarmConnectionsWizard={() => {
+          if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('docker-swarm');
+          actions.openWizard();
+        }}
+        onToggleHolmes={holmes.togglePanel}
+        holmesPanelVisible={holmes.state.showPanel}
+        contextSelectEl={<ContextSelect
+          value={selectedContext}
+          options={contexts}
+          disabled={contextDisabled}
+          onChange={(v) => actions.selectContext(v)}
+          onMenuOpen={() => actions.reloadContexts()}
+        />}
+        namespaceSelectEl={<NamespaceMultiSelect
+          values={selectedNamespaces}
+          options={namespaces}
+          disabled={namespaceDisabled}
+          onChange={(vals) => actions.selectNamespaces(vals)}
+          onMenuOpen={() => actions.reloadNamespaces()}
+        />}
+        selectedSection={selectedSection}
+        onSelectSection={(section) => {
+          if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) return;
+          setSelectedSection(section);
+        }}
+      />
+      {/* Holmes AI Panel */}
+      <HolmesPanel />
+      <HolmesConfigModal />
+      <HolmesOnboardingWizard />
+    </>
   );
 }
 
@@ -226,14 +253,16 @@ export default function AppContainer() {
       <ResourceCountsProvider>
         <SwarmStateProvider>
           <SwarmResourceCountsProvider>
-            <LayoutOrWizard
-              onWizardComplete={handleWizardComplete}
-              selectedSection={selectedSection}
-              setSelectedSection={setSelectedSection}
-              connectionWizardInitialSection={connectionWizardInitialSection}
-              setConnectionWizardInitialSection={setConnectionWizardInitialSection}
-            />
-            <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
+            <HolmesProvider>
+              <LayoutOrWizard
+                onWizardComplete={handleWizardComplete}
+                selectedSection={selectedSection}
+                setSelectedSection={setSelectedSection}
+                connectionWizardInitialSection={connectionWizardInitialSection}
+                setConnectionWizardInitialSection={setConnectionWizardInitialSection}
+              />
+              <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
+            </HolmesProvider>
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>
       </ResourceCountsProvider>

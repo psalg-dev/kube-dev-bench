@@ -2418,6 +2418,8 @@ export namespace holmesgpt {
 	    enabled: boolean;
 	    endpoint: string;
 	    apiKey?: string;
+	    modelKey?: string;
+	    responseFormat?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new HolmesConfigData(source);
@@ -2428,6 +2430,8 @@ export namespace holmesgpt {
 	        this.enabled = source["enabled"];
 	        this.endpoint = source["endpoint"];
 	        this.apiKey = source["apiKey"];
+	        this.modelKey = source["modelKey"];
+	        this.responseFormat = source["responseFormat"];
 	    }
 	}
 	export class HolmesConnectionStatus {
@@ -2446,8 +2450,49 @@ export namespace holmesgpt {
 	        this.error = source["error"];
 	    }
 	}
+	export class HolmesDeploymentRequest {
+	    openAIKey: string;
+	    namespace?: string;
+	    releaseName?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesDeploymentRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.openAIKey = source["openAIKey"];
+	        this.namespace = source["namespace"];
+	        this.releaseName = source["releaseName"];
+	    }
+	}
+	export class HolmesDeploymentStatus {
+	    phase: string;
+	    message: string;
+	    progress: number;
+	    endpoint: string;
+	    error: string;
+	    releaseName: string;
+	    namespace: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesDeploymentStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.phase = source["phase"];
+	        this.message = source["message"];
+	        this.progress = source["progress"];
+	        this.endpoint = source["endpoint"];
+	        this.error = source["error"];
+	        this.releaseName = source["releaseName"];
+	        this.namespace = source["namespace"];
+	    }
+	}
 	export class HolmesResponse {
 	    response: string;
+	    analysis?: string;
 	    rich_output?: Record<string, any>;
 	    // Go type: time
 	    timestamp: any;
@@ -2460,6 +2505,7 @@ export namespace holmesgpt {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.response = source["response"];
+	        this.analysis = source["analysis"];
 	        this.rich_output = source["rich_output"];
 	        this.timestamp = this.convertValues(source["timestamp"], null);
 	        this.query_id = source["query_id"];

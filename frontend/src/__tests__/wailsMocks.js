@@ -51,7 +51,7 @@ const appFunctionNames = [
   // Helm functions
   'GetHelmReleases','GetHelmRepositories','AddHelmRepository','RemoveHelmRepository','UpdateHelmRepositories','SearchHelmCharts','GetHelmChartVersions','InstallHelmChart','UpgradeHelmRelease','UninstallHelmRelease','RollbackHelmRelease','GetHelmReleaseHistory','GetHelmReleaseValues','GetHelmReleaseManifest','GetHelmReleaseNotes','StartHelmReleasePolling',
   // Holmes AI functions
-  'AskHolmes','GetHolmesConfig','SetHolmesConfig','TestHolmesConnection'
+  'AskHolmes','AskHolmesStream','GetHolmesConfig','SetHolmesConfig','TestHolmesConnection','CheckHolmesDeployment','DeployHolmesGPT','UndeployHolmesGPT'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {

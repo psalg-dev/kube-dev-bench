@@ -16,11 +16,19 @@ export function ArchivePVCPath(arg1:string,arg2:string,arg3:string,arg4:number):
 
 export function AskHolmes(arg1:string):Promise<holmesgpt.HolmesResponse>;
 
+export function AskHolmesStream(arg1:string,arg2:string):Promise<void>;
+
 export function AutoConnectDocker():Promise<docker.DockerConnectionStatus>;
 
 export function BackupSwarmVolume(arg1:string):Promise<string>;
 
+export function CancelHolmesStream(arg1:string):Promise<void>;
+
+export function CheckHolmesDeployment():Promise<holmesgpt.HolmesDeploymentStatus>;
+
 export function CheckServiceImageUpdates(arg1:Array<string>):Promise<Record<string, docker.ImageUpdateInfo>>;
+
+export function ClearHolmesConfig():Promise<void>;
 
 export function ClearProxyConfig():Promise<void>;
 
@@ -77,6 +85,8 @@ export function DeleteSecret(arg1:string,arg2:string):Promise<void>;
 export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function DeleteSwarmVolumeFile(arg1:string,arg2:string,arg3:boolean):Promise<void>;
+
+export function DeployHolmesGPT(arg1:holmesgpt.HolmesDeploymentRequest):Promise<holmesgpt.HolmesDeploymentStatus>;
 
 export function DetectSystemProxy():Promise<Record<string, string>>;
 
@@ -344,6 +354,8 @@ export function PruneSwarmVolumes():Promise<docker.PruneSwarmVolumesResult>;
 
 export function PullDockerImageLatest(arg1:string,arg2:string):Promise<void>;
 
+export function ReconnectHolmes():Promise<holmesgpt.HolmesConnectionStatus>;
+
 export function RemoveHelmRepository(arg1:string):Promise<void>;
 
 export function RemoveRegistry(arg1:string):Promise<void>;
@@ -440,6 +452,8 @@ export function StartDeploymentPolling():Promise<void>;
 
 export function StartHelmReleasePolling():Promise<void>;
 
+export function StartHolmesPortForward(arg1:string):Promise<string>;
+
 export function StartJob(arg1:string,arg2:string):Promise<void>;
 
 export function StartJobFromCronJob(arg1:string,arg2:string):Promise<void>;
@@ -472,6 +486,8 @@ export function StartSwarmTaskPolling():Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;
 
+export function StopHolmesPortForward(arg1:string):Promise<void>;
+
 export function StopPodLogs(arg1:string):Promise<void>;
 
 export function StopPortForward(arg1:string,arg2:string,arg3:number):Promise<void>;
@@ -495,6 +511,8 @@ export function TestHolmesConnection():Promise<holmesgpt.HolmesConnectionStatus>
 export function TestHook(arg1:string):Promise<app.HookExecutionResult>;
 
 export function TestRegistryConnection(arg1:registry.RegistryConfig):Promise<void>;
+
+export function UndeployHolmesGPT(arg1:string,arg2:string):Promise<void>;
 
 export function UninstallHelmRelease(arg1:string,arg2:string):Promise<void>;
 

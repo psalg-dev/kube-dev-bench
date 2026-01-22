@@ -1,0 +1,10 @@
+additionalEnvVars:
+  - name: OPENAI_API_KEY
+    value: ""
+
+modelList:
+  gpt-5:
+    api_key: "{{ env.OPENAI_API_KEY }}"
+    model: openai/gpt-5
+    temperature: 0
+

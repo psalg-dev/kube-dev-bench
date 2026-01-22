@@ -111,6 +111,12 @@
   color: var(--gh-text-muted, #6e7681);
 }
 
+.holmes-config-textarea {
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  resize: vertical;
+}
+
 .holmes-config-help {
   font-size: 12px;
   color: var(--gh-text-secondary, #8b949e);
@@ -162,4 +168,16 @@
 .holmes-config-btn-primary:hover:not(:disabled) {
   background: var(--gh-accent-hover, #2ea043);
   border-color: var(--gh-accent-hover, #2ea043);
+}
+
+.holmes-config-btn-danger {
+  background: var(--gh-danger-bg, #21262d);
+  border-color: var(--gh-danger, #da3633);
+  color: var(--gh-danger, #da3633);
+}
+
+.holmes-config-btn-danger:hover:not(:disabled) {
+  background: var(--gh-danger, #da3633);
+  border-color: var(--gh-danger, #da3633);
+  color: #ffffff;
 }

@@ -64,7 +64,25 @@ export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelec
       <aside id="sidebar">
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
           <span style={{fontSize:14, color:'var(--gh-text-secondary, #ccc)'}}>Connection</span>
-          <button id="show-wizard-btn" onClick={onOpenConnectionsWizard} style={{background:'transparent', border:'1px solid var(--gh-border, #444)', color:'var(--gh-text-secondary, #ccc)', padding:'4px 8px', borderRadius:0, cursor:'pointer', fontSize:12}} title="Show Connection Wizard">⚙️</button>
+          <div style={{display:'flex', gap:4}}>
+            <button
+              id="holmes-toggle-btn"
+              onClick={onToggleHolmes}
+              title="Toggle Holmes AI (Ctrl+Shift+H)"
+              style={{
+                background: holmesPanelVisible ? 'var(--gh-accent, #238636)' : 'transparent',
+                border: '1px solid var(--gh-border, #444)',
+                color: holmesPanelVisible ? '#ffffff' : 'var(--gh-text-secondary, #ccc)',
+                padding: '4px 8px',
+                borderRadius: 0,
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              🔍
+            </button>
+            <button id="show-wizard-btn" onClick={onOpenConnectionsWizard} style={{background:'transparent', border:'1px solid var(--gh-border, #444)', color:'var(--gh-text-secondary, #ccc)', padding:'4px 8px', borderRadius:0, cursor:'pointer', fontSize:12}} title="Show Connection Wizard">⚙️</button>
+          </div>
         </div>
         <label htmlFor="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>Context:</label>
         <div className="input" id="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>{contextSelectEl}</div>
@@ -91,32 +109,6 @@ export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelec
       </aside>
       <main id="maincontent">
         <div id="error-container" />
-        {/* Holmes AI toggle button */}
-        <button
-          id="holmes-toggle-btn"
-          onClick={onToggleHolmes}
-          title="Toggle Holmes AI (Ctrl+Shift+H)"
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            background: holmesPanelVisible ? 'var(--gh-accent, #238636)' : 'transparent',
-            border: '1px solid var(--gh-border, #30363d)',
-            color: holmesPanelVisible ? '#ffffff' : 'var(--gh-text-secondary, #8b949e)',
-            padding: '6px 10px',
-            borderRadius: 6,
-            cursor: 'pointer',
-            fontSize: 13,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            zIndex: 50,
-            transition: 'all 0.15s',
-          }}
-        >
-          <span>🔍</span>
-          <span>Holmes</span>
-        </button>
         <div id="main-panels">{mainContentEl}</div>
       </main>
       <footer id="footer">

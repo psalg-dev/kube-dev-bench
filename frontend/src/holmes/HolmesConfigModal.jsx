@@ -6,14 +6,17 @@ import './HolmesConfigModal.css';
  * HolmesConfigModal - Configuration overlay for Holmes AI settings
  */
 export function HolmesConfigModal() {
-  const { state, saveConfig, testConnection, hideConfigModal } = useHolmes();
+  const { state, saveConfig, clearConfig, testConnection, hideConfigModal } = useHolmes();
   const [formData, setFormData] = useState({
     enabled: false,
     endpoint: '',
     apiKey: '',
+    modelKey: '',
+    responseFormat: '',
   });
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     if (state.showConfig) {
@@ -21,9 +24,11 @@ export function HolmesConfigModal() {
         enabled: state.enabled,
         endpoint: state.endpoint || '',
         apiKey: '', // Don't pre-fill API key for security
+        modelKey: state.modelKey || '',
+        responseFormat: state.responseFormat || '',
       });
     }
-  }, [state.showConfig, state.enabled, state.endpoint]);
+  }, [state.showConfig, state.enabled, state.endpoint, state.modelKey, state.responseFormat]);
 
   if (!state.showConfig) return null;
 
@@ -41,6 +46,23 @@ export function HolmesConfigModal() {
       await testConnection();
     } finally {
       setTesting(false);
+    }
+  };
+
+  const handleClear = async () => {
+    setClearing(true);
+    try {
+      await clearConfig();
+      // Reset form to defaults after clearing
+      setFormData({
+        enabled: false,
+        endpoint: '',
+        apiKey: '',
+        modelKey: '',
+        responseFormat: '',
+      });
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -137,6 +159,40 @@ export function HolmesConfigModal() {
                 API key for authentication (only required if your Holmes instance requires it)
               </p>
             </div>
+
+            <div className="holmes-config-field">
+              <label htmlFor="holmes-model-key">Model key (optional)</label>
+              <input
+                type="text"
+                id="holmes-model-key"
+                name="modelKey"
+                className="holmes-config-input"
+                placeholder="fast-model"
+                value={formData.modelKey}
+                onChange={handleChange}
+                disabled={!formData.enabled}
+              />
+              <p className="holmes-config-help">
+                Use a modelList key from your HolmesGPT Helm values for faster responses.
+              </p>
+            </div>
+
+            <div className="holmes-config-field">
+              <label htmlFor="holmes-response-format">Response format (JSON schema, optional)</label>
+              <textarea
+                id="holmes-response-format"
+                name="responseFormat"
+                className="holmes-config-input holmes-config-textarea"
+                placeholder='{"type":"json_schema","json_schema":{"name":"Result","strict":true,"schema":{...}}}'
+                value={formData.responseFormat}
+                onChange={handleChange}
+                disabled={!formData.enabled}
+                rows={6}
+              />
+              <p className="holmes-config-help">
+                Provide a JSON schema to structure responses. Leave empty for free-form output.
+              </p>
+            </div>
           </div>
 
           <div className="holmes-config-footer">
@@ -147,6 +203,15 @@ export function HolmesConfigModal() {
               disabled={!formData.enabled || !formData.endpoint || testing}
             >
               {testing ? 'Testing...' : 'Test Connection'}
+            </button>
+            <button
+              type="button"
+              className="holmes-config-btn holmes-config-btn-danger"
+              onClick={handleClear}
+              disabled={clearing}
+              title="Clear saved Holmes configuration (for redeployment)"
+            >
+              {clearing ? 'Clearing...' : 'Clear Config'}
             </button>
             <div className="holmes-config-footer-right">
               <button

@@ -211,7 +211,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         <tbody>
           {filteredData.map((row, idx) => (
             !row ? null : (
-              <tr key={row.name || row.id || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+              <tr key={getRowKey(row, idx)} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
                 {columns.map((col, colIdx) => (
                   <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
                     {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}

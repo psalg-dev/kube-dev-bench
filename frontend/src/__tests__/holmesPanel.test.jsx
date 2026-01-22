@@ -73,14 +73,16 @@ describe('HolmesPanel', () => {
         showConfigModal: vi.fn(),
         hidePanel: vi.fn(),
         clearResponse: vi.fn(),
+        showOnboarding: vi.fn(),
       }}>
         <HolmesPanel />
       </HolmesContext.Provider>
     );
     
     expect(screen.getByText('Holmes AI')).toBeInTheDocument();
-    expect(screen.getByText('Holmes AI is not configured.')).toBeInTheDocument();
-    expect(screen.getByText('Configure Holmes')).toBeInTheDocument();
+    expect(screen.getByText('Holmes AI is not configured')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Deploy Holmes/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Manual Configuration/ })).toBeInTheDocument();
   });
 
   it('shows input form when configured', async () => {
@@ -250,7 +252,7 @@ describe('HolmesPanel', () => {
     expect(mockHidePanel).toHaveBeenCalled();
   });
 
-  it('calls showConfigModal when configure button is clicked', async () => {
+  it('calls showConfigModal when manual config button is clicked', async () => {
     const mockShowConfigModal = vi.fn();
     
     render(
@@ -269,14 +271,46 @@ describe('HolmesPanel', () => {
         showConfigModal: mockShowConfigModal,
         hidePanel: vi.fn(),
         clearResponse: vi.fn(),
+        showOnboarding: vi.fn(),
       }}>
         <HolmesPanel />
       </HolmesContext.Provider>
     );
     
-    const configureButton = screen.getByText('Configure Holmes');
+    const configureButton = screen.getByRole('button', { name: /Manual Configuration/ });
     fireEvent.click(configureButton);
     
     expect(mockShowConfigModal).toHaveBeenCalled();
+  });
+
+  it('calls showOnboarding when deploy button is clicked', async () => {
+    const mockShowOnboarding = vi.fn();
+    
+    render(
+      <HolmesContext.Provider value={{
+        state: {
+          enabled: false,
+          configured: false,
+          endpoint: '',
+          showPanel: true,
+          loading: false,
+          response: null,
+          error: null,
+          query: '',
+        },
+        askHolmes: vi.fn(),
+        showConfigModal: vi.fn(),
+        hidePanel: vi.fn(),
+        clearResponse: vi.fn(),
+        showOnboarding: mockShowOnboarding,
+      }}>
+        <HolmesPanel />
+      </HolmesContext.Provider>
+    );
+    
+    const deployButton = screen.getByRole('button', { name: /Deploy Holmes/ });
+    fireEvent.click(deployButton);
+    
+    expect(mockShowOnboarding).toHaveBeenCalled();
   });
 });

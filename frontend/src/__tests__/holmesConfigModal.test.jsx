@@ -50,6 +50,8 @@ describe('HolmesConfigModal', () => {
     expect(screen.getByText('Enable Holmes AI')).toBeInTheDocument();
     expect(screen.getByLabelText('Holmes Endpoint')).toBeInTheDocument();
     expect(screen.getByLabelText('API Key (optional)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Model key (optional)')).toBeInTheDocument();
+    expect(screen.getByLabelText('Response format (JSON schema, optional)')).toBeInTheDocument();
   });
 
   it('shows pre-filled values from state', () => {
@@ -59,6 +61,8 @@ describe('HolmesConfigModal', () => {
           showConfig: true,
           enabled: true,
           endpoint: 'http://holmes.test:8080',
+          modelKey: 'fast-model',
+          responseFormat: '{"type":"json_schema"}',
         },
         saveConfig: vi.fn(),
         testConnection: vi.fn(),
@@ -73,6 +77,12 @@ describe('HolmesConfigModal', () => {
 
     const endpointInput = screen.getByLabelText('Holmes Endpoint');
     expect(endpointInput).toHaveValue('http://holmes.test:8080');
+
+    const modelKeyInput = screen.getByLabelText('Model key (optional)');
+    expect(modelKeyInput).toHaveValue('fast-model');
+
+    const responseFormatInput = screen.getByLabelText('Response format (JSON schema, optional)');
+    expect(responseFormatInput).toHaveValue('{"type":"json_schema"}');
   });
 
   it('disables inputs when Holmes is disabled', () => {
@@ -96,6 +106,12 @@ describe('HolmesConfigModal', () => {
 
     const apiKeyInput = screen.getByLabelText('API Key (optional)');
     expect(apiKeyInput).toBeDisabled();
+
+    const modelKeyInput = screen.getByLabelText('Model key (optional)');
+    expect(modelKeyInput).toBeDisabled();
+
+    const responseFormatInput = screen.getByLabelText('Response format (JSON schema, optional)');
+    expect(responseFormatInput).toBeDisabled();
   });
 
   it('enables inputs when Holmes is enabled', async () => {

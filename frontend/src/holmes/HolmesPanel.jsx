@@ -1,15 +1,48 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useHolmes } from './HolmesContext';
+import { HolmesResponseRenderer } from './HolmesResponseRenderer';
 import './HolmesPanel.css';
+
+/**
+ * Checks if an error message indicates a connection/DNS issue that can be fixed by reconnecting
+ */
+function isConnectionError(error) {
+  if (!error) return false;
+  const errorLower = error.toLowerCase();
+  return errorLower.includes('no such host') ||
+         errorLower.includes('connection refused') ||
+         errorLower.includes('dial tcp') ||
+         errorLower.includes('network is unreachable') ||
+         errorLower.includes('port-forward');
+}
 
 /**
  * HolmesPanel - Right-side collapsible panel for Holmes AI queries
  */
 export function HolmesPanel() {
-  const { state, askHolmes, showConfigModal, hidePanel, clearResponse } = useHolmes();
+  const { state, askHolmes, cancelHolmes, showConfigModal, hidePanel, clearResponse, showOnboarding, reconnectHolmes } = useHolmes();
   const [question, setQuestion] = useState('');
+  const [reconnecting, setReconnecting] = useState(false);
+  const [toolsCollapsed, setToolsCollapsed] = useState(true);
+  const [panelWidth, setPanelWidth] = useState(400);
+  const isResizingRef = useRef(false);
   const inputRef = useRef(null);
   const responseRef = useRef(null);
+  const panelRef = useRef(null);
+
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const responseText = [
+    state.response?.response,
+    state.response?.Response,
+    state.response?.analysis,
+    state.response?.Analysis,
+  ].find((value) => typeof value === 'string' && value.trim().length > 0) || '';
 
   // Focus input when panel opens
   useEffect(() => {
@@ -25,6 +58,12 @@ export function HolmesPanel() {
     }
   }, [state.response]);
 
+  useEffect(() => {
+    if (!state.loading) {
+      setToolsCollapsed(true);
+    }
+  }, [state.loading]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!question.trim() || state.loading) return;
@@ -35,6 +74,43 @@ export function HolmesPanel() {
     } catch (err) {
       // Error handled in context
     }
+  };
+
+  const handleComposerKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isResizingRef.current) return;
+      const viewportWidth = window.innerWidth || 0;
+      const minWidth = 320;
+      const maxWidth = Math.min(Math.round(viewportWidth * 0.6), viewportWidth);
+      const nextWidth = Math.max(minWidth, Math.min(maxWidth, viewportWidth - e.clientX));
+      setPanelWidth(nextWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (!isResizingRef.current) return;
+      isResizingRef.current = false;
+      document.body.classList.remove('holmes-resizing');
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  const handleResizeStart = (e) => {
+    e.preventDefault();
+    isResizingRef.current = true;
+    document.body.classList.add('holmes-resizing');
   };
 
   const handleKeyDown = (e) => {
@@ -50,7 +126,16 @@ export function HolmesPanel() {
       id="holmes-panel" 
       className="holmes-panel"
       onKeyDown={handleKeyDown}
+      style={{ width: panelWidth }}
+      ref={panelRef}
     >
+      <div
+        className="holmes-resize-handle"
+        onMouseDown={handleResizeStart}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize Holmes panel"
+      />
       <div className="holmes-panel-header">
         <div className="holmes-panel-title">
           <span className="holmes-icon">🔍</span>
@@ -77,86 +162,227 @@ export function HolmesPanel() {
 
       {!state.configured ? (
         <div className="holmes-unconfigured">
-          <p>Holmes AI is not configured.</p>
-          <button 
-            className="holmes-btn holmes-btn-primary"
-            onClick={showConfigModal}
-          >
-            Configure Holmes
-          </button>
+          <div className="holmes-unconfigured-icon">🔍</div>
+          <h4>Holmes AI is not configured</h4>
+          <p>Set up Holmes to get AI-powered troubleshooting for your cluster.</p>
+          
+          <div className="holmes-unconfigured-actions">
+            <button 
+              className="holmes-btn holmes-btn-primary"
+              onClick={showOnboarding}
+              id="holmes-deploy-btn"
+            >
+              🚀 Deploy Holmes
+            </button>
+            <button 
+              className="holmes-btn"
+              onClick={showConfigModal}
+              id="holmes-manual-config-btn"
+            >
+              ⚙️ Manual Configuration
+            </button>
+          </div>
+          
+          <p className="holmes-unconfigured-hint">
+            Use "Deploy Holmes" to automatically install HolmesGPT in your cluster, 
+            or "Manual Configuration" if you already have Holmes running.
+          </p>
         </div>
       ) : (
         <>
-          <form className="holmes-form" onSubmit={handleSubmit}>
-            <div className="holmes-input-wrapper">
-              <input
-                ref={inputRef}
-                type="text"
-                className="holmes-input"
-                placeholder="Ask about your cluster..."
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                disabled={state.loading}
-              />
-              <button
-                type="submit"
-                className="holmes-btn holmes-btn-submit"
-                disabled={state.loading || !question.trim()}
-                title="Ask Holmes"
-              >
-                {state.loading ? '...' : '→'}
-              </button>
-            </div>
-          </form>
-
-          <div className="holmes-content" ref={responseRef}>
-            {state.loading && (
-              <div className="holmes-loading">
-                <div className="holmes-spinner" data-testid="holmes-spinner"></div>
-                <span>Thinking...</span>
-              </div>
-            )}
-
-            {state.error && !state.loading && (
-              <div className="holmes-error">
-                <span className="holmes-error-icon">⚠️</span>
-                <span>{state.error}</span>
-              </div>
-            )}
-
-            {state.response && !state.loading && (
-              <div className="holmes-response">
-                {state.query && (
-                  <div className="holmes-query-display">
-                    <strong>Q:</strong> {state.query}
+          <div className="holmes-body">
+            <div className="holmes-content" ref={responseRef}>
+              <div className="holmes-message-list">
+                {state.reasoningText && (
+                  <div className="holmes-message holmes-message-insight">
+                    <div className="holmes-message-header">Reasoning</div>
+                    <div className="holmes-message-body">
+                      <div className="holmes-reasoning-text">{state.reasoningText}</div>
+                    </div>
                   </div>
                 )}
-                <div className="holmes-answer">
-                  <strong>A:</strong>
-                  <div className="holmes-answer-text">
-                    {state.response.response || state.response.Response || 'No response received.'}
+
+                {state.toolEvents && state.toolEvents.length > 0 && (() => {
+                  const successCount = state.toolEvents.filter((t) => t.status === 'success').length;
+                  const errorCount = state.toolEvents.filter((t) => t.status === 'error').length;
+                  const approvalCount = state.toolEvents.filter((t) => t.status === 'approval_required').length;
+                  const totalCount = state.toolEvents.length;
+
+                  return (
+                    <div className={`holmes-tool-events ${state.loading ? '' : 'holmes-tool-events-collapsed'}`}>
+                      <button
+                        type="button"
+                        className="holmes-tool-events-toggle"
+                        onClick={() => setToolsCollapsed((prev) => !prev)}
+                        aria-expanded={!toolsCollapsed}
+                      >
+                        <span className="holmes-tool-events-title">Tool activity</span>
+                        <span className="holmes-tool-events-summary">
+                          <span className="holmes-tool-summary-count">{totalCount} tools</span>
+                          <span className="holmes-tool-summary-indicators">
+                            <span className="holmes-tool-indicator holmes-tool-indicator-success">
+                              <span className="holmes-tool-dot holmes-tool-dot-success" />
+                              {successCount}
+                            </span>
+                            <span className="holmes-tool-indicator holmes-tool-indicator-error">
+                              <span className="holmes-tool-dot holmes-tool-dot-error" />
+                              {errorCount}
+                            </span>
+                            {approvalCount > 0 && (
+                              <span className="holmes-tool-indicator holmes-tool-indicator-approval">
+                                <span className="holmes-tool-dot holmes-tool-dot-approval_required" />
+                                {approvalCount}
+                              </span>
+                            )}
+                          </span>
+                        </span>
+                        <span className="holmes-tool-events-chevron" aria-hidden="true">
+                          {toolsCollapsed ? '▾' : '▴'}
+                        </span>
+                      </button>
+
+                      {state.loading || !toolsCollapsed ? (
+                        <ul className="holmes-tool-events-list">
+                          {state.toolEvents.map((tool) => (
+                            <li key={tool.id} className={`holmes-tool-event holmes-tool-${tool.status}`}>
+                              <span className={`holmes-tool-dot holmes-tool-dot-${tool.status}`} aria-hidden="true" />
+                              <span className="holmes-tool-name">{tool.name}</span>
+                              <span className="holmes-tool-status">{tool.status}</span>
+                              {tool.description && (
+                                <span className="holmes-tool-desc">{tool.description}</span>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </div>
+                  );
+                })()}
+
+                {state.error && !state.loading && (
+                  <div className="holmes-message holmes-message-error">
+                    <div className="holmes-message-header">Error</div>
+                    <div className="holmes-message-body">
+                      <div className="holmes-error">
+                        <span className="holmes-error-icon">⚠️</span>
+                        <span>{state.error}</span>
+                      </div>
+                      {isConnectionError(state.error) && (
+                        <button
+                          className="holmes-btn holmes-btn-primary"
+                          onClick={async () => {
+                            setReconnecting(true);
+                            try {
+                              await reconnectHolmes();
+                            } finally {
+                              setReconnecting(false);
+                            }
+                          }}
+                          disabled={reconnecting}
+                          style={{ marginTop: 12 }}
+                        >
+                          {reconnecting ? 'Reconnecting...' : '🔄 Reconnect'}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                {state.query && (
+                  <div className="holmes-message holmes-message-user">
+                    <div className="holmes-message-header">
+                      <span>You</span>
+                      <span className="holmes-message-timestamp">{formatTimestamp(state.queryTimestamp)}</span>
+                    </div>
+                    <div className="holmes-message-body">{state.query}</div>
+                  </div>
+                )}
+
+                {state.loading && (
+                  <div className="holmes-message holmes-message-assistant holmes-message-loading">
+                    <div className="holmes-message-header">
+                      <span>Holmes</span>
+                      <span className="holmes-message-timestamp">{formatTimestamp(state.queryTimestamp)}</span>
+                    </div>
+                    <div className="holmes-message-body">
+                      <div className="holmes-loading">
+                        <div className="holmes-spinner" data-testid="holmes-spinner"></div>
+                        <span>Thinking...</span>
+                        <button
+                          type="button"
+                          className="holmes-btn holmes-btn-secondary holmes-cancel-btn"
+                          onClick={cancelHolmes}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {responseText && (
+                  <div className="holmes-message holmes-message-assistant">
+                    <div className="holmes-message-header">
+                      <span>Holmes</span>
+                      <span className="holmes-message-timestamp">
+                        {formatTimestamp(state.responseTimestamp || state.response?.timestamp)}
+                      </span>
+                    </div>
+                    <div className="holmes-message-body">
+                      <HolmesResponseRenderer
+                        text={responseText}
+                      />
+                      <div className="holmes-message-actions">
+                        <button
+                          className="holmes-btn holmes-btn-secondary"
+                          onClick={clearResponse}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!state.loading && !state.error && !state.response && (
+                  <div className="holmes-message holmes-message-placeholder">
+                    <div className="holmes-message-header">Start here</div>
+                    <div className="holmes-message-body holmes-placeholder">
+                      <p>Ask Holmes anything about your Kubernetes cluster:</p>
+                      <ul>
+                        <li>"Why is my pod crashing?"</li>
+                        <li>"What pods are running in default?"</li>
+                        <li>"Explain the deployment status"</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <form className="holmes-composer" onSubmit={handleSubmit}>
+              <div className="holmes-composer-input-wrapper">
+                <textarea
+                  ref={inputRef}
+                  className="holmes-composer-input"
+                  placeholder="Ask about your cluster..."
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={handleComposerKeyDown}
+                  disabled={state.loading}
+                  rows={2}
+                />
                 <button
-                  className="holmes-btn holmes-btn-secondary"
-                  onClick={clearResponse}
-                  style={{ marginTop: 16 }}
+                  type="submit"
+                  className="holmes-btn holmes-btn-submit"
+                  disabled={state.loading || !question.trim()}
+                  title="Ask Holmes"
                 >
-                  Clear
+                  {state.loading ? '...' : '→'}
                 </button>
               </div>
-            )}
-
-            {!state.loading && !state.error && !state.response && (
-              <div className="holmes-placeholder">
-                <p>Ask Holmes anything about your Kubernetes cluster:</p>
-                <ul>
-                  <li>"Why is my pod crashing?"</li>
-                  <li>"What pods are running in default?"</li>
-                  <li>"Explain the deployment status"</li>
-                </ul>
-              </div>
-            )}
+              <div className="holmes-composer-hint">Press Enter to send, Shift+Enter for a new line.</div>
+            </form>
           </div>
         </>
       )}

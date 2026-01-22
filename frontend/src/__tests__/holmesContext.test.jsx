@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import './wailsMocks';
-import { genericAPIMock, resetAllMocks } from './wailsMocks';
+import { genericAPIMock, resetAllMocks, eventsOnMock } from './wailsMocks';
 import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
 
 // Test component that exposes context for testing
@@ -20,7 +20,7 @@ describe('HolmesContext', () => {
     // Default mock for GetHolmesConfig
     genericAPIMock.mockImplementation((name, ...args) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: false, endpoint: '', apiKey: '' });
+        return Promise.resolve({ enabled: false, endpoint: '', apiKey: '', modelKey: '', responseFormat: '' });
       }
       return Promise.resolve(undefined);
     });
@@ -45,7 +45,7 @@ describe('HolmesContext', () => {
   it('loads configuration on mount', async () => {
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '********' });
+        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '********', modelKey: 'fast-model', responseFormat: '' });
       }
       return Promise.resolve(undefined);
     });
@@ -113,12 +113,20 @@ describe('HolmesContext', () => {
   });
 
   it('askHolmes sends question and updates state', async () => {
+    let streamCallback;
+    eventsOnMock.mockImplementation((event, callback) => {
+      if (event === 'holmes:chat:stream') {
+        streamCallback = callback;
+      }
+      return () => {};
+    });
+
     genericAPIMock.mockImplementation((name, ...args) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '' });
+        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
       }
-      if (name === 'AskHolmes') {
-        return Promise.resolve({ response: 'Test answer from Holmes', query_id: 'q123' });
+      if (name === 'AskHolmesStream') {
+        return Promise.resolve();
       }
       return Promise.resolve(undefined);
     });
@@ -134,9 +142,12 @@ describe('HolmesContext', () => {
       expect(capturedContext).toBeDefined();
     });
 
-    const result = await capturedContext.askHolmes('test question');
-    
-    expect(result.response).toBe('Test answer from Holmes');
+    await capturedContext.askHolmes('test question');
+    streamCallback({
+      event: 'ai_answer_end',
+      data: JSON.stringify({ analysis: 'Test answer from Holmes' }),
+    });
+
     await waitFor(() => {
       expect(capturedContext.state.response).toBeDefined();
       expect(capturedContext.state.response.response).toBe('Test answer from Holmes');
@@ -147,9 +158,9 @@ describe('HolmesContext', () => {
   it('askHolmes handles errors', async () => {
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '' });
+        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
       }
-      if (name === 'AskHolmes') {
+      if (name === 'AskHolmesStream') {
         return Promise.reject(new Error('Connection failed'));
       }
       return Promise.resolve(undefined);
@@ -179,12 +190,20 @@ describe('HolmesContext', () => {
   });
 
   it('clearResponse clears state', async () => {
+    let streamCallback;
+    eventsOnMock.mockImplementation((event, callback) => {
+      if (event === 'holmes:chat:stream') {
+        streamCallback = callback;
+      }
+      return () => {};
+    });
+
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '' });
+        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
       }
-      if (name === 'AskHolmes') {
-        return Promise.resolve({ response: 'Test answer' });
+      if (name === 'AskHolmesStream') {
+        return Promise.resolve();
       }
       return Promise.resolve(undefined);
     });
@@ -201,6 +220,10 @@ describe('HolmesContext', () => {
     });
 
     await capturedContext.askHolmes('test question');
+    streamCallback({
+      event: 'ai_answer_end',
+      data: JSON.stringify({ analysis: 'Test answer' }),
+    });
     await waitFor(() => {
       expect(capturedContext.state.response).toBeDefined();
     });
