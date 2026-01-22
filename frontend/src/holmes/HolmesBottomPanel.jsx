@@ -8,6 +8,7 @@ export default function HolmesBottomPanel({
   namespace,
   name,
   onAnalyze,
+  onCancel,
   response,
   loading,
   error,
@@ -28,19 +29,41 @@ export default function HolmesBottomPanel({
     <div className="holmes-bottom-panel">
       <div className="holmes-bottom-panel-header">
         <div className="holmes-bottom-panel-title">{title}</div>
-        <HolmesResourceButton
-          onClick={onAnalyze}
-          loading={loading}
-          disabled={!name || !namespace}
-          label={loading ? 'Analyzing...' : 'Analyze with Holmes'}
-        />
       </div>
+
+      {!loading && !error && !response && (
+        <div className="holmes-bottom-panel-empty">
+          <HolmesResourceButton
+            onClick={onAnalyze}
+            loading={loading}
+            disabled={!name || !namespace}
+            label="Analyze with Holmes"
+            prominent
+          />
+          <p>Get AI-powered insights about this resource</p>
+        </div>
+      )}
 
       {loading && (
         <div className="holmes-bottom-panel-state">
           <div className="holmes-bottom-panel-spinner" />
           <div className="holmes-bottom-panel-progress">
-            <span>Holmes is analyzing this resource...</span>
+            <div className="holmes-bottom-panel-analyzing-row">
+              <span className="holmes-bottom-panel-analyzing-tag">
+                Analyzing...
+                {onCancel && (
+                  <button
+                    type="button"
+                    className="holmes-bottom-panel-stop-btn"
+                    onClick={onCancel}
+                    title="Stop analysis"
+                    aria-label="Stop analysis"
+                  >
+                    <span className="holmes-bottom-panel-stop-icon" />
+                  </button>
+                )}
+              </span>
+            </div>
             <ul className="holmes-bottom-panel-progress-list">
               {startedAt && (
                 <li>Request started at {startedLabel}</li>
@@ -100,11 +123,6 @@ export default function HolmesBottomPanel({
         </div>
       )}
 
-      {!loading && !error && !response && (
-        <div className="holmes-bottom-panel-empty">
-          <p>Click “Analyze with Holmes” to generate a context-aware report.</p>
-        </div>
-      )}
     </div>
   );
 }

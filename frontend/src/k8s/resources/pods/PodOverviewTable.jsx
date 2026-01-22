@@ -585,6 +585,17 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     handleMenuClose();
   };
 
+  const handleCancelHolmes = async () => {
+    const currentStreamId = holmesState.streamId;
+    if (!currentStreamId) return;
+    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
+    try {
+      await CancelHolmesStream(currentStreamId);
+    } catch (err) {
+      console.error('Failed to cancel Holmes stream:', err);
+    }
+  };
+
   async function handleShell(podName, ns) {
     try {
       await ensureNamespace(ns || namespace);
@@ -714,6 +725,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
           namespace={bottomNamespace || namespace}
           name={bottomPodName}
           onAnalyze={() => handleAnalyzeHolmes(bottomPodName, bottomNamespace || namespace)}
+          onCancel={holmesState.streamId ? () => handleCancelHolmes() : null}
           response={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.response : null}
           loading={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` && holmesState.loading}
           error={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.error : null}

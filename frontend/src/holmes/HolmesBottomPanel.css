@@ -33,6 +33,59 @@
   gap: 6px;
 }
 
+.holmes-bottom-panel-analyzing-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.holmes-bottom-panel-analyzing-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--gh-accent, #58a6ff);
+  background: rgba(88, 166, 255, 0.15);
+  border-radius: 12px;
+}
+
+.holmes-bottom-panel-analyzing-tag:not(:has(.holmes-bottom-panel-stop-btn)) {
+  padding-right: 10px;
+}
+
+.holmes-bottom-panel-stop-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  background: rgba(248, 81, 73, 0.2);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.holmes-bottom-panel-stop-btn:hover {
+  background: rgba(248, 81, 73, 0.4);
+}
+
+.holmes-bottom-panel-stop-btn:active {
+  background: rgba(248, 81, 73, 0.5);
+  transform: scale(0.95);
+}
+
+.holmes-bottom-panel-stop-icon {
+  display: block;
+  width: 6px;
+  height: 6px;
+  background: var(--gh-error, #f85149);
+  border-radius: 1px;
+}
+
 .holmes-bottom-panel-progress-list {
   margin: 0;
   padding-left: 18px;
@@ -189,8 +242,20 @@
 }
 
 .holmes-bottom-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+  min-height: 120px;
+  text-align: center;
+}
+
+.holmes-bottom-panel-empty p {
   font-size: 13px;
   color: var(--gh-text-secondary, #8b949e);
+  margin: 0;
 }
 
 @keyframes holmes-spin {

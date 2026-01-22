@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import HolmesBottomPanel from '../holmes/HolmesBottomPanel.jsx';
 
@@ -17,8 +17,8 @@ describe('HolmesBottomPanel', () => {
       />
     );
 
-    expect(screen.getByText(/Analyze with Holmes/i)).toBeInTheDocument();
-    expect(screen.getByText(/context-aware report/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Analyze with Holmes/i })).toBeInTheDocument();
+    expect(screen.getByText(/AI-powered insights/i)).toBeInTheDocument();
   });
 
   it('shows loading state', () => {
@@ -34,7 +34,45 @@ describe('HolmesBottomPanel', () => {
       />
     );
 
-    expect(screen.getByText(/analyzing this resource/i)).toBeInTheDocument();
+    expect(screen.getByText('Waiting for first response')).toBeInTheDocument();
+    expect(document.querySelector('.holmes-bottom-panel-analyzing-tag')).toHaveTextContent('Analyzing...');
+  });
+
+  it('shows stop button when loading and onCancel provided', () => {
+    const onCancel = vi.fn();
+    render(
+      <HolmesBottomPanel
+        kind="Pod"
+        namespace="default"
+        name="demo"
+        onAnalyze={vi.fn()}
+        onCancel={onCancel}
+        response={null}
+        loading={true}
+        error={null}
+      />
+    );
+
+    const stopButton = screen.getByTitle('Stop analysis');
+    expect(stopButton).toBeInTheDocument();
+    fireEvent.click(stopButton);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not show stop button when onCancel is not provided', () => {
+    render(
+      <HolmesBottomPanel
+        kind="Pod"
+        namespace="default"
+        name="demo"
+        onAnalyze={vi.fn()}
+        response={null}
+        loading={true}
+        error={null}
+      />
+    );
+
+    expect(screen.queryByTitle('Stop analysis')).not.toBeInTheDocument();
   });
 
   it('shows error state', () => {
