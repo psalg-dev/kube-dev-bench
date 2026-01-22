@@ -1,8 +1,6 @@
 package app
 
 import (
-	"time"
-
 	jobs "gowails/pkg/app/jobs"
 )
 
@@ -49,20 +47,20 @@ type KubeConfigInfo struct {
 
 // EventInfo is a simplified event record for UI display
 type EventInfo struct {
-	Type           string    `json:"type"`
-	Reason         string    `json:"reason"`
-	Message        string    `json:"message"`
-	Count          int32     `json:"count"`
-	FirstTimestamp time.Time `json:"firstTimestamp"`
-	LastTimestamp  time.Time `json:"lastTimestamp"`
-	Source         string    `json:"source"`
+	Type           string `json:"type"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+	Count          int32  `json:"count"`
+	FirstTimestamp string `json:"firstTimestamp"`
+	LastTimestamp  string `json:"lastTimestamp"`
+	Source         string `json:"source"`
 }
 
 // PodSummary returns basic properties for a pod
 type PodSummary struct {
 	Name      string            `json:"name"`
 	Namespace string            `json:"namespace"`
-	Created   time.Time         `json:"created"`
+	Created   string            `json:"created"`
 	Labels    map[string]string `json:"labels"`
 	Status    string            `json:"status"`
 	Ports     []int             `json:"ports"`
@@ -120,6 +118,17 @@ type DeploymentInfo struct {
 	Age       string            `json:"age"`
 	Image     string            `json:"image"`
 	Labels    map[string]string `json:"labels"` // Added: union of deployment metadata labels (preferred) or pod template labels fallback
+}
+
+// ServiceInfo describes a Kubernetes Service's basic info
+type ServiceInfo struct {
+	Name      string            `json:"name"`
+	Namespace string            `json:"namespace"`
+	Type      string            `json:"type"`
+	ClusterIP string            `json:"clusterIP"`
+	Ports     string            `json:"ports"`
+	Age       string            `json:"age"`
+	Labels    map[string]string `json:"labels,omitempty"`
 }
 
 // JobInfo describes a job's basic info — reuse the type from the jobs package to avoid duplication
@@ -264,6 +273,7 @@ type ArchiveResult struct {
 // This is emitted periodically to the frontend (event: "resourcecounts:update").
 type ResourceCounts struct {
 	PodStatus              PodStatusCounts `json:"podStatus"`
+	Services               int             `json:"services"`
 	Deployments            int             `json:"deployments"`
 	Jobs                   int             `json:"jobs"`
 	CronJobs               int             `json:"cronjobs"`
@@ -306,16 +316,16 @@ type MonitorInfo struct {
 
 // HelmReleaseInfo describes a Helm release's basic info
 type HelmReleaseInfo struct {
-	Name       string            `json:"name"`
-	Namespace  string            `json:"namespace"`
-	Revision   int               `json:"revision"`
-	Chart      string            `json:"chart"`
-	ChartVersion string          `json:"chartVersion"`
-	AppVersion string            `json:"appVersion"`
-	Status     string            `json:"status"`
-	Age        string            `json:"age"`
-	Updated    string            `json:"updated"`
-	Labels     map[string]string `json:"labels"`
+	Name         string            `json:"name"`
+	Namespace    string            `json:"namespace"`
+	Revision     int               `json:"revision"`
+	Chart        string            `json:"chart"`
+	ChartVersion string            `json:"chartVersion"`
+	AppVersion   string            `json:"appVersion"`
+	Status       string            `json:"status"`
+	Age          string            `json:"age"`
+	Updated      string            `json:"updated"`
+	Labels       map[string]string `json:"labels"`
 }
 
 // HelmRepositoryInfo describes a Helm repository
@@ -354,20 +364,20 @@ type HelmHistoryInfo struct {
 
 // HelmInstallRequest contains parameters for installing a Helm chart
 type HelmInstallRequest struct {
-	ReleaseName string            `json:"releaseName"`
-	Namespace   string            `json:"namespace"`
-	ChartRef    string            `json:"chartRef"` // repo/chart format
-	Version     string            `json:"version"`
+	ReleaseName string                 `json:"releaseName"`
+	Namespace   string                 `json:"namespace"`
+	ChartRef    string                 `json:"chartRef"` // repo/chart format
+	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
-	CreateNs    bool              `json:"createNamespace"`
+	CreateNs    bool                   `json:"createNamespace"`
 }
 
 // HelmUpgradeRequest contains parameters for upgrading a Helm release
 type HelmUpgradeRequest struct {
-	ReleaseName string            `json:"releaseName"`
-	Namespace   string            `json:"namespace"`
-	ChartRef    string            `json:"chartRef"`
-	Version     string            `json:"version"`
+	ReleaseName string                 `json:"releaseName"`
+	Namespace   string                 `json:"namespace"`
+	ChartRef    string                 `json:"chartRef"`
+	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
-	ReuseValues bool              `json:"reuseValues"`
+	ReuseValues bool                   `json:"reuseValues"`
 }

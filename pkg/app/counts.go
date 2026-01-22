@@ -108,6 +108,9 @@ func (a *App) refreshResourceCounts() {
 		if deps, err := a.GetDeployments(ns); err == nil {
 			agg.Deployments += len(deps)
 		}
+		if svcs, err := a.GetServices(ns); err == nil {
+			agg.Services += len(svcs)
+		}
 		if jobs, err := a.GetJobs(ns); err == nil {
 			agg.Jobs += len(jobs)
 		}
@@ -163,6 +166,7 @@ func resourceCountsEqual(aCnt, bCnt ResourceCounts) bool {
 		return false
 	}
 	return aCnt.Deployments == bCnt.Deployments &&
+		aCnt.Services == bCnt.Services &&
 		aCnt.Jobs == bCnt.Jobs &&
 		aCnt.CronJobs == bCnt.CronJobs &&
 		aCnt.DaemonSets == bCnt.DaemonSets &&

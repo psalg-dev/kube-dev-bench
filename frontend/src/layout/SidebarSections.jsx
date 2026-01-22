@@ -5,6 +5,7 @@ import { useResourceCounts } from '../state/ResourceCountsContext.jsx';
 const resourceSections = [
   { key: 'pods', label: 'Pods', podCounts: true },
   { key: 'deployments', label: 'Deployments' },
+  { key: 'services', label: 'Services' },
   { key: 'jobs', label: 'Jobs' },
   { key: 'cronjobs', label: 'Cron Jobs' },
   { key: 'daemonsets', label: 'Daemon Sets' },

@@ -64,6 +64,7 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
 - `main.go` - Wails application entry point, starts polling for K8s resources
 - `pkg/app/` - Core application logic, K8s API integrations, and Wails-exposed methods
   - Resource handlers: `pods.go`, `deployments.go`, `cronjobs.go`, `statefulsets.go`, etc.
+  - Holmes AI: `holmes_context.go` for context enrichment, `holmes_integration.go` for analysis RPCs
   - `kubeconfig.go` - Kubeconfig management
   - `resource_actions.go` - Scale, restart, delete operations
   - `types.go` - Shared type definitions
@@ -88,6 +89,7 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
     - `AddSwarmConnectionOverlay.jsx` - Overlay for manually adding Docker Swarm connections
     - `ConnectionProxySettings.jsx` - Per-connection proxy configuration
 - `frontend/src/k8s/resources/` - K8s resource view components
+- `frontend/src/holmes/` - Holmes AI UI (panel, config modal, response renderer, resource analysis tabs)
 - `frontend/src/docker/` - Docker Swarm frontend components
   - `SwarmStateContext.jsx` - Docker connection and resource state management
   - `SwarmResourceCountsContext.jsx` - Resource counts context
@@ -116,6 +118,10 @@ Docker Swarm (via `docker_integration.go`):
 - `GetDockerTasks`, `GetDockerNodes`, `GetDockerNetworks` - Resource listing
 - `GetDockerConfigs`, `GetDockerSecrets`, `GetDockerVolumes` - Config/secret/volume operations
 - `GetDockerServiceLogs`, `GetDockerTaskLogs` - Log streaming
+
+Holmes AI:
+- `AnalyzePod`, `AnalyzeDeployment`, `AnalyzeStatefulSet`, `AnalyzeDaemonSet`, `AnalyzeService`, `AnalyzeResource` provide context-aware analysis.
+- `HolmesBottomPanel` renders analysis in resource bottom-panel tabs; `HolmesResponseRenderer` handles markdown + syntax highlighting.
 
 When modifying Go method signatures in `pkg/app/`, rebuild Wails to regenerate bindings.
 

@@ -3,7 +3,6 @@ package holmesgpt
 
 import (
 	"encoding/json"
-	"time"
 )
 
 // HolmesRequest represents a query to HolmesGPT
@@ -20,7 +19,7 @@ type HolmesResponse struct {
 	Response   string                 `json:"response"`
 	Analysis   string                 `json:"analysis,omitempty"`
 	RichOutput map[string]interface{} `json:"rich_output,omitempty"`
-	Timestamp  time.Time              `json:"timestamp"`
+	Timestamp  string                 `json:"timestamp"`
 	QueryID    string                 `json:"query_id,omitempty"`
 }
 

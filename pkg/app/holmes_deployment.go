@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -18,6 +19,8 @@ import (
 const (
 	holmesDefaultNamespace   = "holmesgpt"
 	holmesDefaultReleaseName = "holmesgpt"
+	holmesServiceName        = "holmesgpt"
+	holmesServicePort        = 8080
 	holmesHelmRepoName       = "robusta"
 	holmesHelmRepoURL        = "https://robusta-charts.storage.googleapis.com"
 	holmesChartName          = "robusta/holmes"
@@ -76,13 +79,23 @@ func (a *App) CheckHolmesDeployment() (*holmesgpt.HolmesDeploymentStatus, error)
 // detectHolmesEndpoint attempts to find the Holmes service endpoint
 // For desktop apps, we need to port-forward since cluster-internal DNS doesn't work
 func (a *App) detectHolmesEndpoint(namespace string) (string, error) {
-	// Start a port-forward to the Holmes service
-	localURL, err := a.StartHolmesPortForward(namespace)
-	if err != nil {
-		// Fall back to in-cluster DNS (won't work from desktop but stored for reference)
-		return fmt.Sprintf("http://holmesgpt.%s.svc.cluster.local:8080", namespace), err
+	if namespace == "" {
+		namespace = holmesDefaultNamespace
 	}
-	return localURL, nil
+
+	// Prefer API server proxy (avoids port-forward)
+	proxyURL, _, err := a.buildHolmesProxyEndpoint(namespace)
+	if err != nil {
+		serviceName := holmesServiceName
+		servicePort := int32(holmesServicePort)
+		if name, port, svcErr := a.findHolmesService(namespace); svcErr == nil {
+			serviceName = name
+			servicePort = port
+		}
+		// Fall back to in-cluster DNS (won't work from desktop but stored for reference)
+		return fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", serviceName, namespace, servicePort), err
+	}
+	return proxyURL, nil
 }
 
 // DeployHolmesGPT deploys HolmesGPT to the cluster using Helm
@@ -425,7 +438,26 @@ func (a *App) StartHolmesPortForward(namespace string) (string, error) {
 		return "", fmt.Errorf("failed to start port-forward to Holmes: %w", err)
 	}
 
+	if err := waitForLocalPort("127.0.0.1", holmesPortForwardLocalPort, 12*time.Second); err != nil {
+		_ = a.StopPortForward(namespace, holmesPod, holmesPortForwardLocalPort)
+		return "", fmt.Errorf("Holmes port-forward not ready: %w", err)
+	}
+
 	return localURL, nil
+}
+
+func waitForLocalPort(host string, port int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	addr := fmt.Sprintf("%s:%d", host, port)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond)
+		if err == nil {
+			_ = conn.Close()
+			return nil
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+	return fmt.Errorf("timeout waiting for %s", addr)
 }
 
 // StopHolmesPortForward stops the Holmes port-forward if active

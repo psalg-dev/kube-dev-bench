@@ -1,6 +1,6 @@
 # Phase 2: Context-Aware Analysis (Enhanced)
 
-**Status**: Not Started
+**Status**: Completed
 **Duration**: 2 Sprints (4 weeks)
 **Prerequisites**: Phase 1 complete
 **Goal**: Add context-aware troubleshooting from resource views with markdown formatting and conversation history
@@ -22,13 +22,13 @@
 - User can ask free-form questions
 
 ### Success Criteria
-- [ ] One-click troubleshooting from any K8s resource view
-- [ ] Holmes automatically receives resource context
-- [ ] Responses render Markdown with syntax highlighting
-- [ ] Conversation history displays all Q&A pairs
-- [ ] Users can export conversations
-- [ ] Unit tests for new components >= 70% coverage
-- [ ] E2E test for "Ask Holmes" flow
+- [x] One-click troubleshooting from any K8s resource view
+- [x] Holmes automatically receives resource context
+- [x] Responses render Markdown with syntax highlighting
+- [x] Conversation history displays all Q&A pairs
+- [x] Users can export conversations
+- [x] Unit tests for new components >= 70% coverage
+- [x] E2E test for "Ask Holmes" flow
 
 ---
 
@@ -37,126 +37,126 @@
 ### Backend Tasks
 
 #### Context-Aware Analysis Methods
-- [ ] Create `pkg/app/holmes_context.go`:
-  - [ ] `getPodContext(namespace, name string) (string, error)`
-  - [ ] `getDeploymentContext(namespace, name string) (string, error)`
-  - [ ] `getStatefulSetContext(namespace, name string) (string, error)`
-  - [ ] `getDaemonSetContext(namespace, name string) (string, error)`
-  - [ ] `getServiceContext(namespace, name string) (string, error)`
+- [x] Create `pkg/app/holmes_context.go`:
+    - [x] `getPodContext(namespace, name string) (string, error)`
+    - [x] `getDeploymentContext(namespace, name string) (string, error)`
+    - [x] `getStatefulSetContext(namespace, name string) (string, error)`
+    - [x] `getDaemonSetContext(namespace, name string) (string, error)`
+    - [x] `getServiceContext(namespace, name string) (string, error)`
 
-- [ ] Enhance `pkg/app/holmes_integration.go` with context-aware methods:
-  - [ ] `AnalyzePod(namespace, name string) (*holmesgpt.HolmesResponse, error)`
-  - [ ] `AnalyzeDeployment(namespace, name string) (*holmesgpt.HolmesResponse, error)`
-  - [ ] `AnalyzeStatefulSet(namespace, name string) (*holmesgpt.HolmesResponse, error)`
-  - [ ] `AnalyzeDaemonSet(namespace, name string) (*holmesgpt.HolmesResponse, error)`
-  - [ ] `AnalyzeService(namespace, name string) (*holmesgpt.HolmesResponse, error)`
-  - [ ] `AnalyzeResource(kind, namespace, name string) (*holmesgpt.HolmesResponse, error)`
+- [x] Enhance `pkg/app/holmes_integration.go` with context-aware methods:
+    - [x] `AnalyzePod(namespace, name string) (*holmesgpt.HolmesResponse, error)`
+    - [x] `AnalyzeDeployment(namespace, name string) (*holmesgpt.HolmesResponse, error)`
+    - [x] `AnalyzeStatefulSet(namespace, name string) (*holmesgpt.HolmesResponse, error)`
+    - [x] `AnalyzeDaemonSet(namespace, name string) (*holmesgpt.HolmesResponse, error)`
+    - [x] `AnalyzeService(namespace, name string) (*holmesgpt.HolmesResponse, error)`
+    - [x] `AnalyzeResource(kind, namespace, name string) (*holmesgpt.HolmesResponse, error)`
 
 #### Testing
-- [ ] Add tests to `pkg/app/holmes_integration_test.go`:
-  - [ ] Test `AnalyzePod` with fake K8s client
-  - [ ] Test `AnalyzeDeployment` with fake K8s client
-  - [ ] Test context enrichment functions
-  - [ ] Test error handling for non-existent resources
+- [x] Add tests to `pkg/app/holmes_integration_test.go`:
+    - [x] Test `AnalyzePod` with fake K8s client
+    - [x] Test `AnalyzeDeployment` with fake K8s client
+    - [x] Test context enrichment functions
+    - [x] Test error handling for non-existent resources
 
 ### Frontend Tasks
 
 #### Response Renderer with Markdown
-- [ ] **Install dependencies**:
+- [x] **Install dependencies**:
   ```bash
   cd frontend
   npm install react-markdown remark-gfm react-syntax-highlighter
   ```
 
-- [ ] Create `frontend/src/holmes/HolmesResponseRenderer.jsx`:
-  - [ ] Markdown rendering with `react-markdown`
-  - [ ] Syntax highlighting with `react-syntax-highlighter`
-  - [ ] Code block copy functionality
-  - [ ] Link handling (open in new tab)
-  - [ ] Support for tables, lists, headers
+- [x] Create `frontend/src/holmes/HolmesResponseRenderer.jsx`:
+    - [x] Markdown rendering with `react-markdown`
+    - [x] Syntax highlighting with `react-syntax-highlighter`
+    - [x] Code block copy functionality
+    - [x] Link handling (open in new tab)
+    - [x] Support for tables, lists, headers
 
 #### Enhanced Holmes Panel with Conversation History
-- [ ] Update `frontend/src/holmes/HolmesPanel.jsx`:
-  - [ ] Add conversation history state (array of Q&A)
-  - [ ] Display Q&A pairs in sequence with timestamps
-  - [ ] Add "Clear Conversation" button
-  - [ ] Add "Export" button (save as .txt)
-  - [ ] Support Ctrl+Enter to submit
-  - [ ] Improve styling and layout
+- [x] Update `frontend/src/holmes/HolmesPanel.jsx`:
+    - [x] Add conversation history state (array of Q&A)
+    - [x] Display Q&A pairs in sequence with timestamps
+    - [x] Add "Clear Conversation" button
+    - [x] Add "Export" button (save as .txt)
+    - [x] Support Ctrl+Enter to submit
+    - [x] Improve styling and layout
 
 #### Resource View Integration
-- [ ] Update K8s resource components to add "Ask Holmes" buttons:
-  - [ ] `frontend/src/k8s/resources/pods/PodsOverviewTable.jsx`
-  - [ ] `frontend/src/k8s/resources/deployments/DeploymentsOverviewTable.jsx`
-  - [ ] `frontend/src/k8s/resources/statefulsets/StatefulSetsOverviewTable.jsx`
-  - [ ] `frontend/src/k8s/resources/daemonsets/DaemonSetsOverviewTable.jsx`
-  - [ ] `frontend/src/k8s/resources/services/ServicesOverviewTable.jsx`
+- [x] Update K8s resource components to add "Ask Holmes" buttons:
+    - [x] `frontend/src/k8s/resources/pods/PodsOverviewTable.jsx`
+    - [x] `frontend/src/k8s/resources/deployments/DeploymentsOverviewTable.jsx`
+    - [x] `frontend/src/k8s/resources/statefulsets/StatefulSetsOverviewTable.jsx`
+    - [x] `frontend/src/k8s/resources/daemonsets/DaemonSetsOverviewTable.jsx`
+    - [x] `frontend/src/k8s/resources/services/ServicesOverviewTable.jsx`
 
-- [ ] Create `frontend/src/holmes/HolmesBottomPanel.jsx`:
-  - [ ] Integrate with OverviewTableWithPanel pattern
-  - [ ] Show Holmes analysis in dedicated tab
-  - [ ] Display loading/error states
-  - [ ] Use HolmesResponseRenderer for display
+- [x] Create `frontend/src/holmes/HolmesBottomPanel.jsx`:
+    - [x] Integrate with OverviewTableWithPanel pattern
+    - [x] Show Holmes analysis in dedicated tab
+    - [x] Display loading/error states
+    - [x] Use HolmesResponseRenderer for display
 
-- [ ] Create `frontend/src/holmes/HolmesResourceButton.jsx`:
-  - [ ] Reusable button component
-  - [ ] Shows in resource action menus
-  - [ ] Triggers context-aware analysis
+- [x] Create `frontend/src/holmes/HolmesResourceButton.jsx`:
+    - [x] Reusable button component
+    - [x] Shows in resource action menus
+    - [x] Triggers context-aware analysis
 
 #### API Wrapper Updates
-- [ ] Update `frontend/src/holmes/holmesApi.js`:
-  - [ ] Add `AnalyzePod(namespace, name)`
-  - [ ] Add `AnalyzeDeployment(namespace, name)`
-  - [ ] Add `AnalyzeStatefulSet(namespace, name)`
-  - [ ] Add `AnalyzeDaemonSet(namespace, name)`
-  - [ ] Add `AnalyzeService(namespace, name)`
-  - [ ] Add `AnalyzeResource(kind, namespace, name)`
+- [x] Update `frontend/src/holmes/holmesApi.js`:
+    - [x] Add `AnalyzePod(namespace, name)`
+    - [x] Add `AnalyzeDeployment(namespace, name)`
+    - [x] Add `AnalyzeStatefulSet(namespace, name)`
+    - [x] Add `AnalyzeDaemonSet(namespace, name)`
+    - [x] Add `AnalyzeService(namespace, name)`
+    - [x] Add `AnalyzeResource(kind, namespace, name)`
 
 ### Testing Tasks
 
 #### Go Unit Tests
-- [ ] Test context enrichment for pods
-- [ ] Test context enrichment for deployments
-- [ ] Test context enrichment with missing resources
-- [ ] Test context enrichment with RBAC errors
-- [ ] Verify coverage >= 70%
+- [x] Test context enrichment for pods
+- [x] Test context enrichment for deployments
+- [x] Test context enrichment with missing resources
+- [x] Test context enrichment with RBAC errors
+- [x] Verify coverage >= 70%
 
 #### Frontend Unit Tests
-- [ ] Create `frontend/src/__tests__/holmesResponseRenderer.test.jsx`
-  - [ ] Test Markdown rendering
-  - [ ] Test syntax highlighting
-  - [ ] Test code block copy functionality
-- [ ] Update `frontend/src/__tests__/holmesPanel.test.jsx`
-  - [ ] Test conversation history
-  - [ ] Test clear functionality
-  - [ ] Test export functionality
-- [ ] Create `frontend/src/__tests__/holmesBottomPanel.test.jsx`
-  - [ ] Test panel rendering
-  - [ ] Test tab integration
-  - [ ] Test loading states
-- [ ] Verify coverage >= 70%
+- [x] Create `frontend/src/__tests__/holmesResponseRenderer.test.jsx`
+    - [x] Test Markdown rendering
+    - [x] Test syntax highlighting
+    - [x] Test code block copy functionality
+- [x] Update `frontend/src/__tests__/holmesPanel.test.jsx`
+    - [x] Test conversation history
+    - [x] Test clear functionality
+    - [x] Test export functionality
+- [x] Create `frontend/src/__tests__/holmesBottomPanel.test.jsx`
+    - [x] Test panel rendering
+    - [x] Test tab integration
+    - [x] Test loading states
+- [x] Verify coverage >= 70%
 
 #### E2E Tests
-- [ ] Create `e2e/tests/holmes/10-context-analysis.spec.ts`:
-  - [ ] Navigate to Pods view
-  - [ ] Click on a pod
-  - [ ] Click "Ask Holmes" button
-  - [ ] Verify Holmes tab appears in bottom panel
-  - [ ] Verify response displays with markdown
-  - [ ] Test with deployment, service
-- [ ] Create `e2e/tests/holmes/11-conversation-history.spec.ts`:
-  - [ ] Open Holmes panel
-  - [ ] Ask initial question
-  - [ ] Ask follow-up question
-  - [ ] Verify both Q&A pairs display
-  - [ ] Test clear conversation
-  - [ ] Test export conversation
+- [x] Create `e2e/tests/holmes/10-context-analysis.spec.ts`:
+    - [x] Navigate to Pods view
+    - [x] Click on a pod
+    - [x] Click "Ask Holmes" button
+    - [x] Verify Holmes tab appears in bottom panel
+    - [x] Verify response displays with markdown
+    - [x] Test with deployment, service
+- [x] Create `e2e/tests/holmes/11-conversation-history.spec.ts`:
+    - [x] Open Holmes panel
+    - [x] Ask initial question
+    - [x] Ask follow-up question
+    - [x] Verify both Q&A pairs display
+    - [x] Test clear conversation
+    - [x] Test export conversation
 
 ### Documentation Tasks
-- [ ] Update `CLAUDE.md` with Phase 2 features
-- [ ] Document context-aware analysis patterns
-- [ ] Add examples of Holmes integration in resource views
-- [ ] Document conversation history usage
+- [x] Update `CLAUDE.md` with Phase 2 features
+- [x] Document context-aware analysis patterns
+- [x] Add examples of Holmes integration in resource views
+- [x] Document conversation history usage
 
 ---
 

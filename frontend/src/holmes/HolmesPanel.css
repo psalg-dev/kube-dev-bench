@@ -301,6 +301,13 @@ body.holmes-resizing {
   flex-wrap: wrap;
 }
 
+.holmes-streaming-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--gh-text-secondary, #8b949e);
+  white-space: pre-wrap;
+}
+
 .holmes-reasoning {
   margin: 12px 0;
   padding: 12px;
@@ -443,6 +450,29 @@ body.holmes-resizing {
   margin: 8px 0;
 }
 
+.holmes-code-block-wrapper {
+  position: relative;
+  margin: 8px 0;
+}
+
+.holmes-code-copy {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  z-index: 2;
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-button-bg, #21262d);
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+}
+
+.holmes-code-copy:hover {
+  background: var(--gh-button-hover-bg, #30363d);
+}
+
 .holmes-code-block code {
   font-family: ui-monospace, SFMono-Regular, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
@@ -464,6 +494,20 @@ body.holmes-resizing {
 .holmes-rendered-content th {
   background: rgba(88, 166, 255, 0.08);
   font-weight: 600;
+}
+
+.holmes-rich-output {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--gh-border, #30363d);
+  background: rgba(13, 17, 23, 0.6);
+  font-size: 12px;
+}
+
+.holmes-rich-output-title {
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .holmes-answer-empty {

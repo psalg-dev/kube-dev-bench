@@ -1,14 +1,26 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"gowails/pkg/app/holmesgpt"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/kubernetes/fake"
+	clientgotesting "k8s.io/client-go/testing"
 )
 
 func TestAskHolmes_NotConfigured(t *testing.T) {
@@ -282,6 +294,190 @@ func TestInitHolmes_CreatesClient(t *testing.T) {
 	holmesClient = nil
 	holmesMu.Unlock()
 	holmesConfig = holmesgpt.DefaultConfig()
+}
+
+func TestGetPodContext_BasicFields(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
+			Spec:       corev1.PodSpec{NodeName: "node-1"},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+				ContainerStatuses: []corev1.ContainerStatus{{
+					Name:         "app",
+					Ready:        true,
+					RestartCount: 1,
+				}},
+				Conditions: []corev1.PodCondition{{
+					Type:    corev1.PodReady,
+					Status:  corev1.ConditionTrue,
+					Message: "Ready",
+				}},
+			},
+		},
+		&corev1.Event{
+			ObjectMeta: metav1.ObjectMeta{Name: "pod-event", Namespace: "default"},
+			InvolvedObject: corev1.ObjectReference{
+				Kind:      "Pod",
+				Name:      "test-pod",
+				Namespace: "default",
+			},
+			Reason:        "Scheduled",
+			Message:       "Scheduled",
+			LastTimestamp: metav1.NewTime(metav1.Now().Time),
+		},
+	)
+
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	ctxText, err := app.getPodContext("default", "test-pod")
+	if err != nil {
+		t.Fatalf("getPodContext() unexpected error: %v", err)
+	}
+	if !strings.Contains(ctxText, "Pod: default/test-pod") {
+		t.Errorf("expected pod header in context, got: %s", ctxText)
+	}
+	if !strings.Contains(ctxText, "Status: Running") {
+		t.Errorf("expected status in context, got: %s", ctxText)
+	}
+	if !strings.Contains(ctxText, "Containers:") {
+		t.Errorf("expected containers section in context, got: %s", ctxText)
+	}
+}
+
+func TestGetPodContext_NotFound(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	_, err := app.getPodContext("default", "missing")
+	if err == nil {
+		t.Error("getPodContext() expected error for missing pod, got nil")
+	}
+}
+
+func TestGetPodContext_RBACError(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+	clientset.PrependReactor("get", "pods", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+		return true, nil, apierrors.NewForbidden(schema.GroupResource{Group: "", Resource: "pods"}, "test-pod", fmt.Errorf("forbidden"))
+	})
+
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	_, err := app.getPodContext("default", "test-pod")
+	if err == nil {
+		t.Error("getPodContext() expected RBAC error, got nil")
+	}
+}
+
+func TestGetDeploymentContext_BasicFields(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "deploy", Namespace: "default"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: int32Ptr(2),
+				Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "demo"}},
+				Strategy: appsv1.DeploymentStrategy{Type: appsv1.RollingUpdateDeploymentStrategyType},
+			},
+			Status: appsv1.DeploymentStatus{
+				ReadyReplicas:     1,
+				AvailableReplicas: 1,
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "deploy-pod", Namespace: "default", Labels: map[string]string{"app": "demo"}},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	ctxText, err := app.getDeploymentContext("default", "deploy")
+	if err != nil {
+		t.Fatalf("getDeploymentContext() unexpected error: %v", err)
+	}
+	if !strings.Contains(ctxText, "Deployment: default/deploy") {
+		t.Errorf("expected deployment header in context, got: %s", ctxText)
+	}
+}
+
+func TestAnalyzePod_WithFakeHolmes(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
+			Spec:       corev1.PodSpec{NodeName: "node-1"},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/chat" {
+			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "ok"})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.initHolmes()
+
+	resp, err := app.AnalyzePod("default", "test-pod")
+	if err != nil {
+		t.Fatalf("AnalyzePod() unexpected error: %v", err)
+	}
+	if resp.Response != "ok" {
+		t.Errorf("AnalyzePod() expected response 'ok', got %q", resp.Response)
+	}
+
+	holmesMu.Lock()
+	holmesClient = nil
+	holmesMu.Unlock()
+	holmesConfig = holmesgpt.DefaultConfig()
+}
+
+func TestAnalyzeDeployment_WithFakeHolmes(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "deploy", Namespace: "default"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: int32Ptr(1),
+				Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "demo"}},
+				Strategy: appsv1.DeploymentStrategy{Type: appsv1.RollingUpdateDeploymentStrategyType},
+			},
+			Status: appsv1.DeploymentStatus{ReadyReplicas: 1},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "deploy-pod", Namespace: "default", Labels: map[string]string{"app": "demo"}},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/chat" {
+			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "deployment ok"})
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.initHolmes()
+
+	resp, err := app.AnalyzeDeployment("default", "deploy")
+	if err != nil {
+		t.Fatalf("AnalyzeDeployment() unexpected error: %v", err)
+	}
+	if resp.Response != "deployment ok" {
+		t.Errorf("AnalyzeDeployment() expected response 'deployment ok', got %q", resp.Response)
+	}
+
+	holmesMu.Lock()
+	holmesClient = nil
+	holmesMu.Unlock()
+	holmesConfig = holmesgpt.DefaultConfig()
+}
+
+func int32Ptr(i int32) *int32 {
+	return &i
 }
 
 func TestInitHolmes_SkipsWhenDisabled(t *testing.T) {

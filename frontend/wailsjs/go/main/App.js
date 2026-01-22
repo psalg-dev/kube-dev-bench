@@ -10,6 +10,54 @@ export function AddRegistry(arg1) {
   return window['go']['main']['App']['AddRegistry'](arg1);
 }
 
+export function AnalyzeDaemonSet(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeDaemonSet'](arg1, arg2);
+}
+
+export function AnalyzeDaemonSetStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeDaemonSetStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeDeployment(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeDeployment'](arg1, arg2);
+}
+
+export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzePod(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzePod'](arg1, arg2);
+}
+
+export function AnalyzePodStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzePodStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeResource(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeResource'](arg1, arg2, arg3);
+}
+
+export function AnalyzeResourceStream(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['AnalyzeResourceStream'](arg1, arg2, arg3, arg4);
+}
+
+export function AnalyzeService(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeService'](arg1, arg2);
+}
+
+export function AnalyzeServiceStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeServiceStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeStatefulSet(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeStatefulSet'](arg1, arg2);
+}
+
+export function AnalyzeStatefulSetStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeStatefulSetStream'](arg1, arg2, arg3);
+}
+
 export function ArchivePVCPath(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchivePVCPath'](arg1, arg2, arg3, arg4);
 }
@@ -290,6 +338,10 @@ export function GetHolmesConfig() {
   return window['go']['main']['App']['GetHolmesConfig']();
 }
 
+export function GetHolmesLogPath() {
+  return window['go']['main']['App']['GetHolmesLogPath']();
+}
+
 export function GetHooksConfig() {
   return window['go']['main']['App']['GetHooksConfig']();
 }
@@ -476,6 +528,10 @@ export function GetSecrets(arg1) {
 
 export function GetServiceSummary(arg1, arg2) {
   return window['go']['main']['App']['GetServiceSummary'](arg1, arg2);
+}
+
+export function GetServices(arg1) {
+  return window['go']['main']['App']['GetServices'](arg1);
 }
 
 export function GetStatefulSetDetail(arg1, arg2) {

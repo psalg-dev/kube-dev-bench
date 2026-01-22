@@ -11,6 +11,8 @@ import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
+import { AnalyzeDeployment, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -29,9 +31,10 @@ const bottomTabs = [
   { key: 'logs', label: 'Logs' },
   { key: 'events', label: 'Events' },
   { key: 'yaml', label: 'YAML' },
+  { key: 'holmes', label: 'Holmes' },
 ];
 
-function renderPanelContent(row, tab) {
+function renderPanelContent(row, tab, holmesState, onAnalyze) {
   if (tab === 'summary') {
     const quickInfoFields = [
       {
@@ -135,12 +138,66 @@ spec:
 
     return <YamlTab content={yamlContent} />;
   }
+  if (tab === 'holmes') {
+    const key = `${row.namespace}/${row.name}`;
+    return (
+      <HolmesBottomPanel
+        kind="Deployment"
+        namespace={row.namespace}
+        name={row.name}
+        onAnalyze={() => onAnalyze(row)}
+        response={holmesState.key === key ? holmesState.response : null}
+        loading={holmesState.key === key && holmesState.loading}
+        error={holmesState.key === key ? holmesState.error : null}
+            queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+            streamingText={holmesState.key === key ? holmesState.streamingText : ''}
+            reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
+            toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
+            contextSteps={holmesState.key === key ? holmesState.contextSteps : []}
+      />
+    );
+  }
   return null;
 }
 
 export default function DeploymentsOverviewTable({ namespaces, namespace }) {
   const [deployments, setDeployments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [holmesState, setHolmesState] = useState({
+    loading: false,
+    response: null,
+    error: null,
+    key: null,
+    queryTimestamp: null,
+    contextSteps: [],
+  });
+
+  useEffect(() => {
+    const unsubscribe = onHolmesContextProgress((event) => {
+      if (!event?.key) return;
+      setHolmesState((prev) => {
+        if (prev.key !== event.key) return prev;
+        const id = event.step || 'step';
+        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
+        const idx = nextSteps.findIndex((item) => item.id === id);
+        const entry = {
+          id,
+          step: event.step,
+          status: event.status || 'running',
+          detail: event.detail || '',
+        };
+        if (idx >= 0) {
+          nextSteps[idx] = { ...nextSteps[idx], ...entry };
+        } else {
+          nextSteps.push(entry);
+        }
+        return { ...prev, contextSteps: nextSteps };
+      });
+    });
+    return () => {
+      try { unsubscribe?.(); } catch (_) {}
+    };
+  }, []);
 
   useEffect(() => {
     const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
@@ -202,40 +259,73 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
     };
   }, []);
 
-  const getRowActions = (row) => [
-    {
-      label: 'Restart',
-      icon: '🔄',
-      onClick: async () => {
-        try {
-          await AppAPI.RestartDeployment(row.namespace, row.name);
-          showSuccess(`Deployment '${row.name}' restarted`);
-        } catch (err) {
-          showError(`Failed to restart deployment '${row.name}': ${err?.message || err}`);
-        }
+  const analyzeDeployment = async (row) => {
+    const key = `${row.namespace}/${row.name}`;
+    setHolmesState({
+      loading: true,
+      response: null,
+      error: null,
+      key,
+      queryTimestamp: new Date().toISOString(),
+      contextSteps: [],
+    });
+    try {
+      const response = await AnalyzeDeployment(row.namespace, row.name);
+      setHolmesState((prev) => ({ ...prev, loading: false, response, error: null, key }));
+    } catch (err) {
+      const message = err?.message || String(err);
+      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
+      showError(`Holmes analysis failed: ${message}`);
+    }
+  };
+
+  const getRowActions = (row, api) => {
+    const key = `${row.namespace}/${row.name}`;
+    const isAnalyzing = holmesState.loading && holmesState.key === key;
+    return [
+      {
+        label: isAnalyzing ? 'Analyzing...' : 'Ask Holmes',
+        icon: '🧠',
+        disabled: isAnalyzing,
+        onClick: () => {
+          analyzeDeployment(row);
+          api?.openDetails?.('holmes');
+        },
       },
-    },
-    {
-      label: 'Delete',
-      icon: '🗑️',
-      danger: true,
-      onClick: async () => {
-        try {
-          await AppAPI.DeleteResource('deployment', row.namespace, row.name);
-          showSuccess(`Deployment '${row.name}' deleted`);
-        } catch (err) {
-          showError(`Failed to delete deployment '${row.name}': ${err?.message || err}`);
-        }
+      {
+        label: 'Restart',
+        icon: '🔄',
+        onClick: async () => {
+          try {
+            await AppAPI.RestartDeployment(row.namespace, row.name);
+            showSuccess(`Deployment '${row.name}' restarted`);
+          } catch (err) {
+            showError(`Failed to restart deployment '${row.name}': ${err?.message || err}`);
+          }
+        },
       },
-    },
-  ];
+      {
+        label: 'Delete',
+        icon: '🗑️',
+        danger: true,
+        onClick: async () => {
+          try {
+            await AppAPI.DeleteResource('deployment', row.namespace, row.name);
+            showSuccess(`Deployment '${row.name}' deleted`);
+          } catch (err) {
+            showError(`Failed to delete deployment '${row.name}': ${err?.message || err}`);
+          }
+        },
+      },
+    ];
+  };
 
   return (
     <OverviewTableWithPanel
       columns={columns}
       data={deployments}
       tabs={bottomTabs}
-      renderPanelContent={renderPanelContent}
+      renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeDeployment)}
       panelHeader={(row) => <span style={{ fontWeight: 600 }}>{row.name}</span>}
       title="Deployments"
       loading={loading}

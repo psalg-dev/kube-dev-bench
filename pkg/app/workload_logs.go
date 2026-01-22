@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,8 +22,14 @@ func (a *App) getPodLogsInNamespace(namespace, podName string, tailLines int64) 
 	if tailLines <= 0 {
 		tailLines = defaultLogTailLines
 	}
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	logCtx, cancel := context.WithTimeout(ctx, 12*time.Second)
+	defer cancel()
 	opts := &corev1.PodLogOptions{TailLines: &tailLines}
-	raw, err := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).DoRaw(a.ctx)
+	raw, err := clientset.CoreV1().Pods(namespace).GetLogs(podName, opts).DoRaw(logCtx)
 	if err != nil {
 		return "", err
 	}

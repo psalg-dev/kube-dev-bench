@@ -22,6 +22,7 @@ function isConnectionError(error) {
 export function HolmesPanel() {
   const { state, askHolmes, cancelHolmes, showConfigModal, hidePanel, clearResponse, showOnboarding, reconnectHolmes } = useHolmes();
   const [question, setQuestion] = useState('');
+  const [conversation, setConversation] = useState([]);
   const [reconnecting, setReconnecting] = useState(false);
   const [toolsCollapsed, setToolsCollapsed] = useState(true);
   const [panelWidth, setPanelWidth] = useState(400);
@@ -29,6 +30,9 @@ export function HolmesPanel() {
   const inputRef = useRef(null);
   const responseRef = useRef(null);
   const panelRef = useRef(null);
+  const lastQueryRef = useRef(null);
+  const lastResponseRef = useRef(null);
+  const lastErrorRef = useRef(null);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -53,10 +57,10 @@ export function HolmesPanel() {
 
   // Auto-scroll response into view
   useEffect(() => {
-    if (state.response && responseRef.current) {
-      responseRef.current.scrollTop = 0;
+    if (responseRef.current) {
+      responseRef.current.scrollTop = responseRef.current.scrollHeight;
     }
-  }, [state.response]);
+  }, [conversation, state.loading, state.streamingText]);
 
   useEffect(() => {
     if (!state.loading) {
@@ -77,10 +81,75 @@ export function HolmesPanel() {
   };
 
   const handleComposerKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSubmit(e);
     }
+  };
+
+  useEffect(() => {
+    if (!state.query || !state.queryTimestamp) return;
+    if (lastQueryRef.current === state.queryTimestamp) return;
+
+    setConversation((prev) => [
+      ...prev,
+      { type: 'question', text: state.query, timestamp: state.queryTimestamp },
+    ]);
+    lastQueryRef.current = state.queryTimestamp;
+  }, [state.query, state.queryTimestamp]);
+
+  useEffect(() => {
+    if (!responseText || !state.responseTimestamp) return;
+    if (lastResponseRef.current === state.responseTimestamp) return;
+
+    setConversation((prev) => [
+      ...prev,
+      { type: 'response', data: state.response, timestamp: state.responseTimestamp },
+    ]);
+    lastResponseRef.current = state.responseTimestamp;
+  }, [responseText, state.response, state.responseTimestamp]);
+
+  useEffect(() => {
+    if (!state.error || state.loading) return;
+    if (lastErrorRef.current === state.error) return;
+
+    setConversation((prev) => [
+      ...prev,
+      { type: 'error', text: state.error, timestamp: new Date().toISOString() },
+    ]);
+    lastErrorRef.current = state.error;
+  }, [state.error, state.loading]);
+
+  const handleClearConversation = () => {
+    setConversation([]);
+    lastQueryRef.current = null;
+    lastResponseRef.current = null;
+    lastErrorRef.current = null;
+    clearResponse();
+  };
+
+  const handleExportConversation = () => {
+    const text = conversation
+      .map((item) => {
+        const time = formatTimestamp(item.timestamp);
+        if (item.type === 'question') {
+          return `[${time}] You: ${item.text}`;
+        }
+        if (item.type === 'response') {
+          const body = item.data?.response || item.data?.analysis || '';
+          return `[${time}] Holmes: ${body}`;
+        }
+        return `[${time}] Error: ${item.text}`;
+      })
+      .join('\n\n');
+
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `holmes-conversation-${Date.now()}.txt`;
+    anchor.click();
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -142,6 +211,24 @@ export function HolmesPanel() {
           <h3>Holmes AI</h3>
         </div>
         <div className="holmes-panel-actions">
+          {conversation.length > 0 && (
+            <>
+              <button
+                className="holmes-btn holmes-btn-icon"
+                onClick={handleExportConversation}
+                title="Export conversation"
+              >
+                ⬇️
+              </button>
+              <button
+                className="holmes-btn holmes-btn-icon"
+                onClick={handleClearConversation}
+                title="Clear conversation"
+              >
+                🧹
+              </button>
+            </>
+          )}
           <button
             id="holmes-config-btn"
             className="holmes-btn holmes-btn-icon"
@@ -288,15 +375,29 @@ export function HolmesPanel() {
                   </div>
                 )}
 
-                {state.query && (
-                  <div className="holmes-message holmes-message-user">
+                {conversation.map((item, idx) => (
+                  <div
+                    key={`${item.type}-${item.timestamp || idx}`}
+                    className={`holmes-message ${item.type === 'question' ? 'holmes-message-user' : item.type === 'response' ? 'holmes-message-assistant' : 'holmes-message-error'}`}
+                  >
                     <div className="holmes-message-header">
-                      <span>You</span>
-                      <span className="holmes-message-timestamp">{formatTimestamp(state.queryTimestamp)}</span>
+                      <span>{item.type === 'question' ? 'You' : item.type === 'response' ? 'Holmes' : 'Error'}</span>
+                      <span className="holmes-message-timestamp">{formatTimestamp(item.timestamp)}</span>
                     </div>
-                    <div className="holmes-message-body">{state.query}</div>
+                    <div className="holmes-message-body">
+                      {item.type === 'question' && item.text}
+                      {item.type === 'response' && (
+                        <HolmesResponseRenderer response={item.data} />
+                      )}
+                      {item.type === 'error' && (
+                        <div className="holmes-error">
+                          <span className="holmes-error-icon">⚠️</span>
+                          <span>{item.text}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                ))}
 
                 {state.loading && (
                   <div className="holmes-message holmes-message-assistant holmes-message-loading">
@@ -307,7 +408,7 @@ export function HolmesPanel() {
                     <div className="holmes-message-body">
                       <div className="holmes-loading">
                         <div className="holmes-spinner" data-testid="holmes-spinner"></div>
-                        <span>Thinking...</span>
+                        <span>{state.streamingText ? 'Streaming...' : 'Thinking...'}</span>
                         <button
                           type="button"
                           className="holmes-btn holmes-btn-secondary holmes-cancel-btn"
@@ -316,35 +417,16 @@ export function HolmesPanel() {
                           Cancel
                         </button>
                       </div>
+                      {state.streamingText && (
+                        <div className="holmes-streaming-text">
+                          {state.streamingText}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {responseText && (
-                  <div className="holmes-message holmes-message-assistant">
-                    <div className="holmes-message-header">
-                      <span>Holmes</span>
-                      <span className="holmes-message-timestamp">
-                        {formatTimestamp(state.responseTimestamp || state.response?.timestamp)}
-                      </span>
-                    </div>
-                    <div className="holmes-message-body">
-                      <HolmesResponseRenderer
-                        text={responseText}
-                      />
-                      <div className="holmes-message-actions">
-                        <button
-                          className="holmes-btn holmes-btn-secondary"
-                          onClick={clearResponse}
-                        >
-                          Clear
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {!state.loading && !state.error && !state.response && (
+                {!state.loading && !state.error && conversation.length === 0 && (
                   <div className="holmes-message holmes-message-placeholder">
                     <div className="holmes-message-header">Start here</div>
                     <div className="holmes-message-body holmes-placeholder">
@@ -381,7 +463,7 @@ export function HolmesPanel() {
                   {state.loading ? '...' : '→'}
                 </button>
               </div>
-              <div className="holmes-composer-hint">Press Enter to send, Shift+Enter for a new line.</div>
+              <div className="holmes-composer-hint">Ctrl+Enter to send, Shift+Enter for a new line.</div>
             </form>
           </div>
         </>

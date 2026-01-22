@@ -14,6 +14,7 @@ KubeDevBench is a desktop Kubernetes and Docker Swarm client built with a Go bac
 - Context and multi-namespace selection.
 - Resource views with consistent UX: filterable table, clickable rows, bottom-panel details, and create via manifest overlay.
 - Resource navigation for: Pods, Deployments, Jobs, CronJobs, DaemonSets, StatefulSets, ReplicaSets, ConfigMaps, Secrets, Ingresses, PV/PVC, Helm Releases.
+- Holmes AI: context-aware analysis tabs for workloads (Pods, Deployments, StatefulSets, DaemonSets) and Services, plus a conversation panel with history, export, and markdown rendering.
 
 ### Docker Swarm
 - Docker Swarm Connection Wizard for local socket, TCP, and TLS connections.

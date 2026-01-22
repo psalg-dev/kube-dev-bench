@@ -15,6 +15,7 @@ import { HolmesConfigModal } from './holmes/HolmesConfigModal.jsx';
 // Resource overview tables
 import PodOverviewTable from './k8s/resources/pods/PodOverviewTable.jsx';
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable.jsx';
+import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable.jsx';
 import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable.jsx';
 import CronJobsOverviewTable from './k8s/resources/cronjobs/CronJobsOverviewTable.jsx';
 import DaemonSetsOverviewTable from './k8s/resources/daemonsets/DaemonSetsOverviewTable.jsx';
@@ -98,6 +99,8 @@ function MainApp({ selectedSection, setSelectedSection }) {
         return <PodOverviewTable namespace={firstNs} namespaces={selectedNamespaces} onCreateResource={(type)=>showResourceOverlay(type)} />;
       case 'deployments':
         return <DeploymentsOverviewTable {...commonNsProps} />;
+      case 'services':
+        return <ServicesOverviewTable {...commonNsProps} />;
       case 'jobs':
         return <JobsOverviewTable {...commonNsProps} />;
       case 'cronjobs':
@@ -155,6 +158,8 @@ function MainApp({ selectedSection, setSelectedSection }) {
       switch (selectedSection) {
         case 'deployments':
           return <DeploymentsOverviewTable {...commonNsProps} />;
+        case 'services':
+          return <ServicesOverviewTable {...commonNsProps} />;
         case 'jobs':
           return <JobsOverviewTable {...commonNsProps} />;
         case 'cronjobs':

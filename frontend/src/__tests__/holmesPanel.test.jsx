@@ -41,8 +41,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -66,8 +68,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -95,8 +99,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -120,8 +126,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: true,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: 'Test question',
+          queryTimestamp: new Date().toISOString(),
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -147,8 +155,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: { response: 'This is the answer from Holmes AI' },
+          responseTimestamp: new Date().toISOString(),
           error: null,
           query: 'Test question',
+          queryTimestamp: new Date().toISOString(),
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -172,8 +182,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: 'Connection failed',
           query: 'Test question',
+          queryTimestamp: new Date().toISOString(),
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -199,8 +211,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: mockAskHolmes,
         showConfigModal: vi.fn(),
@@ -234,8 +248,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -264,8 +280,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: vi.fn(),
         showConfigModal: mockShowConfigModal,
@@ -295,8 +313,10 @@ describe('HolmesPanel', () => {
           showPanel: true,
           loading: false,
           response: null,
+          responseTimestamp: null,
           error: null,
           query: '',
+          queryTimestamp: null,
         },
         askHolmes: vi.fn(),
         showConfigModal: vi.fn(),
@@ -312,5 +332,83 @@ describe('HolmesPanel', () => {
     fireEvent.click(deployButton);
     
     expect(mockShowOnboarding).toHaveBeenCalled();
+  });
+
+  it('renders conversation history and supports clear', async () => {
+    const mockClear = vi.fn();
+    const now = new Date().toISOString();
+
+    render(
+      <HolmesContext.Provider value={{
+        state: {
+          enabled: true,
+          configured: true,
+          endpoint: 'http://test:8080',
+          showPanel: true,
+          loading: false,
+          response: { response: 'Answer' },
+          responseTimestamp: now,
+          error: null,
+          query: 'Question',
+          queryTimestamp: now,
+        },
+        askHolmes: vi.fn(),
+        showConfigModal: vi.fn(),
+        hidePanel: vi.fn(),
+        clearResponse: mockClear,
+      }}>
+        <HolmesPanel />
+      </HolmesContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Question')).toBeInTheDocument();
+      expect(screen.getByText('Answer')).toBeInTheDocument();
+    });
+
+    const clearButton = screen.getByTitle('Clear conversation');
+    fireEvent.click(clearButton);
+    expect(mockClear).toHaveBeenCalled();
+  });
+
+  it('exports conversation history', async () => {
+    const now = new Date().toISOString();
+    const mockUrl = 'blob:holmes-export';
+    const createObjectURL = vi.fn(() => mockUrl);
+    const revokeObjectURL = vi.fn();
+    global.URL.createObjectURL = createObjectURL;
+    global.URL.revokeObjectURL = revokeObjectURL;
+
+    render(
+      <HolmesContext.Provider value={{
+        state: {
+          enabled: true,
+          configured: true,
+          endpoint: 'http://test:8080',
+          showPanel: true,
+          loading: false,
+          response: { response: 'Answer' },
+          responseTimestamp: now,
+          error: null,
+          query: 'Question',
+          queryTimestamp: now,
+        },
+        askHolmes: vi.fn(),
+        showConfigModal: vi.fn(),
+        hidePanel: vi.fn(),
+        clearResponse: vi.fn(),
+      }}>
+        <HolmesPanel />
+      </HolmesContext.Provider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Question')).toBeInTheDocument();
+    });
+
+    const exportButton = screen.getByTitle('Export conversation');
+    fireEvent.click(exportButton);
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith(mockUrl);
   });
 });

@@ -84,7 +84,7 @@ func TestHolmesClient_Ask(t *testing.T) {
 			question: "What pods are running in the default namespace?",
 			serverResponse: HolmesResponse{
 				Response:  "There are 3 pods running in the default namespace: nginx, redis, and postgres.",
-				Timestamp: time.Now(),
+				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 				QueryID:   "query-123",
 			},
 			serverStatus: http.StatusOK,
@@ -98,7 +98,7 @@ func TestHolmesClient_Ask(t *testing.T) {
 				RichOutput: map[string]interface{}{
 					"graph": "base64-encoded-graph-data",
 				},
-				Timestamp: time.Now(),
+				Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
 			},
 			serverStatus: http.StatusOK,
 			wantErr:      false,

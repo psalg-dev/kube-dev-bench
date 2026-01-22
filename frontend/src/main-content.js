@@ -1,6 +1,7 @@
 import {renderPodOverviewTable} from "./k8s/resources/pods/PodOverviewEntry";
 import {showResourceOverlay} from "./resource-overlay";
 import DeploymentsOverviewTable from "./k8s/resources/deployments/DeploymentsOverviewTable";
+import ServicesOverviewTable from "./k8s/resources/services/ServicesOverviewTable";
 import JobsOverviewTable from "./k8s/resources/jobs/JobsOverviewTable";
 import CronJobsOverviewTable from "./k8s/resources/cronjobs/CronJobsOverviewTable";
 import DaemonSetsOverviewTable from "./k8s/resources/daemonsets/DaemonSetsOverviewTable";
@@ -108,6 +109,12 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
             id: 'deployments-overview-react',
             section: 'deployments',
             table: DeploymentsOverviewTable,
+            props: {namespaces: selectedNamespaces, namespace: firstNs}
+        },
+        {
+            id: 'services-overview-react',
+            section: 'services',
+            table: ServicesOverviewTable,
             props: {namespaces: selectedNamespaces, namespace: firstNs}
         },
         {

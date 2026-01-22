@@ -503,10 +503,8 @@ export namespace app {
 	    reason: string;
 	    message: string;
 	    count: number;
-	    // Go type: time
-	    firstTimestamp: any;
-	    // Go type: time
-	    lastTimestamp: any;
+	    firstTimestamp: string;
+	    lastTimestamp: string;
 	    source: string;
 	
 	    static createFrom(source: any = {}) {
@@ -519,28 +517,10 @@ export namespace app {
 	        this.reason = source["reason"];
 	        this.message = source["message"];
 	        this.count = source["count"];
-	        this.firstTimestamp = this.convertValues(source["firstTimestamp"], null);
-	        this.lastTimestamp = this.convertValues(source["lastTimestamp"], null);
+	        this.firstTimestamp = source["firstTimestamp"];
+	        this.lastTimestamp = source["lastTimestamp"];
 	        this.source = source["source"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	export class HelmChartInfo {
 	    name: string;
@@ -1222,8 +1202,7 @@ export namespace app {
 	export class PodSummary {
 	    name: string;
 	    namespace: string;
-	    // Go type: time
-	    created: any;
+	    created: string;
 	    labels: Record<string, string>;
 	    status: string;
 	    ports: number[];
@@ -1236,29 +1215,11 @@ export namespace app {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.namespace = source["namespace"];
-	        this.created = this.convertValues(source["created"], null);
+	        this.created = source["created"];
 	        this.labels = source["labels"];
 	        this.status = source["status"];
 	        this.ports = source["ports"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	export class PortForwardInfo {
 	    namespace: string;
@@ -1354,6 +1315,7 @@ export namespace app {
 	}
 	export class ResourceCounts {
 	    podStatus: PodStatusCounts;
+	    services: number;
 	    deployments: number;
 	    jobs: number;
 	    cronjobs: number;
@@ -1374,6 +1336,7 @@ export namespace app {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.podStatus = this.convertValues(source["podStatus"], PodStatusCounts);
+	        this.services = source["services"];
 	        this.deployments = source["deployments"];
 	        this.jobs = source["jobs"];
 	        this.cronjobs = source["cronjobs"];
@@ -1442,6 +1405,30 @@ export namespace app {
 	        this.value = source["value"];
 	        this.size = source["size"];
 	        this.isBinary = source["isBinary"];
+	    }
+	}
+	export class ServiceInfo {
+	    name: string;
+	    namespace: string;
+	    type: string;
+	    clusterIP: string;
+	    ports: string;
+	    age: string;
+	    labels?: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new ServiceInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.type = source["type"];
+	        this.clusterIP = source["clusterIP"];
+	        this.ports = source["ports"];
+	        this.age = source["age"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class ServiceSummary {
@@ -2494,8 +2481,7 @@ export namespace holmesgpt {
 	    response: string;
 	    analysis?: string;
 	    rich_output?: Record<string, any>;
-	    // Go type: time
-	    timestamp: any;
+	    timestamp: string;
 	    query_id?: string;
 	
 	    static createFrom(source: any = {}) {
@@ -2507,27 +2493,9 @@ export namespace holmesgpt {
 	        this.response = source["response"];
 	        this.analysis = source["analysis"];
 	        this.rich_output = source["rich_output"];
-	        this.timestamp = this.convertValues(source["timestamp"], null);
+	        this.timestamp = source["timestamp"];
 	        this.query_id = source["query_id"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 
 }

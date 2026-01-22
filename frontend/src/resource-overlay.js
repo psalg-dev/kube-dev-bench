@@ -169,6 +169,19 @@ data:
       level: info
   simple-key: simple-value`,
 
+    service: `apiVersion: v1
+kind: Service
+metadata:
+  name: example-service
+spec:
+  type: ClusterIP
+  selector:
+    app: example-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80`,
+
     secret: `apiVersion: v1
 kind: Secret
 metadata:

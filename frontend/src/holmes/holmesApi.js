@@ -3,6 +3,18 @@ import {
   AskHolmes as _AskHolmes,
   AskHolmesStream as _AskHolmesStream,
   CancelHolmesStream as _CancelHolmesStream,
+  AnalyzePod as _AnalyzePod,
+  AnalyzePodStream as _AnalyzePodStream,
+  AnalyzeDeployment as _AnalyzeDeployment,
+  AnalyzeDeploymentStream as _AnalyzeDeploymentStream,
+  AnalyzeStatefulSet as _AnalyzeStatefulSet,
+  AnalyzeStatefulSetStream as _AnalyzeStatefulSetStream,
+  AnalyzeDaemonSet as _AnalyzeDaemonSet,
+  AnalyzeDaemonSetStream as _AnalyzeDaemonSetStream,
+  AnalyzeService as _AnalyzeService,
+  AnalyzeServiceStream as _AnalyzeServiceStream,
+  AnalyzeResource as _AnalyzeResource,
+  AnalyzeResourceStream as _AnalyzeResourceStream,
   GetHolmesConfig as _GetHolmesConfig,
   SetHolmesConfig as _SetHolmesConfig,
   TestHolmesConnection as _TestHolmesConnection,
@@ -40,6 +52,128 @@ export async function AskHolmesStream(question, streamId) {
  */
 export async function CancelHolmesStream(streamId) {
   return await _CancelHolmesStream(streamId);
+}
+
+/**
+ * Analyze a pod using HolmesGPT with context.
+ * @param {string} namespace
+ * @param {string} name
+ */
+export async function AnalyzePod(namespace, name) {
+  return await _AnalyzePod(namespace, name);
+}
+
+/**
+ * Analyze a deployment using HolmesGPT with context.
+ * @param {string} namespace
+ * @param {string} name
+ */
+export async function AnalyzeDeployment(namespace, name) {
+  return await _AnalyzeDeployment(namespace, name);
+}
+
+/**
+ * Analyze a statefulset using HolmesGPT with context.
+ * @param {string} namespace
+ * @param {string} name
+ */
+export async function AnalyzeStatefulSet(namespace, name) {
+  return await _AnalyzeStatefulSet(namespace, name);
+}
+
+/**
+ * Analyze a daemonset using HolmesGPT with context.
+ * @param {string} namespace
+ * @param {string} name
+ */
+export async function AnalyzeDaemonSet(namespace, name) {
+  return await _AnalyzeDaemonSet(namespace, name);
+}
+
+/**
+ * Analyze a service using HolmesGPT with context.
+ * @param {string} namespace
+ * @param {string} name
+ */
+export async function AnalyzeService(namespace, name) {
+  return await _AnalyzeService(namespace, name);
+}
+
+/**
+ * Analyze a resource using HolmesGPT with context.
+ * @param {string} kind
+ * @param {string} namespace
+ * @param {string} name
+ */
+export async function AnalyzeResource(kind, namespace, name) {
+  return await _AnalyzeResource(kind, namespace, name);
+}
+
+/**
+ * Analyze a pod using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzePodStream(namespace, name, streamId) {
+  return await _AnalyzePodStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a deployment using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeDeploymentStream(namespace, name, streamId) {
+  return await _AnalyzeDeploymentStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a statefulset using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeStatefulSetStream(namespace, name, streamId) {
+  return await _AnalyzeStatefulSetStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a daemonset using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeDaemonSetStream(namespace, name, streamId) {
+  return await _AnalyzeDaemonSetStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a service using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeServiceStream(namespace, name, streamId) {
+  return await _AnalyzeServiceStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a resource using HolmesGPT with context (streaming).
+ * @param {string} kind
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeResourceStream(kind, namespace, name, streamId) {
+  return await _AnalyzeResourceStream(kind, namespace, name, streamId);
 }
 
 /**
@@ -110,6 +244,15 @@ export function onHolmesDeploymentStatus(callback) {
  */
 export function onHolmesChatStream(callback) {
   return EventsOn('holmes:chat:stream', callback);
+}
+
+/**
+ * Subscribe to Holmes context progress updates
+ * @param {(event: {key: string, kind: string, namespace: string, name: string, step: string, status: string, detail?: string}) => void} callback
+ * @returns {() => void} Unsubscribe function
+ */
+export function onHolmesContextProgress(callback) {
+  return EventsOn('holmes:context:progress', callback);
 }
 
 /**
