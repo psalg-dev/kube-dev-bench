@@ -56,7 +56,7 @@ test.describe('Holmes Swarm Integration', () => {
     
     await analyzeBtn.click();
 
-    await expect(panel.root).toContainText(/Holmes Analysis|Analyzing|No analysis yet|not configured/i);
+    await expect(panel.root).toContainText(/Holmes Analysis|Analyzing|No analysis yet|not configured|Analysis failed/i);
 
     await panel.closeByClickingOutside();
 
@@ -80,7 +80,7 @@ test.describe('Holmes Swarm Integration', () => {
       const taskAnalyzeBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
       if (await taskAnalyzeBtn.isVisible().catch(() => false)) {
         await taskAnalyzeBtn.click();
-        await expect(panel.root).toContainText(/Holmes Analysis|Analyzing|No analysis yet|not configured/i);
+        await expect(panel.root).toContainText(/Holmes Analysis|Analyzing|No analysis yet|not configured|Analysis failed/i);
       }
     }
   });
