@@ -316,6 +316,11 @@ describe('MonitorPanel', () => {
       expect(appApiMocks.AnalyzeMonitorIssue).toHaveBeenCalled();
     });
 
+    // Wait for the component to re-render with the analysis result
+    await waitFor(() => {
+      expect(screen.getByText('Show Analysis')).toBeInTheDocument();
+    });
+
     fireEvent.click(screen.getByText('Show Analysis'));
     expect(screen.getByText('Analysis result')).toBeInTheDocument();
 
