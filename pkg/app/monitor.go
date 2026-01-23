@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -42,7 +41,7 @@ func (a *App) StartMonitorPolling() {
 			}
 
 			info := a.collectMonitorInfo(nsList)
-			wailsRuntime.EventsEmit(a.ctx, "monitor:update", info)
+			emitEvent(a.ctx, "monitor:update", info)
 		}
 	}()
 }

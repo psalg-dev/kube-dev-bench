@@ -15,8 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func int32Ptr(i int32) *int32 { return &i }
-
 // Tests for RestartDeployment
 func TestRestartDeployment(t *testing.T) {
 	clientset := fake.NewSimpleClientset()

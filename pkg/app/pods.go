@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/creack/pty"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -106,13 +105,13 @@ func (a *App) StartShellSession(sessionID, shellCmd string) error {
 		for {
 			n, err := ptyFile.Read(buf)
 			if n > 0 {
-				wailsRuntime.EventsEmit(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
+				emitEvent(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
 			}
 			if err != nil {
 				break
 			}
 		}
-		wailsRuntime.EventsEmit(a.ctx, termExitEvent(sessionID), "[session closed]")
+		emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
 	}()
 	// Optionally send initial command
 	if shellCmd != "" {
@@ -184,7 +183,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 	go func() {
 		defer func() {
 			// on exit
-			wailsRuntime.EventsEmit(a.ctx, termExitEvent(sessionID), "[session closed]")
+			emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
 		}()
 		// stream until completion or cancel
 		streamErr := executor.StreamWithContext(ctx, remotecommand.StreamOptions{
@@ -225,7 +224,7 @@ type eventWriter struct {
 }
 
 func (w *eventWriter) Write(p []byte) (int, error) {
-	wailsRuntime.EventsEmit(w.app.ctx, termOutputEvent(w.sessionID), string(p))
+	emitEvent(w.app.ctx, termOutputEvent(w.sessionID), string(p))
 	return len(p), nil
 }
 
@@ -337,7 +336,7 @@ func (a *App) emitPortForwardsUpdate() {
 		list = append(list, PortForwardInfo{Namespace: p[0], Pod: p[1], Local: local, Remote: remote})
 		return true
 	})
-	wailsRuntime.EventsEmit(a.ctx, "portforwards:update", list)
+	emitEvent(a.ctx, "portforwards:update", list)
 }
 
 // ListPortForwards returns current active port forward sessions
@@ -384,7 +383,7 @@ func (a *App) PortForwardPodWith(namespace, podName string, localPort, remotePor
 	}
 	key := portForwardKeyLR(namespace, podName, localPort, remotePort)
 	if _, exists := portForwardSessions.Load(key); exists {
-		wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":ready", localPort)
+		emitEvent(a.ctx, "portforward:"+key+":ready", localPort)
 		// also update snapshot
 		a.emitPortForwardsUpdate()
 		return fmt.Sprintf("http://127.0.0.1:%d", localPort), nil
@@ -428,7 +427,7 @@ func (a *App) PortForwardPodWith(namespace, podName string, localPort, remotePor
 	go func() {
 		defer func() {
 			_ = cmd.Wait()
-			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":exit", 0)
+			emitEvent(a.ctx, "portforward:"+key+":exit", 0)
 			portForwardSessions.Delete(key)
 			// emit snapshot after removal
 			a.emitPortForwardsUpdate()
@@ -436,11 +435,11 @@ func (a *App) PortForwardPodWith(namespace, podName string, localPort, remotePor
 
 		readyEmitted := false
 		emitLine := func(line string) {
-			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":output", line)
+			emitEvent(a.ctx, "portforward:"+key+":output", line)
 			if !readyEmitted {
 				if strings.Contains(line, fmt.Sprintf("Forwarding from 127.0.0.1:%d", localPort)) || strings.Contains(line, fmt.Sprintf("Forwarding from [::1]:%d", localPort)) || strings.Contains(line, fmt.Sprintf("Forwarding from localhost:%d", localPort)) || strings.Contains(line, fmt.Sprintf("Forwarding from 0.0.0.0:%d", localPort)) {
 					readyEmitted = true
-					wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":ready", localPort)
+					emitEvent(a.ctx, "portforward:"+key+":ready", localPort)
 				}
 			}
 		}
@@ -463,10 +462,10 @@ func (a *App) PortForwardPodWith(namespace, podName string, localPort, remotePor
 		<-stdoutDone
 		<-stderrDone
 		if err := stdoutScanner.Err(); err != nil {
-			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":error", err.Error())
+			emitEvent(a.ctx, "portforward:"+key+":error", err.Error())
 		}
 		if err := stderrScanner.Err(); err != nil {
-			wailsRuntime.EventsEmit(a.ctx, "portforward:"+key+":error", err.Error())
+			emitEvent(a.ctx, "portforward:"+key+":error", err.Error())
 		}
 	}()
 
@@ -624,7 +623,7 @@ func (a *App) StartPodPolling() {
 				}
 				all = append(all, pods...)
 			}
-			wailsRuntime.EventsEmit(a.ctx, "pods:update", all)
+			emitEvent(a.ctx, "pods:update", all)
 		}
 	}()
 }
@@ -680,13 +679,13 @@ func (a *App) ExecCommand(cmdline string) error {
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			wailsRuntime.EventsEmit(ctx, "console:output", scanner.Text())
+			emitEvent(ctx, "console:output", scanner.Text())
 		}
 	}()
 	go func() {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
-			wailsRuntime.EventsEmit(ctx, "console:output", scanner.Text())
+			emitEvent(ctx, "console:output", scanner.Text())
 		}
 	}()
 	return cmd.Wait()

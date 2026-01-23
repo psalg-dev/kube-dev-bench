@@ -8,7 +8,6 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	corev1 "k8s.io/api/core/v1"
@@ -366,7 +365,7 @@ func (a *App) waitForHolmesReady(namespace, releaseName string) (string, error) 
 // emitHolmesDeploymentStatus emits deployment status to the frontend
 func (a *App) emitHolmesDeploymentStatus(status *holmesgpt.HolmesDeploymentStatus) {
 	if a.ctx != nil {
-		wailsRuntime.EventsEmit(a.ctx, "holmes:deployment:status", status)
+		emitEvent(a.ctx, "holmes:deployment:status", status)
 	}
 }
 

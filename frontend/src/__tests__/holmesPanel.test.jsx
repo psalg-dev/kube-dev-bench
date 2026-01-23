@@ -196,7 +196,7 @@ describe('HolmesPanel', () => {
       </HolmesContext.Provider>
     );
     
-    expect(screen.getByText('Connection failed')).toBeInTheDocument();
+    expect(screen.getAllByText('Connection failed').length).toBeGreaterThan(0);
   });
 
   it('calls askHolmes when form is submitted', async () => {

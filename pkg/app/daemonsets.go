@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -108,7 +107,7 @@ func (a *App) StartDaemonSetPolling() {
 				}
 				all = append(all, list...)
 			}
-			wailsRuntime.EventsEmit(a.ctx, "daemonsets:update", all)
+			emitEvent(a.ctx, "daemonsets:update", all)
 		}
 	}()
 }

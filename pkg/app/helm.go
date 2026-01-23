@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -589,7 +588,7 @@ func (a *App) StartHelmReleasePolling() {
 				}
 				all = append(all, releases...)
 			}
-			wailsRuntime.EventsEmit(a.ctx, "helmreleases:update", all)
+			emitEvent(a.ctx, "helmreleases:update", all)
 		}
 	}()
 }

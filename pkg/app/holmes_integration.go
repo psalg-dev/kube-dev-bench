@@ -16,7 +16,6 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
@@ -968,7 +967,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 					Event:    event,
 					Data:     string(data),
 				}
-				wailsRuntime.EventsEmit(a.ctx, "holmes:chat:stream", payload)
+				emitEvent(a.ctx, "holmes:chat:stream", payload)
 				return nil
 			})
 		}
@@ -997,7 +996,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 					Event:    "error",
 					Error:    fmt.Sprintf("Holmes proxy timed out; port-forward failed: %v", pfErr),
 				}
-				wailsRuntime.EventsEmit(a.ctx, "holmes:chat:stream", payload)
+				emitEvent(a.ctx, "holmes:chat:stream", payload)
 				return
 			}
 			holmesMu.RLock()
@@ -1017,7 +1016,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 					StreamID: streamID,
 					Event:    "stream_end",
 				}
-				wailsRuntime.EventsEmit(a.ctx, "holmes:chat:stream", payload)
+				emitEvent(a.ctx, "holmes:chat:stream", payload)
 				return
 			}
 			log.Error("AskHolmesStream: stream failed",
@@ -1029,7 +1028,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 				Event:    "error",
 				Error:    err.Error(),
 			}
-			wailsRuntime.EventsEmit(a.ctx, "holmes:chat:stream", payload)
+			emitEvent(a.ctx, "holmes:chat:stream", payload)
 			return
 		}
 
@@ -1040,7 +1039,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 			StreamID: streamID,
 			Event:    "stream_end",
 		}
-		wailsRuntime.EventsEmit(a.ctx, "holmes:chat:stream", payload)
+		emitEvent(a.ctx, "holmes:chat:stream", payload)
 	}()
 
 	return nil

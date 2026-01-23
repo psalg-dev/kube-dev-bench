@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1" // This import is still needed for EventInterface
@@ -26,7 +25,7 @@ func (a *App) emitHolmesContextProgress(kind, namespace, name, step, status, det
 		"status":    status,
 		"detail":    detail,
 	}
-	wailsRuntime.EventsEmit(a.ctx, "holmes:context:progress", payload)
+	emitEvent(a.ctx, "holmes:context:progress", payload)
 }
 
 func (a *App) getPodContext(namespace, name string) (string, error) {

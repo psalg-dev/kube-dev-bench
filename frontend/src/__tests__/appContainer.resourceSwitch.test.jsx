@@ -34,6 +34,7 @@ vi.mock('../holmes/holmesApi', () => ({
   DeployHolmesGPT: vi.fn(() => Promise.resolve()),
   UndeployHolmesGPT: vi.fn(() => Promise.resolve()),
   onHolmesDeploymentStatus: vi.fn(() => () => {}),
+  onHolmesChatStream: vi.fn(() => () => {}),
 }));
 
 // Silence notification side-effects

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -119,7 +118,7 @@ func (a *App) StartDeploymentPolling() {
 				}
 				all = append(all, deploys...)
 			}
-			wailsRuntime.EventsEmit(a.ctx, "deployments:update", all)
+			emitEvent(a.ctx, "deployments:update", all)
 		}
 	}()
 }

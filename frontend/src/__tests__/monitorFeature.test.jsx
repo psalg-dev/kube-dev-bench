@@ -311,7 +311,7 @@ describe('MonitorPanel', () => {
 
     render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
 
-    fireEvent.click(screen.getByText('Analyze'));
+    fireEvent.click(screen.getAllByText('Analyze')[0]);
     await waitFor(() => {
       expect(appApiMocks.AnalyzeMonitorIssue).toHaveBeenCalled();
     });
@@ -319,7 +319,7 @@ describe('MonitorPanel', () => {
     fireEvent.click(screen.getByText('Show Analysis'));
     expect(screen.getByText('Analysis result')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Dismiss'));
+    fireEvent.click(screen.getAllByText('Dismiss')[0]);
     await waitFor(() => {
       expect(appApiMocks.DismissMonitorIssue).toHaveBeenCalled();
     });

@@ -78,7 +78,7 @@ vi.mock('../../wailsjs/go/main/App', () => {
     } else if (name === 'UpdateSwarmNodeLabels') {
       exports[name] = (...args) => updateSwarmNodeLabelsMock(...args);
     } else {
-      const fn = (...args) => genericAPIMock(name, ...args);
+      const fn = vi.fn((...args) => genericAPIMock(name, ...args));
       appApiMocks[name] = fn;
       exports[name] = fn;
     }
@@ -109,5 +109,10 @@ export function resetAllMocks() {
   eventsOnMock.mockReset();
   genericAPIMock.mockReset();
   genericAPIMock.mockImplementation(() => Promise.resolve(undefined));
-  Object.values(appApiMocks).forEach((m) => m.mock && m.mockReset && m.mockReset());
+  Object.entries(appApiMocks).forEach(([name, mockFn]) => {
+    if (mockFn && mockFn.mockReset) {
+      mockFn.mockReset();
+      mockFn.mockImplementation((...args) => genericAPIMock(name, ...args));
+    }
+  });
 }

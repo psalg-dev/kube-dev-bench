@@ -3,7 +3,6 @@ package app
 import (
 	"time"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -76,7 +75,7 @@ func (a *App) StartJobFromCronJob(namespace, cronJobName string) error {
 			return
 		}
 		if jobs, e := a.GetJobs(ns); e == nil {
-			runtime.EventsEmit(a.ctx, "jobs:update", jobs)
+			emitEvent(a.ctx, "jobs:update", jobs)
 		}
 	}(namespace)
 
@@ -114,7 +113,7 @@ func (a *App) StartJob(namespace, name string) error {
 			return
 		}
 		if jobs, e := a.GetJobs(ns); e == nil {
-			runtime.EventsEmit(a.ctx, "jobs:update", jobs)
+			emitEvent(a.ctx, "jobs:update", jobs)
 		}
 	}(namespace)
 
