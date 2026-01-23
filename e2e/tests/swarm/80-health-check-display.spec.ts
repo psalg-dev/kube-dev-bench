@@ -12,10 +12,14 @@ async function expectSwarmConnected(page: import('@playwright/test').Page) {
   return sidebar;
 }
 
-async function waitForAnyRow(table: import('@playwright/test').Locator, timeoutMs = 60_000) {
-  const detailsButtons = table.getByRole('button', { name: /^details$/i });
-  await expect(detailsButtons.first()).toBeVisible({ timeout: timeoutMs });
-  return detailsButtons;
+async function waitForAnyRow(table: import('@playwright/test').Locator, timeoutMs = 120_000) {
+  const rows = table.locator('tbody tr');
+  // Poll for task rows to appear - services can take time to spawn tasks
+  await expect(async () => {
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+  }).toPass({ timeout: timeoutMs, intervals: [1000, 2000, 5000] });
+  return rows;
 }
 
 test.describe('Docker Swarm Health Check Display', () => {

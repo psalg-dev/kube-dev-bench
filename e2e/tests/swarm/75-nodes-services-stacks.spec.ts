@@ -1,6 +1,7 @@
 import os from 'node:os';
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
+import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
@@ -54,6 +55,8 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
     test.setTimeout(360_000);
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+    // Ensure no leftover panels from previous tests
+    await SwarmBottomPanel.ensureClosed(page);
   });
 
   test('nodes: labels add/remove persists', async ({ page }) => {
@@ -140,6 +143,9 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
       ]);
       if (createSvc.code !== 0) throw new Error(createSvc.stderr || createSvc.stdout);
 
+      // Wait for service to be fully created
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
       const sidebar = new SwarmSidebarPage(page);
       const notifications = new Notifications(page);
 
@@ -148,13 +154,24 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
       const table = page.locator('[data-testid="swarm-services-table"]');
       await expect(table).toBeVisible({ timeout: 60_000 });
 
+      // Poll for the service row to appear
       const row = table.locator('tbody tr').filter({ hasText: svcName }).first();
-      await expect(row).toBeVisible({ timeout: 60_000 });
-      // Click the explicit Details action. Clicking the row center can land on
-      // interactive cells (e.g. Update) and open a different panel.
-      await row.getByRole('button', { name: 'Details', exact: true }).click();
+      await expect(async () => {
+        await expect(row).toBeVisible();
+      }).toPass({ timeout: 90_000, intervals: [1000, 2000, 5000] });
+      
+      // Click the Name cell (first td) to avoid clicking the Update badge which opens a different popup
+      const nameCell = row.locator('td').first();
+      const panel = new SwarmBottomPanel(page);
+      await expect(async () => {
+        // Dismiss any open popups first
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(100);
+        await nameCell.click();
+        await expect(panel.root).toBeVisible({ timeout: 5_000 });
+      }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
 
-      await page.locator('#swarm-service-update-image-btn').click();
+      await page.locator('#swarm-service-update-image-btn').click({ timeout: 30_000 });
       await expect(page.getByText(`Update Service Image: ${svcName}`)).toBeVisible({ timeout: 30_000 });
 
       await page.locator('#swarm-service-update-image-input').fill('nginx:1.25-alpine');
@@ -251,10 +268,16 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
       await sidebar.goToStacks();
       await expect(stacksTable).toBeVisible({ timeout: 60_000 });
       const row = stacksTable.locator('tbody tr').filter({ hasText: stackName }).first();
-      await expect(row).toBeVisible({ timeout: 120_000 });
+      
+      // Poll for the stack row to appear with retries
+      await expect(async () => {
+        await expect(row).toBeVisible();
+      }).toPass({ timeout: 120_000, intervals: [1000, 2000, 5000] });
+      
       await row.scrollIntoViewIfNeeded();
-      // Open details panel using the explicit Details button (more reliable than row click).
-      await row.getByRole('button', { name: 'Details', exact: true }).click({ timeout: 30_000, force: true });
+      
+      // Click the row to open the details panel (Swarm tables use row click, not Details button)
+      await row.click();
 
       const panel = page.locator('.bottom-panel').first();
       await expect(panel).toBeVisible({ timeout: 60_000 });

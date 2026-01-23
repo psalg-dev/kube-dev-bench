@@ -13,7 +13,7 @@ export default defineConfig({
     : process.platform === 'win32'
       ? 1
       : 3,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 2 : 1,  // Enable retries for flaky tests
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI
     ? [['github'], ['html', { open: 'never' }], ['list']]

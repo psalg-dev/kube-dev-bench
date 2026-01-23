@@ -48,6 +48,8 @@ test.describe('Docker Swarm Service Scaling', () => {
     test.setTimeout(120_000);
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
+    // Ensure no leftover panels from previous tests
+    await SwarmBottomPanel.ensureClosed(page);
   });
 
   test('shows scale button for replicated services', async ({ page }) => {
@@ -58,10 +60,15 @@ test.describe('Docker Swarm Service Scaling', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
     
     // Look for scale button in summary tab
     await panel.clickTab('Summary');
@@ -80,10 +87,16 @@ test.describe('Docker Swarm Service Scaling', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Summary');
     
     const scaleBtn = panel.root.getByRole('button', { name: /scale/i });
@@ -124,10 +137,16 @@ test.describe('Docker Swarm Service Scaling', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Summary');
     
     const scaleBtn = panel.root.getByRole('button', { name: /scale/i });
@@ -166,10 +185,16 @@ test.describe('Docker Swarm Service Scaling', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Summary');
     
     const scaleBtn = panel.root.getByRole('button', { name: /scale/i });
@@ -197,10 +222,16 @@ test.describe('Docker Swarm Service Scaling', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Summary');
     
     const scaleBtn = panel.root.getByRole('button', { name: /scale/i });

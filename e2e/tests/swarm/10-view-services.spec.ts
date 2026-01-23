@@ -25,6 +25,8 @@ test.describe('Docker Swarm Services', () => {
     test.setTimeout(120_000);
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
+    // Ensure no leftover panels from previous tests
+    await SwarmBottomPanel.ensureClosed(page);
   });
 
   test('displays services table', async ({ page }) => {
@@ -70,12 +72,14 @@ test.describe('Docker Swarm Services', () => {
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
 
-    // Click fixture service row
-    await replicatedRow.click();
-    
-    // Verify bottom panel opens
+    // Click Name cell (first td) to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape'); // Close any popups
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
     
     // Verify expected tabs
     await panel.expectTabs(['Summary', 'Tasks', 'Logs', 'Holmes']);
@@ -88,10 +92,16 @@ test.describe('Docker Swarm Services', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Summary');
     
     // Should show deterministic service info from stack.yml
@@ -108,10 +118,16 @@ test.describe('Docker Swarm Services', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Tasks');
     
     // Should show tasks list or table
@@ -125,10 +141,16 @@ test.describe('Docker Swarm Services', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const loggerRow = servicesTable.locator('tbody tr').filter({ hasText: loggerServiceName }).first();
     await expect(loggerRow).toBeVisible({ timeout: 60_000 });
-    await loggerRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = loggerRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
+    
     await panel.clickTab('Logs');
     
     // Should show logs content from the deterministic log-producing service
@@ -143,10 +165,15 @@ test.describe('Docker Swarm Services', () => {
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     const replicatedRow = servicesTable.locator('tbody tr').filter({ hasText: replicatedServiceName }).first();
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
-    await replicatedRow.click();
     
+    // Click Name cell to avoid Update badge popup intercepting clicks
+    const nameCell = replicatedRow.locator('td').first();
     const panel = new SwarmBottomPanel(page);
-    await panel.expectVisible();
+    await expect(async () => {
+      await page.keyboard.press('Escape');
+      await nameCell.click();
+      await expect(panel.root).toBeVisible({ timeout: 5_000 });
+    }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
     
     // Close by clicking outside
     await panel.closeByClickingOutside();

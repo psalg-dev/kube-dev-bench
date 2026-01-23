@@ -59,6 +59,54 @@ export class SwarmBottomPanel {
   }
 
   /**
+   * Close the panel if it's currently visible. Does nothing if already closed.
+   */
+  async closeIfOpen() {
+    const isVisible = await this.root.isVisible().catch(() => false);
+    if (isVisible) {
+      await this.page.locator('#maincontent').click({ position: { x: 5, y: 5 } });
+      await this.expectHidden();
+    }
+  }
+
+  /**
+   * Ensure panel is closed before proceeding. Use in beforeEach to clean up state.
+   */
+  static async ensureClosed(page: Page) {
+    // Close any visible bottom panels
+    const anyPanel = page.locator('.bottom-panel');
+    const isPanelVisible = await anyPanel.first().isVisible().catch(() => false);
+    if (isPanelVisible) {
+      await page.locator('#maincontent').click({ position: { x: 5, y: 5 } });
+      await expect(anyPanel.first()).toBeHidden({ timeout: 10_000 }).catch(() => {});
+    }
+
+    // Close any popup overlays (like Image Updates popup)
+    // Try pressing Escape to close any open modals/popups
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(200);
+    
+    // Look for common close buttons and click them
+    const closeButtons = [
+      page.getByRole('button', { name: 'Close' }),
+      page.locator('[aria-label="Close"]'),
+      page.locator('.modal-close, .popup-close'),
+    ];
+    
+    for (const btn of closeButtons) {
+      const isVisible = await btn.first().isVisible().catch(() => false);
+      if (isVisible) {
+        await btn.first().click().catch(() => {});
+        await page.waitForTimeout(100);
+      }
+    }
+    
+    // Press Escape again to be sure
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.waitForTimeout(200);
+  }
+
+  /**
    * Get the resource name from the panel header.
    */
   async getResourceName(): Promise<string> {
