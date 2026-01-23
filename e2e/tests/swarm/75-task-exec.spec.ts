@@ -18,10 +18,14 @@ async function expectSwarmConnected(page: import('@playwright/test').Page) {
   return sidebar;
 }
 
-async function waitForAnyRow(table: import('@playwright/test').Locator, timeoutMs = 90_000) {
-  const detailsButtons = table.getByRole('button', { name: /^details$/i });
-  await expect(detailsButtons.first()).toBeVisible({ timeout: timeoutMs });
-  return detailsButtons;
+async function waitForAnyRow(table: import('@playwright/test').Locator, timeoutMs = 150_000) {
+  const rows = table.locator('tbody tr');
+  // Poll for task rows to appear - services can take time to spawn tasks
+  await expect(async () => {
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+  }).toPass({ timeout: timeoutMs, intervals: [1000, 2000, 5000] });
+  return rows;
 }
 
 async function openExecTerminalForAnyTask(opts: {
@@ -36,7 +40,8 @@ async function openExecTerminalForAnyTask(opts: {
   const tryCount = Math.min(rowCount, maxRowsToTry);
 
   for (let i = 0; i < tryCount; i++) {
-    await rows.nth(i).getByRole('button', { name: /^details$/i }).click();
+    // Click the row to open the details panel (Swarm tables use row click, not Details button)
+    await rows.nth(i).click();
 
     const panel = new SwarmBottomPanel(page);
     await panel.expectVisible();

@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -145,60 +144,60 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 		if a.ctx != nil && ns != "" {
 			// Always emit pods snapshot for now (existing behavior)
 			if pods, err := a.GetRunningPods(ns); err == nil {
-				runtime.EventsEmit(a.ctx, "pods:update", pods)
+				emitEvent(a.ctx, "pods:update", pods)
 			}
 			// If we created a Deployment, also emit deployments snapshot
 			if strings.EqualFold(k, "Deployment") {
 				if deps, err := a.GetDeployments(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "deployments:update", deps)
+					emitEvent(a.ctx, "deployments:update", deps)
 				}
 			}
 			// If we created a StatefulSet, emit statefulsets snapshot
 			if strings.EqualFold(k, "StatefulSet") {
 				if sts, err := a.GetStatefulSets(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "statefulsets:update", sts)
+					emitEvent(a.ctx, "statefulsets:update", sts)
 				}
 			}
 			// If we created a DaemonSet, emit daemonsets snapshot
 			if strings.EqualFold(k, "DaemonSet") {
 				if dss, err := a.GetDaemonSets(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "daemonsets:update", dss)
+					emitEvent(a.ctx, "daemonsets:update", dss)
 				}
 			}
 			// If we created a ReplicaSet, emit replicasets snapshot
 			if strings.EqualFold(k, "ReplicaSet") {
 				if rss, err := a.GetReplicaSets(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "replicasets:update", rss)
+					emitEvent(a.ctx, "replicasets:update", rss)
 				}
 			}
 			// If we created a Job, emit jobs snapshot
 			if strings.EqualFold(k, "Job") {
 				if jobs, err := a.GetJobs(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "jobs:update", jobs)
+					emitEvent(a.ctx, "jobs:update", jobs)
 				}
 			}
 			// If we created a CronJob, emit cronjobs snapshot
 			if strings.EqualFold(k, "CronJob") {
 				if cjs, err := a.GetCronJobs(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "cronjobs:update", cjs)
+					emitEvent(a.ctx, "cronjobs:update", cjs)
 				}
 			}
 			// If we created an Ingress, emit ingresses snapshot
 			if strings.EqualFold(k, "Ingress") {
 				if ings, err := a.GetIngresses(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "ingresses:update", ings)
+					emitEvent(a.ctx, "ingresses:update", ings)
 				}
 			}
 			// If we created a Secret, emit secrets snapshot
 			if strings.EqualFold(k, "Secret") {
 				if secs, err := a.GetSecrets(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "secrets:update", secs)
+					emitEvent(a.ctx, "secrets:update", secs)
 				}
 			}
 			// If we created a ConfigMap, emit configmaps snapshot
 			if strings.EqualFold(k, "ConfigMap") {
 				if cms, err := a.GetConfigMaps(ns); err == nil {
-					runtime.EventsEmit(a.ctx, "configmaps:update", cms)
+					emitEvent(a.ctx, "configmaps:update", cms)
 				}
 			}
 		}

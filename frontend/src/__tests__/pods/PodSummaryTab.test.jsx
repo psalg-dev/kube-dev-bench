@@ -213,15 +213,19 @@ describe('PodSummaryTab', () => {
       });
     });
 
-    it('shows no events message when empty', async () => {
+    it('hides events section when no events', async () => {
       mockGetPodEvents.mockResolvedValue([]);
       mockGetPodEventsLegacy.mockResolvedValue([]);
 
       render(<PodSummaryTab podName="example-pod" />);
 
+      // Wait for data to load
       await waitFor(() => {
-        expect(screen.getByText(/No recent events/i)).toBeInTheDocument();
+        expect(screen.getByText('test')).toBeInTheDocument(); // namespace
       });
+      
+      // Events section should not be visible when there are no events
+      expect(screen.queryByText('Events')).not.toBeInTheDocument();
     });
   });
 
@@ -238,16 +242,20 @@ describe('PodSummaryTab', () => {
       });
     });
 
-    it('displays error message when events fetch fails', async () => {
+    it('hides events section when events fetch fails', async () => {
       mockGetPodSummary.mockResolvedValue({ name: 'example-pod', namespace: 'test' });
       mockGetPodEvents.mockRejectedValue(new Error('Events error'));
       mockGetPodEventsLegacy.mockRejectedValue(new Error('Events error'));
 
       render(<PodSummaryTab podName="example-pod" />);
 
+      // Wait for summary data to load
       await waitFor(() => {
-        expect(screen.getByText(/Error:.*Events error/)).toBeInTheDocument();
+        expect(screen.getByText('test')).toBeInTheDocument(); // namespace
       });
+      
+      // Events section should not be visible when fetch fails (no events loaded)
+      expect(screen.queryByText('Events')).not.toBeInTheDocument();
     });
   });
 

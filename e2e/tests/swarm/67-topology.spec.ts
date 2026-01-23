@@ -31,6 +31,12 @@ test.describe('Docker Swarm Cluster Topology', () => {
 
     const panel = new SwarmBottomPanel(page);
     await panel.expectVisible();
+    
+    // Check for tabs that are always available - Holmes may not be configured
+    const summaryTab = panel.root.getByRole('button', { name: 'Summary', exact: true });
+    await expect(summaryTab).toBeVisible({ timeout: 10_000 });
+    
+    // Verify at least the basic tabs exist
     await panel.expectTabs(['Summary', 'Tasks', 'Logs']);
   });
 });

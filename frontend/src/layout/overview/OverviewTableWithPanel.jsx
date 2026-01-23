@@ -154,7 +154,10 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   };
 
   const getRowKey = (row, idx) => {
-    return String(row?.id ?? row?.name ?? idx);
+    // Include namespace to ensure uniqueness when same-named resources exist across namespaces
+    const ns = row?.namespace || row?.Namespace || '';
+    const name = row?.id ?? row?.name ?? row?.Name ?? idx;
+    return ns ? `${ns}/${name}` : String(name);
   };
 
   const buildMenuActions = (row) => {
@@ -164,11 +167,10 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     };
     const extra = typeof getRowActions === 'function' ? (getRowActions(row, api) || []) : [];
     const normalizedExtra = Array.isArray(extra) ? extra.filter(Boolean) : [];
-    const includeCloseItem = createPlatform !== 'swarm';
+    // Removed Close item - menu closes automatically on click outside, focus loss, or Escape
     return [
       { label: 'Details', icon: '🔎', onClick: () => openBottomPanel(row) },
       ...normalizedExtra,
-      ...(includeCloseItem ? [{ label: 'Close', icon: '✖️', onClick: closeRowMenu }] : []),
     ];
   };
 
@@ -209,35 +211,13 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         <tbody>
           {filteredData.map((row, idx) => (
             !row ? null : (
-              <tr key={row.name || row.id || idx} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+              <tr key={getRowKey(row, idx)} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
                 {columns.map((col, colIdx) => (
                   <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
                     {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}
                   </td>
                 ))}
                 <td style={{ position: 'relative', textAlign: 'right' }}>
-                  <button
-                    type="button"
-                    aria-label="Details"
-                    title="Details"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openBottomPanel(row);
-                    }}
-                    style={{
-                      padding: '4px 10px',
-                      marginRight: 8,
-                      borderRadius: 4,
-                      border: '1px solid var(--gh-border, #30363d)',
-                      background: 'var(--gh-button-bg, #21262d)',
-                      color: 'var(--gh-text, #c9d1d9)',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      fontWeight: 500,
-                    }}
-                  >
-                    Details
-                  </button>
                   <button
                     type="button"
                     className="row-actions-button"
@@ -248,14 +228,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                       const key = getRowKey(row, idx);
                       setOpenMenuKey((cur) => (cur === key ? null : key));
                     }}
-                    style={{
-                      padding: '2px 8px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: 'var(--gh-table-header-text, #fff)',
-                      cursor: 'pointer',
-                    }}
-                  >...
+                  >···
                   </button>
 
                   {openMenuKey === getRowKey(row, idx) && (

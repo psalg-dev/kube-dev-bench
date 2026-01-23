@@ -4,6 +4,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 const sections: Array<{ key: string; title: RegExp; createLabel?: RegExp }> = [
   { key: 'pods', title: /pods/i, createLabel: /create/i },
   { key: 'deployments', title: /deployments/i, createLabel: /create new/i },
+  { key: 'services', title: /services/i, createLabel: /create new/i },
   { key: 'jobs', title: /jobs/i, createLabel: /create new/i },
   { key: 'cronjobs', title: /cron jobs/i, createLabel: /create new/i },
   { key: 'daemonsets', title: /daemon sets/i, createLabel: /create new/i },

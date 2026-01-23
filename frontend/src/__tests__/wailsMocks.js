@@ -23,7 +23,7 @@ export const genericAPIMock = vi.fn(() => Promise.resolve(undefined));
 export const appApiMocks = {};
 
 const appFunctionNames = [
-  'CreateResource','DeletePod','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','ResizePersistentVolumeClaim','GetServiceSummary','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetReplicaSets','GetResourceCounts','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
+  'CreateResource','DeletePod','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','ResizePersistentVolumeClaim','GetServiceSummary','GetServices','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetReplicaSets','GetResourceCounts','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
   // Proxy functions
   'GetProxyConfig','SetProxyConfig','DetectSystemProxy','ClearProxyConfig',
   // Hooks functions
@@ -49,7 +49,13 @@ const appFunctionNames = [
   // Registry Integration
   'GetRegistries','AddRegistry','RemoveRegistry','TestRegistryConnection','ListRegistryRepositories','ListRegistryTags','GetImageDigest',
   // Helm functions
-  'GetHelmReleases','GetHelmRepositories','AddHelmRepository','RemoveHelmRepository','UpdateHelmRepositories','SearchHelmCharts','GetHelmChartVersions','InstallHelmChart','UpgradeHelmRelease','UninstallHelmRelease','RollbackHelmRelease','GetHelmReleaseHistory','GetHelmReleaseValues','GetHelmReleaseManifest','GetHelmReleaseNotes','StartHelmReleasePolling'
+  'GetHelmReleases','GetHelmRepositories','AddHelmRepository','RemoveHelmRepository','UpdateHelmRepositories','SearchHelmCharts','GetHelmChartVersions','InstallHelmChart','UpgradeHelmRelease','UninstallHelmRelease','RollbackHelmRelease','GetHelmReleaseHistory','GetHelmReleaseValues','GetHelmReleaseManifest','GetHelmReleaseNotes','StartHelmReleasePolling',
+  // Holmes AI functions
+  'AskHolmes','AskHolmesStream','AnalyzePod','AnalyzeDeployment','AnalyzeStatefulSet','AnalyzeDaemonSet','AnalyzeService','AnalyzeResource','GetHolmesConfig','SetHolmesConfig','TestHolmesConnection','CheckHolmesDeployment','DeployHolmesGPT','UndeployHolmesGPT',
+  // Monitor enhancements
+  'ScanClusterHealth','AnalyzeMonitorIssue','AnalyzeMonitorIssueStream','AnalyzeAllMonitorIssues','DismissMonitorIssue','SaveMonitorIssueAnalysis','GetDismissedIssues',
+  // Prometheus alerts
+  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {
@@ -72,7 +78,7 @@ vi.mock('../../wailsjs/go/main/App', () => {
     } else if (name === 'UpdateSwarmNodeLabels') {
       exports[name] = (...args) => updateSwarmNodeLabelsMock(...args);
     } else {
-      const fn = (...args) => genericAPIMock(name, ...args);
+      const fn = vi.fn((...args) => genericAPIMock(name, ...args));
       appApiMocks[name] = fn;
       exports[name] = fn;
     }
@@ -103,5 +109,10 @@ export function resetAllMocks() {
   eventsOnMock.mockReset();
   genericAPIMock.mockReset();
   genericAPIMock.mockImplementation(() => Promise.resolve(undefined));
-  Object.values(appApiMocks).forEach((m) => m.mock && m.mockReset && m.mockReset());
+  Object.entries(appApiMocks).forEach(([name, mockFn]) => {
+    if (mockFn && mockFn.mockReset) {
+      mockFn.mockReset();
+      mockFn.mockImplementation((...args) => genericAPIMock(name, ...args));
+    }
+  });
 }

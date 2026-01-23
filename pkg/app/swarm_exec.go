@@ -14,7 +14,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type swarmExecClient interface {
@@ -88,7 +87,7 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 		attach, execID, initial, err = swarmExecAttachTTYWithProbe(sessCtx, cli, containerID, candidate)
 		if err == nil {
 			if (shell == "" || shell == "auto") && i > 0 {
-				wailsRuntime.EventsEmit(a.ctx, termOutputEvent(sessionID), fmt.Sprintf("[fallback to %s]\r\n", candidate))
+				emitEvent(a.ctx, termOutputEvent(sessionID), fmt.Sprintf("[fallback to %s]\r\n", candidate))
 			}
 			break
 		}
@@ -120,7 +119,7 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 	// Stream output.
 	go func() {
 		defer func() {
-			wailsRuntime.EventsEmit(a.ctx, termExitEvent(sessionID), "[session closed]")
+			emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
 		}()
 		defer func() {
 			// Best-effort cleanup (StopShellSession should also do this).
@@ -131,7 +130,7 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 		for {
 			n, rerr := reader.Read(buf)
 			if n > 0 {
-				wailsRuntime.EventsEmit(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
+				emitEvent(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
 			}
 			if rerr != nil {
 				if rerr == io.EOF {

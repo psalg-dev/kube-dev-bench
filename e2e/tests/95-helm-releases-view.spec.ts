@@ -155,8 +155,20 @@ test.describe('Helm Release Operations', () => {
       await expect(page.locator('h2.overview-title:visible')).toHaveText(/helm releases/i, { timeout: 60_000 });
 
       const releaseRowForOpen = page.locator('table.gh-table tbody tr').filter({ hasText: releaseName });
-      await expect(releaseRowForOpen).toBeVisible({ timeout: 60_000 });
-      await releaseRowForOpen.getByRole('button', { name: 'Details', exact: true }).click();
+      
+      // Clear any filter that might be hiding rows
+      const filterInput = page.getByRole('searchbox', { name: /filter/i });
+      if (await filterInput.isVisible().catch(() => false)) {
+        await filterInput.fill('');
+      }
+      
+      // Poll for the row to be visible with retries
+      await expect(async () => {
+        await expect(releaseRowForOpen).toBeVisible();
+      }).toPass({ timeout: 60_000, intervals: [1000, 2000, 5000] });
+      
+      // Click the row to open details panel (Helm Releases table uses row click, not Details button)
+      await releaseRowForOpen.click();
 
       const panel = new BottomPanel(page);
       await panel.expectVisible(30_000);
@@ -224,7 +236,7 @@ test.describe('Helm Release Operations', () => {
       // The app may navigate but not always auto-open the row under load; open it explicitly.
       const cmRow = page.locator('table.gh-table tbody tr').filter({ hasText: expectedResourceName }).first();
       await expect(cmRow).toBeVisible({ timeout: 60_000 });
-      await cmRow.getByRole('button', { name: 'Details', exact: true }).click();
+      await cmRow.click();
 
       const cmPanel = new BottomPanel(page);
       await cmPanel.expectVisible(30_000);

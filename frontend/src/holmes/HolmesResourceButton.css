@@ -1,0 +1,46 @@
+.holmes-resource-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-button-bg, #21262d);
+  color: var(--gh-text, #c9d1d9);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.holmes-resource-button-prominent {
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.15) 0%, rgba(136, 87, 255, 0.15) 100%);
+  border: 1px solid rgba(88, 166, 255, 0.4);
+  color: var(--gh-accent, #58a6ff);
+  transition: all 0.2s ease;
+}
+
+.holmes-resource-button-prominent:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.25) 0%, rgba(136, 87, 255, 0.25) 100%);
+  border-color: rgba(88, 166, 255, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(88, 166, 255, 0.2);
+}
+
+.holmes-resource-button-prominent .holmes-resource-button-icon {
+  font-size: 18px;
+}
+
+.holmes-resource-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.holmes-resource-button:hover:not(:disabled) {
+  background: var(--gh-button-hover-bg, #30363d);
+}
+
+.holmes-resource-button-icon {
+  font-size: 14px;
+}

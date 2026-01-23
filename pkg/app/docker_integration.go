@@ -21,7 +21,6 @@ import (
 	"github.com/docker/docker/api/types"
 	registrytypes "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // ==================== Registry Integration (Swarm) ====================
@@ -347,7 +346,7 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 	}
 
 	// Emit docker:connected event so frontend can refetch counts
-	wailsRuntime.EventsEmit(a.ctx, "docker:connected", status)
+	emitEvent(a.ctx, "docker:connected", status)
 
 	// Fire post-connect hooks asynchronously after successful connection.
 	a.runPostConnectHooksAsync("swarm", resolvedConfig.Host, preEnv)
@@ -1147,7 +1146,7 @@ func (a *App) StartSwarmServicePolling() {
 			if err != nil {
 				continue
 			}
-			wailsRuntime.EventsEmit(a.ctx, "swarm:services:update", services)
+			emitEvent(a.ctx, "swarm:services:update", services)
 		}
 	}()
 }
@@ -1168,7 +1167,7 @@ func (a *App) StartSwarmTaskPolling() {
 			if err != nil {
 				continue
 			}
-			wailsRuntime.EventsEmit(a.ctx, "swarm:tasks:update", tasks)
+			emitEvent(a.ctx, "swarm:tasks:update", tasks)
 		}
 	}()
 }
@@ -1189,7 +1188,7 @@ func (a *App) StartSwarmNodePolling() {
 			if err != nil {
 				continue
 			}
-			wailsRuntime.EventsEmit(a.ctx, "swarm:nodes:update", nodes)
+			emitEvent(a.ctx, "swarm:nodes:update", nodes)
 		}
 	}()
 }
@@ -1207,7 +1206,7 @@ func (a *App) StartSwarmResourceCountsPolling() {
 				// Only log on first failure to avoid spam
 				continue
 			}
-			wailsRuntime.EventsEmit(a.ctx, "swarm:resourcecounts:update", counts)
+			emitEvent(a.ctx, "swarm:resourcecounts:update", counts)
 		}
 	}()
 }
@@ -1337,9 +1336,9 @@ func (a *App) StartSwarmMetricsPolling() {
 			if err != nil {
 				continue
 			}
-			wailsRuntime.EventsEmit(a.ctx, "swarm:metrics:update", p)
+			emitEvent(a.ctx, "swarm:metrics:update", p)
 			if len(breakdown.Services) > 0 || len(breakdown.Nodes) > 0 {
-				wailsRuntime.EventsEmit(a.ctx, "swarm:metrics:breakdown", breakdown)
+				emitEvent(a.ctx, "swarm:metrics:breakdown", breakdown)
 			}
 		}
 	}()
@@ -1395,7 +1394,7 @@ func (a *App) StartSwarmImageUpdatePolling() {
 			}
 
 			updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
-			wailsRuntime.EventsEmit(a.ctx, "swarm:image:updates", updates)
+			emitEvent(a.ctx, "swarm:image:updates", updates)
 
 			time.Sleep(settings.Interval())
 		}

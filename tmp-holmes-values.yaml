@@ -1,0 +1,106 @@
+
+additionalEnvVars:
+  - name: OPENAI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: holmes-openai
+        key: openai-api-key
+
+modelList:
+  gpt-5:
+    api_key: "{{ env.OPENAI_API_KEY }}"
+    model: openai/gpt-5
+    temperature: 0
+    reasoning_effort: low
+
+# ============================================================================
+# TOOLSETS - All available built-in toolsets for debugging and analysis
+# See: https://holmesgpt.dev/data-sources/builtin-toolsets/
+# ============================================================================
+toolsets:
+  # --- Core Kubernetes Toolsets (always enabled) ---
+  kubernetes/core:
+    enabled: true        # Core Kubernetes functionality (kubectl describe, events, status)
+  kubernetes/logs:
+    enabled: true        # Kubernetes pod logs access
+
+  # --- Infrastructure & Orchestration ---
+  helm:
+    enabled: true        # Helm release status, chart metadata, and values
+  argocd:
+    enabled: true        # ArgoCD apps, projects, clusters status and manifests
+  docker:
+    enabled: true        # Docker images, logs, events, history
+  cilium:
+    enabled: true        # Cilium network policies and connectivity
+
+  # --- Observability & Monitoring ---
+  prometheus/metrics:
+    enabled: true        # Prometheus alerts, metrics queries, PromQL generation
+  grafana/dashboards:
+    enabled: true        # Grafana dashboard queries
+  grafana/loki:
+    enabled: true        # Loki log queries for Kubernetes resources
+  grafana/tempo:
+    enabled: true        # Tempo trace info for debugging latency issues
+
+  # --- Cloud Providers (enable as needed based on your environment) ---
+  # aws:
+  #   enabled: true      # AWS RDS events, instances, slow query logs (requires AWS creds)
+  # azure/aks:
+  #   enabled: true      # Azure Kubernetes Service diagnostics
+  # azure/sql:
+  #   enabled: true      # Azure SQL Database diagnostics
+  # gcp:
+  #   enabled: true      # Google Cloud Platform integration (MCP)
+
+  # --- Message Queues & Streaming ---
+  kafka:
+    enabled: false        # Kafka metadata, consumers, topics, lagging consumer groups
+  rabbitmq:
+    enabled: false        # RabbitMQ partitions, memory/disk alerts, split-brain scenarios
+
+  # --- Databases & Search ---
+  elasticsearch:
+    enabled: false        # Elasticsearch/OpenSearch cluster health, shards, settings
+  # mongodb-atlas:
+  #   enabled: true      # MongoDB Atlas diagnostics (requires API key)
+
+  # --- Knowledge Bases & Runbooks ---
+  internet:
+    enabled: true        # Public runbooks, community docs, Stack Overflow, etc.
+  # confluence:
+  #   enabled: true      # Private runbooks and documentation (requires auth)
+  # notion:
+  #   enabled: true      # Notion knowledge base (requires API key)
+  # slab:
+  #   enabled: true      # Slab team knowledge base (requires API key)
+  # servicenow:
+  #   enabled: true      # ServiceNow integration (requires auth)
+
+  # --- Third-Party Observability Platforms (enable as needed) ---
+  # datadog:
+  #   enabled: true      # DataDog logs and traces (requires API key)
+  # newrelic:
+  #   enabled: true      # New Relic alerts and tracing (requires API key)
+  # coralogix:
+  #   enabled: true      # Coralogix logs (requires auth)
+
+  # --- Robusta Platform ---
+  robusta:
+    enabled: false        # Multi-cluster monitoring, historical data, PromQL graphs
+
+  # --- Utilities ---
+  connectivity-check:
+    enabled: true        # Network connectivity diagnostics
+  # bash:
+  #   enabled: true      # Execute bash commands (use with caution)
+
+# ============================================================================
+# CUSTOM RUNBOOKS - Add your organization-specific runbooks
+# See: https://holmesgpt.dev/data-sources/custom-toolsets/
+# ============================================================================
+# runbooks:
+#   - url: https://your-org.github.io/runbooks/kubernetes-runbooks.yaml
+#   - url: https://your-org.github.io/runbooks/app-specific-runbooks.yaml
+

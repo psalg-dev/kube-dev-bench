@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -66,8 +67,8 @@ func (a *App) GetPodEvents(namespace string, podName string) ([]EventInfo, error
 				Reason:         e.Reason,
 				Message:        e.Message,
 				Count:          e.Count,
-				FirstTimestamp: first,
-				LastTimestamp:  last,
+				FirstTimestamp: formatEventTime(first),
+				LastTimestamp:  formatEventTime(last),
 				Source:         source,
 			})
 		}
@@ -102,14 +103,16 @@ func (a *App) GetPodEvents(namespace string, podName string) ([]EventInfo, error
 				Reason:         e.Reason,
 				Message:        msg,
 				Count:          count,
-				FirstTimestamp: first,
-				LastTimestamp:  last,
+				FirstTimestamp: formatEventTime(first),
+				LastTimestamp:  formatEventTime(last),
 				Source:         source,
 			})
 		}
 	}
 	// sort newest first
-	sort.Slice(res, func(i, j int) bool { return res[i].LastTimestamp.After(res[j].LastTimestamp) })
+	sort.Slice(res, func(i, j int) bool {
+		return parseEventTime(res[i].LastTimestamp).After(parseEventTime(res[j].LastTimestamp))
+	})
 	return res, nil
 }
 
@@ -182,8 +185,8 @@ func (a *App) GetResourceEvents(namespace, kind, name string) ([]EventInfo, erro
 				Reason:         e.Reason,
 				Message:        e.Message,
 				Count:          e.Count,
-				FirstTimestamp: first,
-				LastTimestamp:  last,
+				FirstTimestamp: formatEventTime(first),
+				LastTimestamp:  formatEventTime(last),
 				Source:         source,
 			})
 		}
@@ -219,14 +222,38 @@ func (a *App) GetResourceEvents(namespace, kind, name string) ([]EventInfo, erro
 				Reason:         e.Reason,
 				Message:        msg,
 				Count:          count,
-				FirstTimestamp: first,
-				LastTimestamp:  last,
+				FirstTimestamp: formatEventTime(first),
+				LastTimestamp:  formatEventTime(last),
 				Source:         source,
 			})
 		}
 	}
 
 	// sort newest first
-	sort.Slice(res, func(i, j int) bool { return res[i].LastTimestamp.After(res[j].LastTimestamp) })
+	sort.Slice(res, func(i, j int) bool {
+		return parseEventTime(res[i].LastTimestamp).After(parseEventTime(res[j].LastTimestamp))
+	})
 	return res, nil
+}
+
+func formatEventTime(value time.Time) string {
+	if value.IsZero() {
+		return ""
+	}
+	return value.UTC().Format(time.RFC3339Nano)
+}
+
+func parseEventTime(value string) time.Time {
+	if value == "" {
+		return time.Time{}
+	}
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err == nil {
+		return parsed
+	}
+	parsed, err = time.Parse(time.RFC3339, value)
+	if err == nil {
+		return parsed
+	}
+	return time.Time{}
 }

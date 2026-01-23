@@ -10,8 +10,100 @@ export function AddRegistry(arg1) {
   return window['go']['main']['App']['AddRegistry'](arg1);
 }
 
+export function AnalyzeAllMonitorIssues() {
+  return window['go']['main']['App']['AnalyzeAllMonitorIssues']();
+}
+
+export function AnalyzeDaemonSet(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeDaemonSet'](arg1, arg2);
+}
+
+export function AnalyzeDaemonSetStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeDaemonSetStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeDeployment(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeDeployment'](arg1, arg2);
+}
+
+export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeLogs(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['AnalyzeLogs'](arg1, arg2, arg3, arg4);
+}
+
+export function AnalyzeMonitorIssue(arg1) {
+  return window['go']['main']['App']['AnalyzeMonitorIssue'](arg1);
+}
+
+export function AnalyzeMonitorIssueStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeMonitorIssueStream'](arg1, arg2);
+}
+
+export function AnalyzePod(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzePod'](arg1, arg2);
+}
+
+export function AnalyzePodLogs(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzePodLogs'](arg1, arg2, arg3);
+}
+
+export function AnalyzePodStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzePodStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeResource(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeResource'](arg1, arg2, arg3);
+}
+
+export function AnalyzeResourceStream(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['AnalyzeResourceStream'](arg1, arg2, arg3, arg4);
+}
+
+export function AnalyzeService(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeService'](arg1, arg2);
+}
+
+export function AnalyzeServiceStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeServiceStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeStatefulSet(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeStatefulSet'](arg1, arg2);
+}
+
+export function AnalyzeStatefulSetStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeStatefulSetStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeSwarmService(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmService'](arg1);
+}
+
+export function AnalyzeSwarmServiceStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmServiceStream'](arg1, arg2);
+}
+
+export function AnalyzeSwarmTask(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmTask'](arg1);
+}
+
+export function AnalyzeSwarmTaskStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmTaskStream'](arg1, arg2);
+}
+
 export function ArchivePVCPath(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ArchivePVCPath'](arg1, arg2, arg3, arg4);
+}
+
+export function AskHolmes(arg1) {
+  return window['go']['main']['App']['AskHolmes'](arg1);
+}
+
+export function AskHolmesStream(arg1, arg2) {
+  return window['go']['main']['App']['AskHolmesStream'](arg1, arg2);
 }
 
 export function AutoConnectDocker() {
@@ -22,8 +114,20 @@ export function BackupSwarmVolume(arg1) {
   return window['go']['main']['App']['BackupSwarmVolume'](arg1);
 }
 
+export function CancelHolmesStream(arg1) {
+  return window['go']['main']['App']['CancelHolmesStream'](arg1);
+}
+
+export function CheckHolmesDeployment() {
+  return window['go']['main']['App']['CheckHolmesDeployment']();
+}
+
 export function CheckServiceImageUpdates(arg1) {
   return window['go']['main']['App']['CheckServiceImageUpdates'](arg1);
+}
+
+export function ClearHolmesConfig() {
+  return window['go']['main']['App']['ClearHolmesConfig']();
 }
 
 export function ClearProxyConfig() {
@@ -138,12 +242,24 @@ export function DeleteSwarmVolumeFile(arg1, arg2, arg3) {
   return window['go']['main']['App']['DeleteSwarmVolumeFile'](arg1, arg2, arg3);
 }
 
+export function DeployHolmesGPT(arg1) {
+  return window['go']['main']['App']['DeployHolmesGPT'](arg1);
+}
+
+export function DetectLogPatterns(arg1) {
+  return window['go']['main']['App']['DetectLogPatterns'](arg1);
+}
+
 export function DetectSystemProxy() {
   return window['go']['main']['App']['DetectSystemProxy']();
 }
 
 export function DisconnectDocker() {
   return window['go']['main']['App']['DisconnectDocker']();
+}
+
+export function DismissMonitorIssue(arg1) {
+  return window['go']['main']['App']['DismissMonitorIssue'](arg1);
 }
 
 export function DownloadFromSwarmVolume(arg1, arg2) {
@@ -156,6 +272,10 @@ export function ExecCommand(arg1) {
 
 export function ExportSwarmConfig(arg1, arg2) {
   return window['go']['main']['App']['ExportSwarmConfig'](arg1, arg2);
+}
+
+export function GetAlertInvestigationHistory() {
+  return window['go']['main']['App']['GetAlertInvestigationHistory']();
 }
 
 export function GetClusterTopology() {
@@ -222,6 +342,10 @@ export function GetDeployments(arg1) {
   return window['go']['main']['App']['GetDeployments'](arg1);
 }
 
+export function GetDismissedIssues() {
+  return window['go']['main']['App']['GetDismissedIssues']();
+}
+
 export function GetDockerConfig() {
   return window['go']['main']['App']['GetDockerConfig']();
 }
@@ -260,6 +384,14 @@ export function GetHelmReleases(arg1) {
 
 export function GetHelmRepositories() {
   return window['go']['main']['App']['GetHelmRepositories']();
+}
+
+export function GetHolmesConfig() {
+  return window['go']['main']['App']['GetHolmesConfig']();
+}
+
+export function GetHolmesLogPath() {
+  return window['go']['main']['App']['GetHolmesLogPath']();
 }
 
 export function GetHooksConfig() {
@@ -386,6 +518,10 @@ export function GetPodYAML(arg1) {
   return window['go']['main']['App']['GetPodYAML'](arg1);
 }
 
+export function GetPrometheusAlerts(arg1) {
+  return window['go']['main']['App']['GetPrometheusAlerts'](arg1);
+}
+
 export function GetProxyConfig() {
   return window['go']['main']['App']['GetProxyConfig']();
 }
@@ -448,6 +584,10 @@ export function GetSecrets(arg1) {
 
 export function GetServiceSummary(arg1, arg2) {
   return window['go']['main']['App']['GetServiceSummary'](arg1, arg2);
+}
+
+export function GetServices(arg1) {
+  return window['go']['main']['App']['GetServices'](arg1);
 }
 
 export function GetStatefulSetDetail(arg1, arg2) {
@@ -618,6 +758,10 @@ export function InstallHelmChart(arg1) {
   return window['go']['main']['App']['InstallHelmChart'](arg1);
 }
 
+export function InvestigatePrometheusAlert(arg1) {
+  return window['go']['main']['App']['InvestigatePrometheusAlert'](arg1);
+}
+
 export function IsProxyEnabled() {
   return window['go']['main']['App']['IsProxyEnabled']();
 }
@@ -664,6 +808,10 @@ export function PruneSwarmVolumes() {
 
 export function PullDockerImageLatest(arg1, arg2) {
   return window['go']['main']['App']['PullDockerImageLatest'](arg1, arg2);
+}
+
+export function ReconnectHolmes() {
+  return window['go']['main']['App']['ReconnectHolmes']();
 }
 
 export function RemoveHelmRepository(arg1) {
@@ -758,6 +906,10 @@ export function SaveHook(arg1) {
   return window['go']['main']['App']['SaveHook'](arg1);
 }
 
+export function SaveMonitorIssueAnalysis(arg1, arg2) {
+  return window['go']['main']['App']['SaveMonitorIssueAnalysis'](arg1, arg2);
+}
+
 export function SavePrimaryKubeConfig(arg1) {
   return window['go']['main']['App']['SavePrimaryKubeConfig'](arg1);
 }
@@ -768,6 +920,10 @@ export function ScaleResource(arg1, arg2, arg3, arg4) {
 
 export function ScaleSwarmService(arg1, arg2) {
   return window['go']['main']['App']['ScaleSwarmService'](arg1, arg2);
+}
+
+export function ScanClusterHealth() {
+  return window['go']['main']['App']['ScanClusterHealth']();
 }
 
 export function SearchDockerHubRepositories(arg1) {
@@ -804,6 +960,10 @@ export function SetCurrentKubeContext(arg1) {
 
 export function SetCurrentNamespace(arg1) {
   return window['go']['main']['App']['SetCurrentNamespace'](arg1);
+}
+
+export function SetHolmesConfig(arg1) {
+  return window['go']['main']['App']['SetHolmesConfig'](arg1);
 }
 
 export function SetImageUpdateSettings(arg1) {
@@ -852,6 +1012,10 @@ export function StartDeploymentPolling() {
 
 export function StartHelmReleasePolling() {
   return window['go']['main']['App']['StartHelmReleasePolling']();
+}
+
+export function StartHolmesPortForward(arg1) {
+  return window['go']['main']['App']['StartHolmesPortForward'](arg1);
 }
 
 export function StartJob(arg1, arg2) {
@@ -918,6 +1082,10 @@ export function Startup(arg1) {
   return window['go']['main']['App']['Startup'](arg1);
 }
 
+export function StopHolmesPortForward(arg1) {
+  return window['go']['main']['App']['StopHolmesPortForward'](arg1);
+}
+
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
 }
@@ -954,12 +1122,20 @@ export function TestDockerConnection(arg1) {
   return window['go']['main']['App']['TestDockerConnection'](arg1);
 }
 
+export function TestHolmesConnection() {
+  return window['go']['main']['App']['TestHolmesConnection']();
+}
+
 export function TestHook(arg1) {
   return window['go']['main']['App']['TestHook'](arg1);
 }
 
 export function TestRegistryConnection(arg1) {
   return window['go']['main']['App']['TestRegistryConnection'](arg1);
+}
+
+export function UndeployHolmesGPT(arg1, arg2) {
+  return window['go']['main']['App']['UndeployHolmesGPT'](arg1, arg2);
 }
 
 export function UninstallHelmRelease(arg1, arg2) {

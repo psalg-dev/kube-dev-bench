@@ -10,6 +10,7 @@ import FilesTab from '../../../layout/bottompanel/FilesTab.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import PVCBoundPVTab from './PVCBoundPVTab.jsx';
 import PVCConsumersTab from './PVCConsumersTab.jsx';
+import { showSuccess, showError } from '../../../notification';
 
 export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
@@ -245,6 +246,22 @@ status:
     );
   }
 
+  const getRowActions = (row) => [
+    {
+      label: 'Delete',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        try {
+          await AppAPI.DeleteResource('pvc', row.namespace, row.name);
+          showSuccess(`PVC '${row.name}' deleted`);
+        } catch (err) {
+          showError(`Failed to delete PVC '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
+
   return (
     <OverviewTableWithPanel
       title="Persistent Volume Claims"
@@ -257,6 +274,7 @@ status:
       resourceKind="persistentvolumeclaim"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
       onCreateResource={onPVCCreate}
+      getRowActions={getRowActions}
     />
   );
 }

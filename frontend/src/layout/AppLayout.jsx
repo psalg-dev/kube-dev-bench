@@ -57,14 +57,32 @@ function DockerSwarmSidebar({ selectedSection, onSelectSection, onOpenConnection
  * that queries by id (#kubecontext-root, #namespace-root, #sidebar-sections, etc.) continues to work.
  * Future phases will replace these id-based mutations with declarative React state.
  */
-export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard }) {
+export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard, onToggleHolmes, holmesPanelVisible }) {
   const hideKubernetesSelectors = kubernetesAvailable === false;
   return (
     <div id="layout">
       <aside id="sidebar">
         <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
           <span style={{fontSize:14, color:'var(--gh-text-secondary, #ccc)'}}>Connection</span>
-          <button id="show-wizard-btn" onClick={onOpenConnectionsWizard} style={{background:'transparent', border:'1px solid var(--gh-border, #444)', color:'var(--gh-text-secondary, #ccc)', padding:'4px 8px', borderRadius:0, cursor:'pointer', fontSize:12}} title="Show Connection Wizard">⚙️</button>
+          <div style={{display:'flex', gap:4}}>
+            <button
+              id="holmes-toggle-btn"
+              onClick={onToggleHolmes}
+              title="Toggle Holmes AI (Ctrl+Shift+H)"
+              style={{
+                background: holmesPanelVisible ? 'var(--gh-accent, #238636)' : 'transparent',
+                border: '1px solid var(--gh-border, #444)',
+                color: holmesPanelVisible ? '#ffffff' : 'var(--gh-text-secondary, #ccc)',
+                padding: '4px 8px',
+                borderRadius: 0,
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              🔍
+            </button>
+            <button id="show-wizard-btn" onClick={onOpenConnectionsWizard} style={{background:'transparent', border:'1px solid var(--gh-border, #444)', color:'var(--gh-text-secondary, #ccc)', padding:'4px 8px', borderRadius:0, cursor:'pointer', fontSize:12}} title="Show Connection Wizard">⚙️</button>
+          </div>
         </div>
         <label htmlFor="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>Context:</label>
         <div className="input" id="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>{contextSelectEl}</div>

@@ -1,0 +1,136 @@
+.monitor-issue-card {
+  background: var(--gh-bg-secondary, #161b22);
+  border: 1px solid var(--gh-border, #30363d);
+  border-left: 3px solid #dbab09;
+  border-radius: 6px;
+  padding: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.monitor-issue-card:hover {
+  background: var(--gh-bg-tertiary, #1c2128);
+  transform: translateY(-1px);
+}
+
+.monitor-issue-card[data-issue-type="error"] {
+  border-left-color: #d73a49;
+}
+
+.monitor-issue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.monitor-issue-pill {
+  background: #dbab09;
+  color: #fff;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.monitor-issue-pill.is-error {
+  background: #d73a49;
+}
+
+.monitor-issue-meta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.monitor-issue-namespace {
+  background: var(--gh-bg-tertiary, #1c2128);
+  color: var(--gh-text-muted, #8b949e);
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.monitor-issue-age {
+  color: var(--gh-text-muted, #8b949e);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.monitor-issue-path {
+  margin-bottom: 10px;
+  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
+  font-size: 12px;
+  color: var(--gh-text-primary, #c9d1d9);
+  font-weight: 500;
+  padding: 6px 8px;
+  background: var(--gh-bg-primary, #0d1117);
+  border-radius: 4px;
+  border: 1px solid var(--gh-border, #30363d);
+}
+
+.monitor-issue-details {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.monitor-issue-restarts.hot {
+  color: #f85149;
+  font-weight: 600;
+}
+
+.monitor-issue-message {
+  color: var(--gh-text-secondary, #8b949e);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.monitor-issue-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.monitor-issue-btn {
+  background: #238636;
+  color: #fff;
+  border: 1px solid #238636;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.monitor-issue-btn.secondary {
+  background: transparent;
+  color: var(--gh-text, #c9d1d9);
+  border-color: var(--gh-border, #30363d);
+}
+
+.monitor-issue-btn.ghost {
+  background: transparent;
+  color: var(--gh-text-muted, #8b949e);
+  border-color: transparent;
+}
+
+.monitor-issue-analysis-meta {
+  font-size: 11px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.monitor-issue-analysis {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--gh-bg-primary, #0d1117);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+}

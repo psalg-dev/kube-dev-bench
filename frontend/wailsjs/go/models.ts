@@ -1,5 +1,40 @@
 export namespace app {
 	
+	export class AlertInvestigation {
+	    alertName: string;
+	    // Go type: time
+	    timestamp: any;
+	    analysis: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new AlertInvestigation(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.alertName = source["alertName"];
+	        this.timestamp = this.convertValues(source["timestamp"], null);
+	        this.analysis = source["analysis"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
 	export class AppConfig {
 	    currentContext: string;
 	    currentNamespace: string;
@@ -11,6 +46,7 @@ export namespace app {
 	    proxyAuthType: string;
 	    proxyUsername: string;
 	    proxyPassword: string;
+	    holmesConfig?: holmesgpt.HolmesConfigData;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -28,7 +64,26 @@ export namespace app {
 	        this.proxyAuthType = source["proxyAuthType"];
 	        this.proxyUsername = source["proxyUsername"];
 	        this.proxyPassword = source["proxyPassword"];
+	        this.holmesConfig = this.convertValues(source["holmesConfig"], holmesgpt.HolmesConfigData);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class ArchiveResult {
 	    path: string;
@@ -483,10 +538,8 @@ export namespace app {
 	    reason: string;
 	    message: string;
 	    count: number;
-	    // Go type: time
-	    firstTimestamp: any;
-	    // Go type: time
-	    lastTimestamp: any;
+	    firstTimestamp: string;
+	    lastTimestamp: string;
 	    source: string;
 	
 	    static createFrom(source: any = {}) {
@@ -499,28 +552,10 @@ export namespace app {
 	        this.reason = source["reason"];
 	        this.message = source["message"];
 	        this.count = source["count"];
-	        this.firstTimestamp = this.convertValues(source["firstTimestamp"], null);
-	        this.lastTimestamp = this.convertValues(source["lastTimestamp"], null);
+	        this.firstTimestamp = source["firstTimestamp"];
+	        this.lastTimestamp = source["lastTimestamp"];
 	        this.source = source["source"];
 	    }
-	
-		convertValues(a: any, classs: any, asMap: boolean = false): any {
-		    if (!a) {
-		        return a;
-		    }
-		    if (a.slice && a.map) {
-		        return (a as any[]).map(elem => this.convertValues(elem, classs));
-		    } else if ("object" === typeof a) {
-		        if (asMap) {
-		            for (const key of Object.keys(a)) {
-		                a[key] = new classs(a[key]);
-		            }
-		            return a;
-		        }
-		        return new classs(a);
-		    }
-		    return a;
-		}
 	}
 	export class HelmChartInfo {
 	    name: string;
@@ -946,6 +981,131 @@ export namespace app {
 	        this.contexts = source["contexts"];
 	    }
 	}
+	export class LogPattern {
+	    type: string;
+	    pattern: string;
+	    occurrences: number;
+	    firstSeen: string;
+	    lastSeen: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LogPattern(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.pattern = source["pattern"];
+	        this.occurrences = source["occurrences"];
+	        this.firstSeen = source["firstSeen"];
+	        this.lastSeen = source["lastSeen"];
+	    }
+	}
+	export class MonitorIssue {
+	    type: string;
+	    resource: string;
+	    namespace: string;
+	    name: string;
+	    reason: string;
+	    message: string;
+	    containerName: string;
+	    restartCount: number;
+	    age: string;
+	    podPhase: string;
+	    ownerKind: string;
+	    ownerName: string;
+	    nodeName: string;
+	    issueID: string;
+	    holmesAnalyzed: boolean;
+	    holmesAnalysis: string;
+	    // Go type: time
+	    holmesAnalyzedAt: any;
+	    dismissed: boolean;
+	    // Go type: time
+	    dismissedAt: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorIssue(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.resource = source["resource"];
+	        this.namespace = source["namespace"];
+	        this.name = source["name"];
+	        this.reason = source["reason"];
+	        this.message = source["message"];
+	        this.containerName = source["containerName"];
+	        this.restartCount = source["restartCount"];
+	        this.age = source["age"];
+	        this.podPhase = source["podPhase"];
+	        this.ownerKind = source["ownerKind"];
+	        this.ownerName = source["ownerName"];
+	        this.nodeName = source["nodeName"];
+	        this.issueID = source["issueID"];
+	        this.holmesAnalyzed = source["holmesAnalyzed"];
+	        this.holmesAnalysis = source["holmesAnalysis"];
+	        this.holmesAnalyzedAt = this.convertValues(source["holmesAnalyzedAt"], null);
+	        this.dismissed = source["dismissed"];
+	        this.dismissedAt = this.convertValues(source["dismissedAt"], null);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	export class MonitorInfo {
+	    warningCount: number;
+	    errorCount: number;
+	    warnings: MonitorIssue[];
+	    errors: MonitorIssue[];
+	
+	    static createFrom(source: any = {}) {
+	        return new MonitorInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.warningCount = source["warningCount"];
+	        this.errorCount = source["errorCount"];
+	        this.warnings = this.convertValues(source["warnings"], MonitorIssue);
+	        this.errors = this.convertValues(source["errors"], MonitorIssue);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	
 	export class OverviewInfo {
 	    pods: number;
@@ -1202,8 +1362,7 @@ export namespace app {
 	export class PodSummary {
 	    name: string;
 	    namespace: string;
-	    // Go type: time
-	    created: any;
+	    created: string;
 	    labels: Record<string, string>;
 	    status: string;
 	    ports: number[];
@@ -1216,10 +1375,51 @@ export namespace app {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.name = source["name"];
 	        this.namespace = source["namespace"];
-	        this.created = this.convertValues(source["created"], null);
+	        this.created = source["created"];
 	        this.labels = source["labels"];
 	        this.status = source["status"];
 	        this.ports = source["ports"];
+	    }
+	}
+	export class PortForwardInfo {
+	    namespace: string;
+	    pod: string;
+	    local: number;
+	    remote: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PortForwardInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.namespace = source["namespace"];
+	        this.pod = source["pod"];
+	        this.local = source["local"];
+	        this.remote = source["remote"];
+	    }
+	}
+	export class PrometheusAlert {
+	    name: string;
+	    state: string;
+	    value: string;
+	    labels: Record<string, string>;
+	    annotations: Record<string, string>;
+	    // Go type: time
+	    activeAt: any;
+	
+	    static createFrom(source: any = {}) {
+	        return new PrometheusAlert(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.state = source["state"];
+	        this.value = source["value"];
+	        this.labels = source["labels"];
+	        this.annotations = source["annotations"];
+	        this.activeAt = this.convertValues(source["activeAt"], null);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -1239,24 +1439,6 @@ export namespace app {
 		    }
 		    return a;
 		}
-	}
-	export class PortForwardInfo {
-	    namespace: string;
-	    pod: string;
-	    local: number;
-	    remote: number;
-	
-	    static createFrom(source: any = {}) {
-	        return new PortForwardInfo(source);
-	    }
-	
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.namespace = source["namespace"];
-	        this.pod = source["pod"];
-	        this.local = source["local"];
-	        this.remote = source["remote"];
-	    }
 	}
 	export class ProxyConfig {
 	    url: string;
@@ -1334,6 +1516,7 @@ export namespace app {
 	}
 	export class ResourceCounts {
 	    podStatus: PodStatusCounts;
+	    services: number;
 	    deployments: number;
 	    jobs: number;
 	    cronjobs: number;
@@ -1354,6 +1537,7 @@ export namespace app {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.podStatus = this.convertValues(source["podStatus"], PodStatusCounts);
+	        this.services = source["services"];
 	        this.deployments = source["deployments"];
 	        this.jobs = source["jobs"];
 	        this.cronjobs = source["cronjobs"];
@@ -1422,6 +1606,30 @@ export namespace app {
 	        this.value = source["value"];
 	        this.size = source["size"];
 	        this.isBinary = source["isBinary"];
+	    }
+	}
+	export class ServiceInfo {
+	    name: string;
+	    namespace: string;
+	    type: string;
+	    clusterIP: string;
+	    ports: string;
+	    age: string;
+	    labels?: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new ServiceInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.type = source["type"];
+	        this.clusterIP = source["clusterIP"];
+	        this.ports = source["ports"];
+	        this.age = source["age"];
+	        this.labels = source["labels"];
 	    }
 	}
 	export class ServiceSummary {
@@ -2389,6 +2597,107 @@ export namespace docker {
 	}
 	
 	
+
+}
+
+export namespace holmesgpt {
+	
+	export class HolmesConfigData {
+	    enabled: boolean;
+	    endpoint: string;
+	    apiKey?: string;
+	    modelKey?: string;
+	    responseFormat?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesConfigData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.endpoint = source["endpoint"];
+	        this.apiKey = source["apiKey"];
+	        this.modelKey = source["modelKey"];
+	        this.responseFormat = source["responseFormat"];
+	    }
+	}
+	export class HolmesConnectionStatus {
+	    connected: boolean;
+	    endpoint: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesConnectionStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.connected = source["connected"];
+	        this.endpoint = source["endpoint"];
+	        this.error = source["error"];
+	    }
+	}
+	export class HolmesDeploymentRequest {
+	    openAIKey: string;
+	    namespace?: string;
+	    releaseName?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesDeploymentRequest(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.openAIKey = source["openAIKey"];
+	        this.namespace = source["namespace"];
+	        this.releaseName = source["releaseName"];
+	    }
+	}
+	export class HolmesDeploymentStatus {
+	    phase: string;
+	    message: string;
+	    progress: number;
+	    endpoint: string;
+	    error: string;
+	    releaseName: string;
+	    namespace: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesDeploymentStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.phase = source["phase"];
+	        this.message = source["message"];
+	        this.progress = source["progress"];
+	        this.endpoint = source["endpoint"];
+	        this.error = source["error"];
+	        this.releaseName = source["releaseName"];
+	        this.namespace = source["namespace"];
+	    }
+	}
+	export class HolmesResponse {
+	    response: string;
+	    analysis?: string;
+	    rich_output?: Record<string, any>;
+	    timestamp: string;
+	    query_id?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HolmesResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.response = source["response"];
+	        this.analysis = source["analysis"];
+	        this.rich_output = source["rich_output"];
+	        this.timestamp = source["timestamp"];
+	        this.query_id = source["query_id"];
+	    }
+	}
 
 }
 

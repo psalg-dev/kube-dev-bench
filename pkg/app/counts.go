@@ -2,8 +2,6 @@ package app
 
 import (
 	"time"
-
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // runResourceCountsAggregator periodically polls the cluster for the selected namespaces
@@ -69,7 +67,7 @@ func (a *App) refreshPodStatusOnly() {
 	a.resourceCountsMu.Lock()
 	a.lastResourceCounts = last
 	a.resourceCountsMu.Unlock()
-	runtime.EventsEmit(a.ctx, "resourcecounts:update", last)
+	emitEvent(a.ctx, "resourcecounts:update", last)
 }
 
 // refreshResourceCounts computes counts and emits an event if anything changed.
@@ -107,6 +105,9 @@ func (a *App) refreshResourceCounts() {
 		}
 		if deps, err := a.GetDeployments(ns); err == nil {
 			agg.Deployments += len(deps)
+		}
+		if svcs, err := a.GetServices(ns); err == nil {
+			agg.Services += len(svcs)
 		}
 		if jobs, err := a.GetJobs(ns); err == nil {
 			agg.Jobs += len(jobs)
@@ -154,7 +155,7 @@ func (a *App) refreshResourceCounts() {
 	a.lastResourceCounts = agg
 	a.resourceCountsMu.Unlock()
 
-	runtime.EventsEmit(a.ctx, "resourcecounts:update", agg)
+	emitEvent(a.ctx, "resourcecounts:update", agg)
 }
 
 // resourceCountsEqual shallow comparison including embedded pod status counts.
@@ -163,6 +164,7 @@ func resourceCountsEqual(aCnt, bCnt ResourceCounts) bool {
 		return false
 	}
 	return aCnt.Deployments == bCnt.Deployments &&
+		aCnt.Services == bCnt.Services &&
 		aCnt.Jobs == bCnt.Jobs &&
 		aCnt.CronJobs == bCnt.CronJobs &&
 		aCnt.DaemonSets == bCnt.DaemonSets &&

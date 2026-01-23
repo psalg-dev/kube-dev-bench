@@ -7,6 +7,8 @@ export function FooterBar() {
   const { selectedContext, selectedNamespaces, clusterConnected, connectionStatus } = useClusterState();
   const [monitorInfo, setMonitorInfo] = useState({ warningCount: 0, errorCount: 0, warnings: [], errors: [] });
   const [showPanel, setShowPanel] = useState(false);
+  const hasHolmesAnalysis = [...(monitorInfo.errors || []), ...(monitorInfo.warnings || [])]
+    .some((issue) => issue.holmesAnalyzed || (issue.holmesAnalysis && issue.holmesAnalysis.length > 0));
 
   useEffect(() => {
     const unsubscribe = EventsOn('monitor:update', (data) => {
@@ -48,10 +50,11 @@ export function FooterBar() {
               alignItems: 'center',
               gap: '4px'
             }}
-            title={`${monitorInfo.errorCount} error${monitorInfo.errorCount > 1 ? 's' : ''} detected`}
+            title={`${monitorInfo.errorCount} error${monitorInfo.errorCount > 1 ? 's' : ''} detected${hasHolmesAnalysis ? ' (Holmes analysis available)' : ''}`}
           >
             <span>⚠</span>
             <span>Errors: {monitorInfo.errorCount}</span>
+            {hasHolmesAnalysis && <span title="Holmes analysis available">🧠</span>}
           </button>
         )}
         {monitorInfo.warningCount > 0 && (
@@ -71,10 +74,11 @@ export function FooterBar() {
               alignItems: 'center',
               gap: '4px'
             }}
-            title={`${monitorInfo.warningCount} warning${monitorInfo.warningCount > 1 ? 's' : ''} detected`}
+            title={`${monitorInfo.warningCount} warning${monitorInfo.warningCount > 1 ? 's' : ''} detected${hasHolmesAnalysis ? ' (Holmes analysis available)' : ''}`}
           >
             <span>⚡</span>
             <span>Warnings: {monitorInfo.warningCount}</span>
+            {hasHolmesAnalysis && <span title="Holmes analysis available">🧠</span>}
           </button>
         )}
       </div>

@@ -3,7 +3,6 @@ package app
 import (
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -94,7 +93,7 @@ func (a *App) StartReplicaSetPolling() {
 				}
 				all = append(all, list...)
 			}
-			wailsRuntime.EventsEmit(a.ctx, "replicasets:update", all)
+			emitEvent(a.ctx, "replicasets:update", all)
 		}
 	}()
 }

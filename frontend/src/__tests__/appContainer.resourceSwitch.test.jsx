@@ -25,6 +25,18 @@ vi.mock('../../wailsjs/runtime', () => ({
   EventsOff: vi.fn(),
 }));
 
+// Mock Holmes API
+vi.mock('../holmes/holmesApi', () => ({
+  GetHolmesConfig: vi.fn(() => Promise.resolve({ enabled: false, endpoint: '' })),
+  SaveHolmesConfig: vi.fn(() => Promise.resolve()),
+  AskHolmes: vi.fn(() => Promise.resolve('')),
+  CheckHolmesDeployment: vi.fn(() => Promise.resolve({ deployed: false })),
+  DeployHolmesGPT: vi.fn(() => Promise.resolve()),
+  UndeployHolmesGPT: vi.fn(() => Promise.resolve()),
+  onHolmesDeploymentStatus: vi.fn(() => () => {}),
+  onHolmesChatStream: vi.fn(() => () => {}),
+}));
+
 // Silence notification side-effects
 vi.mock('../notification', () => ({
   showSuccess: vi.fn(),

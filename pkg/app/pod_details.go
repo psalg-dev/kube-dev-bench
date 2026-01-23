@@ -81,10 +81,14 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 			}
 		}
 	}
+	created := ""
+	if !pod.CreationTimestamp.IsZero() {
+		created = pod.CreationTimestamp.Time.UTC().Format(time.RFC3339Nano)
+	}
 	out = PodSummary{
 		Name:      pod.Name,
 		Namespace: pod.Namespace,
-		Created:   pod.CreationTimestamp.Time,
+		Created:   created,
 		Labels:    pod.Labels,
 		Status:    string(pod.Status.Phase),
 		Ports:     ports,

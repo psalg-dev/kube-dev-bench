@@ -11,6 +11,7 @@ type SectionCheck = {
 const checks: SectionCheck[] = [
   { key: 'pods', title: /pods/i, mustHave: { role: 'table', name: /actions/i } },
   { key: 'deployments', title: /deployments/i, mustHave: { role: 'columnheader', name: /replicas/i } },
+  { key: 'services', title: /services/i, mustHave: { role: 'columnheader', name: /type/i } },
   { key: 'jobs', title: /jobs/i, mustHave: { role: 'columnheader', name: /completions/i } },
   { key: 'cronjobs', title: /cron jobs/i, mustHave: { role: 'columnheader', name: /schedule/i } },
   { key: 'daemonsets', title: /daemon sets/i, mustHave: { role: 'columnheader', name: /desired/i } },

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"gowails/pkg/app/holmesgpt"
 )
 
 // AppConfig represents the persistent configuration
@@ -20,6 +22,8 @@ type AppConfig struct {
 	ProxyAuthType string `json:"proxyAuthType"` // "none", "basic", "system"
 	ProxyUsername string `json:"proxyUsername"`
 	ProxyPassword string `json:"proxyPassword"`
+	// Holmes AI configuration
+	HolmesConfig holmesgpt.HolmesConfigData `json:"holmesConfig,omitempty"`
 }
 
 // loadConfig loads the saved configuration from disk
@@ -47,6 +51,8 @@ func (a *App) loadConfig() error {
 	a.proxyAuthType = config.ProxyAuthType
 	a.proxyUsername = config.ProxyUsername
 	a.proxyPassword = config.ProxyPassword
+	// Load Holmes configuration
+	holmesConfig = config.HolmesConfig
 	return nil
 }
 
@@ -64,6 +70,8 @@ func (a *App) saveConfig() error {
 		ProxyAuthType: a.proxyAuthType,
 		ProxyUsername: a.proxyUsername,
 		ProxyPassword: a.proxyPassword,
+		// Holmes AI configuration
+		HolmesConfig: holmesConfig,
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

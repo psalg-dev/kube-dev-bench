@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -42,7 +41,7 @@ func (a *App) StartMonitorPolling() {
 			}
 
 			info := a.collectMonitorInfo(nsList)
-			wailsRuntime.EventsEmit(a.ctx, "monitor:update", info)
+			emitEvent(a.ctx, "monitor:update", info)
 		}
 	}()
 }
@@ -74,12 +73,12 @@ func (a *App) collectMonitorInfo(namespaces []string) MonitorInfo {
 		}
 	}
 
-	return MonitorInfo{
+	return a.enrichMonitorInfo(MonitorInfo{
 		WarningCount: len(warnings),
 		ErrorCount:   len(errors),
 		Warnings:     warnings,
 		Errors:       errors,
-	}
+	})
 }
 
 // getOwnerInfo extracts owner kind and name from owner references
@@ -144,7 +143,7 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 
 				// Classify certain waiting reasons as errors
 				if reason == "CrashLoopBackOff" || reason == "ImagePullBackOff" ||
-				   reason == "ErrImagePull" || reason == "CreateContainerError" {
+					reason == "ErrImagePull" || reason == "CreateContainerError" {
 					issueType = "error"
 				}
 
@@ -215,7 +214,7 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 				issueType := "warning"
 
 				if reason == "ImagePullBackOff" || reason == "ErrImagePull" ||
-				   reason == "CreateContainerError" {
+					reason == "CreateContainerError" {
 					issueType = "error"
 				}
 

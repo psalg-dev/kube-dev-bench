@@ -64,6 +64,10 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
 - `main.go` - Wails application entry point, starts polling for K8s resources
 - `pkg/app/` - Core application logic, K8s API integrations, and Wails-exposed methods
   - Resource handlers: `pods.go`, `deployments.go`, `cronjobs.go`, `statefulsets.go`, etc.
+  - Holmes AI: `holmes_context.go` for context enrichment, `holmes_integration.go` for analysis RPCs
+  - Holmes AI (Phase 4): `holmes_logs.go` for log analysis helpers, `holmes_swarm.go` for Swarm context analysis
+  - Monitoring: `monitor.go` for continuous issue polling, `monitor_actions.go` for scan/analysis/dismiss actions
+  - Prometheus alerts: `holmes_alerts.go` for alert fetching + Holmes investigations
   - `kubeconfig.go` - Kubeconfig management
   - `resource_actions.go` - Scale, restart, delete operations
   - `types.go` - Shared type definitions
@@ -77,6 +81,9 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
 - `frontend/src/state/ClusterStateContext.jsx` - Central cluster connection state management
 - `frontend/src/layout/` - UI layout components
   - `AppLayout.jsx` - Main app layout with stable DOM ids for testing
+  - `MonitorPanel.jsx` - Bottom monitoring panel (errors, warnings, Prometheus alerts)
+  - `MonitorIssueCard.jsx` - Issue card with Holmes analysis + dismissal
+  - `PrometheusAlertsTab.jsx` - Prometheus alert investigation UI
   - `connection/` - Unified connection management UI (refactored)
     - `ConnectionWizard.jsx` - Main connection wizard container using shared layout
     - `ConnectionsStateContext.jsx` - Centralized state for Kubernetes and Docker connections, pinned connections, and proxy settings
@@ -88,6 +95,8 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
     - `AddSwarmConnectionOverlay.jsx` - Overlay for manually adding Docker Swarm connections
     - `ConnectionProxySettings.jsx` - Per-connection proxy configuration
 - `frontend/src/k8s/resources/` - K8s resource view components
+- `frontend/src/holmes/` - Holmes AI UI (panel, config modal, response renderer, resource analysis tabs)
+- `frontend/src/layout/bottompanel/LogViewerTab.jsx` - Pod log viewer with Holmes “Explain Logs” analysis
 - `frontend/src/docker/` - Docker Swarm frontend components
   - `SwarmStateContext.jsx` - Docker connection and resource state management
   - `SwarmResourceCountsContext.jsx` - Resource counts context
@@ -116,6 +125,15 @@ Docker Swarm (via `docker_integration.go`):
 - `GetDockerTasks`, `GetDockerNodes`, `GetDockerNetworks` - Resource listing
 - `GetDockerConfigs`, `GetDockerSecrets`, `GetDockerVolumes` - Config/secret/volume operations
 - `GetDockerServiceLogs`, `GetDockerTaskLogs` - Log streaming
+
+Holmes AI:
+- `AnalyzePod`, `AnalyzeDeployment`, `AnalyzeStatefulSet`, `AnalyzeDaemonSet`, `AnalyzeService`, `AnalyzeResource` provide context-aware analysis.
+- `HolmesBottomPanel` renders analysis in resource bottom-panel tabs; `HolmesResponseRenderer` handles markdown + syntax highlighting.
+
+Monitoring + Alerts:
+- `ScanClusterHealth`, `AnalyzeMonitorIssue`, `AnalyzeAllMonitorIssues`, `DismissMonitorIssue` enhance existing monitor issues.
+- `GetPrometheusAlerts`, `InvestigatePrometheusAlert`, `GetAlertInvestigationHistory` power the Prometheus tab.
+- Holmes analysis and dismissals persist for 24 hours in `~/.KubeDevBench/monitor_issues.json`.
 
 When modifying Go method signatures in `pkg/app/`, rebuild Wails to regenerate bindings.
 
@@ -180,3 +198,8 @@ All code introduced must pass through those quality gates.
 - Tests trigger Go RPCs through the UI, not by calling Go functions directly
 - E2E tests use KinD manager container for reproducible clusters
 - Unit tests mock Wails bindings via `wailsMocks.js`
+
+## Monitoring Troubleshooting
+- Holmes analysis fails: verify Holmes config (endpoint + API key) in the Holmes settings panel; check `~/.KubeDevBench/holmes.log` for errors.
+- Dismissed issues reappear immediately: confirm issue `Reason` or resource name changed (issue ID changes), or check for expired TTL (24h).
+- Prometheus alerts fail to load: ensure the Prometheus URL is reachable from the desktop app and includes the correct scheme (http/https).

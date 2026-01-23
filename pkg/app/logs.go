@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/wailsapp/wails/v2/pkg/runtime"
 	v1 "k8s.io/api/core/v1"
 )
 
@@ -19,7 +18,7 @@ func (a *App) StopPodLogs(podName string) {
 	a.logMu.Unlock()
 	if ok && cancel != nil {
 		cancel()
-		runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream stop requested]")
+		emitEvent(a.ctx, "podlogs:"+podName, "[stream stop requested]")
 	}
 }
 
@@ -43,18 +42,18 @@ func (a *App) StreamPodLogs(podName string) {
 		}()
 
 		if a.currentNamespace == "" {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
 			return
 		}
 		clientset, err := a.getKubernetesClient()
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
 			return
 		}
 		opts := &v1.PodLogOptions{Follow: true}
 		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(streamCtx)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
 			return
 		}
 		defer stream.Close()
@@ -66,12 +65,12 @@ func (a *App) StreamPodLogs(podName string) {
 			default:
 			}
 			line := scanner.Text()
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, line)
+			emitEvent(a.ctx, "podlogs:"+podName, line)
 		}
 		if err := scanner.Err(); err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
 		}
-		runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+		emitEvent(a.ctx, "podlogs:"+podName, "[stream closed]")
 	}()
 }
 
@@ -93,18 +92,18 @@ func (a *App) StreamPodContainerLogs(podName, container string) {
 		}()
 
 		if a.currentNamespace == "" {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
 			return
 		}
 		clientset, err := a.getKubernetesClient()
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
 			return
 		}
 		opts := &v1.PodLogOptions{Follow: true, Container: container}
 		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(streamCtx)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
 			return
 		}
 		defer stream.Close()
@@ -116,12 +115,12 @@ func (a *App) StreamPodContainerLogs(podName, container string) {
 			default:
 			}
 			line := scanner.Text()
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, line)
+			emitEvent(a.ctx, "podlogs:"+podName, line)
 		}
 		if err := scanner.Err(); err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
 		}
-		runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+		emitEvent(a.ctx, "podlogs:"+podName, "[stream closed]")
 	}()
 }
 
@@ -141,12 +140,12 @@ func (a *App) StreamPodLogsWith(podName string, tailLines int, follow bool) {
 			cancel()
 		}()
 		if a.currentNamespace == "" {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
 			return
 		}
 		clientset, err := a.getKubernetesClient()
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
 			return
 		}
 		var tl *int64
@@ -157,7 +156,7 @@ func (a *App) StreamPodLogsWith(podName string, tailLines int, follow bool) {
 		opts := &v1.PodLogOptions{Follow: follow, TailLines: tl}
 		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(ctx)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
 			return
 		}
 		defer stream.Close()
@@ -168,13 +167,13 @@ func (a *App) StreamPodLogsWith(podName string, tailLines int, follow bool) {
 				return
 			default:
 			}
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, scanner.Text())
+			emitEvent(a.ctx, "podlogs:"+podName, scanner.Text())
 		}
 		if err := scanner.Err(); err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
 		}
 		if follow {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+			emitEvent(a.ctx, "podlogs:"+podName, "[stream closed]")
 		}
 	}()
 }
@@ -194,12 +193,12 @@ func (a *App) StreamPodContainerLogsWith(podName, container string, tailLines in
 			cancel()
 		}()
 		if a.currentNamespace == "" {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] no namespace selected")
 			return
 		}
 		clientset, err := a.getKubernetesClient()
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] client: "+err.Error())
 			return
 		}
 		var tl *int64
@@ -210,7 +209,7 @@ func (a *App) StreamPodContainerLogsWith(podName, container string, tailLines in
 		opts := &v1.PodLogOptions{Follow: follow, Container: container, TailLines: tl}
 		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(ctx)
 		if err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] log stream: "+err.Error())
 			return
 		}
 		defer stream.Close()
@@ -221,13 +220,13 @@ func (a *App) StreamPodContainerLogsWith(podName, container string, tailLines in
 				return
 			default:
 			}
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, scanner.Text())
+			emitEvent(a.ctx, "podlogs:"+podName, scanner.Text())
 		}
 		if err := scanner.Err(); err != nil {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
+			emitEvent(a.ctx, "podlogs:"+podName, "[error] scan error: "+err.Error())
 		}
 		if follow {
-			runtime.EventsEmit(a.ctx, "podlogs:"+podName, "[stream closed]")
+			emitEvent(a.ctx, "podlogs:"+podName, "[stream closed]")
 		}
 	}()
 }

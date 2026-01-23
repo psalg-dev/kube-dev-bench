@@ -20,6 +20,7 @@ export function ResourceCountsProvider({ children }) {
         ps.succeeded||ps.Succeeded||0,
         ps.unknown||ps.Unknown||0,
         ps.total||ps.Total||0,
+        c.services || c.Services || 0,
         c.deployments, c.jobs, c.cronjobs, c.daemonsets, c.statefulsets, c.replicasets,
         c.configmaps, c.secrets, c.ingresses, c.persistentvolumeclaims, c.persistentvolumes
       ].join('-');
@@ -28,6 +29,7 @@ export function ResourceCountsProvider({ children }) {
       if (!raw) return raw;
       // Ensure camelCase keys (keep original too in case UI references uppercase elsewhere)
       if (raw.PodStatus && !raw.podStatus) raw.podStatus = raw.PodStatus;
+      if (raw.Services && !raw.services) raw.services = raw.Services;
       return raw;
     };
     const applyCounts = (data) => {

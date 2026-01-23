@@ -7,11 +7,14 @@ export class SwarmSidebarPage {
   constructor(private readonly page: Page) {}
 
   private get sidebar() {
-    return this.page.locator('#swarm-sidebar, [data-testid="swarm-sidebar"]');
+    // Use the Swarm services section as the primary indicator of Swarm connectivity
+    // as #swarm-sidebar may not exist in all layouts
+    return this.page.locator('#section-swarm-services, #swarm-sidebar, [data-testid="swarm-sidebar"]').first();
   }
 
   async expectVisible() {
-    await expect(this.sidebar).toBeVisible({ timeout: 30_000 });
+    // Wait for Swarm services section which is the most reliable indicator
+    await expect(this.page.locator('#section-swarm-services')).toBeVisible({ timeout: 60_000 });
   }
 
   /**

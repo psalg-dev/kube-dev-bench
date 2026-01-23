@@ -1,11 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { EventsOn } from '../../wailsjs/runtime/runtime.js';
+import MonitorIssueCard from './MonitorIssueCard.jsx';
+import PrometheusAlertsTab from './PrometheusAlertsTab.jsx';
+import {
+  AnalyzeAllMonitorIssues,
+  AnalyzeMonitorIssue,
+  DismissMonitorIssue,
+  ScanClusterHealth,
+} from './monitorApi.js';
 
 export function MonitorPanel({ monitorInfo, open, onClose }) {
   const [activeTab, setActiveTab] = useState('errors');
+  const [panelInfo, setPanelInfo] = useState(monitorInfo);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [analyzeAllLoading, setAnalyzeAllLoading] = useState(false);
+  const [issueLoading, setIssueLoading] = useState({});
+  const [dismissLoading, setDismissLoading] = useState({});
   const [height, setHeight] = useState(() => {
     try { return Number(localStorage.getItem('monitorpanel.height')) || 400; } catch { return 400; }
   });
   const resizeRef = useRef({ startY: 0, startH: 0, resizing: false });
+
+  useEffect(() => {
+    setPanelInfo(monitorInfo);
+  }, [monitorInfo]);
 
   useEffect(() => {
     try { localStorage.setItem('monitorpanel.height', String(height)); } catch {}
@@ -15,13 +33,35 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
   useEffect(() => {
     if (open) {
       // If errors exist, show errors tab; otherwise show warnings tab
-      if (monitorInfo.errorCount > 0) {
+      if (panelInfo.errorCount > 0) {
         setActiveTab('errors');
-      } else if (monitorInfo.warningCount > 0) {
+      } else if (panelInfo.warningCount > 0) {
         setActiveTab('warnings');
       }
     }
-  }, [open, monitorInfo.errorCount, monitorInfo.warningCount]);
+  }, [open, panelInfo.errorCount, panelInfo.warningCount]);
+
+  useEffect(() => {
+    const unsubscribe = EventsOn('holmes:analysis:update', (updatedIssue) => {
+      if (!updatedIssue?.issueID) return;
+      setPanelInfo((prev) => {
+        if (!prev) return prev;
+        const updateList = (list) => list.map((issue) => (
+          issue.issueID === updatedIssue.issueID ? { ...issue, ...updatedIssue } : issue
+        ));
+        const errors = updateList(prev.errors || []);
+        const warnings = updateList(prev.warnings || []);
+        return {
+          ...prev,
+          errors,
+          warnings,
+        };
+      });
+    });
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   const handleIssueClick = (issue) => {
     // Emit custom event to navigate to the resource
@@ -71,7 +111,85 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
     document.addEventListener('mouseup', onUp);
   };
 
-  const issues = activeTab === 'errors' ? (monitorInfo.errors || []) : (monitorInfo.warnings || []);
+  const issues = activeTab === 'errors' ? (panelInfo.errors || []) : (panelInfo.warnings || []);
+
+  const handleAnalyzeIssue = async (issue) => {
+    if (!issue?.issueID) return;
+    setIssueLoading((prev) => ({ ...prev, [issue.issueID]: true }));
+    try {
+      const updated = await AnalyzeMonitorIssue(issue.issueID);
+      if (updated?.issueID) {
+        setPanelInfo((prev) => {
+          const updateList = (list) => list.map((item) => (
+            item.issueID === updated.issueID ? { ...item, ...updated } : item
+          ));
+          return {
+            ...prev,
+            errors: updateList(prev.errors || []),
+            warnings: updateList(prev.warnings || []),
+          };
+        });
+      }
+    } catch (err) {
+      console.error('AnalyzeMonitorIssue failed', err);
+    } finally {
+      setIssueLoading((prev) => ({ ...prev, [issue.issueID]: false }));
+    }
+  };
+
+  const handleDismissIssue = async (issue) => {
+    if (!issue?.issueID) return;
+    setDismissLoading((prev) => ({ ...prev, [issue.issueID]: true }));
+    try {
+      await DismissMonitorIssue(issue.issueID);
+      setPanelInfo((prev) => {
+        const removeIssue = (list) => list.filter((item) => item.issueID !== issue.issueID);
+        const errors = removeIssue(prev.errors || []);
+        const warnings = removeIssue(prev.warnings || []);
+        return {
+          ...prev,
+          errors,
+          warnings,
+          errorCount: errors.length,
+          warningCount: warnings.length,
+        };
+      });
+    } catch (err) {
+      console.error('DismissMonitorIssue failed', err);
+    } finally {
+      setDismissLoading((prev) => ({ ...prev, [issue.issueID]: false }));
+    }
+  };
+
+  const handleScan = async () => {
+    setScanLoading(true);
+    try {
+      const info = await ScanClusterHealth();
+      if (info) {
+        setPanelInfo(info);
+        if (info.errorCount > 0) {
+          setActiveTab('errors');
+        } else if (info.warningCount > 0) {
+          setActiveTab('warnings');
+        }
+      }
+    } catch (err) {
+      console.error('ScanClusterHealth failed', err);
+    } finally {
+      setScanLoading(false);
+    }
+  };
+
+  const handleAnalyzeAll = async () => {
+    setAnalyzeAllLoading(true);
+    try {
+      await AnalyzeAllMonitorIssues();
+    } catch (err) {
+      console.error('AnalyzeAllMonitorIssues failed', err);
+    } finally {
+      setAnalyzeAllLoading(false);
+    }
+  };
 
   return (
     <div
@@ -143,7 +261,7 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
               fontSize: 13
             }}
           >
-            Errors ({monitorInfo.errorCount || 0})
+            Errors ({panelInfo.errorCount || 0})
           </button>
           <button
             id="monitor-tab-warnings"
@@ -159,22 +277,70 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
               fontSize: 13
             }}
           >
-            Warnings ({monitorInfo.warningCount || 0})
+            Warnings ({panelInfo.warningCount || 0})
+          </button>
+          <button
+            id="monitor-tab-alerts"
+            onClick={() => setActiveTab('alerts')}
+            style={{
+              border: '1px solid var(--gh-border, #30363d)',
+              borderBottom: activeTab === 'alerts' ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
+              background: activeTab === 'alerts' ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
+              color: 'var(--gh-text, #c9d1d9)',
+              padding: '6px 10px',
+              cursor: 'pointer',
+              borderRadius: 0,
+              fontSize: 13
+            }}
+          >
+            Prometheus Alerts
           </button>
         </div>
-        <button
-          onClick={onClose}
-          title="Close"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--gh-text, #c9d1d9)',
-            cursor: 'pointer',
-            fontSize: 18
-          }}
-        >
-          ✕
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={handleScan}
+            disabled={scanLoading}
+            style={{
+              background: '#238636',
+              border: 'none',
+              color: '#fff',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: '6px 10px'
+            }}
+          >
+            {scanLoading ? 'Scanning…' : 'Scan Now'}
+          </button>
+          <button
+            type="button"
+            onClick={handleAnalyzeAll}
+            disabled={analyzeAllLoading}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--gh-border, #30363d)',
+              color: 'var(--gh-text, #c9d1d9)',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: '6px 10px'
+            }}
+          >
+            {analyzeAllLoading ? 'Analyzing…' : 'Analyze All'}
+          </button>
+          <button
+            onClick={onClose}
+            title="Close"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--gh-text, #c9d1d9)',
+              cursor: 'pointer',
+              fontSize: 18
+            }}
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Content */}
@@ -184,7 +350,9 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
         overflow: 'auto',
         padding: '16px'
       }}>
-        {issues.length === 0 ? (
+        {activeTab === 'alerts' ? (
+          <PrometheusAlertsTab />
+        ) : issues.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '32px',
@@ -194,142 +362,17 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {issues.map((issue, index) => {
-              // Build resource path breadcrumb
-              const pathParts = [];
-              if (issue.ownerKind && issue.ownerName) {
-                pathParts.push(`${issue.ownerKind}/${issue.ownerName}`);
-              }
-              pathParts.push(`${issue.resource}/${issue.name}`);
-              if (issue.containerName) {
-                pathParts.push(`${issue.containerName}`);
-              }
-              const resourcePath = pathParts.join(' → ');
-
-              return (
-                <div
-                  key={index}
-                  className="monitor-issue-item"
-                  onClick={() => handleIssueClick(issue)}
-                  style={{
-                    background: 'var(--gh-bg-secondary, #161b22)',
-                    border: '1px solid var(--gh-border, #30363d)',
-                    borderLeft: `3px solid ${issue.type === 'error' ? '#d73a49' : '#dbab09'}`,
-                    borderRadius: '6px',
-                    padding: '14px',
-                    cursor: 'pointer',
-                    transition: 'background-color 0.15s ease, transform 0.1s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--gh-bg-tertiary, #1c2128)';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--gh-bg-secondary, #161b22)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  {/* Header with reason and metadata */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
-                    <span
-                      style={{
-                        background: issue.type === 'error' ? '#d73a49' : '#dbab09',
-                        color: '#fff',
-                        borderRadius: '12px',
-                        padding: '3px 10px',
-                        fontSize: '11px',
-                        fontWeight: '600',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
-                      }}
-                    >
-                      {issue.reason}
-                    </span>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                      <span
-                        style={{
-                          background: 'var(--gh-bg-tertiary, #1c2128)',
-                          color: 'var(--gh-text-muted, #8b949e)',
-                          borderRadius: '12px',
-                          padding: '2px 8px',
-                          fontSize: '11px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {issue.namespace}
-                      </span>
-                      {issue.age && (
-                        <span
-                          style={{
-                            color: 'var(--gh-text-muted, #8b949e)',
-                            fontSize: '11px',
-                            fontWeight: '500'
-                          }}
-                        >
-                          {issue.age}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Resource path breadcrumb */}
-                  <div style={{
-                    marginBottom: '10px',
-                    fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace',
-                    fontSize: '12px',
-                    color: 'var(--gh-text-primary, #c9d1d9)',
-                    fontWeight: '500',
-                    padding: '6px 8px',
-                    background: 'var(--gh-bg-primary, #0d1117)',
-                    borderRadius: '4px',
-                    border: '1px solid var(--gh-border, #30363d)'
-                  }}>
-                    {resourcePath}
-                  </div>
-
-                  {/* Metadata row */}
-                  {(issue.podPhase || issue.nodeName || issue.restartCount > 0) && (
-                    <div style={{
-                      display: 'flex',
-                      gap: '12px',
-                      marginBottom: '10px',
-                      flexWrap: 'wrap'
-                    }}>
-                      {issue.podPhase && (
-                        <span style={{ fontSize: '11px', color: 'var(--gh-text-muted, #8b949e)' }}>
-                          <span style={{ fontWeight: '600' }}>Phase:</span> {issue.podPhase}
-                        </span>
-                      )}
-                      {issue.nodeName && (
-                        <span style={{ fontSize: '11px', color: 'var(--gh-text-muted, #8b949e)' }}>
-                          <span style={{ fontWeight: '600' }}>Node:</span> {issue.nodeName}
-                        </span>
-                      )}
-                      {issue.restartCount > 0 && (
-                        <span style={{
-                          fontSize: '11px',
-                          color: issue.restartCount > 5 ? '#f85149' : 'var(--gh-text-muted, #8b949e)',
-                          fontWeight: issue.restartCount > 5 ? '600' : '400'
-                        }}>
-                          <span style={{ fontWeight: '600' }}>Restarts:</span> {issue.restartCount}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Message */}
-                  {issue.message && (
-                    <div style={{
-                      color: 'var(--gh-text-secondary, #8b949e)',
-                      fontSize: '13px',
-                      lineHeight: '1.5'
-                    }}>
-                      {issue.message}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {issues.map((issue) => (
+              <MonitorIssueCard
+                key={issue.issueID || `${issue.resource}-${issue.name}-${issue.reason}`}
+                issue={issue}
+                onNavigate={handleIssueClick}
+                onAnalyze={handleAnalyzeIssue}
+                onDismiss={handleDismissIssue}
+                analyzing={issueLoading[issue.issueID]}
+                dismissing={dismissLoading[issue.issueID]}
+              />
+            ))}
           </div>
         )}
       </div>

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -165,12 +164,7 @@ func (a *App) AddHelmRepository(name, url string) error {
 		}
 	}
 
-	// Check if repo already exists
-	if f.Has(name) {
-		return fmt.Errorf("repository %q already exists", name)
-	}
-
-	// Create new repo entry
+	// Create repo entry (will update if exists)
 	entry := &repo.Entry{
 		Name: name,
 		URL:  url,
@@ -189,7 +183,7 @@ func (a *App) AddHelmRepository(name, url string) error {
 		return fmt.Errorf("failed to download repository index: %w", err)
 	}
 
-	// Add to repo file and save
+	// Add or update repo entry and save
 	f.Update(entry)
 	if err := f.WriteFile(repoFile, 0644); err != nil {
 		return fmt.Errorf("failed to save repository file: %w", err)
@@ -594,7 +588,7 @@ func (a *App) StartHelmReleasePolling() {
 				}
 				all = append(all, releases...)
 			}
-			wailsRuntime.EventsEmit(a.ctx, "helmreleases:update", all)
+			emitEvent(a.ctx, "helmreleases:update", all)
 		}
 	}()
 }

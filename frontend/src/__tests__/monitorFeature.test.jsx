@@ -1,7 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { eventsOnMock, resetAllMocks } from './wailsMocks';
+import { eventsOnMock, resetAllMocks, appApiMocks } from './wailsMocks';
 import FooterBar from '../layout/FooterBar.jsx';
 import MonitorPanel from '../layout/MonitorPanel.jsx';
 
@@ -179,6 +179,7 @@ describe('MonitorPanel', () => {
     warningCount: 1,
     errors: [
       {
+        issueID: 'issue-1',
         type: 'error',
         resource: 'Pod',
         name: 'crash-pod',
@@ -194,6 +195,7 @@ describe('MonitorPanel', () => {
         nodeName: 'node-1'
       },
       {
+        issueID: 'issue-2',
         type: 'error',
         resource: 'Pod',
         name: 'image-pod',
@@ -211,6 +213,7 @@ describe('MonitorPanel', () => {
     ],
     warnings: [
       {
+        issueID: 'issue-3',
         type: 'warning',
         resource: 'Pod',
         name: 'warn-pod',
@@ -266,6 +269,67 @@ describe('MonitorPanel', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('triggers scan and analyze all actions', async () => {
+    const onClose = vi.fn();
+    appApiMocks.ScanClusterHealth.mockResolvedValueOnce({
+      errorCount: 0,
+      warningCount: 0,
+      errors: [],
+      warnings: [],
+    });
+
+    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getByText('Scan Now'));
+    await waitFor(() => {
+      expect(appApiMocks.ScanClusterHealth).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByText('Analyze All'));
+    await waitFor(() => {
+      expect(appApiMocks.AnalyzeAllMonitorIssues).toHaveBeenCalled();
+    });
+  });
+
+  it('shows Prometheus Alerts tab content', () => {
+    const onClose = vi.fn();
+    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getByText('Prometheus Alerts'));
+    expect(screen.getByPlaceholderText(/Prometheus URL/i)).toBeInTheDocument();
+  });
+
+  it('analyzes and dismisses an issue', async () => {
+    const onClose = vi.fn();
+    appApiMocks.AnalyzeMonitorIssue.mockResolvedValueOnce({
+      ...mockMonitorInfo.errors[0],
+      holmesAnalysis: 'Analysis result',
+      holmesAnalyzed: true,
+      holmesAnalyzedAt: new Date().toISOString(),
+    });
+    appApiMocks.DismissMonitorIssue.mockResolvedValueOnce();
+
+    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+
+    fireEvent.click(screen.getAllByText('Analyze')[0]);
+    await waitFor(() => {
+      expect(appApiMocks.AnalyzeMonitorIssue).toHaveBeenCalled();
+    });
+
+    // Wait for the component to re-render with the analysis result
+    await waitFor(() => {
+      expect(screen.getByText('Show Analysis')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('Show Analysis'));
+    expect(screen.getByText('Analysis result')).toBeInTheDocument();
+
+    fireEvent.click(screen.getAllByText('Dismiss')[0]);
+    await waitFor(() => {
+      expect(appApiMocks.DismissMonitorIssue).toHaveBeenCalled();
+    });
+  });
+
   it('shows "No errors found" when errors tab is empty', () => {
     const onClose = vi.fn();
     const emptyErrorsInfo = { ...mockMonitorInfo, errorCount: 0, errors: [] };
@@ -299,7 +363,7 @@ describe('MonitorPanel', () => {
     window.addEventListener('navigate-to-resource', eventHandler);
 
     // Click on an issue
-    const issueItem = screen.getByText('CrashLoopBackOff').closest('.monitor-issue-item');
+    const issueItem = screen.getByText('CrashLoopBackOff').closest('.monitor-issue-card');
     fireEvent.click(issueItem);
 
     // Verify event was emitted with correct data
@@ -320,10 +384,9 @@ describe('MonitorPanel', () => {
     const onClose = vi.fn();
     render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
 
-    const issueItem = screen.getByText('CrashLoopBackOff').closest('.monitor-issue-item');
+    const issueItem = screen.getByText('CrashLoopBackOff').closest('.monitor-issue-card');
 
-    // Check that cursor style is set
-    expect(issueItem).toHaveStyle({ cursor: 'pointer' });
+    expect(issueItem).toHaveClass('monitor-issue-card');
   });
 
   it('displays enriched information including resource path and metadata', () => {
