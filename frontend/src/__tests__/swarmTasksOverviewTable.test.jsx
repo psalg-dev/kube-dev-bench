@@ -11,14 +11,17 @@ const { runtimeHandlers, swarmApiMocks, holmesApiMocks, rowApis } = vi.hoisted((
       GetSwarmTaskHealthLogs: vi.fn(),
     },
     holmesApiMocks: {
-      AnalyzeSwarmTask: vi.fn(),
+      AnalyzeSwarmTaskStream: vi.fn(),
+      CancelHolmesStream: vi.fn(),
+      onHolmesChatStream: vi.fn(() => vi.fn()),
+      onHolmesContextProgress: vi.fn(() => vi.fn()),
     },
     rowApis: new Map(),
   };
 });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
-vi.mock('../../../holmes/holmesApi', () => holmesApiMocks);
+vi.mock('../holmes/holmesApi', () => holmesApiMocks);
 
 vi.mock('../utils/dateUtils.js', () => ({
   formatTimestampDMYHMS: (v) => `FMT(${v})`,
@@ -204,7 +207,7 @@ describe('SwarmTasksOverviewTable', () => {
       { exitCode: 1, end: '2026-01-01T00:00:10Z', output: 'fail' },
       { exitCode: 0, end: '2026-01-01T00:00:20Z', output: 'ok' },
     ]);
-    holmesApiMocks.AnalyzeSwarmTask.mockResolvedValue({ response: 'analysis' });
+    holmesApiMocks.AnalyzeSwarmTaskStream.mockResolvedValue(undefined);
   });
 
   it('loads and renders tasks with formatted cells', async () => {
@@ -272,7 +275,7 @@ describe('SwarmTasksOverviewTable', () => {
       fireEvent.click(askButton);
     });
 
-    expect(holmesApiMocks.AnalyzeSwarmTask).toHaveBeenCalledWith('task1234567890abcdef');
+    expect(holmesApiMocks.AnalyzeSwarmTaskStream).toHaveBeenCalledWith('task1234567890abcdef', expect.any(String));
   });
 
   it('panel content: logs/exec branches and exec button sets active tab', async () => {

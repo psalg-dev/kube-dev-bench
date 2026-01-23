@@ -14,7 +14,10 @@ const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } = vi
       UpdateSwarmServiceImage: vi.fn(),
     },
     holmesApiMocks: {
-      AnalyzeSwarmService: vi.fn(),
+      AnalyzeSwarmServiceStream: vi.fn(),
+      CancelHolmesStream: vi.fn(),
+      onHolmesChatStream: vi.fn(() => vi.fn()),
+      onHolmesContextProgress: vi.fn(() => vi.fn()),
     },
     notificationMocks: {
       showSuccess: vi.fn(),
@@ -24,7 +27,7 @@ const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } = vi
 });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
-vi.mock('../../../holmes/holmesApi', () => holmesApiMocks);
+vi.mock('../holmes/holmesApi', () => holmesApiMocks);
 
 // SwarmServicesOverviewTable imports runtime via "../../../../wailsjs/runtime/runtime.js"
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
@@ -191,7 +194,7 @@ describe('SwarmServicesOverviewTable', () => {
     swarmApiMocks.ScaleSwarmService.mockResolvedValue(undefined);
     swarmApiMocks.RestartSwarmService.mockResolvedValue(undefined);
     swarmApiMocks.RemoveSwarmService.mockResolvedValue(undefined);
-    holmesApiMocks.AnalyzeSwarmService.mockResolvedValue({ response: 'analysis' });
+    holmesApiMocks.AnalyzeSwarmServiceStream.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -234,7 +237,7 @@ describe('SwarmServicesOverviewTable', () => {
       fireEvent.click(askButton);
     });
 
-    expect(holmesApiMocks.AnalyzeSwarmService).toHaveBeenCalledWith('svc1');
+    expect(holmesApiMocks.AnalyzeSwarmServiceStream).toHaveBeenCalledWith('svc1', expect.any(String));
   });
 
   it('opens image update settings modal from header button', async () => {
