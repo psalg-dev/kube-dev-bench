@@ -203,7 +203,11 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 		a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Listing tasks", "done", "")
 		sb.WriteString(fmt.Sprintf("\nTasks (%d):\n", len(tasks)))
 		for _, task := range tasks {
-			sb.WriteString(fmt.Sprintf("  - %s: %s\n", task.ID[:12], task.Status.State))
+			taskIDShort := task.ID
+			if len(taskIDShort) > 12 {
+				taskIDShort = taskIDShort[:12]
+			}
+			sb.WriteString(fmt.Sprintf("  - %s: %s\n", taskIDShort, task.Status.State))
 			if task.Status.Err != "" {
 				sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
 			}
@@ -261,9 +265,21 @@ func (a *App) getSwarmTaskContext(taskID string) (string, error) {
 	}
 	a.emitHolmesContextProgress("Swarm Task", "swarm", taskID, "Fetching task details", "done", "")
 
-	sb.WriteString(fmt.Sprintf("Task: %s\n", task.ID[:12]))
-	sb.WriteString(fmt.Sprintf("Service: %s\n", task.ServiceID[:12]))
-	sb.WriteString(fmt.Sprintf("Node: %s\n", task.NodeID[:12]))
+	taskIDShort := task.ID
+	if len(taskIDShort) > 12 {
+		taskIDShort = taskIDShort[:12]
+	}
+	serviceIDShort := task.ServiceID
+	if len(serviceIDShort) > 12 {
+		serviceIDShort = serviceIDShort[:12]
+	}
+	nodeIDShort := task.NodeID
+	if len(nodeIDShort) > 12 {
+		nodeIDShort = nodeIDShort[:12]
+	}
+	sb.WriteString(fmt.Sprintf("Task: %s\n", taskIDShort))
+	sb.WriteString(fmt.Sprintf("Service: %s\n", serviceIDShort))
+	sb.WriteString(fmt.Sprintf("Node: %s\n", nodeIDShort))
 	sb.WriteString(fmt.Sprintf("State: %s\n", task.Status.State))
 
 	if task.Status.Err != "" {
