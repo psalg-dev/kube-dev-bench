@@ -51,8 +51,6 @@ test('Holmes panel conversation history with export/clear', async ({ page, conte
 
   await clearButton.click();
   
-  // After clearing, check for empty state or input placeholder
-  const emptyState = page.getByText('Ask Holmes anything about your Kubernetes cluster:');
-  const inputVisible = page.getByPlaceholder('Ask about your cluster...');
-  await expect(emptyState.or(inputVisible)).toBeVisible({ timeout: 10_000 });
+  // After clearing, verify the input is still available (conversation cleared)
+  await expect(page.getByPlaceholder('Ask about your cluster...')).toBeVisible({ timeout: 10_000 });
 });
