@@ -167,29 +167,15 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 		return status, fmt.Errorf("failed to create OpenAI secret: %w", err)
 	}
 
-	// Holmes uses additionalEnvVars to set the OPENAI_API_KEY
-	// See https://holmesgpt.dev/reference/helm-configuration/
-	values := map[string]interface{}{
-		"additionalEnvVars": []map[string]interface{}{
-			{
-				"name": "OPENAI_API_KEY",
-				"valueFrom": map[string]interface{}{
-					"secretKeyRef": map[string]interface{}{
-						"name": holmesOpenAISecretName,
-						"key":  holmesOpenAISecretKey,
-					},
-				},
-			},
-		},
-		// Configure gpt-5.1 as the default model using Jinja2 template for environment variable
-		// HolmesGPT uses "{{ env.VAR_NAME }}" syntax to reference environment variables in modelList
-		"modelList": map[string]interface{}{
-			"gpt-5.1": map[string]interface{}{
-				"api_key":     "{{ env.OPENAI_API_KEY }}",
-				"model":       "openai/gpt-5.1",
-				"temperature": 0,
-			},
-		},
+	// Load default Helm values from embedded YAML file
+	// See pkg/app/holmesgpt/default-values.yaml for the configuration
+	values, err := holmesgpt.GetDefaultHelmValues()
+	if err != nil {
+		status.Phase = holmesgpt.DeploymentPhaseFailed
+		status.Message = "Failed to load default Helm values"
+		status.Error = err.Error()
+		a.emitHolmesDeploymentStatus(status)
+		return status, fmt.Errorf("failed to load default Helm values: %w", err)
 	}
 
 	// Step 4: Install the Helm chart (60%)
