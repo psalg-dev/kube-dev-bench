@@ -25,6 +25,8 @@
   gap: 10px;
   color: var(--gh-text-secondary, #8b949e);
   font-size: 13px;
+  flex: 1;
+  min-height: 0;
 }
 
 .holmes-bottom-panel-progress {
@@ -228,6 +230,9 @@
 .holmes-bottom-panel-response {
   flex: 1;
   overflow: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .holmes-bottom-panel-streaming {
@@ -238,7 +243,8 @@
   border: 1px solid rgba(88, 166, 255, 0.2);
   flex: 1;
   overflow: auto;
-  max-height: 400px;
+  min-height: 0;
+  max-height: none;
 }
 
 .holmes-bottom-panel-empty {

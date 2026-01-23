@@ -22,11 +22,15 @@ export function AnalyzeDeployment(arg1:string,arg2:string):Promise<holmesgpt.Hol
 
 export function AnalyzeDeploymentStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
+export function AnalyzeLogs(arg1:string,arg2:string,arg3:string,arg4:number):Promise<holmesgpt.HolmesResponse>;
+
 export function AnalyzeMonitorIssue(arg1:string):Promise<app.MonitorIssue>;
 
 export function AnalyzeMonitorIssueStream(arg1:string,arg2:string):Promise<void>;
 
 export function AnalyzePod(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzePodLogs(arg1:string,arg2:string,arg3:number):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzePodStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
@@ -41,6 +45,14 @@ export function AnalyzeServiceStream(arg1:string,arg2:string,arg3:string):Promis
 export function AnalyzeStatefulSet(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeStatefulSetStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function AnalyzeSwarmService(arg1:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzeSwarmServiceStream(arg1:string,arg2:string):Promise<void>;
+
+export function AnalyzeSwarmTask(arg1:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzeSwarmTaskStream(arg1:string,arg2:string):Promise<void>;
 
 export function ArchivePVCPath(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.ArchiveResult>;
 
@@ -117,6 +129,8 @@ export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
 export function DeleteSwarmVolumeFile(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function DeployHolmesGPT(arg1:holmesgpt.HolmesDeploymentRequest):Promise<holmesgpt.HolmesDeploymentStatus>;
+
+export function DetectLogPatterns(arg1:string):Promise<Array<app.LogPattern>>;
 
 export function DetectSystemProxy():Promise<Record<string, string>>;
 

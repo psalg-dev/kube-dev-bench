@@ -46,6 +46,9 @@ type App struct {
 	// testClientset is used for testing only (dependency injection)
 	testClientset interface{}
 
+	// testPodLogsFetcher is used for testing only (dependency injection)
+	testPodLogsFetcher func(namespace, podName, containerName string, lines int) (string, error)
+
 	// disableStartupDocker is used for unit tests only, to prevent Startup from
 	// invoking Docker auto-connect and emitting Wails events with a non-Wails ctx.
 	disableStartupDocker bool

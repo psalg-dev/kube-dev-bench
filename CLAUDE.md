@@ -65,6 +65,7 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
 - `pkg/app/` - Core application logic, K8s API integrations, and Wails-exposed methods
   - Resource handlers: `pods.go`, `deployments.go`, `cronjobs.go`, `statefulsets.go`, etc.
   - Holmes AI: `holmes_context.go` for context enrichment, `holmes_integration.go` for analysis RPCs
+  - Holmes AI (Phase 4): `holmes_logs.go` for log analysis helpers, `holmes_swarm.go` for Swarm context analysis
   - Monitoring: `monitor.go` for continuous issue polling, `monitor_actions.go` for scan/analysis/dismiss actions
   - Prometheus alerts: `holmes_alerts.go` for alert fetching + Holmes investigations
   - `kubeconfig.go` - Kubeconfig management
@@ -95,6 +96,7 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
     - `ConnectionProxySettings.jsx` - Per-connection proxy configuration
 - `frontend/src/k8s/resources/` - K8s resource view components
 - `frontend/src/holmes/` - Holmes AI UI (panel, config modal, response renderer, resource analysis tabs)
+- `frontend/src/layout/bottompanel/LogViewerTab.jsx` - Pod log viewer with Holmes “Explain Logs” analysis
 - `frontend/src/docker/` - Docker Swarm frontend components
   - `SwarmStateContext.jsx` - Docker connection and resource state management
   - `SwarmResourceCountsContext.jsx` - Resource counts context

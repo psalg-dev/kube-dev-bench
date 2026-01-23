@@ -30,6 +30,10 @@ export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
 }
 
+export function AnalyzeLogs(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['AnalyzeLogs'](arg1, arg2, arg3, arg4);
+}
+
 export function AnalyzeMonitorIssue(arg1) {
   return window['go']['main']['App']['AnalyzeMonitorIssue'](arg1);
 }
@@ -40,6 +44,10 @@ export function AnalyzeMonitorIssueStream(arg1, arg2) {
 
 export function AnalyzePod(arg1, arg2) {
   return window['go']['main']['App']['AnalyzePod'](arg1, arg2);
+}
+
+export function AnalyzePodLogs(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzePodLogs'](arg1, arg2, arg3);
 }
 
 export function AnalyzePodStream(arg1, arg2, arg3) {
@@ -68,6 +76,22 @@ export function AnalyzeStatefulSet(arg1, arg2) {
 
 export function AnalyzeStatefulSetStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeStatefulSetStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeSwarmService(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmService'](arg1);
+}
+
+export function AnalyzeSwarmServiceStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmServiceStream'](arg1, arg2);
+}
+
+export function AnalyzeSwarmTask(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmTask'](arg1);
+}
+
+export function AnalyzeSwarmTaskStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmTaskStream'](arg1, arg2);
 }
 
 export function ArchivePVCPath(arg1, arg2, arg3, arg4) {
@@ -220,6 +244,10 @@ export function DeleteSwarmVolumeFile(arg1, arg2, arg3) {
 
 export function DeployHolmesGPT(arg1) {
   return window['go']['main']['App']['DeployHolmesGPT'](arg1);
+}
+
+export function DetectLogPatterns(arg1) {
+  return window['go']['main']['App']['DetectLogPatterns'](arg1);
 }
 
 export function DetectSystemProxy() {

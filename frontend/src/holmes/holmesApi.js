@@ -4,6 +4,7 @@ import {
   AskHolmesStream as _AskHolmesStream,
   CancelHolmesStream as _CancelHolmesStream,
   AnalyzePod as _AnalyzePod,
+  AnalyzePodLogs as _AnalyzePodLogs,
   AnalyzePodStream as _AnalyzePodStream,
   AnalyzeDeployment as _AnalyzeDeployment,
   AnalyzeDeploymentStream as _AnalyzeDeploymentStream,
@@ -13,6 +14,10 @@ import {
   AnalyzeDaemonSetStream as _AnalyzeDaemonSetStream,
   AnalyzeService as _AnalyzeService,
   AnalyzeServiceStream as _AnalyzeServiceStream,
+  AnalyzeSwarmService as _AnalyzeSwarmService,
+  AnalyzeSwarmServiceStream as _AnalyzeSwarmServiceStream,
+  AnalyzeSwarmTask as _AnalyzeSwarmTask,
+  AnalyzeSwarmTaskStream as _AnalyzeSwarmTaskStream,
   AnalyzeResource as _AnalyzeResource,
   AnalyzeResourceStream as _AnalyzeResourceStream,
   GetHolmesConfig as _GetHolmesConfig,
@@ -64,6 +69,16 @@ export async function AnalyzePod(namespace, name) {
 }
 
 /**
+ * Analyze a pod's logs using HolmesGPT.
+ * @param {string} namespace
+ * @param {string} podName
+ * @param {number} lines
+ */
+export async function AnalyzePodLogs(namespace, podName, lines = 200) {
+  return await _AnalyzePodLogs(namespace, podName, lines);
+}
+
+/**
  * Analyze a deployment using HolmesGPT with context.
  * @param {string} namespace
  * @param {string} name
@@ -97,6 +112,42 @@ export async function AnalyzeDaemonSet(namespace, name) {
  */
 export async function AnalyzeService(namespace, name) {
   return await _AnalyzeService(namespace, name);
+}
+
+/**
+ * Analyze a Docker Swarm service using HolmesGPT.
+ * @param {string} serviceID
+ */
+export async function AnalyzeSwarmService(serviceID) {
+  return await _AnalyzeSwarmService(serviceID);
+}
+
+/**
+ * Analyze a Docker Swarm service using HolmesGPT (streaming).
+ * @param {string} serviceID
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeSwarmServiceStream(serviceID, streamId) {
+  return await _AnalyzeSwarmServiceStream(serviceID, streamId);
+}
+
+/**
+ * Analyze a Docker Swarm task using HolmesGPT.
+ * @param {string} taskID
+ */
+export async function AnalyzeSwarmTask(taskID) {
+  return await _AnalyzeSwarmTask(taskID);
+}
+
+/**
+ * Analyze a Docker Swarm task using HolmesGPT (streaming).
+ * @param {string} taskID
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeSwarmTaskStream(taskID, streamId) {
+  return await _AnalyzeSwarmTaskStream(taskID, streamId);
 }
 
 /**

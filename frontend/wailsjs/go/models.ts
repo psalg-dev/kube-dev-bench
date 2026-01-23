@@ -981,6 +981,26 @@ export namespace app {
 	        this.contexts = source["contexts"];
 	    }
 	}
+	export class LogPattern {
+	    type: string;
+	    pattern: string;
+	    occurrences: number;
+	    firstSeen: string;
+	    lastSeen: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new LogPattern(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.pattern = source["pattern"];
+	        this.occurrences = source["occurrences"];
+	        this.firstSeen = source["firstSeen"];
+	        this.lastSeen = source["lastSeen"];
+	    }
+	}
 	export class MonitorIssue {
 	    type: string;
 	    resource: string;

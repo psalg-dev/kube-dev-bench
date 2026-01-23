@@ -9,6 +9,8 @@ import UpdateServiceImageModal from './UpdateServiceImageModal.jsx';
 import ImageUpdateBadge from './ImageUpdateBadge.jsx';
 import ImageUpdateModal from './ImageUpdateModal.jsx';
 import ImageUpdateSettingsModal from './ImageUpdateSettingsModal.jsx';
+import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import { AnalyzeSwarmServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import {
   GetSwarmServices,
   ScaleSwarmService,
@@ -77,6 +79,7 @@ const bottomTabs = [
   { key: 'tasks', label: 'Tasks' },
   { key: 'placement', label: 'Placement' },
   { key: 'logs', label: 'Logs' },
+  { key: 'holmes', label: 'Holmes' },
 ];
 
 function formatBytes(bytes) {
@@ -384,7 +387,7 @@ function ServiceSummaryPanel({ row, onRefresh }) {
     );
 }
 
-function renderPanelContent(row, tab, onRefresh) {
+function renderPanelContent(row, tab, onRefresh, holmesState, onAnalyze, onCancel) {
   if (tab === 'summary') {
     return <ServiceSummaryPanel row={row} onRefresh={onRefresh} />;
   }
@@ -403,6 +406,27 @@ function renderPanelContent(row, tab, onRefresh) {
         title="Service Logs"
         reloadKey={row.id}
         loadLogs={() => GetSwarmServiceLogs(row.id, '500')}
+      />
+    );
+  }
+
+  if (tab === 'holmes') {
+    const key = `swarm/${row.id}`;
+    return (
+      <HolmesBottomPanel
+        kind="Swarm Service"
+        namespace="swarm"
+        name={row.name}
+        onAnalyze={() => onAnalyze(row)}
+        onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+        response={holmesState.key === key ? holmesState.response : null}
+        loading={holmesState.key === key && holmesState.loading}
+        error={holmesState.key === key ? holmesState.error : null}
+        queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+        streamingText={holmesState.key === key ? holmesState.streamingText : ''}
+        reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
+        toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
+        contextSteps={holmesState.key === key ? holmesState.contextSteps : []}
       />
     );
   }
@@ -466,6 +490,22 @@ export default function SwarmServicesOverviewTable() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [imageUpdateServiceId, setImageUpdateServiceId] = useState(null);
   const [imageUpdateSettingsOpen, setImageUpdateSettingsOpen] = useState(false);
+  const [holmesState, setHolmesState] = useState({
+    loading: false,
+    response: null,
+    error: null,
+    key: null,
+    streamId: null,
+    streamingText: '',
+    reasoningText: '',
+    queryTimestamp: null,
+    contextSteps: [],
+    toolEvents: [],
+  });
+  const holmesStateRef = React.useRef(holmesState);
+  React.useEffect(() => {
+    holmesStateRef.current = holmesState;
+  }, [holmesState]);
 
   const refresh = useCallback(() => {
     setRefreshKey(k => k + 1);
@@ -521,6 +561,131 @@ export default function SwarmServicesOverviewTable() {
     };
   }, [refreshKey]);
 
+  useEffect(() => {
+    const unsubscribe = onHolmesChatStream((payload) => {
+      if (!payload) return;
+      const current = holmesStateRef.current;
+      const { streamId } = current;
+      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
+        return;
+      }
+      if (payload.error) {
+        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
+          setHolmesState((prev) => ({ ...prev, loading: false }));
+          return;
+        }
+        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
+        return;
+      }
+
+      const eventType = payload.event;
+      if (!payload.data) {
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(payload.data);
+      } catch {
+        data = null;
+      }
+
+      if (eventType === 'ai_message' && data) {
+        let handled = false;
+        if (data.reasoning) {
+          setHolmesState((prev) => ({
+            ...prev,
+            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + data.reasoning,
+          }));
+          handled = true;
+        }
+        if (data.content) {
+          setHolmesState((prev) => {
+            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + data.content;
+            return { ...prev, streamingText: nextText, response: { response: nextText } };
+          });
+          handled = true;
+        }
+        if (handled) return;
+      }
+
+      if (eventType === 'start_tool_calling' && data && data.id) {
+        setHolmesState((prev) => ({
+          ...prev,
+          toolEvents: [...(prev.toolEvents || []), {
+            id: data.id,
+            name: data.tool_name || 'tool',
+            status: 'running',
+            description: data.description,
+          }],
+        }));
+        return;
+      }
+
+      if (eventType === 'tool_calling_result' && data && data.tool_call_id) {
+        const status = data.result?.status || data.status || 'done';
+        setHolmesState((prev) => ({
+          ...prev,
+          toolEvents: (prev.toolEvents || []).map((item) =>
+            item.id === data.tool_call_id
+              ? { ...item, status, description: data.description || item.description }
+              : item
+          ),
+        }));
+        return;
+      }
+
+      if (eventType === 'ai_answer_end' && data && data.analysis) {
+        setHolmesState((prev) => ({
+          ...prev,
+          loading: false,
+          response: { response: data.analysis },
+          streamingText: data.analysis,
+        }));
+        return;
+      }
+
+      if (eventType === 'stream_end') {
+        setHolmesState((prev) => {
+          if (prev.streamingText) {
+            return { ...prev, loading: false, response: { response: prev.streamingText } };
+          }
+          return { ...prev, loading: false };
+        });
+      }
+    });
+    return () => {
+      try { unsubscribe?.(); } catch (_) {}
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onHolmesContextProgress((event) => {
+      if (!event?.key) return;
+      setHolmesState((prev) => {
+        if (prev.key !== event.key) return prev;
+        const id = event.step || 'step';
+        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
+        const idx = nextSteps.findIndex((item) => item.id === id);
+        const entry = {
+          id,
+          step: event.step,
+          status: event.status || 'running',
+          detail: event.detail || '',
+        };
+        if (idx >= 0) {
+          nextSteps[idx] = { ...nextSteps[idx], ...entry };
+        } else {
+          nextSteps.push(entry);
+        }
+        return { ...prev, contextSteps: nextSteps };
+      });
+    });
+    return () => {
+      try { unsubscribe?.(); } catch (_) {}
+    };
+  }, []);
+
   const serviceForUpdateModal = useMemo(() => {
     if (!imageUpdateServiceId) return null;
     return (services || []).find((s) => s?.id === imageUpdateServiceId) || null;
@@ -540,6 +705,47 @@ export default function SwarmServicesOverviewTable() {
     return <div className="main-panel-loading">Loading Swarm services...</div>;
   }
 
+  const analyzeWithHolmes = async (service) => {
+    const key = service?.id;
+    if (!key) return;
+    const streamId = `swarm-service-${Date.now()}`;
+    setHolmesState({
+      loading: true,
+      response: null,
+      error: null,
+      key: `swarm/${key}`,
+      streamId,
+      streamingText: '',
+      reasoningText: '',
+      queryTimestamp: new Date().toISOString(),
+      contextSteps: [],
+      toolEvents: [],
+    });
+    try {
+      await AnalyzeSwarmServiceStream(service.id, streamId);
+    } catch (err) {
+      const message = err?.message || String(err);
+      setHolmesState((prev) => ({
+        ...prev,
+        loading: false,
+        response: null,
+        error: message,
+      }));
+      showError(`Holmes analysis failed: ${message}`);
+    }
+  };
+
+  const cancelHolmesAnalysis = async () => {
+    const currentStreamId = holmesState.streamId;
+    if (!currentStreamId) return;
+    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
+    try {
+      await CancelHolmesStream(currentStreamId);
+    } catch (err) {
+      console.error('Failed to cancel Holmes stream:', err);
+    }
+  };
+
   return (
     <>
       <OverviewTableWithPanel
@@ -547,13 +753,23 @@ export default function SwarmServicesOverviewTable() {
         columns={columns}
         data={servicesWithHandlers}
         tabs={bottomTabs}
-        renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
+        renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh, holmesState, analyzeWithHolmes, cancelHolmesAnalysis)}
         tableTestId="swarm-services-table"
         createPlatform="swarm"
         createKind="service"
-        getRowActions={(row) => {
+        getRowActions={(row, api) => {
           const canScale = (row?.mode || '').toLowerCase() === 'replicated';
+          const isAnalyzing = holmesState.loading && holmesState.key === `swarm/${row.id}`;
           return [
+            {
+              label: isAnalyzing ? 'Analyzing...' : 'Ask Holmes',
+              icon: '🧠',
+              disabled: isAnalyzing,
+              onClick: () => {
+                analyzeWithHolmes(row);
+                api?.openDetails?.('holmes');
+              },
+            },
             {
               label: 'Restart',
               icon: '🔄',

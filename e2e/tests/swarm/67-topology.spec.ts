@@ -31,6 +31,6 @@ test.describe('Docker Swarm Cluster Topology', () => {
 
     const panel = new SwarmBottomPanel(page);
     await panel.expectVisible();
-    await panel.expectTabs(['Summary', 'Tasks', 'Logs']);
+    await panel.expectTabs(['Summary', 'Tasks', 'Logs', 'Holmes']);
   });
 });

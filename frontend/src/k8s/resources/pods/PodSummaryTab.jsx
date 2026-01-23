@@ -6,7 +6,7 @@ import ResourceActions from '../../../components/ResourceActions.jsx';
 import * as AppAPI from "../../../../wailsjs/go/main/App.js";
 import { formatDateDMY, formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
-export default function PodSummaryTab({ podName }) {
+export default function PodSummaryTab({ podName, namespace }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -227,46 +227,50 @@ export default function PodSummaryTab({ podName }) {
               <span style={{ fontWeight: 600 }}>Logs</span>
             </div>
             <div style={{ flex: 1, minHeight: 0 }}>
-              <LogViewerTab podName={podName} embedded={true} />
+              <LogViewerTab podName={podName} namespace={namespace} embedded={true} />
             </div>
           </div>
 
-          {/* Right-side panel: Events (last 5) */}
-          <div style={{ width: 360, minWidth: 280, borderLeft: '1px solid var(--gh-border, #30363d)', background: 'var(--gh-bg-canvas, #0d1117)', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 600 }}>Events</span>
-              <span style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>{eventsLoading ? 'Updating…' : ''}</span>
-            </div>
-            <div className="scrollbar-hide-y" style={{ padding: 12, flex: 1, overflow: 'auto' }}>
-              {(() => {
-                const hasEvents = Array.isArray(events) && events.length > 0;
-                if (hasEvents) {
-                  return (
-                    <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
-                      {events.map((e, idx) => {
-                        const key = `${e.lastTimestamp ?? ''}|${e.type ?? ''}|${e.reason ?? ''}|${(e.message || '').slice(0, 24)}|${idx}`;
-                        return (
-                          <li key={key} style={{ borderBottom: '1px solid var(--gh-border, #30363d)', paddingBottom: 8 }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                              <span style={{ color: '#8b949e', fontSize: 12 }}>{e.type || '-'}</span>
-                              <span style={{ color: '#8b949e', fontSize: 12 }}>{formatTimestampDMYHMS(e.lastTimestamp)}</span>
-                            </div>
-                            <div style={{ marginTop: 4, fontWeight: 600 }}>{e.reason || '-'}</div>
-                            <div style={{ marginTop: 4, whiteSpace: 'pre-wrap', color: 'var(--gh-text, #c9d1d9)' }}>{e.message || '-'}</div>
-                            {typeof e.count === 'number' && <div style={{ marginTop: 4, color: '#8b949e', fontSize: 12 }}>Count: {e.count}</div>}
-                            {e.source && <div style={{ marginTop: 2, color: '#8b949e', fontSize: 12 }}>Source: {e.source}</div>}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  );
-                }
-                if (eventsLoading) return <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>Loading events…</div>;
-                if (eventsError) return <div style={{ color: '#f85149' }}>Error: {eventsError}</div>;
-                return <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No recent events.</div>;
-              })()}
-            </div>
-          </div>
+          {(() => {
+            const hasEvents = Array.isArray(events) && events.length > 0;
+            if (!hasEvents) return null;
+            return (
+              <div style={{ width: 360, minWidth: 280, borderLeft: '1px solid var(--gh-border, #30363d)', background: 'var(--gh-bg-canvas, #0d1117)', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontWeight: 600 }}>Events</span>
+                  <span style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>{eventsLoading ? 'Updating…' : ''}</span>
+                </div>
+                <div className="scrollbar-hide-y" style={{ padding: 12, flex: 1, overflow: 'auto' }}>
+                  {(() => {
+                    if (hasEvents) {
+                      return (
+                        <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+                          {events.map((e, idx) => {
+                            const key = `${e.lastTimestamp ?? ''}|${e.type ?? ''}|${e.reason ?? ''}|${(e.message || '').slice(0, 24)}|${idx}`;
+                            return (
+                              <li key={key} style={{ borderBottom: '1px solid var(--gh-border, #30363d)', paddingBottom: 8 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                                  <span style={{ color: '#8b949e', fontSize: 12 }}>{e.type || '-'}</span>
+                                  <span style={{ color: '#8b949e', fontSize: 12 }}>{formatTimestampDMYHMS(e.lastTimestamp)}</span>
+                                </div>
+                                <div style={{ marginTop: 4, fontWeight: 600 }}>{e.reason || '-'}</div>
+                                <div style={{ marginTop: 4, whiteSpace: 'pre-wrap', color: 'var(--gh-text, #c9d1d9)' }}>{e.message || '-'}</div>
+                                {typeof e.count === 'number' && <div style={{ marginTop: 4, color: '#8b949e', fontSize: 12 }}>Count: {e.count}</div>}
+                                {e.source && <div style={{ marginTop: 2, color: '#8b949e', fontSize: 12 }}>Source: {e.source}</div>}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      );
+                    }
+                    if (eventsLoading) return <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>Loading events…</div>;
+                    if (eventsError) return <div style={{ color: '#f85149' }}>Error: {eventsError}</div>;
+                    return <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No recent events.</div>;
+                  })()}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

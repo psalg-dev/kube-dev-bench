@@ -861,6 +861,39 @@ Integrating HolmesGPT into KubeDevBench represents a significant opportunity to 
 
 ---
 
+## Phase 4 Additions (Log Analysis & Swarm)
+
+### Log Analysis Patterns
+
+KubeDevBench now supports log analysis via Holmes in the pod log viewer. The analysis pipeline:
+
+1. Fetch recent log lines from the selected pod (default: 200 lines).
+2. Run lightweight pattern detection for **error**, **warning**, and **panic** markers.
+3. Send the log snippet to HolmesGPT with a focused diagnostic prompt.
+
+**Pattern Heuristics**
+- `error` / `err` → error patterns
+- `warning` / `warn` → warning patterns
+- `panic` → panic patterns
+
+These patterns are surfaced in telemetry and can be expanded later with more granular signatures (timeouts, DNS failures, OOM, etc.).
+
+### Swarm Integration
+
+Docker Swarm resources now support Holmes analysis for **Services** and **Tasks**.
+
+**Swarm Service Context**
+- Service name, replicas, image
+- Task list with state + error details
+- Last 50 log lines
+
+**Swarm Task Context**
+- Task status (state + error)
+- Container ID + exit code
+- Last 50 log lines (if container exists)
+
+The Swarm bottom panel now includes a **Holmes** tab to trigger and display these analyses.
+
 ## References & Sources
 
 - [HolmesGPT Official Documentation](https://holmesgpt.dev/)

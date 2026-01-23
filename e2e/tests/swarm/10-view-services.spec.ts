@@ -78,7 +78,7 @@ test.describe('Docker Swarm Services', () => {
     await panel.expectVisible();
     
     // Verify expected tabs
-    await panel.expectTabs(['Summary', 'Tasks', 'Logs']);
+    await panel.expectTabs(['Summary', 'Tasks', 'Logs', 'Holmes']);
   });
 
   test('service details panel shows Summary tab content', async ({ page }) => {

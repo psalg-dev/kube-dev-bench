@@ -520,6 +520,31 @@ func (a *App) AnalyzePod(namespace, name string) (*holmesgpt.HolmesResponse, err
 	return resp, err
 }
 
+// AnalyzePodLogs retrieves pod logs and sends them to HolmesGPT.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzePodLogs(namespace, podName string, lines int) (*holmesgpt.HolmesResponse, error) {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzePodLogs: starting",
+		"namespace", namespace,
+		"pod", podName,
+		"lines", lines)
+
+	resp, err := a.AnalyzeLogs(namespace, podName, "", lines)
+	if err != nil {
+		log.Error("AnalyzePodLogs: analysis failed",
+			"error", err,
+			"elapsed", time.Since(startTime))
+	} else {
+		log.Info("AnalyzePodLogs: completed",
+			"responseLen", len(resp.Response),
+			"elapsed", time.Since(startTime))
+	}
+
+	return resp, err
+}
+
 // AnalyzeDeployment gathers deployment context and sends it to HolmesGPT.
 // This is a Wails RPC method callable from the frontend.
 func (a *App) AnalyzeDeployment(namespace, name string) (*holmesgpt.HolmesResponse, error) {

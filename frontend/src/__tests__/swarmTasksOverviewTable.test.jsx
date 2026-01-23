@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
 
-const { runtimeHandlers, swarmApiMocks, rowApis } = vi.hoisted(() => {
+const { runtimeHandlers, swarmApiMocks, holmesApiMocks, rowApis } = vi.hoisted(() => {
   return {
     runtimeHandlers: new Map(),
     swarmApiMocks: {
@@ -10,11 +10,15 @@ const { runtimeHandlers, swarmApiMocks, rowApis } = vi.hoisted(() => {
       GetSwarmTaskLogs: vi.fn(),
       GetSwarmTaskHealthLogs: vi.fn(),
     },
+    holmesApiMocks: {
+      AnalyzeSwarmTask: vi.fn(),
+    },
     rowApis: new Map(),
   };
 });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
+vi.mock('../../../holmes/holmesApi', () => holmesApiMocks);
 
 vi.mock('../utils/dateUtils.js', () => ({
   formatTimestampDMYHMS: (v) => `FMT(${v})`,
@@ -143,6 +147,12 @@ vi.mock('../docker/resources/tasks/HealthStatusBadge.jsx', () => ({
   },
 }));
 
+vi.mock('../../../holmes/HolmesResponseRenderer.jsx', () => ({
+  default: function HolmesResponseRendererMock() {
+    return <div data-testid="holmes-renderer" />;
+  },
+}));
+
 import SwarmTasksOverviewTable from '../docker/resources/tasks/SwarmTasksOverviewTable.jsx';
 
 function emit(eventName, payload) {
@@ -194,6 +204,7 @@ describe('SwarmTasksOverviewTable', () => {
       { exitCode: 1, end: '2026-01-01T00:00:10Z', output: 'fail' },
       { exitCode: 0, end: '2026-01-01T00:00:20Z', output: 'ok' },
     ]);
+    holmesApiMocks.AnalyzeSwarmTask.mockResolvedValue({ response: 'analysis' });
   });
 
   it('loads and renders tasks with formatted cells', async () => {
@@ -249,6 +260,19 @@ describe('SwarmTasksOverviewTable', () => {
     const a2 = screen.getByTestId('actions-task2');
     expect(within(a2).getByRole('button', { name: 'Logs' })).toBeDisabled();
     expect(within(a2).getByRole('button', { name: 'Exec' })).toBeDisabled();
+  });
+
+  it('adds Ask Holmes action for tasks', async () => {
+    render(<SwarmTasksOverviewTable />);
+    await screen.findByTestId('row-task1234567890abcdef');
+
+    const actions = within(screen.getByTestId('actions-task1234567890abcdef'));
+    const askButton = actions.getByRole('button', { name: 'Ask Holmes' });
+    await act(async () => {
+      fireEvent.click(askButton);
+    });
+
+    expect(holmesApiMocks.AnalyzeSwarmTask).toHaveBeenCalledWith('task1234567890abcdef');
   });
 
   it('panel content: logs/exec branches and exec button sets active tab', async () => {

@@ -701,13 +701,13 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   // Removed panelHeader - the PodSummaryTab already includes ResourceActions with Restart/Delete buttons
 
   const tabs = [
-    { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} /> },
+    { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} namespace={bottomNamespace || namespace} /> },
     {
       id: 'logs',
       label: 'Logs',
       content: (
         <div style={{ position: 'absolute', inset: 0 }}>
-          <LogViewerTab podName={bottomPodName} embedded={true} />
+          <LogViewerTab podName={bottomPodName} namespace={bottomNamespace || namespace} embedded={true} />
         </div>
       )
     },

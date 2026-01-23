@@ -220,6 +220,7 @@ body.holmes-resizing {
   padding: 16px 14px 8px;
   background: var(--gh-bg, #0d1117);
   min-height: 0;
+  text-align: left;
 }
 
 .holmes-message-list {
@@ -399,6 +400,7 @@ body.holmes-resizing {
   margin: 0;
   white-space: normal;
   color: inherit;
+  text-align: left;
 }
 
 .holmes-rendered-content > *:first-child {

@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react';
 
-const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
+const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
     runtimeHandlers: new Map(),
     swarmApiMocks: {
@@ -13,6 +13,9 @@ const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
       GetSwarmServiceLogs: vi.fn(),
       UpdateSwarmServiceImage: vi.fn(),
     },
+    holmesApiMocks: {
+      AnalyzeSwarmService: vi.fn(),
+    },
     notificationMocks: {
       showSuccess: vi.fn(),
       showError: vi.fn(),
@@ -21,6 +24,7 @@ const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
 });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
+vi.mock('../../../holmes/holmesApi', () => holmesApiMocks);
 
 // SwarmServicesOverviewTable imports runtime via "../../../../wailsjs/runtime/runtime.js"
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
@@ -142,6 +146,12 @@ vi.mock('../docker/resources/services/ImageUpdateSettingsModal.jsx', () => ({
 
 vi.mock('../notification.js', () => notificationMocks);
 
+vi.mock('../../../holmes/HolmesResponseRenderer.jsx', () => ({
+  default: function HolmesResponseRendererMock() {
+    return <div data-testid="holmes-renderer" />;
+  },
+}));
+
 import SwarmServicesOverviewTable from '../docker/resources/services/SwarmServicesOverviewTable.jsx';
 
 function emit(eventName, payload) {
@@ -181,6 +191,7 @@ describe('SwarmServicesOverviewTable', () => {
     swarmApiMocks.ScaleSwarmService.mockResolvedValue(undefined);
     swarmApiMocks.RestartSwarmService.mockResolvedValue(undefined);
     swarmApiMocks.RemoveSwarmService.mockResolvedValue(undefined);
+    holmesApiMocks.AnalyzeSwarmService.mockResolvedValue({ response: 'analysis' });
   });
 
   afterEach(() => {
@@ -209,6 +220,21 @@ describe('SwarmServicesOverviewTable', () => {
     expect(screen.getByTestId('cell-svc2-createdAt')).toHaveTextContent('-');
 
     expect(swarmApiMocks.GetSwarmServices).toHaveBeenCalledTimes(1);
+  });
+
+  it('adds Ask Holmes action for services', async () => {
+    render(<SwarmServicesOverviewTable />);
+
+    const row = await screen.findByTestId('row-svc1');
+    expect(row).toBeInTheDocument();
+
+    const actions = within(screen.getByTestId('actions-svc1'));
+    const askButton = actions.getByRole('button', { name: 'Ask Holmes' });
+    await act(async () => {
+      fireEvent.click(askButton);
+    });
+
+    expect(holmesApiMocks.AnalyzeSwarmService).toHaveBeenCalledWith('svc1');
   });
 
   it('opens image update settings modal from header button', async () => {
