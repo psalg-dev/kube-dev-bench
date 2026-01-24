@@ -80,14 +80,25 @@ function aggregateReports() {
   const trivy = readJsonSafe(path.join(REPORTS_DIR, 'security', 'trivy-report.json'));
   if (trivy?.Results) {
     let critical = 0, high = 0, medium = 0;
+    const allVulns = [];
     trivy.Results.forEach(result => {
       (result.Vulnerabilities || []).forEach(vuln => {
         if (vuln.Severity === 'CRITICAL') critical++;
         else if (vuln.Severity === 'HIGH') high++;
         else if (vuln.Severity === 'MEDIUM') medium++;
+        allVulns.push({
+          id: vuln.VulnerabilityID,
+          severity: vuln.Severity,
+          package: vuln.PkgName,
+          version: vuln.InstalledVersion,
+          fixedVersion: vuln.FixedVersion,
+          title: vuln.Title,
+          target: result.Target
+        });
       });
     });
     report.summary.vulnerabilities = { critical, high, medium };
+    report.details.vulnerabilities = allVulns;
     if (critical > THRESHOLDS.thresholds.security.critical) {
       report.gates.passed = false;
       report.gates.failures.push(`Critical vulnerabilities: ${critical}`);
@@ -102,6 +113,13 @@ function aggregateReports() {
   const gitleaks = readJsonSafe(path.join(REPORTS_DIR, 'security', 'gitleaks-report.json'));
   if (gitleaks) {
     report.summary.secretsFound = gitleaks.length || 0;
+    report.details.secrets = (gitleaks || []).map(s => ({
+      file: s.File,
+      line: s.StartLine,
+      rule: s.RuleID,
+      description: s.Description,
+      match: s.Match ? s.Match.substring(0, 50) + '...' : ''
+    }));
     if (report.summary.secretsFound > 0) {
       report.gates.passed = false;
       report.gates.failures.push(`Secrets found in code: ${report.summary.secretsFound}`);
@@ -148,19 +166,33 @@ function aggregateReports() {
       highComplexityFunctions: highComplexity.length,
       totalFunctions: functions.length
     };
-    report.details.highComplexityFunctions = highComplexity.slice(0, 20); // Top 20
+    report.details.highComplexityFunctions = highComplexity.slice(0, 50); // Top 50
   } catch (e) {
     // gocyclo.txt not found or parse error
   }
 
   // Cognitive Complexity (gocognit) - read from text file
+  // Format: <complexity> <package> <function> <file:line:column>
   try {
     const gocognitText = fs.readFileSync(path.join(REPORTS_DIR, 'go', 'gocognit.txt'), 'utf8');
     const cognitLines = gocognitText.trim().split('\n').filter(l => l.trim());
+    const cognitFunctions = cognitLines.map(line => {
+      const match = line.match(/^(\d+)\s+(\w+)\s+(.+?)\s+(.+:\d+:\d+)$/);
+      if (match) {
+        return {
+          Complexity: parseInt(match[1]),
+          Package: match[2],
+          Function: match[3],
+          Location: match[4]
+        };
+      }
+      return null;
+    }).filter(f => f !== null);
+    
     report.summary.cognitiveComplexity = {
-      highComplexityFunctions: cognitLines.length
+      highComplexityFunctions: cognitFunctions.length
     };
-    report.details.cognitiveFunctions = cognitLines.slice(0, 20);
+    report.details.cognitiveFunctions = cognitFunctions.slice(0, 50); // Top 50
   } catch (e) {
     // gocognit.txt not found or empty
   }
@@ -206,14 +238,109 @@ function aggregateReports() {
 }
 
 function generateHtmlDashboard(report) {
+  // Helper functions to build HTML sections
+  const gateFailuresHtml = !report.gates.passed 
+    ? `<div class="card">
+        <h2>Gate Failures</h2>
+        <ul>${report.gates.failures.map(f => `<li>${f}</li>`).join('')}</ul>
+       </div>` 
+    : '';
+
+  const vulnsTableHtml = (report.details.vulnerabilities?.length || 0) > 0
+    ? `<table>
+        <tr><th>Severity</th><th>ID</th><th>Package</th><th>Installed</th><th>Fixed</th><th>Title</th></tr>
+        ${(report.details.vulnerabilities || []).map(v => `
+          <tr>
+            <td><span class="severity-${v.severity.toLowerCase()}">${v.severity}</span></td>
+            <td>${v.id}</td>
+            <td>${v.package}</td>
+            <td>${v.version || '-'}</td>
+            <td>${v.fixedVersion || 'N/A'}</td>
+            <td>${v.title || '-'}</td>
+          </tr>
+        `).join('')}
+       </table>`
+    : '<p>No vulnerabilities found.</p>';
+
+  const secretsTableHtml = (report.details.secrets?.length || 0) > 0
+    ? `<table>
+        <tr><th>File</th><th>Line</th><th>Rule</th><th>Description</th></tr>
+        ${(report.details.secrets || []).map(s => `
+          <tr>
+            <td class="file-path">${s.file}</td>
+            <td>${s.line}</td>
+            <td>${s.rule}</td>
+            <td>${s.description}</td>
+          </tr>
+        `).join('')}
+       </table>`
+    : '<p>No secrets found.</p>';
+
+  const gosecTableHtml = (report.details.gosecIssues?.length || 0) > 0
+    ? `<table>
+        <tr><th>Severity</th><th>Rule</th><th>File</th><th>Line</th><th>Details</th></tr>
+        ${(report.details.gosecIssues || []).slice(0, 100).map(i => `
+          <tr>
+            <td><span class="severity-${(i.severity || 'medium').toLowerCase()}">${i.severity || 'MEDIUM'}</span></td>
+            <td>${i.rule_id || '-'}</td>
+            <td class="file-path">${(i.file || '').replace('/workspace/', '')}</td>
+            <td>${i.line || '-'}</td>
+            <td>${i.details || '-'}</td>
+          </tr>
+        `).join('')}
+       </table>
+       ${(report.details.gosecIssues?.length || 0) > 100 ? '<p><em>Showing first 100 of ' + report.details.gosecIssues.length + ' issues</em></p>' : ''}`
+    : '<p>No Go security issues found.</p>';
+
+  const cycloTableHtml = (report.details.highComplexityFunctions?.length || 0) > 0
+    ? `<table>
+        <tr><th>Complexity</th><th>Package</th><th>Function</th><th>Location</th></tr>
+        ${(report.details.highComplexityFunctions || []).map(f => `
+          <tr>
+            <td><strong>${f.Complexity}</strong></td>
+            <td>${f.Package}</td>
+            <td>${f.Function}</td>
+            <td class="file-path">${f.Location}</td>
+          </tr>
+        `).join('')}
+       </table>`
+    : '<p>No high complexity functions found.</p>';
+
+  const cognitTableHtml = (report.details.cognitiveFunctions?.length || 0) > 0
+    ? `<table>
+        <tr><th>Complexity</th><th>Package</th><th>Function</th><th>Location</th></tr>
+        ${(report.details.cognitiveFunctions || []).map(f => `
+          <tr>
+            <td><strong>${f.Complexity}</strong></td>
+            <td>${f.Package}</td>
+            <td>${f.Function}</td>
+            <td class="file-path">${f.Location}</td>
+          </tr>
+        `).join('')}
+       </table>`
+    : '<p>No high cognitive complexity functions found.</p>';
+
+  const locTableHtml = Object.entries(report.summary.linesOfCode || {})
+    .filter(([k]) => !['header', 'SUM'].includes(k))
+    .map(([lang, data]) => `
+      <tr>
+        <td>${lang}</td>
+        <td>${data.nFiles}</td>
+        <td>${data.blank + data.comment + data.code}</td>
+        <td>${data.code}</td>
+        <td>${data.comment}</td>
+      </tr>
+    `).join('');
+
   const html = `<!DOCTYPE html>
 <html>
 <head>
   <title>KubeDevBench Code Quality Report</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; background: #f5f5f5; }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1400px; margin: 0 auto; }
     h1 { color: #333; }
+    h2 { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; }
     .card { background: white; border-radius: 8px; padding: 20px; margin: 20px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
     .metric { display: inline-block; margin: 10px 20px 10px 0; }
     .metric-value { font-size: 32px; font-weight: bold; }
@@ -224,9 +351,28 @@ function generateHtmlDashboard(report) {
     .gate-status { font-size: 24px; padding: 20px; border-radius: 8px; text-align: center; }
     .gate-passed { background: #dcfce7; color: #166534; }
     .gate-failed { background: #fee2e2; color: #991b1b; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-    th { background: #f9fafb; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+    th { background: #f9fafb; font-weight: 600; }
+    .collapsible { cursor: pointer; user-select: none; }
+    .collapsible:hover { background: #f0f0f0; }
+    .collapsible::before { content: '▶'; display: inline-block; margin-right: 8px; transition: transform 0.2s; font-size: 12px; }
+    .collapsible.open::before { transform: rotate(90deg); }
+    .details { display: none; margin-top: 15px; max-height: 500px; overflow-y: auto; }
+    .details.open { display: block; }
+    .severity-critical { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .severity-high { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .severity-medium { background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .severity-low { background: #e0e7ff; color: #3730a3; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .file-path { font-family: monospace; font-size: 12px; color: #6b7280; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+    .badge-count { background: #e5e7eb; color: #374151; }
+    .tab-container { display: flex; gap: 0; border-bottom: 2px solid #e5e7eb; margin-bottom: 15px; }
+    .tab { padding: 10px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; color: #6b7280; }
+    .tab:hover { color: #374151; }
+    .tab.active { border-bottom-color: #3b82f6; color: #3b82f6; font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
   </style>
 </head>
 <body>
@@ -238,14 +384,7 @@ function generateHtmlDashboard(report) {
       Quality Gates: ${report.gates.passed ? 'PASSED ✓' : 'FAILED ✗'}
     </div>
 
-    ${!report.gates.passed ? `
-    <div class="card">
-      <h2>Gate Failures</h2>
-      <ul>
-        ${report.gates.failures.map(f => `<li>${f}</li>`).join('')}
-      </ul>
-    </div>
-    ` : ''}
+    ${gateFailuresHtml}
 
     <div class="card">
       <h2>Test Coverage</h2>
@@ -280,7 +419,10 @@ function generateHtmlDashboard(report) {
     </div>
 
     <div class="card">
-      <h2>Security</h2>
+      <h2 class="collapsible" onclick="toggleDetails('security-details', this)">
+        Security
+        <span class="badge badge-count">${(report.details.vulnerabilities?.length || 0) + (report.details.secrets?.length || 0) + (report.details.gosecIssues?.length || 0)} issues</span>
+      </h2>
       <div class="metric">
         <div class="metric-value ${(report.summary.vulnerabilities?.critical || 0) === 0 ? 'pass' : 'fail'}">${report.summary.vulnerabilities?.critical || 0}</div>
         <div class="metric-label">Critical Vulnerabilities</div>
@@ -301,26 +443,94 @@ function generateHtmlDashboard(report) {
         <div class="metric-value warn">${report.summary.goSecurityIssues || 0}</div>
         <div class="metric-label">Go Security Issues</div>
       </div>
+      
+      <div id="security-details" class="details">
+        <div class="tab-container">
+          <div class="tab active" onclick="switchTab(this, 'vulns-tab')">Vulnerabilities (${report.details.vulnerabilities?.length || 0})</div>
+          <div class="tab" onclick="switchTab(this, 'secrets-tab')">Secrets (${report.details.secrets?.length || 0})</div>
+          <div class="tab" onclick="switchTab(this, 'gosec-tab')">Go Security (${report.details.gosecIssues?.length || 0})</div>
+        </div>
+        
+        <div id="vulns-tab" class="tab-content active">
+          ${vulnsTableHtml}
+        </div>
+        
+        <div id="secrets-tab" class="tab-content">
+          ${secretsTableHtml}
+        </div>
+        
+        <div id="gosec-tab" class="tab-content">
+          ${gosecTableHtml}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="collapsible" onclick="toggleDetails('complexity-details', this)">
+        Code Complexity
+        <span class="badge badge-count">${(report.summary.cyclomaticComplexity?.highComplexityFunctions || 0) + (report.summary.cognitiveComplexity?.highComplexityFunctions || 0)} high complexity</span>
+      </h2>
+      <div class="metric">
+        <div class="metric-value ${(report.summary.cyclomaticComplexity?.average || 0) <= 15 ? 'pass' : 'warn'}">${report.summary.cyclomaticComplexity?.average || 'N/A'}</div>
+        <div class="metric-label">Avg Cyclomatic Complexity</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value ${(report.summary.cyclomaticComplexity?.highComplexityFunctions || 0) === 0 ? 'pass' : 'warn'}">${report.summary.cyclomaticComplexity?.highComplexityFunctions || 0}</div>
+        <div class="metric-label">High Cyclomatic (>15)</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value ${(report.summary.cognitiveComplexity?.highComplexityFunctions || 0) === 0 ? 'pass' : 'warn'}">${report.summary.cognitiveComplexity?.highComplexityFunctions || 0}</div>
+        <div class="metric-label">High Cognitive Complexity</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value warn">${report.summary.codeDuplication?.duplicateBlocks || 0}</div>
+        <div class="metric-label">Go Duplicate Blocks</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value ${(report.summary.jsDuplication?.percentage || 0) <= 10 ? 'pass' : 'warn'}">${report.summary.jsDuplication?.percentage || 0}%</div>
+        <div class="metric-label">JS Duplication</div>
+      </div>
+      
+      <div id="complexity-details" class="details">
+        <div class="tab-container">
+          <div class="tab active" onclick="switchTab(this, 'cyclo-tab')">Cyclomatic (${report.details.highComplexityFunctions?.length || 0})</div>
+          <div class="tab" onclick="switchTab(this, 'cognit-tab')">Cognitive (${report.details.cognitiveFunctions?.length || 0})</div>
+        </div>
+        
+        <div id="cyclo-tab" class="tab-content active">
+          ${cycloTableHtml}
+        </div>
+        
+        <div id="cognit-tab" class="tab-content">
+          ${cognitTableHtml}
+        </div>
+      </div>
     </div>
 
     <div class="card">
       <h2>Codebase Metrics</h2>
       <table>
         <tr><th>Language</th><th>Files</th><th>Lines</th><th>Code</th><th>Comments</th></tr>
-        ${Object.entries(report.summary.linesOfCode || {})
-          .filter(([k]) => !['header', 'SUM'].includes(k))
-          .map(([lang, data]) => `
-            <tr>
-              <td>${lang}</td>
-              <td>${data.nFiles}</td>
-              <td>${data.blank + data.comment + data.code}</td>
-              <td>${data.code}</td>
-              <td>${data.comment}</td>
-            </tr>
-          `).join('')}
+        ${locTableHtml}
       </table>
     </div>
   </div>
+  
+  <script>
+    function toggleDetails(id, header) {
+      const details = document.getElementById(id);
+      details.classList.toggle('open');
+      header.classList.toggle('open');
+    }
+    
+    function switchTab(tab, contentId) {
+      const container = tab.closest('.card');
+      container.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(contentId).classList.add('active');
+    }
+  </script>
 </body>
 </html>`;
 
