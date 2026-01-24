@@ -38,7 +38,7 @@ export default function KeyValueEditor({
               }}
               placeholder={keyPlaceholder}
               aria-label={`${ariaPrefix} key`}
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
             <input
               value={row.value}
@@ -49,7 +49,7 @@ export default function KeyValueEditor({
               }}
               placeholder={valuePlaceholder}
               aria-label={`${ariaPrefix} value`}
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
             <button
               type="button"

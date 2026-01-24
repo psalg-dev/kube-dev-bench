@@ -33,7 +33,7 @@
 .stack-services-table th {
   font-weight: 600;
   color: var(--gh-text-secondary, #858585);
-  background: var(--gh-bg-secondary, #252526);
+  background: var(--gh-bg-secondary, #181818);
   position: sticky;
   top: 0;
 }

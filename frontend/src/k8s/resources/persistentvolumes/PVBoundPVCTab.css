@@ -56,7 +56,7 @@
   display: flex;
   gap: 16px;
   padding: 20px;
-  background-color: var(--gh-bg-sidebar, #252526);
+  background-color: var(--gh-bg-sidebar, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 8px;
   margin-bottom: 20px;
@@ -93,7 +93,7 @@
 
 .pvc-value.code {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
-  background-color: var(--gh-bg, #1e1e1e);
+  background-color: var(--gh-bg, #181818);
   padding: 2px 8px;
   border-radius: 4px;
   font-size: 0.85rem;

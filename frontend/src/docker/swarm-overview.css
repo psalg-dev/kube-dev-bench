@@ -9,7 +9,7 @@
   padding: 14px 16px;
   border: 1px solid var(--gh-border, #3c3c3c);
   border-bottom: none;
-  background: var(--gh-bg-sidebar, #252526);
+  background: var(--gh-bg-sidebar, #181818);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -50,7 +50,7 @@
 .swarmOverviewContent {
   border: 1px solid var(--gh-border, #3c3c3c);
   border-top: none;
-  background: var(--gh-bg, #1e1e1e);
+  background: var(--gh-bg, #181818);
   flex: 1;
   min-height: 0;
   overflow-y: auto;

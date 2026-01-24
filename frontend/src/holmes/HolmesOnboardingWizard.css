@@ -12,7 +12,7 @@
 }
 
 .holmes-wizard-modal {
-  background: var(--gh-bg, #1e1e1e);
+  background: var(--gh-bg, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 12px;
   width: 560px;
@@ -28,7 +28,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--gh-bg-secondary, #252526);
+  background: var(--gh-bg-secondary, #181818);
   border-radius: 12px 12px 0 0;
 }
 
@@ -109,7 +109,7 @@
   align-items: flex-start;
   gap: 14px;
   padding: 14px;
-  background: var(--gh-bg-secondary, #252526);
+  background: var(--gh-bg-secondary, #181818);
   border-radius: 8px;
   border: 1px solid var(--gh-border, #3c3c3c);
 }
@@ -179,7 +179,7 @@
 
 .holmes-wizard-input {
   flex: 1;
-  background: var(--gh-bg-secondary, #1e1e1e);
+  background: var(--gh-bg-secondary, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 6px;
   color: var(--gh-text, #d4d4d4);
@@ -401,7 +401,7 @@
 }
 
 .holmes-wizard-info {
-  background: var(--gh-bg-secondary, #252526);
+  background: var(--gh-bg-secondary, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 6px;
   padding: 10px 14px;

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 const swarmCounts = vi.hoisted(() => ({
   counts: {
@@ -40,7 +41,9 @@ describe('SwarmSidebarSections', () => {
 
   it('renders section labels and counts', () => {
     const { container } = render(
-      <SwarmSidebarSections selected="swarm-overview" onSelect={() => {}} />
+      <MemoryRouter>
+        <SwarmSidebarSections selected="swarm-overview" onSelect={() => {}} />
+      </MemoryRouter>
     );
 
     // Labels
@@ -71,9 +74,11 @@ describe('SwarmSidebarSections', () => {
     const parentOnClick = vi.fn();
 
     const { container } = render(
-      <div onClick={parentOnClick}>
-        <SwarmSidebarSections selected="swarm-overview" onSelect={onSelect} />
-      </div>
+      <MemoryRouter>
+        <div onClick={parentOnClick}>
+          <SwarmSidebarSections selected="swarm-overview" onSelect={onSelect} />
+        </div>
+      </MemoryRouter>
     );
 
     const services = container.querySelector('#section-swarm-services');
@@ -90,7 +95,9 @@ describe('SwarmSidebarSections', () => {
     swarmCounts.counts.tasks = undefined;
 
     const { container } = render(
-      <SwarmSidebarSections selected="swarm-tasks" onSelect={() => {}} />
+      <MemoryRouter>
+        <SwarmSidebarSections selected="swarm-tasks" onSelect={() => {}} />
+      </MemoryRouter>
     );
 
     const tasks = container.querySelector('#section-swarm-tasks');

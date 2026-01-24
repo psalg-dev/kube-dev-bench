@@ -50,7 +50,7 @@
   display: flex;
   gap: 16px;
   padding: 20px;
-  background-color: var(--gh-bg-sidebar, #252526);
+  background-color: var(--gh-bg-sidebar, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 8px;
   transition: border-color 0.2s ease;

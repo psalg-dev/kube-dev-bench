@@ -292,7 +292,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                 padding: '4px 6px',
                 borderRadius: 4,
                 border: '1px solid #3c3c3c',
-                background: '#1e1e1e',
+                background: '#181818',
                 color: '#fff'
               }}
             />
@@ -349,7 +349,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                     padding: '4px 6px',
                     borderRadius: 4,
                     border: '1px solid #3c3c3c',
-                    background: '#1e1e1e',
+                    background: '#181818',
                     color: '#fff'
                   }}
                 />

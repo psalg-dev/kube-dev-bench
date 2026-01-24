@@ -1,5 +1,5 @@
 .monitor-issue-card {
-  background: var(--gh-bg-secondary, #252526);
+  background: var(--gh-bg-secondary, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-left: 3px solid #cca700;
   border-radius: 6px;
@@ -67,7 +67,7 @@
   color: var(--gh-text-primary, #d4d4d4);
   font-weight: 500;
   padding: 6px 8px;
-  background: var(--gh-bg-primary, #1e1e1e);
+  background: var(--gh-bg-primary, #181818);
   border-radius: 4px;
   border: 1px solid var(--gh-border, #3c3c3c);
 }
@@ -130,7 +130,7 @@
 .monitor-issue-analysis {
   margin-top: 12px;
   padding: 12px;
-  background: var(--gh-bg-primary, #1e1e1e);
+  background: var(--gh-bg-primary, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 6px;
 }

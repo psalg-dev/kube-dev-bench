@@ -136,7 +136,7 @@ function KeyValueEditor({
               }}
               placeholder={keyPlaceholder}
               aria-label={`${ariaPrefix} key`}
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
             <input
               value={row.value}
@@ -147,7 +147,7 @@ function KeyValueEditor({
               }}
               placeholder={valuePlaceholder}
               aria-label={`${ariaPrefix} value`}
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
             <button
               type="button"
@@ -238,12 +238,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   }, [kind, namespace, platform]);
 
   const cmTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#1e1e1e', color: '#d4d4d4' },
+    '&': { backgroundColor: '#181818', color: '#d4d4d4' },
     '&.cm-editor': { height: '100%', width: '100%' },
     '.cm-content': { caretColor: '#fff', textAlign: 'left', whiteSpace: 'pre' },
     '.cm-line': { textAlign: 'left', whiteSpace: 'pre' },
     '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: '1.45' },
-    '.cm-gutters': { background: '#252526', color: '#858585', borderRight: '1px solid #3c3c3c' },
+    '.cm-gutters': { background: '#181818', color: '#858585', borderRight: '1px solid #3c3c3c' },
     '.cm-gutterElement': { padding: '0 8px' },
   }, { dark: true }), []);
 
@@ -774,7 +774,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                       onChange={(e) => setSwarmName(e.target.value)}
                       placeholder={swarmKind === 'secret' ? 'my-secret' : 'my-config'}
                       aria-label="Swarm resource name"
-                      style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                     />
                   </div>
                   <KeyValueEditor
@@ -792,7 +792,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                       value={swarmDataText}
                       onChange={(e) => setSwarmDataText(e.target.value)}
                       aria-label={swarmKind === 'secret' ? 'Swarm secret value' : 'Swarm config data'}
-                      style={{ width: '100%', minHeight: 140, padding: '10px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: 1.45 }}
+                      style={{ width: '100%', minHeight: 140, padding: '10px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: 1.45 }}
                     />
                   </div>
                 </>
@@ -807,7 +807,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                       onChange={(e) => setSwarmNodeId(e.target.value)}
                       placeholder="node-id"
                       aria-label="Swarm node id"
-                      style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -817,7 +817,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                         value={swarmNodeAvailability}
                         onChange={(e) => setSwarmNodeAvailability(e.target.value)}
                         aria-label="Swarm node availability"
-                        style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                       >
                         <option value="active">active</option>
                         <option value="pause">pause</option>
@@ -830,7 +830,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                         value={swarmNodeRole}
                         onChange={(e) => setSwarmNodeRole(e.target.value)}
                         aria-label="Swarm node role"
-                        style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                       >
                         <option value="worker">worker</option>
                         <option value="manager">manager</option>
@@ -861,7 +861,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   onChange={(e) => setSwarmStackName(e.target.value)}
                   placeholder="my-stack"
                   aria-label="Swarm stack name"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
@@ -905,7 +905,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   onChange={(e) => setSwarmName(e.target.value)}
                   placeholder="name"
                   aria-label="Swarm resource name"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <KeyValueEditor
@@ -927,7 +927,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   value={swarmNetworkDriver}
                   onChange={(e) => setSwarmNetworkDriver(e.target.value)}
                   aria-label="Network driver"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="overlay">overlay</option>
                   <option value="bridge">bridge</option>
@@ -941,7 +941,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   value={swarmNetworkScope}
                   onChange={(e) => setSwarmNetworkScope(e.target.value)}
                   aria-label="Network scope"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="swarm">swarm</option>
                   <option value="local">local</option>
@@ -964,7 +964,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   onChange={(e) => setSwarmNetworkSubnet(e.target.value)}
                   placeholder="10.0.0.0/24"
                   aria-label="Network subnet"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ flex: '1 1 200px', minWidth: 180 }}>
@@ -974,7 +974,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   onChange={(e) => setSwarmNetworkGateway(e.target.value)}
                   placeholder="10.0.0.1"
                   aria-label="Network gateway"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -987,7 +987,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                   value={swarmVolumeDriver}
                   onChange={(e) => setSwarmVolumeDriver(e.target.value)}
                   aria-label="Volume driver"
-                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="local">local</option>
                   <option value="nfs">nfs</option>

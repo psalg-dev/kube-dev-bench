@@ -31,7 +31,7 @@ export default function PortMappingEditor({ ports, onChange }) {
               value={p.protocol || 'tcp'}
               onChange={(e) => updateRow(idx, { protocol: e.target.value })}
               aria-label="Port protocol"
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             >
               <option value="tcp">tcp</option>
               <option value="udp">udp</option>
@@ -44,7 +44,7 @@ export default function PortMappingEditor({ ports, onChange }) {
               onChange={(e) => updateRow(idx, { targetPort: e.target.value })}
               aria-label="Target port"
               placeholder="80"
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
           <div>
@@ -54,7 +54,7 @@ export default function PortMappingEditor({ ports, onChange }) {
               onChange={(e) => updateRow(idx, { publishedPort: e.target.value })}
               aria-label="Published port"
               placeholder="8080"
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
           </div>
           <div>
@@ -63,7 +63,7 @@ export default function PortMappingEditor({ ports, onChange }) {
               value={p.publishMode || 'ingress'}
               onChange={(e) => updateRow(idx, { publishMode: e.target.value })}
               aria-label="Publish mode"
-              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             >
               <option value="ingress">ingress</option>
               <option value="host">host</option>

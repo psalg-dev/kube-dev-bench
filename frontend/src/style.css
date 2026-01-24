@@ -1,5 +1,5 @@
 html {
-    background-color: var(--gh-bg, #1e1e1e);
+    background-color: var(--gh-bg, #181818);
     text-align: center;
     color: var(--gh-text, #d4d4d4);
 }
@@ -32,14 +32,14 @@ body {
   width: 100vw;
   overflow: hidden;
   position: relative;
-  background: var(--gh-bg, #1e1e1e);
+  background: var(--gh-bg, #181818);
 }
 
 .connection-wizard-layout #sidebar {
   width: var(--sidebar-width, 320px);
   min-width: var(--sidebar-width, 320px);
   max-width: var(--sidebar-width, 320px);
-  background: var(--gh-bg-sidebar, #252526);
+  background: var(--gh-bg-sidebar, #181818);
   border-right: 1px solid var(--gh-border, #3c3c3c);
   display: flex;
   flex-direction: column;
@@ -66,7 +66,7 @@ body {
 
 .connection-wizard-layout #footer {
   height: var(--footer-height, 30px);
-  background: var(--gh-bg-footer, #252526);
+  background: var(--gh-bg-footer, #181818);
   border-top: 1px solid var(--gh-border, #3c3c3c);
   display: flex;
   align-items: center;
@@ -92,7 +92,7 @@ body {
 }
 
 .connection-wizard {
-  background: var(--gh-sidebar-bg, #252526);
+  background: var(--gh-sidebar-bg, #181818);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 0;
   max-width: 600px;

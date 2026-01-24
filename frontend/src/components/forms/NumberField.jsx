@@ -10,7 +10,7 @@ export default function NumberField({ id, label, value, onChange, min, max, requ
         onChange={(e) => onChange(e.target.value)}
         min={min}
         max={max}
-        style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
+        style={{ width: '100%', padding: '8px 10px', background: '#181818', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
       />
     </FormField>
   );

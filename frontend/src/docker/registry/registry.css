@@ -80,7 +80,7 @@
 .registry-modal input,
 .registry-modal select {
   width: 100%;
-  background: var(--gh-bg-primary, #1e1e1e);
+  background: var(--gh-bg-primary, #181818);
   color: var(--gh-text, #d4d4d4);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 0;
@@ -91,7 +91,7 @@
 
 .registry-modal__readonly {
   width: 100%;
-  background: var(--gh-bg-primary, #1e1e1e);
+  background: var(--gh-bg-primary, #181818);
   color: var(--gh-text, #d4d4d4);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 0;
@@ -145,7 +145,7 @@
 
 .registry-browser {
   border: 1px solid var(--gh-border, #3c3c3c);
-  background: var(--gh-bg, #1e1e1e);
+  background: var(--gh-bg, #181818);
   border-radius: 0;
   padding: 12px;
 }
@@ -239,7 +239,7 @@
 
 .registry-search__controls input[type="search"] {
   min-width: 280px;
-  background: var(--gh-bg-primary, #1e1e1e);
+  background: var(--gh-bg-primary, #181818);
   color: var(--gh-text, #d4d4d4);
   border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 0;
@@ -254,7 +254,7 @@
 .registry-search__inspect {
   margin-top: 10px;
   border: 1px solid var(--gh-border, #3c3c3c);
-  background: var(--gh-bg, #1e1e1e);
+  background: var(--gh-bg, #181818);
   border-radius: 0;
   padding: 12px;
 }

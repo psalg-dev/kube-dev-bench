@@ -3,31 +3,31 @@
   text-align: center;
   padding: 2em 0;
 }
-/* VS Code Dark+ color scheme */
+/* VS Code Dark+ color scheme - unified with file explorer background */
 :root {
-  --gh-bg: #1e1e1e;
-  --gh-bg-sidebar: #252526;
-  --gh-bg-footer: #252526;
+  --gh-bg: #181818;
+  --gh-bg-sidebar: #181818;
+  --gh-bg-footer: #141414;
   --gh-border: #3c3c3c;
   --gh-text: #d4d4d4;
   --gh-text-muted: #858585;
   --gh-accent: #0e639c;
   --gh-accent-hover: #1177bb;
-  --gh-hover-bg: #2a2d2e;
-  --gh-input-bg: #3c3c3c;
+  --gh-hover-bg: #181818;
+  --gh-input-bg: #2a2d2e;
   --gh-input-border: #3c3c3c;
   --gh-input-focus: #007fd4;
   --gh-text-secondary: #cccccc;
-  --gh-table-header-bg: #3c3c3c;
+  --gh-table-header-bg: #141414;
   --gh-table-header-text: #d4d4d4;
-  --gh-table-row-even: #2a2d2e;
-  --gh-table-row-odd: #1e1e1e;
+  --gh-table-row-even: #1e1e1e;
+  --gh-table-row-odd: #181818;
   --gh-table-text: #d4d4d4;
   --gh-sidebar-bg: var(--gh-bg-sidebar);
 
   /* Canvas colors (for component backgrounds) */
-  --gh-canvas-default: #1e1e1e;
-  --gh-canvas-subtle: #252526;
+  --gh-canvas-default: #181818;
+  --gh-canvas-subtle: #141414;
 
   /* VS Code semantic colors */
   --vsc-selection-bg: #094771;
