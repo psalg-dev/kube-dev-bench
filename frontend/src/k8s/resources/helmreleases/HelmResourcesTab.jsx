@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 function splitYamlDocuments(yamlText) {
@@ -154,6 +154,7 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
     });
 
     return parsed;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [manifest]);
 
   useEffect(() => {

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function ViewToggle({ mode, onChange }) {
   const baseBtn = {
     padding: '6px 10px',

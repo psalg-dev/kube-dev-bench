@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 export default function IngressDetailTab({ namespace, ingressName }) {

@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetSwarmNodeTasks } from '../../swarmApi.js';
 import HealthStatusBadge from '../tasks/HealthStatusBadge.jsx';
 
-export default function NodeTasksTab({ nodeId, nodeName }) {
+export default function NodeTasksTab({ nodeId, _nodeName }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 

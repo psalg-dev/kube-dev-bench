@@ -1,4 +1,3 @@
-import React from 'react';
 import FormField from './FormField';
 
 export default function TextField({ id, label, value, onChange, placeholder, required, error }) {

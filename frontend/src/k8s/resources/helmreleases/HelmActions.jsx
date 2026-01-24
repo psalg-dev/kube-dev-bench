@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 export default function HelmActions({ releaseName, namespace, chart, onRefresh }) {
   const [uninstalling, setUninstalling] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   const handleUninstall = async () => {
@@ -29,14 +28,14 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
     <div style={{ display: 'flex', gap: 8 }}>
       <button
         onClick={handleUpgrade}
-        disabled={upgrading}
+        disabled={false}
         style={{
           padding: '6px 12px',
           background: 'var(--gh-btn-bg, #21262d)',
           color: 'var(--gh-btn-text, #c9d1d9)',
           border: '1px solid var(--gh-border, #30363d)',
           borderRadius: 6,
-          cursor: upgrading ? 'not-allowed' : 'pointer',
+          cursor: 'pointer',
           fontSize: 13,
           fontWeight: 500,
         }}
@@ -76,7 +75,7 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
   );
 }
 
-function HelmUpgradeDialog({ releaseName, namespace, chartName, onClose, onSuccess }) {
+function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onClose, onSuccess }) {
   const [chartRef, setChartRef] = useState('');
   const [version, setVersion] = useState('');
   const [valuesYaml, setValuesYaml] = useState('');
@@ -95,7 +94,7 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName, onClose, onSucce
     setError(null);
 
     try {
-      let values = {};
+      const values = {};
       if (valuesYaml.trim()) {
         // Parse YAML values - simple key:value parsing for now
         try {

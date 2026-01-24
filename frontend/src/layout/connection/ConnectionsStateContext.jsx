@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import {
   GetKubeConfigs,
   GetKubeContextsFromFile,
@@ -23,7 +23,7 @@ import {
 import {
   GetDockerConnectionStatus,
   TestDockerConnection,
-  AutoConnectDocker,
+  AutoConnectDocker as _AutoConnectDocker,
   ConnectToDocker,
   GetDefaultDockerHost,
 } from '../../docker/swarmApi.js';
@@ -216,7 +216,7 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
     try {
       // Get the platform-specific default Docker host from backend
       const defaultHost = await GetDefaultDockerHost();
-      
+
       // Try auto-detect local Docker
       const status = await GetDockerConnectionStatus();
       const connections = [];

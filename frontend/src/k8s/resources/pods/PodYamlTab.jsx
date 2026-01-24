@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetPodYAML } from '../../../../wailsjs/go/main/App';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 
@@ -21,7 +21,8 @@ export default function PodYamlTab({ podName }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [podName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load();   }, [podName]);
 
   const handleCopy = async () => {
     try { await navigator.clipboard.writeText(yaml); } catch {}

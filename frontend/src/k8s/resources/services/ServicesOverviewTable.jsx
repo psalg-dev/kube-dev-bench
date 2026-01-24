@@ -139,7 +139,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
       const current = holmesStateRef.current;
-      const { streamId, streamingText } = current;
+      const { streamId, _streamingText } = current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
@@ -283,10 +283,13 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     }
   };
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     refreshServices();
   }, [namespaces, namespace]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     const onUpdate = (eventData) => {
       const res = (eventData?.resource || '').toString().toLowerCase();
@@ -300,6 +303,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     const unsubscribe = EventsOn('resource-updated', onUpdate);
     return () => { try { EventsOff('resource-updated', unsubscribe); } catch (_) {} };
   }, [namespaces, namespace]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const onUpdate = (list) => {

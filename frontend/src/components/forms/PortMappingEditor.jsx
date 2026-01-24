@@ -1,5 +1,3 @@
-import React from 'react';
-
 function ensureRowId(row) {
   if (row?.id) return row;
   return { ...row, id: `port_${Date.now()}_${Math.random().toString(16).slice(2)}` };

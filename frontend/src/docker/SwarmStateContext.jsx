@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
+import { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
 import {
   GetDockerConnectionStatus,
   ConnectToDocker,
@@ -15,7 +15,7 @@ import {
   GetSwarmStacks,
   GetSwarmVolumes,
 } from './swarmApi.js';
-import { showError, showSuccess, showWarning } from '../notification';
+import { showError, showSuccess } from '../notification';
 import { EventsOn } from '../../wailsjs/runtime';
 
 const SwarmStateContext = createContext(null);
@@ -242,10 +242,10 @@ export function SwarmStateProvider({ children }) {
 
         if (!status?.connected) {
           // Don't show wizard automatically - Docker is optional
-          console.log('Docker not connected - Swarm features will be unavailable');
+          console.warn('Docker not connected - Swarm features will be unavailable');
         }
       } catch (err) {
-        console.log('Docker auto-connect failed:', err);
+        console.warn('Docker auto-connect failed:', err);
         dispatch({ type: 'SET_CONNECTION_STATUS', status: { connected: false } });
       } finally {
         dispatch({ type: 'SET_INITIALIZED' });

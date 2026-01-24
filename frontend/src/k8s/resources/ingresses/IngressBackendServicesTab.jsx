@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 export default function IngressBackendServicesTab({ namespace, ingressName }) {
@@ -61,6 +61,7 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
 
     run();
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, services.map(s => s.name).join('|')]);
 
   if (loading) {

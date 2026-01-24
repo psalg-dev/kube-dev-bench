@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
@@ -84,6 +84,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bottomOpen]);
 
   // Close the row actions menu when clicking outside or pressing Escape

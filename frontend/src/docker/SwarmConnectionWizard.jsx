@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSwarmState } from './SwarmStateContext';
 
 const SwarmConnectionWizard = ({ onComplete }) => {
   const { actions, config: savedConfig, loading } = useSwarmState();
-  const [step, setStep] = useState(1);
+  const [_step, _setStep] = useState(1);
   const [connectionType, setConnectionType] = useState('local'); // 'local', 'tcp', 'tls'
   const [host, setHost] = useState('');
   const [tlsEnabled, setTlsEnabled] = useState(false);

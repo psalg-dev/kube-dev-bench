@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GetRegistries, RemoveRegistry } from '../swarmApi.js';
 import { useSwarmResourceCounts } from '../SwarmResourceCountsContext.jsx';
 import { showError, showSuccess } from '../../notification.js';

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime';
 import { useSwarmState } from '../../SwarmStateContext.jsx';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
@@ -73,7 +73,7 @@ function VolumeSummaryPanel({ row, onRefresh }) {
       } else {
         if (!window.confirm(`Delete volume "${row.name}"?`)) return;
       }
-    } catch (e) {
+    } catch (_e) {
       // If usage lookup fails, fall back to standard confirm.
       if (!window.confirm(`Delete volume "${row.name}"?`)) return;
     }

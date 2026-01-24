@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, act } from '@testing-library/react';
 import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext.jsx';

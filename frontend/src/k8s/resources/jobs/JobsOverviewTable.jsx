@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -57,7 +57,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="job" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("job", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="job" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('job', ns, n);}} />} />
         {/* Main flex content */}
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
@@ -170,11 +170,14 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
   };
 
   // Initial fetch when namespace changes
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     fetchJobs();
   }, [namespaces, namespace]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   // Subscribe to jobs updates if available
+
   useEffect(() => {
     const handler = (jobsData) => {
       try { setJobs(normalize(Array.isArray(jobsData) ? jobsData : [])); } catch { setJobs([]); }
@@ -194,6 +197,7 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
     return () => {
       try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(namespaces), namespace]);
 
   const getRowActions = (row) => [

@@ -100,6 +100,7 @@ export default function VolumeFilesTab({ volumeName }) {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [volumeName]);
 
   const refreshDirEntries = useCallback(async () => {
@@ -114,6 +115,7 @@ export default function VolumeFilesTab({ volumeName }) {
       // Keep UI usable even if refresh fails
       setError(e?.message || String(e));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, volumeName]);
 
   useEffect(() => {
@@ -127,7 +129,7 @@ export default function VolumeFilesTab({ volumeName }) {
       try {
         const ro = await IsSwarmVolumeReadOnly(volumeName);
         if (active) setReadOnly(!!ro);
-      } catch (e) {
+      } catch (_e) {
         if (active) setReadOnly(null);
       }
     };
@@ -268,7 +270,7 @@ export default function VolumeFilesTab({ volumeName }) {
       if (!isBinary) {
         try {
           text = atob(res?.base64 || '');
-        } catch (e) {
+        } catch (_e) {
           text = '[decode error]';
         }
       }

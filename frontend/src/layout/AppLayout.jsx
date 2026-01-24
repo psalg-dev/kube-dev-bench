@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import FooterBar from './FooterBar.jsx';
 import SidebarSections from './SidebarSections.jsx';
 import { SwarmSidebarSections } from '../docker/SwarmSidebarSections.jsx';
@@ -7,7 +7,7 @@ import SwarmStateContext from '../docker/SwarmStateContext.jsx';
 function DockerSwarmSidebar({ selectedSection, onSelectSection, onOpenConnectionsWizard }) {
   // Use context directly to avoid error if not wrapped in provider
   const swarmContext = useContext(SwarmStateContext);
-  
+
   // If no context available, don't render Docker Swarm sidebar
   if (!swarmContext) {
     return null;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -314,6 +314,7 @@ export default function SwarmNodesOverviewTable() {
       active = false;
       if (typeof off === 'function') off();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
   if (loading) {

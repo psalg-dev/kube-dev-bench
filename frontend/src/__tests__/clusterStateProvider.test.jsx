@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext.jsx';
@@ -25,7 +24,7 @@ vi.mock('../k8s/resources/kubeApi.js', () => ({
 
 // Import mocks after they are defined
 import * as kubeApi from '../k8s/resources/kubeApi.js';
-import { showSuccess, showError, showWarning } from '../notification';
+import { showSuccess, showError as _showError, showWarning } from '../notification';
 
 function Probe() {
   const state = useClusterState();

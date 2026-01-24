@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { GetSwarmResourceCounts } from './swarmApi.js';
 import { GetRegistries } from './swarmApi.js';
 import { EventsOn } from '../../wailsjs/runtime';

@@ -1,4 +1,3 @@
-import React from 'react';
 import FormField from './FormField';
 
 export default function SelectField({ id, label, value, onChange, options, required, error }) {

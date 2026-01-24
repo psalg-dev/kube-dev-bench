@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';

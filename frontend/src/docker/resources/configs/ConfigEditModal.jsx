@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
 import { GetSwarmConfigData, UpdateSwarmConfigData } from '../../swarmApi.js';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab.jsx';

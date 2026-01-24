@@ -1,4 +1,3 @@
-import React from 'react';
 import { ConnectionsStateProvider, useConnectionsState } from './ConnectionsStateContext.jsx';
 import ConnectionsSidebar from './ConnectionsSidebar.jsx';
 import ConnectionsMainView from './ConnectionsMainView.jsx';

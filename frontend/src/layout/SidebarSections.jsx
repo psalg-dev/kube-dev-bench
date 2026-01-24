@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { useResourceCounts } from '../state/ResourceCountsContext.jsx';
 
 // Resource sections list with id suffix & label

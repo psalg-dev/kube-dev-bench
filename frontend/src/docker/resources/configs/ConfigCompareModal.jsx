@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as Diff from 'diff';
 import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import { GetSwarmConfigData } from '../../swarmApi.js';

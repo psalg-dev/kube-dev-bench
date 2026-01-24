@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function FormField({ label, required, error, children, htmlFor, id }) {
   return (
     <div style={{ minWidth: 0 }}>

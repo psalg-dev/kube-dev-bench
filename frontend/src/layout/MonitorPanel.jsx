@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { EventsOn } from '../../wailsjs/runtime/runtime.js';
 import MonitorIssueCard from './MonitorIssueCard.jsx';
 import PrometheusAlertsTab from './PrometheusAlertsTab.jsx';

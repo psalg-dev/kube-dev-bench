@@ -1,5 +1,3 @@
-import React from 'react';
-
 function normalize(status) {
   const s = String(status || '').toLowerCase();
   if (s === 'healthy') return 'healthy';

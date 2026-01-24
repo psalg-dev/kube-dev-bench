@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
-import { 
+import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import {
   AskHolmesStream,
   CancelHolmesStream,
-  GetHolmesConfig, 
-  SetHolmesConfig, 
+  GetHolmesConfig,
+  SetHolmesConfig,
   TestHolmesConnection,
   CheckHolmesDeployment,
   DeployHolmesGPT,
@@ -361,17 +361,17 @@ export function HolmesProvider({ children }) {
   }, []);
 
   // Deploy Holmes to the cluster
-  const deployHolmes = useCallback(async (request, onStatusUpdate) => {
+  const deployHolmes = useCallback(async (request, _onStatusUpdate) => {
     dispatch({ type: 'SET_DEPLOYING', deploying: true });
-    
+
     try {
       const result = await DeployHolmesGPT(request);
-      
+
       if (result.phase === 'deployed') {
         showSuccess('Holmes deployed successfully!');
         await loadConfig(); // Reload config to pick up new settings
       }
-      
+
       return result;
     } catch (err) {
       const errorMsg = err.message || String(err);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
 import { foldGutter, foldKeymap } from '@codemirror/language';
@@ -114,7 +114,7 @@ export default function TextEditorTab({
     if (!view) return;
     try {
       view.dispatch({ effects: languageCompartmentRef.current.reconfigure(languageExtensions) });
-    } catch (e) {
+    } catch (_e) {
       // Best-effort.
     }
   }, [languageExtensions]);

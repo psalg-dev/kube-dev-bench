@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -90,6 +90,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
       }, 1000);
     }
     return () => clearTimers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaces]);
 
   // Generic resource-updated fallback
@@ -118,6 +119,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     return () => {
       EventsOff('resource-updated', onUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaces]);
 
   const columns = [
@@ -163,7 +165,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
       return (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="pvc" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("pvc", ns, n);}} />} />
+          <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="pvc" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('pvc', ns, n);}} />} />
           {/* Main content */}
           <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
             <QuickInfoSection

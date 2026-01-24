@@ -104,7 +104,7 @@ function formatNanoCPUs(nanoCpus) {
   return `${cores.toFixed(fixed)} cores`;
 }
 
-function splitEnvKey(env) {
+function _splitEnvKey(env) {
   const s = String(env || '');
   const idx = s.indexOf('=');
   if (idx === -1) return s;
@@ -559,6 +559,7 @@ export default function SwarmServicesOverviewTable() {
       if (typeof off === 'function') off();
       if (typeof offUpdates === 'function') offUpdates();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
   useEffect(() => {

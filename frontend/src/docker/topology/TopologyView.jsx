@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import BottomPanel from '../../layout/bottompanel/BottomPanel.jsx';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader.jsx';
 import QuickInfoSection from '../../QuickInfoSection.jsx';
@@ -200,8 +200,11 @@ export default function TopologyView() {
     setPanelReloadKey((k) => k + 1);
   }, []);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const nodes = topo?.nodes || [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const services = topo?.services || [];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const links = topo?.links || [];
 
   const layout = useMemo(() => {
@@ -441,7 +444,7 @@ export default function TopologyView() {
             const w = clamp(Number(l.weight || 1), 1, linkMax);
             const strokeW = 1 + (w / linkMax) * 6;
             return (
-              <g key={`${l.from}-${l.to}`}> 
+              <g key={`${l.from}-${l.to}`}>
                 <line
                   x1={to.x + 60}
                   y1={to.y}

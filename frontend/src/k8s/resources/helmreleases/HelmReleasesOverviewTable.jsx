@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -193,7 +193,7 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }) {
           labels: r.labels ?? r.Labels ?? {}
         }));
         setReleases(norm);
-      } catch (e) {
+      } catch (_e) {
         setReleases([]);
       } finally {
         setLoading(false);

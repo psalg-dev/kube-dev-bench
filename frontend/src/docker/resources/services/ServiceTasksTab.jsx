@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetSwarmTasksByService } from '../../swarmApi.js';
 import { EventsOn } from '../../../../wailsjs/runtime';
 import './ServiceTasksTab.css';
 import HealthStatusBadge from '../tasks/HealthStatusBadge.jsx';
 
-export default function ServiceTasksTab({ serviceId, serviceName }) {
+export default function ServiceTasksTab({ serviceId, _serviceName }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
 

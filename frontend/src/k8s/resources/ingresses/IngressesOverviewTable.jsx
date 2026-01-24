@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -94,7 +94,7 @@ function renderPanelContent(row, tab) {
               >
                 Test Endpoint
               </button>
-              <ResourceActions resourceType="ingress" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("ingress", ns, n);}} />
+              <ResourceActions resourceType="ingress" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('ingress', ns, n);}} />
             </div>
           }
         />
@@ -212,7 +212,7 @@ export default function IngressesOverviewTable({ namespaces }) {
         const arr = Array.isArray(list) ? list : [];
         const filtered = namespaces ? arr.filter(i => namespaces.includes(i?.namespace || i?.Namespace)) : arr;
         setIngresses(normalize(filtered));
-      } catch (e) {
+      } catch (_e) {
         // ignore malformed payloads
       }
     };

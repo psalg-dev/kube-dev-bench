@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -50,7 +50,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="replicaset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("replicaset", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="replicaset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('replicaset', ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -137,7 +137,7 @@ export default function ReplicaSetsOverviewTable({ namespaces, namespace }) {
         const lists = await Promise.all(nsArr.map(ns => AppAPI.GetReplicaSets(ns).catch(() => [])));
         if (cancelled) return;
         setItems(lists.flat());
-      } catch (e) {
+      } catch (_e) {
         if (!cancelled) setItems([]);
       } finally {
         if (!cancelled) setLoading(false);

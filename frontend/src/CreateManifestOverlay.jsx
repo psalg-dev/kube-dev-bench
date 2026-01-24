@@ -50,14 +50,14 @@ function getDefaultSwarmPayload(kind) {
     case 'service':
       return {
         name: 'my-service',
-        data: `name: my-service\nimage: nginx:latest\nmode: replicated\nreplicas: 1\nports:\n  # - protocol: tcp\n  #   targetPort: 80\n  #   publishedPort: 8080\n  #   publishMode: ingress\nenv:\n  # KEY: value\nlabels:\n  # com.example.label: value\n`,
+        data: 'name: my-service\nimage: nginx:latest\nmode: replicated\nreplicas: 1\nports:\n  # - protocol: tcp\n  #   targetPort: 80\n  #   publishedPort: 8080\n  #   publishMode: ingress\nenv:\n  # KEY: value\nlabels:\n  # com.example.label: value\n',
         labels: {},
         editorMode: 'yaml',
       };
     case 'stack':
       return {
         name: 'my-stack',
-        data: `version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    # Avoid publishing fixed host ports by default (they can conflict locally).\n    # ports:\n    #   - "8080:80"\n`,
+        data: 'version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    # Avoid publishing fixed host ports by default (they can conflict locally).\n    # ports:\n    #   - "8080:80"\n',
         labels: {},
         editorMode: 'yaml',
       };
@@ -71,7 +71,7 @@ function getDefaultSwarmPayload(kind) {
   }
 }
 
-function parseKeyValueLabels(input) {
+function _parseKeyValueLabels(input) {
   const out = {};
   const lines = (input || '').split(/\r?\n/);
   for (const rawLine of lines) {
@@ -193,7 +193,7 @@ function getDefaultManifest(kind, namespace) {
       return `apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: my-pvc\n  namespace: ${ns}\nspec:\n  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage: 1Gi\n  # Optional: specify storage class\n  # storageClassName: fast-ssd\n  # Optional: selector for existing PV\n  # selector:\n  #   matchLabels:\n  #     type: local\n`;
     case 'persistentvolume':
       // PersistentVolume is cluster-scoped; no namespace field
-      return `apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\n  labels:\n    type: local\nspec:\n  storageClassName: manual\n  capacity:\n    storage: 10Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: "/mnt/data"\n  # Alternative volume sources:\n  # nfs:\n  #   server: nfs-server.example.com\n  #   path: /path/to/nfs/share\n  # awsElasticBlockStore:\n  #   volumeID: vol-12345678\n  #   fsType: ext4\n  # gcePersistentDisk:\n  #   pdName: my-data-disk\n  #   fsType: ext4\n`;
+      return 'apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\n  labels:\n    type: local\nspec:\n  storageClassName: manual\n  capacity:\n    storage: 10Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: "/mnt/data"\n  # Alternative volume sources:\n  # nfs:\n  #   server: nfs-server.example.com\n  #   path: /path/to/nfs/share\n  # awsElasticBlockStore:\n  #   volumeID: vol-12345678\n  #   fsType: ext4\n  # gcePersistentDisk:\n  #   pdName: my-data-disk\n  #   fsType: ext4\n';
     default:
       return `# Unknown kind: ${kind || 'Resource'}\n# Edit as needed\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example\n  namespace: ${ns}\ndata:\n  key: value\n`;
   }
@@ -313,6 +313,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
         setSwarmVolumeDriverOptRows([{ id: 'kv_new_opts', key: '', value: '' }]);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initial]);
 
   // When switching away from an editor view (e.g. Service Form mode), destroy CodeMirror to avoid stale hidden editors.
@@ -356,7 +357,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
         }
       }
     } catch (e) {
-      // eslint-disable-next-line no-console
+
       console.error('Failed to mount manifest editor:', e);
     }
   }, [open, showSwarmEditor, text, cmExtensions]);

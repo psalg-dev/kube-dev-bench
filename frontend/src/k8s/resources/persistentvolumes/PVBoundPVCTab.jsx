@@ -1,24 +1,23 @@
-import React from 'react';
 import './PVBoundPVCTab.css';
 
 /**
  * Bound PVC tab for PersistentVolumes - shows details about the bound PVC.
- * 
+ *
  * @param {string} pvName - The name of the PersistentVolume
  * @param {string} claim - The claim in format "namespace/name" or "-" if unbound
  */
-export default function PVBoundPVCTab({ pvName, claim }) {
+export default function PVBoundPVCTab({ _pvName, claim }) {
   // Parse claim to get namespace and name
   const parseClaimInfo = () => {
     if (!claim || claim === '-') {
       return { bound: false, namespace: null, pvcName: null };
     }
-    
+
     const parts = claim.split('/');
     if (parts.length === 2) {
       return { bound: true, namespace: parts[0], pvcName: parts[1] };
     }
-    
+
     return { bound: true, namespace: 'unknown', pvcName: claim };
   };
 

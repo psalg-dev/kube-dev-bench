@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
 import { CloneSwarmSecret } from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';

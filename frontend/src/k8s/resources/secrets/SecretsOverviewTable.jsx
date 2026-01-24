@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -50,7 +50,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="secret" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("secret", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="secret" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('secret', ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -107,10 +107,10 @@ data:
   return null;
 }
 
-export default function SecretsOverviewTable({ namespaces, onSecretCreate }) {
+export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
   const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [_loading, setLoading] = useState(false);
+  const [_error, setError] = useState(null);
 
   const normalize = (arr) => (arr || []).filter(Boolean).map((s) => ({
     name: s.name ?? s.Name,

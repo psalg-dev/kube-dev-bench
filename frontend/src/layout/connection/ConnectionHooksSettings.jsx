@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
 
 const overlayStyle = {
@@ -274,7 +274,7 @@ function ConnectionHooksSettings({ onClose }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 18 }}>{title}</h2>
             <div style={{ color: 'var(--gh-text-secondary, #ccc)', fontSize: 12 }}>
-              Pre-connect hooks can block connections when "Abort on failure" is enabled.
+              Pre-connect hooks can block connections when &quot;Abort on failure&quot; is enabled.
             </div>
           </div>
           <button

@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function PVCBoundPVTab({ namespace, pvcName, pvName }) {
   const hasPV = pvName && pvName !== '-';
 

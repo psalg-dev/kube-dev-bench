@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AddRegistry, TestRegistryConnection } from '../swarmApi.js';
 import { showError, showSuccess, showWarning } from '../../notification.js';
 import './registry.css';

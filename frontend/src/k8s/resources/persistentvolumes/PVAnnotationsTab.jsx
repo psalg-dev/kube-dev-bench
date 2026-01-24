@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function PVAnnotationsTab({ annotations }) {
   const ann = annotations || {};
   const entries = Object.entries(ann);

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function UpdateStackModal({ open, stackName, initialComposeYAML, onClose, onConfirm }) {
   const [yaml, setYaml] = useState(initialComposeYAML || '');

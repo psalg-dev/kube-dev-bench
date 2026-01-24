@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetSwarmNetworkServices } from '../../swarmApi.js';
 
 export default function NetworkConnectedServicesSection({ networkId }) {

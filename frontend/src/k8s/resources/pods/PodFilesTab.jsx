@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
 import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
@@ -174,7 +174,9 @@ export default function PodFilesTab({ podName }) {
 
   useEffect(() => { load(); }, [load]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (previewPath) { /* close preview when container or path root changes */ } }, [container]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { /* close preview when navigating dirs */ if (previewPath && previewPath.startsWith(path) === false) { setPreviewPath(null); setPreviewData(null); setPreviewError(null);} }, [path]);
 
   const filteredEntries = useMemo(() => {

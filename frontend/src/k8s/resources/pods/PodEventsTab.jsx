@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetPodEvents } from '../../../../wailsjs/go/main/App';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
@@ -21,7 +21,8 @@ export default function PodEventsTab({ namespace, podName }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [namespace, podName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load();   }, [namespace, podName]);
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSwarmResourceCounts } from './SwarmResourceCountsContext.jsx';
 
 // Docker Swarm resource sections

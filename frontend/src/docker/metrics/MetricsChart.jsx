@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function MetricsChart({
   points,
   valueKey,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
@@ -68,7 +68,7 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
     setError(null);
 
     try {
-      let values = {};
+      const values = {};
       if (valuesYaml.trim()) {
         // Simple YAML parsing
         const lines = valuesYaml.split('\n');
@@ -309,7 +309,7 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
                   checked={createNamespace}
                   onChange={(e) => setCreateNamespace(e.target.checked)}
                 />
-                Create namespace if it doesn't exist
+                Create namespace if it doesn&apos;t exist
               </label>
             </div>
 

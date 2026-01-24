@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -48,7 +48,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="configmap" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("configmap", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="configmap" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('configmap', ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -182,6 +182,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
     fetchConfigMaps();
     startFastPollingWindow();
     return () => clearTimers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(namespaces), namespace]);
 
   // Generic resource-updated fallback
@@ -195,6 +196,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
     return () => {
       EventsOff('resource-updated', unsubscribe);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(namespaces), namespace]);
 
   // Direct snapshot updates from backend (emitted after creates)
@@ -213,6 +215,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
     return () => {
       EventsOff('configmaps:update', onUpdate);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(namespaces), namespace]);
 
   const getRowActions = (row) => [

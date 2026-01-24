@@ -60,7 +60,7 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
         <SummaryTabHeader
           name={row.name}
           labels={row.labels || row.Labels || row.metadata?.labels}
-          actions={<ResourceActions resourceType="deployment" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onRestart={async (n,ns)=>{await AppAPI.RestartDeployment(ns,n);}} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("deployment", ns, n);}} />}
+          actions={<ResourceActions resourceType="deployment" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onRestart={async (n,ns)=>{await AppAPI.RestartDeployment(ns,n);}} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('deployment', ns, n);}} />}
         />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
@@ -186,7 +186,7 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
       const current = holmesStateRef.current;
-      const { streamId, streamingText, key } = current;
+      const { streamId, _streamingText, _key } = current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
@@ -355,7 +355,7 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
             labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
         }));
         setDeployments(norm);
-      } catch (e) {
+      } catch (_e) {
         setDeployments([]);
       } finally {
         setLoading(false);

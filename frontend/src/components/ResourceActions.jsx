@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { showSuccess, showError, showWarning } from '../notification';
 import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob, ScaleResource, ResizePersistentVolumeClaim } from '../k8s/resources/kubeApi';
 

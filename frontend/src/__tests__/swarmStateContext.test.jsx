@@ -1,5 +1,4 @@
-import React from 'react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 
 // Mock the swarm API
@@ -61,10 +60,10 @@ describe('SwarmStateContext', () => {
   });
 
   it('initializes with default state', async () => {
-    let capturedState;
+    let _capturedState;
     render(
       <SwarmStateProvider>
-        <TestConsumer onRender={(state) => { capturedState = state; }} />
+        <TestConsumer onRender={(state) => { _capturedState = state; }} />
       </SwarmStateProvider>
     );
 

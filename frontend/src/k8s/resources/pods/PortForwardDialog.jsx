@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
-export default function PortForwardDialog({ open, namespace, podName, onCancel, onConfirm }) {
+export default function PortForwardDialog({ open, _namespace, podName, onCancel, onConfirm }) {
   const [ports, setPorts] = useState([]);
   const [sourcePort, setSourcePort] = useState(''); // remote
   const [targetPort, setTargetPort] = useState(''); // local

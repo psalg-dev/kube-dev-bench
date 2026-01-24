@@ -1,4 +1,3 @@
-import React from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
 import KubernetesConnectionsList from './KubernetesConnectionsList.jsx';
 import DockerSwarmConnectionsList from './DockerSwarmConnectionsList.jsx';

@@ -1,10 +1,10 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './StatefulSetPVCsTab.css';
 
 /**
  * Shows PVCs associated with a StatefulSet.
- * 
+ *
  * @param {string} namespace - The namespace of the StatefulSet
  * @param {string} statefulSetName - The name of the StatefulSet
  */
@@ -16,10 +16,10 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
 
   const fetchPVCs = async (isInitial = false) => {
     if (!statefulSetName || !namespace) return;
-    
+
     if (isInitial) setLoading(true);
     setError(null);
-    
+
     try {
       const result = await AppAPI.GetStatefulSetDetail(namespace, statefulSetName);
       setPvcs(result?.pvcs || []);
@@ -37,6 +37,7 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, statefulSetName]);
 
   const getStatusColor = (status) => {
@@ -96,7 +97,7 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
                 <tr key={idx} className="pvc-row">
                   <td className="pvc-name">{pvc.name || '-'}</td>
                   <td>
-                    <span 
+                    <span
                       className="pvc-status-badge"
                       style={{ background: statusColor.bg, color: statusColor.fg }}
                     >

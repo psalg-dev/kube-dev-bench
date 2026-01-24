@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSwarmState } from './SwarmStateContext.jsx';
 import SwarmMetricsDashboard from './metrics/SwarmMetricsDashboard.jsx';
 import TopologyView from './topology/TopologyView.jsx';

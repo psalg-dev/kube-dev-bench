@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../../../wailsjs/go/main/App';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
-import * as AppAPI from "../../../../wailsjs/go/main/App.js";
-import { formatDateDMY, formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import * as AppAPI from '../../../../wailsjs/go/main/App.js';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 export default function PodSummaryTab({ podName, namespace }) {
   const [data, setData] = useState(null);
@@ -62,7 +62,8 @@ export default function PodSummaryTab({ podName, namespace }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [podName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load();   }, [podName]);
 
   // Load events when podName or namespace changes (after summary loaded)
   useEffect(() => {

@@ -1,4 +1,3 @@
-import React from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -19,7 +18,7 @@ export function HolmesResponseRenderer({ text, response }) {
   const handleCopy = async (value) => {
     try {
       await navigator.clipboard.writeText(value);
-    } catch (err) {
+    } catch (_err) {
       // ignore clipboard errors in restricted environments
     }
   };

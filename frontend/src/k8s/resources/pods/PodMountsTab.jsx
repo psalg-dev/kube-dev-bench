@@ -31,7 +31,8 @@ export default function PodMountsTab({ podName }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [podName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load();   }, [podName]);
 
   const secretsSet = useMemo(() => {
     const set = new Set();
@@ -114,7 +115,7 @@ export default function PodMountsTab({ podName }) {
       for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
       const td = new TextDecoder('utf-8', { fatal: false });
       return td.decode(bytes);
-    } catch (e) {
+    } catch (_e) {
       // Fallback: return original
       return b64;
     }

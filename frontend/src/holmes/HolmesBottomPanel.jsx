@@ -1,4 +1,3 @@
-import React from 'react';
 import HolmesResponseRenderer from './HolmesResponseRenderer';
 import HolmesResourceButton from './HolmesResourceButton';
 import './HolmesBottomPanel.css';

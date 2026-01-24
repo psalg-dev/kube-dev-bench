@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, forwardRef } from 'react';
+import { useEffect, useRef, useState, forwardRef } from 'react';
 
 const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null, children }, ref) {
   const [height, setHeight] = useState(() => {

@@ -1,5 +1,5 @@
 // filepath: frontend/src/LabelsInline.jsx
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 
 /**
  * Inline labels chip list for summary headers.

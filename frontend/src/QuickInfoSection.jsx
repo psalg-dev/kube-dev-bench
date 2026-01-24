@@ -1,4 +1,3 @@
-import React from 'react';
 import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils.js';
 
 /**
@@ -6,7 +5,7 @@ import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils.js';
  * Provides a structured layout similar to the Pod summary view
  */
 function QuickInfoSection({
-  resourceName,
+  _resourceName,
   data,
   loading,
   error,

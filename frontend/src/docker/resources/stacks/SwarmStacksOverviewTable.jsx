@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime';
 import { useSwarmState } from '../../SwarmStateContext.jsx';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';

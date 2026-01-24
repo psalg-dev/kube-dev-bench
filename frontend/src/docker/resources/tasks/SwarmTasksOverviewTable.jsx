@@ -72,10 +72,11 @@ function HealthCheckSection({ row }) {
         const data = await GetSwarmTaskHealthLogs(row.id);
         if (!active) return;
         setLogs(Array.isArray(data) ? data : []);
-      } catch (e) {
+      } catch (_e) {
         if (!active) return;
         setLogs([]);
       } finally {
+        // eslint-disable-next-line no-unsafe-finally
         if (!active) return;
         setLoading(false);
       }

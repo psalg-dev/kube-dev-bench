@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext.jsx';
 import { AppLayout } from './AppLayout.jsx';
 import ConnectionWizard from './connection/ConnectionWizard.jsx';
@@ -70,6 +70,7 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
       document.removeEventListener('keydown', keyHandler);
       if (sidebarToggleBtn) sidebarToggleBtn.onclick = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showWizard, actions]);
 
   return null; // side-effect only (no longer needed for counts)

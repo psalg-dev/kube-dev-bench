@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { genericAPIMock, resetAllMocks } from './wailsMocks';
@@ -271,7 +270,7 @@ describe('HelmResourcesTab', () => {
       '',
     ].join('\n');
 
-    genericAPIMock.mockImplementation((name, ...args) => {
+    genericAPIMock.mockImplementation((name, ..._args) => {
       if (name === 'GetHelmReleaseManifest') return Promise.resolve(manifest);
       if (name === 'GetConfigMaps') {
         return Promise.resolve([{ name: 'my-release-e2e', namespace: 'default', keys: 1, size: '1B', age: '1s', labels: {} }]);

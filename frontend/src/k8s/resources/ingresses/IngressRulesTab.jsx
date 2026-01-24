@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './IngressRulesTab.css';
 
 /**
  * Rules tab for Ingresses - shows routing rules and backends.
- * 
+ *
  * @param {string} namespace - The namespace of the Ingress
  * @param {string} ingressName - The name of the Ingress
  * @param {string[]} hosts - Array of hosts from the ingress
@@ -18,7 +18,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
     const fetchDetail = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         // Try to get ingress detail if API exists
         if (typeof AppAPI.GetIngressDetail === 'function') {
@@ -26,7 +26,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
           setDetail(result);
         } else {
           // Fallback: use the hosts prop to build basic rules
-          setDetail({ 
+          setDetail({
             rules: hosts?.map(host => ({
               host,
               paths: [{ path: '/', pathType: 'Prefix', backend: { serviceName: 'unknown', servicePort: 'unknown' } }]
@@ -39,7 +39,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
         setLoading(false);
       }
     };
-    
+
     fetchDetail();
   }, [namespace, ingressName, hosts]);
 
@@ -93,7 +93,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
             <div className="rule-header">
               <span className="host-badge">🌐 {rule.host || '*'}</span>
             </div>
-            
+
             <table className="paths-table">
               <thead>
                 <tr>

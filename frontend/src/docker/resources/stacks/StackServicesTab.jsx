@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetSwarmStackServices } from '../../swarmApi.js';
 import { formatAge } from '../../../utils/timeUtils.js';
 import './StackServicesTab.css';

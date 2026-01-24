@@ -60,7 +60,7 @@ export default function FilesTab({ namespace, pvcName }) {
     });
   }, [cmExtensions]);
 
-  useEffect(() => () => { if (cmViewRef.current) { try { cmViewRef.current.destroy(); } catch(e) {} cmViewRef.current = null; } }, []);
+  useEffect(() => () => { if (cmViewRef.current) { try { cmViewRef.current.destroy(); } catch(_e) {} cmViewRef.current = null; } }, []);
 
   const iconFor = (e) => {
     if (e.isDir) return '📁';
@@ -122,7 +122,7 @@ export default function FilesTab({ namespace, pvcName }) {
       const res = await AppAPI.GetPVCFileContent(namespace, pvcName, filePath, 262144); // 256KiB cap
       let text = '';
       if (!res.isBinary) {
-        try { text = atob(res.base64 || ''); } catch (e) { text = '[decode error]'; }
+        try { text = atob(res.base64 || ''); } catch (_e) { text = '[decode error]'; }
       }
       const fc = { path: res.path, truncated: !!res.truncated, isBinary: !!res.isBinary, size: res.size, text };
       setFileContent(fc);
@@ -134,7 +134,7 @@ export default function FilesTab({ namespace, pvcName }) {
     }
   };
 
-  const downloadArchive = async (targetPath, singleFile = false) => {
+  const downloadArchive = async (targetPath, _singleFile = false) => {
     setDownloadError(null); setDownloading(true);
     try {
       const res = await AppAPI.ArchivePVCPath(namespace, pvcName, targetPath, 0); // 0 => no enforced cap here
@@ -154,7 +154,7 @@ export default function FilesTab({ namespace, pvcName }) {
     try {
       const bytes = Uint8Array.from(atob(b64 || ''), c => c.charCodeAt(0));
       return new Blob([bytes], { type: 'application/gzip' });
-    } catch (e) {
+    } catch (_e) {
       return new Blob([]);
     }
   };
@@ -166,7 +166,7 @@ export default function FilesTab({ namespace, pvcName }) {
     setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 0);
   };
 
-  const currentEntry = (fileContent && entries.find(e => e.path === fileContent.path)) || null;
+  const _currentEntry = (fileContent && entries.find(e => e.path === fileContent.path)) || null;
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>

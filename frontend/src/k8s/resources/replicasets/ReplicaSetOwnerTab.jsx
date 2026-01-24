@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './ReplicaSetOwnerTab.css';
 
 /**
  * Shows the owner (typically a Deployment) of a ReplicaSet.
- * 
+ *
  * @param {string} namespace - The namespace of the ReplicaSet
  * @param {string} replicaSetName - The name of the ReplicaSet
  */
@@ -16,10 +16,10 @@ export default function ReplicaSetOwnerTab({ namespace, replicaSetName }) {
   useEffect(() => {
     const fetchOwner = async () => {
       if (!replicaSetName || !namespace) return;
-      
+
       setLoading(true);
       setError(null);
-      
+
       try {
         const result = await AppAPI.GetReplicaSetDetail(namespace, replicaSetName);
         if (result?.ownerName && result?.ownerKind) {

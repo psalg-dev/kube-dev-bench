@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -59,7 +59,7 @@ function renderPanelContent(row, tab) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="cronjob" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource("cronjob", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="cronjob" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('cronjob', ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: '#c9d1d9' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -122,7 +122,7 @@ function panelHeader(row) {
 
 export default function CronJobsOverviewTable({ namespaces }) {
   const [cronJobs, setCronJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
 
   const normalize = (arr) => (arr || []).filter(Boolean).map((d) => ({
     name: d.name ?? d.Name,
@@ -186,6 +186,7 @@ export default function CronJobsOverviewTable({ namespaces }) {
     return () => {
       try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaces]);
 
   const getRowActions = (row) => [

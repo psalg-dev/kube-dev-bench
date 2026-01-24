@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
@@ -60,11 +60,11 @@ function renderPanelContent(row, tab) {
     ];
 
     // Extract annotations once for reuse
-    const annotations = row.annotations || row.Annotations || row.metadata?.annotations || {};
+    const _annotations = row.annotations || row.Annotations || row.metadata?.annotations || {};
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="pv" name={row.name} namespace={row.namespace} onDelete={async (n)=>{await AppAPI.DeleteResource("pv", "", n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="pv" name={row.name} namespace={row.namespace} onDelete={async (n)=>{await AppAPI.DeleteResource('pv', '', n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -113,7 +113,7 @@ spec:
   return null;
 }
 
-function getStatusColor(status) {
+function _getStatusColor(status) {
   switch (status?.toLowerCase()) {
     case 'available':
       return '#28a745'; // green
@@ -188,6 +188,7 @@ export default function PersistentVolumesOverviewTable({ namespaces }) {
         clearInterval(intervalRef.current);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (error) {

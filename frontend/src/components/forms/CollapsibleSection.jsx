@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function CollapsibleSection({ id, title, count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(!!defaultOpen);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetSwarmConfigUsage } from '../../swarmApi.js';
 
 export default function ConfigUsedBySection({ configId }) {

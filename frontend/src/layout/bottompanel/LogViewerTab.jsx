@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
@@ -125,7 +125,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         setRegexError('');
         const re = new RegExp(q, 'i');
         return re.test(line);
-      } catch (err) {
+      } catch (_err) {
         setRegexError('Invalid regex');
         return true; // Show all lines if regex is invalid
       }
@@ -395,7 +395,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       // After creating editor, flush any buffered lines
       flushPending();
     } catch (err) {
-      // eslint-disable-next-line no-console
+
       console.error('Error creating EditorView:', err);
     }
     return () => {
@@ -440,7 +440,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
           parent: editorRef.current
         });
       } catch (err) {
-        // eslint-disable-next-line no-console
+
         console.error('Error re-creating EditorView:', err);
       }
     }
@@ -509,6 +509,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       setHolmesError(message);
       showError(`Failed to analyze logs: ${message}`);
     } finally {
+      // eslint-disable-next-line no-unsafe-finally
       if (analysisRequestIdRef.current !== requestId) return;
       setHolmesLoading(false);
     }
@@ -839,6 +840,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     if (popoutRef.current && !popoutRef.current.closed) {
       renderPopout();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     holmesAnalysis,
     holmesLoading,
@@ -913,7 +915,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         type="text"
         value={filter}
         onChange={e => setFilter(e.target.value)}
-        placeholder={regexMode ? "Regex filter" : "Filter logs"}
+        placeholder={regexMode ? 'Regex filter' : 'Filter logs'}
         style={{ flex: 1, padding: '6px 8px', fontSize: 14, background: '#181c20', color: '#e0e0e0', border: '1px solid #444', borderRadius: 4 }}
       />
       <label style={{ color: '#e0e0e0', fontSize: 13 }}>

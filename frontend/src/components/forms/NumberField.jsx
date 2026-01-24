@@ -1,4 +1,3 @@
-import React from 'react';
 import FormField from './FormField';
 
 export default function NumberField({ id, label, value, onChange, min, max, required, error }) {

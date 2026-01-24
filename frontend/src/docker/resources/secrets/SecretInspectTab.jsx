@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import { GetSwarmSecretInspectJSON } from '../../swarmApi.js';
 

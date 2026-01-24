@@ -37,7 +37,7 @@ const createOptions = [
   { key: 'ingress', label: 'Ingress' },
 ];
 
-export default function PodOverviewTable({ namespace, namespaces = [], data = [], loading = false, onCreateResource }) {
+export default function PodOverviewTable({ namespace, namespaces = [], data = [], loading = false, _onCreateResource }) {
   const [now, setNow] = useState(Date.now());
   // Default sorting: uptime ascending (youngest at top)
   const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
@@ -79,7 +79,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
       const current = holmesStateRef.current;
-      const { streamId, streamingText, key } = current;
+      const { streamId, _streamingText, _key } = current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
@@ -497,6 +497,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       sortingFn: (a,b)=> new Date(b.original.startTime||0)-new Date(a.original.startTime||0),
       filterFn: undefined,
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [now, pfByKey, multiNs]);
 
   const tableData = (Array.isArray(data) && data.length > 0) ? data : internalData;
@@ -651,7 +652,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     try {
       let portToStop = (forwardLocalPort && bottomPodName === podName) ? forwardLocalPort : null;
       if (!portToStop) {
-        const input = window.prompt(`Enter local port to stop forwarding:`, '20000');
+        const input = window.prompt('Enter local port to stop forwarding:', '20000');
         if (input == null) return;
         const p = parseInt(String(input).trim(), 10);
         if (!Number.isFinite(p) || p <= 0 || p > 65535) {
@@ -665,7 +666,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         await stop(ns || namespace, podName, portToStop);
         showNotification(`Stopped port-forward for ${podName}:${portToStop}.`, 'success');
       } else {
-        showNotification(`❌ StopPortForward not available. Please rebuild bindings.`, 'error');
+        showNotification('❌ StopPortForward not available. Please rebuild bindings.', 'error');
       }
     } catch (err) {
       showNotification(`❌ Failed to stop port-forward for '${podName}': ${err?.message || err}`, 'error');
@@ -826,6 +827,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       window.removeEventListener('resize', updateScrollDivHeight);
       if (observer) observer.disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bottomOpen]);
 
   useEffect(() => {
@@ -841,7 +843,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   }
 
   // Find the selected pod object for the bottom panel
-  const selectedRow = bottomOpen && bottomPodName
+  const _selectedRow = bottomOpen && bottomPodName
     ? tableData.find(pod => pod.name === bottomPodName && pod.namespace === (bottomNamespace || namespace))
     : null;
 

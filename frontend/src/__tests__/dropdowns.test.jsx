@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 
@@ -40,7 +39,7 @@ beforeEach(() => {
 describe('Dropdowns', () => {
   it('ContextSelect passes selected value', () => {
     const onChange = vi.fn();
-    render(<ContextSelect value="ctx2" options={["ctx1","ctx2"]} onChange={onChange} />);
+    render(<ContextSelect value="ctx2" options={['ctx1','ctx2']} onChange={onChange} />);
     expect(screen.getByTestId('select-value').textContent).toBe('ctx2');
     // select ctx1
     fireEvent.click(screen.getAllByRole('button', { name: 'ctx1' })[0]);
@@ -49,7 +48,7 @@ describe('Dropdowns', () => {
 
   it('NamespaceMultiSelect toggles multi values', () => {
     const onChange = vi.fn();
-    render(<NamespaceMultiSelect values={["ns1"]} options={["ns1","ns2","ns3"]} onChange={onChange} />);
+    render(<NamespaceMultiSelect values={['ns1']} options={['ns1','ns2','ns3']} onChange={onChange} />);
     // currently ns1
     expect(screen.getByTestId('select-value').textContent).toBe('ns1');
     // add ns2
@@ -62,7 +61,7 @@ describe('Dropdowns', () => {
 
   it('calls onMenuOpen when menu opened', () => {
     const onMenuOpen = vi.fn();
-    render(<ContextSelect options={["a"]} onMenuOpen={onMenuOpen} />);
+    render(<ContextSelect options={['a']} onMenuOpen={onMenuOpen} />);
     fireEvent.click(screen.getByTestId('select-toggle'));
     expect(onMenuOpen).toHaveBeenCalled();
   });

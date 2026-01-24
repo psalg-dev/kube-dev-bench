@@ -1,5 +1,3 @@
-import React from 'react';
-
 function KeyValueGrid({ data, emptyLabel }) {
   const keys = data ? Object.keys(data) : [];
   if (!data || keys.length === 0) {

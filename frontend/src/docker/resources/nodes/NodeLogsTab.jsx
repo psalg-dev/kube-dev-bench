@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
 import { GetSwarmNodeTasks, GetSwarmTaskLogs } from '../../swarmApi.js';
 
