@@ -12,6 +12,36 @@ body {
     sans-serif;
 }
 
+/* Global scrollbar styling */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--gh-bg, #181818);
+    border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--gh-border, #3c3c3c);
+    border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--gh-text-muted, #6e7681);
+}
+
+*::-webkit-scrollbar-corner {
+    background: var(--gh-bg, #181818);
+}
+
+/* Firefox global scrollbar styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--gh-border, #3c3c3c) var(--gh-bg, #181818);
+}
+
 @font-face {
     font-family: "Nunito";
     font-style: normal;
@@ -23,6 +53,7 @@ body {
 #app {
     height: 100vh;
     text-align: center;
+    border: none;
 }
 
 /* Connection Wizard Styles - New Layout (matching AppLayout) */

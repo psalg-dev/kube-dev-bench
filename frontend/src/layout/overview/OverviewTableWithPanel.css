@@ -84,6 +84,11 @@ table.gh-table thead th:last-child {
   padding: 10px var(--gh-table-padding-x, 16px);
 }
 
+/* Show pointer cursor on data rows to indicate they are clickable */
+.gh-table tbody tr {
+  cursor: pointer;
+}
+
 /* NEW: Context menu item hover style in plus button menu */
 .menu-content > div {
   transition: background 0.15s;
