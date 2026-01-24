@@ -176,7 +176,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
     alignItems: 'center',
     gap: 6,
     borderRadius: 4,
-    border: '1px solid #353a42',
+    border: '1px solid #3c3c3c',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.55 : 1,
     transition: 'background 0.15s, color 0.15s, border-color 0.15s'
@@ -191,7 +191,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           disabled={disabled}
           onClick={handleStartJob}
           title={`Start Job '${name}' (re-run)`}
-          style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+          style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
         >
           <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
           Start
@@ -205,7 +205,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             disabled={disabled}
             onClick={handleStartJobFromCronJob}
             title={`Start Job from CronJob '${name}' (manual trigger)`}
-            style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+            style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
           >
             <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
             Start
@@ -291,8 +291,8 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                 width: 110,
                 padding: '4px 6px',
                 borderRadius: 4,
-                border: '1px solid #353a42',
-                background: '#0d1117',
+                border: '1px solid #3c3c3c',
+                background: '#1e1e1e',
                 color: '#fff'
               }}
             />
@@ -301,7 +301,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             type="button"
             onClick={submitResizePVC}
             disabled={disabled || resizeBusy}
-            style={{ ...baseBtn, background: '#238636', borderColor: '#2ea043', color: '#fff' }}
+            style={{ ...baseBtn, background: '#0e639c', borderColor: '#1177bb', color: '#fff' }}
           >
             {resizeBusy ? 'Applying…' : 'Apply'}
           </button>
@@ -309,7 +309,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             type="button"
             onClick={() => { setResizeMode(false); setResizeValue(''); }}
             disabled={resizeBusy}
-            style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+            style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
           >
             Cancel
           </button>
@@ -348,8 +348,8 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                     width: 70,
                     padding: '4px 6px',
                     borderRadius: 4,
-                    border: '1px solid #353a42',
-                    background: '#0d1117',
+                    border: '1px solid #3c3c3c',
+                    background: '#1e1e1e',
                     color: '#fff'
                   }}
                 />
@@ -358,7 +358,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                 type="button"
                 onClick={submitScale}
                 disabled={disabled || scaleBusy}
-                style={{ ...baseBtn, background: '#238636', borderColor: '#2ea043', color: '#fff' }}
+                style={{ ...baseBtn, background: '#0e639c', borderColor: '#1177bb', color: '#fff' }}
               >
                 {scaleBusy ? 'Scaling…' : 'Apply'}
               </button>
@@ -366,7 +366,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                 type="button"
                 onClick={() => { setScaleMode(false); setScaleValue(sanitizeReplicaString(replicaCount)); }}
                 disabled={scaleBusy}
-                style={{ ...baseBtn, background: '#2d323b', color: '#fff' }}
+                style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
               >
                 Cancel
               </button>

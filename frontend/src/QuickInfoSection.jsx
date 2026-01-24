@@ -20,10 +20,10 @@ function QuickInfoSection({
         {pairs.map((p, i) => (
           <span key={i} style={{
             background: 'rgba(56,139,253,0.12)',
-            border: '1px solid #30363d',
+            border: '1px solid #3c3c3c',
             padding: '2px 6px',
             borderRadius: 0,
-            color: '#c9d1d9'
+            color: '#d4d4d4'
           }}>
             {p}
           </span>
@@ -108,7 +108,7 @@ function QuickInfoSection({
           {value.map((item, i) => (
             <span key={i} style={{
               background: 'rgba(46,160,67,0.15)',
-              border: '1px solid #30363d',
+              border: '1px solid #3c3c3c',
               padding: '2px 6px',
               borderRadius: 0,
               color: '#3fb950'
@@ -147,7 +147,7 @@ function QuickInfoSection({
         fontWeight: 600,
         textAlign: 'left',
         background: '#161b22', // Add explicit background
-        color: '#c9d1d9' // Add explicit text color
+        color: '#d4d4d4' // Add explicit text color
       }}>
         Quick info
       </div>
@@ -160,14 +160,14 @@ function QuickInfoSection({
         flex: 1,
         overflow: 'auto',
         textAlign: 'left',
-        color: '#c9d1d9' // Add explicit text color
+        color: '#d4d4d4' // Add explicit text color
       }}>
         {loading && (
-          <div style={{ color: '#8b949e' }}>Loading…</div>
+          <div style={{ color: '#858585' }}>Loading…</div>
         )}
 
         {error && (
-          <div style={{ color: '#f85149' }}>Error: {error}</div>
+          <div style={{ color: '#f14c4c' }}>Error: {error}</div>
         )}
 
         {!loading && !error && data && Object.keys(data).length > 0 ? (
@@ -187,23 +187,23 @@ function QuickInfoSection({
                     <div>
                       <div style={{
                         fontSize: 12,
-                        color: '#8b949e',
+                        color: '#858585',
                         marginBottom: 4
                       }}>
                         {field.label}
                       </div>
-                      <div style={{ color: '#c9d1d9' }}>{renderFieldValue(field, value)}</div>
+                      <div style={{ color: '#d4d4d4' }}>{renderFieldValue(field, value)}</div>
                     </div>
                     {field.rightField && (
                       <div style={{ textAlign: 'right' }}>
                         <div style={{
                           fontSize: 12,
-                          color: '#8b949e',
+                          color: '#858585',
                           marginBottom: 4
                         }}>
                           {field.rightField.label}
                         </div>
-                        <div style={{ whiteSpace: 'nowrap', color: '#c9d1d9' }}>
+                        <div style={{ whiteSpace: 'nowrap', color: '#d4d4d4' }}>
                           {renderFieldValue(field.rightField, field.rightField.getValue ? field.rightField.getValue(data) : data[field.rightField.key])}
                         </div>
                       </div>
@@ -216,12 +216,12 @@ function QuickInfoSection({
                 <div key={index}>
                   <div style={{
                     fontSize: 12,
-                    color: '#8b949e',
+                    color: '#858585',
                     marginBottom: 4
                   }}>
                     {field.label}
                   </div>
-                  <div style={{ color: '#c9d1d9' }}>{renderFieldValue(field, value)}</div>
+                  <div style={{ color: '#d4d4d4' }}>{renderFieldValue(field, value)}</div>
                 </div>
               );
             })}
@@ -234,8 +234,8 @@ function QuickInfoSection({
                   style={{
                     padding: '6px 10px',
                     background: 'rgba(56,139,253,0.15)',
-                    color: '#58a6ff',
-                    border: '1px solid #30363d',
+                    color: '#3794ff',
+                    border: '1px solid #3c3c3c',
                     cursor: loading ? 'default' : 'pointer',
                     opacity: loading ? 0.6 : 1
                   }}
@@ -246,7 +246,7 @@ function QuickInfoSection({
             )}
           </>
         ) : (
-          <div style={{ color: '#8b949e' }}>
+          <div style={{ color: '#858585' }}>
             No data available.
           </div>
         )}

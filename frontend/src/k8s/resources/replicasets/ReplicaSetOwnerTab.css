@@ -6,18 +6,18 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  color: var(--gh-text, #c9d1d9);
-  background: var(--gh-canvas-subtle, #161b22);
+  color: var(--gh-text, #d4d4d4);
+  background: var(--gh-canvas-subtle, #252526);
 }
 
 .owner-loading,
 .owner-error {
   text-align: center;
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
 }
 
 .owner-error {
-  color: #f85149;
+  color: var(--vsc-error, #f14c4c);
 }
 
 .owner-empty {
@@ -33,18 +33,18 @@
 .owner-empty-text {
   font-size: 16px;
   font-weight: 500;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
   margin-bottom: 8px;
 }
 
 .owner-empty-hint {
   font-size: 13px;
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
 }
 
 .owner-card {
-  background: var(--gh-canvas-default, #0d1117);
-  border: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-canvas-default, #1e1e1e);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 8px;
   padding: 24px;
   min-width: 300px;
@@ -65,13 +65,13 @@
   font-size: 12px;
   font-weight: 600;
   background: rgba(56, 139, 253, 0.15);
-  color: #58a6ff;
+  color: var(--vsc-info, #3794ff);
   text-transform: capitalize;
 }
 
 .owner-label {
   font-size: 12px;
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -80,7 +80,7 @@
   font-size: 18px;
   font-weight: 600;
   font-family: monospace;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
   margin-bottom: 12px;
   word-break: break-all;
 }
@@ -94,17 +94,17 @@
 }
 
 .owner-namespace-label {
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
 }
 
 .owner-namespace-value {
   font-family: monospace;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .owner-hint {
   font-size: 12px;
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
   padding-top: 12px;
   border-top: 1px solid var(--gh-border, #30363d);
 }

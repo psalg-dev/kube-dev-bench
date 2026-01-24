@@ -114,11 +114,11 @@ function KeyValueEditor({
   return (
     <div style={{ minWidth: 0, width: '100%', maxWidth: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-        <div style={{ fontSize: 12, color: '#bbb' }}>{title}</div>
+        <div style={{ fontSize: 12, color: '#858585' }}>{title}</div>
         <button
           type="button"
           onClick={() => onChange([...(rows || []), { id: `kv_${Date.now()}_${Math.random().toString(16).slice(2)}`, key: '', value: '' }])}
-          style={{ padding: '6px 10px', background: 'transparent', color: '#fff', border: '1px solid #30363d', borderRadius: 0, cursor: 'pointer', fontSize: 12 }}
+          style={{ padding: '6px 10px', background: 'transparent', color: '#fff', border: '1px solid #3c3c3c', borderRadius: 0, cursor: 'pointer', fontSize: 12 }}
           aria-label={addButtonLabel}
         >
           {addButtonLabel}
@@ -136,7 +136,7 @@ function KeyValueEditor({
               }}
               placeholder={keyPlaceholder}
               aria-label={`${ariaPrefix} key`}
-              style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
             <input
               value={row.value}
@@ -147,7 +147,7 @@ function KeyValueEditor({
               }}
               placeholder={valuePlaceholder}
               aria-label={`${ariaPrefix} value`}
-              style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
             />
             <button
               type="button"
@@ -155,7 +155,7 @@ function KeyValueEditor({
                 const next = (rows || []).filter((_, i) => i !== idx);
                 onChange(next.length ? next : [{ id: `kv_${Date.now()}_${Math.random().toString(16).slice(2)}`, key: '', value: '' }]);
               }}
-              style={{ padding: '8px 10px', background: 'transparent', color: '#fff', border: '1px solid #30363d', borderRadius: 0, cursor: 'pointer' }}
+              style={{ padding: '8px 10px', background: 'transparent', color: '#fff', border: '1px solid #3c3c3c', borderRadius: 0, cursor: 'pointer' }}
               aria-label={`Remove ${ariaPrefix.toLowerCase()} row`}
               title="Remove"
             >
@@ -238,12 +238,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   }, [kind, namespace, platform]);
 
   const cmTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
+    '&': { backgroundColor: '#1e1e1e', color: '#d4d4d4' },
     '&.cm-editor': { height: '100%', width: '100%' },
     '.cm-content': { caretColor: '#fff', textAlign: 'left', whiteSpace: 'pre' },
     '.cm-line': { textAlign: 'left', whiteSpace: 'pre' },
     '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: '1.45' },
-    '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' },
+    '.cm-gutters': { background: '#252526', color: '#858585', borderRight: '1px solid #3c3c3c' },
     '.cm-gutterElement': { padding: '0 8px' },
   }, { dark: true }), []);
 
@@ -741,7 +741,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           {isSwarm && swarmKind === 'service' && (
             <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {createHint ? (
-                <div id="swarm-service-hint" style={{ fontSize: 12, color: '#bbb', lineHeight: 1.35 }}>
+                <div id="swarm-service-hint" style={{ fontSize: 12, color: '#858585', lineHeight: 1.35 }}>
                   {String(createHint)}
                 </div>
               ) : null}
@@ -768,13 +768,13 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
               {swarmSimpleViewMode === 'form' && swarmKind !== 'node' ? (
                 <>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Name</div>
+                    <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Name</div>
                     <input
                       value={swarmName}
                       onChange={(e) => setSwarmName(e.target.value)}
                       placeholder={swarmKind === 'secret' ? 'my-secret' : 'my-config'}
                       aria-label="Swarm resource name"
-                      style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                     />
                   </div>
                   <KeyValueEditor
@@ -787,12 +787,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                     ariaPrefix="Label"
                   />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>{swarmKind === 'secret' ? 'Value' : 'Data'}</div>
+                    <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>{swarmKind === 'secret' ? 'Value' : 'Data'}</div>
                     <textarea
                       value={swarmDataText}
                       onChange={(e) => setSwarmDataText(e.target.value)}
                       aria-label={swarmKind === 'secret' ? 'Swarm secret value' : 'Swarm config data'}
-                      style={{ width: '100%', minHeight: 140, padding: '10px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: 1.45 }}
+                      style={{ width: '100%', minHeight: 140, padding: '10px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: 1.45 }}
                     />
                   </div>
                 </>
@@ -801,23 +801,23 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
               {swarmSimpleViewMode === 'form' && swarmKind === 'node' ? (
                 <>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Node ID</div>
+                    <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Node ID</div>
                     <input
                       value={swarmNodeId}
                       onChange={(e) => setSwarmNodeId(e.target.value)}
                       placeholder="node-id"
                       aria-label="Swarm node id"
-                      style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                      style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                     />
                   </div>
                   <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                     <div style={{ flex: '1 1 180px', minWidth: 160 }}>
-                      <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Availability</div>
+                      <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Availability</div>
                       <select
                         value={swarmNodeAvailability}
                         onChange={(e) => setSwarmNodeAvailability(e.target.value)}
                         aria-label="Swarm node availability"
-                        style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                       >
                         <option value="active">active</option>
                         <option value="pause">pause</option>
@@ -825,12 +825,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                       </select>
                     </div>
                     <div style={{ flex: '1 1 180px', minWidth: 160 }}>
-                      <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Role</div>
+                      <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Role</div>
                       <select
                         value={swarmNodeRole}
                         onChange={(e) => setSwarmNodeRole(e.target.value)}
                         aria-label="Swarm node role"
-                        style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                        style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                       >
                         <option value="worker">worker</option>
                         <option value="manager">manager</option>
@@ -854,21 +854,21 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           {isSwarm && swarmKind === 'stack' && (
             <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Stack Name</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Stack Name</div>
                 <input
                   id="swarm-stack-name"
                   value={swarmStackName}
                   onChange={(e) => setSwarmStackName(e.target.value)}
                   placeholder="my-stack"
                   aria-label="Swarm stack name"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                 <button
                   type="button"
                   onClick={() => swarmStackFileInputRef.current?.click?.()}
-                  style={{ padding: '6px 10px', background: 'transparent', color: '#fff', border: '1px solid #30363d', borderRadius: 0, cursor: 'pointer', fontSize: 12 }}
+                  style={{ padding: '6px 10px', background: 'transparent', color: '#fff', border: '1px solid #3c3c3c', borderRadius: 0, cursor: 'pointer', fontSize: 12 }}
                 >
                   Upload YAML
                 </button>
@@ -889,7 +889,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
               </div>
               <div
                 id="swarm-stack-hint"
-                style={{ fontSize: 12, color: '#bbb', lineHeight: 1.35 }}
+                style={{ fontSize: 12, color: '#858585', lineHeight: 1.35 }}
               >
                 Deploying a stack will create services (and their tasks).
               </div>
@@ -899,13 +899,13 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           {isSwarm && swarmKind !== 'service' && swarmKind !== 'stack' && !['config', 'secret', 'node'].includes(swarmKind) && (
             <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Name</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Name</div>
                 <input
                   value={swarmName}
                   onChange={(e) => setSwarmName(e.target.value)}
                   placeholder="name"
                   aria-label="Swarm resource name"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <KeyValueEditor
@@ -922,12 +922,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           {isSwarm && swarmKind === 'network' && (
             <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div style={{ flex: '1 1 180px', minWidth: 160 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Driver</div>
                 <select
                   value={swarmNetworkDriver}
                   onChange={(e) => setSwarmNetworkDriver(e.target.value)}
                   aria-label="Network driver"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="overlay">overlay</option>
                   <option value="bridge">bridge</option>
@@ -936,45 +936,45 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
                 </select>
               </div>
               <div style={{ flex: '1 1 160px', minWidth: 140 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Scope</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Scope</div>
                 <select
                   value={swarmNetworkScope}
                   onChange={(e) => setSwarmNetworkScope(e.target.value)}
                   aria-label="Network scope"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="swarm">swarm</option>
                   <option value="local">local</option>
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', paddingBottom: 2 }}>
-                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#bbb' }}>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#858585' }}>
                   <input type="checkbox" checked={swarmNetworkAttachable} onChange={(e) => setSwarmNetworkAttachable(e.target.checked)} />
                   Attachable
                 </label>
-                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#bbb' }}>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: '#858585' }}>
                   <input type="checkbox" checked={swarmNetworkInternal} onChange={(e) => setSwarmNetworkInternal(e.target.checked)} />
                   Internal
                 </label>
               </div>
               <div style={{ flex: '1 1 200px', minWidth: 180 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Subnet (CIDR)</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Subnet (CIDR)</div>
                 <input
                   value={swarmNetworkSubnet}
                   onChange={(e) => setSwarmNetworkSubnet(e.target.value)}
                   placeholder="10.0.0.0/24"
                   aria-label="Network subnet"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
               <div style={{ flex: '1 1 200px', minWidth: 180 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Gateway</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Gateway</div>
                 <input
                   value={swarmNetworkGateway}
                   onChange={(e) => setSwarmNetworkGateway(e.target.value)}
                   placeholder="10.0.0.1"
                   aria-label="Network gateway"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 />
               </div>
             </div>
@@ -982,12 +982,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           {isSwarm && swarmKind === 'volume' && (
             <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div style={{ flex: '1 1 200px', minWidth: 160 }}>
-                <div style={{ fontSize: 12, color: '#bbb', marginBottom: 6 }}>Driver</div>
+                <div style={{ fontSize: 12, color: '#858585', marginBottom: 6 }}>Driver</div>
                 <select
                   value={swarmVolumeDriver}
                   onChange={(e) => setSwarmVolumeDriver(e.target.value)}
                   aria-label="Volume driver"
-                  style={{ width: '100%', padding: '8px 10px', background: '#0d1117', border: '1px solid #30363d', color: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 10px', background: '#1e1e1e', border: '1px solid #3c3c3c', color: '#fff', boxSizing: 'border-box' }}
                 >
                   <option value="local">local</option>
                   <option value="nfs">nfs</option>
@@ -1016,7 +1016,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
           )}
         </div>
         <div style={{ padding: 12, borderTop: '1px solid #353a42', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ color: '#bbb', fontSize: 12 }}>
+          <div style={{ color: '#858585', fontSize: 12 }}>
             {isSwarm ? (
               <span>Target: <strong style={{ color: '#fff' }}>Docker Swarm</strong></span>
             ) : (

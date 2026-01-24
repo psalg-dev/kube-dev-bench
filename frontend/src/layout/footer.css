@@ -30,7 +30,7 @@
   justify-content: center;
   width: 26px;
   height: 26px;
-  color: #d73a49; /* GitHub danger red */
+  color: var(--vsc-error, #f14c4c); /* VS Code error red */
   font-weight: 700;
   font-size: 16px;
   line-height: 1;
@@ -41,13 +41,13 @@
   transition: background-color 0.15s ease;
 }
 #footer-dot:hover {
-  background-color: rgba(215,58,73,0.15);
+  background-color: rgba(241, 76, 76, 0.15);
 }
 #footer-dot.connected {
   background: var(--gh-accent);
-  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(35, 134, 54, 0.3);
+  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(14, 99, 156, 0.3);
 }
 #footer-dot.insecure {
-  background: #d73a49;
-  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(215,58,73,0.4);
+  background: var(--vsc-error, #f14c4c);
+  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(241, 76, 76, 0.4);
 }

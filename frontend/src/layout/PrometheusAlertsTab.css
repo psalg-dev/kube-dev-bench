@@ -12,14 +12,14 @@
 
 .prometheus-header input {
   flex: 1;
-  background: var(--gh-bg-secondary, #161b22);
-  border: 1px solid var(--gh-border, #30363d);
-  color: var(--gh-text, #c9d1d9);
+  background: var(--gh-bg-secondary, #252526);
+  border: 1px solid var(--gh-border, #3c3c3c);
+  color: var(--gh-text, #d4d4d4);
   padding: 8px;
 }
 
 .prometheus-header button {
-  background: #238636;
+  background: var(--gh-accent, #0e639c);
   color: #fff;
   border: none;
   padding: 8px 12px;
@@ -27,7 +27,7 @@
 }
 
 .prometheus-error {
-  color: #f85149;
+  color: var(--vsc-error, #f14c4c);
 }
 
 .prometheus-alerts {
@@ -37,8 +37,8 @@
 }
 
 .prometheus-alert-card {
-  background: var(--gh-bg-secondary, #161b22);
-  border: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-bg-secondary, #252526);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 6px;
   padding: 12px;
 }
@@ -54,8 +54,8 @@
 }
 
 .prometheus-alert-state {
-  background: var(--gh-bg-tertiary, #1c2128);
-  color: var(--gh-text-muted, #8b949e);
+  background: var(--gh-bg-tertiary, #2a2d2e);
+  color: var(--gh-text-muted, #858585);
   border-radius: 12px;
   padding: 2px 8px;
   font-size: 11px;
@@ -65,7 +65,7 @@
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
   margin-top: 6px;
 }
 
@@ -77,8 +77,8 @@
 }
 
 .prometheus-alert-chip {
-  background: var(--gh-bg-tertiary, #1c2128);
-  color: var(--gh-text-muted, #8b949e);
+  background: var(--gh-bg-tertiary, #2a2d2e);
+  color: var(--gh-text-muted, #858585);
   border-radius: 10px;
   padding: 2px 8px;
   font-size: 11px;
@@ -87,27 +87,27 @@
 .prometheus-alert-annotations {
   margin-top: 8px;
   font-size: 12px;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .prometheus-investigate {
   margin-top: 10px;
   background: transparent;
-  border: 1px solid var(--gh-border, #30363d);
-  color: var(--gh-text, #c9d1d9);
+  border: 1px solid var(--gh-border, #3c3c3c);
+  color: var(--gh-text, #d4d4d4);
   padding: 6px 10px;
   cursor: pointer;
 }
 
 .prometheus-analysis {
   margin-top: 10px;
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   padding: 10px;
-  background: var(--gh-bg-primary, #0d1117);
+  background: var(--gh-bg-primary, #1e1e1e);
 }
 
 .prometheus-history {
-  border-top: 1px solid var(--gh-border, #30363d);
+  border-top: 1px solid var(--gh-border, #3c3c3c);
   padding-top: 10px;
 }
 
@@ -121,6 +121,6 @@
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: var(--gh-text-muted, #8b949e);
+  color: var(--gh-text-muted, #858585);
   padding: 4px 0;
 }

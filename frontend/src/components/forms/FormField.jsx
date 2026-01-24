@@ -4,14 +4,14 @@ export default function FormField({ label, required, error, children, htmlFor, i
       {label && (
         <label
           htmlFor={htmlFor || id}
-          style={{ fontSize: 12, color: '#bbb', marginBottom: 6, display: 'block' }}
+          style={{ fontSize: 12, color: '#858585', marginBottom: 6, display: 'block' }}
         >
           {label}{required ? ' *' : ''}
         </label>
       )}
       {children}
       {error ? (
-        <div style={{ marginTop: 6, fontSize: 12, color: '#f85149' }} role="alert">
+        <div style={{ marginTop: 6, fontSize: 12, color: '#f14c4c' }} role="alert">
           {error}
         </div>
       ) : null}

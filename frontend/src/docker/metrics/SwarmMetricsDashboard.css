@@ -3,7 +3,7 @@
 .swarm-metrics-dashboard {
   padding: 16px;
   padding-bottom: calc(var(--footer-height, 30px) + 24px);
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .swarm-metrics-dashboard__container {
@@ -24,7 +24,7 @@
 
 .swarm-metrics-dashboard__meta {
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
   text-align: right;
 }
 
@@ -37,19 +37,19 @@
 
 .swarm-metrics-dashboard__statusText {
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .swarm-metrics-dashboard__statusText--error {
-  color: #ff7b72;
+  color: var(--vsc-error, #f14c4c);
 }
 
 .swarm-metrics-dashboard__button {
   font-size: 12px;
   padding: 4px 10px;
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   background: transparent;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
   cursor: pointer;
 }
 
@@ -69,7 +69,7 @@
 }
 
 .swarm-metrics-card {
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   background: rgba(110, 118, 129, 0.06);
   padding: 12px;
   min-width: 0;
@@ -77,20 +77,20 @@
 
 .swarm-metrics-card__title {
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .swarm-metrics-card__value {
   margin-top: 6px;
   font-size: 18px;
   font-weight: 700;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .swarm-metrics-card__sub {
   margin-top: 4px;
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .swarm-metrics-dashboard__sectionGrid {
@@ -101,7 +101,7 @@
 }
 
 .swarm-metrics-panel {
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   padding: 12px;
   background: rgba(13, 17, 23, 0.25);
   min-width: 0;
@@ -110,7 +110,7 @@
 
 .swarm-metrics-panel__title {
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
   margin-bottom: 8px;
 }
 
@@ -125,17 +125,17 @@
 .swarm-metrics-miniTable th,
 .swarm-metrics-miniTable td {
   padding: 6px 4px;
-  border-bottom: 1px solid var(--gh-border, #30363d);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
 }
 
 .swarm-metrics-miniTable th {
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
   font-weight: 600;
   background: transparent;
 }
 
 .swarm-metrics-miniTable td {
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .swarm-metrics-dashboard__controls {
@@ -149,7 +149,7 @@
 
 .swarm-metrics-dashboard__hint {
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .swarm-metrics-dashboard__charts {
@@ -162,5 +162,5 @@
 .swarm-metrics-panel__sub {
   margin-top: 6px;
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }

@@ -4,7 +4,7 @@
   height: 100%;
   padding: 16px;
   gap: 12px;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .holmes-bottom-panel-header {
@@ -23,7 +23,7 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
   font-size: 13px;
   flex: 1;
   min-height: 0;
@@ -48,7 +48,7 @@
   padding: 4px 6px 4px 10px;
   font-size: 12px;
   font-weight: 500;
-  color: var(--gh-accent, #58a6ff);
+  color: var(--gh-accent, #3794ff);
   background: rgba(88, 166, 255, 0.15);
   border-radius: 12px;
 }
@@ -84,7 +84,7 @@
   display: block;
   width: 6px;
   height: 6px;
-  background: var(--gh-error, #f85149);
+  background: var(--gh-error, #f14c4c);
   border-radius: 1px;
 }
 
@@ -94,7 +94,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  color: var(--gh-text-tertiary, #6e7681);
+  color: var(--gh-text-tertiary, #858585);
   font-size: 12px;
 }
 
@@ -117,12 +117,12 @@
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .holmes-bottom-panel-step-name {
   font-weight: 600;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .holmes-bottom-panel-step-status {
@@ -135,25 +135,25 @@
 
 .holmes-bottom-panel-step-running .holmes-bottom-panel-step-status {
   background: rgba(88, 166, 255, 0.2);
-  color: var(--gh-accent, #58a6ff);
+  color: var(--gh-accent, #3794ff);
 }
 
 .holmes-bottom-panel-step-done .holmes-bottom-panel-step-status,
 .holmes-bottom-panel-step-success .holmes-bottom-panel-step-status {
   background: rgba(63, 185, 80, 0.2);
-  color: var(--gh-success, #3fb950);
+  color: var(--gh-success, #89d185);
 }
 
 .holmes-bottom-panel-step-error .holmes-bottom-panel-step-status,
 .holmes-bottom-panel-step-failed .holmes-bottom-panel-step-status {
   background: rgba(248, 81, 73, 0.2);
-  color: var(--gh-error, #f85149);
+  color: var(--gh-error, #f14c4c);
 }
 
 .holmes-bottom-panel-step-desc {
   flex-basis: 100%;
   font-size: 12px;
-  color: var(--gh-text-tertiary, #6e7681);
+  color: var(--gh-text-tertiary, #858585);
 }
 
 .holmes-bottom-panel-tool {
@@ -161,12 +161,12 @@
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .holmes-bottom-panel-tool-name {
   font-weight: 600;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .holmes-bottom-panel-tool-status {
@@ -179,13 +179,13 @@
 
 .holmes-bottom-panel-tool-running .holmes-bottom-panel-tool-status {
   background: rgba(88, 166, 255, 0.2);
-  color: var(--gh-accent, #58a6ff);
+  color: var(--gh-accent, #3794ff);
 }
 
 .holmes-bottom-panel-tool-done .holmes-bottom-panel-tool-status,
 .holmes-bottom-panel-tool-success .holmes-bottom-panel-tool-status {
   background: rgba(63, 185, 80, 0.2);
-  color: var(--gh-success, #3fb950);
+  color: var(--gh-success, #89d185);
 }
 
 .holmes-bottom-panel-tool-approval_required .holmes-bottom-panel-tool-status {
@@ -196,13 +196,13 @@
 .holmes-bottom-panel-tool-failed .holmes-bottom-panel-tool-status,
 .holmes-bottom-panel-tool-error .holmes-bottom-panel-tool-status {
   background: rgba(248, 81, 73, 0.2);
-  color: var(--gh-error, #f85149);
+  color: var(--gh-error, #f14c4c);
 }
 
 .holmes-bottom-panel-tool-desc {
   flex-basis: 100%;
   font-size: 12px;
-  color: var(--gh-text-tertiary, #6e7681);
+  color: var(--gh-text-tertiary, #858585);
 }
 
 .holmes-bottom-panel-spinner {
@@ -210,12 +210,12 @@
   height: 16px;
   border-radius: 50%;
   border: 2px solid rgba(110, 118, 129, 0.4);
-  border-top-color: var(--gh-accent, #58a6ff);
+  border-top-color: var(--gh-accent, #3794ff);
   animation: holmes-spin 1s linear infinite;
 }
 
 .holmes-bottom-panel-error {
-  border: 1px solid var(--gh-error, #f85149);
+  border: 1px solid var(--gh-error, #f14c4c);
   background: rgba(248, 81, 73, 0.08);
   border-radius: 8px;
   padding: 12px;
@@ -260,7 +260,7 @@
 
 .holmes-bottom-panel-empty p {
   font-size: 13px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
   margin: 0;
 }
 

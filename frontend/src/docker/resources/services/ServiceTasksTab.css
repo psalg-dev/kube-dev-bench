@@ -9,7 +9,7 @@
 .tasks-empty {
   padding: 32px;
   text-align: center;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .tasks-table {
@@ -22,17 +22,17 @@
 .tasks-table th {
   text-align: left;
   padding: 8px 12px;
-  background: var(--gh-table-header-bg, #161b22);
-  color: var(--gh-table-header-text, #c9d1d9);
+  background: var(--gh-table-header-bg, #3c3c3c);
+  color: var(--gh-table-header-text, #d4d4d4);
   font-weight: 600;
-  border-bottom: 1px solid var(--gh-border, #30363d);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
 }
 
 .tasks-table td {
   text-align: left;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--gh-border, #30363d);
-  color: var(--gh-text, #c9d1d9);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .tasks-table tr:hover td {
@@ -48,7 +48,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .task-error:not(:empty):hover {

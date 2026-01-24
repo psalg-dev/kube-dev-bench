@@ -14,7 +14,7 @@
 }
 
 .stack-services-error {
-  color: #f85149;
+  color: var(--vsc-error, #f14c4c);
 }
 
 .stack-services-table {
@@ -27,19 +27,19 @@
 .stack-services-table td {
   padding: 8px 12px;
   text-align: left;
-  border-bottom: 1px solid var(--gh-border, #30363d);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
 }
 
 .stack-services-table th {
   font-weight: 600;
-  color: var(--gh-text-secondary, #8b949e);
-  background: var(--gh-bg-secondary, #161b22);
+  color: var(--gh-text-secondary, #858585);
+  background: var(--gh-bg-secondary, #252526);
   position: sticky;
   top: 0;
 }
 
 .stack-services-table td {
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .stack-services-table td.mono {
@@ -48,15 +48,15 @@
 }
 
 .stack-services-table tbody tr:hover {
-  background: var(--gh-bg-tertiary, #21262d);
+  background: var(--gh-bg-tertiary, #2a2d2e);
 }
 
 .replica-ok {
-  color: #3fb950;
+  color: var(--vsc-success, #89d185);
   font-weight: 500;
 }
 
 .replica-warn {
-  color: #d29922;
+  color: var(--vsc-warning, #cca700);
   font-weight: 500;
 }

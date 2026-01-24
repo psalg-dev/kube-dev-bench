@@ -45,15 +45,15 @@
   justify-content: center;
   font-size: 22px;
   line-height: 1;
-  background: var(--gh-accent, #2ea44f);
+  background: var(--gh-accent, #0e639c);
   color: #fff;
-  border: 1px solid var(--gh-accent, #2ea44f);
+  border: 1px solid var(--gh-accent, #0e639c);
   border-radius: 0;
   cursor: pointer;
 }
 
 .overview-create-btn:hover {
-  filter: brightness(1.05);
+  filter: brightness(1.1);
 }
 
 /* Standard table header cell padding across overview tables */
@@ -69,8 +69,8 @@ table.gh-table thead th:last-child {
 .gh-table thead th {
   padding: 10px var(--gh-table-padding-x, 16px);
   background: var(--gh-bg);
-  color: var(--gh-table-header-text, #fff);
-  border-bottom: 2px solid #353a42;
+  color: var(--gh-table-header-text, #d4d4d4);
+  border-bottom: 2px solid var(--gh-border, #3c3c3c);
   font-weight: 600;
   font-size: 15px;
   line-height: 1.4;          /* unify header text line height */
@@ -89,17 +89,17 @@ table.gh-table thead th:last-child {
   transition: background 0.15s;
 }
 .menu-content > div:hover {
-  background: rgba(46, 164, 79, 0.18); /* subtle green highlight */
+  background: rgba(14, 99, 156, 0.25); /* subtle blue highlight */
   color: #fff;
 }
 
 /* Inset actions button (ellipsis "..." in actions column) */
 .row-actions-button {
   padding: 4px 10px;
-  background: var(--gh-button-bg, #21262d);
-  border: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-button-bg, #3c3c3c);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 4px;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -109,11 +109,11 @@ table.gh-table thead th:last-child {
 }
 
 .row-actions-button:hover {
-  background: var(--gh-button-hover-bg, #30363d);
+  background: var(--gh-button-hover-bg, #474747);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
 .row-actions-button:active {
-  background: var(--gh-button-active-bg, #161b22);
+  background: var(--gh-button-active-bg, #252526);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
 }
