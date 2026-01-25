@@ -13,7 +13,7 @@ function Empty({ text }) {
 function Table({ columns, rows, rowKey }) {
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <thead>
           <tr>
             {columns.map(c => (
@@ -26,6 +26,9 @@ function Table({ columns, rows, rowKey }) {
                   color: 'var(--gh-text, #c9d1d9)',
                   borderBottom: '1px solid var(--gh-border, #30363d)',
                   padding: '8px 10px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {c.label}
@@ -44,9 +47,12 @@ function Table({ columns, rows, rowKey }) {
                     color: 'var(--gh-text, #c9d1d9)',
                     borderBottom: '1px solid var(--gh-border, #30363d)',
                     padding: '8px 10px',
-                    verticalAlign: 'top',
+                    verticalAlign: 'middle',
                     wordBreak: c.breakWord ? 'break-word' : 'normal',
                     fontFamily: c.mono ? 'monospace' : 'inherit',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: c.breakWord ? 'normal' : 'nowrap',
                   }}
                 >
                   {c.render ? c.render(r) : (r?.[c.key] ?? '-')}

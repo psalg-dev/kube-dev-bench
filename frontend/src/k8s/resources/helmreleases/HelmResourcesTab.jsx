@@ -372,14 +372,14 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
         }
       `}</style>
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <table className="helm-resources-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
+        <table className="helm-resources-table panel-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--gh-border, #30363d)', color: 'var(--gh-text-muted, #8b949e)' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px' }}>Health</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px' }}>Kind</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px' }}>Name</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px' }}>Namespace</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px' }}>API Version</th>
+            <tr>
+              <th>Health</th>
+              <th>Kind</th>
+              <th>Name</th>
+              <th>Namespace</th>
+              <th>API Version</th>
             </tr>
           </thead>
           <tbody>
@@ -387,18 +387,18 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
               <tr
                 key={`${r.kind}/${r.namespace}/${r.name}`}
                 onClick={() => navigateToResource(r)}
-                style={{ borderBottom: '1px solid var(--gh-border, #30363d)', cursor: 'pointer' }}
+                style={{ cursor: 'pointer' }}
                 title={`Open ${r.kind} ${r.name}`}
               >
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', whiteSpace: 'nowrap' }}>
+                <td className="text-muted" style={{ whiteSpace: 'nowrap' }}>
                   <span style={{ color: getHealthColor(healthByKey[`${r.kind}/${r.namespace}/${r.name}`]), fontWeight: 600 }}>
                     {healthByKey[`${r.kind}/${r.namespace}/${r.name}`] || '…'}
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{r.kind}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{r.name}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{r.namespace}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{r.apiVersion}</td>
+                <td>{r.kind}</td>
+                <td>{r.name}</td>
+                <td className="text-muted">{r.namespace}</td>
+                <td className="text-muted">{r.apiVersion}</td>
               </tr>
             ))}
           </tbody>

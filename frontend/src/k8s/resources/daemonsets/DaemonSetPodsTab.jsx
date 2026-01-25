@@ -71,22 +71,22 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
         </span>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Node</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Pod</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Ready</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Restarts</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Age</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>IP</th>
+          <tr>
+            <th>Node</th>
+            <th>Pod</th>
+            <th>Status</th>
+            <th>Ready</th>
+            <th>Restarts</th>
+            <th>Age</th>
+            <th>IP</th>
           </tr>
         </thead>
         <tbody>
           {detail.pods.map((pod, idx) => (
-            <tr key={pod.name || idx} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px' }}>
+            <tr key={pod.name || idx}>
+              <td>
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -97,27 +97,27 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
                   fontSize: 12
                 }}>
                   <span style={{ color: '#58a6ff' }}>🖥️</span>
-                  <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{pod.node || 'Unknown'}</span>
+                  <span>{pod.node || 'Unknown'}</span>
                 </span>
               </td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace', fontSize: 12 }}>
+              <td style={{ fontFamily: 'monospace', fontSize: 12 }}>
                 {pod.name}
               </td>
-              <td style={{ padding: '8px 12px' }}>
+              <td>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{
                     width: 8, height: 8, borderRadius: '50%',
                     backgroundColor: getStatusColor(pod.status)
                   }} />
-                  <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{pod.status}</span>
+                  <span>{pod.status}</span>
                 </span>
               </td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.ready}</td>
-              <td style={{ padding: '8px 12px', color: pod.restarts > 0 ? '#f85149' : 'var(--gh-text, #c9d1d9)' }}>
+              <td>{pod.ready}</td>
+              <td style={{ color: pod.restarts > 0 ? '#f85149' : undefined }}>
                 {pod.restarts}
               </td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.age}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', fontFamily: 'monospace', fontSize: 12 }}>
+              <td>{pod.age}</td>
+              <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>
                 {pod.ip || '-'}
               </td>
             </tr>

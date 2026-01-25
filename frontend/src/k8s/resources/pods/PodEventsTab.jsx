@@ -36,29 +36,29 @@ export default function PodEventsTab({ namespace, podName }) {
       {error && <div style={{ padding: 12, color: '#f85149' }}>Error: {error}</div>}
       {!loading && !error && (
         <div style={{ flex: 1, overflow: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table className="panel-table">
             <thead>
               <tr>
-                <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>Type</th>
-                <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>Reason</th>
-                <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>Message</th>
-                <th style={{ textAlign: 'right', padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>Count</th>
-                <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>Last Seen</th>
+                <th>Type</th>
+                <th>Reason</th>
+                <th>Message</th>
+                <th style={{ textAlign: 'right' }}>Count</th>
+                <th>Last Seen</th>
               </tr>
             </thead>
             <tbody>
               {events.length === 0 && (
                 <tr>
-                  <td colSpan={5} style={{ padding: 12, color: 'var(--gh-text-muted, #8b949e)' }}>No events.</td>
+                  <td colSpan={5} style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No events.</td>
                 </tr>
               )}
               {events.map((e, idx) => (
                 <tr key={idx}>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>{e.type}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>{e.reason}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)', whiteSpace: 'pre-wrap' }}>{e.message}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)', textAlign: 'right' }}>{e.count}</td>
-                  <td style={{ padding: '8px 10px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>{formatTimestampDMYHMS(e.lastTimestamp)}</td>
+                  <td>{e.type}</td>
+                  <td>{e.reason}</td>
+                  <td style={{ whiteSpace: 'pre-wrap' }}>{e.message}</td>
+                  <td style={{ textAlign: 'right' }}>{e.count}</td>
+                  <td>{formatTimestampDMYHMS(e.lastTimestamp)}</td>
                 </tr>
               ))}
             </tbody>

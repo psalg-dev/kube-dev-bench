@@ -68,16 +68,16 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
       {revisions.length === 0 ? (
         <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No revisions found.</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <table className="panel-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid #30363d' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Revision</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>ReplicaSet</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Image</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Created</th>
-              <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Replicas</th>
-              <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Current</th>
-              <th style={{ textAlign: 'right', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Action</th>
+            <tr>
+              <th>Revision</th>
+              <th>ReplicaSet</th>
+              <th>Image</th>
+              <th>Created</th>
+              <th style={{ textAlign: 'center' }}>Replicas</th>
+              <th style={{ textAlign: 'center' }}>Current</th>
+              <th style={{ textAlign: 'right' }}>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -86,18 +86,18 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
               const revision = rev.revision;
               const rollbackDisabled = isCurrent || busyRevision !== null;
               return (
-                <tr key={idx} style={{ borderBottom: '1px solid #21262d', backgroundColor: isCurrent ? '#23863610' : 'transparent' }}>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontWeight: isCurrent ? 600 : 400 }}>#{revision}</td>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', fontFamily: 'monospace', fontSize: 12 }}>{rev.replicaSet}</td>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rev.image}</td>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{formatDate(rev.createdAt)}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--gh-text, #c9d1d9)' }}>{rev.replicas}</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                <tr key={idx} style={{ backgroundColor: isCurrent ? '#23863610' : 'transparent' }}>
+                  <td style={{ fontWeight: isCurrent ? 600 : 400 }}>#{revision}</td>
+                  <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{rev.replicaSet}</td>
+                  <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rev.image}</td>
+                  <td className="text-muted">{formatDate(rev.createdAt)}</td>
+                  <td style={{ textAlign: 'center' }}>{rev.replicas}</td>
+                  <td style={{ textAlign: 'center' }}>
                     {isCurrent && (
                       <span style={{ padding: '2px 8px', backgroundColor: '#238636', color: '#fff', borderRadius: 10, fontSize: 11 }}>Active</span>
                     )}
                   </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right' }}>
                     <button
                       type="button"
                       disabled={rollbackDisabled}

@@ -39,20 +39,20 @@ export default function SecretConsumersTab({ namespace, secretName }) {
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Kind</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Reference</th>
+          <tr>
+            <th>Kind</th>
+            <th>Name</th>
+            <th>Reference</th>
           </tr>
         </thead>
         <tbody>
           {items.map((c, idx) => (
-            <tr key={`${c.kind || c.Kind}-${c.name || c.Name}-${idx}`} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{c.kind ?? c.Kind}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{c.name ?? c.Name}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
+            <tr key={`${c.kind || c.Kind}-${c.name || c.Name}-${idx}`}>
+              <td>{c.kind ?? c.Kind}</td>
+              <td>{c.name ?? c.Name}</td>
+              <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
             </tr>
           ))}
         </tbody>

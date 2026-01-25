@@ -947,3 +947,54 @@ input[type="text"]:focus, input[type="search"]:focus {
 .ͼl {
   color: var(--gh-text-muted);
 }
+
+/* Bottom panel table styles - ensures proper alignment with fixed layout */
+.panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.panel-table th,
+.panel-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.panel-table th {
+  font-weight: 600;
+  color: var(--gh-text-muted, #8b949e);
+  background: var(--gh-bg, #0d1117);
+}
+
+.panel-table td {
+  color: var(--gh-text, #c9d1d9);
+}
+
+.panel-table tbody tr:hover {
+  background: var(--gh-hover-bg, rgba(177, 186, 196, 0.08));
+}
+
+/* Allow text wrapping for specific columns */
+.panel-table td.wrap-text,
+.panel-table th.wrap-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Centered text alignment for specific columns */
+.panel-table td.text-center,
+.panel-table th.text-center {
+  text-align: center;
+}
+
+/* Muted text color for secondary info */
+.panel-table td.text-muted {
+  color: var(--gh-text-muted, #8b949e);
+}

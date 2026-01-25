@@ -59,10 +59,16 @@
 /* Standard table header cell padding across overview tables */
 table.gh-table {
   overflow: visible;
+  border-collapse: collapse;
 }
 
 /* The Actions column is always the last column; keep it right-aligned */
 table.gh-table thead th:last-child {
+  text-align: right;
+}
+
+/* Ensure last td in each row also aligns right for Actions */
+table.gh-table tbody td:last-child {
   text-align: right;
 }
 
@@ -77,11 +83,17 @@ table.gh-table thead th:last-child {
   user-select: none;
   white-space: nowrap;       /* prevent wrapping to keep height consistent */
   vertical-align: middle;    /* align content vertically */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Consistent body cell padding across overview tables */
 .gh-table tbody td {
   padding: 10px var(--gh-table-padding-x, 16px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 /* Show pointer cursor on data rows to indicate they are clickable */

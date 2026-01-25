@@ -78,13 +78,13 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Service</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Port</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Type</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>ClusterIP</th>
+          <tr>
+            <th>Service</th>
+            <th>Port</th>
+            <th>Type</th>
+            <th>ClusterIP</th>
           </tr>
         </thead>
         <tbody>
@@ -93,11 +93,11 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
             const type = extra?.type ?? extra?.Type ?? '-';
             const clusterIP = extra?.clusterIP ?? extra?.ClusterIP ?? '-';
             return (
-              <tr key={`${s.name}:${s.port}`} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace', fontSize: 12 }}>{s.name}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{s.port}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{type}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', fontFamily: 'monospace', fontSize: 12 }}>{clusterIP}</td>
+              <tr key={`${s.name}:${s.port}`}>
+                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{s.name}</td>
+                <td>{s.port}</td>
+                <td className="text-muted">{type}</td>
+                <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{clusterIP}</td>
               </tr>
             );
           })}

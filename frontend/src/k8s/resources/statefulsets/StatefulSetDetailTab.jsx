@@ -74,34 +74,34 @@ export default function StatefulSetDetailTab({ namespace, statefulSetName }) {
           {!detail?.pods || detail.pods.length === 0 ? (
             <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No pods found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="panel-table">
               <thead>
-                <tr style={{ borderBottom: '1px solid #30363d' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Ready</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Restarts</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Age</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Node</th>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Ready</th>
+                  <th>Restarts</th>
+                  <th>Age</th>
+                  <th>Node</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.pods.map((pod, idx) => (
-                  <tr key={pod.name || idx} style={{ borderBottom: '1px solid #21262d' }}>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace' }}>{pod.name}</td>
-                    <td style={{ padding: '8px 12px' }}>
+                  <tr key={pod.name || idx}>
+                    <td style={{ fontFamily: 'monospace' }}>{pod.name}</td>
+                    <td>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{
                           width: 8, height: 8, borderRadius: '50%',
                           backgroundColor: getStatusColor(pod.status)
                         }} />
-                        <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{pod.status}</span>
+                        <span>{pod.status}</span>
                       </span>
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.ready}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.restarts}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.age}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{pod.node || '-'}</td>
+                    <td>{pod.ready}</td>
+                    <td>{pod.restarts}</td>
+                    <td>{pod.age}</td>
+                    <td className="text-muted">{pod.node || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -116,34 +116,34 @@ export default function StatefulSetDetailTab({ namespace, statefulSetName }) {
           {!detail?.pvcs || detail.pvcs.length === 0 ? (
             <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No PVCs found for this StatefulSet.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="panel-table">
               <thead>
-                <tr style={{ borderBottom: '1px solid #30363d' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Capacity</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Access Modes</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Storage Class</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Age</th>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Capacity</th>
+                  <th>Access Modes</th>
+                  <th>Storage Class</th>
+                  <th>Age</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.pvcs.map((pvc, idx) => (
-                  <tr key={pvc.name || idx} style={{ borderBottom: '1px solid #21262d' }}>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace' }}>{pvc.name}</td>
-                    <td style={{ padding: '8px 12px' }}>
+                  <tr key={pvc.name || idx}>
+                    <td style={{ fontFamily: 'monospace' }}>{pvc.name}</td>
+                    <td>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{
                           width: 8, height: 8, borderRadius: '50%',
                           backgroundColor: getStatusColor(pvc.status)
                         }} />
-                        <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{pvc.status}</span>
+                        <span>{pvc.status}</span>
                       </span>
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pvc.capacity}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{pvc.accessModes}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{pvc.storageClass || '-'}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pvc.age}</td>
+                    <td>{pvc.capacity}</td>
+                    <td className="text-muted">{pvc.accessModes}</td>
+                    <td className="text-muted">{pvc.storageClass || '-'}</td>
+                    <td>{pvc.age}</td>
                   </tr>
                 ))}
               </tbody>

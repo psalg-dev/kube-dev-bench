@@ -47,34 +47,34 @@ export default function JobPodsTab({ namespace, jobName }) {
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Ready</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Restarts</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Age</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Node</th>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Ready</th>
+            <th>Restarts</th>
+            <th>Age</th>
+            <th>Node</th>
           </tr>
         </thead>
         <tbody>
           {detail.pods.map((pod, idx) => (
-            <tr key={pod.name || idx} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.name}</td>
-              <td style={{ padding: '8px 12px' }}>
+            <tr key={pod.name || idx}>
+              <td>{pod.name}</td>
+              <td>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{
                     width: 8, height: 8, borderRadius: '50%',
                     backgroundColor: getStatusColor(pod.status)
                   }} />
-                  <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{pod.status}</span>
+                  <span>{pod.status}</span>
                 </span>
               </td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.ready}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.restarts}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.age}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{pod.node || '-'}</td>
+              <td>{pod.ready}</td>
+              <td>{pod.restarts}</td>
+              <td>{pod.age}</td>
+              <td className="text-muted">{pod.node || '-'}</td>
             </tr>
           ))}
         </tbody>
@@ -83,20 +83,20 @@ export default function JobPodsTab({ namespace, jobName }) {
       {detail.conditions && detail.conditions.length > 0 && (
         <div style={{ marginTop: 20 }}>
           <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 8 }}>Conditions</h4>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table className="panel-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid #30363d' }}>
-                <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Type</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Reason</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Message</th>
+              <tr>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Reason</th>
+                <th>Message</th>
               </tr>
             </thead>
             <tbody>
               {detail.conditions.map((cond, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{cond.type}</td>
-                  <td style={{ padding: '8px 12px' }}>
+                <tr key={idx}>
+                  <td>{cond.type}</td>
+                  <td>
                     <span style={{
                       color: cond.status === 'True' ? '#2ea44f' : '#8b949e',
                       fontWeight: 500
@@ -104,8 +104,8 @@ export default function JobPodsTab({ namespace, jobName }) {
                       {cond.status}
                     </span>
                   </td>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{cond.reason || '-'}</td>
-                  <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{cond.message || '-'}</td>
+                  <td className="text-muted">{cond.reason || '-'}</td>
+                  <td className="text-muted" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{cond.message || '-'}</td>
                 </tr>
               ))}
             </tbody>

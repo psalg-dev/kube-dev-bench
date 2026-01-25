@@ -409,7 +409,7 @@ export default function VolumeFilesTab({ volumeName }) {
           )}
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
               <thead style={{ position: 'sticky', top: 0 }}>
                 <tr style={{ background: 'var(--gh-bg-alt, #161b22)' }}>
                   <th style={thStyle}>Name</th>

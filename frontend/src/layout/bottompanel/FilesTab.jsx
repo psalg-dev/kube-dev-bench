@@ -199,7 +199,7 @@ export default function FilesTab({ namespace, pvcName }) {
           {error && (<div style={{ padding: 12, fontSize: 13, color: '#f85149' }}>Error: {error}</div>)}
           {!loading && !error && entries.length === 0 && (<div style={{ padding: 12, fontSize: 13, color: 'var(--gh-text-muted,#8b949e)' }}>Empty directory or not accessible.</div>)}
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
               <thead style={{ position: 'sticky', top: 0 }}>
                 <tr style={{ background: '#161b22' }}>
                   <th style={thStyle}>Name</th>

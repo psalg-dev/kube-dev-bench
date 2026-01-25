@@ -943,7 +943,17 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         </div>
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
+        {/* Column widths: Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
         <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '25%' }} />
+            {multiNs && <col style={{ width: '12%' }} />}
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: multiNs ? '10%' : '15%' }} />
+            <col style={{ width: multiNs ? '15%' : '20%' }} />
+          </colgroup>
           <thead>
           {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
@@ -988,6 +998,15 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         </table>
         <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '25%' }} />
+              {multiNs && <col style={{ width: '12%' }} />}
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: multiNs ? '10%' : '15%' }} />
+              <col style={{ width: multiNs ? '15%' : '20%' }} />
+            </colgroup>
             <tbody>
             {topPadHeight > 0 && (
                 <tr style={{height: topPadHeight}}>

@@ -44,18 +44,18 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>Next Runs (Next 5)</h4>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>#</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Scheduled Time</th>
+          <tr>
+            <th style={{ width: 60 }}>#</th>
+            <th>Scheduled Time</th>
           </tr>
         </thead>
         <tbody>
           {runs.map((t, idx) => (
-            <tr key={`${t}|${idx}`} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 60 }}>{idx + 1}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{formatTimestampDMYHMS(t)}</td>
+            <tr key={`${t}|${idx}`}>
+              <td className="text-muted">{idx + 1}</td>
+              <td>{formatTimestampDMYHMS(t)}</td>
             </tr>
           ))}
         </tbody>

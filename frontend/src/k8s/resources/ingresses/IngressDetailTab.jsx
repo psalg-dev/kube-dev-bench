@@ -38,20 +38,20 @@ export default function IngressDetailTab({ namespace, ingressName }) {
       {!detail?.rules || detail.rules.length === 0 ? (
         <div style={{ color: 'var(--gh-text-muted, #8b949e)', marginBottom: 20 }}>No routing rules defined.</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 24 }}>
+        <table className="panel-table" style={{ marginBottom: 24 }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #30363d' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Host</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Path</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Path Type</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Service</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Port</th>
+            <tr>
+              <th>Host</th>
+              <th>Path</th>
+              <th>Path Type</th>
+              <th>Service</th>
+              <th>Port</th>
             </tr>
           </thead>
           <tbody>
             {detail.rules.map((rule, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px' }}>
+              <tr key={idx}>
+                <td>
                   {rule.host ? (
                     <a
                       href={`https://${rule.host}${rule.path || ''}`}
@@ -62,13 +62,13 @@ export default function IngressDetailTab({ namespace, ingressName }) {
                       {rule.host}
                     </a>
                   ) : (
-                    <span style={{ color: 'var(--gh-text-muted, #8b949e)' }}>*</span>
+                    <span className="text-muted">*</span>
                   )}
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace' }}>
+                <td style={{ fontFamily: 'monospace' }}>
                   {rule.path || '/'}
                 </td>
-                <td style={{ padding: '8px 12px' }}>
+                <td>
                   <span style={{
                     fontSize: 11,
                     padding: '2px 6px',
@@ -79,10 +79,10 @@ export default function IngressDetailTab({ namespace, ingressName }) {
                     {rule.pathType}
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: '#58a6ff', fontFamily: 'monospace' }}>
+                <td style={{ color: '#58a6ff', fontFamily: 'monospace' }}>
                   {rule.serviceName}
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>
+                <td>
                   {rule.servicePort}
                 </td>
               </tr>
@@ -109,17 +109,17 @@ export default function IngressDetailTab({ namespace, ingressName }) {
           </span>
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <table className="panel-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid #30363d' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Hosts</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Secret</th>
+            <tr>
+              <th>Hosts</th>
+              <th>Secret</th>
             </tr>
           </thead>
           <tbody>
             {detail.tls.map((tls, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px' }}>
+              <tr key={idx}>
+                <td>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {tls.hosts && tls.hosts.map((host, hidx) => (
                       <span
@@ -138,7 +138,7 @@ export default function IngressDetailTab({ namespace, ingressName }) {
                     ))}
                   </div>
                 </td>
-                <td style={{ padding: '8px 12px', color: '#58a6ff', fontFamily: 'monospace' }}>
+                <td style={{ color: '#58a6ff', fontFamily: 'monospace' }}>
                   {tls.secretName || '-'}
                 </td>
               </tr>

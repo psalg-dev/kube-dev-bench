@@ -202,7 +202,13 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </div>
       </div>
 
-      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%' }}>
+      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%', tableLayout: 'fixed' }}>
+        <colgroup>
+          {columns.map((col, idx) => (
+            <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
+          ))}
+          <col style={{ width: '100px' }} />
+        </colgroup>
         <thead>
           <tr>
             {columns.map(col => <th key={col.accessorKey || col.key}>{col.header || col.label}</th>)}

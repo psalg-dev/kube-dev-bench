@@ -55,13 +55,13 @@ export default function IngressTLSTab({ namespace, ingressName }) {
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Secret</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Hosts</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Expires</th>
-            <th style={{ textAlign: 'right', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Days</th>
+          <tr>
+            <th>Secret</th>
+            <th>Hosts</th>
+            <th>Expires</th>
+            <th style={{ textAlign: 'right' }}>Days</th>
           </tr>
         </thead>
         <tbody>
@@ -75,13 +75,13 @@ export default function IngressTLSTab({ namespace, ingressName }) {
             const isSoon = typeof days === 'number' && days >= 0 && days <= 14;
 
             return (
-              <tr key={`${secretName}-${idx}`} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace', fontSize: 12 }}>{secretName}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{Array.isArray(hosts) && hosts.length ? hosts.join(', ') : '-'}</td>
-                <td style={{ padding: '8px 12px', color: isExpired ? '#f85149' : isSoon ? '#d29922' : 'var(--gh-text, #c9d1d9)' }}>
+              <tr key={`${secretName}-${idx}`}>
+                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{secretName}</td>
+                <td>{Array.isArray(hosts) && hosts.length ? hosts.join(', ') : '-'}</td>
+                <td style={{ color: isExpired ? '#f85149' : isSoon ? '#d29922' : 'inherit' }}>
                   {err ? `Error: ${err}` : fmt(notAfter)}
                 </td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', color: isExpired ? '#f85149' : isSoon ? '#d29922' : 'var(--gh-text-muted, #8b949e)' }}>
+                <td style={{ textAlign: 'right', color: isExpired ? '#f85149' : isSoon ? '#d29922' : 'var(--gh-text-muted, #8b949e)' }}>
                   {typeof days === 'number' ? days : '-'}
                 </td>
               </tr>

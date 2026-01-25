@@ -126,13 +126,13 @@ export default function SecretDataTab({ namespace, secretName }) {
         </span>
       </div>
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 200 }}>Key</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Value</th>
-            <th style={{ textAlign: 'right', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 80 }}>Size</th>
-            <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 100 }}>Actions</th>
+          <tr>
+            <th style={{ width: 200 }}>Key</th>
+            <th>Value</th>
+            <th style={{ textAlign: 'right', width: 80 }}>Size</th>
+            <th style={{ textAlign: 'center', width: 100 }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -144,8 +144,8 @@ export default function SecretDataTab({ namespace, secretName }) {
             const canEdit = !item.isBinary;
 
             return (
-              <tr key={item.key} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace' }}>
+              <tr key={item.key}>
+                <td style={{ fontFamily: 'monospace' }}>
                   {item.key}
                   {item.isBinary && (
                     <span style={{
@@ -160,7 +160,7 @@ export default function SecretDataTab({ namespace, secretName }) {
                     </span>
                   )}
                 </td>
-                <td style={{ padding: '8px 12px' }}>
+                <td>
                   {isEditing ? (
                     <textarea
                       value={draftValue}
@@ -200,10 +200,10 @@ export default function SecretDataTab({ namespace, secretName }) {
                     </span>
                   )}
                 </td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
+                <td style={{ textAlign: 'right', fontSize: 12 }} className="text-muted">
                   {formatSize(item.size)}
                 </td>
-                <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                <td style={{ textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
                     <button
                       onClick={() => toggleVisibility(item.key)}

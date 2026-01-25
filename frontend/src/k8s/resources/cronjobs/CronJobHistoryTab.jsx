@@ -67,22 +67,22 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>Job History (Last 10)</h4>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Start Time</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Duration</th>
-            <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Succeeded</th>
-            <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Failed</th>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Start Time</th>
+            <th>Duration</th>
+            <th className="text-center">Succeeded</th>
+            <th className="text-center">Failed</th>
           </tr>
         </thead>
         <tbody>
           {detail.jobs.map((job, idx) => (
-            <tr key={job.name || idx} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{job.name}</td>
-              <td style={{ padding: '8px 12px' }}>
+            <tr key={job.name || idx}>
+              <td>{job.name}</td>
+              <td>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{
                     color: getStatusColor(job.status),
@@ -93,10 +93,10 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
                   <span style={{ color: getStatusColor(job.status) }}>{job.status}</span>
                 </span>
               </td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{formatDate(job.startTime)}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{job.duration}</td>
-              <td style={{ padding: '8px 12px', textAlign: 'center', color: job.succeeded > 0 ? '#2ea44f' : 'var(--gh-text-muted, #8b949e)' }}>{job.succeeded}</td>
-              <td style={{ padding: '8px 12px', textAlign: 'center', color: job.failed > 0 ? '#f85149' : 'var(--gh-text-muted, #8b949e)' }}>{job.failed}</td>
+              <td className="text-muted">{formatDate(job.startTime)}</td>
+              <td>{job.duration}</td>
+              <td className="text-center" style={{ color: job.succeeded > 0 ? '#2ea44f' : undefined }}>{job.succeeded}</td>
+              <td className="text-center" style={{ color: job.failed > 0 ? '#f85149' : undefined }}>{job.failed}</td>
             </tr>
           ))}
         </tbody>
