@@ -85,15 +85,78 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 	if !pod.CreationTimestamp.IsZero() {
 		created = pod.CreationTimestamp.Time.UTC().Format(time.RFC3339Nano)
 	}
+
+	// Build init container info
+	initContainers := buildInitContainerInfo(pod)
+
 	out = PodSummary{
-		Name:      pod.Name,
-		Namespace: pod.Namespace,
-		Created:   created,
-		Labels:    pod.Labels,
-		Status:    string(pod.Status.Phase),
-		Ports:     ports,
+		Name:           pod.Name,
+		Namespace:      pod.Namespace,
+		Created:        created,
+		Labels:         pod.Labels,
+		Status:         string(pod.Status.Phase),
+		Ports:          ports,
+		InitContainers: initContainers,
 	}
 	return out, nil
+}
+
+// buildInitContainerInfo extracts init container info and statuses from a pod
+func buildInitContainerInfo(pod *v1.Pod) []InitContainerInfo {
+	if len(pod.Spec.InitContainers) == 0 {
+		return nil
+	}
+
+	// Build a map of status by container name for quick lookup
+	statusMap := make(map[string]v1.ContainerStatus)
+	for _, cs := range pod.Status.InitContainerStatuses {
+		statusMap[cs.Name] = cs
+	}
+
+	result := make([]InitContainerInfo, 0, len(pod.Spec.InitContainers))
+	for _, c := range pod.Spec.InitContainers {
+		info := InitContainerInfo{
+			Name:  c.Name,
+			Image: c.Image,
+		}
+
+		if status, ok := statusMap[c.Name]; ok {
+			info.Ready = status.Ready
+			info.RestartCount = status.RestartCount
+
+			// Determine state
+			if status.State.Waiting != nil {
+				info.State = "Waiting"
+				info.StateReason = status.State.Waiting.Reason
+				info.StateMessage = status.State.Waiting.Message
+			} else if status.State.Running != nil {
+				info.State = "Running"
+				if !status.State.Running.StartedAt.IsZero() {
+					info.StartedAt = status.State.Running.StartedAt.Time.UTC().Format(time.RFC3339Nano)
+				}
+			} else if status.State.Terminated != nil {
+				info.State = "Terminated"
+				info.StateReason = status.State.Terminated.Reason
+				info.StateMessage = status.State.Terminated.Message
+				info.ExitCode = &status.State.Terminated.ExitCode
+				if !status.State.Terminated.StartedAt.IsZero() {
+					info.StartedAt = status.State.Terminated.StartedAt.Time.UTC().Format(time.RFC3339Nano)
+				}
+				if !status.State.Terminated.FinishedAt.IsZero() {
+					info.FinishedAt = status.State.Terminated.FinishedAt.Time.UTC().Format(time.RFC3339Nano)
+				}
+			} else {
+				info.State = "Unknown"
+			}
+		} else {
+			info.State = "Pending"
+			info.StateReason = "ContainerNotStarted"
+		}
+
+		result = append(result, info)
+	}
+
+	return result
 }
 
 // GetPodContainerPorts returns a flat list of all defined container ports for the pod

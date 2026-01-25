@@ -14,6 +14,14 @@ export function AnalyzeAllMonitorIssues() {
   return window['go']['main']['App']['AnalyzeAllMonitorIssues']();
 }
 
+export function AnalyzeConfigMapStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeConfigMapStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeCronJobStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeCronJobStream'](arg1, arg2, arg3);
+}
+
 export function AnalyzeDaemonSet(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeDaemonSet'](arg1, arg2);
 }
@@ -30,6 +38,14 @@ export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
 }
 
+export function AnalyzeIngressStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeIngressStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeJobStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeJobStream'](arg1, arg2, arg3);
+}
+
 export function AnalyzeLogs(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['AnalyzeLogs'](arg1, arg2, arg3, arg4);
 }
@@ -40,6 +56,14 @@ export function AnalyzeMonitorIssue(arg1) {
 
 export function AnalyzeMonitorIssueStream(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeMonitorIssueStream'](arg1, arg2);
+}
+
+export function AnalyzePersistentVolumeClaimStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzePersistentVolumeClaimStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzePersistentVolumeStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzePersistentVolumeStream'](arg1, arg2);
 }
 
 export function AnalyzePod(arg1, arg2) {
@@ -60,6 +84,10 @@ export function AnalyzeResource(arg1, arg2, arg3) {
 
 export function AnalyzeResourceStream(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['AnalyzeResourceStream'](arg1, arg2, arg3, arg4);
+}
+
+export function AnalyzeSecretStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeSecretStream'](arg1, arg2, arg3);
 }
 
 export function AnalyzeService(arg1, arg2) {
@@ -290,6 +318,10 @@ export function GetConfigMapDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapDataByName'](arg1, arg2);
 }
 
+export function GetConfigMapYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapYAML'](arg1, arg2);
+}
+
 export function GetConfigMaps(arg1) {
   return window['go']['main']['App']['GetConfigMaps'](arg1);
 }
@@ -300,6 +332,10 @@ export function GetConnectionStatus() {
 
 export function GetCronJobDetail(arg1, arg2) {
   return window['go']['main']['App']['GetCronJobDetail'](arg1, arg2);
+}
+
+export function GetCronJobYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetCronJobYAML'](arg1, arg2);
 }
 
 export function GetCronJobs(arg1) {
@@ -414,6 +450,10 @@ export function GetIngressTLSSummary(arg1, arg2) {
   return window['go']['main']['App']['GetIngressTLSSummary'](arg1, arg2);
 }
 
+export function GetIngressYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetIngressYAML'](arg1, arg2);
+}
+
 export function GetIngresses(arg1) {
   return window['go']['main']['App']['GetIngresses'](arg1);
 }
@@ -424,6 +464,10 @@ export function GetJobDetail(arg1, arg2) {
 
 export function GetJobLogs(arg1, arg2) {
   return window['go']['main']['App']['GetJobLogs'](arg1, arg2);
+}
+
+export function GetJobYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetJobYAML'](arg1, arg2);
 }
 
 export function GetJobs(arg1) {
@@ -458,8 +502,16 @@ export function GetPVCFileContent(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPVCFileContent'](arg1, arg2, arg3, arg4);
 }
 
+export function GetPersistentVolumeClaimYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetPersistentVolumeClaimYAML'](arg1, arg2);
+}
+
 export function GetPersistentVolumeClaims(arg1) {
   return window['go']['main']['App']['GetPersistentVolumeClaims'](arg1);
+}
+
+export function GetPersistentVolumeYAML(arg1) {
+  return window['go']['main']['App']['GetPersistentVolumeYAML'](arg1);
 }
 
 export function GetPersistentVolumes() {
@@ -578,12 +630,24 @@ export function GetSecretDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetSecretDataByName'](arg1, arg2);
 }
 
+export function GetSecretYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretYAML'](arg1, arg2);
+}
+
 export function GetSecrets(arg1) {
   return window['go']['main']['App']['GetSecrets'](arg1);
 }
 
+export function GetServiceEndpoints(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceEndpoints'](arg1, arg2);
+}
+
 export function GetServiceSummary(arg1, arg2) {
   return window['go']['main']['App']['GetServiceSummary'](arg1, arg2);
+}
+
+export function GetServiceYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceYAML'](arg1, arg2);
 }
 
 export function GetServices(arg1) {
@@ -620,6 +684,10 @@ export function GetSwarmConfigUsage(arg1) {
 
 export function GetSwarmConfigs() {
   return window['go']['main']['App']['GetSwarmConfigs']();
+}
+
+export function GetSwarmEvents(arg1) {
+  return window['go']['main']['App']['GetSwarmEvents'](arg1);
 }
 
 export function GetSwarmMetricsHistory() {
@@ -680,6 +748,10 @@ export function GetSwarmSecrets() {
 
 export function GetSwarmService(arg1) {
   return window['go']['main']['App']['GetSwarmService'](arg1);
+}
+
+export function GetSwarmServiceEvents(arg1, arg2) {
+  return window['go']['main']['App']['GetSwarmServiceEvents'](arg1, arg2);
 }
 
 export function GetSwarmServiceLogs(arg1, arg2) {

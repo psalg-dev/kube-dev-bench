@@ -108,19 +108,4 @@ describe('AddRegistryModal', () => {
 
     expect(notifications.showSuccess).toHaveBeenCalledWith('Registry connection OK');
   });
-
-  it('disables save/test for ECR type', async () => {
-    const { container } = render(<AddRegistryModal open={true} onClose={vi.fn()} onSaved={vi.fn()} />);
-
-    const type = container.querySelector('#registry-type');
-    expect(type).toBeTruthy();
-    fireEvent.change(type, { target: { value: 'ecr' } });
-    expect(screen.getByText('ECR support coming soon.')).toBeTruthy();
-
-    expect(screen.getByText('Save')).toBeDisabled();
-    expect(screen.getByText('Test Connection')).toBeDisabled();
-
-    // Cancel stays enabled
-    expect(screen.getByText('Cancel')).not.toBeDisabled();
-  });
 });

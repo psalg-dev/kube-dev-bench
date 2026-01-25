@@ -105,6 +105,10 @@ import {
   // Resource counts
   GetSwarmResourceCounts,
 
+  // Events
+  GetSwarmEvents,
+  GetSwarmServiceEvents,
+
   // Registries
   GetRegistries,
   AddRegistry,
@@ -225,6 +229,10 @@ export {
 
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Events
+  GetSwarmEvents,
+  GetSwarmServiceEvents,
 
   // Registries
   GetRegistries,

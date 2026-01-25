@@ -14,6 +14,10 @@ export function AddRegistry(arg1:registry.RegistryConfig):Promise<void>;
 
 export function AnalyzeAllMonitorIssues():Promise<void>;
 
+export function AnalyzeConfigMapStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function AnalyzeCronJobStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function AnalyzeDaemonSet(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeDaemonSetStream(arg1:string,arg2:string,arg3:string):Promise<void>;
@@ -22,11 +26,19 @@ export function AnalyzeDeployment(arg1:string,arg2:string):Promise<holmesgpt.Hol
 
 export function AnalyzeDeploymentStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
+export function AnalyzeIngressStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function AnalyzeJobStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function AnalyzeLogs(arg1:string,arg2:string,arg3:string,arg4:number):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeMonitorIssue(arg1:string):Promise<app.MonitorIssue>;
 
 export function AnalyzeMonitorIssueStream(arg1:string,arg2:string):Promise<void>;
+
+export function AnalyzePersistentVolumeClaimStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
+export function AnalyzePersistentVolumeStream(arg1:string,arg2:string):Promise<void>;
 
 export function AnalyzePod(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
@@ -37,6 +49,8 @@ export function AnalyzePodStream(arg1:string,arg2:string,arg3:string):Promise<vo
 export function AnalyzeResource(arg1:string,arg2:string,arg3:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeResourceStream(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function AnalyzeSecretStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function AnalyzeService(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
 
@@ -152,11 +166,15 @@ export function GetConfigMapConsumers(arg1:string,arg2:string):Promise<Array<app
 
 export function GetConfigMapDataByName(arg1:string,arg2:string):Promise<Array<app.ConfigMapDataInfo>>;
 
+export function GetConfigMapYAML(arg1:string,arg2:string):Promise<string>;
+
 export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
 
 export function GetConnectionStatus():Promise<Record<string, any>>;
 
 export function GetCronJobDetail(arg1:string,arg2:string):Promise<app.CronJobDetail>;
+
+export function GetCronJobYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
@@ -214,11 +232,15 @@ export function GetIngressDetail(arg1:string,arg2:string):Promise<app.IngressDet
 
 export function GetIngressTLSSummary(arg1:string,arg2:string):Promise<Array<app.IngressTLSSummary>>;
 
+export function GetIngressYAML(arg1:string,arg2:string):Promise<string>;
+
 export function GetIngresses(arg1:string):Promise<Array<app.IngressInfo>>;
 
 export function GetJobDetail(arg1:string,arg2:string):Promise<app.JobDetail>;
 
 export function GetJobLogs(arg1:string,arg2:string):Promise<string>;
+
+export function GetJobYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetJobs(arg1:string):Promise<Array<jobs.JobInfo>>;
 
@@ -236,7 +258,11 @@ export function GetPVCConsumers(arg1:string,arg2:string):Promise<Array<app.PVCCo
 
 export function GetPVCFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
 
+export function GetPersistentVolumeClaimYAML(arg1:string,arg2:string):Promise<string>;
+
 export function GetPersistentVolumeClaims(arg1:string):Promise<Array<app.PersistentVolumeClaimInfo>>;
+
+export function GetPersistentVolumeYAML(arg1:string):Promise<string>;
 
 export function GetPersistentVolumes():Promise<Array<app.PersistentVolumeInfo>>;
 
@@ -296,9 +322,15 @@ export function GetSecretData(arg1:string):Promise<Record<string, string>>;
 
 export function GetSecretDataByName(arg1:string,arg2:string):Promise<Array<app.SecretDataInfo>>;
 
+export function GetSecretYAML(arg1:string,arg2:string):Promise<string>;
+
 export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
 
+export function GetServiceEndpoints(arg1:string,arg2:string):Promise<Array<app.ServiceEndpoint>>;
+
 export function GetServiceSummary(arg1:string,arg2:string):Promise<app.ServiceSummary>;
+
+export function GetServiceYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetServices(arg1:string):Promise<Array<app.ServiceInfo>>;
 
@@ -317,6 +349,8 @@ export function GetSwarmConfigInspectJSON(arg1:string):Promise<string>;
 export function GetSwarmConfigUsage(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
 
 export function GetSwarmConfigs():Promise<Array<docker.SwarmConfigInfo>>;
+
+export function GetSwarmEvents(arg1:number):Promise<Array<docker.SwarmEvent>>;
 
 export function GetSwarmMetricsHistory():Promise<Array<docker.SwarmMetricsPoint>>;
 
@@ -347,6 +381,8 @@ export function GetSwarmSecretUsage(arg1:string):Promise<Array<docker.SwarmServi
 export function GetSwarmSecrets():Promise<Array<docker.SwarmSecretInfo>>;
 
 export function GetSwarmService(arg1:string):Promise<docker.SwarmServiceInfo>;
+
+export function GetSwarmServiceEvents(arg1:string,arg2:number):Promise<Array<docker.SwarmEvent>>;
 
 export function GetSwarmServiceLogs(arg1:string,arg2:string):Promise<string>;
 

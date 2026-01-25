@@ -60,12 +60,27 @@ type EventInfo struct {
 
 // PodSummary returns basic properties for a pod
 type PodSummary struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace"`
-	Created   string            `json:"created"`
-	Labels    map[string]string `json:"labels"`
-	Status    string            `json:"status"`
-	Ports     []int             `json:"ports"`
+	Name           string              `json:"name"`
+	Namespace      string              `json:"namespace"`
+	Created        string              `json:"created"`
+	Labels         map[string]string   `json:"labels"`
+	Status         string              `json:"status"`
+	Ports          []int               `json:"ports"`
+	InitContainers []InitContainerInfo `json:"initContainers,omitempty"`
+}
+
+// InitContainerInfo provides info about an init container and its status
+type InitContainerInfo struct {
+	Name         string `json:"name"`
+	Image        string `json:"image"`
+	State        string `json:"state"`        // Waiting, Running, Terminated
+	StateReason  string `json:"stateReason"`  // e.g. "PodInitializing", "Completed", "Error"
+	StateMessage string `json:"stateMessage"` // detailed message if any
+	Ready        bool   `json:"ready"`
+	RestartCount int32  `json:"restartCount"`
+	ExitCode     *int32 `json:"exitCode,omitempty"` // for terminated containers
+	StartedAt    string `json:"startedAt,omitempty"`
+	FinishedAt   string `json:"finishedAt,omitempty"`
 }
 
 // PortForwardInfo describes an active port-forward session for UI updates

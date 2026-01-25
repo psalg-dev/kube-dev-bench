@@ -113,6 +113,24 @@ export default function PodSummaryTab({ podName, namespace }) {
     return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey
   };
 
+  // Helper for init container state colors
+  const getInitContainerStateColors = (state, exitCode) => {
+    const s = String(state || '').toLowerCase();
+    if (s === 'terminated') {
+      // Check exit code: 0 = success, non-zero = error
+      if (exitCode === 0) {
+        return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950', bd: '#30363d' }; // green - completed successfully
+      }
+      return { bg: 'rgba(248,81,73,0.12)', fg: '#f85149', bd: '#30363d' }; // red - failed
+    }
+    if (s === 'running') {
+      return { bg: 'rgba(56,139,253,0.12)', fg: '#58a6ff', bd: '#30363d' }; // blue - running
+    }
+    if (s === 'waiting') {
+      return { bg: 'rgba(187,128,9,0.12)', fg: '#d29922', bd: '#30363d' }; // yellow - waiting
+    }
+    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey - unknown/pending
+  };
   // Handler for restart (no UI side-effects; ResourceActions shows notifications)
   const handleRestart = async (name, ns) => {
     if (typeof AppAPI.RestartPod !== 'function') throw new Error('RestartPod API unavailable');
@@ -208,6 +226,63 @@ export default function PodSummaryTab({ podName, namespace }) {
                     <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Pod name</div>
                     <div style={{ wordBreak: 'break-all' }}>{data.name || '-'}</div>
                   </div>
+
+                  {/* Init Containers */}
+                  {data.initContainers && data.initContainers.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Init Containers</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {data.initContainers.map((ic, i) => {
+                          const stateColors = getInitContainerStateColors(ic.state, ic.exitCode);
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                background: 'var(--gh-bg-subtle, #161b22)',
+                                border: '1px solid var(--gh-border, #30363d)',
+                                padding: 8,
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 500, wordBreak: 'break-all' }}>{ic.name}</span>
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '2px 6px',
+                                    background: stateColors.bg,
+                                    color: stateColors.fg,
+                                    border: `1px solid ${stateColors.bd}`,
+                                    fontSize: 11,
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {ic.state}{ic.stateReason ? ` (${ic.stateReason})` : ''}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--gh-text-muted, #8b949e)', marginTop: 4, wordBreak: 'break-all' }}>
+                                {ic.image}
+                              </div>
+                              {ic.stateMessage && (
+                                <div style={{ fontSize: 11, color: '#f85149', marginTop: 4 }}>
+                                  {ic.stateMessage}
+                                </div>
+                              )}
+                              {ic.restartCount > 0 && (
+                                <div style={{ fontSize: 11, color: '#d29922', marginTop: 4 }}>
+                                  Restarts: {ic.restartCount}
+                                </div>
+                              )}
+                              {ic.exitCode !== undefined && ic.exitCode !== null && (
+                                <div style={{ fontSize: 11, color: ic.exitCode === 0 ? '#3fb950' : '#f85149', marginTop: 4 }}>
+                                  Exit code: {ic.exitCode}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Refresh */}
                   <div style={{ marginTop: 8 }}>

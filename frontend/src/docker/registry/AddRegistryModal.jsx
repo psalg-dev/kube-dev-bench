@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AddRegistry, TestRegistryConnection } from '../swarmApi.js';
-import { showError, showSuccess, showWarning } from '../../notification.js';
+import { showError, showSuccess } from '../../notification.js';
 import './registry.css';
 
 const REGISTRY_TYPES = [
   { value: 'dockerhub', label: 'Docker Hub' },
   { value: 'artifactory', label: 'Artifactory' },
   { value: 'generic_v2', label: 'Generic v2' },
-  { value: 'ecr', label: 'ECR' },
+  // ECR removed until implemented
 ];
 
 const AUTH_METHODS = [
@@ -72,7 +72,6 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
   }, [open]);
 
   const typeLabel = useMemo(() => REGISTRY_TYPES.find(t => t.value === form.type)?.label ?? form.type, [form.type]);
-  const isEcr = form.type === 'ecr';
   const isDockerHub = form.type === 'dockerhub';
 
   const effectiveUrl = isDockerHub ? 'https://registry-1.docker.io' : (form.url || '');
@@ -105,7 +104,6 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
   };
 
   const validate = () => {
-    if (isEcr) return 'ECR support coming soon.';
     if (!String(form.name || '').trim()) return 'Name is required.';
     if (!isDockerHub && !String(effectiveUrl || '').trim()) return 'URL is required.';
 
@@ -128,8 +126,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
   const handleTest = async () => {
     const err = validate();
     if (err) {
-      if (isEcr) showWarning(err);
-      else showError(err);
+      showError(err);
       return;
     }
 
@@ -147,8 +144,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
   const handleSave = async () => {
     const err = validate();
     if (err) {
-      if (isEcr) showWarning(err);
-      else showError(err);
+      showError(err);
       return;
     }
 
@@ -211,7 +207,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 id="registry-name"
                 value={form.name}
                 onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-                disabled={busy || isEcr}
+                disabled={busy}
                 placeholder="e.g. Docker Hub"
               />
             </div>
@@ -226,17 +222,11 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 id="registry-url"
                 value={form.url}
                 onChange={(e) => setForm((s) => ({ ...s, url: e.target.value }))}
-                disabled={busy || isEcr}
+                disabled={busy}
                 placeholder="https://registry.example.com"
               />
             )}
           </div>
-
-          {isEcr && (
-            <div className="registry-modal__notice">
-              ECR support coming soon.
-            </div>
-          )}
 
           <div className="registry-modal__grid2">
             <div>
@@ -245,7 +235,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 id="registry-auth-method"
                 value={form.authMethod}
                 onChange={(e) => setForm((s) => ({ ...s, authMethod: e.target.value, username: '', password: '', token: '' }))}
-                disabled={busy || isEcr}
+                disabled={busy}
               >
                 {AUTH_METHODS.map((m) => (
                   <option key={m.value} value={m.value}>{m.label}</option>
@@ -260,12 +250,12 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 min={0}
                 value={form.timeoutSeconds}
                 onChange={(e) => setForm((s) => ({ ...s, timeoutSeconds: e.target.value }))}
-                disabled={busy || isEcr}
+                disabled={busy}
               />
             </div>
           </div>
 
-          {form.authMethod === 'basic' && !isEcr && (
+          {form.authMethod === 'basic' && (
             <div className="registry-modal__grid2">
               <div>
                 <div className="registry-modal__label">Username</div>
@@ -289,7 +279,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
             </div>
           )}
 
-          {form.authMethod === 'token' && !isEcr && (
+          {form.authMethod === 'token' && (
             <div className={isDockerHub ? 'registry-modal__grid2' : 'registry-modal__grid1'}>
               {isDockerHub && (
                 <div>
@@ -322,7 +312,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 type="checkbox"
                 checked={!!form.insecureSkipTlsVerify}
                 onChange={(e) => setForm((s) => ({ ...s, insecureSkipTlsVerify: e.target.checked }))}
-                disabled={busy || isEcr}
+                disabled={busy}
               />
               Insecure Skip TLS Verify
             </label>
@@ -332,7 +322,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 type="checkbox"
                 checked={!!form.allowInsecureHttp}
                 onChange={(e) => setForm((s) => ({ ...s, allowInsecureHttp: e.target.checked }))}
-                disabled={busy || isEcr}
+                disabled={busy}
               />
               Allow Insecure HTTP
             </label>
@@ -341,7 +331,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
 
         <div className="registry-modal__footer">
           <div className="registry-modal__footerLeft">
-            <button onClick={handleTest} disabled={busy || isEcr} className="overlay-cancel-btn">
+            <button onClick={handleTest} disabled={busy} className="overlay-cancel-btn">
               Test Connection
             </button>
           </div>
@@ -349,7 +339,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
             <button onClick={() => onClose?.()} disabled={busy} className="overlay-cancel-btn">
               Cancel
             </button>
-            <button onClick={handleSave} disabled={busy || isEcr} className="overlay-create-btn">
+            <button onClick={handleSave} disabled={busy} className="overlay-create-btn">
               Save
             </button>
           </div>

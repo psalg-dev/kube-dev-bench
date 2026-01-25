@@ -1,0 +1,38 @@
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-text {
+  text-transform: capitalize;
+}
+
+/* Size variants */
+.status-badge-small {
+  font-size: 11px;
+  gap: 4px;
+}
+
+.status-badge-small .status-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.status-badge-large {
+  font-size: 15px;
+  gap: 8px;
+}
+
+.status-badge-large .status-dot {
+  width: 10px;
+  height: 10px;
+}

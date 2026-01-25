@@ -913,6 +913,36 @@ export namespace app {
 	        this.error = source["error"];
 	    }
 	}
+	export class InitContainerInfo {
+	    name: string;
+	    image: string;
+	    state: string;
+	    stateReason: string;
+	    stateMessage: string;
+	    ready: boolean;
+	    restartCount: number;
+	    exitCode?: number;
+	    startedAt?: string;
+	    finishedAt?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new InitContainerInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.image = source["image"];
+	        this.state = source["state"];
+	        this.stateReason = source["stateReason"];
+	        this.stateMessage = source["stateMessage"];
+	        this.ready = source["ready"];
+	        this.restartCount = source["restartCount"];
+	        this.exitCode = source["exitCode"];
+	        this.startedAt = source["startedAt"];
+	        this.finishedAt = source["finishedAt"];
+	    }
+	}
 	export class JobCondition {
 	    type: string;
 	    status: string;
@@ -1366,6 +1396,7 @@ export namespace app {
 	    labels: Record<string, string>;
 	    status: string;
 	    ports: number[];
+	    initContainers?: InitContainerInfo[];
 	
 	    static createFrom(source: any = {}) {
 	        return new PodSummary(source);
@@ -1379,7 +1410,26 @@ export namespace app {
 	        this.labels = source["labels"];
 	        this.status = source["status"];
 	        this.ports = source["ports"];
+	        this.initContainers = this.convertValues(source["initContainers"], InitContainerInfo);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class PortForwardInfo {
 	    namespace: string;
@@ -1606,6 +1656,28 @@ export namespace app {
 	        this.value = source["value"];
 	        this.size = source["size"];
 	        this.isBinary = source["isBinary"];
+	    }
+	}
+	export class ServiceEndpoint {
+	    ip: string;
+	    port: number;
+	    protocol: string;
+	    podName: string;
+	    nodeName: string;
+	    ready: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new ServiceEndpoint(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.ip = source["ip"];
+	        this.port = source["port"];
+	        this.protocol = source["protocol"];
+	        this.podName = source["podName"];
+	        this.nodeName = source["nodeName"];
+	        this.ready = source["ready"];
 	    }
 	}
 	export class ServiceInfo {
@@ -1965,6 +2037,30 @@ export namespace docker {
 		    }
 		    return a;
 		}
+	}
+	export class SwarmEvent {
+	    type: string;
+	    action: string;
+	    actor: string;
+	    actorName: string;
+	    time: string;
+	    timeUnix: number;
+	    attributes: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SwarmEvent(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.type = source["type"];
+	        this.action = source["action"];
+	        this.actor = source["actor"];
+	        this.actorName = source["actorName"];
+	        this.time = source["time"];
+	        this.timeUnix = source["timeUnix"];
+	        this.attributes = source["attributes"];
+	    }
 	}
 	export class SwarmHealthCheckInfo {
 	    test: string[];

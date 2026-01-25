@@ -184,7 +184,7 @@ function getDefaultManifest(kind, namespace) {
     case 'replicaset':
       return `apiVersion: apps/v1\nkind: ReplicaSet\nmetadata:\n  name: my-replicaset\n  namespace: ${ns}\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: my-app\n  template:\n    metadata:\n      labels:\n        app: my-app\n    spec:\n      containers:\n      - name: app\n        image: nginx:latest\n`;
     case 'configmap':
-      return `apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\n  namespace: ${ns}\ndata:\n  # Configuration data as key-value pairs\n  app.properties: |\n    debug=true\n    database.host=localhost\n    database.port=5432\n  config.yaml: |\n    server:\n      port: 8080\n      host: 0.0.0.0\n    logging:\n      level: info\n  simple-key: simple-value\n`;
+      return `apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\n  namespace: ${ns}\ndata:\n  # Add your configuration key-value pairs below\n  # Example file-based config:\n  # app.properties: |\n  #   key1=value1\n  #   key2=value2\n  # Example YAML config:\n  # config.yaml: |\n  #   setting:\n  #     enabled: true\n  # Simple key-value:\n  my-key: my-value\n`;
     case 'secret':
       return `apiVersion: v1\nkind: Secret\nmetadata:\n  name: my-secret\n  namespace: ${ns}\ntype: Opaque\nstringData:\n  # plain text values; will be base64-encoded by the API server\n  username: user\n  password: pass\n`;
     case 'ingress':

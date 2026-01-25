@@ -1354,6 +1354,40 @@ func (a *App) SetImageUpdateSettings(settings docker.ImageUpdateSettings) error 
 	return docker.SaveImageUpdateSettings(settings)
 }
 
+// GetSwarmEvents retrieves recent Docker Swarm events
+func (a *App) GetSwarmEvents(sinceMinutes int) ([]docker.SwarmEvent, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docker client: %w", err)
+	}
+	duration := time.Duration(sinceMinutes) * time.Minute
+	if duration <= 0 {
+		duration = 30 * time.Minute // default to last 30 minutes
+	}
+	return docker.GetRecentEvents(ctx, cli, duration)
+}
+
+// GetSwarmServiceEvents retrieves events for a specific Swarm service
+func (a *App) GetSwarmServiceEvents(serviceID string, sinceMinutes int) ([]docker.SwarmEvent, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get docker client: %w", err)
+	}
+	duration := time.Duration(sinceMinutes) * time.Minute
+	if duration <= 0 {
+		duration = 60 * time.Minute // default to last hour
+	}
+	return docker.GetSwarmServiceEvents(ctx, cli, serviceID, duration)
+}
+
 // StartSwarmImageUpdatePolling periodically checks service images for updates and emits swarm:image:updates.
 func (a *App) StartSwarmImageUpdatePolling() {
 	go func() {

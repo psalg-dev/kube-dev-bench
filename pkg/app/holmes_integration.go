@@ -912,6 +912,243 @@ func (a *App) AnalyzeServiceStream(namespace, name, streamID string) error {
 	return a.AskHolmesStream(question, streamID)
 }
 
+// AnalyzeJobStream gathers job context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeJobStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeJobStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeJobStream: gathering job context")
+	ctx, err := a.getJobContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeJobStream: failed to get job context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get job context: %w", err)
+	}
+	log.Info("AnalyzeJobStream: job context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes job and explain any issues:\n\nJob: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeJobStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeCronJobStream gathers cronjob context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeCronJobStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeCronJobStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeCronJobStream: gathering cronjob context")
+	ctx, err := a.getCronJobContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeCronJobStream: failed to get cronjob context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get cronjob context: %w", err)
+	}
+	log.Info("AnalyzeCronJobStream: cronjob context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes cronjob and explain any issues:\n\nCronJob: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeCronJobStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeIngressStream gathers ingress context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeIngressStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeIngressStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeIngressStream: gathering ingress context")
+	ctx, err := a.getIngressContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeIngressStream: failed to get ingress context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get ingress context: %w", err)
+	}
+	log.Info("AnalyzeIngressStream: ingress context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes ingress and explain any issues:\n\nIngress: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeIngressStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeConfigMapStream gathers configmap context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeConfigMapStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeConfigMapStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeConfigMapStream: gathering configmap context")
+	ctx, err := a.getConfigMapContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeConfigMapStream: failed to get configmap context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get configmap context: %w", err)
+	}
+	log.Info("AnalyzeConfigMapStream: configmap context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes configmap and explain any issues:\n\nConfigMap: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeConfigMapStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeSecretStream gathers secret context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeSecretStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeSecretStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeSecretStream: gathering secret context")
+	ctx, err := a.getSecretContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeSecretStream: failed to get secret context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get secret context: %w", err)
+	}
+	log.Info("AnalyzeSecretStream: secret context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes secret and explain any issues:\n\nSecret: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeSecretStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzePersistentVolumeStream gathers PV context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzePersistentVolumeStream(name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzePersistentVolumeStream: starting",
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzePersistentVolumeStream: gathering PV context")
+	ctx, err := a.getPersistentVolumeContext(name)
+	if err != nil {
+		log.Error("AnalyzePersistentVolumeStream: failed to get PV context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get persistent volume context: %w", err)
+	}
+	log.Info("AnalyzePersistentVolumeStream: PV context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes persistent volume and explain any issues:\n\nPersistentVolume: %s\n\n%s",
+		name, ctx,
+	)
+
+	log.Debug("AnalyzePersistentVolumeStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzePersistentVolumeClaimStream gathers PVC context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzePersistentVolumeClaimStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzePersistentVolumeClaimStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzePersistentVolumeClaimStream: gathering PVC context")
+	ctx, err := a.getPersistentVolumeClaimContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzePersistentVolumeClaimStream: failed to get PVC context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get persistent volume claim context: %w", err)
+	}
+	log.Info("AnalyzePersistentVolumeClaimStream: PVC context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes persistent volume claim and explain any issues:\n\nPersistentVolumeClaim: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzePersistentVolumeClaimStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
 // AnalyzeResourceStream routes to the correct streaming analyzer based on resource kind.
 // This is a Wails RPC method callable from the frontend.
 func (a *App) AnalyzeResourceStream(kind, namespace, name, streamID string) error {
@@ -933,6 +1170,20 @@ func (a *App) AnalyzeResourceStream(kind, namespace, name, streamID string) erro
 		return a.AnalyzeDaemonSetStream(namespace, name, streamID)
 	case "service", "services":
 		return a.AnalyzeServiceStream(namespace, name, streamID)
+	case "job", "jobs":
+		return a.AnalyzeJobStream(namespace, name, streamID)
+	case "cronjob", "cronjobs":
+		return a.AnalyzeCronJobStream(namespace, name, streamID)
+	case "ingress", "ingresses":
+		return a.AnalyzeIngressStream(namespace, name, streamID)
+	case "configmap", "configmaps":
+		return a.AnalyzeConfigMapStream(namespace, name, streamID)
+	case "secret", "secrets":
+		return a.AnalyzeSecretStream(namespace, name, streamID)
+	case "persistentvolume", "persistentvolumes", "pv":
+		return a.AnalyzePersistentVolumeStream(name, streamID)
+	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc":
+		return a.AnalyzePersistentVolumeClaimStream(namespace, name, streamID)
 	default:
 		return fmt.Errorf("unsupported resource kind: %s", kind)
 	}
