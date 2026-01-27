@@ -1,6 +1,8 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './StatefulSetPVCsTab.css';
+import StatusBadge from '../../../components/StatusBadge.jsx';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 /**
  * Shows PVCs associated with a StatefulSet.
@@ -40,14 +42,6 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, statefulSetName]);
 
-  const getStatusColor = (status) => {
-    const s = (status || '').toLowerCase();
-    if (s === 'bound') return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950' };
-    if (s === 'pending') return { bg: 'rgba(187,128,9,0.15)', fg: '#d29922' };
-    if (s === 'lost') return { bg: 'rgba(248,81,73,0.15)', fg: '#f85149' };
-    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e' };
-  };
-
   if (loading) {
     return (
       <div className="statefulset-pvcs-tab">
@@ -72,6 +66,34 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
     );
   }
 
+  const columns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'status', label: 'Status' },
+    { key: 'capacity', label: 'Capacity' },
+    { key: 'accessModes', label: 'Access Modes' },
+    { key: 'storageClass', label: 'Storage Class' },
+    { key: 'podName', label: 'Pod' },
+    { key: 'age', label: 'Age' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedPvcs = useMemo(() => sortRows(pvcs, sortState.key, sortState.direction), [pvcs, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div className="statefulset-pvcs-tab">
       <div className="pvcs-header">
@@ -81,28 +103,57 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
         <table className="pvcs-table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Capacity</th>
-              <th>Access Modes</th>
-              <th>Storage Class</th>
-              <th>Pod</th>
-              <th>Age</th>
+              <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                  <span>Name</span>
+                  <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'status' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'status'))}>
+                  <span>Status</span>
+                  <span aria-hidden="true">{sortState.key === 'status' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'capacity' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'capacity'))}>
+                  <span>Capacity</span>
+                  <span aria-hidden="true">{sortState.key === 'capacity' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'accessModes' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'accessModes'))}>
+                  <span>Access Modes</span>
+                  <span aria-hidden="true">{sortState.key === 'accessModes' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'storageClass' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'storageClass'))}>
+                  <span>Storage Class</span>
+                  <span aria-hidden="true">{sortState.key === 'storageClass' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'podName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'podName'))}>
+                  <span>Pod</span>
+                  <span aria-hidden="true">{sortState.key === 'podName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'age' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'age'))}>
+                  <span>Age</span>
+                  <span aria-hidden="true">{sortState.key === 'age' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {pvcs.map((pvc, idx) => {
-              const statusColor = getStatusColor(pvc.status);
+            {sortedPvcs.map((pvc, idx) => {
               return (
                 <tr key={idx} className="pvc-row">
                   <td className="pvc-name">{pvc.name || '-'}</td>
                   <td>
-                    <span
-                      className="pvc-status-badge"
-                      style={{ background: statusColor.bg, color: statusColor.fg }}
-                    >
-                      {pvc.status || 'Unknown'}
-                    </span>
+                    <StatusBadge status={pvc.status || 'Unknown'} size="small" showDot={false} />
                   </td>
                   <td className="pvc-capacity">{pvc.capacity || '-'}</td>
                   <td className="pvc-access">{pvc.accessModes || '-'}</td>

@@ -193,8 +193,9 @@ export default function App() {
     const handleNavigateToResource = (event) => {
       const { resource, name, namespace } = event.detail;
 
-      // Map resource type to section name
+      // Map resource type to section name (Kubernetes and Swarm)
       const resourceToSection = {
+        // Kubernetes resources
         'Pod': 'pods',
         'Deployment': 'deployments',
         'StatefulSet': 'statefulsets',
@@ -207,6 +208,15 @@ export default function App() {
         'Ingress': 'ingresses',
         'PersistentVolumeClaim': 'persistentvolumeclaims',
         'PersistentVolume': 'persistentvolumes',
+        // Swarm resources
+        'SwarmService': 'swarm-services',
+        'SwarmTask': 'swarm-tasks',
+        'SwarmNode': 'swarm-nodes',
+        'SwarmNetwork': 'swarm-networks',
+        'SwarmConfig': 'swarm-configs',
+        'SwarmSecret': 'swarm-secrets',
+        'SwarmStack': 'swarm-stacks',
+        'SwarmVolume': 'swarm-volumes',
       };
 
       const section = resourceToSection[resource];

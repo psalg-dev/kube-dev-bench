@@ -28,13 +28,13 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'boundpvc', label: 'Bound PVC' },
-  { key: 'annotations', label: 'Annotations' },
-  { key: 'usage', label: 'Capacity Usage' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'boundpvc', label: 'Bound PVC', countable: false },
+  { key: 'annotations', label: 'Annotations', countable: false },
+  { key: 'usage', label: 'Capacity Usage', countable: false },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {

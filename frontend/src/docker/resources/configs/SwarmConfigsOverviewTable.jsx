@@ -4,6 +4,7 @@ import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import ConfigDataTab from './ConfigDataTab.jsx';
+import ConfigDataSection from './ConfigDataSection.jsx';
 import ConfigEditModal from './ConfigEditModal.jsx';
 import ConfigInspectTab from './ConfigInspectTab.jsx';
 import ConfigCompareModal from './ConfigCompareModal.jsx';
@@ -41,7 +42,7 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'data', label: 'Data' },
-  { key: 'inspect', label: 'Inspect' },
+  { key: 'inspect', label: 'JSON' },
 ];
 
 function ConfigSummaryPanel({ row, allConfigs, onRefresh }) {
@@ -174,7 +175,15 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh }) {
           error={null}
           fields={quickInfoFields}
         />
-        <ConfigUsedBySection configId={row.id} />
+        {/* Config Data + Used By sections */}
+        <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+            <ConfigDataSection configId={row.id} configName={row.name} />
+          </div>
+          <div style={{ width: 320, minWidth: 200, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)' }}>
+            <ConfigUsedBySection configId={row.id} />
+          </div>
+        </div>
       </div>
 
       <ConfigEditModal

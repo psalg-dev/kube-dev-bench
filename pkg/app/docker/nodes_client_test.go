@@ -165,3 +165,126 @@ func Test_formatNodeAge_formatsNonZero(t *testing.T) {
 		t.Fatalf("expected non-dash")
 	}
 }
+
+// fakeSwarmJoinTokensClient implements swarmJoinTokensClient for testing
+type fakeSwarmJoinTokensClient struct {
+	swarmInfo swarm.Swarm
+	swarmErr  error
+	info      types.Info
+	infoErr   error
+}
+
+func (f *fakeSwarmJoinTokensClient) SwarmInspect(context.Context) (swarm.Swarm, error) {
+	if f.swarmErr != nil {
+		return swarm.Swarm{}, f.swarmErr
+	}
+	return f.swarmInfo, nil
+}
+
+func (f *fakeSwarmJoinTokensClient) Info(context.Context) (types.Info, error) {
+	if f.infoErr != nil {
+		return types.Info{}, f.infoErr
+	}
+	return f.info, nil
+}
+
+func Test_getSwarmJoinTokens_returnsTokensAndCommands(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeSwarmJoinTokensClient{
+		swarmInfo: swarm.Swarm{
+			JoinTokens: swarm.JoinTokens{
+				Worker:  "SWMTKN-worker-token",
+				Manager: "SWMTKN-manager-token",
+			},
+		},
+		info: types.Info{
+			Swarm: swarm.Info{
+				RemoteManagers: []swarm.Peer{
+					{Addr: "192.168.1.1:2377"},
+				},
+			},
+		},
+	}
+
+	tokens, err := getSwarmJoinTokens(ctx, cli)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if tokens.Worker != "SWMTKN-worker-token" {
+		t.Errorf("expected worker token, got %q", tokens.Worker)
+	}
+	if tokens.Manager != "SWMTKN-manager-token" {
+		t.Errorf("expected manager token, got %q", tokens.Manager)
+	}
+	if tokens.Addr != "192.168.1.1:2377" {
+		t.Errorf("expected manager addr, got %q", tokens.Addr)
+	}
+	if tokens.Commands.Worker != "docker swarm join --token SWMTKN-worker-token 192.168.1.1:2377" {
+		t.Errorf("unexpected worker command: %q", tokens.Commands.Worker)
+	}
+	if tokens.Commands.Manager != "docker swarm join --token SWMTKN-manager-token 192.168.1.1:2377" {
+		t.Errorf("unexpected manager command: %q", tokens.Commands.Manager)
+	}
+}
+
+func Test_getSwarmJoinTokens_handlesNoRemoteManagers(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeSwarmJoinTokensClient{
+		swarmInfo: swarm.Swarm{
+			JoinTokens: swarm.JoinTokens{
+				Worker:  "SWMTKN-worker-token",
+				Manager: "SWMTKN-manager-token",
+			},
+		},
+		info: types.Info{
+			Swarm: swarm.Info{
+				RemoteManagers: []swarm.Peer{}, // empty
+			},
+		},
+	}
+
+	tokens, err := getSwarmJoinTokens(ctx, cli)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if tokens.Worker != "SWMTKN-worker-token" {
+		t.Errorf("expected worker token, got %q", tokens.Worker)
+	}
+	if tokens.Addr != "" {
+		t.Errorf("expected empty addr, got %q", tokens.Addr)
+	}
+	if tokens.Commands.Worker != "" {
+		t.Errorf("expected empty worker command, got %q", tokens.Commands.Worker)
+	}
+}
+
+func Test_getSwarmJoinTokens_propagatesSwarmError(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeSwarmJoinTokensClient{
+		swarmErr: context.DeadlineExceeded,
+	}
+
+	_, err := getSwarmJoinTokens(ctx, cli)
+	if err != context.DeadlineExceeded {
+		t.Fatalf("expected DeadlineExceeded, got %v", err)
+	}
+}
+
+func Test_getSwarmJoinTokens_propagatesInfoError(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeSwarmJoinTokensClient{
+		swarmInfo: swarm.Swarm{},
+		infoErr:   context.DeadlineExceeded,
+	}
+
+	_, err := getSwarmJoinTokens(ctx, cli)
+	if err != context.DeadlineExceeded {
+		t.Fatalf("expected DeadlineExceeded, got %v", err)
+	}
+}

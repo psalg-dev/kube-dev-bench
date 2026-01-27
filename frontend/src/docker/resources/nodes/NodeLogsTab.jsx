@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
+import EmptyTabContent from '../../../components/EmptyTabContent.jsx';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages.js';
 import { GetSwarmNodeTasks, GetSwarmTaskLogs } from '../../swarmApi.js';
 
 function pickBestTask(tasks) {
@@ -61,15 +63,15 @@ export default function NodeLogsTab({ nodeId, nodeName }) {
   }
 
   if (!selectedTask) {
+    const emptyMsg = getEmptyTabMessage('swarm-node-logs');
     return (
-      <div style={{ padding: 32, color: 'var(--gh-text, #c9d1d9)' }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Node Logs</div>
-        <div style={{ color: 'var(--gh-text-secondary)' }}>
-          Node logs are not available directly. This tab shows Swarm task logs as a fallback.
-        </div>
-        <div style={{ marginTop: 12, color: 'var(--gh-text-secondary)' }}>
-          No tasks with containers were found for this node.
-        </div>
+      <div style={{ padding: 32 }}>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       </div>
     );
   }

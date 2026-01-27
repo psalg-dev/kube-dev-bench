@@ -1,4 +1,5 @@
 import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils.js';
+import StatusBadge from './components/StatusBadge.jsx';
 
 /**
  * Reusable Quick Info Section component for resource summary tabs
@@ -48,37 +49,11 @@ function QuickInfoSection({
     return `${s}s`;
   };
 
-  const statusColors = (status) => {
-    const s = String(status || '').toLowerCase();
-    if (s.includes('run') || s.includes('active') || s.includes('ready') || s.includes('available')) {
-      return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950', bd: '#30363d' }; // green
-    }
-    if (s.includes('pend') || s.includes('init') || s.includes('wait') || s.includes('progressing')) {
-      return { bg: 'rgba(187,128,9,0.12)', fg: '#d29922', bd: '#30363d' }; // yellow
-    }
-    if (s.includes('fail') || s.includes('err') || s.includes('crash') || s.includes('invalid')) {
-      return { bg: 'rgba(248,81,73,0.12)', fg: '#f85149', bd: '#30363d' }; // red
-    }
-    if (s.includes('succ') || s.includes('complete')) {
-      return { bg: 'rgba(56,139,253,0.12)', fg: '#58a6ff', bd: '#30363d' }; // blue
-    }
-    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey
-  };
-
   const renderFieldValue = (field, value) => {
     // Handle special field types
     if (field.type === 'status' && value) {
-      const c = statusColors(value);
       return (
-        <span style={{
-          display: 'inline-block',
-          padding: '2px 8px',
-          border: `1px solid ${c.bd}`,
-          background: c.bg,
-          color: c.fg
-        }}>
-          {value}
-        </span>
+        <StatusBadge status={value} size="small" showDot={false} />
       );
     }
 

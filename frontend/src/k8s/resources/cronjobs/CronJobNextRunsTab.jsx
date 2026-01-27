@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) {
   const [detail, setDetail] = useState(null);
@@ -41,21 +42,56 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No upcoming runs available.</div>;
   }
 
+  const columns = useMemo(() => ([
+    { key: 'index', label: '#' },
+    { key: 'time', label: 'Scheduled Time' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+
+  const rows = useMemo(() => runs.map((t, idx) => ({ index: idx + 1, time: t })), [runs]);
+  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction, (row, key) => row?.[key]), [rows, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>Next Runs (Next 5)</h4>
       <table className="panel-table">
         <thead>
           <tr>
-            <th style={{ width: 60 }}>#</th>
-            <th>Scheduled Time</th>
+            <th style={{ width: 60 }} aria-sort={sortState.key === 'index' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'index'))}>
+                <span>#</span>
+                <span aria-hidden="true">{sortState.key === 'index' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'time' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'time'))}>
+                <span>Scheduled Time</span>
+                <span aria-hidden="true">{sortState.key === 'time' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {runs.map((t, idx) => (
-            <tr key={`${t}|${idx}`}>
-              <td className="text-muted">{idx + 1}</td>
-              <td>{formatTimestampDMYHMS(t)}</td>
+          {sortedRows.map((row) => (
+            <tr key={`${row.time}|${row.index}`}>
+              <td className="text-muted">{row.index}</td>
+              <td>{formatTimestampDMYHMS(row.time)}</td>
             </tr>
           ))}
         </tbody>

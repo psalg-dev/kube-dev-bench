@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './ServiceEndpointsTab.css';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function ServiceEndpointsTab({ namespace, serviceName }) {
   const [endpoints, setEndpoints] = useState([]);
@@ -74,6 +75,37 @@ export default function ServiceEndpointsTab({ namespace, serviceName }) {
 
   const readyEndpoints = endpoints.filter(ep => ep.ready);
   const notReadyEndpoints = endpoints.filter(ep => !ep.ready);
+  const columns = useMemo(() => ([
+    { key: 'status', label: 'Status' },
+    { key: 'ip', label: 'IP' },
+    { key: 'port', label: 'Port' },
+    { key: 'protocol', label: 'Protocol' },
+    { key: 'podName', label: 'Pod' },
+    { key: 'nodeName', label: 'Node' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedEndpoints = useMemo(() => {
+    return sortRows(endpoints, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'status') return row?.ready ? 'Ready' : 'Not Ready';
+      return row?.[key];
+    });
+  }, [endpoints, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
 
   return (
     <div className="service-endpoints-tab">
@@ -89,16 +121,46 @@ export default function ServiceEndpointsTab({ namespace, serviceName }) {
         <table className="endpoints-table">
           <thead>
             <tr>
-              <th>Status</th>
-              <th>IP</th>
-              <th>Port</th>
-              <th>Protocol</th>
-              <th>Pod</th>
-              <th>Node</th>
+              <th aria-sort={sortState.key === 'status' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'status'))}>
+                  <span>Status</span>
+                  <span aria-hidden="true">{sortState.key === 'status' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'ip' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'ip'))}>
+                  <span>IP</span>
+                  <span aria-hidden="true">{sortState.key === 'ip' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'port' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'port'))}>
+                  <span>Port</span>
+                  <span aria-hidden="true">{sortState.key === 'port' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'protocol' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'protocol'))}>
+                  <span>Protocol</span>
+                  <span aria-hidden="true">{sortState.key === 'protocol' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'podName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'podName'))}>
+                  <span>Pod</span>
+                  <span aria-hidden="true">{sortState.key === 'podName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={sortState.key === 'nodeName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'nodeName'))}>
+                  <span>Node</span>
+                  <span aria-hidden="true">{sortState.key === 'nodeName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {endpoints.map((ep, idx) => (
+            {sortedEndpoints.map((ep, idx) => (
               <tr key={`${ep.ip}-${ep.port}-${idx}`} className={ep.ready ? 'ready' : 'not-ready'}>
                 <td>
                   <span className={`status-dot ${ep.ready ? 'ready' : 'not-ready'}`} />

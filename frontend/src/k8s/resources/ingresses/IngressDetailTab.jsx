@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function IngressDetailTab({ namespace, ingressName }) {
   const [detail, setDetail] = useState(null);
@@ -31,6 +32,46 @@ export default function IngressDetailTab({ namespace, ingressName }) {
     return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
   }
 
+  const ruleColumns = useMemo(() => ([
+    { key: 'host', label: 'Host' },
+    { key: 'path', label: 'Path' },
+    { key: 'pathType', label: 'Path Type' },
+    { key: 'serviceName', label: 'Service' },
+    { key: 'servicePort', label: 'Port' },
+  ]), []);
+  const defaultRuleSortKey = useMemo(() => pickDefaultSortKey(ruleColumns), [ruleColumns]);
+  const [ruleSortState, setRuleSortState] = useState(() => ({ key: defaultRuleSortKey, direction: 'asc' }));
+  const sortedRules = useMemo(() => sortRows(detail?.rules || [], ruleSortState.key, ruleSortState.direction), [detail?.rules, ruleSortState]);
+
+  const tlsColumns = useMemo(() => ([
+    { key: 'hosts', label: 'Hosts' },
+    { key: 'secretName', label: 'Secret' },
+  ]), []);
+  const defaultTlsSortKey = useMemo(() => pickDefaultSortKey(tlsColumns), [tlsColumns]);
+  const [tlsSortState, setTlsSortState] = useState(() => ({ key: defaultTlsSortKey, direction: 'asc' }));
+  const sortedTls = useMemo(() => {
+    return sortRows(detail?.tls || [], tlsSortState.key, tlsSortState.direction, (row, key) => {
+      if (key === 'hosts') return Array.isArray(row?.hosts) ? row.hosts.join(', ') : row?.hosts;
+      if (key === 'secretName') return row?.secretName;
+      return row?.[key];
+    });
+  }, [detail?.tls, tlsSortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       {/* Routes section */}
@@ -41,15 +82,40 @@ export default function IngressDetailTab({ namespace, ingressName }) {
         <table className="panel-table" style={{ marginBottom: 24 }}>
           <thead>
             <tr>
-              <th>Host</th>
-              <th>Path</th>
-              <th>Path Type</th>
-              <th>Service</th>
-              <th>Port</th>
+              <th aria-sort={ruleSortState.key === 'host' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'host'))}>
+                  <span>Host</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'host' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'path' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'path'))}>
+                  <span>Path</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'path' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'pathType' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'pathType'))}>
+                  <span>Path Type</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'pathType' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'serviceName' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'serviceName'))}>
+                  <span>Service</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'serviceName' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'servicePort' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'servicePort'))}>
+                  <span>Port</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'servicePort' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {detail.rules.map((rule, idx) => (
+            {sortedRules.map((rule, idx) => (
               <tr key={idx}>
                 <td>
                   {rule.host ? (
@@ -112,12 +178,22 @@ export default function IngressDetailTab({ namespace, ingressName }) {
         <table className="panel-table">
           <thead>
             <tr>
-              <th>Hosts</th>
-              <th>Secret</th>
+              <th aria-sort={tlsSortState.key === 'hosts' ? (tlsSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setTlsSortState((cur) => toggleSortState(cur, 'hosts'))}>
+                  <span>Hosts</span>
+                  <span aria-hidden="true">{tlsSortState.key === 'hosts' ? (tlsSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={tlsSortState.key === 'secretName' ? (tlsSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setTlsSortState((cur) => toggleSortState(cur, 'secretName'))}>
+                  <span>Secret</span>
+                  <span aria-hidden="true">{tlsSortState.key === 'secretName' ? (tlsSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {detail.tls.map((tls, idx) => (
+            {sortedTls.map((tls, idx) => (
               <tr key={idx}>
                 <td>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

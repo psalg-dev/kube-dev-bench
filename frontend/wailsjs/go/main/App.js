@@ -106,12 +106,28 @@ export function AnalyzeStatefulSetStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeStatefulSetStream'](arg1, arg2, arg3);
 }
 
+export function AnalyzeSwarmNode(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmNode'](arg1);
+}
+
+export function AnalyzeSwarmNodeStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmNodeStream'](arg1, arg2);
+}
+
 export function AnalyzeSwarmService(arg1) {
   return window['go']['main']['App']['AnalyzeSwarmService'](arg1);
 }
 
 export function AnalyzeSwarmServiceStream(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeSwarmServiceStream'](arg1, arg2);
+}
+
+export function AnalyzeSwarmStack(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmStack'](arg1);
+}
+
+export function AnalyzeSwarmStackStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmStackStream'](arg1, arg2);
 }
 
 export function AnalyzeSwarmTask(arg1) {
@@ -306,6 +322,10 @@ export function GetAlertInvestigationHistory() {
   return window['go']['main']['App']['GetAlertInvestigationHistory']();
 }
 
+export function GetAllTabCounts(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetAllTabCounts'](arg1, arg2, arg3);
+}
+
 export function GetClusterTopology() {
   return window['go']['main']['App']['GetClusterTopology']();
 }
@@ -314,8 +334,16 @@ export function GetConfigMapConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapConsumers'](arg1, arg2);
 }
 
+export function GetConfigMapConsumersCount(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapConsumersCount'](arg1, arg2);
+}
+
 export function GetConfigMapDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapDataByName'](arg1, arg2);
+}
+
+export function GetConfigMapDataCount(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapDataCount'](arg1, arg2);
 }
 
 export function GetConfigMapYAML(arg1, arg2) {
@@ -332,6 +360,10 @@ export function GetConnectionStatus() {
 
 export function GetCronJobDetail(arg1, arg2) {
   return window['go']['main']['App']['GetCronJobDetail'](arg1, arg2);
+}
+
+export function GetCronJobHistoryCount(arg1, arg2) {
+  return window['go']['main']['App']['GetCronJobHistoryCount'](arg1, arg2);
 }
 
 export function GetCronJobYAML(arg1, arg2) {
@@ -446,6 +478,10 @@ export function GetIngressDetail(arg1, arg2) {
   return window['go']['main']['App']['GetIngressDetail'](arg1, arg2);
 }
 
+export function GetIngressRulesCount(arg1, arg2) {
+  return window['go']['main']['App']['GetIngressRulesCount'](arg1, arg2);
+}
+
 export function GetIngressTLSSummary(arg1, arg2) {
   return window['go']['main']['App']['GetIngressTLSSummary'](arg1, arg2);
 }
@@ -464,6 +500,10 @@ export function GetJobDetail(arg1, arg2) {
 
 export function GetJobLogs(arg1, arg2) {
   return window['go']['main']['App']['GetJobLogs'](arg1, arg2);
+}
+
+export function GetReplicaSetLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetReplicaSetLogs'](arg1, arg2);
 }
 
 export function GetJobYAML(arg1, arg2) {
@@ -496,6 +536,10 @@ export function GetOverview(arg1) {
 
 export function GetPVCConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetPVCConsumers'](arg1, arg2);
+}
+
+export function GetPVCConsumersCount(arg1, arg2) {
+  return window['go']['main']['App']['GetPVCConsumersCount'](arg1, arg2);
 }
 
 export function GetPVCFileContent(arg1, arg2, arg3, arg4) {
@@ -570,6 +614,10 @@ export function GetPodYAML(arg1) {
   return window['go']['main']['App']['GetPodYAML'](arg1);
 }
 
+export function GetPodsCountForResource(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetPodsCountForResource'](arg1, arg2, arg3);
+}
+
 export function GetPrometheusAlerts(arg1) {
   return window['go']['main']['App']['GetPrometheusAlerts'](arg1);
 }
@@ -614,6 +662,10 @@ export function GetResourceEvents(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceEvents'](arg1, arg2, arg3);
 }
 
+export function GetResourceEventsCount(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetResourceEventsCount'](arg1, arg2, arg3);
+}
+
 export function GetRunningPods(arg1) {
   return window['go']['main']['App']['GetRunningPods'](arg1);
 }
@@ -622,12 +674,20 @@ export function GetSecretConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetSecretConsumers'](arg1, arg2);
 }
 
+export function GetSecretConsumersCount(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretConsumersCount'](arg1, arg2);
+}
+
 export function GetSecretData(arg1) {
   return window['go']['main']['App']['GetSecretData'](arg1);
 }
 
 export function GetSecretDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetSecretDataByName'](arg1, arg2);
+}
+
+export function GetSecretDataCount(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretDataCount'](arg1, arg2);
 }
 
 export function GetSecretYAML(arg1, arg2) {
@@ -640,6 +700,10 @@ export function GetSecrets(arg1) {
 
 export function GetServiceEndpoints(arg1, arg2) {
   return window['go']['main']['App']['GetServiceEndpoints'](arg1, arg2);
+}
+
+export function GetServiceEndpointsCount(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceEndpointsCount'](arg1, arg2);
 }
 
 export function GetServiceSummary(arg1, arg2) {
@@ -660,6 +724,10 @@ export function GetStatefulSetDetail(arg1, arg2) {
 
 export function GetStatefulSetLogs(arg1, arg2) {
   return window['go']['main']['App']['GetStatefulSetLogs'](arg1, arg2);
+}
+
+export function GetStatefulSetPVCsCount(arg1, arg2) {
+  return window['go']['main']['App']['GetStatefulSetPVCsCount'](arg1, arg2);
 }
 
 export function GetStatefulSets(arg1) {
@@ -688,6 +756,10 @@ export function GetSwarmConfigs() {
 
 export function GetSwarmEvents(arg1) {
   return window['go']['main']['App']['GetSwarmEvents'](arg1);
+}
+
+export function GetSwarmJoinTokens() {
+  return window['go']['main']['App']['GetSwarmJoinTokens']();
 }
 
 export function GetSwarmMetricsHistory() {

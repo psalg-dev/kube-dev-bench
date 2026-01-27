@@ -87,6 +87,31 @@ table.gh-table tbody td:last-child {
   text-overflow: ellipsis;
 }
 
+.gh-table .sortable-header {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.gh-table .sortable-header:focus-visible {
+  outline: 2px solid var(--gh-accent, #58a6ff);
+  outline-offset: 2px;
+}
+
+.gh-table .sortable-indicator {
+  font-size: 11px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
 /* Consistent body cell padding across overview tables */
 .gh-table tbody td {
   padding: 10px var(--gh-table-padding-x, 16px);

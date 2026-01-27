@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import StatusBadge from '../../../components/StatusBadge.jsx';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function JobPodsTab({ namespace, jobName }) {
   const [detail, setDetail] = useState(null);
@@ -35,14 +37,41 @@ export default function JobPodsTab({ namespace, jobName }) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No pods found for this job.</div>;
   }
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'running': return '#2ea44f';
-      case 'succeeded': return '#2ea44f';
-      case 'pending': return '#e6b800';
-      case 'failed': return '#f85149';
-      default: return '#8b949e';
-    }
+  const podColumns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'status', label: 'Status' },
+    { key: 'ready', label: 'Ready' },
+    { key: 'restarts', label: 'Restarts' },
+    { key: 'age', label: 'Age' },
+    { key: 'node', label: 'Node' },
+  ]), []);
+  const defaultPodSortKey = useMemo(() => pickDefaultSortKey(podColumns), [podColumns]);
+  const [podSortState, setPodSortState] = useState(() => ({ key: defaultPodSortKey, direction: 'asc' }));
+  const sortedPods = useMemo(() => sortRows(detail.pods, podSortState.key, podSortState.direction), [detail.pods, podSortState]);
+
+  const conditionColumns = useMemo(() => ([
+    { key: 'type', label: 'Type' },
+    { key: 'status', label: 'Status' },
+    { key: 'reason', label: 'Reason' },
+    { key: 'message', label: 'Message' },
+  ]), []);
+  const defaultConditionSortKey = useMemo(() => pickDefaultSortKey(conditionColumns), [conditionColumns]);
+  const [conditionSortState, setConditionSortState] = useState(() => ({ key: defaultConditionSortKey, direction: 'asc' }));
+  const sortedConditions = useMemo(() => sortRows(detail.conditions || [], conditionSortState.key, conditionSortState.direction), [detail.conditions, conditionSortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
   };
 
   return (
@@ -50,26 +79,50 @@ export default function JobPodsTab({ namespace, jobName }) {
       <table className="panel-table">
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Status</th>
-            <th>Ready</th>
-            <th>Restarts</th>
-            <th>Age</th>
-            <th>Node</th>
+            <th aria-sort={podSortState.key === 'name' ? (podSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setPodSortState((cur) => toggleSortState(cur, 'name'))}>
+                <span>Name</span>
+                <span aria-hidden="true">{podSortState.key === 'name' ? (podSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={podSortState.key === 'status' ? (podSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setPodSortState((cur) => toggleSortState(cur, 'status'))}>
+                <span>Status</span>
+                <span aria-hidden="true">{podSortState.key === 'status' ? (podSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={podSortState.key === 'ready' ? (podSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setPodSortState((cur) => toggleSortState(cur, 'ready'))}>
+                <span>Ready</span>
+                <span aria-hidden="true">{podSortState.key === 'ready' ? (podSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={podSortState.key === 'restarts' ? (podSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setPodSortState((cur) => toggleSortState(cur, 'restarts'))}>
+                <span>Restarts</span>
+                <span aria-hidden="true">{podSortState.key === 'restarts' ? (podSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={podSortState.key === 'age' ? (podSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setPodSortState((cur) => toggleSortState(cur, 'age'))}>
+                <span>Age</span>
+                <span aria-hidden="true">{podSortState.key === 'age' ? (podSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={podSortState.key === 'node' ? (podSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setPodSortState((cur) => toggleSortState(cur, 'node'))}>
+                <span>Node</span>
+                <span aria-hidden="true">{podSortState.key === 'node' ? (podSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {detail.pods.map((pod, idx) => (
+          {sortedPods.map((pod, idx) => (
             <tr key={pod.name || idx}>
               <td>{pod.name}</td>
               <td>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    backgroundColor: getStatusColor(pod.status)
-                  }} />
-                  <span>{pod.status}</span>
-                </span>
+                <StatusBadge status={pod.status || '-'} size="small" showDot={false} />
               </td>
               <td>{pod.ready}</td>
               <td>{pod.restarts}</td>
@@ -86,14 +139,34 @@ export default function JobPodsTab({ namespace, jobName }) {
           <table className="panel-table">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Reason</th>
-                <th>Message</th>
+                <th aria-sort={conditionSortState.key === 'type' ? (conditionSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setConditionSortState((cur) => toggleSortState(cur, 'type'))}>
+                    <span>Type</span>
+                    <span aria-hidden="true">{conditionSortState.key === 'type' ? (conditionSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th aria-sort={conditionSortState.key === 'status' ? (conditionSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setConditionSortState((cur) => toggleSortState(cur, 'status'))}>
+                    <span>Status</span>
+                    <span aria-hidden="true">{conditionSortState.key === 'status' ? (conditionSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th aria-sort={conditionSortState.key === 'reason' ? (conditionSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setConditionSortState((cur) => toggleSortState(cur, 'reason'))}>
+                    <span>Reason</span>
+                    <span aria-hidden="true">{conditionSortState.key === 'reason' ? (conditionSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th aria-sort={conditionSortState.key === 'message' ? (conditionSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setConditionSortState((cur) => toggleSortState(cur, 'message'))}>
+                    <span>Message</span>
+                    <span aria-hidden="true">{conditionSortState.key === 'message' ? (conditionSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
-              {detail.conditions.map((cond, idx) => (
+              {sortedConditions.map((cond, idx) => (
                 <tr key={idx}>
                   <td>{cond.type}</td>
                   <td>

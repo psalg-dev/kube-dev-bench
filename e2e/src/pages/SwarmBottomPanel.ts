@@ -24,7 +24,9 @@ export class SwarmBottomPanel {
     // that can share the same accessible name (e.g. an "Exec" action button).
     const header = this.root.locator('> div').nth(1);
     const tabStrip = header.locator('> div').first();
-    return tabStrip.getByRole('button', { name: label, exact: true });
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const name = new RegExp(`^${escaped}(\\s*(\\d+|\\.\\.\\.))?$`);
+    return tabStrip.getByRole('button', { name });
   }
 
   async expectVisible() {

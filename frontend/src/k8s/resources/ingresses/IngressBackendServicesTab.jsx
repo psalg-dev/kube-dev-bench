@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function IngressBackendServicesTab({ namespace, ingressName }) {
   const [detail, setDetail] = useState(null);
@@ -38,7 +39,7 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
       const key = `${svc}:${port || ''}`;
       if (!seen.has(key)) seen.set(key, { name: svc, port: port || '-' });
     }
-    return Array.from(seen.values()).sort((a, b) => a.name.localeCompare(b.name));
+    return Array.from(seen.values());
   }, [detail]);
 
   useEffect(() => {
@@ -76,19 +77,71 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No backend services found in rules.</div>;
   }
 
+  const columns = useMemo(() => ([
+    { key: 'name', label: 'Service' },
+    { key: 'port', label: 'Port' },
+    { key: 'type', label: 'Type' },
+    { key: 'clusterIP', label: 'ClusterIP' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedServices = useMemo(() => {
+    return sortRows(services, sortState.key, sortState.direction, (row, key) => {
+      const extra = serviceDetails[row?.name];
+      if (key === 'type') return extra?.type ?? extra?.Type ?? '-';
+      if (key === 'clusterIP') return extra?.clusterIP ?? extra?.ClusterIP ?? '-';
+      return row?.[key];
+    });
+  }, [services, sortState, serviceDetails]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <table className="panel-table">
         <thead>
           <tr>
-            <th>Service</th>
-            <th>Port</th>
-            <th>Type</th>
-            <th>ClusterIP</th>
+            <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                <span>Service</span>
+                <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'port' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'port'))}>
+                <span>Port</span>
+                <span aria-hidden="true">{sortState.key === 'port' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'type' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'type'))}>
+                <span>Type</span>
+                <span aria-hidden="true">{sortState.key === 'type' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'clusterIP' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'clusterIP'))}>
+                <span>ClusterIP</span>
+                <span aria-hidden="true">{sortState.key === 'clusterIP' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {services.map((s) => {
+          {sortedServices.map((s) => {
             const extra = serviceDetails[s.name];
             const type = extra?.type ?? extra?.Type ?? '-';
             const clusterIP = extra?.clusterIP ?? extra?.ClusterIP ?? '-';

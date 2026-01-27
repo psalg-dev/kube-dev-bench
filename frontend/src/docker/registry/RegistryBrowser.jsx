@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GetDockerHubRepositoryDetails, GetImageDigest, GetRegistryRepositoryDetails, ListRegistryRepositories, ListRegistryTags, PullDockerImageLatest, SearchDockerHubRepositories, SearchRegistryRepositories } from '../swarmApi.js';
 import { showError, showSuccess } from '../../notification.js';
 import './registry.css';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
 
 export default function RegistryBrowser({ registryName, registryType = '' }) {
   const [repos, setRepos] = useState([]);
@@ -115,6 +116,38 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
   const isArtifactory = typeLower === 'artifactory';
   const isV2Search = isArtifactory || typeLower === 'generic_v2';
   const supportsSearch = isDockerHub || isV2Search;
+
+  const searchColumns = useMemo(() => {
+    if (isDockerHub) {
+      return [
+        { key: 'fullName', label: 'Name' },
+        { key: 'description', label: 'Description' },
+        { key: 'starCount', label: 'Stars' },
+        { key: 'pullCount', label: 'Pulls' },
+        { key: 'lastUpdated', label: 'Updated' },
+      ];
+    }
+    return [{ key: 'fullName', label: 'Name' }];
+  }, [isDockerHub]);
+  const defaultSearchSortKey = useMemo(() => pickDefaultSortKey(searchColumns), [searchColumns]);
+  const [searchSort, setSearchSort] = useState(() => ({ key: defaultSearchSortKey, direction: 'asc' }));
+
+  useEffect(() => {
+    if (!defaultSearchSortKey) return;
+    setSearchSort((cur) => {
+      const hasKey = searchColumns.some((col) => col.key === cur?.key);
+      if (cur?.key && hasKey) return cur;
+      return { key: defaultSearchSortKey, direction: 'asc' };
+    });
+  }, [defaultSearchSortKey, searchColumns]);
+
+  const sortedSearchResults = useMemo(() => {
+    return sortRows(searchResults, searchSort.key, searchSort.direction, (row, key) => {
+      const fullName = (row.fullName || (row.namespace && row.name ? `${row.namespace}/${row.name}` : '') || row.name || '').trim();
+      if (key === 'fullName') return fullName;
+      return row?.[key];
+    });
+  }, [searchResults, searchSort]);
 
   useEffect(() => {
     if (!supportsSearch) return;
@@ -381,15 +414,45 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
             <thead>
               {isDockerHub ? (
                 <tr>
-                  <th>Name</th>
-                  <th>Description</th>
-                  <th>Stars</th>
-                  <th>Pulls</th>
-                  <th>Updated</th>
+                  <th aria-sort={searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'fullName'))}>
+                      <span>Name</span>
+                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th aria-sort={searchSort.key === 'description' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'description'))}>
+                      <span>Description</span>
+                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'description' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th aria-sort={searchSort.key === 'starCount' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'starCount'))}>
+                      <span>Stars</span>
+                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'starCount' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th aria-sort={searchSort.key === 'pullCount' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'pullCount'))}>
+                      <span>Pulls</span>
+                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'pullCount' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th aria-sort={searchSort.key === 'lastUpdated' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'lastUpdated'))}>
+                      <span>Updated</span>
+                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'lastUpdated' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
                 </tr>
               ) : (
                 <tr>
-                  <th>Name</th>
+                  <th aria-sort={searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'fullName'))}>
+                      <span>Name</span>
+                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
                 </tr>
               )}
             </thead>
@@ -399,7 +462,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
               ) : searchResults.length === 0 ? (
                 <tr><td colSpan={isDockerHub ? 5 : 1} className="main-panel-loading">No results.</td></tr>
               ) : (
-                searchResults.map((r) => {
+                sortedSearchResults.map((r) => {
                   const rowFullName = (r.fullName || (r.namespace && r.name ? `${r.namespace}/${r.name}` : '') || r.name || '').trim();
                   const rowKey = rowFullName || `${r.namespace || ''}/${r.name || ''}`;
                   const isSelected = Boolean(selectedSearchKey && selectedSearchKey === rowFullName);

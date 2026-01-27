@@ -13,6 +13,7 @@ import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { AnalyzeSwarmServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import {
   GetSwarmServices,
+  GetSwarmTasksByService,
   ScaleSwarmService,
   RemoveSwarmService,
   RestartSwarmService,
@@ -75,11 +76,11 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'tasks', label: 'Tasks' },
-  { key: 'placement', label: 'Placement' },
-  { key: 'logs', label: 'Logs' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'tasks', label: 'Tasks', countKey: 'tasks' },
+  { key: 'placement', label: 'Placement', countable: false },
+  { key: 'logs', label: 'Logs', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function formatBytes(bytes) {
@@ -511,6 +512,14 @@ export default function SwarmServicesOverviewTable() {
     setRefreshKey(k => k + 1);
   }, []);
 
+  const fetchTabCountsForRow = useCallback(async (row) => {
+    if (!row?.id) return {};
+    const tasks = await GetSwarmTasksByService(row.id);
+    return {
+      tasks: Array.isArray(tasks) ? tasks.length : 0,
+    };
+  }, []);
+
   const promptReplicas = (current) => {
     const value = window.prompt('Scale to replicas', String(current ?? 0));
     if (value === null) return null;
@@ -755,6 +764,7 @@ export default function SwarmServicesOverviewTable() {
         data={servicesWithHandlers}
         tabs={bottomTabs}
         renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh, holmesState, analyzeWithHolmes, cancelHolmesAnalysis)}
+        tabCountsFetcher={fetchTabCountsForRow}
         tableTestId="swarm-services-table"
         createPlatform="swarm"
         createKind="service"

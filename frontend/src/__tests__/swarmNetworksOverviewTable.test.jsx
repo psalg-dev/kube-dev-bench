@@ -110,8 +110,8 @@ vi.mock('../docker/resources/networks/NetworkConnectedServicesSection.jsx', () =
   },
 }));
 
-vi.mock('../docker/resources/networks/NetworkConnectedContainersSection.jsx', () => ({
-  default: function NetworkConnectedContainersSectionMock() {
+vi.mock('../docker/resources/networks/NetworkConnectedContainersTable.jsx', () => ({
+  default: function NetworkConnectedContainersTableMock() {
     return <div data-testid="connected-containers" />;
   },
 }));

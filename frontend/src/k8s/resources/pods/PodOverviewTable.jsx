@@ -23,6 +23,7 @@ import '../../../layout/overview/OverviewTableWithPanel.css';
 import { showResourceOverlay } from '../../../resource-overlay.js';
 import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHolmesStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 // Resource types matching sidebar and templates in resource-overlay.js
 const createOptions = [
@@ -438,27 +439,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   function renderStatusCell(pod) {
     const status = pod.status || pod.phase || '-';
-    let color = '#aaa';
-    let label = status;
-    if (typeof status === 'string') {
-      const s = status.toLowerCase();
-      if (s === 'running') {
-        color = '#2ea44f'; // green
-        label = 'Running';
-      } else if (s === 'pending' || s === 'creating' || s === 'containercreating') {
-        color = '#e6b800'; // yellow
-        label = 'Creating';
-      } else if (s === 'failed' || s === 'error' || s === 'crashloopbackoff') {
-        color = '#d73a49'; // red
-        label = 'Failed';
-      }
+    if (!status || status === '-') {
+      return '-';
     }
-    return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, display: 'inline-block', border: '1px solid #888' }} />
-        <span>{label}</span>
-      </span>
-    );
+    const label = typeof status === 'string' ? status : String(status);
+    return <StatusBadge status={label} size="small" />;
   }
 
   const baseColumns = useMemo(() => [

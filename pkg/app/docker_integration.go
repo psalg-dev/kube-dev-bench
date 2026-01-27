@@ -611,6 +611,15 @@ func (a *App) RemoveSwarmNode(nodeID string, force bool) error {
 	return docker.RemoveSwarmNode(a.ctx, cli, nodeID, force)
 }
 
+// GetSwarmJoinTokens returns the swarm join tokens and commands
+func (a *App) GetSwarmJoinTokens() (*docker.SwarmJoinTokens, error) {
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return nil, err
+	}
+	return docker.GetSwarmJoinTokens(a.ctx, cli)
+}
+
 // ==================== Swarm Networks ====================
 
 // GetSwarmNetworks returns all Docker networks

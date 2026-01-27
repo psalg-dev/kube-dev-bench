@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 export default function CronJobHistoryTab({ namespace, cronJobName }) {
   const [detail, setDetail] = useState(null);
@@ -36,24 +37,6 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No jobs found for this cronjob.</div>;
   }
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'succeeded': return '#2ea44f';
-      case 'running': return '#e6b800';
-      case 'failed': return '#f85149';
-      default: return '#8b949e';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'succeeded': return '✓';
-      case 'running': return '●';
-      case 'failed': return '✗';
-      default: return '?';
-    }
-  };
-
   const formatDate = (dateStr) => {
     if (!dateStr || dateStr === '-') return '-';
     try {
@@ -83,15 +66,7 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
             <tr key={job.name || idx}>
               <td>{job.name}</td>
               <td>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{
-                    color: getStatusColor(job.status),
-                    fontWeight: 600
-                  }}>
-                    {getStatusIcon(job.status)}
-                  </span>
-                  <span style={{ color: getStatusColor(job.status) }}>{job.status}</span>
-                </span>
+                <StatusBadge status={job.status || '-'} size="small" showDot={false} />
               </td>
               <td className="text-muted">{formatDate(job.startTime)}</td>
               <td>{job.duration}</td>

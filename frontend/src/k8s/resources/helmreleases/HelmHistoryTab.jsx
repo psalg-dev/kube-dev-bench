@@ -1,14 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-
-function getStatusColor(status) {
-  const statusLower = (status || '').toLowerCase();
-  if (statusLower === 'deployed') return '#2ea44f';
-  if (statusLower === 'failed') return '#d73a49';
-  if (statusLower === 'pending' || statusLower.includes('pending')) return '#e6b800';
-  if (statusLower === 'superseded') return '#9aa0a6';
-  return '#9aa0a6';
-}
+import { showError, showSuccess } from '../../../notification.js';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
   const [history, setHistory] = useState([]);
@@ -35,12 +28,13 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
     setRollingBack(revision);
     try {
       await AppAPI.RollbackHelmRelease(namespace, releaseName, revision);
+      showSuccess(`Rolled back "${releaseName}" to revision ${revision}`);
       if (onRefresh) onRefresh();
       // Refresh history
       const data = await AppAPI.GetHelmReleaseHistory(namespace, releaseName);
       setHistory(data || []);
     } catch (err) {
-      alert(`Rollback failed: ${err.message || err}`);
+      showError(`Rollback failed: ${err?.message || err}`);
     } finally {
       setRollingBack(null);
     }
@@ -86,7 +80,7 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
               </td>
               <td className="text-muted">{entry.updated}</td>
               <td>
-                <span style={{ color: getStatusColor(entry.status), fontWeight: 500 }}>{entry.status}</span>
+                <StatusBadge status={entry.status || '-'} size="small" showDot={false} />
               </td>
               <td className="text-muted">{entry.chart}</td>
               <td className="text-muted">{entry.appVersion || '-'}</td>

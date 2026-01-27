@@ -277,13 +277,13 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   ];
 
   const bottomTabs = [
-    { key: 'summary', label: 'Summary' },
-    { key: 'boundpv', label: 'Bound PV' },
-    { key: 'consumers', label: 'Consumers' },
-    { key: 'events', label: 'Events' },
-    { key: 'yaml', label: 'YAML' },
-    { key: 'files', label: 'Files' },
-    { key: 'holmes', label: 'Holmes' },
+    { key: 'summary', label: 'Summary', countable: false },
+    { key: 'boundpv', label: 'Bound PV', countable: false },
+    { key: 'consumers', label: 'Consumers', countKey: 'consumers' },
+    { key: 'events', label: 'Events', countKey: 'events' },
+    { key: 'yaml', label: 'YAML', countable: false },
+    { key: 'files', label: 'Files', countable: false },
+    { key: 'holmes', label: 'Holmes', countable: false },
   ];
 
   function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {

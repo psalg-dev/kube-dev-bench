@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { formatDateDMY } from '../../../utils/dateUtils.js';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function IngressTLSTab({ namespace, ingressName }) {
   const [items, setItems] = useState([]);
@@ -53,19 +54,72 @@ export default function IngressTLSTab({ namespace, ingressName }) {
     }
   };
 
+  const columns = useMemo(() => ([
+    { key: 'secretName', label: 'Secret' },
+    { key: 'hosts', label: 'Hosts' },
+    { key: 'notAfter', label: 'Expires' },
+    { key: 'daysRemaining', label: 'Days' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedItems = useMemo(() => {
+    return sortRows(items, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'secretName') return row?.secretName ?? row?.SecretName;
+      if (key === 'hosts') return Array.isArray(row?.hosts ?? row?.Hosts) ? (row?.hosts ?? row?.Hosts).join(', ') : row?.hosts ?? row?.Hosts;
+      if (key === 'notAfter') return row?.notAfter ?? row?.NotAfter;
+      if (key === 'daysRemaining') return row?.daysRemaining ?? row?.DaysRemaining;
+      return row?.[key];
+    });
+  }, [items, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <table className="panel-table">
         <thead>
           <tr>
-            <th>Secret</th>
-            <th>Hosts</th>
-            <th>Expires</th>
-            <th style={{ textAlign: 'right' }}>Days</th>
+            <th aria-sort={sortState.key === 'secretName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'secretName'))}>
+                <span>Secret</span>
+                <span aria-hidden="true">{sortState.key === 'secretName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'hosts' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'hosts'))}>
+                <span>Hosts</span>
+                <span aria-hidden="true">{sortState.key === 'hosts' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'notAfter' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'notAfter'))}>
+                <span>Expires</span>
+                <span aria-hidden="true">{sortState.key === 'notAfter' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th style={{ textAlign: 'right' }} aria-sort={sortState.key === 'daysRemaining' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={{ ...headerButtonStyle, justifyContent: 'flex-end' }} onClick={() => setSortState((cur) => toggleSortState(cur, 'daysRemaining'))}>
+                <span>Days</span>
+                <span aria-hidden="true">{sortState.key === 'daysRemaining' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {items.map((t, idx) => {
+          {sortedItems.map((t, idx) => {
             const secretName = t.secretName ?? t.SecretName ?? '-';
             const hosts = t.hosts ?? t.Hosts ?? [];
             const notAfter = t.notAfter ?? t.NotAfter ?? '-';

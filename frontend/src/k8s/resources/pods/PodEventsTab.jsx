@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GetPodEvents } from '../../../../wailsjs/go/main/App';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function PodEventsTab({ namespace, podName }) {
   const [events, setEvents] = useState([]);
@@ -24,6 +25,32 @@ export default function PodEventsTab({ namespace, podName }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load();   }, [namespace, podName]);
 
+  const columns = useMemo(() => ([
+    { key: 'type', label: 'Type' },
+    { key: 'reason', label: 'Reason' },
+    { key: 'message', label: 'Message' },
+    { key: 'count', label: 'Count' },
+    { key: 'lastTimestamp', label: 'Last Seen' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedEvents = useMemo(() => sortRows(events, sortState.key, sortState.direction), [events, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ padding: '8px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--gh-border, #30363d)', background: 'var(--gh-bg-sidebar, #161b22)' }}>
@@ -39,11 +66,36 @@ export default function PodEventsTab({ namespace, podName }) {
           <table className="panel-table">
             <thead>
               <tr>
-                <th>Type</th>
-                <th>Reason</th>
-                <th>Message</th>
-                <th style={{ textAlign: 'right' }}>Count</th>
-                <th>Last Seen</th>
+                <th aria-sort={sortState.key === 'type' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'type'))}>
+                    <span>Type</span>
+                    <span aria-hidden="true">{sortState.key === 'type' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th aria-sort={sortState.key === 'reason' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'reason'))}>
+                    <span>Reason</span>
+                    <span aria-hidden="true">{sortState.key === 'reason' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th aria-sort={sortState.key === 'message' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'message'))}>
+                    <span>Message</span>
+                    <span aria-hidden="true">{sortState.key === 'message' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th style={{ textAlign: 'right' }} aria-sort={sortState.key === 'count' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={{ ...headerButtonStyle, justifyContent: 'flex-end' }} onClick={() => setSortState((cur) => toggleSortState(cur, 'count'))}>
+                    <span>Count</span>
+                    <span aria-hidden="true">{sortState.key === 'count' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
+                <th aria-sort={sortState.key === 'lastTimestamp' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'lastTimestamp'))}>
+                    <span>Last Seen</span>
+                    <span aria-hidden="true">{sortState.key === 'lastTimestamp' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -52,7 +104,7 @@ export default function PodEventsTab({ namespace, podName }) {
                   <td colSpan={5} style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No events.</td>
                 </tr>
               )}
-              {events.map((e, idx) => (
+              {sortedEvents.map((e, idx) => (
                 <tr key={idx}>
                   <td>{e.type}</td>
                   <td>{e.reason}</td>

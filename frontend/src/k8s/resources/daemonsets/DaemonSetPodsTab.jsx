@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import StatusBadge from '../../../components/StatusBadge.jsx';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
   const [detail, setDetail] = useState(null);
@@ -35,15 +37,6 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No pods found for this DaemonSet.</div>;
   }
 
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'running': return '#2ea44f';
-      case 'pending': return '#e6b800';
-      case 'failed': return '#f85149';
-      default: return '#8b949e';
-    }
-  };
-
   // Group pods by node for visualization
   const podsByNode = {};
   detail.pods.forEach(pod => {
@@ -53,6 +46,34 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
     }
     podsByNode[node].push(pod);
   });
+
+  const columns = useMemo(() => ([
+    { key: 'node', label: 'Node' },
+    { key: 'name', label: 'Pod' },
+    { key: 'status', label: 'Status' },
+    { key: 'ready', label: 'Ready' },
+    { key: 'restarts', label: 'Restarts' },
+    { key: 'age', label: 'Age' },
+    { key: 'ip', label: 'IP' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedPods = useMemo(() => sortRows(detail.pods, sortState.key, sortState.direction), [detail.pods, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
@@ -74,17 +95,52 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
       <table className="panel-table">
         <thead>
           <tr>
-            <th>Node</th>
-            <th>Pod</th>
-            <th>Status</th>
-            <th>Ready</th>
-            <th>Restarts</th>
-            <th>Age</th>
-            <th>IP</th>
+            <th aria-sort={sortState.key === 'node' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'node'))}>
+                <span>Node</span>
+                <span aria-hidden="true">{sortState.key === 'node' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                <span>Pod</span>
+                <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'status' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'status'))}>
+                <span>Status</span>
+                <span aria-hidden="true">{sortState.key === 'status' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'ready' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'ready'))}>
+                <span>Ready</span>
+                <span aria-hidden="true">{sortState.key === 'ready' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'restarts' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'restarts'))}>
+                <span>Restarts</span>
+                <span aria-hidden="true">{sortState.key === 'restarts' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'age' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'age'))}>
+                <span>Age</span>
+                <span aria-hidden="true">{sortState.key === 'age' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'ip' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'ip'))}>
+                <span>IP</span>
+                <span aria-hidden="true">{sortState.key === 'ip' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {detail.pods.map((pod, idx) => (
+          {sortedPods.map((pod, idx) => (
             <tr key={pod.name || idx}>
               <td>
                 <span style={{
@@ -104,13 +160,7 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }) {
                 {pod.name}
               </td>
               <td>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: '50%',
-                    backgroundColor: getStatusColor(pod.status)
-                  }} />
-                  <span>{pod.status}</span>
-                </span>
+                <StatusBadge status={pod.status || '-'} size="small" showDot={false} />
               </td>
               <td>{pod.ready}</td>
               <td style={{ color: pod.restarts > 0 ? '#f85149' : undefined }}>

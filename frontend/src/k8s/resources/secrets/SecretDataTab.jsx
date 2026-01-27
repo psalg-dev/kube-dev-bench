@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { showError, showSuccess } from '../../../notification';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function SecretDataTab({ namespace, secretName }) {
   const [data, setData] = useState([]);
@@ -97,6 +98,36 @@ export default function SecretDataTab({ namespace, secretName }) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const columns = useMemo(() => ([
+    { key: 'key', label: 'Key' },
+    { key: 'value', label: 'Value' },
+    { key: 'size', label: 'Size' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedData = useMemo(() => {
+    return sortRows(data, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'size') return row?.size;
+      if (key === 'value') return decodeValue(row?.value || '');
+      return row?.[key];
+    });
+  }, [data, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   if (loading) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
   }
@@ -129,14 +160,29 @@ export default function SecretDataTab({ namespace, secretName }) {
       <table className="panel-table">
         <thead>
           <tr>
-            <th style={{ width: 200 }}>Key</th>
-            <th>Value</th>
-            <th style={{ textAlign: 'right', width: 80 }}>Size</th>
+            <th style={{ width: 200 }} aria-sort={sortState.key === 'key' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'key'))}>
+                <span>Key</span>
+                <span aria-hidden="true">{sortState.key === 'key' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'value' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'value'))}>
+                <span>Value</span>
+                <span aria-hidden="true">{sortState.key === 'value' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th style={{ textAlign: 'right', width: 80 }} aria-sort={sortState.key === 'size' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={{ ...headerButtonStyle, justifyContent: 'flex-end' }} onClick={() => setSortState((cur) => toggleSortState(cur, 'size'))}>
+                <span>Size</span>
+                <span aria-hidden="true">{sortState.key === 'size' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
             <th style={{ textAlign: 'center', width: 100 }}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((item) => {
+          {sortedData.map((item) => {
             const isVisible = visibleKeys.has(item.key);
             const decodedValue = isVisible ? decodeValue(item.value) : null;
             const isCopied = copiedKey === item.key;

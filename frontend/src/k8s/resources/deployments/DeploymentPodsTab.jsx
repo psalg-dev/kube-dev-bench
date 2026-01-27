@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 export default function DeploymentPodsTab({ namespace, deploymentName }) {
   const [detail, setDetail] = useState(null);
@@ -32,16 +33,6 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
   if (error) {
     return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
   }
-
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'running': return '#2ea44f';
-      case 'succeeded': return '#2ea44f';
-      case 'pending': return '#e6b800';
-      case 'failed': return '#f85149';
-      default: return '#8b949e';
-    }
-  };
 
   const formatDate = (dateStr) => {
     if (!dateStr || dateStr === '-') return '-';
@@ -101,13 +92,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
                   <tr key={pod.name || idx}>
                     <td>{pod.name}</td>
                     <td>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          backgroundColor: getStatusColor(pod.status)
-                        }} />
-                        <span>{pod.status}</span>
-                      </span>
+                      <StatusBadge status={pod.status || '-'} size="small" showDot={false} />
                     </td>
                     <td>{pod.ready}</td>
                     <td>{pod.restarts}</td>

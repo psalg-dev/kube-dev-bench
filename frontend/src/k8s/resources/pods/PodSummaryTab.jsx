@@ -5,6 +5,7 @@ import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import * as AppAPI from '../../../../wailsjs/go/main/App.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 export default function PodSummaryTab({ podName, namespace }) {
   const [data, setData] = useState(null);
@@ -104,32 +105,16 @@ export default function PodSummaryTab({ podName, namespace }) {
     return `${s}s`;
   };
 
-  const statusColors = (status) => {
-    const s = String(status || '').toLowerCase();
-    if (s.includes('run')) return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950', bd: '#30363d' }; // green
-    if (s.includes('pend') || s.includes('init')) return { bg: 'rgba(187,128,9,0.12)', fg: '#d29922', bd: '#30363d' }; // yellow
-    if (s.includes('fail') || s.includes('err') || s.includes('crash')) return { bg: 'rgba(248,81,73,0.12)', fg: '#f85149', bd: '#30363d' }; // red
-    if (s.includes('succ')) return { bg: 'rgba(56,139,253,0.12)', fg: '#58a6ff', bd: '#30363d' }; // blue
-    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey
-  };
-
-  // Helper for init container state colors
-  const getInitContainerStateColors = (state, exitCode) => {
+  // Helper for init container state badges
+  const getInitContainerBadgeStatus = (state, exitCode) => {
     const s = String(state || '').toLowerCase();
     if (s === 'terminated') {
-      // Check exit code: 0 = success, non-zero = error
-      if (exitCode === 0) {
-        return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950', bd: '#30363d' }; // green - completed successfully
-      }
-      return { bg: 'rgba(248,81,73,0.12)', fg: '#f85149', bd: '#30363d' }; // red - failed
+      if (exitCode === 0) return 'succeeded';
+      return 'failed';
     }
-    if (s === 'running') {
-      return { bg: 'rgba(56,139,253,0.12)', fg: '#58a6ff', bd: '#30363d' }; // blue - running
-    }
-    if (s === 'waiting') {
-      return { bg: 'rgba(187,128,9,0.12)', fg: '#d29922', bd: '#30363d' }; // yellow - waiting
-    }
-    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey - unknown/pending
+    if (s === 'running') return 'running';
+    if (s === 'waiting') return 'waiting';
+    return s || 'unknown';
   };
   // Handler for restart (no UI side-effects; ResourceActions shows notifications)
   const handleRestart = async (name, ns) => {
@@ -175,14 +160,7 @@ export default function PodSummaryTab({ podName, namespace }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Status</div>
-                      {(() => {
-                        const c = statusColors(data.status);
-                        return (
-                          <span style={{ display: 'inline-block', padding: '2px 8px', border: `1px solid ${c.bd}`, background: c.bg, color: c.fg }}>
-                            {data.status || '-'}
-                          </span>
-                        );
-                      })()}
+                      <StatusBadge status={data.status || '-'} size="small" showDot={false} />
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
@@ -233,7 +211,7 @@ export default function PodSummaryTab({ podName, namespace }) {
                       <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Init Containers</div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {data.initContainers.map((ic, i) => {
-                          const stateColors = getInitContainerStateColors(ic.state, ic.exitCode);
+                          const badgeStatus = getInitContainerBadgeStatus(ic.state, ic.exitCode);
                           return (
                             <div
                               key={i}
@@ -245,19 +223,14 @@ export default function PodSummaryTab({ podName, namespace }) {
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                                 <span style={{ fontWeight: 500, wordBreak: 'break-all' }}>{ic.name}</span>
-                                <span
-                                  style={{
-                                    display: 'inline-block',
-                                    padding: '2px 6px',
-                                    background: stateColors.bg,
-                                    color: stateColors.fg,
-                                    border: `1px solid ${stateColors.bd}`,
-                                    fontSize: 11,
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {ic.state}{ic.stateReason ? ` (${ic.stateReason})` : ''}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <StatusBadge status={badgeStatus} size="small" showDot={false} />
+                                  {ic.stateReason && (
+                                    <span style={{ fontSize: 11, color: 'var(--gh-text-muted, #8b949e)' }}>
+                                      ({ic.stateReason})
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                               <div style={{ fontSize: 11, color: 'var(--gh-text-muted, #8b949e)', marginTop: 4, wordBreak: 'break-all' }}>
                                 {ic.image}

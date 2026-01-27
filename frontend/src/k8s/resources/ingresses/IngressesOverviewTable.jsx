@@ -25,13 +25,13 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'rules', label: 'Rules' },
-  { key: 'tls', label: 'TLS' },
-  { key: 'services', label: 'Backend Services' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'rules', label: 'Rules', countKey: 'rules' },
+  { key: 'tls', label: 'TLS', countable: false },
+  { key: 'services', label: 'Backend Services', countable: false },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {

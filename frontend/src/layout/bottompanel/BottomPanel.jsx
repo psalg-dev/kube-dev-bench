@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState, forwardRef } from 'react';
+import TabLabel from '../../components/TabLabel';
 
-const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null, children }, ref) {
+/**
+ * BottomPanel component with tab support and count badges.
+ * @param {boolean} open - Whether the panel is open
+ * @param {function} onClose - Callback to close the panel
+ * @param {Object[]} tabs - Array of tab objects { key, label, count?, loading?, countable? }
+ * @param {string} activeTab - Currently active tab key
+ * @param {function} onTabChange - Callback when tab changes
+ * @param {React.ReactNode} headerRight - Content to render on the right side of the header
+ * @param {Object} tabCounts - Object with tab counts keyed by tab key or countKey
+ * @param {boolean} tabCountsLoading - Whether tab counts are currently loading
+ * @param {React.ReactNode} children - Panel content
+ */
+const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], activeTab, onTabChange, headerRight = null, tabCounts = {}, tabCountsLoading = false, children }, ref) {
   const [height, setHeight] = useState(() => {
     try { return Number(localStorage.getItem('bottompanel.height')) || 360; } catch { return 360; }
   });
@@ -80,21 +93,39 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
         borderBottom: '1px solid var(--gh-border, #30363d)'
       }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          {tabs.map(t => (
-            <button key={t.key || t.id}
-              onClick={() => onTabChange && onTabChange(t.key || t.id)}
-              style={{
-                border: '1px solid var(--gh-border, #30363d)',
-                borderBottom: activeTab === (t.key || t.id) ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
-                background: activeTab === (t.key || t.id) ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
-                color: 'var(--gh-text, #c9d1d9)',
-                padding: '6px 10px',
-                cursor: 'pointer',
-                borderRadius: 0,
-                fontSize: 13
-              }}
-            >{t.label}</button>
-          ))}
+          {tabs.map(t => {
+            const tabKey = t.key || t.id;
+            const countKey = t.countKey || tabKey;
+            const count = tabCounts[countKey];
+            const showCount = t.countable !== false && typeof count === 'number';
+            const isLoading = tabCountsLoading && t.countable !== false;
+            const isEmpty = showCount && count === 0;
+            
+            return (
+              <button key={tabKey}
+                onClick={() => onTabChange && onTabChange(tabKey)}
+                data-testid={`tab-${tabKey}`}
+                style={{
+                  border: '1px solid var(--gh-border, #30363d)',
+                  borderBottom: activeTab === tabKey ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
+                  background: activeTab === tabKey ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
+                  color: 'var(--gh-text, #c9d1d9)',
+                  padding: '6px 10px',
+                  cursor: 'pointer',
+                  borderRadius: 0,
+                  fontSize: 13,
+                  opacity: isEmpty && activeTab !== tabKey ? 0.6 : 1
+                }}
+              >
+                <TabLabel 
+                  label={t.label} 
+                  count={count} 
+                  loading={isLoading}
+                  showCount={showCount || isLoading}
+                />
+              </button>
+            );
+          })}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {headerRight}

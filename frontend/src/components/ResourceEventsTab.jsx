@@ -1,5 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
+import EmptyTabContent from './EmptyTabContent';
+import { getEmptyTabMessage } from '../constants/emptyTabMessages';
 import './ResourceEventsTab.css';
 
 /**
@@ -99,9 +101,15 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
   }
 
   if (events.length === 0) {
+    const emptyMsg = getEmptyTabMessage('events');
     return (
       <div className="resource-events-tab">
-        <div className="events-empty">No events found for this {actualKind.toLowerCase()}.</div>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       </div>
     );
   }

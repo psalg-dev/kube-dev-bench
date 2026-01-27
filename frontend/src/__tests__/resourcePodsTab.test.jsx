@@ -149,7 +149,7 @@ describe('ResourcePodsTab', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/no pods/i)).toBeInTheDocument();
+      expect(screen.getByText(/no pods running/i)).toBeInTheDocument();
     });
   });
 
