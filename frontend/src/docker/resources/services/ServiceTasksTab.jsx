@@ -53,14 +53,6 @@ export default function ServiceTasksTab({ serviceId, _serviceName }) {
     };
   }, [serviceId]);
 
-  if (loading) {
-    return <div className="tasks-loading">Loading tasks...</div>;
-  }
-
-  if (tasks.length === 0) {
-    return <div className="tasks-empty">No tasks found for this service.</div>;
-  }
-
   const columns = useMemo(() => ([
     { key: 'id', label: 'Task ID' },
     { key: 'nodeName', label: 'Node' },
@@ -74,6 +66,14 @@ export default function ServiceTasksTab({ serviceId, _serviceName }) {
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
   const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
   const sortedTasks = useMemo(() => sortRows(tasks, sortState.key, sortState.direction), [tasks, sortState]);
+
+  if (loading) {
+    return <div className="tasks-loading">Loading tasks...</div>;
+  }
+
+  if (tasks.length === 0) {
+    return <div className="tasks-empty">No tasks found for this service.</div>;
+  }
 
   const headerButtonStyle = {
     width: '100%',
@@ -155,7 +155,6 @@ export default function ServiceTasksTab({ serviceId, _serviceName }) {
                 onMouseEnter={() => setHoveredRow(task.id)}
                 onMouseLeave={() => setHoveredRow(null)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(task); }}
-                role="button"
                 tabIndex={0}
                 title={`Open task: ${task.id}`}
                 style={{

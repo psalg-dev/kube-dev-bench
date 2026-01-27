@@ -42,6 +42,19 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, statefulSetName]);
 
+  const columns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'status', label: 'Status' },
+    { key: 'capacity', label: 'Capacity' },
+    { key: 'accessModes', label: 'Access Modes' },
+    { key: 'storageClass', label: 'Storage Class' },
+    { key: 'podName', label: 'Pod' },
+    { key: 'age', label: 'Age' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedPvcs = useMemo(() => sortRows(pvcs, sortState.key, sortState.direction), [pvcs, sortState]);
+
   if (loading) {
     return (
       <div className="statefulset-pvcs-tab">
@@ -65,19 +78,6 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
       </div>
     );
   }
-
-  const columns = useMemo(() => ([
-    { key: 'name', label: 'Name' },
-    { key: 'status', label: 'Status' },
-    { key: 'capacity', label: 'Capacity' },
-    { key: 'accessModes', label: 'Access Modes' },
-    { key: 'storageClass', label: 'Storage Class' },
-    { key: 'podName', label: 'Pod' },
-    { key: 'age', label: 'Age' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedPvcs = useMemo(() => sortRows(pvcs, sortState.key, sortState.direction), [pvcs, sortState]);
 
   const headerButtonStyle = {
     width: '100%',

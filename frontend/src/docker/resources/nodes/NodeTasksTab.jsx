@@ -42,14 +42,6 @@ export default function NodeTasksTab({ nodeId, _nodeName }) {
     };
   }, [nodeId]);
 
-  if (loading) {
-    return <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>Loading tasks...</div>;
-  }
-
-  if (tasks.length === 0) {
-    return <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>No tasks running on this node.</div>;
-  }
-
   const columns = useMemo(() => ([
     { key: 'id', label: 'Task ID' },
     { key: 'serviceName', label: 'Service' },
@@ -61,6 +53,14 @@ export default function NodeTasksTab({ nodeId, _nodeName }) {
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
   const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
   const sortedTasks = useMemo(() => sortRows(tasks, sortState.key, sortState.direction), [tasks, sortState]);
+
+  if (loading) {
+    return <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>Loading tasks...</div>;
+  }
+
+  if (tasks.length === 0) {
+    return <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>No tasks running on this node.</div>;
+  }
 
   const headerButtonStyle = {
     width: '100%',
@@ -130,7 +130,6 @@ export default function NodeTasksTab({ nodeId, _nodeName }) {
                 onMouseEnter={() => setHoveredRow(task.id)}
                 onMouseLeave={() => setHoveredRow(null)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(task); }}
-                role="button"
                 tabIndex={0}
                 title={`Open task: ${task.id}`}
                 style={{
