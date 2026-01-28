@@ -81,7 +81,7 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
 
   const isPinned = (config) => {
     return pinnedConnections.some(
-      (c) => c.type === 'kubernetes' && c.id === config.path
+      (c) => c.type === 'kubernetes' && c.id === config.path,
     );
   };
 
@@ -101,7 +101,11 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
 
   const handleHooksSettings = (e, config) => {
     e.stopPropagation();
-    actions.showHooksSettings(true, { type: 'kubernetes', id: config.path, ...config });
+    actions.showHooksSettings(true, {
+      type: 'kubernetes',
+      id: config.path,
+      ...config,
+    });
   };
 
   const hookCountFor = (config) => {
@@ -110,7 +114,11 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
     return list.filter((h) => {
       const scope = h?.scope || 'global';
       if (scope === 'global') return true;
-      return h?.scope === 'connection' && h?.connectionType === 'kubernetes' && h?.connectionId === id;
+      return (
+        h?.scope === 'connection' &&
+        h?.connectionType === 'kubernetes' &&
+        h?.connectionId === id
+      );
     }).length;
   };
 
@@ -119,10 +127,18 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
       {/* Header */}
       <div style={headerStyle}>
         <div>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 24 }}>
+          <h2
+            style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 24 }}
+          >
             ☸️ Kubernetes Connections
           </h2>
-          <p style={{ margin: '8px 0 0', color: 'var(--gh-text-secondary, #ccc)', fontSize: 14 }}>
+          <p
+            style={{
+              margin: '8px 0 0',
+              color: 'var(--gh-text-secondary, #ccc)',
+              fontSize: 14,
+            }}
+          >
             Select a kubeconfig to connect to your cluster
           </p>
         </div>
@@ -162,14 +178,26 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
 
       {/* Loading state */}
       {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gh-text-secondary, #ccc)' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '40px',
+            color: 'var(--gh-text-secondary, #ccc)',
+          }}
+        >
           Loading kubeconfig files...
         </div>
       )}
 
       {/* Empty state */}
       {!loading && displayConfigs.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--gh-text-secondary, #ccc)' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: 'var(--gh-text-secondary, #ccc)',
+          }}
+        >
           <div style={{ fontSize: 48, marginBottom: 16 }}>☸️</div>
           <h3 style={{ margin: '0 0 12px', color: 'var(--gh-text, #fff)' }}>
             No Kubeconfig Files Found
@@ -198,31 +226,68 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
               <div
                 key={config.path}
                 className={`config-item${isSelected ? ' selected' : ''}`}
-                style={isSelected ? selectedCardStyle : isHovered ? cardHoverStyle : cardStyle}
+                style={
+                  isSelected
+                    ? selectedCardStyle
+                    : isHovered
+                      ? cardHoverStyle
+                      : cardStyle
+                }
                 onClick={() => actions.selectKubeConfig(config)}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                  }}
+                >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', color: 'var(--gh-text, #fff)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div
+                      style={{
+                        fontWeight: 'bold',
+                        color: 'var(--gh-text, #fff)',
+                        marginBottom: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
                       {config.name}
                       {pinned && <span style={{ fontSize: 12 }}>📌</span>}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #ccc)', fontFamily: 'monospace', marginBottom: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--gh-text-secondary, #ccc)',
+                        fontFamily: 'monospace',
+                        marginBottom: 4,
+                      }}
+                    >
                       {config.path}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--gh-text-tertiary, #999)' }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--gh-text-tertiary, #999)',
+                      }}
+                    >
                       Contexts: {(config.contexts || []).join(', ') || 'None'}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div
+                    style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+                  >
                     <button
                       onClick={(e) => handleTogglePin(e, config)}
                       style={{
                         background: 'transparent',
                         border: '1px solid var(--gh-border, #444)',
-                        color: pinned ? '#f0c674' : 'var(--gh-text-secondary, #ccc)',
+                        color: pinned
+                          ? '#f0c674'
+                          : 'var(--gh-text-secondary, #ccc)',
                         padding: '4px 8px',
                         borderRadius: 0,
                         cursor: 'pointer',
@@ -249,7 +314,9 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
                     </button>
 
                     <button
-                      id={`kube-hooks-btn-${String(config.path).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)}`}
+                      id={`kube-hooks-btn-${String(config.path)
+                        .replace(/[^a-zA-Z0-9_-]/g, '_')
+                        .slice(0, 40)}`}
                       onClick={(e) => handleHooksSettings(e, config)}
                       style={{
                         background: 'transparent',

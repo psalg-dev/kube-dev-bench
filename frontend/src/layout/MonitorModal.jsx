@@ -3,7 +3,10 @@ import { useState } from 'react';
 export function MonitorModal({ monitorInfo, onClose }) {
   const [activeTab, setActiveTab] = useState('errors');
 
-  const issues = activeTab === 'errors' ? (monitorInfo.errors || []) : (monitorInfo.warnings || []);
+  const issues =
+    activeTab === 'errors'
+      ? monitorInfo.errors || []
+      : monitorInfo.warnings || [];
 
   const handleIssueClick = (issue) => {
     // Emit custom event to navigate to the resource
@@ -12,7 +15,7 @@ export function MonitorModal({ monitorInfo, onClose }) {
         resource: issue.resource,
         name: issue.name,
         namespace: issue.namespace,
-      }
+      },
     });
     window.dispatchEvent(event);
     onClose();
@@ -94,8 +97,14 @@ export function MonitorModal({ monitorInfo, onClose }) {
             onClick={() => setActiveTab('errors')}
             style={{
               background: activeTab === 'errors' ? '#d73a49' : 'transparent',
-              color: activeTab === 'errors' ? '#fff' : 'var(--gh-text-secondary, #8b949e)',
-              border: activeTab === 'errors' ? 'none' : '1px solid var(--gh-border, #30363d)',
+              color:
+                activeTab === 'errors'
+                  ? '#fff'
+                  : 'var(--gh-text-secondary, #8b949e)',
+              border:
+                activeTab === 'errors'
+                  ? 'none'
+                  : '1px solid var(--gh-border, #30363d)',
               borderRadius: '6px',
               padding: '6px 12px',
               fontSize: '14px',
@@ -110,8 +119,14 @@ export function MonitorModal({ monitorInfo, onClose }) {
             onClick={() => setActiveTab('warnings')}
             style={{
               background: activeTab === 'warnings' ? '#dbab09' : 'transparent',
-              color: activeTab === 'warnings' ? '#fff' : 'var(--gh-text-secondary, #8b949e)',
-              border: activeTab === 'warnings' ? 'none' : '1px solid var(--gh-border, #30363d)',
+              color:
+                activeTab === 'warnings'
+                  ? '#fff'
+                  : 'var(--gh-text-secondary, #8b949e)',
+              border:
+                activeTab === 'warnings'
+                  ? 'none'
+                  : '1px solid var(--gh-border, #30363d)',
               borderRadius: '6px',
               padding: '6px 12px',
               fontSize: '14px',
@@ -143,7 +158,9 @@ export function MonitorModal({ monitorInfo, onClose }) {
               No {activeTab} found
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+            >
               {issues.map((issue, index) => {
                 // Build resource path breadcrumb
                 const pathParts = [];
@@ -168,34 +185,51 @@ export function MonitorModal({ monitorInfo, onClose }) {
                       borderRadius: '6px',
                       padding: '14px',
                       cursor: 'pointer',
-                      transition: 'background-color 0.15s ease, transform 0.1s ease',
+                      transition:
+                        'background-color 0.15s ease, transform 0.1s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--gh-bg-tertiary, #1c2128)';
+                      e.currentTarget.style.background =
+                        'var(--gh-bg-tertiary, #1c2128)';
                       e.currentTarget.style.transform = 'translateY(-1px)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'var(--gh-bg-secondary, #161b22)';
+                      e.currentTarget.style.background =
+                        'var(--gh-bg-secondary, #161b22)';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
                     {/* Header with reason and metadata */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', alignItems: 'center' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        marginBottom: '10px',
+                        alignItems: 'center',
+                      }}
+                    >
                       <span
                         style={{
-                          background: issue.type === 'error' ? '#d73a49' : '#dbab09',
+                          background:
+                            issue.type === 'error' ? '#d73a49' : '#dbab09',
                           color: '#fff',
                           borderRadius: '12px',
                           padding: '3px 10px',
                           fontSize: '11px',
                           fontWeight: '600',
                           textTransform: 'uppercase',
-                          letterSpacing: '0.5px'
+                          letterSpacing: '0.5px',
                         }}
                       >
                         {issue.reason}
                       </span>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '8px',
+                          alignItems: 'center',
+                        }}
+                      >
                         <span
                           style={{
                             background: 'var(--gh-bg-tertiary, #1c2128)',
@@ -203,7 +237,7 @@ export function MonitorModal({ monitorInfo, onClose }) {
                             borderRadius: '12px',
                             padding: '2px 8px',
                             fontSize: '11px',
-                            fontWeight: '500'
+                            fontWeight: '500',
                           }}
                         >
                           {issue.namespace}
@@ -213,7 +247,7 @@ export function MonitorModal({ monitorInfo, onClose }) {
                             style={{
                               color: 'var(--gh-text-muted, #8b949e)',
                               fontSize: '11px',
-                              fontWeight: '500'
+                              fontWeight: '500',
                             }}
                           >
                             {issue.age}
@@ -223,45 +257,71 @@ export function MonitorModal({ monitorInfo, onClose }) {
                     </div>
 
                     {/* Resource path breadcrumb */}
-                    <div style={{
-                      marginBottom: '10px',
-                      fontFamily: 'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace',
-                      fontSize: '12px',
-                      color: 'var(--gh-text-primary, #c9d1d9)',
-                      fontWeight: '500',
-                      padding: '6px 8px',
-                      background: 'var(--gh-bg-primary, #0d1117)',
-                      borderRadius: '4px',
-                      border: '1px solid var(--gh-border, #30363d)'
-                    }}>
+                    <div
+                      style={{
+                        marginBottom: '10px',
+                        fontFamily:
+                          'ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace',
+                        fontSize: '12px',
+                        color: 'var(--gh-text-primary, #c9d1d9)',
+                        fontWeight: '500',
+                        padding: '6px 8px',
+                        background: 'var(--gh-bg-primary, #0d1117)',
+                        borderRadius: '4px',
+                        border: '1px solid var(--gh-border, #30363d)',
+                      }}
+                    >
                       {resourcePath}
                     </div>
 
                     {/* Metadata row */}
-                    {(issue.podPhase || issue.nodeName || issue.restartCount > 0) && (
-                      <div style={{
-                        display: 'flex',
-                        gap: '12px',
-                        marginBottom: '10px',
-                        flexWrap: 'wrap'
-                      }}>
+                    {(issue.podPhase ||
+                      issue.nodeName ||
+                      issue.restartCount > 0) && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: '12px',
+                          marginBottom: '10px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
                         {issue.podPhase && (
-                          <span style={{ fontSize: '11px', color: 'var(--gh-text-muted, #8b949e)' }}>
-                            <span style={{ fontWeight: '600' }}>Phase:</span> {issue.podPhase}
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              color: 'var(--gh-text-muted, #8b949e)',
+                            }}
+                          >
+                            <span style={{ fontWeight: '600' }}>Phase:</span>{' '}
+                            {issue.podPhase}
                           </span>
                         )}
                         {issue.nodeName && (
-                          <span style={{ fontSize: '11px', color: 'var(--gh-text-muted, #8b949e)' }}>
-                            <span style={{ fontWeight: '600' }}>Node:</span> {issue.nodeName}
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              color: 'var(--gh-text-muted, #8b949e)',
+                            }}
+                          >
+                            <span style={{ fontWeight: '600' }}>Node:</span>{' '}
+                            {issue.nodeName}
                           </span>
                         )}
                         {issue.restartCount > 0 && (
-                          <span style={{
-                            fontSize: '11px',
-                            color: issue.restartCount > 5 ? '#f85149' : 'var(--gh-text-muted, #8b949e)',
-                            fontWeight: issue.restartCount > 5 ? '600' : '400'
-                          }}>
-                            <span style={{ fontWeight: '600' }}>Restarts:</span> {issue.restartCount}
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              color:
+                                issue.restartCount > 5
+                                  ? '#f85149'
+                                  : 'var(--gh-text-muted, #8b949e)',
+                              fontWeight:
+                                issue.restartCount > 5 ? '600' : '400',
+                            }}
+                          >
+                            <span style={{ fontWeight: '600' }}>Restarts:</span>{' '}
+                            {issue.restartCount}
                           </span>
                         )}
                       </div>
@@ -269,11 +329,13 @@ export function MonitorModal({ monitorInfo, onClose }) {
 
                     {/* Message */}
                     {issue.message && (
-                      <div style={{
-                        color: 'var(--gh-text-secondary, #8b949e)',
-                        fontSize: '13px',
-                        lineHeight: '1.5'
-                      }}>
+                      <div
+                        style={{
+                          color: 'var(--gh-text-secondary, #8b949e)',
+                          fontSize: '13px',
+                          lineHeight: '1.5',
+                        }}
+                      >
                         {issue.message}
                       </div>
                     )}

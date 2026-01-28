@@ -63,8 +63,15 @@ describe('NodeLabelsTab', () => {
 
     fireEvent.click(save);
 
-    await waitFor(() => expect(swarmApiMocks.UpdateSwarmNodeLabels).toHaveBeenCalledWith('node1', { env: 'prod', zone: 'a' }));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Node labels updated');
+    await waitFor(() =>
+      expect(swarmApiMocks.UpdateSwarmNodeLabels).toHaveBeenCalledWith(
+        'node1',
+        { env: 'prod', zone: 'a' },
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Node labels updated',
+    );
   });
 
   it('shows error when API fails', async () => {
@@ -76,6 +83,8 @@ describe('NodeLabelsTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => expect(notificationMocks.showError).toHaveBeenCalled());
-    expect(notificationMocks.showError.mock.calls[0][0]).toContain('Failed to update node labels');
+    expect(notificationMocks.showError.mock.calls[0][0]).toContain(
+      'Failed to update node labels',
+    );
   });
 });

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import './StatusBadge.css';
 
 /**
@@ -63,19 +64,21 @@ function getStatusColor(status) {
 }
 
 function hexToRgba(hex, alpha) {
-  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return `rgba(110,118,129,${alpha})`;
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#'))
+    return `rgba(110,118,129,${alpha})`;
   const normalized = hex.replace('#', '').trim();
   if (normalized.length !== 6) return `rgba(110,118,129,${alpha})`;
   const r = parseInt(normalized.slice(0, 2), 16);
   const g = parseInt(normalized.slice(2, 4), 16);
   const b = parseInt(normalized.slice(4, 6), 16);
-  if ([r, g, b].some((c) => Number.isNaN(c))) return `rgba(110,118,129,${alpha})`;
+  if ([r, g, b].some((c) => Number.isNaN(c)))
+    return `rgba(110,118,129,${alpha})`;
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 /**
  * StatusBadge component for displaying resource status with consistent styling.
- * 
+ *
  * @param {Object} props
  * @param {string} props.status - The status text to display
  * @param {('small'|'medium'|'large')} [props.size='medium'] - Badge size
@@ -105,12 +108,11 @@ export function StatusBadge({
       }}
     >
       {showDot && (
-        <span
-          className="status-dot"
-          style={{ backgroundColor: color }}
-        />
+        <span className="status-dot" style={{ backgroundColor: color }} />
       )}
-      <span className={`status-text ${className}`} style={{ color }}>{displayStatus}</span>
+      <span className={`status-text ${className}`} style={{ color }}>
+        {displayStatus}
+      </span>
     </span>
   );
 }
@@ -118,7 +120,7 @@ export function StatusBadge({
 /**
  * Get the status color for use in other components.
  * Useful when you need just the color without the full badge.
- * 
+ *
  * @param {string} status - The status string
  * @returns {string} The hex color code
  */

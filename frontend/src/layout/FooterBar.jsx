@@ -4,11 +4,27 @@ import { EventsOn } from '../../wailsjs/runtime/runtime.js';
 import MonitorPanel from './MonitorPanel.jsx';
 
 export function FooterBar() {
-  const { selectedContext, selectedNamespaces, clusterConnected, connectionStatus } = useClusterState();
-  const [monitorInfo, setMonitorInfo] = useState({ warningCount: 0, errorCount: 0, warnings: [], errors: [] });
+  const {
+    selectedContext,
+    selectedNamespaces,
+    clusterConnected,
+    connectionStatus,
+  } = useClusterState();
+  const [monitorInfo, setMonitorInfo] = useState({
+    warningCount: 0,
+    errorCount: 0,
+    warnings: [],
+    errors: [],
+  });
   const [showPanel, setShowPanel] = useState(false);
-  const hasHolmesAnalysis = [...(monitorInfo.errors || []), ...(monitorInfo.warnings || [])]
-    .some((issue) => issue.holmesAnalyzed || (issue.holmesAnalysis && issue.holmesAnalysis.length > 0));
+  const hasHolmesAnalysis = [
+    ...(monitorInfo.errors || []),
+    ...(monitorInfo.warnings || []),
+  ].some(
+    (issue) =>
+      issue.holmesAnalyzed ||
+      (issue.holmesAnalysis && issue.holmesAnalysis.length > 0),
+  );
 
   useEffect(() => {
     const unsubscribe = EventsOn('monitor:update', (data) => {
@@ -24,16 +40,17 @@ export function FooterBar() {
   const proxyURL = connectionStatus && connectionStatus.proxyURL;
   const title = !clusterConnected
     ? 'Not connected to cluster'
-    : (connectionStatus && connectionStatus.isInsecure
-        ? 'Insecure connection: TLS certificate validation disabled'
-        : 'Connected');
-  const info = (selectedContext && nsText) ? `${selectedContext} / ${nsText}` : '';
+    : connectionStatus && connectionStatus.isInsecure
+      ? 'Insecure connection: TLS certificate validation disabled'
+      : 'Connected';
+  const info =
+    selectedContext && nsText ? `${selectedContext} / ${nsText}` : '';
 
   return (
     <>
       {/* Monitor badges on the left */}
       <div style={{ display: 'flex', gap: '8px', marginRight: 'auto' }}>
-        {(monitorInfo.errorCount > 0) && (
+        {monitorInfo.errorCount > 0 && (
           <button
             id="monitor-error-badge"
             onClick={() => setShowPanel(true)}
@@ -48,13 +65,15 @@ export function FooterBar() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
             }}
             title={`${monitorInfo.errorCount} error${monitorInfo.errorCount > 1 ? 's' : ''} detected${hasHolmesAnalysis ? ' (Holmes analysis available)' : ''}`}
           >
             <span>⚠</span>
             <span>Errors: {monitorInfo.errorCount}</span>
-            {hasHolmesAnalysis && <span title="Holmes analysis available">🧠</span>}
+            {hasHolmesAnalysis && (
+              <span title="Holmes analysis available">🧠</span>
+            )}
           </button>
         )}
         {monitorInfo.warningCount > 0 && (
@@ -72,13 +91,15 @@ export function FooterBar() {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
             }}
             title={`${monitorInfo.warningCount} warning${monitorInfo.warningCount > 1 ? 's' : ''} detected${hasHolmesAnalysis ? ' (Holmes analysis available)' : ''}`}
           >
             <span>⚡</span>
             <span>Warnings: {monitorInfo.warningCount}</span>
-            {hasHolmesAnalysis && <span title="Holmes analysis available">🧠</span>}
+            {hasHolmesAnalysis && (
+              <span title="Holmes analysis available">🧠</span>
+            )}
           </button>
         )}
       </div>
@@ -97,7 +118,7 @@ export function FooterBar() {
             display: 'flex',
             alignItems: 'center',
             gap: '4px',
-            marginRight: '8px'
+            marginRight: '8px',
           }}
           title={`Proxy: ${proxyURL || 'System proxy'}`}
         >
@@ -107,7 +128,9 @@ export function FooterBar() {
       )}
 
       {/* Connection status on the right */}
-      <span id="footer-dot" title={title}>!</span>
+      <span id="footer-dot" title={title}>
+        !
+      </span>
       <span id="footer-info">{info}</span>
 
       {/* Monitor panel */}

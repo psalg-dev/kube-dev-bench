@@ -25,8 +25,20 @@ describe('SwarmMetricsDashboard', () => {
   it('filters charts by selected time range', async () => {
     const { GetSwarmMetricsHistory } = await import('../docker/swarmApi.js');
     GetSwarmMetricsHistory.mockResolvedValueOnce([
-      { timestamp: iso(10 * 60 * 1000), runningTasks: 1, services: 1, cpuCapacityNano: 1e9, cpuReservationsNano: 5e8 },
-      { timestamp: iso(5 * 60 * 1000), runningTasks: 2, services: 2, cpuCapacityNano: 1e9, cpuReservationsNano: 5e8 },
+      {
+        timestamp: iso(10 * 60 * 1000),
+        runningTasks: 1,
+        services: 1,
+        cpuCapacityNano: 1e9,
+        cpuReservationsNano: 5e8,
+      },
+      {
+        timestamp: iso(5 * 60 * 1000),
+        runningTasks: 2,
+        services: 2,
+        cpuCapacityNano: 1e9,
+        cpuReservationsNano: 5e8,
+      },
     ]);
 
     render(<SwarmMetricsDashboard />);

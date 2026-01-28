@@ -4,7 +4,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 // Mock CreateManifestOverlay to a lightweight stub
 vi.mock('../CreateManifestOverlay', () => ({
   __esModule: true,
-  default: ({ open, kind, platform }) => open ? <div data-testid="create-overlay">overlay-{platform}-{kind}</div> : null,
+  default: ({ open, kind, platform }) =>
+    open ? (
+      <div data-testid="create-overlay">
+        overlay-{platform}-{kind}
+      </div>
+    ) : null,
 }));
 
 vi.mock('../notification.js', () => ({
@@ -23,9 +28,9 @@ vi.mock('../docker/SwarmStateContext.jsx', () => ({
 
 vi.mock('../docker/swarmApi.js', () => ({
   __esModule: true,
-  GetSwarmStacks: vi.fn(() => Promise.resolve([
-    { name: 'demo', services: 2, orchestrator: 'Swarm' },
-  ])),
+  GetSwarmStacks: vi.fn(() =>
+    Promise.resolve([{ name: 'demo', services: 2, orchestrator: 'Swarm' }]),
+  ),
   RemoveSwarmStack: vi.fn(() => Promise.resolve()),
 }));
 
@@ -49,6 +54,8 @@ describe('SwarmStacksOverviewTable', () => {
     fireEvent.click(plusBtn);
 
     expect(showNotification).not.toHaveBeenCalled();
-    expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-swarm-stack');
+    expect(screen.getByTestId('create-overlay')).toHaveTextContent(
+      'overlay-swarm-stack',
+    );
   });
 });

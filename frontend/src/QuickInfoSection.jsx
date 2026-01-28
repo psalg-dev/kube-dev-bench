@@ -11,21 +11,26 @@ function QuickInfoSection({
   loading,
   error,
   onRefresh,
-  fields = []
+  fields = [],
 }) {
   const renderLabels = (labels) => {
     if (!labels || Object.keys(labels).length === 0) return '-';
-    const pairs = Object.keys(labels).sort().map(k => `${k}=${labels[k]}`);
+    const pairs = Object.keys(labels)
+      .sort()
+      .map((k) => `${k}=${labels[k]}`);
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {pairs.map((p, i) => (
-          <span key={i} style={{
-            background: 'rgba(56,139,253,0.12)',
-            border: '1px solid #3c3c3c',
-            padding: '2px 6px',
-            borderRadius: 0,
-            color: '#d4d4d4'
-          }}>
+          <span
+            key={i}
+            style={{
+              background: 'rgba(56,139,253,0.12)',
+              border: '1px solid #3c3c3c',
+              padding: '2px 6px',
+              borderRadius: 0,
+              color: '#d4d4d4',
+            }}
+          >
             {p}
           </span>
         ))}
@@ -52,9 +57,7 @@ function QuickInfoSection({
   const renderFieldValue = (field, value) => {
     // Handle special field types
     if (field.type === 'status' && value) {
-      return (
-        <StatusBadge status={value} size="small" showDot={false} />
-      );
+      return <StatusBadge status={value} size="small" showDot={false} />;
     }
 
     if (field.type === 'age' && value) {
@@ -81,13 +84,16 @@ function QuickInfoSection({
       return (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
           {value.map((item, i) => (
-            <span key={i} style={{
-              background: 'rgba(46,160,67,0.15)',
-              border: '1px solid #3c3c3c',
-              padding: '2px 6px',
-              borderRadius: 0,
-              color: '#3fb950'
-            }}>
+            <span
+              key={i}
+              style={{
+                background: 'rgba(46,160,67,0.15)',
+                border: '1px solid #3c3c3c',
+                padding: '2px 6px',
+                borderRadius: 0,
+                color: '#3fb950',
+              }}
+            >
               {item}
             </span>
           ))}
@@ -103,83 +109,101 @@ function QuickInfoSection({
   };
 
   return (
-    <div style={{
-      width: 320,
-      borderRight: '1px solid #30363d', // Use hard-coded color instead of CSS variable
-      background: '#0d1117', // Use hard-coded color instead of CSS variable
-      display: 'flex',
-      flexDirection: 'column',
-      minWidth: 260,
-      textAlign: 'left'
-    }}>
-      <div style={{
-        height: 44,
-        padding: '0 12px',
-        borderBottom: '1px solid #30363d', // Use hard-coded color
+    <div
+      style={{
+        width: 320,
+        borderRight: '1px solid #30363d', // Use hard-coded color instead of CSS variable
+        background: '#0d1117', // Use hard-coded color instead of CSS variable
         display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        fontWeight: 600,
+        flexDirection: 'column',
+        minWidth: 260,
         textAlign: 'left',
-        background: '#161b22', // Add explicit background
-        color: '#d4d4d4' // Add explicit text color
-      }}>
+      }}
+    >
+      <div
+        style={{
+          height: 44,
+          padding: '0 12px',
+          borderBottom: '1px solid #30363d', // Use hard-coded color
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          fontWeight: 600,
+          textAlign: 'left',
+          background: '#161b22', // Add explicit background
+          color: '#d4d4d4', // Add explicit text color
+        }}
+      >
         Quick info
       </div>
 
-      <div style={{
-        padding: 12,
-        display: 'grid',
-        gridTemplateColumns: '1fr',
-        gap: 10,
-        flex: 1,
-        overflow: 'auto',
-        textAlign: 'left',
-        color: '#d4d4d4' // Add explicit text color
-      }}>
-        {loading && (
-          <div style={{ color: '#858585' }}>Loading…</div>
-        )}
+      <div
+        style={{
+          padding: 12,
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gap: 10,
+          flex: 1,
+          overflow: 'auto',
+          textAlign: 'left',
+          color: '#d4d4d4', // Add explicit text color
+        }}
+      >
+        {loading && <div style={{ color: '#858585' }}>Loading…</div>}
 
-        {error && (
-          <div style={{ color: '#f14c4c' }}>Error: {error}</div>
-        )}
+        {error && <div style={{ color: '#f14c4c' }}>Error: {error}</div>}
 
         {!loading && !error && data && Object.keys(data).length > 0 ? (
           <>
             {fields.map((field, index) => {
-              const value = field.getValue ? field.getValue(data) : data[field.key];
+              const value = field.getValue
+                ? field.getValue(data)
+                : data[field.key];
 
               if (field.layout === 'flex') {
                 // Special layout for fields that should be side by side
                 return (
-                  <div key={index} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    alignItems: 'flex-start'
-                  }}>
+                  <div
+                    key={index}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      alignItems: 'flex-start',
+                    }}
+                  >
                     <div>
-                      <div style={{
-                        fontSize: 12,
-                        color: '#858585',
-                        marginBottom: 4
-                      }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: '#858585',
+                          marginBottom: 4,
+                        }}
+                      >
                         {field.label}
                       </div>
-                      <div style={{ color: '#d4d4d4' }}>{renderFieldValue(field, value)}</div>
+                      <div style={{ color: '#d4d4d4' }}>
+                        {renderFieldValue(field, value)}
+                      </div>
                     </div>
                     {field.rightField && (
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{
-                          fontSize: 12,
-                          color: '#858585',
-                          marginBottom: 4
-                        }}>
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: '#858585',
+                            marginBottom: 4,
+                          }}
+                        >
                           {field.rightField.label}
                         </div>
                         <div style={{ whiteSpace: 'nowrap', color: '#d4d4d4' }}>
-                          {renderFieldValue(field.rightField, field.rightField.getValue ? field.rightField.getValue(data) : data[field.rightField.key])}
+                          {renderFieldValue(
+                            field.rightField,
+                            field.rightField.getValue
+                              ? field.rightField.getValue(data)
+                              : data[field.rightField.key],
+                          )}
                         </div>
                       </div>
                     )}
@@ -189,14 +213,18 @@ function QuickInfoSection({
 
               return (
                 <div key={index}>
-                  <div style={{
-                    fontSize: 12,
-                    color: '#858585',
-                    marginBottom: 4
-                  }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: '#858585',
+                      marginBottom: 4,
+                    }}
+                  >
                     {field.label}
                   </div>
-                  <div style={{ color: '#d4d4d4' }}>{renderFieldValue(field, value)}</div>
+                  <div style={{ color: '#d4d4d4' }}>
+                    {renderFieldValue(field, value)}
+                  </div>
                 </div>
               );
             })}
@@ -212,7 +240,7 @@ function QuickInfoSection({
                     color: '#3794ff',
                     border: '1px solid #3c3c3c',
                     cursor: loading ? 'default' : 'pointer',
-                    opacity: loading ? 0.6 : 1
+                    opacity: loading ? 0.6 : 1,
                   }}
                 >
                   {loading ? 'Refreshing…' : 'Refresh'}
@@ -221,9 +249,7 @@ function QuickInfoSection({
             )}
           </>
         ) : (
-          <div style={{ color: '#858585' }}>
-            No data available.
-          </div>
+          <div style={{ color: '#858585' }}>No data available.</div>
         )}
       </div>
     </div>

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
 const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
@@ -37,7 +44,8 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
 
         <div data-testid="rows">
           {rows.map((row) => {
-            const actions = typeof getRowActions === 'function' ? getRowActions(row) : [];
+            const actions =
+              typeof getRowActions === 'function' ? getRowActions(row) : [];
             return (
               <div key={row.id} data-testid={`row-${row.id}`}>
                 <div data-testid={`name-${row.id}`}>{row.name}</div>
@@ -45,9 +53,14 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                 <div data-testid={`cells-${row.id}`}>
                   {(columns || []).map((col) => {
                     const rawValue = row[col.key];
-                    const content = col.cell ? col.cell({ getValue: () => rawValue }) : rawValue ?? '-';
+                    const content = col.cell
+                      ? col.cell({ getValue: () => rawValue })
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.id}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.id}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -67,7 +80,9 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                   ))}
                 </div>
 
-                <div data-testid={`panel-${row.id}`}>{renderPanelContent?.(row, 'summary')}</div>
+                <div data-testid={`panel-${row.id}`}>
+                  {renderPanelContent?.(row, 'summary')}
+                </div>
               </div>
             );
           })}
@@ -104,17 +119,23 @@ vi.mock('../docker/resources/SwarmResourceActions.jsx', () => ({
   },
 }));
 
-vi.mock('../docker/resources/networks/NetworkConnectedServicesSection.jsx', () => ({
-  default: function NetworkConnectedServicesSectionMock() {
-    return <div data-testid="connected-services" />;
-  },
-}));
+vi.mock(
+  '../docker/resources/networks/NetworkConnectedServicesSection.jsx',
+  () => ({
+    default: function NetworkConnectedServicesSectionMock() {
+      return <div data-testid="connected-services" />;
+    },
+  }),
+);
 
-vi.mock('../docker/resources/networks/NetworkConnectedContainersTable.jsx', () => ({
-  default: function NetworkConnectedContainersTableMock() {
-    return <div data-testid="connected-containers" />;
-  },
-}));
+vi.mock(
+  '../docker/resources/networks/NetworkConnectedContainersTable.jsx',
+  () => ({
+    default: function NetworkConnectedContainersTableMock() {
+      return <div data-testid="connected-containers" />;
+    },
+  }),
+);
 
 vi.mock('../docker/resources/networks/NetworkInspectTab.jsx', () => ({
   default: function NetworkInspectTabMock() {
@@ -180,10 +201,16 @@ describe('SwarmNetworksOverviewTable', () => {
     expect(await screen.findByTestId('row-net1')).toBeInTheDocument();
     expect(screen.getByTestId('name-net2')).toHaveTextContent('app-net');
 
-    const deleteBuiltIn = within(screen.getByTestId('actions-net1')).getByRole('button', { name: 'Delete' });
+    const deleteBuiltIn = within(screen.getByTestId('actions-net1')).getByRole(
+      'button',
+      { name: 'Delete' },
+    );
     expect(deleteBuiltIn).toBeDisabled();
 
-    const deleteCustom = within(screen.getByTestId('actions-net2')).getByRole('button', { name: 'Delete' });
+    const deleteCustom = within(screen.getByTestId('actions-net2')).getByRole(
+      'button',
+      { name: 'Delete' },
+    );
     expect(deleteCustom).not.toBeDisabled();
 
     // scope cell highlights swarm scope
@@ -191,16 +218,26 @@ describe('SwarmNetworksOverviewTable', () => {
   });
 
   it('deletes a custom network via row action', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmNetworksOverviewTable />);
     await screen.findByTestId('row-net2');
 
-    const deleteCustom = within(screen.getByTestId('actions-net2')).getByRole('button', { name: 'Delete' });
+    const deleteCustom = within(screen.getByTestId('actions-net2')).getByRole(
+      'button',
+      { name: 'Delete' },
+    );
     fireEvent.click(deleteCustom);
 
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmNetwork).toHaveBeenCalledWith('net2'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Network app-net removed');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmNetwork).toHaveBeenCalledWith('net2'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Network app-net removed',
+    );
   });
 
   it('deletes a custom network via panel SwarmResourceActions', async () => {
@@ -211,8 +248,12 @@ describe('SwarmNetworksOverviewTable', () => {
     const btn = within(panel).getByRole('button', { name: 'Delete' });
     fireEvent.click(btn);
 
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmNetwork).toHaveBeenCalledWith('net2'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Network app-net removed');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmNetwork).toHaveBeenCalledWith('net2'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Network app-net removed',
+    );
   });
 
   it('applies runtime updates when swarm:networks:update emits an array', async () => {

@@ -40,9 +40,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       expect(container.firstChild).toBeNull();
     });
 
@@ -53,9 +53,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText(/Compare configs/i)).toBeInTheDocument();
       });
@@ -68,9 +68,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText(/config-one/)).toBeInTheDocument();
       });
@@ -83,9 +83,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText('Close')).toBeInTheDocument();
       });
@@ -98,9 +98,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText('Compare against:')).toBeInTheDocument();
       });
@@ -115,9 +115,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByRole('combobox')).toBeInTheDocument();
       });
@@ -130,9 +130,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText('(select a config)')).toBeInTheDocument();
       });
@@ -145,9 +145,9 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         const select = screen.getByRole('combobox');
         const options = select.querySelectorAll('option');
@@ -167,7 +167,7 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
 
       await waitFor(() => {
@@ -176,7 +176,9 @@ describe('ConfigCompareModal', () => {
 
       GetSwarmConfigData.mockResolvedValue('other config content');
 
-      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'config-2' } });
+      fireEvent.change(screen.getByRole('combobox'), {
+        target: { value: 'config-2' },
+      });
 
       await waitFor(() => {
         // Should have called API for both base and other config
@@ -194,14 +196,16 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
 
       await waitFor(() => {
         expect(screen.getByRole('combobox')).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByRole('combobox'), { target: { value: 'config-2' } });
+      fireEvent.change(screen.getByRole('combobox'), {
+        target: { value: 'config-2' },
+      });
 
       await waitFor(() => {
         expect(screen.getByText(/showing unified diff/i)).toBeInTheDocument();
@@ -212,7 +216,7 @@ describe('ConfigCompareModal', () => {
   describe('button interactions', () => {
     it('calls onClose when Close button clicked', async () => {
       const onClose = vi.fn();
-      
+
       render(
         <ConfigCompareModal
           open={true}
@@ -220,21 +224,21 @@ describe('ConfigCompareModal', () => {
           baseConfigName="config-one"
           configs={mockConfigs}
           onClose={onClose}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText('Close')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Close'));
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
     it('calls onClose when clicking overlay', async () => {
       const onClose = vi.fn();
-      
+
       const { container } = render(
         <ConfigCompareModal
           open={true}
@@ -242,22 +246,22 @@ describe('ConfigCompareModal', () => {
           baseConfigName="config-one"
           configs={mockConfigs}
           onClose={onClose}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText('Close')).toBeInTheDocument();
       });
 
       // Click the overlay (outermost div)
       fireEvent.click(container.firstChild);
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
     it('does not call onClose when clicking modal content', async () => {
       const onClose = vi.fn();
-      
+
       render(
         <ConfigCompareModal
           open={true}
@@ -265,16 +269,16 @@ describe('ConfigCompareModal', () => {
           baseConfigName="config-one"
           configs={mockConfigs}
           onClose={onClose}
-        />
+        />,
       );
-      
+
       await waitFor(() => {
         expect(screen.getByText('Close')).toBeInTheDocument();
       });
 
       // Click on modal text content
       fireEvent.click(screen.getByText(/Compare configs/i));
-      
+
       expect(onClose).not.toHaveBeenCalled();
     });
   });
@@ -282,9 +286,12 @@ describe('ConfigCompareModal', () => {
   describe('loading and error states', () => {
     it('shows loading state while fetching base config', async () => {
       let resolvePromise;
-      GetSwarmConfigData.mockImplementation(() => new Promise((resolve) => {
-        resolvePromise = resolve;
-      }));
+      GetSwarmConfigData.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolvePromise = resolve;
+          }),
+      );
 
       render(
         <ConfigCompareModal
@@ -292,7 +299,7 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
 
       expect(screen.getByText('Loading config data...')).toBeInTheDocument();
@@ -301,7 +308,9 @@ describe('ConfigCompareModal', () => {
       resolvePromise('config content');
 
       await waitFor(() => {
-        expect(screen.queryByText('Loading config data...')).not.toBeInTheDocument();
+        expect(
+          screen.queryByText('Loading config data...'),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -314,7 +323,7 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
 
       await waitFor(() => {
@@ -333,11 +342,13 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={mockConfigs}
-        />
+        />,
       );
 
       await waitFor(() => {
-        expect(screen.getByTestId('content')).toHaveTextContent('Select a config to compare.');
+        expect(screen.getByTestId('content')).toHaveTextContent(
+          'Select a config to compare.',
+        );
       });
     });
   });
@@ -352,7 +363,7 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={[]}
-        />
+        />,
       );
 
       await waitFor(() => {
@@ -372,7 +383,7 @@ describe('ConfigCompareModal', () => {
           baseConfigId="config-1"
           baseConfigName="config-one"
           configs={null}
-        />
+        />,
       );
 
       await waitFor(() => {

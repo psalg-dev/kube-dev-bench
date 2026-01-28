@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 import { eventsOnMock, resetAllMocks, appApiMocks } from './wailsMocks';
 import FooterBar from '../layout/FooterBar.jsx';
 import MonitorPanel from '../layout/MonitorPanel.jsx';
@@ -34,7 +40,10 @@ describe('FooterBar monitoring badges', () => {
 
   it('listens to monitor:update events', () => {
     render(<FooterBar />);
-    expect(eventsOnMock).toHaveBeenCalledWith('monitor:update', expect.any(Function));
+    expect(eventsOnMock).toHaveBeenCalledWith(
+      'monitor:update',
+      expect.any(Function),
+    );
   });
 
   it('displays error badge when errors present', async () => {
@@ -53,8 +62,22 @@ describe('FooterBar monitoring badges', () => {
       errorCount: 2,
       warningCount: 0,
       errors: [
-        { type: 'error', resource: 'Pod', name: 'test-pod', namespace: 'default', reason: 'CrashLoopBackOff', message: 'Container crashed' },
-        { type: 'error', resource: 'Pod', name: 'test-pod-2', namespace: 'default', reason: 'ImagePullBackOff', message: 'Image not found' },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'test-pod',
+          namespace: 'default',
+          reason: 'CrashLoopBackOff',
+          message: 'Container crashed',
+        },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'test-pod-2',
+          namespace: 'default',
+          reason: 'ImagePullBackOff',
+          message: 'Image not found',
+        },
       ],
       warnings: [],
     };
@@ -84,7 +107,14 @@ describe('FooterBar monitoring badges', () => {
       warningCount: 1,
       errors: [],
       warnings: [
-        { type: 'warning', resource: 'Pod', name: 'test-pod', namespace: 'default', reason: 'FailedScheduling', message: '0/1 nodes available' },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'test-pod',
+          namespace: 'default',
+          reason: 'FailedScheduling',
+          message: '0/1 nodes available',
+        },
       ],
     };
     act(() => {
@@ -112,16 +142,72 @@ describe('FooterBar monitoring badges', () => {
       errorCount: 3,
       warningCount: 5,
       errors: [
-        { type: 'error', resource: 'Pod', name: 'pod1', namespace: 'default', reason: 'CrashLoopBackOff', message: 'Crashed' },
-        { type: 'error', resource: 'Pod', name: 'pod2', namespace: 'default', reason: 'ImagePullBackOff', message: 'Image error' },
-        { type: 'error', resource: 'Pod', name: 'pod3', namespace: 'default', reason: 'PodFailed', message: 'Failed' },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'pod1',
+          namespace: 'default',
+          reason: 'CrashLoopBackOff',
+          message: 'Crashed',
+        },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'pod2',
+          namespace: 'default',
+          reason: 'ImagePullBackOff',
+          message: 'Image error',
+        },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'pod3',
+          namespace: 'default',
+          reason: 'PodFailed',
+          message: 'Failed',
+        },
       ],
       warnings: [
-        { type: 'warning', resource: 'Pod', name: 'pod4', namespace: 'default', reason: 'FailedScheduling', message: 'No nodes' },
-        { type: 'warning', resource: 'Pod', name: 'pod5', namespace: 'default', reason: 'BackOff', message: 'Back-off' },
-        { type: 'warning', resource: 'Pod', name: 'pod6', namespace: 'default', reason: 'HighRestarts', message: 'Restarting' },
-        { type: 'warning', resource: 'Pod', name: 'pod7', namespace: 'default', reason: 'Warning1', message: 'Warn1' },
-        { type: 'warning', resource: 'Pod', name: 'pod8', namespace: 'default', reason: 'Warning2', message: 'Warn2' },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'pod4',
+          namespace: 'default',
+          reason: 'FailedScheduling',
+          message: 'No nodes',
+        },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'pod5',
+          namespace: 'default',
+          reason: 'BackOff',
+          message: 'Back-off',
+        },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'pod6',
+          namespace: 'default',
+          reason: 'HighRestarts',
+          message: 'Restarting',
+        },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'pod7',
+          namespace: 'default',
+          reason: 'Warning1',
+          message: 'Warn1',
+        },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'pod8',
+          namespace: 'default',
+          reason: 'Warning2',
+          message: 'Warn2',
+        },
       ],
     };
     act(() => {
@@ -149,7 +235,14 @@ describe('FooterBar monitoring badges', () => {
       errorCount: 1,
       warningCount: 0,
       errors: [
-        { type: 'error', resource: 'Pod', name: 'test-pod', namespace: 'default', reason: 'CrashLoopBackOff', message: 'Container crashed' },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'test-pod',
+          namespace: 'default',
+          reason: 'CrashLoopBackOff',
+          message: 'Container crashed',
+        },
       ],
       warnings: [],
     };
@@ -191,7 +284,7 @@ describe('MonitorPanel', () => {
         podPhase: 'Running',
         ownerKind: 'Deployment',
         ownerName: 'my-app',
-        nodeName: 'node-1'
+        nodeName: 'node-1',
       },
       {
         issueID: 'issue-2',
@@ -207,7 +300,7 @@ describe('MonitorPanel', () => {
         podPhase: 'Pending',
         ownerKind: 'DaemonSet',
         ownerName: 'kube-proxy',
-        nodeName: 'node-2'
+        nodeName: 'node-2',
       },
     ],
     warnings: [
@@ -225,14 +318,20 @@ describe('MonitorPanel', () => {
         podPhase: 'Pending',
         ownerKind: 'ReplicaSet',
         ownerName: 'backend-abc123',
-        nodeName: ''
+        nodeName: '',
       },
     ],
   };
 
   it('renders panel with errors tab active by default', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     expect(screen.getByText(/Errors \(2\)/)).toBeInTheDocument();
     expect(screen.getByText(/Warnings \(1\)/)).toBeInTheDocument();
@@ -240,27 +339,51 @@ describe('MonitorPanel', () => {
 
   it('displays error issues in errors tab', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
-    expect(screen.getByText(/Deployment\/my-app.*Pod\/crash-pod/)).toBeInTheDocument();
-    expect(screen.getByText(/DaemonSet\/kube-proxy.*Pod\/image-pod/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Deployment\/my-app.*Pod\/crash-pod/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/DaemonSet\/kube-proxy.*Pod\/image-pod/),
+    ).toBeInTheDocument();
     expect(screen.getByText('Container keeps crashing')).toBeInTheDocument();
   });
 
   it('switches to warnings tab', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     const warningsTab = screen.getByText(/Warnings \(1\)/).closest('button');
     fireEvent.click(warningsTab);
 
-    expect(screen.getByText(/ReplicaSet\/backend-abc123.*Pod\/warn-pod/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/ReplicaSet\/backend-abc123.*Pod\/warn-pod/),
+    ).toBeInTheDocument();
     expect(screen.getByText('No nodes available')).toBeInTheDocument();
   });
 
   it('closes panel when close button is clicked', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     const closeButton = screen.getByTitle('Close');
     fireEvent.click(closeButton);
@@ -277,7 +400,13 @@ describe('MonitorPanel', () => {
       warnings: [],
     });
 
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     fireEvent.click(screen.getByText('Scan Now'));
     await waitFor(() => {
@@ -292,7 +421,13 @@ describe('MonitorPanel', () => {
 
   it('shows Prometheus Alerts tab content', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     fireEvent.click(screen.getByText('Prometheus Alerts'));
     expect(screen.getByPlaceholderText(/Prometheus URL/i)).toBeInTheDocument();
@@ -308,7 +443,13 @@ describe('MonitorPanel', () => {
     });
     appApiMocks.DismissMonitorIssue.mockResolvedValueOnce();
 
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     fireEvent.click(screen.getAllByText('Analyze')[0]);
     await waitFor(() => {
@@ -332,7 +473,13 @@ describe('MonitorPanel', () => {
   it('shows "No errors found" when errors tab is empty', () => {
     const onClose = vi.fn();
     const emptyErrorsInfo = { ...mockMonitorInfo, errorCount: 0, errors: [] };
-    render(<MonitorPanel monitorInfo={emptyErrorsInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={emptyErrorsInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     // Smart pre-selection will show warnings tab when no errors exist, so switch to errors tab
     const errorsTab = screen.getByText(/Errors \(0\)/).closest('button');
@@ -343,8 +490,18 @@ describe('MonitorPanel', () => {
 
   it('shows "No warnings found" when warnings tab is empty', () => {
     const onClose = vi.fn();
-    const emptyWarningsInfo = { ...mockMonitorInfo, warningCount: 0, warnings: [] };
-    render(<MonitorPanel monitorInfo={emptyWarningsInfo} open={true} onClose={onClose} />);
+    const emptyWarningsInfo = {
+      ...mockMonitorInfo,
+      warningCount: 0,
+      warnings: [],
+    };
+    render(
+      <MonitorPanel
+        monitorInfo={emptyWarningsInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     // Switch to warnings tab
     const warningsTab = screen.getByText(/Warnings \(0\)/).closest('button');
@@ -355,14 +512,22 @@ describe('MonitorPanel', () => {
 
   it('emits navigate-to-resource event and closes panel when issue is clicked', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     // Set up event listener
     const eventHandler = vi.fn();
     window.addEventListener('navigate-to-resource', eventHandler);
 
     // Click on an issue
-    const issueItem = screen.getByText('CrashLoopBackOff').closest('.monitor-issue-card');
+    const issueItem = screen
+      .getByText('CrashLoopBackOff')
+      .closest('.monitor-issue-card');
     fireEvent.click(issueItem);
 
     // Verify event was emitted with correct data
@@ -381,19 +546,35 @@ describe('MonitorPanel', () => {
 
   it('shows pointer cursor on hover for issue items', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
-    const issueItem = screen.getByText('CrashLoopBackOff').closest('.monitor-issue-card');
+    const issueItem = screen
+      .getByText('CrashLoopBackOff')
+      .closest('.monitor-issue-card');
 
     expect(issueItem).toHaveClass('monitor-issue-card');
   });
 
   it('displays enriched information including resource path and metadata', () => {
     const onClose = vi.fn();
-    render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={mockMonitorInfo}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     // Check resource path breadcrumb for first error (with owner)
-    expect(screen.getByText(/Deployment\/my-app.*Pod\/crash-pod.*app/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Deployment\/my-app.*Pod\/crash-pod.*app/),
+    ).toBeInTheDocument();
 
     // Check age is displayed
     expect(screen.getByText('5m')).toBeInTheDocument();
@@ -413,14 +594,41 @@ describe('MonitorPanel', () => {
       errorCount: 1,
       warningCount: 2,
       errors: [
-        { type: 'error', resource: 'Pod', name: 'error-pod', namespace: 'default', reason: 'Error', message: 'Test error' },
+        {
+          type: 'error',
+          resource: 'Pod',
+          name: 'error-pod',
+          namespace: 'default',
+          reason: 'Error',
+          message: 'Test error',
+        },
       ],
       warnings: [
-        { type: 'warning', resource: 'Pod', name: 'warn-pod-1', namespace: 'default', reason: 'Warning', message: 'Test warning 1' },
-        { type: 'warning', resource: 'Pod', name: 'warn-pod-2', namespace: 'default', reason: 'Warning', message: 'Test warning 2' },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'warn-pod-1',
+          namespace: 'default',
+          reason: 'Warning',
+          message: 'Test warning 1',
+        },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'warn-pod-2',
+          namespace: 'default',
+          reason: 'Warning',
+          message: 'Test warning 2',
+        },
       ],
     };
-    render(<MonitorPanel monitorInfo={monitorInfoWithBoth} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={monitorInfoWithBoth}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     // Error content should be visible (errors tab is pre-selected)
     expect(screen.getByText('Test error')).toBeInTheDocument();
@@ -436,10 +644,23 @@ describe('MonitorPanel', () => {
       warningCount: 1,
       errors: [],
       warnings: [
-        { type: 'warning', resource: 'Pod', name: 'warn-pod', namespace: 'default', reason: 'Warning', message: 'Test warning' },
+        {
+          type: 'warning',
+          resource: 'Pod',
+          name: 'warn-pod',
+          namespace: 'default',
+          reason: 'Warning',
+          message: 'Test warning',
+        },
       ],
     };
-    render(<MonitorPanel monitorInfo={monitorInfoOnlyWarnings} open={true} onClose={onClose} />);
+    render(
+      <MonitorPanel
+        monitorInfo={monitorInfoOnlyWarnings}
+        open={true}
+        onClose={onClose}
+      />,
+    );
 
     // Warning content should be visible (warnings tab is pre-selected)
     expect(screen.getByText('Test warning')).toBeInTheDocument();

@@ -18,7 +18,9 @@ const SwarmConnectionWizard = ({ onComplete }) => {
   // Detect platform and set default host
   useEffect(() => {
     const isWindows = navigator.platform.toLowerCase().includes('win');
-    const defaultHost = isWindows ? 'npipe:////./pipe/docker_engine' : 'unix:///var/run/docker.sock';
+    const defaultHost = isWindows
+      ? 'npipe:////./pipe/docker_engine'
+      : 'unix:///var/run/docker.sock';
     setHost(defaultHost);
 
     // Load saved config if available
@@ -45,7 +47,11 @@ const SwarmConnectionWizard = ({ onComplete }) => {
 
     if (type === 'local') {
       const isWindows = navigator.platform.toLowerCase().includes('win');
-      setHost(isWindows ? 'npipe:////./pipe/docker_engine' : 'unix:///var/run/docker.sock');
+      setHost(
+        isWindows
+          ? 'npipe:////./pipe/docker_engine'
+          : 'unix:///var/run/docker.sock',
+      );
       setTlsEnabled(false);
     } else if (type === 'tcp') {
       setHost('tcp://localhost:2375');
@@ -161,7 +167,10 @@ const SwarmConnectionWizard = ({ onComplete }) => {
     <div style={{ marginBottom: 24 }}>
       <label style={labelStyle}>Connection Type</label>
       <div
-        style={{ ...radioStyle, borderColor: connectionType === 'local' ? '#238636' : undefined }}
+        style={{
+          ...radioStyle,
+          borderColor: connectionType === 'local' ? '#238636' : undefined,
+        }}
         onClick={() => handleConnectionTypeChange('local')}
       >
         <input
@@ -177,7 +186,10 @@ const SwarmConnectionWizard = ({ onComplete }) => {
         </div>
       </div>
       <div
-        style={{ ...radioStyle, borderColor: connectionType === 'tcp' ? '#238636' : undefined }}
+        style={{
+          ...radioStyle,
+          borderColor: connectionType === 'tcp' ? '#238636' : undefined,
+        }}
         onClick={() => handleConnectionTypeChange('tcp')}
       >
         <input
@@ -193,7 +205,10 @@ const SwarmConnectionWizard = ({ onComplete }) => {
         </div>
       </div>
       <div
-        style={{ ...radioStyle, borderColor: connectionType === 'tls' ? '#238636' : undefined }}
+        style={{
+          ...radioStyle,
+          borderColor: connectionType === 'tls' ? '#238636' : undefined,
+        }}
         onClick={() => handleConnectionTypeChange('tls')}
       >
         <input
@@ -219,9 +234,19 @@ const SwarmConnectionWizard = ({ onComplete }) => {
         value={host}
         onChange={(e) => setHost(e.target.value)}
         style={inputStyle}
-        placeholder={connectionType === 'local' ? 'unix:///var/run/docker.sock' : 'tcp://hostname:port'}
+        placeholder={
+          connectionType === 'local'
+            ? 'unix:///var/run/docker.sock'
+            : 'tcp://hostname:port'
+        }
       />
-      <div style={{ fontSize: 12, color: 'var(--gh-text-secondary)', marginTop: 4 }}>
+      <div
+        style={{
+          fontSize: 12,
+          color: 'var(--gh-text-secondary)',
+          marginTop: 4,
+        }}
+      >
         {connectionType === 'local' && 'Path to Docker socket'}
         {connectionType === 'tcp' && 'Format: tcp://hostname:2375'}
         {connectionType === 'tls' && 'Format: tcp://hostname:2376'}
@@ -233,7 +258,14 @@ const SwarmConnectionWizard = ({ onComplete }) => {
     if (!tlsEnabled) return null;
 
     return (
-      <div style={{ marginTop: 16, padding: 16, backgroundColor: 'var(--gh-card-bg)', borderRadius: 6 }}>
+      <div
+        style={{
+          marginTop: 16,
+          padding: 16,
+          backgroundColor: 'var(--gh-card-bg)',
+          borderRadius: 6,
+        }}
+      >
         <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>CA Certificate Path</label>
           <input
@@ -283,7 +315,9 @@ const SwarmConnectionWizard = ({ onComplete }) => {
     if (!testResult) return null;
 
     const isSuccess = testResult.connected;
-    const bgColor = isSuccess ? 'rgba(35, 134, 54, 0.15)' : 'rgba(215, 58, 73, 0.15)';
+    const bgColor = isSuccess
+      ? 'rgba(35, 134, 54, 0.15)'
+      : 'rgba(215, 58, 73, 0.15)';
     const borderColor = isSuccess ? '#238636' : '#d73a49';
     const textColor = isSuccess ? '#3fb950' : '#f85149';
 
@@ -307,13 +341,17 @@ const SwarmConnectionWizard = ({ onComplete }) => {
             {testResult.swarmActive && (
               <>
                 <div>Manager Node: {testResult.isManager ? 'Yes' : 'No'}</div>
-                {testResult.nodeId && <div>Node ID: {testResult.nodeId.substring(0, 12)}...</div>}
+                {testResult.nodeId && (
+                  <div>Node ID: {testResult.nodeId.substring(0, 12)}...</div>
+                )}
               </>
             )}
           </div>
         )}
         {!isSuccess && testResult.error && (
-          <div style={{ fontSize: 13, color: '#f85149' }}>{testResult.error}</div>
+          <div style={{ fontSize: 13, color: '#f85149' }}>
+            {testResult.error}
+          </div>
         )}
       </div>
     );
@@ -367,8 +405,16 @@ const SwarmConnectionWizard = ({ onComplete }) => {
             🐳
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, color: 'var(--gh-text)' }}>Connect to Docker</h2>
-            <p style={{ margin: 0, fontSize: 13, color: 'var(--gh-text-secondary)' }}>
+            <h2 style={{ margin: 0, fontSize: 18, color: 'var(--gh-text)' }}>
+              Connect to Docker
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                fontSize: 13,
+                color: 'var(--gh-text-secondary)',
+              }}
+            >
               Configure Docker Swarm connection
             </p>
           </div>

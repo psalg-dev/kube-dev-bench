@@ -1,8 +1,11 @@
 package app
 
 import (
+	"net/http"
 	"os"
 	"testing"
+
+	"k8s.io/client-go/rest"
 )
 
 func TestSetProxyConfig(t *testing.T) {
@@ -238,6 +241,85 @@ func TestIsProxyEnabled(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetProxyURL(t *testing.T) {
+	app := &App{proxyURL: "http://proxy:8080", proxyAuthType: "basic"}
+	if got := app.getProxyURL(); got != "http://proxy:8080" {
+		t.Fatalf("expected proxy URL, got %q", got)
+	}
+
+	app.proxyAuthType = "none"
+	if got := app.getProxyURL(); got != "http://proxy:8080" {
+		t.Fatalf("expected proxy URL for none, got %q", got)
+	}
+
+	app.proxyAuthType = "system"
+	if got := app.getProxyURL(); got != "" {
+		t.Fatalf("expected empty proxy URL for system, got %q", got)
+	}
+
+	app.proxyAuthType = "unknown"
+	if got := app.getProxyURL(); got != "" {
+		t.Fatalf("expected empty proxy URL for unknown, got %q", got)
+	}
+}
+
+func TestApplyProxyConfig(t *testing.T) {
+	t.Run("systemProxyDoesNotOverride", func(t *testing.T) {
+		app := &App{proxyAuthType: "system"}
+		restConfig := &rest.Config{}
+		app.applyProxyConfig(restConfig)
+		if restConfig.Proxy != nil {
+			t.Fatalf("expected proxy func to remain nil for system proxy")
+		}
+	})
+
+	t.Run("noneDisablesProxy", func(t *testing.T) {
+		app := &App{proxyAuthType: "none"}
+		restConfig := &rest.Config{}
+		app.applyProxyConfig(restConfig)
+		if restConfig.Proxy == nil {
+			t.Fatalf("expected proxy func to be set")
+		}
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
+		proxyURL, err := restConfig.Proxy(req)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if proxyURL != nil {
+			t.Fatalf("expected nil proxy url, got %v", proxyURL)
+		}
+	})
+
+	t.Run("basicAuthProxy", func(t *testing.T) {
+		app := &App{proxyAuthType: "basic", proxyURL: "http://proxy:8080", proxyUsername: "user", proxyPassword: "pass"}
+		restConfig := &rest.Config{}
+		app.applyProxyConfig(restConfig)
+		if restConfig.Proxy == nil {
+			t.Fatalf("expected proxy func to be set")
+		}
+		req, _ := http.NewRequest("GET", "http://example.com", nil)
+		proxyURL, err := restConfig.Proxy(req)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if proxyURL == nil || proxyURL.Host != "proxy:8080" {
+			t.Fatalf("unexpected proxy url: %v", proxyURL)
+		}
+		if proxyURL.User == nil || proxyURL.User.Username() != "user" {
+			t.Fatalf("expected proxy user, got %v", proxyURL.User)
+		}
+	})
+
+	t.Run("invalidProxyURL", func(t *testing.T) {
+		app := &App{proxyAuthType: "basic", proxyURL: "://bad"}
+		restConfig := &rest.Config{}
+		app.applyProxyConfig(restConfig)
+		if restConfig.Proxy != nil {
+			t.Fatalf("expected proxy func to remain nil for invalid URL")
+		}
+	})
 }
 
 func TestDetectSystemProxy(t *testing.T) {

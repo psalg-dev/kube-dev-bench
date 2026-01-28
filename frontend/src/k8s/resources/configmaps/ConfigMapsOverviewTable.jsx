@@ -10,8 +10,9 @@ import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
-import { AnalyzeConfigMapStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import { AnalyzeConfigMapStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import useHolmesStream from '../../../holmes/useHolmesStream';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -41,18 +42,46 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           key: 'age',
           label: 'Age',
           type: 'age',
-          getValue: (data) => data.created || data.age
-        }
+          getValue: (data) => data.created || data.age,
+        },
       },
       { key: 'namespace', label: 'Namespace' },
       { key: 'size', label: 'Size' },
-      { key: 'name', label: 'ConfigMap name', type: 'break-word' }
+      { key: 'name', label: 'ConfigMap name', type: 'break-word' },
     ];
 
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="configmap" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('configmap', ns, n);}} />} />
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <SummaryTabHeader
+          name={row.name}
+          labels={row.labels || row.Labels || row.metadata?.labels}
+          actions={
+            <ResourceActions
+              resourceType="configmap"
+              name={row.name}
+              namespace={row.namespace}
+              onDelete={async (n, ns) => {
+                await AppAPI.DeleteResource('configmap', ns, n);
+              }}
+            />
+          }
+        />
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            color: 'var(--gh-text, #c9d1d9)',
+          }}
+        >
           <QuickInfoSection
             resourceName={row.name}
             data={row}
@@ -63,10 +92,26 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           {/* Editable Data + Event History at a glance */}
           <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-              <ConfigMapDataTab namespace={row.namespace} configMapName={row.name} />
+              <ConfigMapDataTab
+                namespace={row.namespace}
+                configMapName={row.name}
+              />
             </div>
-            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
-              <ResourceEventsTab namespace={row.namespace} resourceKind="ConfigMap" resourceName={row.name} limit={20} />
+            <div
+              style={{
+                width: 420,
+                minWidth: 300,
+                minHeight: 0,
+                borderLeft: '1px solid var(--gh-border, #30363d)',
+                position: 'relative',
+              }}
+            >
+              <ResourceEventsTab
+                namespace={row.namespace}
+                resourceKind="ConfigMap"
+                resourceName={row.name}
+                limit={20}
+              />
             </div>
           </div>
         </div>
@@ -74,13 +119,26 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
     );
   }
   if (tab === 'data') {
-    return <ConfigMapDataTab namespace={row.namespace} configMapName={row.name} />;
+    return (
+      <ConfigMapDataTab namespace={row.namespace} configMapName={row.name} />
+    );
   }
   if (tab === 'consumers') {
-    return <ConfigMapConsumersTab namespace={row.namespace} configMapName={row.name} />;
+    return (
+      <ConfigMapConsumersTab
+        namespace={row.namespace}
+        configMapName={row.name}
+      />
+    );
   }
   if (tab === 'events') {
-    return <ResourceEventsTab namespace={row.namespace} resourceKind="ConfigMap" resourceName={row.name} />;
+    return (
+      <ResourceEventsTab
+        namespace={row.namespace}
+        resourceKind="ConfigMap"
+        resourceName={row.name}
+      />
+    );
   }
   if (tab === 'yaml') {
     return <ConfigMapYamlTab namespace={row.namespace} name={row.name} />;
@@ -93,11 +151,15 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
         namespace={row.namespace}
         name={row.name}
         onAnalyze={() => onAnalyze(row)}
-        onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+        onCancel={
+          holmesState.key === key && holmesState.streamId ? onCancel : null
+        }
         response={holmesState.key === key ? holmesState.response : null}
         loading={holmesState.key === key && holmesState.loading}
         error={holmesState.key === key ? holmesState.error : null}
-        queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+        queryTimestamp={
+          holmesState.key === key ? holmesState.queryTimestamp : null
+        }
         streamingText={holmesState.key === key ? holmesState.streamingText : ''}
         reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
         toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
@@ -109,36 +171,26 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
 }
 
 // Add helper normalization for configmaps to ensure labels property exists
-const normalizeConfigMaps = (arr) => (arr || []).filter(Boolean).map(cm => ({
-  ...cm,
-  name: cm.name ?? cm.Name,
-  namespace: cm.namespace ?? cm.Namespace,
-  keys: cm.keys ?? cm.Keys ?? '-',
-  size: cm.size ?? cm.Size ?? '-',
-  age: cm.age ?? cm.Age ?? '-',
-  labels: cm.labels ?? cm.Labels ?? cm.metadata?.labels ?? {}
-}));
+const normalizeConfigMaps = (arr) =>
+  (arr || []).filter(Boolean).map((cm) => ({
+    ...cm,
+    name: cm.name ?? cm.Name,
+    namespace: cm.namespace ?? cm.Namespace,
+    keys: cm.keys ?? cm.Keys ?? '-',
+    size: cm.size ?? cm.Size ?? '-',
+    age: cm.age ?? cm.Age ?? '-',
+    labels: cm.labels ?? cm.Labels ?? cm.metadata?.labels ?? {},
+  }));
 
-export default function ConfigMapsOverviewTable({ namespaces = [], namespace, onConfigMapCreate }) {
+export default function ConfigMapsOverviewTable({
+  namespaces = [],
+  namespace,
+  onConfigMapCreate,
+}) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
-  });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
+  const { holmesState, startAnalysis, cancelAnalysis } = useHolmesStream();
 
   // Timers and guards as refs so we can restart fast polling on new creates
   const inFlightRef = useRef(false);
@@ -156,135 +208,10 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
     }
   };
 
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let data;
-      try {
-        data = JSON.parse(payload.data);
-      } catch {
-        data = null;
-      }
-
-      if (eventType === 'ai_message' && data) {
-        let handled = false;
-        if (data.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + data.reasoning,
-          }));
-          handled = true;
-        }
-        if (data.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + data.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && data && data.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: data.id,
-            name: data.tool_name || 'tool',
-            status: 'running',
-            description: data.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && data && data.tool_call_id) {
-        const status = data.result?.status || data.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === data.tool_call_id
-              ? { ...item, status, description: data.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && data && data.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: data.analysis },
-          streamingText: data.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
   // Fetch configmaps for all selected namespaces
   const fetchConfigMaps = async () => {
-    const nsList = namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    const nsList =
+      namespaces.length > 0 ? namespaces : namespace ? [namespace] : [];
     if (nsList.length === 0) return;
     setLoading(true);
     setError(null);
@@ -292,7 +219,9 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
       let allConfigMaps = [];
       for (const ns of nsList) {
         const configmaps = await AppAPI.GetConfigMaps(ns);
-        allConfigMaps = allConfigMaps.concat(normalizeConfigMaps(configmaps || []));
+        allConfigMaps = allConfigMaps.concat(
+          normalizeConfigMaps(configmaps || []),
+        );
       }
       setData(allConfigMaps);
     } catch (err) {
@@ -342,7 +271,11 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
   // Generic resource-updated fallback
   useEffect(() => {
     const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      if (eventData?.resource === 'configmap' && (namespaces.includes(eventData?.namespace) || eventData?.namespace === namespace)) {
+      if (
+        eventData?.resource === 'configmap' &&
+        (namespaces.includes(eventData?.namespace) ||
+          eventData?.namespace === namespace)
+      ) {
         fetchConfigMaps();
         startFastPollingWindow();
       }
@@ -358,7 +291,11 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const filtered = arr.filter(cm => namespaces.includes(cm?.namespace || cm?.Namespace) || (cm?.namespace || cm?.Namespace) === namespace);
+        const filtered = arr.filter(
+          (cm) =>
+            namespaces.includes(cm?.namespace || cm?.Namespace) ||
+            (cm?.namespace || cm?.Namespace) === namespace,
+        );
         setData(normalizeConfigMaps(filtered));
         startFastPollingWindow();
       } catch (_) {
@@ -374,37 +311,18 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 
   const analyzeConfigMap = async (row) => {
     const key = `${row.namespace}/${row.name}`;
-    const streamId = `configmap-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
+    await startAnalysis({
       key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
+      streamPrefix: 'configmap',
+      run: (streamId) =>
+        AnalyzeConfigMapStream(row.namespace, row.name, streamId),
+      onError: (message) =>
+        showError(`Holmes analysis failed: ${message}`),
     });
-    try {
-      await AnalyzeConfigMapStream(row.namespace, row.name, streamId);
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showError(`Holmes analysis failed: ${message}`);
-    }
   };
 
   const cancelHolmesAnalysis = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
+    await cancelAnalysis();
   };
 
   const getRowActions = (row, api) => {
@@ -429,7 +347,9 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
             await AppAPI.DeleteResource('configmap', row.namespace, row.name);
             showSuccess(`ConfigMap '${row.name}' deleted`);
           } catch (err) {
-            showError(`Failed to delete ConfigMap '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to delete ConfigMap '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -444,7 +364,15 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
       loading={loading}
       error={error}
       tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeConfigMap, cancelHolmesAnalysis)}
+      renderPanelContent={(row, tab) =>
+        renderPanelContent(
+          row,
+          tab,
+          holmesState,
+          analyzeConfigMap,
+          cancelHolmesAnalysis,
+        )
+      }
       resourceKind="configmap"
       namespace={namespace}
       onResourceCreate={onConfigMapCreate}

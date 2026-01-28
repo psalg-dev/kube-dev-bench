@@ -28,8 +28,8 @@ type swarmConfigEditClient interface {
 	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error)
 }
 
-// GetSwarmConfigs returns all Swarm configs
-func GetSwarmConfigs(ctx context.Context, cli *client.Client) ([]SwarmConfigInfo, error) {
+// GetSwarmConfigs returns all Swarm configs.
+func GetSwarmConfigs(ctx context.Context, cli swarmConfigsClient) ([]SwarmConfigInfo, error) {
 	return getSwarmConfigs(ctx, cli)
 }
 

@@ -24,7 +24,8 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
   }, [namespace, releaseName]);
 
   const handleRollback = async (revision) => {
-    if (!window.confirm(`Rollback "${releaseName}" to revision ${revision}?`)) return;
+    if (!window.confirm(`Rollback "${releaseName}" to revision ${revision}?`))
+      return;
     setRollingBack(revision);
     try {
       await AppAPI.RollbackHelmRelease(namespace, releaseName, revision);
@@ -41,7 +42,11 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
   };
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading history...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading history...
+      </div>
+    );
   }
 
   if (error) {
@@ -49,7 +54,11 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
   }
 
   if (history.length === 0) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No history available</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        No history available
+      </div>
+    );
   }
 
   return (
@@ -71,20 +80,39 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
             <tr
               key={entry.revision}
               style={{
-                background: idx === 0 ? 'rgba(46, 164, 79, 0.1)' : 'transparent',
+                background:
+                  idx === 0 ? 'rgba(46, 164, 79, 0.1)' : 'transparent',
               }}
             >
               <td>
                 {entry.revision}
-                {idx === 0 && <span style={{ marginLeft: 8, color: '#2ea44f', fontSize: 11 }}>(current)</span>}
+                {idx === 0 && (
+                  <span
+                    style={{ marginLeft: 8, color: '#2ea44f', fontSize: 11 }}
+                  >
+                    (current)
+                  </span>
+                )}
               </td>
               <td className="text-muted">{entry.updated}</td>
               <td>
-                <StatusBadge status={entry.status || '-'} size="small" showDot={false} />
+                <StatusBadge
+                  status={entry.status || '-'}
+                  size="small"
+                  showDot={false}
+                />
               </td>
               <td className="text-muted">{entry.chart}</td>
               <td className="text-muted">{entry.appVersion || '-'}</td>
-              <td className="text-muted" style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <td
+                className="text-muted"
+                style={{
+                  maxWidth: 200,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
                 {entry.description || '-'}
               </td>
               <td style={{ textAlign: 'center' }}>
@@ -94,7 +122,10 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
                     disabled={rollingBack !== null}
                     style={{
                       padding: '4px 10px',
-                      background: rollingBack === entry.revision ? '#666' : 'var(--gh-btn-bg, #21262d)',
+                      background:
+                        rollingBack === entry.revision
+                          ? '#666'
+                          : 'var(--gh-btn-bg, #21262d)',
                       color: 'var(--gh-btn-text, #c9d1d9)',
                       border: '1px solid var(--gh-border, #30363d)',
                       borderRadius: 4,
@@ -102,7 +133,9 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }) {
                       fontSize: 12,
                     }}
                   >
-                    {rollingBack === entry.revision ? 'Rolling back...' : 'Rollback'}
+                    {rollingBack === entry.revision
+                      ? 'Rolling back...'
+                      : 'Rollback'}
                   </button>
                 )}
               </td>

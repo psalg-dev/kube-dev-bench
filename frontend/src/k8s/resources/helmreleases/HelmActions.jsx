@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { showError, showSuccess } from '../../../notification.js';
 
-export default function HelmActions({ releaseName, namespace, chart, onRefresh }) {
+export default function HelmActions({
+  releaseName,
+  namespace,
+  chart,
+  onRefresh,
+}) {
   const [uninstalling, setUninstalling] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
   const [rollingBack, setRollingBack] = useState(false);
@@ -16,7 +21,10 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
     if (!showRollbackPicker) return;
 
     const handleClickOutside = (event) => {
-      if (rollbackPickerRef.current && !rollbackPickerRef.current.contains(event.target)) {
+      if (
+        rollbackPickerRef.current &&
+        !rollbackPickerRef.current.contains(event.target)
+      ) {
         setShowRollbackPicker(false);
       }
     };
@@ -26,7 +34,11 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
   }, [showRollbackPicker]);
 
   const handleUninstall = async () => {
-    if (!window.confirm(`Are you sure you want to uninstall "${releaseName}" from namespace "${namespace}"?`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to uninstall "${releaseName}" from namespace "${namespace}"?`,
+      )
+    ) {
       return;
     }
     setUninstalling(true);
@@ -44,8 +56,13 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
   const openRollbackPicker = async () => {
     setLoadingRollbackOptions(true);
     try {
-      const history = await AppAPI.GetHelmReleaseHistory(namespace, releaseName);
-      const revisions = (history || []).map((h) => h.revision).filter((r) => Number.isInteger(r));
+      const history = await AppAPI.GetHelmReleaseHistory(
+        namespace,
+        releaseName,
+      );
+      const revisions = (history || [])
+        .map((h) => h.revision)
+        .filter((r) => Number.isInteger(r));
       if (revisions.length <= 1) {
         showError(`No previous revision available for '${releaseName}'`);
         return;
@@ -70,13 +87,23 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
 
   const confirmRollback = async () => {
     if (!selectedRevision) return;
-    if (!window.confirm(`Rollback "${releaseName}" to revision ${selectedRevision}?`)) {
+    if (
+      !window.confirm(
+        `Rollback "${releaseName}" to revision ${selectedRevision}?`,
+      )
+    ) {
       return;
     }
     setRollingBack(true);
     try {
-      await AppAPI.RollbackHelmRelease(namespace, releaseName, selectedRevision);
-      showSuccess(`Rolled back "${releaseName}" to revision ${selectedRevision}`);
+      await AppAPI.RollbackHelmRelease(
+        namespace,
+        releaseName,
+        selectedRevision,
+      );
+      showSuccess(
+        `Rolled back "${releaseName}" to revision ${selectedRevision}`,
+      );
       if (onRefresh) onRefresh();
       setShowRollbackPicker(false);
     } catch (err) {
@@ -113,16 +140,24 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
         disabled={rollingBack || loadingRollbackOptions}
         style={{
           padding: '6px 12px',
-          background: rollingBack || loadingRollbackOptions ? '#666' : 'var(--gh-btn-bg, #21262d)',
+          background:
+            rollingBack || loadingRollbackOptions
+              ? '#666'
+              : 'var(--gh-btn-bg, #21262d)',
           color: 'var(--gh-btn-text, #c9d1d9)',
           border: '1px solid var(--gh-border, #30363d)',
           borderRadius: 6,
-          cursor: rollingBack || loadingRollbackOptions ? 'not-allowed' : 'pointer',
+          cursor:
+            rollingBack || loadingRollbackOptions ? 'not-allowed' : 'pointer',
           fontSize: 13,
           fontWeight: 500,
         }}
       >
-        {rollingBack ? 'Rolling back...' : (loadingRollbackOptions ? 'Loading...' : 'Rollback')}
+        {rollingBack
+          ? 'Rolling back...'
+          : loadingRollbackOptions
+            ? 'Loading...'
+            : 'Rollback'}
       </button>
       <button
         onClick={handleUninstall}
@@ -167,10 +202,16 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
             borderRadius: 8,
             padding: 12,
             minWidth: 260,
-            boxShadow: '0 6px 24px rgba(0,0,0,0.35)'
+            boxShadow: '0 6px 24px rgba(0,0,0,0.35)',
           }}
         >
-          <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 6 }}>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--gh-text-muted, #8b949e)',
+              marginBottom: 6,
+            }}
+          >
             Select revision
           </div>
           <select
@@ -187,10 +228,19 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
             }}
           >
             {rollbackOptions.map((rev) => (
-              <option key={rev} value={rev}>{rev}</option>
+              <option key={rev} value={rev}>
+                {rev}
+              </option>
             ))}
           </select>
-          <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              marginTop: 10,
+              justifyContent: 'flex-end',
+            }}
+          >
             <button
               type="button"
               onClick={() => setShowRollbackPicker(false)}
@@ -216,7 +266,8 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
                 border: '1px solid #d29922',
                 color: '#fff',
                 borderRadius: 6,
-                cursor: rollingBack || !selectedRevision ? 'not-allowed' : 'pointer',
+                cursor:
+                  rollingBack || !selectedRevision ? 'not-allowed' : 'pointer',
                 fontSize: 12,
               }}
             >
@@ -229,7 +280,13 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
   );
 }
 
-function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onClose, onSuccess }) {
+function HelmUpgradeDialog({
+  releaseName,
+  namespace,
+  chartName: _chartName,
+  onClose,
+  onSuccess,
+}) {
   const [chartRef, setChartRef] = useState('');
   const [version, setVersion] = useState('');
   const [valuesYaml, setValuesYaml] = useState('');
@@ -319,7 +376,14 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
 
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: 6,
+                color: 'var(--gh-text, #c9d1d9)',
+                fontSize: 13,
+              }}
+            >
               Chart Reference *
             </label>
             <input
@@ -340,7 +404,14 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: 6,
+                color: 'var(--gh-text, #c9d1d9)',
+                fontSize: 13,
+              }}
+            >
               Version (optional)
             </label>
             <input
@@ -361,7 +432,16 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gh-text, #c9d1d9)', fontSize: 13, cursor: 'pointer' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                color: 'var(--gh-text, #c9d1d9)',
+                fontSize: 13,
+                cursor: 'pointer',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={reuseValues}
@@ -372,7 +452,14 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
           </div>
 
           <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+            <label
+              style={{
+                display: 'block',
+                marginBottom: 6,
+                color: 'var(--gh-text, #c9d1d9)',
+                fontSize: 13,
+              }}
+            >
               Additional Values (YAML)
             </label>
             <textarea
@@ -395,7 +482,17 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
           </div>
 
           {error && (
-            <div style={{ marginBottom: 16, padding: 12, background: 'rgba(215, 58, 73, 0.1)', border: '1px solid #d73a49', borderRadius: 6, color: '#d73a49', fontSize: 13 }}>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: 12,
+                background: 'rgba(215, 58, 73, 0.1)',
+                border: '1px solid #d73a49',
+                borderRadius: 6,
+                color: '#d73a49',
+                fontSize: 13,
+              }}
+            >
               {error}
             </div>
           )}

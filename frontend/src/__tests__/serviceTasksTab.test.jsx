@@ -86,7 +86,9 @@ describe('ServiceTasksTab', () => {
     expect(failedState).toHaveStyle({ color: '#f85149' });
 
     // health badge mocked
-    expect(screen.getAllByTestId('health-badge')[0]).toHaveTextContent('healthy');
+    expect(screen.getAllByTestId('health-badge')[0]).toHaveTextContent(
+      'healthy',
+    );
 
     expect(swarmApiMocks.GetSwarmTasksByService).toHaveBeenCalledWith('svc1');
   });
@@ -96,7 +98,9 @@ describe('ServiceTasksTab', () => {
 
     render(<ServiceTasksTab serviceId="svc1" serviceName="api" />);
 
-    expect(await screen.findByText('No tasks found for this service.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No tasks found for this service.'),
+    ).toBeInTheDocument();
   });
 
   it('filters runtime task updates by serviceId', async () => {
@@ -107,13 +111,25 @@ describe('ServiceTasksTab', () => {
 
     act(() => {
       emit('swarm:tasks:update', [
-        { id: 't1', serviceId: 'svc1', state: 'running', desiredState: 'running' },
-        { id: 't2', serviceId: 'svc2', state: 'running', desiredState: 'running' },
+        {
+          id: 't1',
+          serviceId: 'svc1',
+          state: 'running',
+          desiredState: 'running',
+        },
+        {
+          id: 't2',
+          serviceId: 'svc2',
+          state: 'running',
+          desiredState: 'running',
+        },
       ]);
     });
 
     await waitFor(() => {
-      expect(screen.queryByText('No tasks found for this service.')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText('No tasks found for this service.'),
+      ).not.toBeInTheDocument();
     });
 
     expect(screen.getByTitle('t1')).toBeInTheDocument();
@@ -127,7 +143,9 @@ describe('ServiceTasksTab', () => {
 
     render(<ServiceTasksTab serviceId="svc1" serviceName="api" />);
 
-    expect(await screen.findByText('No tasks found for this service.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No tasks found for this service.'),
+    ).toBeInTheDocument();
 
     err.mockRestore();
   });

@@ -4,7 +4,12 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 // Mock CreateManifestOverlay to a lightweight stub
 vi.mock('../CreateManifestOverlay', () => ({
   __esModule: true,
-  default: ({ open, kind, platform }) => open ? <div data-testid="create-overlay">overlay-{platform}-{kind}</div> : null
+  default: ({ open, kind, platform }) =>
+    open ? (
+      <div data-testid="create-overlay">
+        overlay-{platform}-{kind}
+      </div>
+    ) : null,
 }));
 
 vi.mock('../notification.js', () => ({
@@ -19,7 +24,7 @@ import { showNotification } from '../notification.js';
 function setup(props = {}) {
   const columns = [
     { key: 'name', label: 'Name' },
-    { key: 'status', label: 'Status' }
+    { key: 'status', label: 'Status' },
   ];
   const data = [
     { name: 'alpha', status: 'Running' },
@@ -27,9 +32,13 @@ function setup(props = {}) {
   ];
   const tabs = [
     { key: 'summary', label: 'Summary' },
-    { key: 'yaml', label: 'YAML' }
+    { key: 'yaml', label: 'YAML' },
   ];
-  const renderPanelContent = (row, tab) => <div data-testid="panel-content">{row.name}-{tab}</div>;
+  const renderPanelContent = (row, tab) => (
+    <div data-testid="panel-content">
+      {row.name}-{tab}
+    </div>
+  );
   return render(
     <OverviewTableWithPanel
       title="Pods"
@@ -40,7 +49,7 @@ function setup(props = {}) {
       tabs={tabs}
       renderPanelContent={renderPanelContent}
       {...props}
-    />
+    />,
   );
 }
 
@@ -56,8 +65,8 @@ describe('OverviewTableWithPanel', () => {
     fireEvent.change(filter, { target: { value: 'bet' } });
     // Only beta row plus header + maybe message
     const bodyRows = screen.getAllByRole('row');
-    expect(bodyRows.some(r => r.textContent.includes('alpha'))).toBe(false);
-    expect(bodyRows.some(r => r.textContent.includes('beta'))).toBe(true);
+    expect(bodyRows.some((r) => r.textContent.includes('alpha'))).toBe(false);
+    expect(bodyRows.some((r) => r.textContent.includes('beta'))).toBe(true);
   });
 
   it('shows no-match message when filter excludes all', () => {
@@ -69,7 +78,9 @@ describe('OverviewTableWithPanel', () => {
 
   it('opens bottom panel on row click with default tab content', () => {
     setup();
-    const alphaRow = screen.getAllByRole('row').find(r => r.textContent.includes('alpha'));
+    const alphaRow = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent.includes('alpha'));
     fireEvent.click(alphaRow);
     const content = screen.getByTestId('panel-content');
     expect(content.textContent).toBe('alpha-summary');
@@ -79,7 +90,9 @@ describe('OverviewTableWithPanel', () => {
 
   it('switches tabs and updates panel content', () => {
     setup();
-    const alphaRow = screen.getAllByRole('row').find(r => r.textContent.includes('alpha'));
+    const alphaRow = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent.includes('alpha'));
     fireEvent.click(alphaRow);
     // The button accessible name includes the tab label text (YAML may include count badge text)
     const yamlTabBtn = screen.getByRole('button', { name: /YAML/i });
@@ -89,7 +102,9 @@ describe('OverviewTableWithPanel', () => {
 
   it('closes panel on outside click', () => {
     setup();
-    const alphaRow = screen.getAllByRole('row').find(r => r.textContent.includes('alpha'));
+    const alphaRow = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent.includes('alpha'));
     fireEvent.click(alphaRow);
     expect(document.querySelector('.bottom-panel')).not.toBeNull();
     fireEvent.mouseDown(document.body); // outside click
@@ -98,7 +113,9 @@ describe('OverviewTableWithPanel', () => {
 
   it('closes panel on Escape key', () => {
     setup();
-    const betaRow = screen.getAllByRole('row').find(r => r.textContent.includes('beta'));
+    const betaRow = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent.includes('beta'));
     fireEvent.click(betaRow);
     expect(document.querySelector('.bottom-panel')).not.toBeNull();
     fireEvent.keyDown(document, { key: 'Escape' });
@@ -107,7 +124,9 @@ describe('OverviewTableWithPanel', () => {
 
   it('resets active tab after closing & reopening', () => {
     setup();
-    const alphaRow = screen.getAllByRole('row').find(r => r.textContent.includes('alpha'));
+    const alphaRow = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent.includes('alpha'));
     fireEvent.click(alphaRow);
     // Find the YAML tab button - it might have a count badge, so use partial match
     const yamlButton = screen.getByRole('button', { name: /YAML/i });
@@ -116,16 +135,22 @@ describe('OverviewTableWithPanel', () => {
     // close outside
     fireEvent.mouseDown(document.body);
     // open beta
-    const betaRow = screen.getAllByRole('row').find(r => r.textContent.includes('beta'));
+    const betaRow = screen
+      .getAllByRole('row')
+      .find((r) => r.textContent.includes('beta'));
     fireEvent.click(betaRow);
-    expect(screen.getByTestId('panel-content').textContent).toBe('beta-summary');
+    expect(screen.getByTestId('panel-content').textContent).toBe(
+      'beta-summary',
+    );
   });
 
   it('opens create manifest overlay when plus button clicked', () => {
     setup();
     const plusBtn = screen.getByRole('button', { name: /create new/i });
     fireEvent.click(plusBtn);
-    expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-k8s-pod');
+    expect(screen.getByTestId('create-overlay')).toHaveTextContent(
+      'overlay-k8s-pod',
+    );
   });
 
   it('shows create notice (warning) before opening overlay', () => {
@@ -141,14 +166,18 @@ describe('OverviewTableWithPanel', () => {
 
     expect(showNotification).toHaveBeenCalledWith(
       'This is an informational notice.',
-      expect.objectContaining({ type: 'warning' })
+      expect.objectContaining({ type: 'warning' }),
     );
-    expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-swarm-service');
+    expect(screen.getByTestId('create-overlay')).toHaveTextContent(
+      'overlay-swarm-service',
+    );
   });
 
   it('opens row actions menu without opening the bottom panel', () => {
     setup();
-    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    const rowActionsButtons = screen.getAllByRole('button', {
+      name: /row actions/i,
+    });
     expect(rowActionsButtons.length).toBeGreaterThan(0);
     fireEvent.click(rowActionsButtons[0]);
 
@@ -164,7 +193,9 @@ describe('OverviewTableWithPanel', () => {
 
   it('closes row actions menu on window blur', () => {
     setup();
-    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    const rowActionsButtons = screen.getAllByRole('button', {
+      name: /row actions/i,
+    });
     fireEvent.click(rowActionsButtons[0]);
     expect(document.querySelector('.row-actions-menu')).not.toBeNull();
 
@@ -177,12 +208,14 @@ describe('OverviewTableWithPanel', () => {
 
   it('supports getRowActions using api.openDetails(tabKey)', () => {
     setup({
-      getRowActions: (_row, api) => ([
+      getRowActions: (_row, api) => [
         { label: 'Open YAML', onClick: () => api.openDetails('yaml') },
-      ]),
+      ],
     });
 
-    const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
+    const rowActionsButtons = screen.getAllByRole('button', {
+      name: /row actions/i,
+    });
     fireEvent.click(rowActionsButtons[0]);
     fireEvent.click(screen.getByText('Open YAML'));
 
@@ -191,4 +224,3 @@ describe('OverviewTableWithPanel', () => {
     expect(document.querySelector('.bottom-panel')).not.toBeNull();
   });
 });
-

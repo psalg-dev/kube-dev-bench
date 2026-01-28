@@ -1,42 +1,54 @@
-import {EditorState} from '@codemirror/state';
+import { EditorState } from '@codemirror/state';
 import {
-    crosshairCursor,
-    drawSelection, dropCursor,
-    highlightActiveLine, highlightActiveLineGutter,
-    highlightSpecialChars, keymap,
-    lineNumbers, rectangularSelection
+  crosshairCursor,
+  drawSelection,
+  dropCursor,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+  rectangularSelection,
 } from '@codemirror/view';
 import { EditorView } from '@codemirror/view';
 import {
-    bracketMatching,
-    defaultHighlightStyle,
-    foldGutter, foldKeymap,
-    indentOnInput,
-    syntaxHighlighting
+  bracketMatching,
+  defaultHighlightStyle,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  syntaxHighlighting,
 } from '@codemirror/language';
-import {highlightSelectionMatches, searchKeymap} from '@codemirror/search';
-import {yaml} from '@codemirror/lang-yaml';
-import {closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete';
-import {defaultKeymap, history as _history, historyKeymap} from '@codemirror/commands';
-import {lintKeymap} from '@codemirror/lint';
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { yaml } from '@codemirror/lang-yaml';
+import {
+  closeBracketsKeymap,
+  completionKeymap,
+} from '@codemirror/autocomplete';
+import {
+  defaultKeymap,
+  history as _history,
+  historyKeymap,
+} from '@codemirror/commands';
+import { lintKeymap } from '@codemirror/lint';
 import { CreateResource } from '../wailsjs/go/main/App';
 import { showSuccess, showError } from './notification';
 
 export function showResourceOverlay(resourceType, options = {}) {
-    console.warn('showResourceOverlay called with:', resourceType);
-    const template = resourceTemplates[resourceType];
-    console.warn('Template found:', template ? 'yes' : 'no');
-    if (!template) {
-        console.error('No template found for resource type:', resourceType);
-        console.warn('Available templates:', Object.keys(resourceTemplates));
-        return;
-    }
+  console.warn('showResourceOverlay called with:', resourceType);
+  const template = resourceTemplates[resourceType];
+  console.warn('Template found:', template ? 'yes' : 'no');
+  if (!template) {
+    console.error('No template found for resource type:', resourceType);
+    console.warn('Available templates:', Object.keys(resourceTemplates));
+    return;
+  }
 
-    const { onSuccess, onError, onClose, namespace } = options;
-    const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
-    const overlay = document.createElement('div');
-    overlay.className = 'overlay';
-    overlay.innerHTML = `
+  const { onSuccess, onError, onClose, namespace } = options;
+  const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+  const overlay = document.createElement('div');
+  overlay.className = 'overlay';
+  overlay.innerHTML = `
     <div class="overlay-content">
       <div class="overlay-header">
         <div class="overlay-title">New ${title} Resource</div>
@@ -50,72 +62,107 @@ export function showResourceOverlay(resourceType, options = {}) {
     </div>
   `;
 
-    document.body.appendChild(overlay);
+  document.body.appendChild(overlay);
 
-    // Initialize CodeMirror editor
-    const customDarkTheme = EditorView.theme({
-        '&': { color: 'var(--gh-text)', backgroundColor: 'var(--gh-input-bg)', height: '400px', fontSize: '14px' },
-        '.cm-content': { fontFamily: "'Consolas', monospace", color: 'var(--gh-text)', padding: '10px' },
-        '.cm-gutters': { backgroundColor: 'var(--gh-input-bg)', color: 'var(--gh-text-muted)', border: 'none' }
-    }, {dark: true});
+  // Initialize CodeMirror editor
+  const customDarkTheme = EditorView.theme(
+    {
+      '&': {
+        color: 'var(--gh-text)',
+        backgroundColor: 'var(--gh-input-bg)',
+        height: '400px',
+        fontSize: '14px',
+      },
+      '.cm-content': {
+        fontFamily: "'Consolas', monospace",
+        color: 'var(--gh-text)',
+        padding: '10px',
+      },
+      '.cm-gutters': {
+        backgroundColor: 'var(--gh-input-bg)',
+        color: 'var(--gh-text-muted)',
+        border: 'none',
+      },
+    },
+    { dark: true },
+  );
 
-    const state = EditorState.create({
-        doc: template,
-        extensions: [
-            lineNumbers(), foldGutter(), highlightSpecialChars(), drawSelection(),
-            dropCursor(), EditorState.allowMultipleSelections.of(true), indentOnInput(),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }), bracketMatching(),
-            rectangularSelection(), crosshairCursor(), highlightActiveLine(),
-            highlightActiveLineGutter(), highlightSelectionMatches(), yaml(), customDarkTheme,
-            keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...foldKeymap, ...completionKeymap, ...lintKeymap])
-        ]
-    });
+  const state = EditorState.create({
+    doc: template,
+    extensions: [
+      lineNumbers(),
+      foldGutter(),
+      highlightSpecialChars(),
+      drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      bracketMatching(),
+      rectangularSelection(),
+      crosshairCursor(),
+      highlightActiveLine(),
+      highlightActiveLineGutter(),
+      highlightSelectionMatches(),
+      yaml(),
+      customDarkTheme,
+      keymap.of([
+        ...closeBracketsKeymap,
+        ...defaultKeymap,
+        ...searchKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        ...completionKeymap,
+        ...lintKeymap,
+      ]),
+    ],
+  });
 
-    const editor = new EditorView({
-        state,
-        parent: document.querySelector('#resourceEditor')
-    });
+  const editor = new EditorView({
+    state,
+    parent: document.querySelector('#resourceEditor'),
+  });
 
-    const closeOverlay = () => {
-        editor.destroy();
-        overlay.remove();
-        if (onClose) onClose();
-    };
+  const closeOverlay = () => {
+    editor.destroy();
+    overlay.remove();
+    if (onClose) onClose();
+  };
 
-    // Close overlay handlers
-    const closeBtn = overlay.querySelector('.overlay-close');
-    const cancelBtn = overlay.querySelector('.overlay-cancel-btn');
-    closeBtn.onclick = cancelBtn.onclick = closeOverlay;
+  // Close overlay handlers
+  const closeBtn = overlay.querySelector('.overlay-close');
+  const cancelBtn = overlay.querySelector('.overlay-cancel-btn');
+  closeBtn.onclick = cancelBtn.onclick = closeOverlay;
 
-    // Create resource handler
-    const createBtn = overlay.querySelector('.overlay-create-btn');
-    createBtn.onclick = async () => {
-        const yamlText = editor.state.doc.toString();
-        createBtn.disabled = true;
-        createBtn.textContent = 'Creating...';
-        try {
-            await CreateResource(namespace || 'default', yamlText);
-            showSuccess(`${title} was created successfully!`);
-            closeOverlay();
-            if (onSuccess) onSuccess();
-        } catch (err) {
-            showError(`Error creating resource: ${err}`);
-            createBtn.disabled = false;
-            createBtn.textContent = 'Create';
-            if (onError) onError(err);
-        }
-    };
+  // Create resource handler
+  const createBtn = overlay.querySelector('.overlay-create-btn');
+  createBtn.onclick = async () => {
+    const yamlText = editor.state.doc.toString();
+    createBtn.disabled = true;
+    createBtn.textContent = 'Creating...';
+    try {
+      await CreateResource(namespace || 'default', yamlText);
+      showSuccess(`${title} was created successfully!`);
+      closeOverlay();
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      showError(`Error creating resource: ${err}`);
+      createBtn.disabled = false;
+      createBtn.textContent = 'Create';
+      if (onError) onError(err);
+    }
+  };
 
-    overlay.onclick = (e) => {
-        if (e.target === overlay) {
-            closeOverlay();
-        }
-    };
+  overlay.onclick = (e) => {
+    if (e.target === overlay) {
+      closeOverlay();
+    }
+  };
 }
 
 // Resource templates
 const resourceTemplates = {
-    deployment: `apiVersion: apps/v1
+  deployment: `apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nginx-deployment
@@ -137,7 +184,7 @@ spec:
         ports:
         - containerPort: 80`,
 
-    job: `apiVersion: batch/v1
+  job: `apiVersion: batch/v1
 kind: Job
 metadata:
   name: busybox-job
@@ -151,7 +198,7 @@ spec:
       restartPolicy: Never
   backoffLimit: 4`,
 
-    configmap: `apiVersion: v1
+  configmap: `apiVersion: v1
 kind: ConfigMap
 metadata:
   name: example-config
@@ -169,7 +216,7 @@ data:
       level: info
   simple-key: simple-value`,
 
-    service: `apiVersion: v1
+  service: `apiVersion: v1
 kind: Service
 metadata:
   name: example-service
@@ -182,7 +229,7 @@ spec:
     port: 80
     targetPort: 80`,
 
-    secret: `apiVersion: v1
+  secret: `apiVersion: v1
 kind: Secret
 metadata:
   name: example-secret
@@ -197,7 +244,7 @@ stringData:
   # api-key: your-api-key-here
   # database-url: postgresql://user:pass@localhost:5432/db`,
 
-    ingress: `apiVersion: networking.k8s.io/v1
+  ingress: `apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: example-ingress
@@ -222,7 +269,7 @@ spec:
   #   - example.com
   #   secretName: example-tls-secret`,
 
-    persistentvolumeclaim: `apiVersion: v1
+  persistentvolumeclaim: `apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: example-pvc
@@ -239,7 +286,7 @@ spec:
   #   matchLabels:
   #     type: local`,
 
-    persistentvolume: `apiVersion: v1
+  persistentvolume: `apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: example-pv
@@ -263,5 +310,5 @@ spec:
   #   fsType: ext4
   # gcePersistentDisk:
   #   pdName: my-data-disk
-  #   fsType: ext4`
+  #   fsType: ext4`,
 };

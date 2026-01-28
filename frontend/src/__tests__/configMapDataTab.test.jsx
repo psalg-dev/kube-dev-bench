@@ -15,7 +15,6 @@ vi.mock('../../wailsjs/go/main/App', () => ({
 }));
 
 import * as AppAPI from '../../wailsjs/go/main/App';
-import { showError, showSuccess } from '../notification';
 
 describe('ConfigMapDataTab', () => {
   beforeEach(() => {
@@ -24,20 +23,28 @@ describe('ConfigMapDataTab', () => {
 
   describe('loading state', () => {
     it('shows loading message while fetching data', () => {
-      AppAPI.GetConfigMapDataByName.mockImplementation(() => new Promise(() => {}));
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+      AppAPI.GetConfigMapDataByName.mockImplementation(
+        () => new Promise(() => {}),
+      );
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       expect(screen.getByText(/Loading/i)).toBeInTheDocument();
     });
   });
 
   describe('error state', () => {
     it('displays error message when API call fails', async () => {
-      AppAPI.GetConfigMapDataByName.mockRejectedValue(new Error('Connection failed'));
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+      AppAPI.GetConfigMapDataByName.mockRejectedValue(
+        new Error('Connection failed'),
+      );
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText(/Connection failed/)).toBeInTheDocument();
       });
@@ -45,11 +52,15 @@ describe('ConfigMapDataTab', () => {
 
     it('shows generic error when no message provided', async () => {
       AppAPI.GetConfigMapDataByName.mockRejectedValue({});
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
-        expect(screen.getByText(/Failed to fetch configmap data/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Failed to fetch configmap data/i),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -57,9 +68,11 @@ describe('ConfigMapDataTab', () => {
   describe('empty state', () => {
     it('handles empty data array', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue([]);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
       });
@@ -67,9 +80,11 @@ describe('ConfigMapDataTab', () => {
 
     it('handles null response', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue(null);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
       });
@@ -85,9 +100,11 @@ describe('ConfigMapDataTab', () => {
 
     it('displays config map keys', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue(mockData);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('config.json')).toBeInTheDocument();
         expect(screen.getByText('settings.yaml')).toBeInTheDocument();
@@ -96,11 +113,15 @@ describe('ConfigMapDataTab', () => {
     });
 
     it('auto-expands when only one key exists', async () => {
-      const singleData = [{ key: 'config.json', value: '{"test": true}', size: 14 }];
+      const singleData = [
+        { key: 'config.json', value: '{"test": true}', size: 14 },
+      ];
       AppAPI.GetConfigMapDataByName.mockResolvedValue(singleData);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('config.json')).toBeInTheDocument();
       });
@@ -108,15 +129,19 @@ describe('ConfigMapDataTab', () => {
 
     it('can toggle key expansion', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue(mockData);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('config.json')).toBeInTheDocument();
       });
-      
+
       // Click on a key row to expand
-      const keyRow = screen.getByText('config.json').closest('tr') || screen.getByText('config.json');
+      const keyRow =
+        screen.getByText('config.json').closest('tr') ||
+        screen.getByText('config.json');
       fireEvent.click(keyRow);
     });
   });
@@ -124,39 +149,52 @@ describe('ConfigMapDataTab', () => {
   describe('API calls', () => {
     it('calls GetConfigMapDataByName with correct params', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue([]);
-      
-      render(<ConfigMapDataTab namespace="test-ns" configMapName="test-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="test-ns" configMapName="test-config" />,
+      );
+
       await waitFor(() => {
-        expect(AppAPI.GetConfigMapDataByName).toHaveBeenCalledWith('test-ns', 'test-config');
+        expect(AppAPI.GetConfigMapDataByName).toHaveBeenCalledWith(
+          'test-ns',
+          'test-config',
+        );
       });
     });
 
     it('does not call API when namespace is missing', () => {
       render(<ConfigMapDataTab namespace="" configMapName="my-config" />);
-      
+
       expect(AppAPI.GetConfigMapDataByName).not.toHaveBeenCalled();
     });
 
     it('does not call API when configMapName is missing', () => {
       render(<ConfigMapDataTab namespace="default" configMapName="" />);
-      
+
       expect(AppAPI.GetConfigMapDataByName).not.toHaveBeenCalled();
     });
 
     it('re-fetches when props change', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue([]);
-      
-      const { rerender } = render(<ConfigMapDataTab namespace="ns1" configMapName="config1" />);
-      
+
+      const { rerender } = render(
+        <ConfigMapDataTab namespace="ns1" configMapName="config1" />,
+      );
+
       await waitFor(() => {
-        expect(AppAPI.GetConfigMapDataByName).toHaveBeenCalledWith('ns1', 'config1');
+        expect(AppAPI.GetConfigMapDataByName).toHaveBeenCalledWith(
+          'ns1',
+          'config1',
+        );
       });
-      
+
       rerender(<ConfigMapDataTab namespace="ns2" configMapName="config2" />);
-      
+
       await waitFor(() => {
-        expect(AppAPI.GetConfigMapDataByName).toHaveBeenCalledWith('ns2', 'config2');
+        expect(AppAPI.GetConfigMapDataByName).toHaveBeenCalledWith(
+          'ns2',
+          'config2',
+        );
       });
     });
   });
@@ -167,9 +205,11 @@ describe('ConfigMapDataTab', () => {
     it('can save edited content', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue(mockData);
       AppAPI.UpdateConfigMapDataKey.mockResolvedValue({});
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('test.txt')).toBeInTheDocument();
       });
@@ -177,10 +217,14 @@ describe('ConfigMapDataTab', () => {
 
     it('shows error notification on save failure', async () => {
       AppAPI.GetConfigMapDataByName.mockResolvedValue(mockData);
-      AppAPI.UpdateConfigMapDataKey.mockRejectedValue(new Error('Update failed'));
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+      AppAPI.UpdateConfigMapDataKey.mockRejectedValue(
+        new Error('Update failed'),
+      );
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('test.txt')).toBeInTheDocument();
       });
@@ -191,9 +235,11 @@ describe('ConfigMapDataTab', () => {
     it('detects JSON format from extension', async () => {
       const jsonData = [{ key: 'config.json', value: '{}', size: 2 }];
       AppAPI.GetConfigMapDataByName.mockResolvedValue(jsonData);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('config.json')).toBeInTheDocument();
       });
@@ -202,9 +248,11 @@ describe('ConfigMapDataTab', () => {
     it('detects YAML format from extension', async () => {
       const yamlData = [{ key: 'config.yaml', value: 'key: value', size: 10 }];
       AppAPI.GetConfigMapDataByName.mockResolvedValue(yamlData);
-      
-      render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
-      
+
+      render(
+        <ConfigMapDataTab namespace="default" configMapName="my-config" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('config.yaml')).toBeInTheDocument();
       });

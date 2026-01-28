@@ -29,44 +29,49 @@ func (a *App) GetResourceEventsCount(namespace, kind, name string) (int, error) 
 
 // GetPodsCountForResource returns the count of pods owned by a resource
 func (a *App) GetPodsCountForResource(namespace, ownerKind, ownerName string) (int, error) {
-	var podCount int
-
-	switch ownerKind {
-	case "Deployment":
-		detail, detailErr := a.GetDeploymentDetail(namespace, ownerName)
-		if detailErr != nil {
-			return 0, detailErr
-		}
-		podCount = len(detail.Pods)
-	case "StatefulSet":
-		detail, detailErr := a.GetStatefulSetDetail(namespace, ownerName)
-		if detailErr != nil {
-			return 0, detailErr
-		}
-		podCount = len(detail.Pods)
-	case "DaemonSet":
-		detail, detailErr := a.GetDaemonSetDetail(namespace, ownerName)
-		if detailErr != nil {
-			return 0, detailErr
-		}
-		podCount = len(detail.Pods)
-	case "ReplicaSet":
-		detail, detailErr := a.GetReplicaSetDetail(namespace, ownerName)
-		if detailErr != nil {
-			return 0, detailErr
-		}
-		podCount = len(detail.Pods)
-	case "Job":
-		detail, detailErr := a.GetJobDetail(namespace, ownerName)
-		if detailErr != nil {
-			return 0, detailErr
-		}
-		podCount = len(detail.Pods)
-	default:
-		return 0, fmt.Errorf("unsupported owner kind: %s", ownerKind)
+	getPods := map[string]func() (int, error){
+		"Deployment": func() (int, error) {
+			detail, err := a.GetDeploymentDetail(namespace, ownerName)
+			if err != nil {
+				return 0, err
+			}
+			return len(detail.Pods), nil
+		},
+		"StatefulSet": func() (int, error) {
+			detail, err := a.GetStatefulSetDetail(namespace, ownerName)
+			if err != nil {
+				return 0, err
+			}
+			return len(detail.Pods), nil
+		},
+		"DaemonSet": func() (int, error) {
+			detail, err := a.GetDaemonSetDetail(namespace, ownerName)
+			if err != nil {
+				return 0, err
+			}
+			return len(detail.Pods), nil
+		},
+		"ReplicaSet": func() (int, error) {
+			detail, err := a.GetReplicaSetDetail(namespace, ownerName)
+			if err != nil {
+				return 0, err
+			}
+			return len(detail.Pods), nil
+		},
+		"Job": func() (int, error) {
+			detail, err := a.GetJobDetail(namespace, ownerName)
+			if err != nil {
+				return 0, err
+			}
+			return len(detail.Pods), nil
+		},
 	}
 
-	return podCount, nil
+	if fn, ok := getPods[ownerKind]; ok {
+		return fn()
+	}
+
+	return 0, fmt.Errorf("unsupported owner kind: %s", ownerKind)
 }
 
 // GetConfigMapConsumersCount returns the count of workloads using a ConfigMap
@@ -231,61 +236,52 @@ func (a *App) GetStatefulSetPVCsCount(namespace, statefulSetName string) (int, e
 // GetAllTabCounts returns all relevant tab counts for a resource in a single call
 func (a *App) GetAllTabCounts(namespace, kind, name string) (TabCounts, error) {
 	counts := TabCounts{}
-
-	// Events count (applicable to all resources)
-	if eventsCount, err := a.GetResourceEventsCount(namespace, kind, name); err == nil {
-		counts.Events = eventsCount
+	setCount := func(get func() (int, error), set func(int)) {
+		if v, err := get(); err == nil {
+			set(v)
+		}
 	}
 
-	// Resource-specific counts
-	switch kind {
-	case "Deployment", "DaemonSet", "ReplicaSet", "Job":
-		if podsCount, err := a.GetPodsCountForResource(namespace, kind, name); err == nil {
-			counts.Pods = podsCount
-		}
+	// Events count (applicable to all resources)
+	setCount(func() (int, error) { return a.GetResourceEventsCount(namespace, kind, name) }, func(v int) { counts.Events = v })
 
-	case "StatefulSet":
-		if podsCount, err := a.GetPodsCountForResource(namespace, kind, name); err == nil {
-			counts.Pods = podsCount
-		}
-		if pvcsCount, err := a.GetStatefulSetPVCsCount(namespace, name); err == nil {
-			counts.PVCs = pvcsCount
-		}
-
-	case "CronJob":
-		if historyCount, err := a.GetCronJobHistoryCount(namespace, name); err == nil {
-			counts.History = historyCount
-		}
-
-	case "ConfigMap":
-		if consumersCount, err := a.GetConfigMapConsumersCount(namespace, name); err == nil {
-			counts.Consumers = consumersCount
-		}
-		if dataCount, err := a.GetConfigMapDataCount(namespace, name); err == nil {
-			counts.Data = dataCount
-		}
-
-	case "Secret":
-		if consumersCount, err := a.GetSecretConsumersCount(namespace, name); err == nil {
-			counts.Consumers = consumersCount
-		}
-		if dataCount, err := a.GetSecretDataCount(namespace, name); err == nil {
-			counts.Data = dataCount
-		}
-
-	case "PersistentVolumeClaim":
-		if consumersCount, err := a.GetPVCConsumersCount(namespace, name); err == nil {
-			counts.Consumers = consumersCount
-		}
-
-	case "Service":
-		if endpointsCount, err := a.GetServiceEndpointsCount(namespace, name); err == nil {
-			counts.Endpoints = endpointsCount
-		}
-
-	case "Ingress":
-		if rulesCount, err := a.GetIngressRulesCount(namespace, name); err == nil {
-			counts.Rules = rulesCount
+	applyPods := func() {
+		setCount(func() (int, error) { return a.GetPodsCountForResource(namespace, kind, name) }, func(v int) { counts.Pods = v })
+	}
+	handlers := map[string][]func(){
+		"Deployment": {applyPods},
+		"DaemonSet":  {applyPods},
+		"ReplicaSet": {applyPods},
+		"Job":        {applyPods},
+		"StatefulSet": {applyPods, func() {
+			setCount(func() (int, error) { return a.GetStatefulSetPVCsCount(namespace, name) }, func(v int) { counts.PVCs = v })
+		}},
+		"CronJob": {func() {
+			setCount(func() (int, error) { return a.GetCronJobHistoryCount(namespace, name) }, func(v int) { counts.History = v })
+		}},
+		"ConfigMap": {func() {
+			setCount(func() (int, error) { return a.GetConfigMapConsumersCount(namespace, name) }, func(v int) { counts.Consumers = v })
+		}, func() {
+			setCount(func() (int, error) { return a.GetConfigMapDataCount(namespace, name) }, func(v int) { counts.Data = v })
+		}},
+		"Secret": {func() {
+			setCount(func() (int, error) { return a.GetSecretConsumersCount(namespace, name) }, func(v int) { counts.Consumers = v })
+		}, func() {
+			setCount(func() (int, error) { return a.GetSecretDataCount(namespace, name) }, func(v int) { counts.Data = v })
+		}},
+		"PersistentVolumeClaim": {func() {
+			setCount(func() (int, error) { return a.GetPVCConsumersCount(namespace, name) }, func(v int) { counts.Consumers = v })
+		}},
+		"Service": {func() {
+			setCount(func() (int, error) { return a.GetServiceEndpointsCount(namespace, name) }, func(v int) { counts.Endpoints = v })
+		}},
+		"Ingress": {func() {
+			setCount(func() (int, error) { return a.GetIngressRulesCount(namespace, name) }, func(v int) { counts.Rules = v })
+		}},
+	}
+	if fns, ok := handlers[kind]; ok {
+		for _, fn := range fns {
+			fn()
 		}
 	}
 

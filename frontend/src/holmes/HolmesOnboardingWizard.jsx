@@ -17,7 +17,7 @@ export function HolmesOnboardingWizard() {
     hideOnboarding,
     showConfigModal,
     deployHolmes,
-    checkDeployment
+    checkDeployment,
   } = useHolmes();
 
   const [step, setStep] = useState(1);
@@ -46,7 +46,7 @@ export function HolmesOnboardingWizard() {
     if (state.showOnboarding && checkDeployment) {
       setChecking(true);
       checkDeployment()
-        .then(status => {
+        .then((status) => {
           if (status.phase === 'deployed') {
             // Already deployed, skip to complete
             setStep(4);
@@ -124,8 +124,9 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-icon">🔍</div>
       <h2>Welcome to Holmes AI</h2>
       <p className="holmes-wizard-intro">
-        Holmes is an AI-powered Kubernetes troubleshooting assistant that helps you
-        diagnose issues, understand cluster behavior, and get actionable recommendations.
+        Holmes is an AI-powered Kubernetes troubleshooting assistant that helps
+        you diagnose issues, understand cluster behavior, and get actionable
+        recommendations.
       </p>
 
       <div className="holmes-wizard-features">
@@ -168,10 +169,7 @@ export function HolmesOnboardingWizard() {
         >
           {checking ? 'Checking...' : 'Get Started'}
         </button>
-        <button
-          className="holmes-wizard-btn"
-          onClick={handleManualConfig}
-        >
+        <button className="holmes-wizard-btn" onClick={handleManualConfig}>
           I already have Holmes running
         </button>
       </div>
@@ -183,8 +181,9 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-step-indicator">Step 1 of 2</div>
       <h2>Enter Your OpenAI API Key</h2>
       <p>
-        Holmes uses OpenAI&apos;s GPT models to analyze your cluster and provide intelligent insights.
-        Your API key is stored securely as a Kubernetes secret.
+        Holmes uses OpenAI&apos;s GPT models to analyze your cluster and provide
+        intelligent insights. Your API key is stored securely as a Kubernetes
+        secret.
       </p>
 
       <div className="holmes-wizard-field">
@@ -228,10 +227,7 @@ export function HolmesOnboardingWizard() {
       )}
 
       <div className="holmes-wizard-actions">
-        <button
-          className="holmes-wizard-btn"
-          onClick={() => setStep(1)}
-        >
+        <button className="holmes-wizard-btn" onClick={() => setStep(1)}>
           Back
         </button>
         <button
@@ -314,8 +310,8 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-success-icon">✓</div>
       <h2>Holmes is Ready!</h2>
       <p>
-        HolmesGPT has been successfully deployed to your cluster and is now configured
-        to help you troubleshoot issues.
+        HolmesGPT has been successfully deployed to your cluster and is now
+        configured to help you troubleshoot issues.
       </p>
 
       {deployStatus?.endpoint && (
@@ -327,7 +323,9 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-tips">
         <h4>Quick Start Tips:</h4>
         <ul>
-          <li>Ask &quot;What&apos;s wrong with my cluster?&quot; for an overview</li>
+          <li>
+            Ask &quot;What&apos;s wrong with my cluster?&quot; for an overview
+          </li>
           <li>Select a pod and ask Holmes to investigate failures</li>
           <li>Use natural language to explore your workloads</li>
         </ul>

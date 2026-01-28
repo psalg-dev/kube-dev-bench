@@ -21,7 +21,10 @@ export default function ReplicaSetOwnerTab({ namespace, replicaSetName }) {
       setError(null);
 
       try {
-        const result = await AppAPI.GetReplicaSetDetail(namespace, replicaSetName);
+        const result = await AppAPI.GetReplicaSetDetail(
+          namespace,
+          replicaSetName,
+        );
         if (result?.ownerName && result?.ownerKind) {
           setOwner({
             name: result.ownerName,
@@ -63,7 +66,9 @@ export default function ReplicaSetOwnerTab({ namespace, replicaSetName }) {
         <div className="owner-empty">
           <div className="owner-empty-icon">📦</div>
           <div className="owner-empty-text">This ReplicaSet has no owner.</div>
-          <div className="owner-empty-hint">It may have been created independently or orphaned.</div>
+          <div className="owner-empty-hint">
+            It may have been created independently or orphaned.
+          </div>
         </div>
       </div>
     );

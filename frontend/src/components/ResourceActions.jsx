@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react';
 import { showSuccess, showError, showWarning } from '../notification';
-import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob, ScaleResource, ResizePersistentVolumeClaim } from '../k8s/resources/kubeApi';
+import {
+  StartJob,
+  SuspendCronJob,
+  ResumeCronJob,
+  StartJobFromCronJob,
+  ScaleResource,
+  ResizePersistentVolumeClaim,
+} from '../k8s/resources/kubeApi';
 
-const SCALE_VISIBLE = new Set(['deployment', 'statefulset', 'replicaset', 'daemonset']);
+const SCALE_VISIBLE = new Set([
+  'deployment',
+  'statefulset',
+  'replicaset',
+  'daemonset',
+]);
 const SCALE_EDITABLE = new Set(['deployment', 'statefulset', 'replicaset']);
 
 const sanitizeReplicaString = (value) => {
@@ -17,10 +29,20 @@ const parseReplicaValue = (value) => {
   return Math.max(0, Math.round(num));
 };
 
-export default function ResourceActions({ resourceType, name, namespace, onRestart, onDelete, disabled, replicaCount }) {
+export default function ResourceActions({
+  resourceType,
+  name,
+  namespace,
+  onRestart,
+  onDelete,
+  disabled,
+  replicaCount,
+}) {
   const [confirm, setConfirm] = useState({ type: null, expires: 0 });
   const [scaleMode, setScaleMode] = useState(false);
-  const [scaleValue, setScaleValue] = useState(() => sanitizeReplicaString(replicaCount));
+  const [scaleValue, setScaleValue] = useState(() =>
+    sanitizeReplicaString(replicaCount),
+  );
   const [scaleBusy, setScaleBusy] = useState(false);
   const [resizeMode, setResizeMode] = useState(false);
   const [resizeValue, setResizeValue] = useState('');
@@ -30,13 +52,27 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
   const hasDelete = typeof onDelete === 'function';
   const normalizedType = (resourceType || '').toLowerCase();
   const showScaleButton = SCALE_VISIBLE.has(normalizedType);
-  const canEditScale = showScaleButton && SCALE_EDITABLE.has(normalizedType) && typeof namespace === 'string' && namespace && typeof name === 'string' && name;
-  const canResizePVC = normalizedType === 'pvc' && typeof namespace === 'string' && namespace && typeof name === 'string' && name;
+  const canEditScale =
+    showScaleButton &&
+    SCALE_EDITABLE.has(normalizedType) &&
+    typeof namespace === 'string' &&
+    namespace &&
+    typeof name === 'string' &&
+    name;
+  const canResizePVC =
+    normalizedType === 'pvc' &&
+    typeof namespace === 'string' &&
+    namespace &&
+    typeof name === 'string' &&
+    name;
 
   // Reset confirmation automatically when window expires
   useEffect(() => {
     if (!confirm.type) return;
-    const id = setTimeout(() => setConfirm({ type: null, expires: 0 }), Math.max(0, confirm.expires - Date.now()));
+    const id = setTimeout(
+      () => setConfirm({ type: null, expires: 0 }),
+      Math.max(0, confirm.expires - Date.now()),
+    );
     return () => clearTimeout(id);
   }, [confirm]);
 
@@ -58,7 +94,10 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
 
   const beginConfirm = (type) => {
     setConfirm({ type, expires: Date.now() + CONFIRM_WINDOW });
-    showWarning(`${type === 'delete' ? 'Delete' : 'Restart'} ${resourceType.toLowerCase()} '${name}': click again to confirm`, { duration: 2500 });
+    showWarning(
+      `${type === 'delete' ? 'Delete' : 'Restart'} ${resourceType.toLowerCase()} '${name}': click again to confirm`,
+      { duration: 2500 },
+    );
   };
 
   const handleAction = async (actionType) => {
@@ -80,7 +119,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
         showSuccess(`${resourceType} '${name}' deleted`);
       }
     } catch (err) {
-      showError(`Failed to ${actionType} ${resourceType.toLowerCase()} '${name}': ${err?.message || err}`);
+      showError(
+        `Failed to ${actionType} ${resourceType.toLowerCase()} '${name}': ${err?.message || err}`,
+      );
     } finally {
       setConfirm({ type: null, expires: 0 });
     }
@@ -119,7 +160,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
       await StartJobFromCronJob(namespace, name);
       showSuccess(`Job started from CronJob '${name}'`);
     } catch (err) {
-      showError(`Failed to start Job from CronJob '${name}': ${err?.message || err}`);
+      showError(
+        `Failed to start Job from CronJob '${name}': ${err?.message || err}`,
+      );
     }
   };
 
@@ -140,7 +183,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
       showSuccess(`Scaled ${resourceType} '${name}' to ${desired} replicas`);
       setScaleMode(false);
     } catch (err) {
-      showError(`Failed to scale ${resourceType} '${name}': ${err?.message || err}`);
+      showError(
+        `Failed to scale ${resourceType} '${name}': ${err?.message || err}`,
+      );
     } finally {
       setScaleBusy(false);
     }
@@ -167,7 +212,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
   };
 
   const restartPending = confirm.type === 'restart';
-  const deletePending  = confirm.type === 'delete';
+  const deletePending = confirm.type === 'delete';
 
   const baseBtn = {
     padding: '4px 10px',
@@ -179,7 +224,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
     border: '1px solid #3c3c3c',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.55 : 1,
-    transition: 'background 0.15s, color 0.15s, border-color 0.15s'
+    transition: 'background 0.15s, color 0.15s, border-color 0.15s',
   };
 
   return (
@@ -193,7 +238,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           title={`Start Job '${name}' (re-run)`}
           style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
         >
-          <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
+          <span aria-hidden="true" style={{ lineHeight: 1 }}>
+            ▶
+          </span>
           Start
         </button>
       )}
@@ -207,7 +254,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             title={`Start Job from CronJob '${name}' (manual trigger)`}
             style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
           >
-            <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
+            <span aria-hidden="true" style={{ lineHeight: 1 }}>
+              ▶
+            </span>
             Start
           </button>
           <button
@@ -217,7 +266,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             title={`Suspend CronJob '${name}'`}
             style={{ ...baseBtn, background: '#b22222', color: '#fff' }}
           >
-            <span aria-hidden="true" style={{ lineHeight: 1 }}>⏸</span>
+            <span aria-hidden="true" style={{ lineHeight: 1 }}>
+              ⏸
+            </span>
             Suspend
           </button>
           <button
@@ -227,7 +278,9 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             title={`Resume CronJob '${name}'`}
             style={{ ...baseBtn, background: '#228B22', color: '#fff' }}
           >
-            <span aria-hidden="true" style={{ lineHeight: 1 }}>▶</span>
+            <span aria-hidden="true" style={{ lineHeight: 1 }}>
+              ▶
+            </span>
             Resume
           </button>
         </>
@@ -238,15 +291,21 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           type="button"
           disabled={disabled}
           onClick={() => handleAction('restart')}
-          title={restartPending ? `Click to confirm restart of ${resourceType} '${name}'` : `Restart ${resourceType} '${name}' (rollout restart)`}
+          title={
+            restartPending
+              ? `Click to confirm restart of ${resourceType} '${name}'`
+              : `Restart ${resourceType} '${name}' (rollout restart)`
+          }
           style={{
             ...baseBtn,
             background: restartPending ? '#9e6a03' : '#2d323b',
             borderColor: restartPending ? '#d29922' : '#353a42',
-            color: '#fff'
+            color: '#fff',
           }}
         >
-          <span aria-hidden="true" style={{ lineHeight: 1 }}>⟳</span>
+          <span aria-hidden="true" style={{ lineHeight: 1 }}>
+            ⟳
+          </span>
           {restartPending ? 'Confirm' : 'Restart'}
         </button>
       )}
@@ -255,15 +314,21 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           type="button"
           disabled={disabled}
           onClick={() => handleAction('delete')}
-          title={deletePending ? `Click to confirm delete of ${resourceType} '${name}'` : `Delete ${resourceType} '${name}'`}
+          title={
+            deletePending
+              ? `Click to confirm delete of ${resourceType} '${name}'`
+              : `Delete ${resourceType} '${name}'`
+          }
           style={{
             ...baseBtn,
-              background: deletePending ? '#f85149' : '#b22222',
-              borderColor: deletePending ? '#f85149' : '#853131',
-              color: '#fff'
+            background: deletePending ? '#f85149' : '#b22222',
+            borderColor: deletePending ? '#f85149' : '#853131',
+            color: '#fff',
           }}
         >
-          <span aria-hidden="true" style={{ lineHeight: 1 }}>🗑</span>
+          <span aria-hidden="true" style={{ lineHeight: 1 }}>
+            🗑
+          </span>
           {deletePending ? 'Confirm' : 'Delete'}
         </button>
       )}
@@ -273,14 +338,27 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           disabled={disabled}
           onClick={() => setResizeMode(true)}
           title={`Request storage expansion for PVC '${name}'`}
-          style={{ ...baseBtn, background: '#1f6feb', borderColor: '#388bfd', color: '#fff', opacity: disabled ? 0.6 : 1 }}
+          style={{
+            ...baseBtn,
+            background: '#1f6feb',
+            borderColor: '#388bfd',
+            color: '#fff',
+            opacity: disabled ? 0.6 : 1,
+          }}
         >
           Resize
         </button>
       )}
       {canResizePVC && resizeMode && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 12,
+            }}
+          >
             <span>Size</span>
             <input
               type="text"
@@ -293,7 +371,7 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
                 borderRadius: 4,
                 border: '1px solid #3c3c3c',
                 background: '#181818',
-                color: '#fff'
+                color: '#fff',
               }}
             />
           </label>
@@ -301,13 +379,21 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
             type="button"
             onClick={submitResizePVC}
             disabled={disabled || resizeBusy}
-            style={{ ...baseBtn, background: '#0e639c', borderColor: '#1177bb', color: '#fff' }}
+            style={{
+              ...baseBtn,
+              background: '#0e639c',
+              borderColor: '#1177bb',
+              color: '#fff',
+            }}
           >
             {resizeBusy ? 'Applying…' : 'Apply'}
           </button>
           <button
             type="button"
-            onClick={() => { setResizeMode(false); setResizeValue(''); }}
+            onClick={() => {
+              setResizeMode(false);
+              setResizeValue('');
+            }}
             disabled={resizeBusy}
             style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
           >
@@ -315,63 +401,86 @@ export default function ResourceActions({ resourceType, name, namespace, onResta
           </button>
         </div>
       )}
-          {showScaleButton && !scaleMode && (
-            <button
-              type="button"
-              disabled={disabled || !canEditScale}
-              onClick={toggleScale}
-              title={canEditScale ? `Scale ${resourceType} '${name}'` : normalizedType === 'daemonset' ? 'DaemonSets run one pod per matching node; change node labels to affect count' : `Scaling not available for ${resourceType}`}
+      {showScaleButton && !scaleMode && (
+        <button
+          type="button"
+          disabled={disabled || !canEditScale}
+          onClick={toggleScale}
+          title={
+            canEditScale
+              ? `Scale ${resourceType} '${name}'`
+              : normalizedType === 'daemonset'
+                ? 'DaemonSets run one pod per matching node; change node labels to affect count'
+                : `Scaling not available for ${resourceType}`
+          }
+          style={{
+            ...baseBtn,
+            background: '#1f6feb',
+            borderColor: '#388bfd',
+            color: '#fff',
+            opacity: disabled || !canEditScale ? 0.6 : 1,
+            cursor: disabled || !canEditScale ? 'not-allowed' : baseBtn.cursor,
+          }}
+        >
+          <span aria-hidden="true" style={{ lineHeight: 1 }}>
+            ⤢
+          </span>
+          Scale
+        </button>
+      )}
+      {canEditScale && scaleMode && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              fontSize: 12,
+            }}
+          >
+            <span>Replicas</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={scaleValue}
+              onChange={(e) => setScaleValue(e.target.value)}
               style={{
-                ...baseBtn,
-                background: '#1f6feb',
-                borderColor: '#388bfd',
+                width: 70,
+                padding: '4px 6px',
+                borderRadius: 4,
+                border: '1px solid #3c3c3c',
+                background: '#181818',
                 color: '#fff',
-                opacity: disabled || !canEditScale ? 0.6 : 1,
-                cursor: disabled || !canEditScale ? 'not-allowed' : baseBtn.cursor
               }}
-            >
-              <span aria-hidden="true" style={{ lineHeight: 1 }}>⤢</span>
-              Scale
-            </button>
-          )}
-          {canEditScale && scaleMode && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-                <span>Replicas</span>
-                <input
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={scaleValue}
-                  onChange={(e) => setScaleValue(e.target.value)}
-                  style={{
-                    width: 70,
-                    padding: '4px 6px',
-                    borderRadius: 4,
-                    border: '1px solid #3c3c3c',
-                    background: '#181818',
-                    color: '#fff'
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                onClick={submitScale}
-                disabled={disabled || scaleBusy}
-                style={{ ...baseBtn, background: '#0e639c', borderColor: '#1177bb', color: '#fff' }}
-              >
-                {scaleBusy ? 'Scaling…' : 'Apply'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setScaleMode(false); setScaleValue(sanitizeReplicaString(replicaCount)); }}
-                disabled={scaleBusy}
-                style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
-              >
-                Cancel
-              </button>
-            </div>
-          )}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={submitScale}
+            disabled={disabled || scaleBusy}
+            style={{
+              ...baseBtn,
+              background: '#0e639c',
+              borderColor: '#1177bb',
+              color: '#fff',
+            }}
+          >
+            {scaleBusy ? 'Scaling…' : 'Apply'}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setScaleMode(false);
+              setScaleValue(sanitizeReplicaString(replicaCount));
+            }}
+            disabled={scaleBusy}
+            style={{ ...baseBtn, background: '#3c3c3c', color: '#fff' }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }

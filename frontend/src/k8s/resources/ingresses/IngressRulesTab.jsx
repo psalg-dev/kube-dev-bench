@@ -1,7 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './IngressRulesTab.css';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 /**
  * Rules tab for Ingresses - shows routing rules and backends.
@@ -28,10 +32,17 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
         } else {
           // Fallback: use the hosts prop to build basic rules
           setDetail({
-            rules: hosts?.map(host => ({
-              host,
-              paths: [{ path: '/', pathType: 'Prefix', backend: { serviceName: 'unknown', servicePort: 'unknown' } }]
-            })) || []
+            rules:
+              hosts?.map((host) => ({
+                host,
+                paths: [
+                  {
+                    path: '/',
+                    pathType: 'Prefix',
+                    backend: { serviceName: 'unknown', servicePort: 'unknown' },
+                  },
+                ],
+              })) || [],
           });
         }
       } catch (err) {
@@ -76,16 +87,28 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
   }
 
   // If we have rules from the API, use them; otherwise build from hosts
-  const displayRules = rules.length > 0 ? rules : (hosts || []).map(host => ({
-    host,
-    paths: [{ path: '/*', pathType: 'Prefix', backend: { serviceName: '-', servicePort: '-' } }]
-  }));
+  const displayRules =
+    rules.length > 0
+      ? rules
+      : (hosts || []).map((host) => ({
+          host,
+          paths: [
+            {
+              path: '/*',
+              pathType: 'Prefix',
+              backend: { serviceName: '-', servicePort: '-' },
+            },
+          ],
+        }));
 
   return (
     <div className="ingress-rules-tab">
       <div className="rules-header">
         <h3>Routing Rules</h3>
-        <p>{displayRules.length} rule{displayRules.length !== 1 ? 's' : ''} configured</p>
+        <p>
+          {displayRules.length} rule{displayRules.length !== 1 ? 's' : ''}{' '}
+          configured
+        </p>
       </div>
 
       <div className="rules-list">
@@ -109,7 +132,9 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
                 <span className="tls-label">Secret:</span>
                 <span className="tls-value">{tlsConfig.secretName || '-'}</span>
                 <span className="tls-label">Hosts:</span>
-                <span className="tls-value">{tlsConfig.hosts?.join(', ') || '*'}</span>
+                <span className="tls-value">
+                  {tlsConfig.hosts?.join(', ') || '*'}
+                </span>
               </div>
             ))}
           </div>
@@ -120,21 +145,39 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
 }
 
 function RulePathsTable({ paths }) {
-  const columns = useMemo(() => ([
-    { key: 'path', label: 'Path' },
-    { key: 'pathType', label: 'Path Type' },
-    { key: 'backendService', label: 'Backend Service' },
-    { key: 'backendPort', label: 'Port' },
-  ]), []);
+  const columns = useMemo(
+    () => [
+      { key: 'path', label: 'Path' },
+      { key: 'pathType', label: 'Path Type' },
+      { key: 'backendService', label: 'Backend Service' },
+      { key: 'backendPort', label: 'Port' },
+    ],
+    [],
+  );
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const normalizedPaths = useMemo(() => (paths || []).map((path) => ({
-    path: path.path || '/',
-    pathType: path.pathType || 'Prefix',
-    backendService: path.backend?.serviceName || path.backend?.service?.name || '-',
-    backendPort: path.backend?.servicePort || path.backend?.service?.port?.number || path.backend?.service?.port?.name || '-',
-  })), [paths]);
-  const sortedPaths = useMemo(() => sortRows(normalizedPaths, sortState.key, sortState.direction), [normalizedPaths, sortState]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const normalizedPaths = useMemo(
+    () =>
+      (paths || []).map((path) => ({
+        path: path.path || '/',
+        pathType: path.pathType || 'Prefix',
+        backendService:
+          path.backend?.serviceName || path.backend?.service?.name || '-',
+        backendPort:
+          path.backend?.servicePort ||
+          path.backend?.service?.port?.number ||
+          path.backend?.service?.port?.name ||
+          '-',
+      })),
+    [paths],
+  );
+  const sortedPaths = useMemo(
+    () => sortRows(normalizedPaths, sortState.key, sortState.direction),
+    [normalizedPaths, sortState],
+  );
 
   const headerButtonStyle = {
     width: '100%',
@@ -155,28 +198,108 @@ function RulePathsTable({ paths }) {
     <table className="paths-table">
       <thead>
         <tr>
-          <th aria-sort={sortState.key === 'path' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'path'))}>
+          <th
+            aria-sort={
+              sortState.key === 'path'
+                ? sortState.direction === 'asc'
+                  ? 'ascending'
+                  : 'descending'
+                : 'none'
+            }
+          >
+            <button
+              type="button"
+              style={headerButtonStyle}
+              onClick={() =>
+                setSortState((cur) => toggleSortState(cur, 'path'))
+              }
+            >
               <span>Path</span>
-              <span aria-hidden="true">{sortState.key === 'path' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              <span aria-hidden="true">
+                {sortState.key === 'path'
+                  ? sortState.direction === 'asc'
+                    ? '▲'
+                    : '▼'
+                  : '↕'}
+              </span>
             </button>
           </th>
-          <th aria-sort={sortState.key === 'pathType' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'pathType'))}>
+          <th
+            aria-sort={
+              sortState.key === 'pathType'
+                ? sortState.direction === 'asc'
+                  ? 'ascending'
+                  : 'descending'
+                : 'none'
+            }
+          >
+            <button
+              type="button"
+              style={headerButtonStyle}
+              onClick={() =>
+                setSortState((cur) => toggleSortState(cur, 'pathType'))
+              }
+            >
               <span>Path Type</span>
-              <span aria-hidden="true">{sortState.key === 'pathType' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              <span aria-hidden="true">
+                {sortState.key === 'pathType'
+                  ? sortState.direction === 'asc'
+                    ? '▲'
+                    : '▼'
+                  : '↕'}
+              </span>
             </button>
           </th>
-          <th aria-sort={sortState.key === 'backendService' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'backendService'))}>
+          <th
+            aria-sort={
+              sortState.key === 'backendService'
+                ? sortState.direction === 'asc'
+                  ? 'ascending'
+                  : 'descending'
+                : 'none'
+            }
+          >
+            <button
+              type="button"
+              style={headerButtonStyle}
+              onClick={() =>
+                setSortState((cur) => toggleSortState(cur, 'backendService'))
+              }
+            >
               <span>Backend Service</span>
-              <span aria-hidden="true">{sortState.key === 'backendService' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              <span aria-hidden="true">
+                {sortState.key === 'backendService'
+                  ? sortState.direction === 'asc'
+                    ? '▲'
+                    : '▼'
+                  : '↕'}
+              </span>
             </button>
           </th>
-          <th aria-sort={sortState.key === 'backendPort' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'backendPort'))}>
+          <th
+            aria-sort={
+              sortState.key === 'backendPort'
+                ? sortState.direction === 'asc'
+                  ? 'ascending'
+                  : 'descending'
+                : 'none'
+            }
+          >
+            <button
+              type="button"
+              style={headerButtonStyle}
+              onClick={() =>
+                setSortState((cur) => toggleSortState(cur, 'backendPort'))
+              }
+            >
               <span>Port</span>
-              <span aria-hidden="true">{sortState.key === 'backendPort' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              <span aria-hidden="true">
+                {sortState.key === 'backendPort'
+                  ? sortState.direction === 'asc'
+                    ? '▲'
+                    : '▼'
+                  : '↕'}
+              </span>
             </button>
           </th>
         </tr>
@@ -190,17 +313,15 @@ function RulePathsTable({ paths }) {
             <td>
               <span className="path-type-badge">{path.pathType}</span>
             </td>
-            <td className="service-cell">
-              {path.backendService}
-            </td>
-            <td className="port-cell">
-              {path.backendPort}
-            </td>
+            <td className="service-cell">{path.backendService}</td>
+            <td className="port-cell">{path.backendPort}</td>
           </tr>
         ))}
         {sortedPaths.length === 0 && (
           <tr>
-            <td colSpan="4" className="no-paths">No paths configured for this host</td>
+            <td colSpan="4" className="no-paths">
+              No paths configured for this host
+            </td>
           </tr>
         )}
       </tbody>

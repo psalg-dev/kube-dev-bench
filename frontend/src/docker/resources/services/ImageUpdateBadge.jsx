@@ -34,7 +34,8 @@ function stylesFor(state) {
 function shortDigest(d) {
   const s = String(d || '').trim();
   if (!s) return '';
-  if (s.startsWith('sha256:') && s.length > 20) return `${s.slice(0, 14)}…${s.slice(-6)}`;
+  if (s.startsWith('sha256:') && s.length > 20)
+    return `${s.slice(0, 14)}…${s.slice(-6)}`;
   return s.length > 24 ? `${s.slice(0, 18)}…` : s;
 }
 
@@ -118,7 +119,9 @@ export default function ImageUpdateBadge({ value, onOpenDetails }) {
         opacity: checking ? 0.7 : 1,
       }}
     >
-      <span style={{ fontSize: 10, lineHeight: 1 }}>{checking ? '…' : c.icon}</span>
+      <span style={{ fontSize: 10, lineHeight: 1 }}>
+        {checking ? '…' : c.icon}
+      </span>
       {c.label}
     </button>
   );

@@ -24,20 +24,28 @@ describe('DeploymentRolloutTab', () => {
 
   describe('loading state', () => {
     it('shows loading initially', () => {
-      AppAPI.GetDeploymentDetail.mockImplementation(() => new Promise(() => {}));
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+      AppAPI.GetDeploymentDetail.mockImplementation(
+        () => new Promise(() => {}),
+      );
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       expect(screen.getByText(/loading/i)).toBeInTheDocument();
     });
   });
 
   describe('error handling', () => {
     it('displays error when API call fails', async () => {
-      AppAPI.GetDeploymentDetail.mockRejectedValue(new Error('Deployment not found'));
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+      AppAPI.GetDeploymentDetail.mockRejectedValue(
+        new Error('Deployment not found'),
+      );
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText(/Deployment not found/)).toBeInTheDocument();
       });
@@ -47,9 +55,11 @@ describe('DeploymentRolloutTab', () => {
   describe('empty state', () => {
     it('shows no revisions message when revisions array is empty', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue({ revisions: [] });
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText(/No revisions found/i)).toBeInTheDocument();
       });
@@ -80,9 +90,11 @@ describe('DeploymentRolloutTab', () => {
 
     it('displays revisions table with correct headers', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Revision')).toBeInTheDocument();
         expect(screen.getByText('ReplicaSet')).toBeInTheDocument();
@@ -96,9 +108,11 @@ describe('DeploymentRolloutTab', () => {
 
     it('displays revision data', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('#3')).toBeInTheDocument();
         expect(screen.getByText('#2')).toBeInTheDocument();
@@ -111,9 +125,11 @@ describe('DeploymentRolloutTab', () => {
 
     it('shows Active badge for current revision', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Active')).toBeInTheDocument();
       });
@@ -121,9 +137,11 @@ describe('DeploymentRolloutTab', () => {
 
     it('displays Rollback buttons for revisions', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         const rollbackButtons = screen.getAllByText('Rollback');
         expect(rollbackButtons.length).toBe(2);
@@ -134,39 +152,54 @@ describe('DeploymentRolloutTab', () => {
   describe('rollback action', () => {
     const mockRevisions = {
       revisions: [
-        { revision: '2', replicaSet: 'my-deploy-def456', image: 'nginx:1.20', createdAt: '-', replicas: 0, isCurrent: false },
+        {
+          revision: '2',
+          replicaSet: 'my-deploy-def456',
+          image: 'nginx:1.20',
+          createdAt: '-',
+          replicas: 0,
+          isCurrent: false,
+        },
       ],
     };
 
     it('calls RollbackDeploymentToRevision on rollback button click', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
       AppAPI.RollbackDeploymentToRevision.mockResolvedValue({});
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Rollback')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Rollback'));
-      
+
       await waitFor(() => {
-        expect(AppAPI.RollbackDeploymentToRevision).toHaveBeenCalledWith('default', 'my-deploy', 2);
+        expect(AppAPI.RollbackDeploymentToRevision).toHaveBeenCalledWith(
+          'default',
+          'my-deploy',
+          2,
+        );
       });
     });
 
     it('shows success notification on successful rollback', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
       AppAPI.RollbackDeploymentToRevision.mockResolvedValue({});
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Rollback')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Rollback'));
-      
+
       await waitFor(() => {
         expect(showSuccess).toHaveBeenCalled();
       });
@@ -174,16 +207,20 @@ describe('DeploymentRolloutTab', () => {
 
     it('shows error notification on rollback failure', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue(mockRevisions);
-      AppAPI.RollbackDeploymentToRevision.mockRejectedValue(new Error('Rollback failed'));
-      
-      render(<DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />);
-      
+      AppAPI.RollbackDeploymentToRevision.mockRejectedValue(
+        new Error('Rollback failed'),
+      );
+
+      render(
+        <DeploymentRolloutTab namespace="default" deploymentName="my-deploy" />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Rollback')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Rollback'));
-      
+
       await waitFor(() => {
         expect(showError).toHaveBeenCalled();
       });
@@ -193,33 +230,43 @@ describe('DeploymentRolloutTab', () => {
   describe('API calls', () => {
     it('does not call API when namespace is missing', async () => {
       render(<DeploymentRolloutTab namespace="" deploymentName="my-deploy" />);
-      
-      await new Promise(r => setTimeout(r, 50));
-      
+
+      await new Promise((r) => setTimeout(r, 50));
+
       expect(AppAPI.GetDeploymentDetail).not.toHaveBeenCalled();
     });
 
     it('does not call API when deploymentName is missing', async () => {
       render(<DeploymentRolloutTab namespace="default" deploymentName="" />);
-      
-      await new Promise(r => setTimeout(r, 50));
-      
+
+      await new Promise((r) => setTimeout(r, 50));
+
       expect(AppAPI.GetDeploymentDetail).not.toHaveBeenCalled();
     });
 
     it('re-fetches when props change', async () => {
       AppAPI.GetDeploymentDetail.mockResolvedValue({ revisions: [] });
-      
-      const { rerender } = render(<DeploymentRolloutTab namespace="ns1" deploymentName="deploy-1" />);
-      
+
+      const { rerender } = render(
+        <DeploymentRolloutTab namespace="ns1" deploymentName="deploy-1" />,
+      );
+
       await waitFor(() => {
-        expect(AppAPI.GetDeploymentDetail).toHaveBeenCalledWith('ns1', 'deploy-1');
+        expect(AppAPI.GetDeploymentDetail).toHaveBeenCalledWith(
+          'ns1',
+          'deploy-1',
+        );
       });
 
-      rerender(<DeploymentRolloutTab namespace="ns2" deploymentName="deploy-2" />);
-      
+      rerender(
+        <DeploymentRolloutTab namespace="ns2" deploymentName="deploy-2" />,
+      );
+
       await waitFor(() => {
-        expect(AppAPI.GetDeploymentDetail).toHaveBeenCalledWith('ns2', 'deploy-2');
+        expect(AppAPI.GetDeploymentDetail).toHaveBeenCalledWith(
+          'ns2',
+          'deploy-2',
+        );
       });
     });
   });

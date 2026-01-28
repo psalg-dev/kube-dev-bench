@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import TabLabel from '../components/TabLabel';
 
@@ -61,7 +61,9 @@ describe('TabLabel', () => {
   });
 
   it('applies custom className', () => {
-    const { container } = render(<TabLabel label="Test" className="custom-class" />);
+    const { container } = render(
+      <TabLabel label="Test" className="custom-class" />,
+    );
     const tabLabel = container.querySelector('.tab-label');
     expect(tabLabel).toHaveClass('custom-class');
   });

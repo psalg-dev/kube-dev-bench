@@ -42,7 +42,8 @@ vi.mock('../../layout/bottompanel/SummaryTabHeader.jsx', () => ({
 vi.mock('../../components/ResourceActions.jsx', () => ({
   default: ({ resourceType, name, namespace, disabled }) => (
     <div data-testid="resource-actions">
-      {resourceType}: {name} in {namespace} {disabled ? '(disabled)' : '(enabled)'}
+      {resourceType}: {name} in {namespace}{' '}
+      {disabled ? '(disabled)' : '(enabled)'}
     </div>
   ),
 }));
@@ -130,7 +131,9 @@ describe('PodSummaryTab', () => {
 
       await waitFor(() => {
         expect(screen.getByTestId('log-viewer')).toBeInTheDocument();
-        expect(screen.getByText(/LogViewer for example-pod/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/LogViewer for example-pod/),
+        ).toBeInTheDocument();
       });
     });
 
@@ -163,7 +166,10 @@ describe('PodSummaryTab', () => {
     ];
 
     beforeEach(() => {
-      mockGetPodSummary.mockResolvedValue({ name: 'example-pod', namespace: 'test' });
+      mockGetPodSummary.mockResolvedValue({
+        name: 'example-pod',
+        namespace: 'test',
+      });
       mockGetPodEvents.mockResolvedValue(mockEvents);
       mockGetPodEventsLegacy.mockResolvedValue(mockEvents);
     });
@@ -242,7 +248,10 @@ describe('PodSummaryTab', () => {
     });
 
     it('hides events section when events fetch fails', async () => {
-      mockGetPodSummary.mockResolvedValue({ name: 'example-pod', namespace: 'test' });
+      mockGetPodSummary.mockResolvedValue({
+        name: 'example-pod',
+        namespace: 'test',
+      });
       mockGetPodEvents.mockRejectedValue(new Error('Events error'));
       mockGetPodEventsLegacy.mockRejectedValue(new Error('Events error'));
 
@@ -263,7 +272,7 @@ describe('PodSummaryTab', () => {
       render(<PodSummaryTab podName="" />);
 
       // Wait a bit to ensure no calls were made
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockGetPodSummary).not.toHaveBeenCalled();
     });
@@ -271,7 +280,7 @@ describe('PodSummaryTab', () => {
     it('does not fetch when podName is undefined', async () => {
       render(<PodSummaryTab podName={undefined} />);
 
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(mockGetPodSummary).not.toHaveBeenCalled();
     });
@@ -279,7 +288,11 @@ describe('PodSummaryTab', () => {
 
   describe('Status colors', () => {
     it('displays Running status with styling', async () => {
-      mockGetPodSummary.mockResolvedValue({ name: 'pod', namespace: 'ns', status: 'Running' });
+      mockGetPodSummary.mockResolvedValue({
+        name: 'pod',
+        namespace: 'ns',
+        status: 'Running',
+      });
       mockGetPodEventsLegacy.mockResolvedValue([]);
 
       render(<PodSummaryTab podName="pod" />);
@@ -293,7 +306,11 @@ describe('PodSummaryTab', () => {
     });
 
     it('displays Pending status with styling', async () => {
-      mockGetPodSummary.mockResolvedValue({ name: 'pod', namespace: 'ns', status: 'Pending' });
+      mockGetPodSummary.mockResolvedValue({
+        name: 'pod',
+        namespace: 'ns',
+        status: 'Pending',
+      });
       mockGetPodEventsLegacy.mockResolvedValue([]);
 
       render(<PodSummaryTab podName="pod" />);
@@ -307,7 +324,11 @@ describe('PodSummaryTab', () => {
     });
 
     it('displays Failed status with styling', async () => {
-      mockGetPodSummary.mockResolvedValue({ name: 'pod', namespace: 'ns', status: 'Failed' });
+      mockGetPodSummary.mockResolvedValue({
+        name: 'pod',
+        namespace: 'ns',
+        status: 'Failed',
+      });
       mockGetPodEventsLegacy.mockResolvedValue([]);
 
       render(<PodSummaryTab podName="pod" />);
@@ -323,14 +344,19 @@ describe('PodSummaryTab', () => {
 
   describe('ResourceActions integration', () => {
     it('passes pod data to ResourceActions', async () => {
-      mockGetPodSummary.mockResolvedValue({ name: 'example-pod', namespace: 'test-ns' });
+      mockGetPodSummary.mockResolvedValue({
+        name: 'example-pod',
+        namespace: 'test-ns',
+      });
       mockGetPodEventsLegacy.mockResolvedValue([]);
 
       render(<PodSummaryTab podName="example-pod" />);
 
       await waitFor(() => {
         expect(screen.getByTestId('resource-actions')).toBeInTheDocument();
-        expect(screen.getByText(/Pod: example-pod in test-ns/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Pod: example-pod in test-ns/),
+        ).toBeInTheDocument();
       });
     });
 
@@ -341,7 +367,9 @@ describe('PodSummaryTab', () => {
       render(<PodSummaryTab podName="example-pod" />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('resource-actions')).toHaveTextContent('(disabled)');
+        expect(screen.getByTestId('resource-actions')).toHaveTextContent(
+          '(disabled)',
+        );
       });
     });
   });

@@ -151,7 +151,14 @@ export default function ConfigCompareModal({
   return (
     <div style={overlayStyle} onClick={() => onClose?.()}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
           <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
             Compare configs: {baseConfigName}
           </div>
@@ -161,7 +168,9 @@ export default function ConfigCompareModal({
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+          <div
+            style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}
+          >
             Compare against:
           </div>
           <select
@@ -177,13 +186,26 @@ export default function ConfigCompareModal({
             ))}
           </select>
           {otherName ? (
-            <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+            <div
+              style={{
+                color: 'var(--gh-text-secondary, #8b949e)',
+                fontSize: 12,
+              }}
+            >
               showing unified diff (+ added, - removed)
             </div>
           ) : null}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--gh-border, #30363d)', borderRadius: 6, overflow: 'hidden' }}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            border: '1px solid var(--gh-border, #30363d)',
+            borderRadius: 6,
+            overflow: 'hidden',
+          }}
+        >
           <TextViewerTab
             content={otherId ? diffText : 'Select a config to compare.'}
             loading={loading}

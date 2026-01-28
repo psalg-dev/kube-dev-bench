@@ -18,12 +18,7 @@ describe('ReplicaSetOwnerTab', () => {
   it('renders loading state initially', () => {
     mockGetReplicaSetDetail.mockReturnValue(new Promise(() => {}));
 
-    render(
-      <ReplicaSetOwnerTab
-        namespace="default"
-        replicaSetName="test-rs"
-      />
-    );
+    render(<ReplicaSetOwnerTab namespace="default" replicaSetName="test-rs" />);
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
   });
@@ -36,12 +31,7 @@ describe('ReplicaSetOwnerTab', () => {
 
     mockGetReplicaSetDetail.mockResolvedValue(mockDetail);
 
-    render(
-      <ReplicaSetOwnerTab
-        namespace="default"
-        replicaSetName="test-rs"
-      />
-    );
+    render(<ReplicaSetOwnerTab namespace="default" replicaSetName="test-rs" />);
 
     await waitFor(() => {
       expect(screen.getByText('test-deployment')).toBeInTheDocument();
@@ -57,10 +47,7 @@ describe('ReplicaSetOwnerTab', () => {
     });
 
     render(
-      <ReplicaSetOwnerTab
-        namespace="default"
-        replicaSetName="standalone-rs"
-      />
+      <ReplicaSetOwnerTab namespace="default" replicaSetName="standalone-rs" />,
     );
 
     await waitFor(() => {
@@ -72,10 +59,7 @@ describe('ReplicaSetOwnerTab', () => {
     mockGetReplicaSetDetail.mockRejectedValue(new Error('Network error'));
 
     render(
-      <ReplicaSetOwnerTab
-        namespace="default"
-        replicaSetName="failing-rs"
-      />
+      <ReplicaSetOwnerTab namespace="default" replicaSetName="failing-rs" />,
     );
 
     await waitFor(() => {
@@ -88,12 +72,7 @@ describe('ReplicaSetOwnerTab', () => {
   it('calls API with correct parameters', async () => {
     mockGetReplicaSetDetail.mockResolvedValue({ ownerKind: '', ownerName: '' });
 
-    render(
-      <ReplicaSetOwnerTab
-        namespace="my-ns"
-        replicaSetName="my-rs"
-      />
-    );
+    render(<ReplicaSetOwnerTab namespace="my-ns" replicaSetName="my-rs" />);
 
     await waitFor(() => {
       expect(mockGetReplicaSetDetail).toHaveBeenCalledWith('my-ns', 'my-rs');
@@ -112,7 +91,7 @@ describe('ReplicaSetOwnerTab', () => {
       <ReplicaSetOwnerTab
         namespace="default"
         replicaSetName="nginx-rs-abc123"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -129,10 +108,7 @@ describe('ReplicaSetOwnerTab', () => {
     });
 
     render(
-      <ReplicaSetOwnerTab
-        namespace="default"
-        replicaSetName="my-app-rs"
-      />
+      <ReplicaSetOwnerTab namespace="default" replicaSetName="my-app-rs" />,
     );
 
     await waitFor(() => {

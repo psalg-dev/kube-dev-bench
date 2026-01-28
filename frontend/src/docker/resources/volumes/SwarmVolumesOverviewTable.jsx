@@ -8,7 +8,14 @@ import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import VolumeUsedBySection from './VolumeUsedBySection.jsx';
 import VolumeFilesTab from './VolumeFilesTab.jsx';
 import VolumeInspectTab from './VolumeInspectTab.jsx';
-import { BackupSwarmVolume, CloneSwarmVolume, GetSwarmVolumes, GetSwarmVolumeUsage, RemoveSwarmVolume, RestoreSwarmVolume } from '../../swarmApi.js';
+import {
+  BackupSwarmVolume,
+  CloneSwarmVolume,
+  GetSwarmVolumes,
+  GetSwarmVolumeUsage,
+  RemoveSwarmVolume,
+  RestoreSwarmVolume,
+} from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 
@@ -44,7 +51,11 @@ const bottomTabs = [
 ];
 
 function VolumeSummaryPanel({ row, onRefresh }) {
-  const [busy, setBusy] = useState({ backup: false, restore: false, clone: false });
+  const [busy, setBusy] = useState({
+    backup: false,
+    restore: false,
+    clone: false,
+  });
 
   const buttonStyle = {
     padding: '6px 12px',
@@ -67,7 +78,8 @@ function VolumeSummaryPanel({ row, onRefresh }) {
           .filter(Boolean)
           .slice(0, 10)
           .join(', ');
-        const extra = services.length > 10 ? `, +${services.length - 10} more` : '';
+        const extra =
+          services.length > 10 ? `, +${services.length - 10} more` : '';
         const msg = `Volume "${row.name}" is used by ${services.length} service${services.length === 1 ? '' : 's'} (${names}${extra}).\n\nDeleting it may break those services.\n\nDelete anyway?`;
         if (!window.confirm(msg)) return;
       } else {
@@ -95,11 +107,19 @@ function VolumeSummaryPanel({ row, onRefresh }) {
   ];
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <SummaryTabHeader
         name={row.name}
         labels={row.labels}
-        actions={(
+        actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button
               id="swarm-volume-backup-btn"
@@ -127,7 +147,12 @@ function VolumeSummaryPanel({ row, onRefresh }) {
               style={buttonStyle}
               onClick={async () => {
                 if (busy.restore) return;
-                if (!window.confirm(`Restore a backup into volume "${row.name}"? This may overwrite files.`)) return;
+                if (
+                  !window.confirm(
+                    `Restore a backup into volume "${row.name}"? This may overwrite files.`,
+                  )
+                )
+                  return;
                 setBusy((s) => ({ ...s, restore: true }));
                 try {
                   const selected = await RestoreSwarmVolume(row.name);
@@ -175,10 +200,17 @@ function VolumeSummaryPanel({ row, onRefresh }) {
               onDelete={handleDelete}
             />
           </div>
-        )}
+        }
       />
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          minHeight: 0,
+          color: 'var(--gh-text, #c9d1d9)',
+        }}
+      >
         <QuickInfoSection
           resourceName={row.name}
           data={row}
@@ -268,7 +300,13 @@ export default function SwarmVolumesOverviewTable() {
 
   if (!connected) {
     return (
-      <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+      <div
+        style={{
+          padding: 32,
+          textAlign: 'center',
+          color: 'var(--gh-text-secondary)',
+        }}
+      >
         Not connected to Docker Swarm
       </div>
     );
@@ -288,7 +326,7 @@ export default function SwarmVolumesOverviewTable() {
       createPlatform="swarm"
       createKind="volume"
       tableTestId="swarm-volumes-table"
-      getRowActions={(row) => ([
+      getRowActions={(row) => [
         {
           label: 'Backup',
           icon: '💾',
@@ -306,7 +344,12 @@ export default function SwarmVolumesOverviewTable() {
           label: 'Restore…',
           icon: '♻️',
           onClick: async () => {
-            if (!window.confirm(`Restore a backup into volume "${row.name}"? This may overwrite files.`)) return;
+            if (
+              !window.confirm(
+                `Restore a backup into volume "${row.name}"? This may overwrite files.`,
+              )
+            )
+              return;
             try {
               const selected = await RestoreSwarmVolume(row.name);
               if (!selected) return;
@@ -320,7 +363,10 @@ export default function SwarmVolumesOverviewTable() {
           label: 'Clone…',
           icon: '🧬',
           onClick: async () => {
-            const newName = window.prompt('New volume name', defaultCloneName(row.name));
+            const newName = window.prompt(
+              'New volume name',
+              defaultCloneName(row.name),
+            );
             if (!newName) return;
             try {
               await CloneSwarmVolume(row.name, newName);
@@ -346,7 +392,7 @@ export default function SwarmVolumesOverviewTable() {
             }
           },
         },
-      ])}
+      ]}
     />
   );
 }

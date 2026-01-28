@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 
-export default function UpdateStackModal({ open, stackName, initialComposeYAML, onClose, onConfirm }) {
+export default function UpdateStackModal({
+  open,
+  stackName,
+  initialComposeYAML,
+  onClose,
+  onConfirm,
+}) {
   const [yaml, setYaml] = useState(initialComposeYAML || '');
 
   useEffect(() => {
@@ -52,16 +58,33 @@ export default function UpdateStackModal({ open, stackName, initialComposeYAML, 
   return (
     <div style={overlayStyle} onClick={onClose}>
       <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+          }}
+        >
           <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
             Update Stack: {stackName}
           </div>
-          <button id="swarm-stack-update-close-btn" style={buttonStyle} onClick={onClose}>
+          <button
+            id="swarm-stack-update-close-btn"
+            style={buttonStyle}
+            onClick={onClose}
+          >
             Close
           </button>
         </div>
 
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12, lineHeight: 1.4 }}>
+        <div
+          style={{
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}
+        >
           This will run a stack redeploy using the Docker CLI.
         </div>
 
@@ -86,12 +109,21 @@ export default function UpdateStackModal({ open, stackName, initialComposeYAML, 
         />
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button id="swarm-stack-update-cancel-btn" style={buttonStyle} onClick={onClose}>
+          <button
+            id="swarm-stack-update-cancel-btn"
+            style={buttonStyle}
+            onClick={onClose}
+          >
             Cancel
           </button>
           <button
             id="swarm-stack-update-confirm-btn"
-            style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff', borderColor: '#238636' }}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#238636',
+              color: '#fff',
+              borderColor: '#238636',
+            }}
             onClick={() => onConfirm?.((yaml || '').trim())}
             disabled={!canSave}
           >

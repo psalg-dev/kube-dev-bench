@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -11,8 +11,9 @@ import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
-import { AnalyzeStatefulSetStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import { AnalyzeStatefulSetStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import useHolmesStream from '../../../holmes/useHolmesStream';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -44,19 +45,57 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           key: 'age',
           label: 'Age',
           type: 'age',
-          getValue: (data) => data.created || data.age
-        }
+          getValue: (data) => data.created || data.age,
+        },
       },
       { key: 'namespace', label: 'Namespace' },
       { key: 'ready', label: 'Ready' },
       { key: 'image', label: 'Image', type: 'break-word' },
-      { key: 'name', label: 'StatefulSet name', type: 'break-word' }
+      { key: 'name', label: 'StatefulSet name', type: 'break-word' },
     ];
 
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="statefulset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onRestart={async (n,ns)=>{ if(AppAPI.RestartStatefulSet){ await AppAPI.RestartStatefulSet(ns,n);} else { throw new Error('RestartStatefulSet API unavailable; rebuild bindings'); }} } onDelete={async (n,ns)=>{await AppAPI.DeleteResource('statefulset', ns, n);}} />} />
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <SummaryTabHeader
+          name={row.name}
+          labels={row.labels || row.Labels || row.metadata?.labels}
+          actions={
+            <ResourceActions
+              resourceType="statefulset"
+              name={row.name}
+              namespace={row.namespace}
+              replicaCount={row.replicas}
+              onRestart={async (n, ns) => {
+                if (AppAPI.RestartStatefulSet) {
+                  await AppAPI.RestartStatefulSet(ns, n);
+                } else {
+                  throw new Error(
+                    'RestartStatefulSet API unavailable; rebuild bindings',
+                  );
+                }
+              }}
+              onDelete={async (n, ns) => {
+                await AppAPI.DeleteResource('statefulset', ns, n);
+              }}
+            />
+          }
+        />
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            color: 'var(--gh-text, #c9d1d9)',
+          }}
+        >
           <QuickInfoSection
             resourceName={row.name}
             data={row}
@@ -66,14 +105,31 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           />
           {/* Logs + Event History at a glance */}
           <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                position: 'relative',
+              }}
+            >
               <AggregateLogsTab
                 title="Logs"
                 reloadKey={`${row.namespace}/${row.name}`}
-                loadLogs={() => AppAPI.GetStatefulSetLogs(row.namespace, row.name)}
+                loadLogs={() =>
+                  AppAPI.GetStatefulSetLogs(row.namespace, row.name)
+                }
               />
             </div>
-            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
+            <div
+              style={{
+                width: 420,
+                minWidth: 300,
+                minHeight: 0,
+                borderLeft: '1px solid var(--gh-border, #30363d)',
+                position: 'relative',
+              }}
+            >
               <ResourceEventsTab
                 namespace={row.namespace}
                 kind="StatefulSet"
@@ -152,11 +208,15 @@ spec:
         namespace={row.namespace}
         name={row.name}
         onAnalyze={() => onAnalyze(row)}
-        onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+        onCancel={
+          holmesState.key === key && holmesState.streamId ? onCancel : null
+        }
         response={holmesState.key === key ? holmesState.response : null}
         loading={holmesState.key === key && holmesState.loading}
         error={holmesState.key === key ? holmesState.error : null}
-        queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+        queryTimestamp={
+          holmesState.key === key ? holmesState.queryTimestamp : null
+        }
         streamingText={holmesState.key === key ? holmesState.streamingText : ''}
         reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
         toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
@@ -174,167 +234,33 @@ function panelHeader(row) {
 export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
-  });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
-
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId, _streamingText } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let data;
-      try {
-        data = JSON.parse(payload.data);
-      } catch {
-        data = null;
-      }
-
-      if (eventType === 'ai_message' && data) {
-        let handled = false;
-        if (data.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + data.reasoning,
-          }));
-          handled = true;
-        }
-        if (data.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + data.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && data && data.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: data.id,
-            name: data.tool_name || 'tool',
-            status: 'running',
-            description: data.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && data && data.tool_call_id) {
-        const status = data.result?.status || data.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === data.tool_call_id
-              ? { ...item, status, description: data.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && data && data.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: data.analysis },
-          streamingText: data.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
+  const { holmesState, startAnalysis, cancelAnalysis } = useHolmesStream();
 
   // Aggregate fetch by namespaces
   useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    const nsArr =
+      Array.isArray(namespaces) && namespaces.length > 0
+        ? namespaces
+        : namespace
+          ? [namespace]
+          : [];
     if (nsArr.length === 0) return;
     let cancelled = false;
     const run = async () => {
       try {
         setLoading(true);
-        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetStatefulSets(ns).catch(() => [])));
+        const lists = await Promise.all(
+          nsArr.map((ns) => AppAPI.GetStatefulSets(ns).catch(() => [])),
+        );
         if (cancelled) return;
-        const flat = lists.flat().map(x => ({
+        const flat = lists.flat().map((x) => ({
           name: x.name ?? x.Name,
           namespace: x.namespace ?? x.Namespace,
           replicas: x.replicas ?? x.Replicas ?? 0,
           ready: x.ready ?? x.Ready ?? 0,
           age: x.age ?? x.Age ?? '-',
           image: x.image ?? x.Image ?? '',
-          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
+          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {},
         }));
         setItems(flat);
       } catch (_e) {
@@ -344,7 +270,9 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [namespaces, namespace]);
 
   // Live updates (already aggregated by backend polling)
@@ -352,14 +280,14 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const norm = arr.map(x => ({
+        const norm = arr.map((x) => ({
           name: x.name ?? x.Name,
           namespace: x.namespace ?? x.Namespace,
           replicas: x.replicas ?? x.Replicas ?? 0,
           ready: x.ready ?? x.Ready ?? 0,
           age: x.age ?? x.Age ?? '-',
           image: x.image ?? x.Image ?? '',
-          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
+          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {},
         }));
         setItems(norm);
       } catch (_) {
@@ -369,43 +297,27 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
       }
     };
     EventsOn('statefulsets:update', onUpdate);
-    return () => { try { EventsOff('statefulsets:update'); } catch (_) {} };
+    return () => {
+      try {
+        EventsOff('statefulsets:update');
+      } catch (_) {}
+    };
   }, []);
 
   const analyzeStatefulSet = async (row) => {
     const key = `${row.namespace}/${row.name}`;
-    const streamId = `statefulset-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
+    await startAnalysis({
       key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
+      streamPrefix: 'statefulset',
+      run: (streamId) =>
+        AnalyzeStatefulSetStream(row.namespace, row.name, streamId),
+      onError: (message) =>
+        showError(`Holmes analysis failed: ${message}`),
     });
-    try {
-      await AnalyzeStatefulSetStream(row.namespace, row.name, streamId);
-      // The response comes via stream events, not from the return value
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showError(`Holmes analysis failed: ${message}`);
-    }
   };
 
   const cancelHolmesAnalysis = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
+    await cancelAnalysis();
   };
 
   const getRowActions = (row, api) => {
@@ -433,7 +345,9 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
               showError('RestartStatefulSet API unavailable');
             }
           } catch (err) {
-            showError(`Failed to restart StatefulSet '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to restart StatefulSet '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -446,7 +360,9 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
             await AppAPI.DeleteResource('statefulset', row.namespace, row.name);
             showSuccess(`StatefulSet '${row.name}' deleted`);
           } catch (err) {
-            showError(`Failed to delete StatefulSet '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to delete StatefulSet '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -458,7 +374,15 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
       columns={columns}
       data={items}
       tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeStatefulSet, cancelHolmesAnalysis)}
+      renderPanelContent={(row, tab) =>
+        renderPanelContent(
+          row,
+          tab,
+          holmesState,
+          analyzeStatefulSet,
+          cancelHolmesAnalysis,
+        )
+      }
       panelHeader={panelHeader}
       title="Stateful Sets"
       resourceKind="StatefulSet"

@@ -5,9 +5,146 @@ import (
 	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+func mapPersistentVolumeInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo {
+	return PersistentVolumeInfo{
+		Name:          pv.Name,
+		Capacity:      pvCapacity(pv),
+		AccessModes:   pvAccessModes(pv),
+		ReclaimPolicy: pvReclaimPolicy(pv),
+		Status:        string(pv.Status.Phase),
+		Claim:         pvClaim(pv),
+		StorageClass:  pvStorageClass(pv),
+		VolumeType:    pvVolumeType(pv),
+		Reason:        pv.Status.Reason,
+		VolumeMode:    pvVolumeMode(pv),
+		Age:           pvAge(pv, now),
+		Labels:        pv.Labels,
+		Annotations:   pv.Annotations,
+	}
+}
+
+func pvAge(pv corev1.PersistentVolume, now time.Time) string {
+	if pv.CreationTimestamp.Time == (time.Time{}) {
+		return "-"
+	}
+	return formatDuration(now.Sub(pv.CreationTimestamp.Time))
+}
+
+func pvCapacity(pv corev1.PersistentVolume) string {
+	if pv.Spec.Capacity == nil {
+		return "-"
+	}
+	storage, ok := pv.Spec.Capacity["storage"]
+	if !ok {
+		return "-"
+	}
+	return storage.String()
+}
+
+func pvAccessModes(pv corev1.PersistentVolume) string {
+	if len(pv.Spec.AccessModes) == 0 {
+		return "-"
+	}
+	modes := make([]string, len(pv.Spec.AccessModes))
+	for i, mode := range pv.Spec.AccessModes {
+		switch mode {
+		case "ReadWriteOnce":
+			modes[i] = "RWO"
+		case "ReadOnlyMany":
+			modes[i] = "ROX"
+		case "ReadWriteMany":
+			modes[i] = "RWX"
+		case "ReadWriteOncePod":
+			modes[i] = "RWOP"
+		default:
+			modes[i] = string(mode)
+		}
+	}
+	return strings.Join(modes, ",")
+}
+
+func pvReclaimPolicy(pv corev1.PersistentVolume) string {
+	if pv.Spec.PersistentVolumeReclaimPolicy == "" {
+		return "-"
+	}
+	return string(pv.Spec.PersistentVolumeReclaimPolicy)
+}
+
+func pvStorageClass(pv corev1.PersistentVolume) string {
+	if pv.Spec.StorageClassName == "" {
+		return "-"
+	}
+	return pv.Spec.StorageClassName
+}
+
+func pvClaim(pv corev1.PersistentVolume) string {
+	if pv.Spec.ClaimRef == nil {
+		return "-"
+	}
+	return fmt.Sprintf("%s/%s", pv.Spec.ClaimRef.Namespace, pv.Spec.ClaimRef.Name)
+}
+
+func pvVolumeType(pv corev1.PersistentVolume) string {
+	source := pv.Spec.PersistentVolumeSource
+	switch {
+	case source.HostPath != nil:
+		return "HostPath"
+	case source.NFS != nil:
+		return "NFS"
+	case source.CSI != nil:
+		return "CSI"
+	case source.AWSElasticBlockStore != nil:
+		return "AWSElasticBlockStore"
+	case source.GCEPersistentDisk != nil:
+		return "GCEPersistentDisk"
+	case source.AzureDisk != nil:
+		return "AzureDisk"
+	case source.CephFS != nil:
+		return "CephFS"
+	case source.Cinder != nil:
+		return "Cinder"
+	case source.FC != nil:
+		return "FC"
+	case source.FlexVolume != nil:
+		return "FlexVolume"
+	case source.Flocker != nil:
+		return "Flocker"
+	case source.Glusterfs != nil:
+		return "Glusterfs"
+	case source.ISCSI != nil:
+		return "ISCSI"
+	case source.PhotonPersistentDisk != nil:
+		return "PhotonPersistentDisk"
+	case source.PortworxVolume != nil:
+		return "PortworxVolume"
+	case source.Quobyte != nil:
+		return "Quobyte"
+	case source.RBD != nil:
+		return "RBD"
+	case source.ScaleIO != nil:
+		return "ScaleIO"
+	case source.StorageOS != nil:
+		return "StorageOS"
+	case source.VsphereVolume != nil:
+		return "VsphereVolume"
+	case source.Local != nil:
+		return "Local"
+	default:
+		return "-"
+	}
+}
+
+func pvVolumeMode(pv corev1.PersistentVolume) string {
+	if pv.Spec.VolumeMode == nil {
+		return ""
+	}
+	return string(*pv.Spec.VolumeMode)
+}
 
 // GetPersistentVolumes returns all persistent volumes in the cluster
 func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
@@ -27,132 +164,11 @@ func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
 		return nil, err
 	}
 
-	var result []PersistentVolumeInfo
+	result := make([]PersistentVolumeInfo, 0, len(pvs.Items))
 	now := time.Now()
 
 	for _, pv := range pvs.Items {
-		age := "-"
-		if pv.CreationTimestamp.Time != (time.Time{}) {
-			age = formatDuration(now.Sub(pv.CreationTimestamp.Time))
-		}
-
-		// Get status
-		status := string(pv.Status.Phase)
-
-		// Get capacity
-		capacity := "-"
-		if pv.Spec.Capacity != nil {
-			if storage, ok := pv.Spec.Capacity["storage"]; ok {
-				capacity = storage.String()
-			}
-		}
-
-		// Get access modes
-		accessModes := "-"
-		if len(pv.Spec.AccessModes) > 0 {
-			modes := make([]string, len(pv.Spec.AccessModes))
-			for i, mode := range pv.Spec.AccessModes {
-				switch mode {
-				case "ReadWriteOnce":
-					modes[i] = "RWO"
-				case "ReadOnlyMany":
-					modes[i] = "ROX"
-				case "ReadWriteMany":
-					modes[i] = "RWX"
-				case "ReadWriteOncePod":
-					modes[i] = "RWOP"
-				default:
-					modes[i] = string(mode)
-				}
-			}
-			accessModes = strings.Join(modes, ",")
-		}
-
-		// Get reclaim policy
-		reclaimPolicy := "-"
-		if pv.Spec.PersistentVolumeReclaimPolicy != "" {
-			reclaimPolicy = string(pv.Spec.PersistentVolumeReclaimPolicy)
-		}
-
-		// Get storage class
-		storageClass := "-"
-		if pv.Spec.StorageClassName != "" {
-			storageClass = pv.Spec.StorageClassName
-		}
-
-		// Get claim reference
-		claim := "-"
-		if pv.Spec.ClaimRef != nil {
-			claim = fmt.Sprintf("%s/%s", pv.Spec.ClaimRef.Namespace, pv.Spec.ClaimRef.Name)
-		}
-
-		// Get volume source type
-		volumeType := "-"
-		switch {
-		case pv.Spec.PersistentVolumeSource.HostPath != nil:
-			volumeType = "HostPath"
-		case pv.Spec.PersistentVolumeSource.NFS != nil:
-			volumeType = "NFS"
-		case pv.Spec.PersistentVolumeSource.CSI != nil:
-			volumeType = "CSI"
-		case pv.Spec.PersistentVolumeSource.AWSElasticBlockStore != nil:
-			volumeType = "AWSElasticBlockStore"
-		case pv.Spec.PersistentVolumeSource.GCEPersistentDisk != nil:
-			volumeType = "GCEPersistentDisk"
-		case pv.Spec.PersistentVolumeSource.AzureDisk != nil:
-			volumeType = "AzureDisk"
-		case pv.Spec.PersistentVolumeSource.CephFS != nil:
-			volumeType = "CephFS"
-		case pv.Spec.PersistentVolumeSource.Cinder != nil:
-			volumeType = "Cinder"
-		case pv.Spec.PersistentVolumeSource.FC != nil:
-			volumeType = "FC"
-		case pv.Spec.PersistentVolumeSource.FlexVolume != nil:
-			volumeType = "FlexVolume"
-		case pv.Spec.PersistentVolumeSource.Flocker != nil:
-			volumeType = "Flocker"
-		case pv.Spec.PersistentVolumeSource.Glusterfs != nil:
-			volumeType = "Glusterfs"
-		case pv.Spec.PersistentVolumeSource.ISCSI != nil:
-			volumeType = "ISCSI"
-		case pv.Spec.PersistentVolumeSource.PhotonPersistentDisk != nil:
-			volumeType = "PhotonPersistentDisk"
-		case pv.Spec.PersistentVolumeSource.PortworxVolume != nil:
-			volumeType = "PortworxVolume"
-		case pv.Spec.PersistentVolumeSource.Quobyte != nil:
-			volumeType = "Quobyte"
-		case pv.Spec.PersistentVolumeSource.RBD != nil:
-			volumeType = "RBD"
-		case pv.Spec.PersistentVolumeSource.ScaleIO != nil:
-			volumeType = "ScaleIO"
-		case pv.Spec.PersistentVolumeSource.StorageOS != nil:
-			volumeType = "StorageOS"
-		case pv.Spec.PersistentVolumeSource.VsphereVolume != nil:
-			volumeType = "VsphereVolume"
-		case pv.Spec.PersistentVolumeSource.Local != nil:
-			volumeType = "Local"
-		}
-
-		volumeMode := ""
-		if pv.Spec.VolumeMode != nil {
-			volumeMode = string(*pv.Spec.VolumeMode)
-		}
-
-		result = append(result, PersistentVolumeInfo{
-			Name:          pv.Name,
-			Capacity:      capacity,
-			AccessModes:   accessModes,
-			ReclaimPolicy: reclaimPolicy,
-			Status:        status,
-			Claim:         claim,
-			StorageClass:  storageClass,
-			VolumeType:    volumeType,
-			Reason:        pv.Status.Reason,
-			VolumeMode:    volumeMode,
-			Age:           age,
-			Labels:        pv.Labels,
-			Annotations:   pv.Annotations,
-		})
+		result = append(result, mapPersistentVolumeInfo(pv, now))
 	}
 
 	return result, nil

@@ -2,7 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './StatefulSetPVCsTab.css';
 import StatusBadge from '../../../components/StatusBadge.jsx';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 /**
  * Shows PVCs associated with a StatefulSet.
@@ -23,7 +27,10 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
     setError(null);
 
     try {
-      const result = await AppAPI.GetStatefulSetDetail(namespace, statefulSetName);
+      const result = await AppAPI.GetStatefulSetDetail(
+        namespace,
+        statefulSetName,
+      );
       setPvcs(result?.pvcs || []);
     } catch (err) {
       setError(err?.message || String(err));
@@ -42,18 +49,27 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, statefulSetName]);
 
-  const columns = useMemo(() => ([
-    { key: 'name', label: 'Name' },
-    { key: 'status', label: 'Status' },
-    { key: 'capacity', label: 'Capacity' },
-    { key: 'accessModes', label: 'Access Modes' },
-    { key: 'storageClass', label: 'Storage Class' },
-    { key: 'podName', label: 'Pod' },
-    { key: 'age', label: 'Age' },
-  ]), []);
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: 'Name' },
+      { key: 'status', label: 'Status' },
+      { key: 'capacity', label: 'Capacity' },
+      { key: 'accessModes', label: 'Access Modes' },
+      { key: 'storageClass', label: 'Storage Class' },
+      { key: 'podName', label: 'Pod' },
+      { key: 'age', label: 'Age' },
+    ],
+    [],
+  );
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedPvcs = useMemo(() => sortRows(pvcs, sortState.key, sortState.direction), [pvcs, sortState]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedPvcs = useMemo(
+    () => sortRows(pvcs, sortState.key, sortState.direction),
+    [pvcs, sortState],
+  );
 
   if (loading) {
     return (
@@ -97,52 +113,194 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
   return (
     <div className="statefulset-pvcs-tab">
       <div className="pvcs-header">
-        <span className="pvcs-count">{pvcs.length} PVC{pvcs.length !== 1 ? 's' : ''}</span>
+        <span className="pvcs-count">
+          {pvcs.length} PVC{pvcs.length !== 1 ? 's' : ''}
+        </span>
       </div>
       <div className="pvcs-list">
         <table className="pvcs-table">
           <thead>
             <tr>
-              <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'name'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'name'))
+                  }
+                >
                   <span>Name</span>
-                  <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'name'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'status' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'status'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'status'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'status'))
+                  }
+                >
                   <span>Status</span>
-                  <span aria-hidden="true">{sortState.key === 'status' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'status'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'capacity' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'capacity'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'capacity'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'capacity'))
+                  }
+                >
                   <span>Capacity</span>
-                  <span aria-hidden="true">{sortState.key === 'capacity' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'capacity'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'accessModes' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'accessModes'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'accessModes'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'accessModes'))
+                  }
+                >
                   <span>Access Modes</span>
-                  <span aria-hidden="true">{sortState.key === 'accessModes' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'accessModes'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'storageClass' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'storageClass'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'storageClass'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'storageClass'))
+                  }
+                >
                   <span>Storage Class</span>
-                  <span aria-hidden="true">{sortState.key === 'storageClass' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'storageClass'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'podName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'podName'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'podName'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'podName'))
+                  }
+                >
                   <span>Pod</span>
-                  <span aria-hidden="true">{sortState.key === 'podName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'podName'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'age' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'age'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'age'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'age'))
+                  }
+                >
                   <span>Age</span>
-                  <span aria-hidden="true">{sortState.key === 'age' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'age'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
             </tr>
@@ -153,11 +311,17 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }) {
                 <tr key={idx} className="pvc-row">
                   <td className="pvc-name">{pvc.name || '-'}</td>
                   <td>
-                    <StatusBadge status={pvc.status || 'Unknown'} size="small" showDot={false} />
+                    <StatusBadge
+                      status={pvc.status || 'Unknown'}
+                      size="small"
+                      showDot={false}
+                    />
                   </td>
                   <td className="pvc-capacity">{pvc.capacity || '-'}</td>
                   <td className="pvc-access">{pvc.accessModes || '-'}</td>
-                  <td className="pvc-storage-class">{pvc.storageClass || '-'}</td>
+                  <td className="pvc-storage-class">
+                    {pvc.storageClass || '-'}
+                  </td>
                   <td className="pvc-pod">{pvc.podName || '-'}</td>
                   <td className="pvc-age">{pvc.age || '-'}</td>
                 </tr>

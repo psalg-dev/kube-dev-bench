@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import CollapsibleSection from '../components/forms/CollapsibleSection';
 
@@ -6,9 +6,13 @@ describe('CollapsibleSection', () => {
   describe('rendering', () => {
     it('renders title correctly', () => {
       render(
-        <CollapsibleSection id="section1" title="Environment Variables" count={3}>
+        <CollapsibleSection
+          id="section1"
+          title="Environment Variables"
+          count={3}
+        >
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText(/Environment Variables/)).toBeInTheDocument();
     });
@@ -17,7 +21,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Labels" count={5}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText(/\(5\)/)).toBeInTheDocument();
     });
@@ -26,7 +30,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Annotations" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText(/\(0\)/)).toBeInTheDocument();
     });
@@ -35,7 +39,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Items">
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText(/\(0\)/)).toBeInTheDocument();
     });
@@ -44,7 +48,7 @@ describe('CollapsibleSection', () => {
       const { container } = render(
         <CollapsibleSection id="my-section" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(container.querySelector('#my-section')).toBeInTheDocument();
     });
@@ -55,7 +59,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Hidden Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.queryByText('Hidden Content')).not.toBeInTheDocument();
     });
@@ -64,7 +68,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0} defaultOpen>
           <div>Visible Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText('Visible Content')).toBeInTheDocument();
     });
@@ -75,12 +79,12 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Toggle Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(screen.getByText('Toggle Content')).toBeInTheDocument();
     });
 
@@ -88,14 +92,14 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0} defaultOpen>
           <div>Toggle Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      
+
       const button = screen.getByRole('button');
       expect(screen.getByText('Toggle Content')).toBeInTheDocument();
-      
+
       fireEvent.click(button);
-      
+
       expect(screen.queryByText('Toggle Content')).not.toBeInTheDocument();
     });
 
@@ -103,19 +107,19 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      
+
       const button = screen.getByRole('button');
-      
+
       // Click to expand
       fireEvent.click(button);
       expect(screen.getByText('Content')).toBeInTheDocument();
-      
+
       // Click to collapse
       fireEvent.click(button);
       expect(screen.queryByText('Content')).not.toBeInTheDocument();
-      
+
       // Click to expand again
       fireEvent.click(button);
       expect(screen.getByText('Content')).toBeInTheDocument();
@@ -127,7 +131,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText(/▶/)).toBeInTheDocument();
     });
@@ -136,7 +140,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0} defaultOpen>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText(/▼/)).toBeInTheDocument();
     });
@@ -145,14 +149,14 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      
+
       expect(screen.getByText(/▶/)).toBeInTheDocument();
-      
+
       const button = screen.getByRole('button');
       fireEvent.click(button);
-      
+
       expect(screen.getByText(/▼/)).toBeInTheDocument();
     });
   });
@@ -162,33 +166,39 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
     });
 
     it('button has aria-expanded true when expanded', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0} defaultOpen>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      expect(screen.getByRole('button')).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByRole('button')).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
     });
 
     it('aria-expanded updates on toggle', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
-      
+
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-expanded', 'false');
-      
+
       fireEvent.click(button);
       expect(button).toHaveAttribute('aria-expanded', 'true');
-      
+
       fireEvent.click(button);
       expect(button).toHaveAttribute('aria-expanded', 'false');
     });
@@ -197,7 +207,7 @@ describe('CollapsibleSection', () => {
       render(
         <CollapsibleSection id="section1" title="Test" count={0}>
           <div>Content</div>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByRole('button')).toHaveAttribute('type', 'button');
     });
@@ -211,7 +221,7 @@ describe('CollapsibleSection', () => {
             <li>Item 1</li>
             <li>Item 2</li>
           </ul>
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText('Item 1')).toBeInTheDocument();
       expect(screen.getByText('Item 2')).toBeInTheDocument();
@@ -219,11 +229,11 @@ describe('CollapsibleSection', () => {
 
     it('renders nested components when expanded', () => {
       const NestedComponent = () => <span>Nested Content</span>;
-      
+
       render(
         <CollapsibleSection id="section1" title="Test" count={1} defaultOpen>
           <NestedComponent />
-        </CollapsibleSection>
+        </CollapsibleSection>,
       );
       expect(screen.getByText('Nested Content')).toBeInTheDocument();
     });

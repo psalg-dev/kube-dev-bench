@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
+import {
+  EditorView,
+  lineNumbers,
+  highlightActiveLineGutter,
+  keymap,
+} from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
 import { foldGutter, foldKeymap } from '@codemirror/language';
 import { getCodeMirrorLanguageExtensions } from '../../utils/codeMirrorLanguage.js';
@@ -9,42 +14,57 @@ export default function TextViewerTab({
   filename,
   loading = false,
   error = null,
-  loadingLabel = 'Loading...'
+  loadingLabel = 'Loading...',
 }) {
   const editorParentRef = useRef(null);
   const viewRef = useRef(null);
   const languageCompartmentRef = useRef(new Compartment());
 
-  const cmTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
-    '&.cm-editor': { height: '100%', width: '100%' },
-    '.cm-content': { caretColor: '#fff', textAlign: 'left' },
-    '.cm-line': { textAlign: 'left' },
-    '.cm-scroller': {
-      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-      lineHeight: '1.45'
-    },
-    '.cm-whitespace': { opacity: 0.35 },
-    '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' },
-    '.cm-gutterElement': { padding: '0 8px' },
-  }, { dark: true }), []);
+  const cmTheme = useMemo(
+    () =>
+      EditorView.theme(
+        {
+          '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
+          '&.cm-editor': { height: '100%', width: '100%' },
+          '.cm-content': { caretColor: '#fff', textAlign: 'left' },
+          '.cm-line': { textAlign: 'left' },
+          '.cm-scroller': {
+            fontFamily:
+              'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+            lineHeight: '1.45',
+          },
+          '.cm-whitespace': { opacity: 0.35 },
+          '.cm-gutters': {
+            background: '#161b22',
+            color: '#8b949e',
+            borderRight: '1px solid #30363d',
+          },
+          '.cm-gutterElement': { padding: '0 8px' },
+        },
+        { dark: true },
+      ),
+    [],
+  );
 
   const languageExtensions = useMemo(
     () => getCodeMirrorLanguageExtensions(filename, content),
-    [filename, content]
+    [filename, content],
   );
 
-  const cmExtensions = useMemo(() => [
-    cmTheme,
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    foldGutter(),
-    keymap.of(foldKeymap),
-    EditorView.lineWrapping,
-    EditorView.editable.of(false),
-    EditorState.readOnly.of(true),
-    languageCompartmentRef.current.of(languageExtensions),
-  ], [cmTheme, languageExtensions]);
+  const cmExtensions = useMemo(
+    () => [
+      cmTheme,
+      lineNumbers(),
+      highlightActiveLineGutter(),
+      foldGutter(),
+      keymap.of(foldKeymap),
+      EditorView.lineWrapping,
+      EditorView.editable.of(false),
+      EditorState.readOnly.of(true),
+      languageCompartmentRef.current.of(languageExtensions),
+    ],
+    [cmTheme, languageExtensions],
+  );
 
   useEffect(() => {
     if (!editorParentRef.current) return;
@@ -90,7 +110,9 @@ export default function TextViewerTab({
     const view = viewRef.current;
     if (!view) return;
     try {
-      view.dispatch({ effects: languageCompartmentRef.current.reconfigure(languageExtensions) });
+      view.dispatch({
+        effects: languageCompartmentRef.current.reconfigure(languageExtensions),
+      });
     } catch (_e) {
       // Best-effort; keep viewer functional even if language reconfigure fails.
     }
@@ -98,15 +120,17 @@ export default function TextViewerTab({
 
   if (loading) {
     return (
-      <div style={{
-        padding: 20,
-        textAlign: 'center',
-        color: 'var(--gh-text-muted, #8b949e)',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
+      <div
+        style={{
+          padding: 20,
+          textAlign: 'center',
+          color: 'var(--gh-text-muted, #8b949e)',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         {loadingLabel}
       </div>
     );
@@ -114,15 +138,17 @@ export default function TextViewerTab({
 
   if (error) {
     return (
-      <div style={{
-        padding: 20,
-        color: '#f85149',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column'
-      }}>
+      <div
+        style={{
+          padding: 20,
+          color: '#f85149',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'column',
+        }}
+      >
         <div style={{ marginBottom: 8 }}>Error:</div>
         <div style={{ fontSize: 14 }}>{String(error)}</div>
       </div>

@@ -1,10 +1,31 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab.jsx';
-import { DownloadFromSwarmVolume, GetSwarmVolumeFileContent, IsSwarmVolumeReadOnly, ListSwarmVolumeFiles, UploadToSwarmVolume } from '../../swarmApi.js';
+import {
+  DownloadFromSwarmVolume,
+  GetSwarmVolumeFileContent,
+  IsSwarmVolumeReadOnly,
+  ListSwarmVolumeFiles,
+  UploadToSwarmVolume,
+} from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';
-import { CreateSwarmVolumeDirectory, DeleteSwarmVolumeFile, WriteSwarmVolumeFile } from '../../swarmApi.js';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  CreateSwarmVolumeDirectory,
+  DeleteSwarmVolumeFile,
+  WriteSwarmVolumeFile,
+} from '../../swarmApi.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 const DIR_CACHE_TTL_MS = 2000;
 const DIR_PAGE_SIZE = 200;
@@ -35,7 +56,11 @@ export default function VolumeFilesTab({ volumeName }) {
     return window.confirm('Discard your unsaved changes?');
   };
 
-  const sanitizeName = (name) => String(name || '').trim().replace(/^\/+/, '').replace(/\/+$/g, '');
+  const sanitizeName = (name) =>
+    String(name || '')
+      .trim()
+      .replace(/^\/+/, '')
+      .replace(/\/+$/g, '');
   const joinPath = (dirPath, name) => {
     const safeName = sanitizeName(name);
     if (!safeName) return dirPath || '/';
@@ -59,50 +84,56 @@ export default function VolumeFilesTab({ volumeName }) {
   };
 
   const cacheKey = (vol, p) => `${vol || ''}::${p || ''}`;
-  const setDirCache = (vol, p, list) => {
-    dirCacheRef.current.set(cacheKey(vol, p), { ts: Date.now(), entries: list });
-  };
-  const getDirCache = (vol, p) => {
+  const setDirCache = useCallback((vol, p, list) => {
+    dirCacheRef.current.set(cacheKey(vol, p), {
+      ts: Date.now(),
+      entries: list,
+    });
+  }, []);
+  const getDirCache = useCallback((vol, p) => {
     const hit = dirCacheRef.current.get(cacheKey(vol, p));
     if (!hit) return null;
     if (Date.now() - hit.ts > DIR_CACHE_TTL_MS) return null;
     return hit.entries;
-  };
-  const invalidateDirCache = (vol, p) => {
+  }, []);
+  const invalidateDirCache = useCallback((vol, p) => {
     dirCacheRef.current.delete(cacheKey(vol, p));
-  };
+  }, []);
 
-  const loadDir = useCallback(async (targetPath) => {
-    if (!volumeName) return;
-    setLoading(true);
-    setError(null);
-    setEntries([]);
-    setVisibleCount(DIR_PAGE_SIZE);
-    setFilePath(null);
-    setFileError(null);
-    setFileMeta(null);
-    setFileText('');
-    setIsEditing(false);
-    try {
-      const cached = getDirCache(volumeName, targetPath);
-      if (cached) {
-        setEntries(Array.isArray(cached) ? cached : []);
+  const loadDir = useCallback(
+    async (targetPath) => {
+      if (!volumeName) return;
+      setLoading(true);
+      setError(null);
+      setEntries([]);
+      setVisibleCount(DIR_PAGE_SIZE);
+      setFilePath(null);
+      setFileError(null);
+      setFileMeta(null);
+      setFileText('');
+      setIsEditing(false);
+      try {
+        const cached = getDirCache(volumeName, targetPath);
+        if (cached) {
+          setEntries(Array.isArray(cached) ? cached : []);
+          setPath(targetPath);
+          return;
+        }
+
+        const list = await ListSwarmVolumeFiles(volumeName, targetPath);
+        const normalized = Array.isArray(list) ? list : [];
+        setEntries(normalized);
         setPath(targetPath);
-        return;
+        setDirCache(volumeName, targetPath, normalized);
+      } catch (e) {
+        setError(e?.message || String(e));
+      } finally {
+        setLoading(false);
       }
 
-      const list = await ListSwarmVolumeFiles(volumeName, targetPath);
-      const normalized = Array.isArray(list) ? list : [];
-      setEntries(normalized);
-      setPath(targetPath);
-      setDirCache(volumeName, targetPath, normalized);
-    } catch (e) {
-      setError(e?.message || String(e));
-    } finally {
-      setLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [volumeName]);
+    },
+    [getDirCache, setDirCache, volumeName],
+  );
 
   const refreshDirEntries = useCallback(async () => {
     if (!volumeName) return;
@@ -135,10 +166,15 @@ export default function VolumeFilesTab({ volumeName }) {
       }
     };
     loadRO();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, [volumeName]);
 
-  const breadcrumbs = useMemo(() => (path === '/' ? [''] : path.split('/').filter(Boolean)), [path]);
+  const breadcrumbs = useMemo(
+    () => (path === '/' ? [''] : path.split('/').filter(Boolean)),
+    [path],
+  );
 
   const handleCrumbClick = (idx) => {
     if (!ensureNotEditingOrConfirmDiscard()) return;
@@ -180,7 +216,12 @@ export default function VolumeFilesTab({ volumeName }) {
     if (fileMeta?.isBinary) return;
     try {
       setIsSaving(true);
-      await WriteSwarmVolumeFile(volumeName, filePath, editContent || '', 'utf-8');
+      await WriteSwarmVolumeFile(
+        volumeName,
+        filePath,
+        editContent || '',
+        'utf-8',
+      );
       setFileText(editContent || '');
       setIsEditing(false);
       setEditContent('');
@@ -233,7 +274,9 @@ export default function VolumeFilesTab({ volumeName }) {
 
     const label = entry.isDir ? 'folder' : 'file';
     const ok = window.confirm(
-      entry.isDir ? `Delete folder ${entry.path} (recursive)?` : `Delete file ${entry.path}?`
+      entry.isDir
+        ? `Delete folder ${entry.path} (recursive)?`
+        : `Delete file ${entry.path}?`,
     );
     if (!ok) return;
 
@@ -265,7 +308,11 @@ export default function VolumeFilesTab({ volumeName }) {
     setIsEditing(false);
 
     try {
-      const res = await GetSwarmVolumeFileContent(volumeName, targetFilePath, 262144); // 256 KiB cap
+      const res = await GetSwarmVolumeFileContent(
+        volumeName,
+        targetFilePath,
+        262144,
+      ); // 256 KiB cap
       const isBinary = !!res?.isBinary;
       let text = '';
       if (!isBinary) {
@@ -312,7 +359,7 @@ export default function VolumeFilesTab({ volumeName }) {
 
   const handleUpload = async () => {
     if (!volumeName) return;
-    const destDir = path === '/' ? '/' : (path.endsWith('/') ? path : `${path}/`);
+    const destDir = path === '/' ? '/' : path.endsWith('/') ? path : `${path}/`;
     try {
       const uploaded = await UploadToSwarmVolume(volumeName, destDir);
       if (!uploaded) return; // user cancelled
@@ -324,21 +371,30 @@ export default function VolumeFilesTab({ volumeName }) {
     }
   };
 
-  const columns = useMemo(() => ([
-    { key: 'name', label: 'Name' },
-    { key: 'mode', label: 'Perms' },
-    { key: 'size', label: 'Size' },
-    { key: 'modified', label: 'Modified' },
-  ]), []);
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: 'Name' },
+      { key: 'mode', label: 'Perms' },
+      { key: 'size', label: 'Size' },
+      { key: 'modified', label: 'Modified' },
+    ],
+    [],
+  );
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
   const sortedEntries = useMemo(() => {
     return sortRows(entries, sortState.key, sortState.direction, (row, key) => {
       if (key === 'size') return row?.isDir ? null : row?.size;
       return row?.[key];
     });
   }, [entries, sortState]);
-  const visibleSortedEntries = useMemo(() => sortedEntries.slice(0, visibleCount), [sortedEntries, visibleCount]);
+  const visibleSortedEntries = useMemo(
+    () => sortedEntries.slice(0, visibleCount),
+    [sortedEntries, visibleCount],
+  );
 
   const headerButtonStyle = {
     width: '100%',
@@ -358,16 +414,26 @@ export default function VolumeFilesTab({ volumeName }) {
   const hasMoreEntries = entries.length > visibleCount;
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{
-        padding: '8px 12px',
-        background: 'var(--gh-bg-alt, #161b22)',
-        borderBottom: '1px solid #30363d',
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
         display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        flexWrap: 'wrap'
-      }}>
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '8px 12px',
+          background: 'var(--gh-bg-alt, #161b22)',
+          borderBottom: '1px solid #30363d',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
         <span style={{ fontWeight: 600 }}>Files</span>
         <button
           onClick={handleUpload}
@@ -394,7 +460,11 @@ export default function VolumeFilesTab({ volumeName }) {
             cursor: readOnly === true ? 'default' : 'pointer',
             opacity: readOnly === true ? 0.6 : 1,
           }}
-          title={readOnly === true ? 'Volume is read-only' : 'Create a new empty file in this directory'}
+          title={
+            readOnly === true
+              ? 'Volume is read-only'
+              : 'Create a new empty file in this directory'
+          }
         >
           New File
         </button>
@@ -409,75 +479,276 @@ export default function VolumeFilesTab({ volumeName }) {
             cursor: readOnly === true ? 'default' : 'pointer',
             opacity: readOnly === true ? 0.6 : 1,
           }}
-          title={readOnly === true ? 'Volume is read-only' : 'Create a new folder in this directory'}
+          title={
+            readOnly === true
+              ? 'Volume is read-only'
+              : 'Create a new folder in this directory'
+          }
         >
           New Folder
         </button>
-        <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(-1)}>root</span>
+        <div
+          style={{
+            fontSize: 12,
+            color: 'var(--gh-text-muted, #8b949e)',
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+          }}
+        >
+          <span
+            style={{ cursor: 'pointer' }}
+            onClick={() => handleCrumbClick(-1)}
+          >
+            root
+          </span>
           {breadcrumbs.map((b, idx) => (
             <Fragment key={idx}>
               <span style={{ margin: '0 4px' }}>/</span>
-              <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(idx)}>{b}</span>
+              <span
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleCrumbClick(idx)}
+              >
+                {b}
+              </span>
             </Fragment>
           ))}
         </div>
-        <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>
-          Volume: <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{volumeName}</span>
-          {readOnly === true ? <span style={{ marginLeft: 10, color: '#f0883e' }}>read-only</span> : null}
+        <div
+          style={{
+            marginLeft: 'auto',
+            fontSize: 12,
+            color: 'var(--gh-text-muted, #8b949e)',
+          }}
+        >
+          Volume:{' '}
+          <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{volumeName}</span>
+          {readOnly === true ? (
+            <span style={{ marginLeft: 10, color: '#f0883e' }}>read-only</span>
+          ) : null}
         </div>
       </div>
 
       <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
-        <div style={{ width: '50%', minWidth: 300, borderRight: '1px solid #30363d', display: 'flex', flexDirection: 'column' }}>
-          {loading && (<div style={{ padding: 12, fontSize: 13, color: 'var(--gh-text-muted, #8b949e)' }}>Loading directory...</div>)}
-          {error && (<div style={{ padding: 12, fontSize: 13, color: '#f85149' }}>Error: {error}</div>)}
+        <div
+          style={{
+            width: '50%',
+            minWidth: 300,
+            borderRight: '1px solid #30363d',
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {loading && (
+            <div
+              style={{
+                padding: 12,
+                fontSize: 13,
+                color: 'var(--gh-text-muted, #8b949e)',
+              }}
+            >
+              Loading directory...
+            </div>
+          )}
+          {error && (
+            <div style={{ padding: 12, fontSize: 13, color: '#f85149' }}>
+              Error: {error}
+            </div>
+          )}
           {!loading && !error && entries.length === 0 && (
-            <div style={{ padding: 12, fontSize: 13, color: 'var(--gh-text-muted, #8b949e)' }}>Empty directory or not accessible.</div>
+            <div
+              style={{
+                padding: 12,
+                fontSize: 13,
+                color: 'var(--gh-text-muted, #8b949e)',
+              }}
+            >
+              Empty directory or not accessible.
+            </div>
           )}
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
+            <table
+              style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: 12,
+                tableLayout: 'fixed',
+              }}
+            >
               <thead style={{ position: 'sticky', top: 0 }}>
                 <tr style={{ background: 'var(--gh-bg-alt, #161b22)' }}>
-                  <th style={{ ...thStyle, textAlign: 'left' }} aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                  <th
+                    style={{ ...thStyle, textAlign: 'left' }}
+                    aria-sort={
+                      sortState.key === 'name'
+                        ? sortState.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      style={headerButtonStyle}
+                      onClick={() =>
+                        setSortState((cur) => toggleSortState(cur, 'name'))
+                      }
+                    >
                       <span>Name</span>
-                      <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span aria-hidden="true">
+                        {sortState.key === 'name'
+                          ? sortState.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th style={{ ...thStyle, textAlign: 'left' }} aria-sort={sortState.key === 'mode' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'mode'))}>
+                  <th
+                    style={{ ...thStyle, textAlign: 'left' }}
+                    aria-sort={
+                      sortState.key === 'mode'
+                        ? sortState.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      style={headerButtonStyle}
+                      onClick={() =>
+                        setSortState((cur) => toggleSortState(cur, 'mode'))
+                      }
+                    >
                       <span>Perms</span>
-                      <span aria-hidden="true">{sortState.key === 'mode' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span aria-hidden="true">
+                        {sortState.key === 'mode'
+                          ? sortState.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th style={{ ...thStyle, textAlign: 'right' }} aria-sort={sortState.key === 'size' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" style={{ ...headerButtonStyle, justifyContent: 'flex-end' }} onClick={() => setSortState((cur) => toggleSortState(cur, 'size'))}>
+                  <th
+                    style={{ ...thStyle, textAlign: 'right' }}
+                    aria-sort={
+                      sortState.key === 'size'
+                        ? sortState.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      style={{
+                        ...headerButtonStyle,
+                        justifyContent: 'flex-end',
+                      }}
+                      onClick={() =>
+                        setSortState((cur) => toggleSortState(cur, 'size'))
+                      }
+                    >
                       <span>Size</span>
-                      <span aria-hidden="true">{sortState.key === 'size' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span aria-hidden="true">
+                        {sortState.key === 'size'
+                          ? sortState.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th style={{ ...thStyle, textAlign: 'left' }} aria-sort={sortState.key === 'modified' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'modified'))}>
+                  <th
+                    style={{ ...thStyle, textAlign: 'left' }}
+                    aria-sort={
+                      sortState.key === 'modified'
+                        ? sortState.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      style={headerButtonStyle}
+                      onClick={() =>
+                        setSortState((cur) => toggleSortState(cur, 'modified'))
+                      }
+                    >
                       <span>Modified</span>
-                      <span aria-hidden="true">{sortState.key === 'modified' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span aria-hidden="true">
+                        {sortState.key === 'modified'
+                          ? sortState.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th style={{ ...thStyle, textAlign: 'right', width: 150 }}> </th>
+                  <th style={{ ...thStyle, textAlign: 'right', width: 150 }}>
+                    {' '}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {visibleSortedEntries.map((e) => (
-                  <tr key={e.path} onClick={() => openEntry(e)} style={{ cursor: 'pointer' }}>
-                    <td style={{ padding: '4px 8px', textAlign: 'left', color: e.isDir ? 'var(--gh-accent, #58a6ff)' : 'var(--gh-text, #c9d1d9)' }}>
+                  <tr
+                    key={e.path}
+                    onClick={() => openEntry(e)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td
+                      style={{
+                        padding: '4px 8px',
+                        textAlign: 'left',
+                        color: e.isDir
+                          ? 'var(--gh-accent, #58a6ff)'
+                          : 'var(--gh-text, #c9d1d9)',
+                      }}
+                    >
                       {e.isDir ? '📁 ' : '📄 '}
                       {e.name}
-                      {e.isSymlink && e.linkTarget ? <span style={{ color: 'var(--gh-text-muted, #8b949e)' }}> ➜ {e.linkTarget}</span> : null}
+                      {e.isSymlink && e.linkTarget ? (
+                        <span
+                          style={{ color: 'var(--gh-text-muted, #8b949e)' }}
+                        >
+                          {' '}
+                          ➜ {e.linkTarget}
+                        </span>
+                      ) : null}
                     </td>
-                    <td style={{ padding: '4px 8px', textAlign: 'left', color: 'var(--gh-text-muted, #8b949e)', whiteSpace: 'nowrap' }}>{e.mode || ''}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--gh-text-muted, #8b949e)' }}>{e.isDir ? '-' : humanSize(e.size)}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'left', color: 'var(--gh-text-muted, #8b949e)' }}>{e.modified ? String(e.modified).replace('T', ' ') : ''}</td>
+                    <td
+                      style={{
+                        padding: '4px 8px',
+                        textAlign: 'left',
+                        color: 'var(--gh-text-muted, #8b949e)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {e.mode || ''}
+                    </td>
+                    <td
+                      style={{
+                        padding: '4px 8px',
+                        textAlign: 'right',
+                        color: 'var(--gh-text-muted, #8b949e)',
+                      }}
+                    >
+                      {e.isDir ? '-' : humanSize(e.size)}
+                    </td>
+                    <td
+                      style={{
+                        padding: '4px 8px',
+                        textAlign: 'left',
+                        color: 'var(--gh-text-muted, #8b949e)',
+                      }}
+                    >
+                      {e.modified ? String(e.modified).replace('T', ' ') : ''}
+                    </td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>
                       {!e.isDir ? (
                         <button
@@ -525,12 +796,21 @@ export default function VolumeFilesTab({ volumeName }) {
 
                 {hasMoreEntries ? (
                   <tr>
-                    <td colSpan={5} style={{ padding: '10px 8px', textAlign: 'center', color: 'var(--gh-text-muted, #8b949e)' }}>
+                    <td
+                      colSpan={5}
+                      style={{
+                        padding: '10px 8px',
+                        textAlign: 'center',
+                        color: 'var(--gh-text-muted, #8b949e)',
+                      }}
+                    >
                       <button
                         onClick={(ev) => {
                           ev.preventDefault();
                           ev.stopPropagation();
-                          setVisibleCount((c) => Math.min(entries.length, c + DIR_PAGE_SIZE));
+                          setVisibleCount((c) =>
+                            Math.min(entries.length, c + DIR_PAGE_SIZE),
+                          );
                         }}
                         style={{
                           padding: '6px 10px',
@@ -551,20 +831,43 @@ export default function VolumeFilesTab({ volumeName }) {
           </div>
         </div>
 
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: 0,
+          }}
+        >
           {!filePath && !fileLoading && !fileError && (
-            <div style={{ padding: 16, fontSize: 13, color: 'var(--gh-text-muted, #8b949e)' }}>
-              Select a file to preview (text up to 256 KiB). Binary files are not previewed.
+            <div
+              style={{
+                padding: 16,
+                fontSize: 13,
+                color: 'var(--gh-text-muted, #8b949e)',
+              }}
+            >
+              Select a file to preview (text up to 256 KiB). Binary files are
+              not previewed.
             </div>
           )}
 
           {fileError && (
-            <div style={{ padding: 16, fontSize: 13, color: '#f85149' }}>Error: {fileError}</div>
+            <div style={{ padding: 16, fontSize: 13, color: '#f85149' }}>
+              Error: {fileError}
+            </div>
           )}
 
           {filePath && fileMeta?.isBinary && !fileLoading && !fileError && (
-            <div style={{ padding: 16, fontSize: 13, color: 'var(--gh-text-muted, #8b949e)' }}>
-              {filePath} is a binary file ({humanSize(fileMeta?.size)}). Preview disabled.
+            <div
+              style={{
+                padding: 16,
+                fontSize: 13,
+                color: 'var(--gh-text-muted, #8b949e)',
+              }}
+            >
+              {filePath} is a binary file ({humanSize(fileMeta?.size)}). Preview
+              disabled.
               <div style={{ marginTop: 10 }}>
                 <button
                   onClick={handleDownload}
@@ -583,20 +886,42 @@ export default function VolumeFilesTab({ volumeName }) {
           )}
 
           {filePath && !fileMeta?.isBinary && (
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              <div style={{
-                padding: '6px 12px',
-                borderBottom: '1px solid #30363d',
-                fontSize: 12,
-                color: 'var(--gh-text-muted, #8b949e)',
+            <div
+              style={{
+                flex: 1,
+                minHeight: 0,
                 display: 'flex',
-                gap: 12,
-                flexWrap: 'wrap'
-              }}>
-                <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{filePath}</span>
-                {fileMeta?.truncated ? <span style={{ color: '#f0883e' }}>truncated</span> : null}
-                {fileMeta?.size != null ? <span>size {humanSize(fileMeta.size)}</span> : null}
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                flexDirection: 'column',
+              }}
+            >
+              <div
+                style={{
+                  padding: '6px 12px',
+                  borderBottom: '1px solid #30363d',
+                  fontSize: 12,
+                  color: 'var(--gh-text-muted, #8b949e)',
+                  display: 'flex',
+                  gap: 12,
+                  flexWrap: 'wrap',
+                }}
+              >
+                <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>
+                  {filePath}
+                </span>
+                {fileMeta?.truncated ? (
+                  <span style={{ color: '#f0883e' }}>truncated</span>
+                ) : null}
+                {fileMeta?.size != null ? (
+                  <span>size {humanSize(fileMeta.size)}</span>
+                ) : null}
+                <div
+                  style={{
+                    marginLeft: 'auto',
+                    display: 'flex',
+                    gap: 8,
+                    alignItems: 'center',
+                  }}
+                >
                   {readOnly !== true && !isEditing ? (
                     <button
                       onClick={startEdit}

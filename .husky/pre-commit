@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Frontend linting
+cd frontend && npm run lint || exit 1
+
+# Go checks
+cd .. && go vet ./... || exit 1
+golangci-lint run --fast || exit 1

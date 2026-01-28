@@ -124,7 +124,11 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
   useEffect(() => {
     if (connectionType === 'local') {
       const isWindows = navigator.platform?.toLowerCase().includes('win');
-      setHost(isWindows ? 'npipe:////./pipe/docker_engine' : 'unix:///var/run/docker.sock');
+      setHost(
+        isWindows
+          ? 'npipe:////./pipe/docker_engine'
+          : 'unix:///var/run/docker.sock',
+      );
     } else if (connectionType === 'tcp') {
       setHost('tcp://localhost:2375');
     } else if (connectionType === 'tls') {
@@ -198,7 +202,9 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
       <div style={dialogStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
+          <h2
+            style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}
+          >
             🐳 Add Docker Connection
           </h2>
           <button
@@ -255,7 +261,10 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
             <div
               style={{
                 ...radioGroupStyle,
-                borderColor: connectionType === 'local' ? '#238636' : 'var(--gh-border, #30363d)',
+                borderColor:
+                  connectionType === 'local'
+                    ? '#238636'
+                    : 'var(--gh-border, #30363d)',
               }}
               onClick={() => setConnectionType('local')}
             >
@@ -265,8 +274,15 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
                 onChange={() => setConnectionType('local')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>Local Socket</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>
+                  Local Socket
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gh-text-secondary, #8b949e)',
+                  }}
+                >
                   Connect to Docker on this machine
                 </div>
               </div>
@@ -274,7 +290,10 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
             <div
               style={{
                 ...radioGroupStyle,
-                borderColor: connectionType === 'tcp' ? '#238636' : 'var(--gh-border, #30363d)',
+                borderColor:
+                  connectionType === 'tcp'
+                    ? '#238636'
+                    : 'var(--gh-border, #30363d)',
               }}
               onClick={() => setConnectionType('tcp')}
             >
@@ -284,8 +303,15 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
                 onChange={() => setConnectionType('tcp')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>TCP (Unencrypted)</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>
+                  TCP (Unencrypted)
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gh-text-secondary, #8b949e)',
+                  }}
+                >
                   Connect over TCP without encryption
                 </div>
               </div>
@@ -293,7 +319,10 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
             <div
               style={{
                 ...radioGroupStyle,
-                borderColor: connectionType === 'tls' ? '#238636' : 'var(--gh-border, #30363d)',
+                borderColor:
+                  connectionType === 'tls'
+                    ? '#238636'
+                    : 'var(--gh-border, #30363d)',
               }}
               onClick={() => setConnectionType('tls')}
             >
@@ -303,8 +332,15 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
                 onChange={() => setConnectionType('tls')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>TCP with TLS</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>
+                  TCP with TLS
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gh-text-secondary, #8b949e)',
+                  }}
+                >
                   Secure connection with certificates
                 </div>
               </div>
@@ -366,13 +402,22 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
                 />
               </div>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={tlsVerify}
                     onChange={(e) => setTlsVerify(e.target.checked)}
                   />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Verify server certificate</span>
+                  <span style={{ color: 'var(--gh-text, #fff)' }}>
+                    Verify server certificate
+                  </span>
                 </label>
               </div>
             </>

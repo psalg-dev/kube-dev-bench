@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import router, { k8sSections, swarmSections, allSections, sectionFromPath } from '../router.jsx';
+import router, {
+  k8sSections,
+  swarmSections,
+  allSections,
+  sectionFromPath,
+} from '../router.jsx';
 
 describe('router', () => {
   describe('k8sSections', () => {
@@ -46,7 +51,9 @@ describe('router', () => {
 
   describe('allSections', () => {
     it('combines k8s and swarm sections', () => {
-      expect(allSections.length).toBe(k8sSections.length + swarmSections.length);
+      expect(allSections.length).toBe(
+        k8sSections.length + swarmSections.length,
+      );
     });
 
     it('includes all k8s sections', () => {

@@ -66,11 +66,15 @@ import LogViewerTab from '../layout/bottompanel/LogViewerTab.jsx';
 describe('LogViewerTab Holmes integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    holmesApiMocks.AnalyzePodLogs.mockResolvedValue({ response: 'analysis result' });
+    holmesApiMocks.AnalyzePodLogs.mockResolvedValue({
+      response: 'analysis result',
+    });
   });
 
   it('triggers Holmes log analysis and renders response', async () => {
-    render(<LogViewerTab podName="test-pod" namespace="default" embedded={true} />);
+    render(
+      <LogViewerTab podName="test-pod" namespace="default" embedded={true} />,
+    );
 
     // First, switch to the Analysis tab
     const analysisTab = screen.getByRole('button', { name: 'Analysis' });
@@ -80,7 +84,11 @@ describe('LogViewerTab Holmes integration', () => {
     fireEvent.click(explainBtn);
 
     await waitFor(() => {
-      expect(holmesApiMocks.AnalyzePodLogs).toHaveBeenCalledWith('default', 'test-pod', 200);
+      expect(holmesApiMocks.AnalyzePodLogs).toHaveBeenCalledWith(
+        'default',
+        'test-pod',
+        200,
+      );
     });
 
     await waitFor(() => {

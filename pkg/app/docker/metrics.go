@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/app/internal/safeconv"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -97,7 +99,11 @@ func collectSwarmMetrics(ctx context.Context, cli swarmMetricsClient) (SwarmMetr
 		mult := int64(0)
 		if s.Spec.Mode.Replicated != nil {
 			if s.Spec.Mode.Replicated.Replicas != nil {
-				mult = int64(*s.Spec.Mode.Replicated.Replicas)
+				rep, err := safeconv.Uint64ToInt64(*s.Spec.Mode.Replicated.Replicas)
+				if err != nil {
+					continue
+				}
+				mult = rep
 			}
 		} else if s.Spec.Mode.Global != nil {
 			mult = int64(readyNodes)

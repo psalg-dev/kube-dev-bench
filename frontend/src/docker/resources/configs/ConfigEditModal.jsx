@@ -4,7 +4,13 @@ import { GetSwarmConfigData, UpdateSwarmConfigData } from '../../swarmApi.js';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab.jsx';
 import { showError, showSuccess } from '../../../notification.js';
 
-export default function ConfigEditModal({ open, configId, configName, onClose, onSaved }) {
+export default function ConfigEditModal({
+  open,
+  configId,
+  configName,
+  onClose,
+  onSaved,
+}) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -53,12 +59,20 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
     try {
       const result = await UpdateSwarmConfigData(configId, value);
       const newName = result?.newConfigName || 'new config';
-      const updatedCount = Array.isArray(result?.updated) ? result.updated.length : 0;
+      const updatedCount = Array.isArray(result?.updated)
+        ? result.updated.length
+        : 0;
 
-      showSuccess(`Config updated: created "${newName}" (updated ${updatedCount} service${updatedCount === 1 ? '' : 's'})`);
+      showSuccess(
+        `Config updated: created "${newName}" (updated ${updatedCount} service${updatedCount === 1 ? '' : 's'})`,
+      );
 
-      try { EventsEmit('swarm:configs:update', null); } catch {}
-      try { EventsEmit('swarm:services:update', null); } catch {}
+      try {
+        EventsEmit('swarm:configs:update', null);
+      } catch {}
+      try {
+        EventsEmit('swarm:services:update', null);
+      } catch {}
 
       onSaved?.(result);
       onClose?.();
@@ -110,33 +124,78 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
 
   return (
     <div style={overlayStyle} onClick={() => onClose?.()}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()} data-testid="swarm-config-edit-modal">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+      <div
+        style={modalStyle}
+        onClick={(e) => e.stopPropagation()}
+        data-testid="swarm-config-edit-modal"
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
           <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
             Edit Swarm config: {configName}
           </div>
-          <button style={buttonStyle} onClick={() => onClose?.()} disabled={saving}>
+          <button
+            style={buttonStyle}
+            onClick={() => onClose?.()}
+            disabled={saving}
+          >
             Close
           </button>
         </div>
 
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12, lineHeight: 1.4 }}>
-          Docker Swarm configs are immutable. Saving will create a new config with a timestamp suffix,
-          update any services that reference this config, and delete the old config. Services may restart.
+        <div
+          style={{
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+            lineHeight: 1.4,
+          }}
+        >
+          Docker Swarm configs are immutable. Saving will create a new config
+          with a timestamp suffix, update any services that reference this
+          config, and delete the old config. Services may restart.
         </div>
 
         {error ? (
-          <div style={{ color: '#f85149', fontSize: 12 }}>
-            {error}
-          </div>
+          <div style={{ color: '#f85149', fontSize: 12 }}>{error}</div>
         ) : null}
 
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'var(--gh-text, #c9d1d9)', fontSize: 12, fontWeight: 600 }}>
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <div
+              style={{
+                color: 'var(--gh-text, #c9d1d9)',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
               Data
             </div>
-            <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+            <div
+              style={{
+                color: 'var(--gh-text-secondary, #8b949e)',
+                fontSize: 12,
+              }}
+            >
               {isDirty ? 'Modified' : 'Unchanged'}
             </div>
           </div>
@@ -145,10 +204,25 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
             data-testid="swarm-config-edit-textarea"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            style={{ position: 'absolute', left: -9999, top: 'auto', width: 1, height: 1, opacity: 0 }}
+            style={{
+              position: 'absolute',
+              left: -9999,
+              top: 'auto',
+              width: 1,
+              height: 1,
+              opacity: 0,
+            }}
           />
 
-          <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--gh-border, #30363d)', borderRadius: 6, overflow: 'hidden' }}>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              border: '1px solid var(--gh-border, #30363d)',
+              borderRadius: 6,
+              overflow: 'hidden',
+            }}
+          >
             <TextEditorTab
               content={value}
               filename={configName}
@@ -162,12 +236,21 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button style={buttonStyle} onClick={() => onClose?.()} disabled={saving}>
+          <button
+            style={buttonStyle}
+            onClick={() => onClose?.()}
+            disabled={saving}
+          >
             Cancel
           </button>
           <button
             id="swarm-config-edit-save-btn"
-            style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff', borderColor: '#238636' }}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#238636',
+              color: '#fff',
+              borderColor: '#238636',
+            }}
             onClick={handleSave}
             disabled={saving || loading || !isDirty || isEmpty}
           >

@@ -10,13 +10,16 @@ describe('HolmesOnboardingWizard', () => {
     resetAllMocks();
     genericAPIMock.mockImplementation((name) => {
       if (name === 'CheckHolmesDeployment') {
-        return Promise.resolve({ phase: 'not_deployed', message: 'Holmes is not deployed' });
+        return Promise.resolve({
+          phase: 'not_deployed',
+          message: 'Holmes is not deployed',
+        });
       }
       if (name === 'DeployHolmesGPT') {
         return Promise.resolve({
           phase: 'deployed',
           message: 'Holmes deployed!',
-          endpoint: 'http://holmesgpt.holmesgpt.svc.cluster.local:8080'
+          endpoint: 'http://holmesgpt.holmesgpt.svc.cluster.local:8080',
         });
       }
       return Promise.resolve(undefined);
@@ -25,37 +28,43 @@ describe('HolmesOnboardingWizard', () => {
 
   it('does not render when showOnboarding is false', () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: false,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: false,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: vi.fn(),
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     expect(screen.queryByText('Welcome to Holmes AI')).not.toBeInTheDocument();
   });
 
   it('renders welcome step when showOnboarding is true', async () => {
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     expect(screen.getByText('Welcome to Holmes AI')).toBeInTheDocument();
@@ -65,20 +74,24 @@ describe('HolmesOnboardingWizard', () => {
   });
 
   it('shows API key step when Get Started is clicked', async () => {
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -95,20 +108,24 @@ describe('HolmesOnboardingWizard', () => {
   it('calls hideOnboarding and showConfigModal when manual config is selected', async () => {
     const mockHideOnboarding = vi.fn();
     const mockShowConfigModal = vi.fn();
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: mockHideOnboarding,
-        showConfigModal: mockShowConfigModal,
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: mockHideOnboarding,
+          showConfigModal: mockShowConfigModal,
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -123,20 +140,24 @@ describe('HolmesOnboardingWizard', () => {
   });
 
   it('shows error when trying to deploy without API key', async () => {
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -154,22 +175,26 @@ describe('HolmesOnboardingWizard', () => {
   it('calls deployHolmes when Deploy button is clicked with valid key', async () => {
     const mockDeployHolmes = vi.fn().mockResolvedValue({
       phase: 'deployed',
-      endpoint: 'http://test:8080'
+      endpoint: 'http://test:8080',
     });
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: mockDeployHolmes,
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: mockDeployHolmes,
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -189,9 +214,9 @@ describe('HolmesOnboardingWizard', () => {
     fireEvent.click(deployBtn);
 
     await waitFor(() => {
-      expect(mockDeployHolmes).toHaveBeenCalledWith(
-        { openAIKey: 'sk-test-key-12345' }
-      );
+      expect(mockDeployHolmes).toHaveBeenCalledWith({
+        openAIKey: 'sk-test-key-12345',
+      });
     });
   });
 
@@ -199,22 +224,26 @@ describe('HolmesOnboardingWizard', () => {
     const mockDeployHolmes = vi.fn().mockResolvedValue({
       phase: 'deployed',
       endpoint: 'http://holmesgpt.holmesgpt.svc.cluster.local:8080',
-      message: 'Holmes is now deployed!'
+      message: 'Holmes is now deployed!',
     });
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: mockDeployHolmes,
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: mockDeployHolmes,
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -236,20 +265,24 @@ describe('HolmesOnboardingWizard', () => {
   });
 
   it('shows toggle button for showing/hiding API key', async () => {
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -273,20 +306,24 @@ describe('HolmesOnboardingWizard', () => {
 
   it('closes when close button is clicked', async () => {
     const mockHideOnboarding = vi.fn();
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
+    const mockCheckDeployment = vi
+      .fn()
+      .mockResolvedValue({ phase: 'not_deployed' });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: mockHideOnboarding,
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: mockHideOnboarding,
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     await waitFor(() => {
@@ -303,21 +340,23 @@ describe('HolmesOnboardingWizard', () => {
     const mockCheckDeployment = vi.fn().mockResolvedValue({
       phase: 'deployed',
       endpoint: 'http://existing:8080',
-      message: 'Holmes is already deployed'
+      message: 'Holmes is already deployed',
     });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showOnboarding: true,
-        },
-        hideOnboarding: vi.fn(),
-        showConfigModal: vi.fn(),
-        deployHolmes: vi.fn(),
-        checkDeployment: mockCheckDeployment,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showOnboarding: true,
+          },
+          hideOnboarding: vi.fn(),
+          showConfigModal: vi.fn(),
+          deployHolmes: vi.fn(),
+          checkDeployment: mockCheckDeployment,
+        }}
+      >
         <HolmesOnboardingWizard />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     // Should skip to success step

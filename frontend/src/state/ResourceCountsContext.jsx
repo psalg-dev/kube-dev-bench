@@ -14,15 +14,24 @@ export function ResourceCountsProvider({ children }) {
       if (!c) return 'none';
       const ps = c.podStatus || c.PodStatus || {}; // pod status signature prominent
       return [
-        ps.running||ps.Running||0,
-        ps.pending||ps.Pending||0,
-        ps.failed||ps.Failed||0,
-        ps.succeeded||ps.Succeeded||0,
-        ps.unknown||ps.Unknown||0,
-        ps.total||ps.Total||0,
+        ps.running || ps.Running || 0,
+        ps.pending || ps.Pending || 0,
+        ps.failed || ps.Failed || 0,
+        ps.succeeded || ps.Succeeded || 0,
+        ps.unknown || ps.Unknown || 0,
+        ps.total || ps.Total || 0,
         c.services || c.Services || 0,
-        c.deployments, c.jobs, c.cronjobs, c.daemonsets, c.statefulsets, c.replicasets,
-        c.configmaps, c.secrets, c.ingresses, c.persistentvolumeclaims, c.persistentvolumes
+        c.deployments,
+        c.jobs,
+        c.cronjobs,
+        c.daemonsets,
+        c.statefulsets,
+        c.replicasets,
+        c.configmaps,
+        c.secrets,
+        c.ingresses,
+        c.persistentvolumeclaims,
+        c.persistentvolumes,
       ].join('-');
     };
     const normalize = (raw) => {
@@ -40,9 +49,18 @@ export function ResourceCountsProvider({ children }) {
         if (active) setCounts(norm);
       }
     };
-    GetResourceCounts().then(applyCounts).catch(()=>{});
-    const off = EventsOn('resourcecounts:update', (data) => { try { applyCounts(data); } catch(_) {} });
-    return () => { active = false; if (typeof off === 'function') off(); };
+    GetResourceCounts()
+      .then(applyCounts)
+      .catch(() => {});
+    const off = EventsOn('resourcecounts:update', (data) => {
+      try {
+        applyCounts(data);
+      } catch (_) {}
+    });
+    return () => {
+      active = false;
+      if (typeof off === 'function') off();
+    };
   }, []);
 
   return (

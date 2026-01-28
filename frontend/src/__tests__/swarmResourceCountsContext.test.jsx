@@ -3,16 +3,18 @@ import { render, screen, waitFor } from '@testing-library/react';
 
 // Mock the swarm API
 vi.mock('../docker/swarmApi.js', () => ({
-  GetSwarmResourceCounts: vi.fn(() => Promise.resolve({
-    services: 3,
-    tasks: 10,
-    nodes: 2,
-    networks: 5,
-    configs: 2,
-    secrets: 1,
-    stacks: 1,
-    volumes: 4,
-  })),
+  GetSwarmResourceCounts: vi.fn(() =>
+    Promise.resolve({
+      services: 3,
+      tasks: 10,
+      nodes: 2,
+      networks: 5,
+      configs: 2,
+      secrets: 1,
+      stacks: 1,
+      volumes: 4,
+    }),
+  ),
   GetRegistries: vi.fn(() => Promise.resolve([])),
 }));
 
@@ -22,7 +24,10 @@ vi.mock('../../wailsjs/runtime/runtime.js', () => ({
   EventsOff: vi.fn(),
 }));
 
-import { SwarmResourceCountsProvider, useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext.jsx';
+import {
+  SwarmResourceCountsProvider,
+  useSwarmResourceCounts,
+} from '../docker/SwarmResourceCountsContext.jsx';
 import * as swarmApi from '../docker/swarmApi.js';
 
 function TestConsumer() {
@@ -50,7 +55,7 @@ describe('SwarmResourceCountsContext', () => {
     render(
       <SwarmResourceCountsProvider>
         <TestConsumer />
-      </SwarmResourceCountsProvider>
+      </SwarmResourceCountsProvider>,
     );
 
     // Initially shows loading
@@ -71,12 +76,14 @@ describe('SwarmResourceCountsContext', () => {
   });
 
   it('handles API errors gracefully', async () => {
-    swarmApi.GetSwarmResourceCounts.mockRejectedValueOnce(new Error('Connection refused'));
+    swarmApi.GetSwarmResourceCounts.mockRejectedValueOnce(
+      new Error('Connection refused'),
+    );
 
     render(
       <SwarmResourceCountsProvider>
         <TestConsumer />
-      </SwarmResourceCountsProvider>
+      </SwarmResourceCountsProvider>,
     );
 
     // Should still render without crashing

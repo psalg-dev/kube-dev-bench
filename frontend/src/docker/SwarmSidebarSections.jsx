@@ -20,7 +20,7 @@ export function SwarmSidebarSections({ selected, onSelect }) {
 
   return (
     <div>
-      {swarmSections.map(sec => {
+      {swarmSections.map((sec) => {
         const isSel = selected === sec.key;
         const commonStyle = {
           padding: '8px 16px',
@@ -37,7 +37,10 @@ export function SwarmSidebarSections({ selected, onSelect }) {
           justifyContent: 'space-between',
         };
         const hasCount = Boolean(sec.countKey);
-        const value = sec.countKey === 'registries' ? registriesCount : counts?.[sec.countKey];
+        const value =
+          sec.countKey === 'registries'
+            ? registriesCount
+            : counts?.[sec.countKey];
         const isNumber = typeof value === 'number';
         return (
           <Link
@@ -45,19 +48,24 @@ export function SwarmSidebarSections({ selected, onSelect }) {
             to={`/${sec.key}`}
             id={`section-${sec.key}`}
             className={`sidebar-section${isSel ? ' selected' : ''}`}
-            style={{...commonStyle, textDecoration: 'none'}}
-            onClick={(e) => { e.stopPropagation(); onSelect(sec.key); }}
+            style={{ ...commonStyle, textDecoration: 'none' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(sec.key);
+            }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span>{sec.label}</span>
             </span>
             {hasCount ? (
-              <span style={{
-                minWidth: '2em',
-                textAlign: 'right',
-                color: (isNumber && value > 0) ? '#8ecfff' : '#9aa0a6',
-                fontWeight: 700,
-              }}>
+              <span
+                style={{
+                  minWidth: '2em',
+                  textAlign: 'right',
+                  color: isNumber && value > 0 ? '#8ecfff' : '#9aa0a6',
+                  fontWeight: 700,
+                }}
+              >
                 {isNumber ? value : '-'}
               </span>
             ) : (

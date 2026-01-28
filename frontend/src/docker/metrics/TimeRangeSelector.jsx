@@ -6,9 +6,21 @@ const OPTIONS = [
   { value: '0', label: 'All (in-memory)' },
 ];
 
-export default function TimeRangeSelector({ valueSeconds, onChangeSeconds, disabled = false }) {
+export default function TimeRangeSelector({
+  valueSeconds,
+  onChangeSeconds,
+  disabled = false,
+}) {
   return (
-    <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+    <label
+      style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'center',
+        fontSize: 12,
+        color: 'var(--gh-text-secondary, #8b949e)',
+      }}
+    >
       Range
       <select
         id="swarm-metrics-range"
@@ -23,7 +35,9 @@ export default function TimeRangeSelector({ valueSeconds, onChangeSeconds, disab
         }}
       >
         {OPTIONS.map((o) => (
-          <option key={o.value} value={o.value}>{o.label}</option>
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
         ))}
       </select>
     </label>

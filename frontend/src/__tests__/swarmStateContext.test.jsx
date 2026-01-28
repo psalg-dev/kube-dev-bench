@@ -1,11 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
 // Mock the swarm API
 vi.mock('../docker/swarmApi.js', () => ({
   GetDockerConnectionStatus: vi.fn(() => Promise.resolve({ connected: false })),
-  ConnectToDocker: vi.fn(() => Promise.resolve({ connected: true, serverVersion: '24.0.0', swarmActive: true })),
-  TestDockerConnection: vi.fn(() => Promise.resolve({ connected: true, serverVersion: '24.0.0', swarmActive: true })),
+  ConnectToDocker: vi.fn(() =>
+    Promise.resolve({
+      connected: true,
+      serverVersion: '24.0.0',
+      swarmActive: true,
+    }),
+  ),
+  TestDockerConnection: vi.fn(() =>
+    Promise.resolve({
+      connected: true,
+      serverVersion: '24.0.0',
+      swarmActive: true,
+    }),
+  ),
   DisconnectDocker: vi.fn(() => Promise.resolve()),
   GetDockerConfig: vi.fn(() => Promise.resolve(null)),
   AutoConnectDocker: vi.fn(() => Promise.resolve({ connected: false })),
@@ -32,7 +50,10 @@ vi.mock('../notification.js', () => ({
   showError: vi.fn(),
 }));
 
-import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext.jsx';
+import {
+  SwarmStateProvider,
+  useSwarmState,
+} from '../docker/SwarmStateContext.jsx';
 import * as swarmApi from '../docker/swarmApi.js';
 import * as notification from '../notification.js';
 
@@ -48,7 +69,13 @@ function TestConsumer({ onRender }) {
       <span data-testid="initialized">{String(state.initialized)}</span>
       <button onClick={() => state.actions.openWizard()}>Open Wizard</button>
       <button onClick={() => state.actions.closeWizard()}>Close Wizard</button>
-      <button onClick={() => state.actions.connect({ host: 'unix:///var/run/docker.sock' })}>Connect</button>
+      <button
+        onClick={() =>
+          state.actions.connect({ host: 'unix:///var/run/docker.sock' })
+        }
+      >
+        Connect
+      </button>
       <button onClick={() => state.actions.disconnect()}>Disconnect</button>
     </div>
   );
@@ -63,8 +90,12 @@ describe('SwarmStateContext', () => {
     let _capturedState;
     render(
       <SwarmStateProvider>
-        <TestConsumer onRender={(state) => { _capturedState = state; }} />
-      </SwarmStateProvider>
+        <TestConsumer
+          onRender={(state) => {
+            _capturedState = state;
+          }}
+        />
+      </SwarmStateProvider>,
     );
 
     await waitFor(() => {
@@ -80,7 +111,7 @@ describe('SwarmStateContext', () => {
     render(
       <SwarmStateProvider>
         <TestConsumer />
-      </SwarmStateProvider>
+      </SwarmStateProvider>,
     );
 
     await waitFor(() => {
@@ -100,7 +131,7 @@ describe('SwarmStateContext', () => {
     render(
       <SwarmStateProvider>
         <TestConsumer />
-      </SwarmStateProvider>
+      </SwarmStateProvider>,
     );
 
     await waitFor(() => {
@@ -130,7 +161,7 @@ describe('SwarmStateContext', () => {
     render(
       <SwarmStateProvider>
         <TestConsumer />
-      </SwarmStateProvider>
+      </SwarmStateProvider>,
     );
 
     await waitFor(() => {
@@ -145,7 +176,9 @@ describe('SwarmStateContext', () => {
       expect(screen.getByTestId('connected').textContent).toBe('false');
     });
 
-    expect(notification.showSuccess).toHaveBeenCalledWith('Disconnected from Docker');
+    expect(notification.showSuccess).toHaveBeenCalledWith(
+      'Disconnected from Docker',
+    );
   });
 
   it('returns null when used outside provider', () => {
@@ -164,8 +197,12 @@ describe('SwarmStateContext', () => {
     let capturedState;
     render(
       <SwarmStateProvider>
-        <TestConsumer onRender={(state) => { capturedState = state; }} />
-      </SwarmStateProvider>
+        <TestConsumer
+          onRender={(state) => {
+            capturedState = state;
+          }}
+        />
+      </SwarmStateProvider>,
     );
 
     await waitFor(() => {

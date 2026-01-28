@@ -23,9 +23,9 @@ describe('SecretUsedBySection', () => {
   describe('loading state', () => {
     it('shows loading initially', () => {
       GetSwarmSecretUsage.mockImplementation(() => new Promise(() => {}));
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       expect(screen.getByText(/Loading/)).toBeInTheDocument();
     });
   });
@@ -33,9 +33,9 @@ describe('SecretUsedBySection', () => {
   describe('error handling', () => {
     it('displays error when API call fails', async () => {
       GetSwarmSecretUsage.mockRejectedValue(new Error('Secret not found'));
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/Failed to load usage/)).toBeInTheDocument();
         expect(screen.getByText(/Secret not found/)).toBeInTheDocument();
@@ -46,9 +46,9 @@ describe('SecretUsedBySection', () => {
   describe('empty state', () => {
     it('shows empty state when no services use the secret', async () => {
       GetSwarmSecretUsage.mockResolvedValue([]);
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('Used By')).toBeInTheDocument();
         expect(screen.queryByText(/Loading/)).not.toBeInTheDocument();
@@ -64,9 +64,9 @@ describe('SecretUsedBySection', () => {
 
     it('displays list of services using the secret', async () => {
       GetSwarmSecretUsage.mockResolvedValue(mockServices);
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('web-service')).toBeInTheDocument();
         expect(screen.getByText('api-service')).toBeInTheDocument();
@@ -75,9 +75,9 @@ describe('SecretUsedBySection', () => {
 
     it('displays Used By header', async () => {
       GetSwarmSecretUsage.mockResolvedValue(mockServices);
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       expect(screen.getByText('Used By')).toBeInTheDocument();
     });
   });
@@ -87,15 +87,15 @@ describe('SecretUsedBySection', () => {
       GetSwarmSecretUsage.mockResolvedValue([
         { serviceId: 'svc-1', serviceName: 'web-service' },
       ]);
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('web-service')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('web-service'));
-      
+
       expect(navigateToResource).toHaveBeenCalledWith({
         resource: 'SwarmService',
         name: 'web-service',
@@ -106,15 +106,15 @@ describe('SecretUsedBySection', () => {
       GetSwarmSecretUsage.mockResolvedValue([
         { serviceId: 'svc-1', serviceName: 'web-service' },
       ]);
-      
+
       render(<SecretUsedBySection secretId="secret-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('web-service')).toBeInTheDocument();
       });
 
       fireEvent.keyDown(screen.getByText('web-service'), { key: 'Enter' });
-      
+
       expect(navigateToResource).toHaveBeenCalled();
     });
   });
@@ -122,9 +122,9 @@ describe('SecretUsedBySection', () => {
   describe('API calls', () => {
     it('calls API with correct secretId', async () => {
       GetSwarmSecretUsage.mockResolvedValue([]);
-      
+
       render(<SecretUsedBySection secretId="my-secret-id" />);
-      
+
       await waitFor(() => {
         expect(GetSwarmSecretUsage).toHaveBeenCalledWith('my-secret-id');
       });
@@ -132,15 +132,15 @@ describe('SecretUsedBySection', () => {
 
     it('re-fetches when secretId changes', async () => {
       GetSwarmSecretUsage.mockResolvedValue([]);
-      
+
       const { rerender } = render(<SecretUsedBySection secretId="secret-1" />);
-      
+
       await waitFor(() => {
         expect(GetSwarmSecretUsage).toHaveBeenCalledWith('secret-1');
       });
 
       rerender(<SecretUsedBySection secretId="secret-2" />);
-      
+
       await waitFor(() => {
         expect(GetSwarmSecretUsage).toHaveBeenCalledWith('secret-2');
       });

@@ -3,6 +3,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { TEST_SECRET_PASSWORD } from '../fixtures/test-secrets.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -149,7 +150,7 @@ metadata:
 type: Opaque
 data:
   username: YWRtaW4=
-  password: cGFzc3dvcmQxMjM=
+  password: ${TEST_SECRET_PASSWORD}
 `;
 
     await overlay.openFromOverviewHeader();

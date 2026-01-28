@@ -1,11 +1,20 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext.jsx';
+import {
+  ClusterStateProvider,
+  useClusterState,
+} from '../state/ClusterStateContext.jsx';
 import { AppLayout } from './AppLayout.jsx';
 import ConnectionWizard from './connection/ConnectionWizard.jsx';
 import { ContextSelect, NamespaceMultiSelect } from '../Dropdowns.jsx';
-import { renderPodsMainContent, renderResourceMainContent } from '../main-content';
+import {
+  renderPodsMainContent,
+  renderResourceMainContent,
+} from '../main-content';
 import { ResourceCountsProvider } from '../state/ResourceCountsContext.jsx';
-import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext.jsx';
+import {
+  SwarmStateProvider,
+  useSwarmState,
+} from '../docker/SwarmStateContext.jsx';
 import { SwarmResourceCountsProvider } from '../docker/SwarmResourceCountsContext.jsx';
 import { useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext.jsx';
 // Holmes AI provider and components
@@ -14,8 +23,12 @@ import { HolmesPanel } from '../holmes/HolmesPanel.jsx';
 import { HolmesConfigModal } from '../holmes/HolmesConfigModal.jsx';
 import { HolmesOnboardingWizard } from '../holmes/HolmesOnboardingWizard.jsx';
 
-function MainContentBinder({ selectedSection, setConnectionWizardInitialSection }) {
-  const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
+function MainContentBinder({
+  selectedSection,
+  setConnectionWizardInitialSection,
+}) {
+  const { selectedNamespaces, clusterConnected, actions, showWizard } =
+    useClusterState();
   const swarmState = useSwarmState();
   const swarmCounts = useSwarmResourceCounts();
 
@@ -26,7 +39,10 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
       renderPodsMainContent(selectedNamespaces);
     } else {
       // BUGFIX: pass selectedSection so correct resource renders (was defaulting to deployments)
-      renderResourceMainContent(selectedNamespaces, selectedSection, { swarmState, swarmCounts });
+      renderResourceMainContent(selectedNamespaces, selectedSection, {
+        swarmState,
+        swarmCounts,
+      });
     }
   }, [selectedSection, selectedNamespaces, swarmState, swarmCounts]);
 
@@ -42,7 +58,13 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
     } else if (clusterConnected) {
       renderMainContent();
     }
-  }, [clusterConnected, showWizard, renderMainContent, isSwarmSection, swarmState?.connected]);
+  }, [
+    clusterConnected,
+    showWizard,
+    renderMainContent,
+    isSwarmSection,
+    swarmState?.connected,
+  ]);
 
   // Hotkey & button handlers (wizard & sidebar toggle)
   useEffect(() => {
@@ -50,7 +72,8 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
     const keyHandler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
-        if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
+        if (setConnectionWizardInitialSection)
+          setConnectionWizardInitialSection('kubernetes');
         actions.openWizard();
       }
     };
@@ -76,7 +99,13 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
   return null; // side-effect only (no longer needed for counts)
 }
 
-function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection, connectionWizardInitialSection, setConnectionWizardInitialSection }) {
+function LayoutOrWizard({
+  onWizardComplete,
+  selectedSection,
+  setSelectedSection,
+  connectionWizardInitialSection,
+  setConnectionWizardInitialSection,
+}) {
   const {
     showWizard,
     actions,
@@ -94,7 +123,10 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
   // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs detected),
   // ensure we land on a Swarm view so the main content isn't blank.
   useEffect(() => {
-    if (kubernetesAvailable === false && !String(selectedSection).startsWith('swarm-')) {
+    if (
+      kubernetesAvailable === false &&
+      !String(selectedSection).startsWith('swarm-')
+    ) {
       setSelectedSection('swarm-services');
     }
   }, [kubernetesAvailable, selectedSection, setSelectedSection]);
@@ -114,7 +146,8 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
 
   const handleWizardComplete = () => {
     actions.closeWizard();
-    if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
+    if (setConnectionWizardInitialSection)
+      setConnectionWizardInitialSection('kubernetes');
     // Refresh Docker Swarm connection status after wizard closes
     if (swarmState?.actions?.refreshConnectionStatus) {
       swarmState.actions.refreshConnectionStatus();
@@ -123,39 +156,54 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
   };
 
   if (showWizard) {
-    return <ConnectionWizard onComplete={handleWizardComplete} initialSection={connectionWizardInitialSection} />;
+    return (
+      <ConnectionWizard
+        onComplete={handleWizardComplete}
+        initialSection={connectionWizardInitialSection}
+      />
+    );
   }
   return (
     <>
       <AppLayout
         kubernetesAvailable={kubernetesAvailable}
         onOpenConnectionsWizard={() => {
-          if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
+          if (setConnectionWizardInitialSection)
+            setConnectionWizardInitialSection('kubernetes');
           actions.openWizard();
         }}
         onOpenSwarmConnectionsWizard={() => {
-          if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('docker-swarm');
+          if (setConnectionWizardInitialSection)
+            setConnectionWizardInitialSection('docker-swarm');
           actions.openWizard();
         }}
         onToggleHolmes={holmes.togglePanel}
         holmesPanelVisible={holmes.state.showPanel}
-        contextSelectEl={<ContextSelect
-          value={selectedContext}
-          options={contexts}
-          disabled={contextDisabled}
-          onChange={(v) => actions.selectContext(v)}
-          onMenuOpen={() => actions.reloadContexts()}
-        />}
-        namespaceSelectEl={<NamespaceMultiSelect
-          values={selectedNamespaces}
-          options={namespaces}
-          disabled={namespaceDisabled}
-          onChange={(vals) => actions.selectNamespaces(vals)}
-          onMenuOpen={() => actions.reloadNamespaces()}
-        />}
+        contextSelectEl={
+          <ContextSelect
+            value={selectedContext}
+            options={contexts}
+            disabled={contextDisabled}
+            onChange={(v) => actions.selectContext(v)}
+            onMenuOpen={() => actions.reloadContexts()}
+          />
+        }
+        namespaceSelectEl={
+          <NamespaceMultiSelect
+            values={selectedNamespaces}
+            options={namespaces}
+            disabled={namespaceDisabled}
+            onChange={(vals) => actions.selectNamespaces(vals)}
+            onMenuOpen={() => actions.reloadNamespaces()}
+          />
+        }
         selectedSection={selectedSection}
         onSelectSection={(section) => {
-          if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) return;
+          if (
+            kubernetesAvailable === false &&
+            !String(section).startsWith('swarm-')
+          )
+            return;
           setSelectedSection(section);
         }}
       />
@@ -170,8 +218,9 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
 export default function AppContainer() {
   const [reloadKey, setReloadKey] = useState(0);
   const [selectedSection, setSelectedSection] = useState('pods');
-  const [connectionWizardInitialSection, setConnectionWizardInitialSection] = useState('kubernetes');
-  const handleWizardComplete = () => setReloadKey(k => k + 1);
+  const [connectionWizardInitialSection, setConnectionWizardInitialSection] =
+    useState('kubernetes');
+  const handleWizardComplete = () => setReloadKey((k) => k + 1);
 
   // Handle navigation to resources from monitor modal
   useEffect(() => {
@@ -181,27 +230,27 @@ export default function AppContainer() {
       // Map resource type to section name (Kubernetes and Swarm)
       const resourceToSection = {
         // Kubernetes resources
-        'Pod': 'pods',
-        'Deployment': 'deployments',
-        'StatefulSet': 'statefulsets',
-        'DaemonSet': 'daemonsets',
-        'ReplicaSet': 'replicasets',
-        'Job': 'jobs',
-        'CronJob': 'cronjobs',
-        'ConfigMap': 'configmaps',
-        'Secret': 'secrets',
-        'Ingress': 'ingresses',
-        'PersistentVolumeClaim': 'persistentvolumeclaims',
-        'PersistentVolume': 'persistentvolumes',
+        Pod: 'pods',
+        Deployment: 'deployments',
+        StatefulSet: 'statefulsets',
+        DaemonSet: 'daemonsets',
+        ReplicaSet: 'replicasets',
+        Job: 'jobs',
+        CronJob: 'cronjobs',
+        ConfigMap: 'configmaps',
+        Secret: 'secrets',
+        Ingress: 'ingresses',
+        PersistentVolumeClaim: 'persistentvolumeclaims',
+        PersistentVolume: 'persistentvolumes',
         // Swarm resources
-        'SwarmService': 'swarm-services',
-        'SwarmTask': 'swarm-tasks',
-        'SwarmNode': 'swarm-nodes',
-        'SwarmNetwork': 'swarm-networks',
-        'SwarmConfig': 'swarm-configs',
-        'SwarmSecret': 'swarm-secrets',
-        'SwarmStack': 'swarm-stacks',
-        'SwarmVolume': 'swarm-volumes',
+        SwarmService: 'swarm-services',
+        SwarmTask: 'swarm-tasks',
+        SwarmNode: 'swarm-nodes',
+        SwarmNetwork: 'swarm-networks',
+        SwarmConfig: 'swarm-configs',
+        SwarmSecret: 'swarm-secrets',
+        SwarmStack: 'swarm-stacks',
+        SwarmVolume: 'swarm-volumes',
       };
 
       const section = resourceToSection[resource];
@@ -231,7 +280,8 @@ export default function AppContainer() {
           }
         });
 
-        const root = visiblePanel || document.getElementById('maincontent') || document;
+        const root =
+          visiblePanel || document.getElementById('maincontent') || document;
         const rows = root.querySelectorAll('table.gh-table tbody tr');
         for (const row of rows) {
           const text = row.textContent || '';
@@ -255,7 +305,10 @@ export default function AppContainer() {
 
     window.addEventListener('navigate-to-resource', handleNavigateToResource);
     return () => {
-      window.removeEventListener('navigate-to-resource', handleNavigateToResource);
+      window.removeEventListener(
+        'navigate-to-resource',
+        handleNavigateToResource,
+      );
     };
   }, []);
 
@@ -270,9 +323,16 @@ export default function AppContainer() {
                 selectedSection={selectedSection}
                 setSelectedSection={setSelectedSection}
                 connectionWizardInitialSection={connectionWizardInitialSection}
-                setConnectionWizardInitialSection={setConnectionWizardInitialSection}
+                setConnectionWizardInitialSection={
+                  setConnectionWizardInitialSection
+                }
               />
-              <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
+              <MainContentBinder
+                selectedSection={selectedSection}
+                setConnectionWizardInitialSection={
+                  setConnectionWizardInitialSection
+                }
+              />
             </HolmesProvider>
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>

@@ -54,12 +54,12 @@ const router = createHashRouter([
       // Redirect root to /pods
       { index: true, element: <Navigate to="/pods" replace /> },
       // All K8s sections
-      ...k8sSections.map(section => ({
+      ...k8sSections.map((section) => ({
         path: section,
         element: null, // App handles rendering based on section
       })),
       // All Swarm sections
-      ...swarmSections.map(section => ({
+      ...swarmSections.map((section) => ({
         path: section,
         element: null,
       })),

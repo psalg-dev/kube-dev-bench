@@ -15,18 +15,22 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
     setError(null);
 
     AppAPI.GetCronJobDetail(namespace, cronJobName)
-      .then(data => {
+      .then((data) => {
         setDetail(data);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         setError(err.message || 'Failed to fetch cronjob details');
         setLoading(false);
       });
   }, [namespace, cronJobName]);
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -34,7 +38,11 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
   }
 
   if (!detail || !detail.jobs || detail.jobs.length === 0) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No jobs found for this cronjob.</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        No jobs found for this cronjob.
+      </div>
+    );
   }
 
   const formatDate = (dateStr) => {
@@ -49,7 +57,9 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>Job History (Last 10)</h4>
+      <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>
+        Job History (Last 10)
+      </h4>
       <table className="panel-table">
         <thead>
           <tr>
@@ -66,12 +76,26 @@ export default function CronJobHistoryTab({ namespace, cronJobName }) {
             <tr key={job.name || idx}>
               <td>{job.name}</td>
               <td>
-                <StatusBadge status={job.status || '-'} size="small" showDot={false} />
+                <StatusBadge
+                  status={job.status || '-'}
+                  size="small"
+                  showDot={false}
+                />
               </td>
               <td className="text-muted">{formatDate(job.startTime)}</td>
               <td>{job.duration}</td>
-              <td className="text-center" style={{ color: job.succeeded > 0 ? '#2ea44f' : undefined }}>{job.succeeded}</td>
-              <td className="text-center" style={{ color: job.failed > 0 ? '#f85149' : undefined }}>{job.failed}</td>
+              <td
+                className="text-center"
+                style={{ color: job.succeeded > 0 ? '#2ea44f' : undefined }}
+              >
+                {job.succeeded}
+              </td>
+              <td
+                className="text-center"
+                style={{ color: job.failed > 0 ? '#f85149' : undefined }}
+              >
+                {job.failed}
+              </td>
             </tr>
           ))}
         </tbody>

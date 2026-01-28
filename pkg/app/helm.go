@@ -568,10 +568,18 @@ func (a *App) triggerCountsRefresh() {
 // StartHelmReleasePolling emits helmreleases:update events every second with the current release list
 func (a *App) StartHelmReleasePolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
@@ -588,7 +596,7 @@ func (a *App) StartHelmReleasePolling() {
 				}
 				all = append(all, releases...)
 			}
-			emitEvent(a.ctx, "helmreleases:update", all)
+			emitEvent(ctx, "helmreleases:update", all)
 		}
 	}()
 }

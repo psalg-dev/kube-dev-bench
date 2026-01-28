@@ -1,3 +1,6 @@
 /workspace/.idea/
 /workspace/e2e/test-results/
 /workspace/jfrog/
+frontend/dist/**
+**/xterm.js
+e2e/fixtures/test-secrets.ts

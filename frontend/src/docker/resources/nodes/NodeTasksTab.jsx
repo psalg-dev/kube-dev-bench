@@ -3,7 +3,11 @@ import { GetSwarmNodeTasks } from '../../swarmApi.js';
 import HealthStatusBadge from '../tasks/HealthStatusBadge.jsx';
 import { navigateToResource } from '../../../utils/resourceNavigation';
 import StatusBadge from '../../../components/StatusBadge.jsx';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 export default function NodeTasksTab({ nodeId, _nodeName }) {
   const [tasks, setTasks] = useState([]);
@@ -42,24 +46,53 @@ export default function NodeTasksTab({ nodeId, _nodeName }) {
     };
   }, [nodeId]);
 
-  const columns = useMemo(() => ([
-    { key: 'id', label: 'Task ID' },
-    { key: 'serviceName', label: 'Service' },
-    { key: 'state', label: 'State' },
-    { key: 'healthStatus', label: 'Health' },
-    { key: 'desiredState', label: 'Desired' },
-    { key: 'containerId', label: 'Container' },
-  ]), []);
+  const columns = useMemo(
+    () => [
+      { key: 'id', label: 'Task ID' },
+      { key: 'serviceName', label: 'Service' },
+      { key: 'state', label: 'State' },
+      { key: 'healthStatus', label: 'Health' },
+      { key: 'desiredState', label: 'Desired' },
+      { key: 'containerId', label: 'Container' },
+    ],
+    [],
+  );
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedTasks = useMemo(() => sortRows(tasks, sortState.key, sortState.direction), [tasks, sortState]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedTasks = useMemo(
+    () => sortRows(tasks, sortState.key, sortState.direction),
+    [tasks, sortState],
+  );
 
   if (loading) {
-    return <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>Loading tasks...</div>;
+    return (
+      <div
+        style={{
+          padding: 32,
+          textAlign: 'center',
+          color: 'var(--gh-text-secondary)',
+        }}
+      >
+        Loading tasks...
+      </div>
+    );
   }
 
   if (tasks.length === 0) {
-    return <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>No tasks running on this node.</div>;
+    return (
+      <div
+        style={{
+          padding: 32,
+          textAlign: 'center',
+          color: 'var(--gh-text-secondary)',
+        }}
+      >
+        No tasks running on this node.
+      </div>
+    );
   }
 
   const headerButtonStyle = {
@@ -78,44 +111,166 @@ export default function NodeTasksTab({ nodeId, _nodeName }) {
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}>
+    <div
+      style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}
+    >
       <table className="gh-table" style={{ width: '100%' }}>
         <thead>
           <tr>
-            <th aria-sort={sortState.key === 'id' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'id'))}>
+            <th
+              aria-sort={
+                sortState.key === 'id'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'id'))
+                }
+              >
                 <span>Task ID</span>
-                <span aria-hidden="true">{sortState.key === 'id' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'id'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'serviceName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'serviceName'))}>
+            <th
+              aria-sort={
+                sortState.key === 'serviceName'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'serviceName'))
+                }
+              >
                 <span>Service</span>
-                <span aria-hidden="true">{sortState.key === 'serviceName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'serviceName'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'state' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'state'))}>
+            <th
+              aria-sort={
+                sortState.key === 'state'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'state'))
+                }
+              >
                 <span>State</span>
-                <span aria-hidden="true">{sortState.key === 'state' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'state'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'healthStatus' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'healthStatus'))}>
+            <th
+              aria-sort={
+                sortState.key === 'healthStatus'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'healthStatus'))
+                }
+              >
                 <span>Health</span>
-                <span aria-hidden="true">{sortState.key === 'healthStatus' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'healthStatus'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'desiredState' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'desiredState'))}>
+            <th
+              aria-sort={
+                sortState.key === 'desiredState'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'desiredState'))
+                }
+              >
                 <span>Desired</span>
-                <span aria-hidden="true">{sortState.key === 'desiredState' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'desiredState'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'containerId' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'containerId'))}>
+            <th
+              aria-sort={
+                sortState.key === 'containerId'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'containerId'))
+                }
+              >
                 <span>Container</span>
-                <span aria-hidden="true">{sortState.key === 'containerId' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'containerId'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
           </tr>
@@ -129,30 +284,42 @@ export default function NodeTasksTab({ nodeId, _nodeName }) {
                 onClick={() => handleRowClick(task)}
                 onMouseEnter={() => setHoveredRow(task.id)}
                 onMouseLeave={() => setHoveredRow(null)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(task); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') handleRowClick(task);
+                }}
                 tabIndex={0}
                 title={`Open task: ${task.id}`}
                 style={{
                   cursor: 'pointer',
-                  background: isHovered ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                  background: isHovered
+                    ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))'
+                    : undefined,
                 }}
               >
                 <td
                   title={task.id}
-                  style={{ color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}
+                  style={{
+                    color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined,
+                  }}
                 >
                   {task.id?.substring(0, 12)}...
                 </td>
-                <td>{task.serviceName || task.serviceId?.substring(0, 12) || '-'}</td>
+                <td>
+                  {task.serviceName || task.serviceId?.substring(0, 12) || '-'}
+                </td>
                 <td>
                   <StatusBadge status={task.state || '-'} size="small" />
                 </td>
                 <td>
                   <HealthStatusBadge status={task.healthStatus} />
                 </td>
-                <td><StatusBadge status={task.desiredState || '-'} size="small" /></td>
+                <td>
+                  <StatusBadge status={task.desiredState || '-'} size="small" />
+                </td>
                 <td title={task.containerId}>
-                  {task.containerId ? `${task.containerId.substring(0, 12)}...` : '-'}
+                  {task.containerId
+                    ? `${task.containerId.substring(0, 12)}...`
+                    : '-'}
                 </td>
               </tr>
             );

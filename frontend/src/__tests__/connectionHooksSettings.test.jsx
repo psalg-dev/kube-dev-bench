@@ -3,7 +3,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import { ConnectionsStateProvider, useConnectionsState } from '../layout/connection/ConnectionsStateContext.jsx';
+import {
+  ConnectionsStateProvider,
+  useConnectionsState,
+} from '../layout/connection/ConnectionsStateContext.jsx';
 import ConnectionHooksSettings from '../layout/connection/ConnectionHooksSettings.jsx';
 import { genericAPIMock, resetAllMocks } from './wailsMocks.js';
 
@@ -19,7 +22,9 @@ function Harness({ connection }) {
 
   if (!showHooksSettings) return null;
 
-  return <ConnectionHooksSettings onClose={() => actions.showHooksSettings(false)} />;
+  return (
+    <ConnectionHooksSettings onClose={() => actions.showHooksSettings(false)} />
+  );
 }
 
 function renderWithProvider(ui) {
@@ -33,17 +38,23 @@ describe('ConnectionHooksSettings', () => {
     // Default backend responses used during provider initialization.
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetKubeConfigs') return Promise.resolve([]);
-      if (name === 'GetProxyConfig') return Promise.resolve({ authType: 'none', url: '', username: '' });
+      if (name === 'GetProxyConfig')
+        return Promise.resolve({ authType: 'none', url: '', username: '' });
       if (name === 'DetectSystemProxy') return Promise.resolve({});
       if (name === 'GetDefaultDockerHost') return Promise.resolve('');
-      if (name === 'GetDockerConnectionStatus') return Promise.resolve({ connected: false });
+      if (name === 'GetDockerConnectionStatus')
+        return Promise.resolve({ connected: false });
       if (name === 'GetHooksConfig') return Promise.resolve({ hooks: [] });
       return Promise.resolve(undefined);
     });
   });
 
   it('shows applicable hooks for a connection', async () => {
-    const connection = { type: 'kubernetes', name: 'cfg1', path: '/tmp/kubeconfig' };
+    const connection = {
+      type: 'kubernetes',
+      name: 'cfg1',
+      path: '/tmp/kubeconfig',
+    };
     const hooks = [
       {
         id: 'h-global',
@@ -83,10 +94,12 @@ describe('ConnectionHooksSettings', () => {
 
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetKubeConfigs') return Promise.resolve([]);
-      if (name === 'GetProxyConfig') return Promise.resolve({ authType: 'none', url: '', username: '' });
+      if (name === 'GetProxyConfig')
+        return Promise.resolve({ authType: 'none', url: '', username: '' });
       if (name === 'DetectSystemProxy') return Promise.resolve({});
       if (name === 'GetDefaultDockerHost') return Promise.resolve('');
-      if (name === 'GetDockerConnectionStatus') return Promise.resolve({ connected: false });
+      if (name === 'GetDockerConnectionStatus')
+        return Promise.resolve({ connected: false });
       if (name === 'GetHooksConfig') return Promise.resolve({ hooks });
       return Promise.resolve(undefined);
     });
@@ -109,16 +122,23 @@ describe('ConnectionHooksSettings', () => {
   it('can add a new hook using browse and save', async () => {
     const user = userEvent.setup();
 
-    const connection = { type: 'kubernetes', name: 'cfg1', path: '/tmp/kubeconfig' };
+    const connection = {
+      type: 'kubernetes',
+      name: 'cfg1',
+      path: '/tmp/kubeconfig',
+    };
 
     genericAPIMock.mockImplementation((name, ...args) => {
       if (name === 'GetKubeConfigs') return Promise.resolve([]);
-      if (name === 'GetProxyConfig') return Promise.resolve({ authType: 'none', url: '', username: '' });
+      if (name === 'GetProxyConfig')
+        return Promise.resolve({ authType: 'none', url: '', username: '' });
       if (name === 'DetectSystemProxy') return Promise.resolve({});
       if (name === 'GetDefaultDockerHost') return Promise.resolve('');
-      if (name === 'GetDockerConnectionStatus') return Promise.resolve({ connected: false });
+      if (name === 'GetDockerConnectionStatus')
+        return Promise.resolve({ connected: false });
       if (name === 'GetHooksConfig') return Promise.resolve({ hooks: [] });
-      if (name === 'SelectHookScript') return Promise.resolve('/tmp/newhook.sh');
+      if (name === 'SelectHookScript')
+        return Promise.resolve('/tmp/newhook.sh');
       if (name === 'SaveHook') {
         const hook = args[0];
         return Promise.resolve({ ...hook, id: 'h-new' });
@@ -141,7 +161,9 @@ describe('ConnectionHooksSettings', () => {
 
     // Ensure backend SaveHook called with normalized fields (type is current tab).
     await waitFor(() => {
-      const saveCalls = genericAPIMock.mock.calls.filter((c) => c[0] === 'SaveHook');
+      const saveCalls = genericAPIMock.mock.calls.filter(
+        (c) => c[0] === 'SaveHook',
+      );
       expect(saveCalls.length).toBe(1);
       expect(saveCalls[0][1]).toMatchObject({
         name: 'My Hook',
@@ -157,7 +179,11 @@ describe('ConnectionHooksSettings', () => {
   it('can test an existing hook and show results', async () => {
     const user = userEvent.setup();
 
-    const connection = { type: 'kubernetes', name: 'cfg1', path: '/tmp/kubeconfig' };
+    const connection = {
+      type: 'kubernetes',
+      name: 'cfg1',
+      path: '/tmp/kubeconfig',
+    };
     const hooks = [
       {
         id: 'h1',
@@ -173,14 +199,21 @@ describe('ConnectionHooksSettings', () => {
 
     genericAPIMock.mockImplementation((name, ...args) => {
       if (name === 'GetKubeConfigs') return Promise.resolve([]);
-      if (name === 'GetProxyConfig') return Promise.resolve({ authType: 'none', url: '', username: '' });
+      if (name === 'GetProxyConfig')
+        return Promise.resolve({ authType: 'none', url: '', username: '' });
       if (name === 'DetectSystemProxy') return Promise.resolve({});
       if (name === 'GetDefaultDockerHost') return Promise.resolve('');
-      if (name === 'GetDockerConnectionStatus') return Promise.resolve({ connected: false });
+      if (name === 'GetDockerConnectionStatus')
+        return Promise.resolve({ connected: false });
       if (name === 'GetHooksConfig') return Promise.resolve({ hooks });
       if (name === 'TestHook') {
         expect(args[0]).toBe('h1');
-        return Promise.resolve({ success: true, exitCode: 0, stdout: 'OK', stderr: '' });
+        return Promise.resolve({
+          success: true,
+          exitCode: 0,
+          stdout: 'OK',
+          stderr: '',
+        });
       }
       return Promise.resolve(undefined);
     });

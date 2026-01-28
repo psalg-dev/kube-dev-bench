@@ -16,9 +16,13 @@ vi.mock('../docker/topology/TopologyView.jsx', () => ({
 describe('SwarmOverview', () => {
   it('shows Metrics by default and switches to Topology', async () => {
     const swarmState = await import('../docker/SwarmStateContext.jsx');
-    swarmState.useSwarmState.mockReturnValue({ serverVersion: 'Docker 25.0', swarmActive: true });
+    swarmState.useSwarmState.mockReturnValue({
+      serverVersion: 'Docker 25.0',
+      swarmActive: true,
+    });
 
-    const { default: SwarmOverview } = await import('../docker/SwarmOverview.jsx');
+    const { default: SwarmOverview } =
+      await import('../docker/SwarmOverview.jsx');
 
     render(<SwarmOverview />);
 
@@ -34,9 +38,13 @@ describe('SwarmOverview', () => {
 
   it('respects initialTab prop and updates when it changes', async () => {
     const swarmState = await import('../docker/SwarmStateContext.jsx');
-    swarmState.useSwarmState.mockReturnValue({ serverVersion: '', swarmActive: false });
+    swarmState.useSwarmState.mockReturnValue({
+      serverVersion: '',
+      swarmActive: false,
+    });
 
-    const { default: SwarmOverview } = await import('../docker/SwarmOverview.jsx');
+    const { default: SwarmOverview } =
+      await import('../docker/SwarmOverview.jsx');
 
     const { rerender } = render(<SwarmOverview initialTab="topology" />);
 

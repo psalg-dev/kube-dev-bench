@@ -57,7 +57,9 @@ vi.mock('../../../wailsjs/runtime/runtime.js', () => ({
 
 // Mock swarmApi
 vi.mock('../docker/swarmApi', () => ({
-  GetDockerConnectionStatus: vi.fn().mockResolvedValue({ error: 'no connections' }),
+  GetDockerConnectionStatus: vi
+    .fn()
+    .mockResolvedValue({ error: 'no connections' }),
   GetDefaultDockerHost: vi.fn().mockResolvedValue(''),
   TestDockerConnection: vi.fn(),
   getSwarmConnections: vi.fn().mockResolvedValue([]),
@@ -105,14 +107,27 @@ describe('ConnectionWizard', () => {
     mockGetNamespaces.mockResolvedValue(['default']);
     mockSetCurrentKubeContext.mockResolvedValue();
     mockSetCurrentNamespace.mockResolvedValue();
-    mockGetProxyConfig.mockResolvedValue({ HttpProxy: '', HttpsProxy: '', NoProxy: '' });
-    mockDetectSystemProxy.mockResolvedValue({ HTTP_PROXY: '', HTTPS_PROXY: '', NO_PROXY: '' });
+    mockGetProxyConfig.mockResolvedValue({
+      HttpProxy: '',
+      HttpsProxy: '',
+      NoProxy: '',
+    });
+    mockDetectSystemProxy.mockResolvedValue({
+      HTTP_PROXY: '',
+      HTTPS_PROXY: '',
+      NO_PROXY: '',
+    });
     mockSetProxyConfig.mockResolvedValue();
 
     mockGetHooksConfig.mockResolvedValue({ hooks: [] });
     mockSaveHook.mockResolvedValue({});
     mockDeleteHook.mockResolvedValue();
-    mockTestHook.mockResolvedValue({ success: true, exitCode: 0, stdout: '', stderr: '' });
+    mockTestHook.mockResolvedValue({
+      success: true,
+      exitCode: 0,
+      stdout: '',
+      stderr: '',
+    });
     mockSelectHookScript.mockResolvedValue('');
   });
 
@@ -125,9 +140,15 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(document.querySelector('.connection-wizard-layout')).toBeInTheDocument();
-        expect(document.querySelector('.connection-wizard-sidebar')).toBeInTheDocument();
-        expect(document.querySelector('.connection-wizard-main')).toBeInTheDocument();
+        expect(
+          document.querySelector('.connection-wizard-layout'),
+        ).toBeInTheDocument();
+        expect(
+          document.querySelector('.connection-wizard-sidebar'),
+        ).toBeInTheDocument();
+        expect(
+          document.querySelector('.connection-wizard-main'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -141,10 +162,14 @@ describe('ConnectionWizard', () => {
     });
 
     it('can start on Docker Swarm section when requested', async () => {
-      render(<ConnectionWizard onComplete={vi.fn()} initialSection="docker-swarm" />);
+      render(
+        <ConnectionWizard onComplete={vi.fn()} initialSection="docker-swarm" />,
+      );
 
       await waitFor(() => {
-        const swarmSection = document.getElementById('connection-section-docker-swarm');
+        const swarmSection = document.getElementById(
+          'connection-section-docker-swarm',
+        );
         expect(swarmSection).toBeInTheDocument();
         expect(swarmSection).toHaveClass('selected');
       });
@@ -154,7 +179,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        const kubernetesSection = document.getElementById('connection-section-kubernetes');
+        const kubernetesSection = document.getElementById(
+          'connection-section-kubernetes',
+        );
         expect(kubernetesSection).toHaveClass('selected');
       });
     });
@@ -177,7 +204,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
     });
 
@@ -185,7 +214,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Browse/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Browse/i }),
+        ).toBeInTheDocument();
       });
     });
 
@@ -193,13 +224,17 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/Create Your First Kubeconfig/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Create Your First Kubeconfig/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -207,15 +242,25 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/No Kubeconfig Files Found/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/No Kubeconfig Files Found/i),
+        ).toBeInTheDocument();
       });
     });
   });
 
   describe('With discovered configs', () => {
     const mockConfigs = [
-      { path: '/home/user/.kube/config', name: 'config (default)', contexts: ['dev', 'prod'] },
-      { path: '/home/user/.kube/kubeconfig', name: 'kubeconfig (primary)', contexts: ['test'] },
+      {
+        path: '/home/user/.kube/config',
+        name: 'config (default)',
+        contexts: ['dev', 'prod'],
+      },
+      {
+        path: '/home/user/.kube/kubeconfig',
+        name: 'kubeconfig (primary)',
+        contexts: ['test'],
+      },
     ];
 
     beforeEach(() => {
@@ -244,7 +289,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        const connectButtons = screen.getAllByRole('button', { name: /Connect/i });
+        const connectButtons = screen.getAllByRole('button', {
+          name: /Connect/i,
+        });
         expect(connectButtons.length).toBeGreaterThan(0);
       });
     });
@@ -253,7 +300,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        const kubernetesSection = document.getElementById('connection-section-kubernetes');
+        const kubernetesSection = document.getElementById(
+          'connection-section-kubernetes',
+        );
         expect(kubernetesSection).toHaveTextContent('2');
       });
     });
@@ -269,11 +318,15 @@ describe('ConnectionWizard', () => {
       });
 
       // Click the Connect button for the second config
-      const connectButtons = screen.getAllByRole('button', { name: /Connect/i });
+      const connectButtons = screen.getAllByRole('button', {
+        name: /Connect/i,
+      });
       fireEvent.click(connectButtons[1]);
 
       await waitFor(() => {
-        expect(mockSetKubeConfigPath).toHaveBeenCalledWith('/home/user/.kube/kubeconfig');
+        expect(mockSetKubeConfigPath).toHaveBeenCalledWith(
+          '/home/user/.kube/kubeconfig',
+        );
       });
 
       await waitFor(() => {
@@ -309,13 +362,17 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Kubeconfig Content/i)).toBeInTheDocument();
+        expect(
+          screen.getByLabelText(/Kubeconfig Content/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -323,13 +380,17 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        const saveButton = screen.getByRole('button', { name: /Save & Continue/i });
+        const saveButton = screen.getByRole('button', {
+          name: /Save & Continue/i,
+        });
         expect(saveButton).toBeDisabled();
       });
     });
@@ -338,46 +399,66 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Kubeconfig Content/i)).toBeInTheDocument();
+        expect(
+          screen.getByLabelText(/Kubeconfig Content/i),
+        ).toBeInTheDocument();
       });
 
       const textarea = screen.getByLabelText(/Kubeconfig Content/i);
-      fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nkind: Config' } });
+      fireEvent.change(textarea, {
+        target: { value: 'apiVersion: v1\nkind: Config' },
+      });
 
-      const saveButton = screen.getByRole('button', { name: /Save & Continue/i });
+      const saveButton = screen.getByRole('button', {
+        name: /Save & Continue/i,
+      });
       expect(saveButton).not.toBeDisabled();
     });
 
     it('saves primary kubeconfig and completes', async () => {
-      mockSavePrimaryKubeConfig.mockResolvedValue('/home/user/.kube/kubeconfig');
+      mockSavePrimaryKubeConfig.mockResolvedValue(
+        '/home/user/.kube/kubeconfig',
+      );
       mockGetKubeConfigs.mockResolvedValue([]);
 
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Kubeconfig Content/i)).toBeInTheDocument();
+        expect(
+          screen.getByLabelText(/Kubeconfig Content/i),
+        ).toBeInTheDocument();
       });
 
       const textarea = screen.getByLabelText(/Kubeconfig Content/i);
-      fireEvent.change(textarea, { target: { value: 'apiVersion: v1\nkind: Config\ncontexts: []' } });
+      fireEvent.change(textarea, {
+        target: { value: 'apiVersion: v1\nkind: Config\ncontexts: []' },
+      });
 
-      const saveButton = screen.getByRole('button', { name: /Save & Continue/i });
+      const saveButton = screen.getByRole('button', {
+        name: /Save & Continue/i,
+      });
       fireEvent.click(saveButton);
 
       await waitFor(() => {
-        expect(mockSavePrimaryKubeConfig).toHaveBeenCalledWith('apiVersion: v1\nkind: Config\ncontexts: []');
+        expect(mockSavePrimaryKubeConfig).toHaveBeenCalledWith(
+          'apiVersion: v1\nkind: Config\ncontexts: []',
+        );
       });
     });
 
@@ -385,19 +466,25 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/Create Your First Kubeconfig/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Create Your First Kubeconfig/i),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /✕/i }));
 
       await waitFor(() => {
-        expect(screen.queryByText(/Create Your First Kubeconfig/i)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Create Your First Kubeconfig/i),
+        ).not.toBeInTheDocument();
       });
     });
 
@@ -405,19 +492,25 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByText(/Create Your First Kubeconfig/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Create Your First Kubeconfig/i),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
 
       await waitFor(() => {
-        expect(screen.queryByText(/Create Your First Kubeconfig/i)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/Create Your First Kubeconfig/i),
+        ).not.toBeInTheDocument();
       });
     });
   });
@@ -435,7 +528,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
@@ -449,7 +544,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
@@ -473,7 +570,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Browse/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Browse/i }),
+        ).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /Browse/i }));
@@ -490,7 +589,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Browse/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Browse/i }),
+        ).toBeInTheDocument();
       });
 
       await user.click(screen.getByRole('button', { name: /Browse/i }));
@@ -511,7 +612,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByText(/Failed to load kubeconfig files/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Failed to load kubeconfig files/i),
+        ).toBeInTheDocument();
       });
     });
 
@@ -522,16 +625,22 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Add Config/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Add Config/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Add Config/i }));
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/Kubeconfig Content/i)).toBeInTheDocument();
+        expect(
+          screen.getByLabelText(/Kubeconfig Content/i),
+        ).toBeInTheDocument();
       });
 
-      fireEvent.change(screen.getByLabelText(/Kubeconfig Content/i), { target: { value: 'invalid yaml' } });
+      fireEvent.change(screen.getByLabelText(/Kubeconfig Content/i), {
+        target: { value: 'invalid yaml' },
+      });
       fireEvent.click(screen.getByRole('button', { name: /Save & Continue/i }));
 
       await waitFor(() => {
@@ -554,30 +663,46 @@ describe('ConnectionWizard', () => {
         expect(screen.getByText('Docker Swarm')).toBeInTheDocument();
       });
 
-      const dockerSwarmSection = document.getElementById('connection-section-docker-swarm');
+      const dockerSwarmSection = document.getElementById(
+        'connection-section-docker-swarm',
+      );
       fireEvent.click(dockerSwarmSection);
 
       // Wait for the Docker Swarm section to be rendered
-      await waitFor(() => {
-        expect(screen.getByText(/Docker Swarm Connections/i)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(/Docker Swarm Connections/i),
+          ).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
     });
 
     it('highlights selected section in sidebar', async () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        const kubernetesSection = document.getElementById('connection-section-kubernetes');
+        const kubernetesSection = document.getElementById(
+          'connection-section-kubernetes',
+        );
         expect(kubernetesSection).toHaveClass('selected');
       });
 
-      const dockerSwarmSection = document.getElementById('connection-section-docker-swarm');
+      const dockerSwarmSection = document.getElementById(
+        'connection-section-docker-swarm',
+      );
       fireEvent.click(dockerSwarmSection);
 
       // Just check that clicking works - the selection highlighting is tested implicitly
-      await waitFor(() => {
-        expect(screen.getByText(/Docker Swarm Connections/i)).toBeInTheDocument();
-      }, { timeout: 5000 });
+      await waitFor(
+        () => {
+          expect(
+            screen.getByText(/Docker Swarm Connections/i),
+          ).toBeInTheDocument();
+        },
+        { timeout: 5000 },
+      );
     });
   });
 
@@ -594,7 +719,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(document.getElementById('global-proxy-settings-btn')).toBeInTheDocument();
+        expect(
+          document.getElementById('global-proxy-settings-btn'),
+        ).toBeInTheDocument();
       });
     });
 
@@ -602,7 +729,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(document.getElementById('global-proxy-settings-btn')).toBeInTheDocument();
+        expect(
+          document.getElementById('global-proxy-settings-btn'),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(document.getElementById('global-proxy-settings-btn'));
@@ -616,7 +745,9 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(document.getElementById('global-proxy-settings-btn')).toBeInTheDocument();
+        expect(
+          document.getElementById('global-proxy-settings-btn'),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(document.getElementById('global-proxy-settings-btn'));
@@ -632,13 +763,17 @@ describe('ConnectionWizard', () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 
       await waitFor(() => {
-        expect(document.getElementById('global-proxy-settings-btn')).toBeInTheDocument();
+        expect(
+          document.getElementById('global-proxy-settings-btn'),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(document.getElementById('global-proxy-settings-btn'));
 
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /Save Settings/i })).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', { name: /Save Settings/i }),
+        ).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByRole('button', { name: /Save Settings/i }));
@@ -670,7 +805,9 @@ describe('ConnectionWizard', () => {
 
       await waitFor(() => {
         // Look for the specific overlay title which includes the config path
-        expect(screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i),
+        ).toBeInTheDocument();
       });
     });
   });

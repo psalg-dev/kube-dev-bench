@@ -10,7 +10,12 @@ import ConfigInspectTab from './ConfigInspectTab.jsx';
 import ConfigCompareModal from './ConfigCompareModal.jsx';
 import ConfigUsedBySection from './ConfigUsedBySection.jsx';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../swarmApi.js';
+import {
+  CloneSwarmConfig,
+  ExportSwarmConfig,
+  GetSwarmConfigs,
+  RemoveSwarmConfig,
+} from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 
@@ -125,11 +130,19 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }) {
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <SummaryTabHeader
         name={row.name}
         labels={row.labels}
-        actions={(
+        actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button style={buttonStyle} onClick={() => onEdit?.(row)}>
               Edit
@@ -163,10 +176,17 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }) {
               onDelete={handleDelete}
             />
           </div>
-        )}
+        }
       />
 
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          minHeight: 0,
+          color: 'var(--gh-text, #c9d1d9)',
+        }}
+      >
         <QuickInfoSection
           resourceName={row.name}
           data={row}
@@ -179,7 +199,14 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }) {
           <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
             <ConfigDataSection configId={row.id} configName={row.name} />
           </div>
-          <div style={{ width: 320, minWidth: 200, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)' }}>
+          <div
+            style={{
+              width: 320,
+              minWidth: 200,
+              minHeight: 0,
+              borderLeft: '1px solid var(--gh-border, #30363d)',
+            }}
+          >
             <ConfigUsedBySection configId={row.id} />
           </div>
         </div>
@@ -198,7 +225,14 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }) {
 
 function renderPanelContent(row, tab, onRefresh, allConfigs, onEdit) {
   if (tab === 'summary') {
-    return <ConfigSummaryPanel row={row} allConfigs={allConfigs} onRefresh={onRefresh} onEdit={onEdit} />;
+    return (
+      <ConfigSummaryPanel
+        row={row}
+        allConfigs={allConfigs}
+        onRefresh={onRefresh}
+        onEdit={onEdit}
+      />
+    );
   }
 
   if (tab === 'data') {
@@ -216,7 +250,11 @@ export default function SwarmConfigsOverviewTable() {
   const [configs, setConfigs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [editConfig, setEditConfig] = useState({ open: false, id: null, name: '' });
+  const [editConfig, setEditConfig] = useState({
+    open: false,
+    id: null,
+    name: '',
+  });
 
   const refresh = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -274,17 +312,24 @@ export default function SwarmConfigsOverviewTable() {
         columns={columns}
         data={configs}
         tabs={bottomTabs}
-        renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh, configs, (config) => setEditConfig({ open: true, id: config?.id, name: config?.name }))}
+        renderPanelContent={(row, tab) =>
+          renderPanelContent(row, tab, refresh, configs, (config) =>
+            setEditConfig({ open: true, id: config?.id, name: config?.name }),
+          )
+        }
         createPlatform="swarm"
         createKind="config"
         tableTestId="swarm-configs-table"
-        getRowActions={(row) => ([
+        getRowActions={(row) => [
           {
             label: 'Download',
             icon: '⬇️',
             onClick: async () => {
               try {
-                const savedPath = await ExportSwarmConfig(row.id, `${row.name}.txt`);
+                const savedPath = await ExportSwarmConfig(
+                  row.id,
+                  `${row.name}.txt`,
+                );
                 if (!savedPath) return;
                 showSuccess(`Saved config ${row.name}`);
               } catch (err) {
@@ -296,7 +341,10 @@ export default function SwarmConfigsOverviewTable() {
             label: 'Clone…',
             icon: '🧬',
             onClick: async () => {
-              const newName = window.prompt('New config name', makeDefaultCloneName(row.name));
+              const newName = window.prompt(
+                'New config name',
+                makeDefaultCloneName(row.name),
+              );
               if (!newName) return;
               try {
                 await CloneSwarmConfig(row.id, newName);
@@ -322,7 +370,7 @@ export default function SwarmConfigsOverviewTable() {
               }
             },
           },
-        ])}
+        ]}
       />
       <ConfigEditModal
         open={editConfig.open}

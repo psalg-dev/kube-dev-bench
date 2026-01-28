@@ -9,7 +9,9 @@ import { useMemo } from 'react';
 export default function LabelsInline({ labels, maxVisible = 4, style = {} }) {
   const chips = useMemo(() => {
     if (!labels || typeof labels !== 'object') return [];
-    const entries = Object.keys(labels).sort().map(k => `${k}=${labels[k]}`);
+    const entries = Object.keys(labels)
+      .sort()
+      .map((k) => `${k}=${labels[k]}`);
     if (entries.length <= maxVisible) return entries;
     return [...entries.slice(0, maxVisible), `+${entries.length - maxVisible}`];
   }, [labels, maxVisible]);
@@ -27,7 +29,7 @@ export default function LabelsInline({ labels, maxVisible = 4, style = {} }) {
         overflow: 'hidden',
         alignItems: 'center',
         maxWidth: '55%',
-        ...style
+        ...style,
       }}
       title={Array.isArray(chips) ? chips.join('\n') : ''}
     >
@@ -44,11 +46,12 @@ export default function LabelsInline({ labels, maxVisible = 4, style = {} }) {
             whiteSpace: 'nowrap',
             textOverflow: 'ellipsis',
             overflow: 'hidden',
-            maxWidth: 160
+            maxWidth: 160,
           }}
-        >{c}</span>
+        >
+          {c}
+        </span>
       ))}
     </div>
   );
 }
-

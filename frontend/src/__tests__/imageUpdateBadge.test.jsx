@@ -33,9 +33,14 @@ describe('ImageUpdateBadge', () => {
     const onOpenDetails = vi.fn();
     render(
       <ImageUpdateBadge
-        value={{ serviceId: 'svc1', imageLocalDigest: 'sha256:aaa', imageRemoteDigest: 'sha256:bbb', imageUpdateAvailable: true }}
+        value={{
+          serviceId: 'svc1',
+          imageLocalDigest: 'sha256:aaa',
+          imageRemoteDigest: 'sha256:bbb',
+          imageUpdateAvailable: true,
+        }}
         onOpenDetails={onOpenDetails}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button'));
@@ -52,18 +57,24 @@ describe('ImageUpdateBadge', () => {
 
     await waitFor(() => {
       expect(swarmApi.CheckServiceImageUpdates).toHaveBeenCalledWith(['svc1']);
-      expect(notifications.showSuccess).toHaveBeenCalledWith('Image update check complete');
+      expect(notifications.showSuccess).toHaveBeenCalledWith(
+        'Image update check complete',
+      );
     });
   });
 
   it('shift-click shows backend error when response contains error', async () => {
-    swarmApi.CheckServiceImageUpdates.mockResolvedValueOnce({ svc1: { error: 'no registry' } });
+    swarmApi.CheckServiceImageUpdates.mockResolvedValueOnce({
+      svc1: { error: 'no registry' },
+    });
 
     render(<ImageUpdateBadge value={{ serviceId: 'svc1' }} />);
     fireEvent.click(screen.getByRole('button'), { shiftKey: true });
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Image update check failed: no registry');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Image update check failed: no registry',
+      );
     });
   });
 
@@ -74,7 +85,9 @@ describe('ImageUpdateBadge', () => {
     fireEvent.click(screen.getByRole('button'), { shiftKey: true });
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Image update check failed: boom');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Image update check failed: boom',
+      );
     });
   });
 });

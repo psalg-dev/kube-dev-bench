@@ -13,11 +13,12 @@ export async function persistNamespaces(namespaces, currentNamespace) {
   try {
     const preferredFn = window?.go?.main?.App?.SetPreferredNamespaces;
     await Promise.all([
-      preferredFn ? preferredFn(namespaces).catch(()=>{}) : Promise.resolve(),
-      currentNamespace ? SetCurrentNamespace(currentNamespace).catch(()=>{}) : Promise.resolve(),
+      preferredFn ? preferredFn(namespaces).catch(() => {}) : Promise.resolve(),
+      currentNamespace
+        ? SetCurrentNamespace(currentNamespace).catch(() => {})
+        : Promise.resolve(),
     ]);
-  } catch(_) {
+  } catch (_) {
     // Intentionally swallow to preserve previous tolerance behavior
   }
 }
-

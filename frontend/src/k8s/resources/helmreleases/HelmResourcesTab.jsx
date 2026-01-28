@@ -106,7 +106,8 @@ function getHealthColor(health) {
 
   if (!h || h === '…' || h === '...') return muted;
   if (h.startsWith('healthy') || h === 'ok') return success;
-  if (h.startsWith('progressing') || h === 'suspended' || h === 'pending') return attention;
+  if (h.startsWith('progressing') || h === 'suspended' || h === 'pending')
+    return attention;
   if (h === 'unhealthy' || h === 'failed' || h === 'error') return danger;
   if (h === 'missing' || h === 'unknown') return muted;
 
@@ -140,7 +141,10 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
       .map((r) => {
         // Helm templates often omit metadata.namespace for namespaced objects.
         // Default to the release namespace for display purposes.
-        if ((r.namespace === '-' || !r.namespace) && !isLikelyClusterScopedKind(r.kind)) {
+        if (
+          (r.namespace === '-' || !r.namespace) &&
+          !isLikelyClusterScopedKind(r.kind)
+        ) {
           return { ...r, namespace: namespace || '-' };
         }
         return r;
@@ -233,22 +237,34 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
         case 'Deployment': {
           const d = nsData?.deployments?.get(name);
           if (!d) return 'Missing';
-          return computeWorkloadHealth({ ready: d.ready ?? d.Ready, desired: d.replicas ?? d.Replicas });
+          return computeWorkloadHealth({
+            ready: d.ready ?? d.Ready,
+            desired: d.replicas ?? d.Replicas,
+          });
         }
         case 'StatefulSet': {
           const s = nsData?.statefulSets?.get(name);
           if (!s) return 'Missing';
-          return computeWorkloadHealth({ ready: s.ready ?? s.Ready, desired: s.replicas ?? s.Replicas });
+          return computeWorkloadHealth({
+            ready: s.ready ?? s.Ready,
+            desired: s.replicas ?? s.Replicas,
+          });
         }
         case 'DaemonSet': {
           const ds = nsData?.daemonSets?.get(name);
           if (!ds) return 'Missing';
-          return computeWorkloadHealth({ ready: ds.current ?? ds.Current, desired: ds.desired ?? ds.Desired });
+          return computeWorkloadHealth({
+            ready: ds.current ?? ds.Current,
+            desired: ds.desired ?? ds.Desired,
+          });
         }
         case 'ReplicaSet': {
           const rs = nsData?.replicaSets?.get(name);
           if (!rs) return 'Missing';
-          return computeWorkloadHealth({ ready: rs.ready ?? rs.Ready, desired: rs.replicas ?? rs.Replicas });
+          return computeWorkloadHealth({
+            ready: rs.ready ?? rs.Ready,
+            desired: rs.replicas ?? rs.Replicas,
+          });
         }
         case 'Job': {
           const j = nsData?.jobs?.get(name);
@@ -302,9 +318,11 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
         new Set(
           resources
             .filter((r) => !isLikelyClusterScopedKind(r.kind))
-            .map((r) => (r.namespace && r.namespace !== '-' ? r.namespace : namespace))
-            .filter(Boolean)
-        )
+            .map((r) =>
+              r.namespace && r.namespace !== '-' ? r.namespace : namespace,
+            )
+            .filter(Boolean),
+        ),
       );
 
       const nsDataByNamespace = new Map();
@@ -312,7 +330,7 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
         namespacesNeeded.map(async (ns) => {
           const nsData = await fetchForNamespace(ns);
           nsDataByNamespace.set(ns, nsData);
-        })
+        }),
       );
 
       const next = {};
@@ -334,7 +352,8 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
 
   const effectiveNamespace = (r) => {
     if (!r) return namespace;
-    if (r.namespace && r.namespace !== '-' && r.namespace !== '') return r.namespace;
+    if (r.namespace && r.namespace !== '-' && r.namespace !== '')
+      return r.namespace;
     return namespace;
   };
 
@@ -343,14 +362,20 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
       detail: {
         resource: r.kind,
         name: r.name,
-        namespace: isLikelyClusterScopedKind(r.kind) ? '' : (effectiveNamespace(r) || ''),
+        namespace: isLikelyClusterScopedKind(r.kind)
+          ? ''
+          : effectiveNamespace(r) || '',
       },
     });
     window.dispatchEvent(event);
   };
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading resources...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading resources...
+      </div>
+    );
   }
 
   if (error) {
@@ -358,11 +383,24 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
   }
 
   if (resources.length === 0) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No resources found</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        No resources found
+      </div>
+    );
   }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, padding: 12, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        padding: 12,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+      }}
+    >
       <style>{`
         .helm-resources-table tbody tr {
           transition: background-color 0.15s ease;
@@ -391,7 +429,14 @@ export default function HelmResourcesTab({ namespace, releaseName }) {
                 title={`Open ${r.kind} ${r.name}`}
               >
                 <td className="text-muted" style={{ whiteSpace: 'nowrap' }}>
-                  <span style={{ color: getHealthColor(healthByKey[`${r.kind}/${r.namespace}/${r.name}`]), fontWeight: 600 }}>
+                  <span
+                    style={{
+                      color: getHealthColor(
+                        healthByKey[`${r.kind}/${r.namespace}/${r.name}`],
+                      ),
+                      fontWeight: 600,
+                    }}
+                  >
                     {healthByKey[`${r.kind}/${r.namespace}/${r.name}`] || '…'}
                   </span>
                 </td>

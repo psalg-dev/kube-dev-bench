@@ -37,12 +37,20 @@ export default function NetworkConnectedServicesSection({ networkId }) {
 
   return (
     <div style={{ padding: 16, overflow: 'auto', flex: 1, minWidth: 0 }}>
-      <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)', marginBottom: 8 }}>
+      <div
+        style={{
+          fontWeight: 600,
+          color: 'var(--gh-text, #c9d1d9)',
+          marginBottom: 8,
+        }}
+      >
         Connected Services
       </div>
 
       {loading ? (
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>Loading…</div>
+        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>
+          Loading…
+        </div>
       ) : null}
 
       {error ? (
@@ -61,12 +69,19 @@ export default function NetworkConnectedServicesSection({ networkId }) {
           <div style={{ display: 'grid', gap: 6 }}>
             {services
               .slice()
-              .sort((a, b) => String(a?.serviceName || '').localeCompare(String(b?.serviceName || '')))
+              .sort((a, b) =>
+                String(a?.serviceName || '').localeCompare(
+                  String(b?.serviceName || ''),
+                ),
+              )
               .map((svc) => {
                 const handleServiceClick = () => {
                   const serviceName = svc.serviceName || svc.serviceId;
                   if (serviceName) {
-                    navigateToResource({ resource: 'SwarmService', name: serviceName });
+                    navigateToResource({
+                      resource: 'SwarmService',
+                      name: serviceName,
+                    });
                   }
                 };
                 return (
@@ -75,7 +90,10 @@ export default function NetworkConnectedServicesSection({ networkId }) {
                     onClick={handleServiceClick}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleServiceClick(); }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ')
+                        handleServiceClick();
+                    }}
                     title={`Open service: ${svc.serviceName || svc.serviceId}`}
                     style={{
                       padding: '6px 8px',
@@ -86,14 +104,17 @@ export default function NetworkConnectedServicesSection({ networkId }) {
                       fontSize: 12,
                       wordBreak: 'break-word',
                       cursor: 'pointer',
-                      transition: 'background-color 0.15s ease, color 0.15s ease',
+                      transition:
+                        'background-color 0.15s ease, color 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--gh-hover-bg, rgba(177, 186, 196, 0.12))';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--gh-hover-bg, rgba(177, 186, 196, 0.12))';
                       e.currentTarget.style.textDecoration = 'underline';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'var(--gh-input-bg, #0d1117)';
+                      e.currentTarget.style.backgroundColor =
+                        'var(--gh-input-bg, #0d1117)';
                       e.currentTarget.style.textDecoration = 'none';
                     }}
                   >

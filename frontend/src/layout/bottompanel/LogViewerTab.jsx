@@ -3,8 +3,19 @@ import { createRoot } from 'react-dom/client';
 import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { EventsOn, EventsOff } from '../../../wailsjs/runtime';
-import { StreamPodLogs, StopPodLogs, GetPodLog, StreamPodContainerLogs, GetPodContainerLog } from '../../../wailsjs/go/main/App';
-import { AnalyzePodLogs, AskHolmesStream, CancelHolmesStream, onHolmesChatStream } from '../../holmes/holmesApi';
+import {
+  StreamPodLogs,
+  StopPodLogs,
+  GetPodLog,
+  StreamPodContainerLogs,
+  GetPodContainerLog,
+} from '../../../wailsjs/go/main/App';
+import {
+  AnalyzePodLogs,
+  AskHolmesStream,
+  CancelHolmesStream,
+  onHolmesChatStream,
+} from '../../holmes/holmesApi';
 import HolmesResponseRenderer from '../../holmes/HolmesResponseRenderer.jsx';
 import { showError } from '../../notification.js';
 import '../../holmes/HolmesBottomPanel.css';
@@ -15,14 +26,20 @@ const MAX_LINES = 10000; // Maximum lines to keep in memory
 const BATCH_SIZE = 100; // Lines to process in batches
 const UPDATE_INTERVAL = 100; // ms between batch updates
 
-export default function LogViewerTab({ podName, namespace, onClose, embedded = false, container = null }) {
+export default function LogViewerTab({
+  podName,
+  namespace,
+  onClose,
+  embedded = false,
+  container = null,
+}) {
   const editorRef = useRef(null);
   const viewRef = useRef(null);
   const popoutRef = useRef(null);
   const popoutRootRef = useRef(null);
   const popoutScrollRef = useRef(null);
-  const allLinesRef = useRef([]);       // all received lines (for filtering)
-  const pendingLinesRef = useRef([]);   // buffer while paused or before editor ready
+  const allLinesRef = useRef([]); // all received lines (for filtering)
+  const pendingLinesRef = useRef([]); // buffer while paused or before editor ready
   const pausedRef = useRef(false);
   const batchTimeoutRef = useRef(null);
   const [paused, setPaused] = useState(false);
@@ -42,10 +59,17 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   const [followupQueryTimestamp, setFollowupQueryTimestamp] = useState(null);
   const [activeTab, setActiveTab] = useState('history');
   const analysisRequestIdRef = useRef(0);
-  const followupStreamRef = useRef({ streamId: null, text: '', canceledStreamId: null });
+  const followupStreamRef = useRef({
+    streamId: null,
+    text: '',
+    canceledStreamId: null,
+  });
   const followupScrollRef = useRef(null);
   const [panelHeight, setPanelHeight] = useState(() => {
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem('logviewer.height') : null;
+    const saved =
+      typeof window !== 'undefined'
+        ? window.localStorage.getItem('logviewer.height')
+        : null;
     const v = saved ? parseInt(saved, 10) : 320;
     return isNaN(v) ? 320 : v;
   });
@@ -60,18 +84,25 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
   const getAnalysisText = (analysis) => {
     if (!analysis) return '';
-    return [
-      analysis.response,
-      analysis.Response,
-      analysis.analysis,
-      analysis.Analysis,
-    ].find((value) => typeof value === 'string' && value.trim().length > 0) || '';
+    return (
+      [
+        analysis.response,
+        analysis.Response,
+        analysis.analysis,
+        analysis.Analysis,
+      ].find((value) => typeof value === 'string' && value.trim().length > 0) ||
+      ''
+    );
   };
 
   const conversationItems = useMemo(() => {
     const items = [];
     if (holmesAnalysis) {
-      items.push({ type: 'response', data: holmesAnalysis, timestamp: holmesAnalysisTimestamp });
+      items.push({
+        type: 'response',
+        data: holmesAnalysis,
+        timestamp: holmesAnalysisTimestamp,
+      });
     }
     return items.concat(followupConversation);
   }, [holmesAnalysis, holmesAnalysisTimestamp, followupConversation]);
@@ -83,19 +114,32 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     setFollowupStreamingText('');
     setFollowupStreamId(null);
     setFollowupQueryTimestamp(null);
-    followupStreamRef.current = { streamId: null, text: '', canceledStreamId: null };
+    followupStreamRef.current = {
+      streamId: null,
+      text: '',
+      canceledStreamId: null,
+    };
   }, []);
 
   // keep pausedRef in sync
-  useEffect(() => { pausedRef.current = paused; }, [paused]);
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
-  const darkTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#181c20', color: '#e0e0e0' },
-    '.cm-content': { caretColor: '#fff', textAlign: 'left' },
-    '.cm-line': { textAlign: 'left' },
-    '&.cm-editor': { height: '100%' },
-    '.cm-scroller': { fontFamily: 'monospace', lineHeight: '1.35' }
-  }, { dark: true }), []);
+  const darkTheme = useMemo(
+    () =>
+      EditorView.theme(
+        {
+          '&': { backgroundColor: '#181c20', color: '#e0e0e0' },
+          '.cm-content': { caretColor: '#fff', textAlign: 'left' },
+          '.cm-line': { textAlign: 'left' },
+          '&.cm-editor': { height: '100%' },
+          '.cm-scroller': { fontFamily: 'monospace', lineHeight: '1.35' },
+        },
+        { dark: true },
+      ),
+    [],
+  );
 
   const extensions = useMemo(
     () => [
@@ -108,32 +152,35 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         '.cm-scroller': {
           // Optimize scrolling performance
           'scroll-behavior': 'auto',
-        }
+        },
       }),
       // Optimize for large documents
       EditorState.allowMultipleSelections.of(false),
     ],
-    [darkTheme]
+    [darkTheme],
   );
 
   // Optimized line matching with early exit
-  const lineMatches = useCallback((line) => {
-    const q = filter.trim();
-    if (!q) return true;
-    if (regexMode) {
-      try {
+  const lineMatches = useCallback(
+    (line) => {
+      const q = filter.trim();
+      if (!q) return true;
+      if (regexMode) {
+        try {
+          setRegexError('');
+          const re = new RegExp(q, 'i');
+          return re.test(line);
+        } catch (_err) {
+          setRegexError('Invalid regex');
+          return true; // Show all lines if regex is invalid
+        }
+      } else {
         setRegexError('');
-        const re = new RegExp(q, 'i');
-        return re.test(line);
-      } catch (_err) {
-        setRegexError('Invalid regex');
-        return true; // Show all lines if regex is invalid
+        return line.toLowerCase().includes(q.toLowerCase());
       }
-    } else {
-      setRegexError('');
-      return line.toLowerCase().includes(q.toLowerCase());
-    }
-  }, [filter, regexMode]);
+    },
+    [filter, regexMode],
+  );
 
   // Memory management: trim old lines when exceeding limit
   const trimLines = useCallback(() => {
@@ -163,14 +210,18 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         const filtered = allLinesRef.current.filter(lineMatches);
         const doc = filtered.length ? filtered.join('\n') + '\n' : '';
         const cmView = viewRef.current;
-        cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: doc } });
+        cmView.dispatch({
+          changes: { from: 0, to: cmView.state.doc.length, insert: doc },
+        });
       } else {
         // Otherwise, just append the new filtered lines
         const filtered = batch.filter(lineMatches);
         if (filtered.length) {
           const insert = filtered.join('\n') + '\n';
           const cmView = viewRef.current;
-          cmView.dispatch({ changes: { from: cmView.state.doc.length, insert } });
+          cmView.dispatch({
+            changes: { from: cmView.state.doc.length, insert },
+          });
         }
       }
 
@@ -239,20 +290,27 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
-      if (payload.stream_id && canceledStreamId && payload.stream_id === canceledStreamId) {
+      if (
+        payload.stream_id &&
+        canceledStreamId &&
+        payload.stream_id === canceledStreamId
+      ) {
         return;
       }
       if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
+        if (
+          payload.error === 'context canceled' ||
+          payload.error === 'context cancelled'
+        ) {
           setFollowupLoading(false);
           return;
         }
         const message = payload.error;
         setFollowupLoading(false);
-        setFollowupConversation((prev) => ([
+        setFollowupConversation((prev) => [
           ...prev,
           { type: 'error', text: message, timestamp: new Date().toISOString() },
-        ]));
+        ]);
         showError('Holmes query failed: ' + message);
         return;
       }
@@ -262,10 +320,14 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       if (eventType === 'stream_end') {
         const finalText = followupStreamRef.current.text;
         if (finalText) {
-          setFollowupConversation((prev) => ([
+          setFollowupConversation((prev) => [
             ...prev,
-            { type: 'response', data: { response: finalText }, timestamp: new Date().toISOString() },
-          ]));
+            {
+              type: 'response',
+              data: { response: finalText },
+              timestamp: new Date().toISOString(),
+            },
+          ]);
         }
         followupStreamRef.current.text = '';
         setFollowupStreamingText('');
@@ -300,10 +362,14 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         if (finalText) {
           followupStreamRef.current.text = finalText;
           setFollowupStreamingText('');
-          setFollowupConversation((prev) => ([
+          setFollowupConversation((prev) => [
             ...prev,
-            { type: 'response', data: { response: finalText }, timestamp: new Date().toISOString() },
-          ]));
+            {
+              type: 'response',
+              data: { response: finalText },
+              timestamp: new Date().toISOString(),
+            },
+          ]);
         }
         setFollowupLoading(false);
         setFollowupStreamId(null);
@@ -334,7 +400,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   useEffect(() => {
     if (!viewRef.current) return;
     const cmView = viewRef.current;
-    cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: '' } });
+    cmView.dispatch({
+      changes: { from: 0, to: cmView.state.doc.length, insert: '' },
+    });
     allLinesRef.current = [];
     pendingLinesRef.current = [];
     setLineCount(0);
@@ -368,7 +436,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
       const filtered = allLinesRef.current.filter(lineMatches);
       const doc = filtered.length ? filtered.join('\n') + '\n' : '';
-      cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: doc } });
+      cmView.dispatch({
+        changes: { from: 0, to: cmView.state.doc.length, insert: doc },
+      });
 
       if (!pausedRef.current && editorRef.current) {
         requestAnimationFrame(() => {
@@ -388,19 +458,20 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       viewRef.current = new EditorView({
         state: EditorState.create({
           doc: '',
-          extensions: extensions
+          extensions: extensions,
         }),
-        parent: editorRef.current
+        parent: editorRef.current,
       });
       // After creating editor, flush any buffered lines
       flushPending();
     } catch (err) {
-
       console.error('Error creating EditorView:', err);
     }
     return () => {
       if (viewRef.current) {
-        try { viewRef.current.destroy(); } catch {}
+        try {
+          viewRef.current.destroy();
+        } catch {}
         viewRef.current = null;
       }
     };
@@ -417,9 +488,13 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       if (!view) return;
       if (view.dom.parentElement !== editorRef.current) {
         if (typeof view.setParent === 'function') {
-          try { view.setParent(editorRef.current); } catch {}
+          try {
+            view.setParent(editorRef.current);
+          } catch {}
         } else {
-          try { editorRef.current.appendChild(view.dom); } catch {}
+          try {
+            editorRef.current.appendChild(view.dom);
+          } catch {}
         }
       }
       requestAnimationFrame(() => {
@@ -435,12 +510,11 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         viewRef.current = new EditorView({
           state: EditorState.create({
             doc,
-            extensions: extensions
+            extensions: extensions,
           }),
-          parent: editorRef.current
+          parent: editorRef.current,
         });
       } catch (err) {
-
         console.error('Error re-creating EditorView:', err);
       }
     }
@@ -462,7 +536,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
     if (viewRef.current) {
       const cmView = viewRef.current;
-      cmView.dispatch({ changes: { from: 0, to: cmView.state.doc.length, insert: '' } });
+      cmView.dispatch({
+        changes: { from: 0, to: cmView.state.doc.length, insert: '' },
+      });
     }
   };
 
@@ -472,7 +548,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       let content;
       if (container) content = await GetPodContainerLog(podName, container);
       else content = await GetPodLog(podName);
-      const blob = new Blob([content ?? ''], { type: 'text/plain;charset=utf-8' });
+      const blob = new Blob([content ?? ''], {
+        type: 'text/plain;charset=utf-8',
+      });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const date = new Date().toISOString().replace(/[:.]/g, '-');
@@ -485,7 +563,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error('Failed to download full pod log:', e);
-      try { alert('Failed to download full pod log. See console for details.'); } catch {}
+      try {
+        alert('Failed to download full pod log. See console for details.');
+      } catch {}
     }
   };
 
@@ -526,10 +606,14 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     setFollowupStreamingText('');
     setFollowupStreamId(streamId);
     setFollowupQueryTimestamp(new Date().toISOString());
-    setFollowupConversation((prev) => ([
+    setFollowupConversation((prev) => [
       ...prev,
-      { type: 'question', text: questionText, timestamp: new Date().toISOString() },
-    ]));
+      {
+        type: 'question',
+        text: questionText,
+        timestamp: new Date().toISOString(),
+      },
+    ]);
 
     followupStreamRef.current = { streamId, text: '', canceledStreamId: null };
 
@@ -547,10 +631,10 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       const message = err?.message || String(err);
       setFollowupLoading(false);
       setFollowupStreamId(null);
-      setFollowupConversation((prev) => ([
+      setFollowupConversation((prev) => [
         ...prev,
         { type: 'error', text: message, timestamp: new Date().toISOString() },
-      ]));
+      ]);
       showError('Holmes query failed: ' + message);
     }
   };
@@ -565,7 +649,11 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   const handleCancelFollowup = async () => {
     if (!followupStreamId) return;
     const cancelId = followupStreamId;
-    followupStreamRef.current = { ...followupStreamRef.current, canceledStreamId: cancelId, streamId: null };
+    followupStreamRef.current = {
+      ...followupStreamRef.current,
+      canceledStreamId: cancelId,
+      streamId: null,
+    };
     setFollowupStreamId(null);
     setFollowupLoading(false);
     setFollowupStreamingText('');
@@ -573,16 +661,17 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       await CancelHolmesStream(cancelId);
     } catch (err) {
       const message = err?.message || String(err);
-      setFollowupConversation((prev) => ([
+      setFollowupConversation((prev) => [
         ...prev,
         { type: 'error', text: message, timestamp: new Date().toISOString() },
-      ]));
+      ]);
     }
   };
 
   useEffect(() => {
     if (followupScrollRef.current) {
-      followupScrollRef.current.scrollTop = followupScrollRef.current.scrollHeight;
+      followupScrollRef.current.scrollTop =
+        followupScrollRef.current.scrollHeight;
     }
     if (popoutScrollRef.current) {
       popoutScrollRef.current.scrollTop = popoutScrollRef.current.scrollHeight;
@@ -596,11 +685,31 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   };
 
   const renderAnalysisPanel = (options = {}) => {
-    const { includePopoutButton = true, scrollRef = followupScrollRef } = options;
+    const { includePopoutButton = true, scrollRef = followupScrollRef } =
+      options;
     return (
-      <div style={{ background: '#1c2026', borderBottom: '1px solid #333', padding: '8px 12px', display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#c9d1d9' }}>Holmes Analysis</div>
+      <div
+        style={{
+          background: '#1c2026',
+          borderBottom: '1px solid #333',
+          padding: '8px 12px',
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#c9d1d9' }}>
+            Holmes Analysis
+          </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               onClick={handleExplainLogs}
@@ -611,8 +720,8 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                 border: '1px solid #353a42',
                 background: '#2d323b',
                 color: '#e0e0e0',
-                cursor: (!podName || holmesLoading) ? 'not-allowed' : 'pointer',
-                opacity: (!podName || holmesLoading) ? 0.6 : 1,
+                cursor: !podName || holmesLoading ? 'not-allowed' : 'pointer',
+                opacity: !podName || holmesLoading ? 0.6 : 1,
                 whiteSpace: 'nowrap',
               }}
             >
@@ -639,8 +748,11 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                   border: '1px solid #353a42',
                   background: '#2d323b',
                   color: '#e0e0e0',
-                  cursor: (!holmesAnalysis || holmesLoading) ? 'not-allowed' : 'pointer',
-                  opacity: (!holmesAnalysis || holmesLoading) ? 0.6 : 1,
+                  cursor:
+                    !holmesAnalysis || holmesLoading
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity: !holmesAnalysis || holmesLoading ? 0.6 : 1,
                 }}
               >
                 Pop out
@@ -661,14 +773,31 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
             flexDirection: 'column',
           }}
         >
-          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div
+            style={{
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
             {!holmesLoading && holmesError && (
-              <div style={{ fontSize: 12, color: '#ff7b72' }}>{holmesError}</div>
+              <div style={{ fontSize: 12, color: '#ff7b72' }}>
+                {holmesError}
+              </div>
             )}
             {!holmesLoading && !holmesError && !holmesAnalysis && (
-              <div style={{ fontSize: 12, color: '#8b949e' }}>No analysis yet.</div>
+              <div style={{ fontSize: 12, color: '#8b949e' }}>
+                No analysis yet.
+              </div>
             )}
-            {(holmesAnalysis || followupConversation.length > 0 || followupLoading || followupStreamingText || holmesLoading) && (
+            {(holmesAnalysis ||
+              followupConversation.length > 0 ||
+              followupLoading ||
+              followupStreamingText ||
+              holmesLoading) && (
               <div
                 ref={scrollRef}
                 className="holmes-content"
@@ -689,12 +818,22 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                       className={`holmes-message ${item.type === 'question' ? 'holmes-message-user' : item.type === 'response' ? 'holmes-message-assistant' : 'holmes-message-error'}`}
                     >
                       <div className="holmes-message-header">
-                        <span>{item.type === 'question' ? 'You' : item.type === 'response' ? 'Holmes' : 'Error'}</span>
-                        <span className="holmes-message-timestamp">{formatTimestamp(item.timestamp)}</span>
+                        <span>
+                          {item.type === 'question'
+                            ? 'You'
+                            : item.type === 'response'
+                              ? 'Holmes'
+                              : 'Error'}
+                        </span>
+                        <span className="holmes-message-timestamp">
+                          {formatTimestamp(item.timestamp)}
+                        </span>
                       </div>
                       <div className="holmes-message-body">
                         {item.type === 'question' && <div>{item.text}</div>}
-                        {item.type === 'response' && <HolmesResponseRenderer response={item.data} />}
+                        {item.type === 'response' && (
+                          <HolmesResponseRenderer response={item.data} />
+                        )}
                         {item.type === 'error' && <div>{item.text}</div>}
                       </div>
                     </div>
@@ -704,7 +843,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                     <div className="holmes-message holmes-message-assistant">
                       <div className="holmes-message-header">
                         <span>Holmes</span>
-                        <span className="holmes-message-timestamp">{formatTimestamp(holmesAnalysisTimestamp)}</span>
+                        <span className="holmes-message-timestamp">
+                          {formatTimestamp(holmesAnalysisTimestamp)}
+                        </span>
                       </div>
                       <div className="holmes-message-body">
                         <div className="holmes-loading">
@@ -719,12 +860,18 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                     <div className="holmes-message holmes-message-assistant">
                       <div className="holmes-message-header">
                         <span>Holmes</span>
-                        <span className="holmes-message-timestamp">{formatTimestamp(followupQueryTimestamp)}</span>
+                        <span className="holmes-message-timestamp">
+                          {formatTimestamp(followupQueryTimestamp)}
+                        </span>
                       </div>
                       <div className="holmes-message-body">
                         <div className="holmes-loading">
                           <div className="holmes-spinner" />
-                          <span>{followupStreamingText ? 'Streaming...' : 'Thinking...'}</span>
+                          <span>
+                            {followupStreamingText
+                              ? 'Streaming...'
+                              : 'Thinking...'}
+                          </span>
                           <button
                             type="button"
                             className="holmes-btn holmes-btn-secondary holmes-cancel-btn"
@@ -747,7 +894,14 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
           </div>
 
           {holmesAnalysis && (
-            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div
+              style={{
+                marginTop: 12,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
               <form className="holmes-composer" onSubmit={handleFollowupSubmit}>
                 <div className="holmes-composer-input-wrapper">
                   <textarea
@@ -768,7 +922,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                     {followupLoading ? '...' : '→'}
                   </button>
                 </div>
-                <div className="holmes-composer-hint">Ctrl+Enter to send, Shift+Enter for a new line.</div>
+                <div className="holmes-composer-hint">
+                  Ctrl+Enter to send, Shift+Enter for a new line.
+                </div>
               </form>
             </div>
           )}
@@ -779,14 +935,27 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
   const renderPopout = () => {
     if (!popoutRootRef.current) return;
-    const titleSuffix = podName ? `: ${podName}${container ? ` (${container})` : ''}` : '';
+    const titleSuffix = podName
+      ? `: ${podName}${container ? ` (${container})` : ''}`
+      : '';
     popoutRootRef.current.render(
-      <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div
+        style={{
+          maxWidth: 1100,
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+        }}
+      >
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>
           Holmes Log Analysis{titleSuffix}
         </div>
-        {renderAnalysisPanel({ includePopoutButton: false, scrollRef: popoutScrollRef })}
-      </div>
+        {renderAnalysisPanel({
+          includePopoutButton: false,
+          scrollRef: popoutScrollRef,
+        })}
+      </div>,
     );
   };
 
@@ -802,8 +971,14 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
       return;
     }
 
-    const titleSuffix = podName ? `: ${podName}${container ? ` (${container})` : ''}` : '';
-    const popout = window.open('', `holmes-log-analysis-${Date.now()}`, 'width=980,height=720');
+    const titleSuffix = podName
+      ? `: ${podName}${container ? ` (${container})` : ''}`
+      : '';
+    const popout = window.open(
+      '',
+      `holmes-log-analysis-${Date.now()}`,
+      'width=980,height=720',
+    );
     if (!popout) {
       showError('Pop-out blocked by the browser.');
       return;
@@ -816,11 +991,14 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     doc.body.style.margin = '0';
     doc.body.style.background = '#0d1117';
     doc.body.style.color = '#c9d1d9';
-    doc.body.style.fontFamily = 'Inter, system-ui, -apple-system, Segoe UI, sans-serif';
+    doc.body.style.fontFamily =
+      'Inter, system-ui, -apple-system, Segoe UI, sans-serif';
 
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
-      doc.head.appendChild(node.cloneNode(true));
-    });
+    document
+      .querySelectorAll('link[rel="stylesheet"], style')
+      .forEach((node) => {
+        doc.head.appendChild(node.cloneNode(true));
+      });
 
     const containerEl = doc.createElement('div');
     containerEl.style.padding = '16px';
@@ -855,7 +1033,9 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   ]);
 
   useEffect(() => {
-    try { window.localStorage.setItem('logviewer.height', String(panelHeight)); } catch {}
+    try {
+      window.localStorage.setItem('logviewer.height', String(panelHeight));
+    } catch {}
   }, [panelHeight]);
 
   const onResizeStart = (e) => {
@@ -866,7 +1046,13 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     const onMove = (ev) => {
       if (!resizeRef.current.resizing) return;
       const dy = resizeRef.current.startY - ev.clientY; // moving up increases height
-      const next = Math.max(160, Math.min(resizeRef.current.startH + dy, Math.floor(window.innerHeight * 0.9)));
+      const next = Math.max(
+        160,
+        Math.min(
+          resizeRef.current.startH + dy,
+          Math.floor(window.innerHeight * 0.9),
+        ),
+      );
       setPanelHeight(next);
       document.body.style.cursor = 'ns-resize';
       document.body.style.userSelect = 'none';
@@ -883,11 +1069,19 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   };
 
   const tabsRow = (
-    <div style={{ display: 'flex', gap: 6, padding: '8px 12px', background: '#1f232a', borderBottom: '1px solid #333' }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 6,
+        padding: '8px 12px',
+        background: '#1f232a',
+        borderBottom: '1px solid #333',
+      }}
+    >
       {[
         { key: 'history', label: 'History' },
         { key: 'analysis', label: 'Analysis' },
-      ].map(tab => (
+      ].map((tab) => (
         <button
           key={tab.key}
           onClick={() => setActiveTab(tab.key)}
@@ -910,24 +1104,43 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
   // Common filter input field with regex toggle and error display
   const filterInput = (
-    <div style={{ padding: '8px', background: '#222', borderBottom: '1px solid #333', display: 'flex', alignItems: 'center', gap: 12 }}>
+    <div
+      style={{
+        padding: '8px',
+        background: '#222',
+        borderBottom: '1px solid #333',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+      }}
+    >
       <input
         type="text"
         value={filter}
-        onChange={e => setFilter(e.target.value)}
+        onChange={(e) => setFilter(e.target.value)}
         placeholder={regexMode ? 'Regex filter' : 'Filter logs'}
-        style={{ flex: 1, padding: '6px 8px', fontSize: 14, background: '#181c20', color: '#e0e0e0', border: '1px solid #444', borderRadius: 4 }}
+        style={{
+          flex: 1,
+          padding: '6px 8px',
+          fontSize: 14,
+          background: '#181c20',
+          color: '#e0e0e0',
+          border: '1px solid #444',
+          borderRadius: 4,
+        }}
       />
       <label style={{ color: '#e0e0e0', fontSize: 13 }}>
         <input
           type="checkbox"
           checked={regexMode}
-          onChange={e => setRegexMode(e.target.checked)}
+          onChange={(e) => setRegexMode(e.target.checked)}
           style={{ marginRight: 4 }}
         />
         Regex
       </label>
-      {regexError && <span style={{ color: '#ff6b6b', fontSize: 13 }}>{regexError}</span>}
+      {regexError && (
+        <span style={{ color: '#ff6b6b', fontSize: 13 }}>{regexError}</span>
+      )}
       <span style={{ color: '#888', fontSize: 12 }}>
         {lineCount > 0 && `${lineCount.toLocaleString()} lines`}
         {lineCount >= MAX_LINES && ' (max)'}
@@ -935,16 +1148,34 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     </div>
   );
 
-  const analysisPanel = renderAnalysisPanel({ includePopoutButton: true, scrollRef: followupScrollRef });
+  const analysisPanel = renderAnalysisPanel({
+    includePopoutButton: true,
+    scrollRef: followupScrollRef,
+  });
 
   if (embedded) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          minHeight: 0,
+        }}
+      >
         {tabsRow}
         {activeTab === 'history' && (
           <>
             {filterInput}
-            <div ref={editorRef} style={{ height: '100%', width: '100%', overflow: 'auto', position: 'relative' }} />
+            <div
+              ref={editorRef}
+              style={{
+                height: '100%',
+                width: '100%',
+                overflow: 'auto',
+                position: 'relative',
+              }}
+            />
           </>
         )}
         {activeTab === 'analysis' && analysisPanel}
@@ -953,23 +1184,25 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   }
 
   return (
-    <div style={{
-      background: '#181c20',
-      color: '#e0e0e0',
-      fontFamily: 'monospace',
-      fontSize: 15,
-      borderTop: '2px solid #353a42',
-      boxShadow: '0 -2px 8px rgba(0,0,0,0.18)',
-      width: '100%',
-      height: panelHeight,
-      position: 'fixed',
-      left: 0,
-      bottom: 0,
-      zIndex: 100,
-      display: 'flex',
-      flexDirection: 'column',
-      transition: resizeRef.current.resizing ? 'none' : 'height 0.12s',
-    }}>
+    <div
+      style={{
+        background: '#181c20',
+        color: '#e0e0e0',
+        fontFamily: 'monospace',
+        fontSize: 15,
+        borderTop: '2px solid #353a42',
+        boxShadow: '0 -2px 8px rgba(0,0,0,0.18)',
+        width: '100%',
+        height: panelHeight,
+        position: 'fixed',
+        left: 0,
+        bottom: 0,
+        zIndex: 100,
+        display: 'flex',
+        flexDirection: 'column',
+        transition: resizeRef.current.resizing ? 'none' : 'height 0.12s',
+      }}
+    >
       <div
         onMouseDown={onResizeStart}
         title="Drag to resize"
@@ -981,10 +1214,36 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
           borderBottom: '1px solid #353a42',
         }}
       />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#23272e', padding: '8px 16px', borderBottom: '1px solid #353a42' }}>
-        <span>Logs: {podName}{container ? ` (${container})` : ''}</span>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          background: '#23272e',
+          padding: '8px 16px',
+          borderBottom: '1px solid #353a42',
+        }}
+      >
+        <span>
+          Logs: {podName}
+          {container ? ` (${container})` : ''}
+        </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <button onClick={() => { if (podName) StopPodLogs(podName); onClose && onClose(); }} style={{ background: 'transparent', border: 'none', color: '#e0e0e0', fontSize: 18, cursor: 'pointer' }}>✕</button>
+          <button
+            onClick={() => {
+              if (podName) StopPodLogs(podName);
+              onClose && onClose();
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#e0e0e0',
+              fontSize: 18,
+              cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
         </div>
       </div>
       {tabsRow}
@@ -992,14 +1251,39 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         <>
           {filterInput}
           <div style={{ flex: 1, position: 'relative' }}>
-            <div ref={editorRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }} />
+            <div
+              ref={editorRef}
+              style={{
+                flex: 1,
+                minHeight: 0,
+                overflow: 'auto',
+                position: 'relative',
+              }}
+            />
             {/* Floating controls bottom-right */}
-            <div style={{ position: 'absolute', right: 25, bottom: 12, display: 'flex', gap: 10, zIndex: 101 }}>
+            <div
+              style={{
+                position: 'absolute',
+                right: 25,
+                bottom: 12,
+                display: 'flex',
+                gap: 10,
+                zIndex: 101,
+              }}
+            >
               <button
                 onClick={handleDownload}
                 title="Download full log"
                 aria-label="Download full log"
-                style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  border: '1px solid #353a42',
+                  background: '#2d323b',
+                  color: '#e0e0e0',
+                  cursor: 'pointer',
+                }}
               >
                 💾
               </button>
@@ -1007,16 +1291,32 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
                 onClick={handleClear}
                 title="Clear log"
                 aria-label="Clear log"
-                style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  border: '1px solid #353a42',
+                  background: '#2d323b',
+                  color: '#e0e0e0',
+                  cursor: 'pointer',
+                }}
               >
                 ✕
               </button>
               <button
-                onClick={() => setPaused(p => !p)}
+                onClick={() => setPaused((p) => !p)}
                 title={paused ? 'Resume auto-update' : 'Pause auto-update'}
                 aria-pressed={paused}
                 aria-label={paused ? 'Resume auto-update' : 'Pause auto-update'}
-                style={{ width: 36, height: 36, borderRadius: 18, border: '1px solid #353a42', background: '#2d323b', color: '#e0e0e0', cursor: 'pointer' }}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 18,
+                  border: '1px solid #353a42',
+                  background: '#2d323b',
+                  color: '#e0e0e0',
+                  cursor: 'pointer',
+                }}
               >
                 {paused ? '▶' : '⏸'}
               </button>

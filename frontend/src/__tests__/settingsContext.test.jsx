@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
-import { SettingsProvider, useSettings, useSetting, defaultSettings } from '../state/SettingsContext.jsx';
+import {
+  SettingsProvider,
+  useSettings,
+  useSetting,
+  defaultSettings,
+} from '../state/SettingsContext.jsx';
 
 // Helper component to test useSettings hook
 function SettingsConsumer({ onSettings }) {
@@ -8,11 +13,23 @@ function SettingsConsumer({ onSettings }) {
   onSettings?.(settings);
   return (
     <div>
-      <span data-testid="fast-polling">{settings.settings.fastPollingInterval}</span>
-      <span data-testid="slow-polling">{settings.settings.slowPollingInterval}</span>
+      <span data-testid="fast-polling">
+        {settings.settings.fastPollingInterval}
+      </span>
+      <span data-testid="slow-polling">
+        {settings.settings.slowPollingInterval}
+      </span>
       <span data-testid="theme">{settings.settings.theme}</span>
-      <button onClick={() => settings.updateSetting('theme', 'dark')}>Set Dark</button>
-      <button onClick={() => settings.updateSettings({ theme: 'light', animationsEnabled: false })}>Set Light</button>
+      <button onClick={() => settings.updateSetting('theme', 'dark')}>
+        Set Dark
+      </button>
+      <button
+        onClick={() =>
+          settings.updateSettings({ theme: 'light', animationsEnabled: false })
+        }
+      >
+        Set Light
+      </button>
       <button onClick={() => settings.resetSettings()}>Reset</button>
     </div>
   );
@@ -42,7 +59,10 @@ describe('SettingsContext', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.store = {};
-    Object.defineProperty(window, 'localStorage', { value: localStorageMock, writable: true });
+    Object.defineProperty(window, 'localStorage', {
+      value: localStorageMock,
+      writable: true,
+    });
   });
 
   afterEach(() => {
@@ -54,7 +74,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('fast-polling')).toHaveTextContent('1000');
@@ -71,7 +91,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent('dark');
@@ -86,7 +106,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       // Should fall back to defaults
@@ -99,7 +119,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent('system');
@@ -115,7 +135,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       act(() => {
@@ -123,7 +143,9 @@ describe('SettingsContext', () => {
       });
 
       expect(localStorageMock.setItem).toHaveBeenCalled();
-      const savedSettings = JSON.parse(localStorageMock.store['kubedevbench_settings']);
+      const savedSettings = JSON.parse(
+        localStorageMock.store['kubedevbench_settings'],
+      );
       expect(savedSettings.theme).toBe('dark');
     });
   });
@@ -133,8 +155,12 @@ describe('SettingsContext', () => {
       let settingsRef;
       render(
         <SettingsProvider>
-          <SettingsConsumer onSettings={(s) => { settingsRef = s; }} />
-        </SettingsProvider>
+          <SettingsConsumer
+            onSettings={(s) => {
+              settingsRef = s;
+            }}
+          />
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent('system');
@@ -158,7 +184,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent('dark');
@@ -179,22 +205,26 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       act(() => {
         screen.getByText('Reset').click();
       });
 
-      const savedSettings = JSON.parse(localStorageMock.store['kubedevbench_settings']);
+      const savedSettings = JSON.parse(
+        localStorageMock.store['kubedevbench_settings'],
+      );
       expect(savedSettings.theme).toBe('system');
     });
   });
 
   describe('useSettings hook', () => {
     it('throws error when used outside provider', () => {
-      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
+      const consoleError = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
       expect(() => {
         render(<SettingsConsumer />);
       }).toThrow('useSettings must be used within a SettingsProvider');
@@ -206,8 +236,12 @@ describe('SettingsContext', () => {
       let settingsRef;
       render(
         <SettingsProvider>
-          <SettingsConsumer onSettings={(s) => { settingsRef = s; }} />
-        </SettingsProvider>
+          <SettingsConsumer
+            onSettings={(s) => {
+              settingsRef = s;
+            }}
+          />
+        </SettingsProvider>,
       );
 
       expect(settingsRef.settings).toBeDefined();
@@ -223,7 +257,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SingleSettingConsumer settingKey="theme" />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('setting-value')).toHaveTextContent('system');
@@ -239,10 +273,12 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SingleSettingConsumer settingKey="unknownKey" />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
-      expect(screen.getByTestId('setting-value')).toHaveTextContent('undefined');
+      expect(screen.getByTestId('setting-value')).toHaveTextContent(
+        'undefined',
+      );
     });
   });
 
@@ -264,7 +300,7 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent('system');
@@ -275,10 +311,12 @@ describe('SettingsContext', () => {
       });
 
       act(() => {
-        window.dispatchEvent(new StorageEvent('storage', {
-          key: 'kubedevbench_settings',
-          newValue: JSON.stringify({ theme: 'dark' }),
-        }));
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: 'kubedevbench_settings',
+            newValue: JSON.stringify({ theme: 'dark' }),
+          }),
+        );
       });
 
       expect(screen.getByTestId('theme')).toHaveTextContent('dark');
@@ -288,16 +326,18 @@ describe('SettingsContext', () => {
       render(
         <SettingsProvider>
           <SettingsConsumer />
-        </SettingsProvider>
+        </SettingsProvider>,
       );
 
       expect(screen.getByTestId('theme')).toHaveTextContent('system');
 
       act(() => {
-        window.dispatchEvent(new StorageEvent('storage', {
-          key: 'other_key',
-          newValue: JSON.stringify({ theme: 'dark' }),
-        }));
+        window.dispatchEvent(
+          new StorageEvent('storage', {
+            key: 'other_key',
+            newValue: JSON.stringify({ theme: 'dark' }),
+          }),
+        );
       });
 
       // Should remain unchanged

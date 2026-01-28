@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useReducer,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   GetDockerConnectionStatus,
   ConnectToDocker,
@@ -116,7 +123,10 @@ export function SwarmStateProvider({ children }) {
       const status = await GetDockerConnectionStatus();
       dispatch({ type: 'SET_CONNECTION_STATUS', status });
     } catch (err) {
-      dispatch({ type: 'SET_CONNECTION_STATUS', status: { connected: false, error: err.toString() } });
+      dispatch({
+        type: 'SET_CONNECTION_STATUS',
+        status: { connected: false, error: err.toString() },
+      });
     }
   }, []);
 
@@ -242,11 +252,16 @@ export function SwarmStateProvider({ children }) {
 
         if (!status?.connected) {
           // Don't show wizard automatically - Docker is optional
-          console.warn('Docker not connected - Swarm features will be unavailable');
+          console.warn(
+            'Docker not connected - Swarm features will be unavailable',
+          );
         }
       } catch (err) {
         console.warn('Docker auto-connect failed:', err);
-        dispatch({ type: 'SET_CONNECTION_STATUS', status: { connected: false } });
+        dispatch({
+          type: 'SET_CONNECTION_STATUS',
+          status: { connected: false },
+        });
       } finally {
         dispatch({ type: 'SET_INITIALIZED' });
         dispatch({ type: 'SET_LOADING', loading: false });
@@ -262,10 +277,14 @@ export function SwarmStateProvider({ children }) {
       dispatch({ type: 'SET_CONFIG', config });
 
       if (status?.connected) {
-        showSuccess(`Connected to Docker ${status.serverVersion}${status.swarmActive ? ' (Swarm active)' : ''}`);
+        showSuccess(
+          `Connected to Docker ${status.serverVersion}${status.swarmActive ? ' (Swarm active)' : ''}`,
+        );
         dispatch({ type: 'SET_SHOW_WIZARD', value: false });
       } else {
-        showError(`Failed to connect to Docker: ${status?.error || 'Unknown error'}`);
+        showError(
+          `Failed to connect to Docker: ${status?.error || 'Unknown error'}`,
+        );
       }
       return status;
     } catch (err) {
@@ -314,74 +333,100 @@ export function SwarmStateProvider({ children }) {
           setTimeout(() => {
             refreshConnectionStatus();
           }, 250);
-        })
+        }),
       );
       offs.push(
         EventsOn('docker:disconnected', () => {
           setTimeout(() => {
             refreshConnectionStatus();
           }, 250);
-        })
+        }),
       );
     } catch (_) {
       // When not running inside Wails, window.runtime is not available.
     }
 
-    offs.push(EventsOn('swarm:services:update', (data) => {
-      // Some callers emit this as a refresh signal without payload.
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_SERVICES', data });
-      } else {
-        refreshServices();
-      }
-    }));
-    offs.push(EventsOn('swarm:tasks:update', (data) => {
-      dispatch({ type: 'SET_TASKS', data });
-    }));
-    offs.push(EventsOn('swarm:nodes:update', (data) => {
-      dispatch({ type: 'SET_NODES', data });
-    }));
-    offs.push(EventsOn('swarm:networks:update', (data) => {
-      // Some callers emit this as a refresh signal without payload.
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_NETWORKS', data });
-      } else {
-        refreshNetworks();
-      }
-    }));
-    offs.push(EventsOn('swarm:configs:update', (data) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_CONFIGS', data });
-      } else {
-        refreshConfigs();
-      }
-    }));
-    offs.push(EventsOn('swarm:secrets:update', (data) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_SECRETS', data });
-      } else {
-        refreshSecrets();
-      }
-    }));
-    offs.push(EventsOn('swarm:stacks:update', (data) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_STACKS', data });
-      } else {
-        refreshStacks();
-      }
-    }));
-    offs.push(EventsOn('swarm:volumes:update', (data) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_VOLUMES', data });
-      } else {
-        refreshVolumes();
-      }
-    }));
+    offs.push(
+      EventsOn('swarm:services:update', (data) => {
+        // Some callers emit this as a refresh signal without payload.
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_SERVICES', data });
+        } else {
+          refreshServices();
+        }
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:tasks:update', (data) => {
+        dispatch({ type: 'SET_TASKS', data });
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:nodes:update', (data) => {
+        dispatch({ type: 'SET_NODES', data });
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:networks:update', (data) => {
+        // Some callers emit this as a refresh signal without payload.
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_NETWORKS', data });
+        } else {
+          refreshNetworks();
+        }
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:configs:update', (data) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_CONFIGS', data });
+        } else {
+          refreshConfigs();
+        }
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:secrets:update', (data) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_SECRETS', data });
+        } else {
+          refreshSecrets();
+        }
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:stacks:update', (data) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_STACKS', data });
+        } else {
+          refreshStacks();
+        }
+      }),
+    );
+    offs.push(
+      EventsOn('swarm:volumes:update', (data) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_VOLUMES', data });
+        } else {
+          refreshVolumes();
+        }
+      }),
+    );
 
     return () => {
-      offs.forEach(off => { if (typeof off === 'function') off(); });
+      offs.forEach((off) => {
+        if (typeof off === 'function') off();
+      });
     };
-  }, [refreshConnectionStatus, refreshServices, refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);
+  }, [
+    refreshConnectionStatus,
+    refreshServices,
+    refreshNetworks,
+    refreshConfigs,
+    refreshSecrets,
+    refreshStacks,
+    refreshVolumes,
+  ]);
 
   const actions = {
     connect,
@@ -401,18 +446,20 @@ export function SwarmStateProvider({ children }) {
   };
 
   return (
-    <SwarmStateContext.Provider value={{
-      ...state,
-      actions,
-      refreshServices,
-      refreshTasks,
-      refreshNodes,
-      refreshNetworks,
-      refreshConfigs,
-      refreshSecrets,
-      refreshStacks,
-      refreshVolumes,
-    }}>
+    <SwarmStateContext.Provider
+      value={{
+        ...state,
+        actions,
+        refreshServices,
+        refreshTasks,
+        refreshNodes,
+        refreshNetworks,
+        refreshConfigs,
+        refreshSecrets,
+        refreshStacks,
+        refreshVolumes,
+      }}
+    >
       {children}
     </SwarmStateContext.Provider>
   );

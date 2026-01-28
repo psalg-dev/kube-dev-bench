@@ -3,7 +3,11 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 import { navigateToResource } from '../../../utils/resourceNavigation';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 export default function PVCConsumersTab({ namespace, pvcName }) {
   const [items, setItems] = useState([]);
@@ -28,7 +32,9 @@ export default function PVCConsumersTab({ namespace, pvcName }) {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [namespace, pvcName]);
 
   const handleRowClick = (consumer) => {
@@ -38,8 +44,36 @@ export default function PVCConsumersTab({ namespace, pvcName }) {
     }
   };
 
+  const columns = useMemo(
+    () => [
+      { key: 'podName', label: 'Pod' },
+      { key: 'node', label: 'Node' },
+      { key: 'status', label: 'Status' },
+      { key: 'refType', label: 'Reference' },
+    ],
+    [],
+  );
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedItems = useMemo(() => {
+    return sortRows(items, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'podName') return row?.podName ?? row?.PodName;
+      if (key === 'node') return row?.node ?? row?.Node;
+      if (key === 'status') return row?.status ?? row?.Status;
+      if (key === 'refType') return row?.refType ?? row?.RefType;
+      return row?.[key];
+    });
+  }, [items, sortState]);
+
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -57,24 +91,6 @@ export default function PVCConsumersTab({ namespace, pvcName }) {
       />
     );
   }
-
-  const columns = useMemo(() => ([
-    { key: 'podName', label: 'Pod' },
-    { key: 'node', label: 'Node' },
-    { key: 'status', label: 'Status' },
-    { key: 'refType', label: 'Reference' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedItems = useMemo(() => {
-    return sortRows(items, sortState.key, sortState.direction, (row, key) => {
-      if (key === 'podName') return row?.podName ?? row?.PodName;
-      if (key === 'node') return row?.node ?? row?.Node;
-      if (key === 'status') return row?.status ?? row?.Status;
-      if (key === 'refType') return row?.refType ?? row?.RefType;
-      return row?.[key];
-    });
-  }, [items, sortState]);
 
   const headerButtonStyle = {
     width: '100%',
@@ -111,28 +127,108 @@ export default function PVCConsumersTab({ namespace, pvcName }) {
       <table className="panel-table consumers-table">
         <thead>
           <tr>
-            <th aria-sort={sortState.key === 'podName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'podName'))}>
+            <th
+              aria-sort={
+                sortState.key === 'podName'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'podName'))
+                }
+              >
                 <span>Pod</span>
-                <span aria-hidden="true">{sortState.key === 'podName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'podName'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'node' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'node'))}>
+            <th
+              aria-sort={
+                sortState.key === 'node'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'node'))
+                }
+              >
                 <span>Node</span>
-                <span aria-hidden="true">{sortState.key === 'node' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'node'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'status' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'status'))}>
+            <th
+              aria-sort={
+                sortState.key === 'status'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'status'))
+                }
+              >
                 <span>Status</span>
-                <span aria-hidden="true">{sortState.key === 'status' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'status'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'refType' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'refType'))}>
+            <th
+              aria-sort={
+                sortState.key === 'refType'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'refType'))
+                }
+              >
                 <span>Reference</span>
-                <span aria-hidden="true">{sortState.key === 'refType' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'refType'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
           </tr>
@@ -144,10 +240,20 @@ export default function PVCConsumersTab({ namespace, pvcName }) {
               onClick={() => handleRowClick(c)}
               title={`Open Pod: ${c.podName ?? c.PodName}`}
             >
-              <td className="resource-link" style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.podName ?? c.PodName}</td>
+              <td
+                className="resource-link"
+                style={{ fontFamily: 'monospace', fontSize: 12 }}
+              >
+                {c.podName ?? c.PodName}
+              </td>
               <td className="text-muted">{c.node ?? c.Node ?? '-'}</td>
               <td>{c.status ?? c.Status ?? '-'}</td>
-              <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
+              <td
+                className="text-muted"
+                style={{ fontFamily: 'monospace', fontSize: 12 }}
+              >
+                {c.refType ?? c.RefType ?? '-'}
+              </td>
             </tr>
           ))}
         </tbody>

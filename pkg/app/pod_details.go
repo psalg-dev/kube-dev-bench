@@ -183,6 +183,71 @@ func (a *App) GetPodContainerPorts(podName string) ([]int, error) {
 	return ports, nil
 }
 
+func volumeInfoFromVolume(volume v1.Volume) VolumeInfo {
+	vi := VolumeInfo{Name: volume.Name}
+	switch {
+	case volume.Secret != nil:
+		vi.Type = "Secret"
+		vi.SecretName = volume.Secret.SecretName
+	case volume.ConfigMap != nil:
+		vi.Type = "ConfigMap"
+		if volume.ConfigMap.Name != "" {
+			vi.ConfigMapName = volume.ConfigMap.Name
+		}
+	case volume.PersistentVolumeClaim != nil:
+		vi.Type = "PVC"
+		vi.PersistentVolumeClaim = volume.PersistentVolumeClaim.ClaimName
+	case volume.HostPath != nil:
+		vi.Type = "HostPath"
+		if volume.HostPath.Path != "" {
+			vi.HostPath = volume.HostPath.Path
+		}
+	case volume.EmptyDir != nil:
+		vi.Type = "EmptyDir"
+		vi.EmptyDir = true
+	case volume.Projected != nil:
+		vi.Type = "Projected"
+		for _, src := range volume.Projected.Sources {
+			appendProjectedSourceInfo(&vi, src)
+		}
+	case volume.DownwardAPI != nil:
+		vi.Type = "DownwardAPI"
+	case volume.CSI != nil:
+		vi.Type = "CSI"
+	default:
+		vi.Type = "Other"
+	}
+	return vi
+}
+
+func appendProjectedSourceInfo(vi *VolumeInfo, src v1.VolumeProjection) {
+	if src.Secret != nil {
+		name := src.Secret.Name
+		if name != "" {
+			vi.ProjectedSecretNames = append(vi.ProjectedSecretNames, name)
+		}
+	}
+	if src.ConfigMap != nil {
+		name := src.ConfigMap.Name
+		if name != "" {
+			vi.ProjectedConfigMapNames = append(vi.ProjectedConfigMapNames, name)
+		}
+	}
+}
+
+func containerMountInfo(container v1.Container, isInit bool) ContainerMountInfo {
+	cm := ContainerMountInfo{Container: container.Name, IsInit: isInit}
+	for _, m := range container.VolumeMounts {
+		cm.Mounts = append(cm.Mounts, MountInfo{
+			Name:      m.Name,
+			MountPath: m.MountPath,
+			ReadOnly:  m.ReadOnly,
+			SubPath:   m.SubPath,
+		})
+	}
+	return cm
+}
+
 // GetPodMounts returns volumes and volume mounts (incl. secret mounts) for a pod
 func (a *App) GetPodMounts(podName string) (PodMounts, error) {
 	var result PodMounts
@@ -200,75 +265,14 @@ func (a *App) GetPodMounts(podName string) (PodMounts, error) {
 	// Build volumes info
 	vols := make([]VolumeInfo, 0, len(pod.Spec.Volumes))
 	for _, v := range pod.Spec.Volumes {
-		vi := VolumeInfo{Name: v.Name}
-		if v.Secret != nil {
-			vi.Type = "Secret"
-			vi.SecretName = v.Secret.SecretName
-		} else if v.ConfigMap != nil {
-			vi.Type = "ConfigMap"
-			if v.ConfigMap.Name != "" {
-				vi.ConfigMapName = v.ConfigMap.Name
-			}
-		} else if v.PersistentVolumeClaim != nil {
-			vi.Type = "PVC"
-			vi.PersistentVolumeClaim = v.PersistentVolumeClaim.ClaimName
-		} else if v.HostPath != nil {
-			vi.Type = "HostPath"
-			if v.HostPath.Path != "" {
-				vi.HostPath = v.HostPath.Path
-			}
-		} else if v.EmptyDir != nil {
-			vi.Type = "EmptyDir"
-			vi.EmptyDir = true
-		} else if v.Projected != nil {
-			vi.Type = "Projected"
-			for _, src := range v.Projected.Sources {
-				if src.Secret != nil {
-					name := src.Secret.Name
-					if name != "" {
-						vi.ProjectedSecretNames = append(vi.ProjectedSecretNames, name)
-					}
-				}
-				if src.ConfigMap != nil {
-					name := src.ConfigMap.Name
-					if name != "" {
-						vi.ProjectedConfigMapNames = append(vi.ProjectedConfigMapNames, name)
-					}
-				}
-			}
-		} else if v.DownwardAPI != nil {
-			vi.Type = "DownwardAPI"
-		} else if v.CSI != nil {
-			vi.Type = "CSI"
-		} else {
-			vi.Type = "Other"
-		}
-		vols = append(vols, vi)
+		vols = append(vols, volumeInfoFromVolume(v))
 	}
 	result.Volumes = vols
 	for _, c := range pod.Spec.InitContainers {
-		cm := ContainerMountInfo{Container: c.Name, IsInit: true}
-		for _, m := range c.VolumeMounts {
-			cm.Mounts = append(cm.Mounts, MountInfo{
-				Name:      m.Name,
-				MountPath: m.MountPath,
-				ReadOnly:  m.ReadOnly,
-				SubPath:   m.SubPath,
-			})
-		}
-		result.Containers = append(result.Containers, cm)
+		result.Containers = append(result.Containers, containerMountInfo(c, true))
 	}
 	for _, c := range pod.Spec.Containers {
-		cm := ContainerMountInfo{Container: c.Name}
-		for _, m := range c.VolumeMounts {
-			cm.Mounts = append(cm.Mounts, MountInfo{
-				Name:      m.Name,
-				MountPath: m.MountPath,
-				ReadOnly:  m.ReadOnly,
-				SubPath:   m.SubPath,
-			})
-		}
-		result.Containers = append(result.Containers, cm)
+		result.Containers = append(result.Containers, containerMountInfo(c, false))
 	}
 	return result, nil
 }

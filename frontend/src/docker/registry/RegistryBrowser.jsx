@@ -1,8 +1,21 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { GetDockerHubRepositoryDetails, GetImageDigest, GetRegistryRepositoryDetails, ListRegistryRepositories, ListRegistryTags, PullDockerImageLatest, SearchDockerHubRepositories, SearchRegistryRepositories } from '../swarmApi.js';
+import {
+  GetDockerHubRepositoryDetails,
+  GetImageDigest,
+  GetRegistryRepositoryDetails,
+  ListRegistryRepositories,
+  ListRegistryTags,
+  PullDockerImageLatest,
+  SearchDockerHubRepositories,
+  SearchRegistryRepositories,
+} from '../swarmApi.js';
 import { showError, showSuccess } from '../../notification.js';
 import './registry.css';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../utils/tableSorting.js';
 
 export default function RegistryBrowser({ registryName, registryType = '' }) {
   const [repos, setRepos] = useState([]);
@@ -26,7 +39,10 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
   const inspectReqIdRef = useRef(0);
   const searchDebounceRef = useRef(null);
 
-  const title = useMemo(() => registryName ? `Browse: ${registryName}` : 'Browse', [registryName]);
+  const title = useMemo(
+    () => (registryName ? `Browse: ${registryName}` : 'Browse'),
+    [registryName],
+  );
 
   useEffect(() => {
     if (!registryName) return;
@@ -83,9 +99,13 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
         const cap = list.slice(0, 50);
         Promise.allSettled(
           cap.map(async (tag) => {
-            const digest = await GetImageDigest(registryName, selectedRepo, tag);
+            const digest = await GetImageDigest(
+              registryName,
+              selectedRepo,
+              tag,
+            );
             return { tag, digest };
-          })
+          }),
         ).then((results) => {
           if (!alive) return;
           const next = {};
@@ -129,8 +149,14 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     }
     return [{ key: 'fullName', label: 'Name' }];
   }, [isDockerHub]);
-  const defaultSearchSortKey = useMemo(() => pickDefaultSortKey(searchColumns), [searchColumns]);
-  const [searchSort, setSearchSort] = useState(() => ({ key: defaultSearchSortKey, direction: 'asc' }));
+  const defaultSearchSortKey = useMemo(
+    () => pickDefaultSortKey(searchColumns),
+    [searchColumns],
+  );
+  const [searchSort, setSearchSort] = useState(() => ({
+    key: defaultSearchSortKey,
+    direction: 'asc',
+  }));
 
   useEffect(() => {
     if (!defaultSearchSortKey) return;
@@ -142,11 +168,21 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
   }, [defaultSearchSortKey, searchColumns]);
 
   const sortedSearchResults = useMemo(() => {
-    return sortRows(searchResults, searchSort.key, searchSort.direction, (row, key) => {
-      const fullName = (row.fullName || (row.namespace && row.name ? `${row.namespace}/${row.name}` : '') || row.name || '').trim();
-      if (key === 'fullName') return fullName;
-      return row?.[key];
-    });
+    return sortRows(
+      searchResults,
+      searchSort.key,
+      searchSort.direction,
+      (row, key) => {
+        const fullName = (
+          row.fullName ||
+          (row.namespace && row.name ? `${row.namespace}/${row.name}` : '') ||
+          row.name ||
+          ''
+        ).trim();
+        if (key === 'fullName') return fullName;
+        return row?.[key];
+      },
+    );
   }, [searchResults, searchSort]);
 
   useEffect(() => {
@@ -198,7 +234,8 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
   };
 
   const formatBytes = (value) => {
-    const bytes = typeof value === 'number' && Number.isFinite(value) ? value : 0;
+    const bytes =
+      typeof value === 'number' && Number.isFinite(value) ? value : 0;
     if (bytes <= 0) return '-';
 
     const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -208,7 +245,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
       n /= 1024;
       i += 1;
     }
-    const decimals = i === 0 ? 0 : (n < 10 ? 2 : 1);
+    const decimals = i === 0 ? 0 : n < 10 ? 2 : 1;
     return `${n.toFixed(decimals)} ${units[i]}`;
   };
 
@@ -252,7 +289,9 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
       setInspectDetails(null);
       setInspectError('');
     } catch (e) {
-      showError(`${isDockerHub ? 'Docker Hub' : 'Registry'} search failed: ${e}`);
+      showError(
+        `${isDockerHub ? 'Docker Hub' : 'Registry'} search failed: ${e}`,
+      );
     } finally {
       setSearchLoading(false);
     }
@@ -262,9 +301,9 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
     if (!repo) return;
     const fullName = String(
       repo.fullName ||
-      (repo.namespace && repo.name ? `${repo.namespace}/${repo.name}` : '') ||
-      repo.name ||
-      ''
+        (repo.namespace && repo.name ? `${repo.namespace}/${repo.name}` : '') ||
+        repo.name ||
+        '',
     ).trim();
 
     const selected = { ...repo, fullName };
@@ -295,16 +334,17 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
       : GetRegistryRepositoryDetails(registryName, fullName);
 
     p.then((d) => {
-        if (inspectReqIdRef.current !== reqId) return;
-        // Merge details but never lose the target fullName; Wails can decode an empty object
-        // (or a zero-value struct) which would otherwise wipe the fallback.
-        if (!d) return;
-        setInspectDetails((prev) => ({
-          ...(prev || {}),
-          ...d,
-          fullName: (d.fullName && String(d.fullName).trim()) ? d.fullName : fullName,
-        }));
-      })
+      if (inspectReqIdRef.current !== reqId) return;
+      // Merge details but never lose the target fullName; Wails can decode an empty object
+      // (or a zero-value struct) which would otherwise wipe the fallback.
+      if (!d) return;
+      setInspectDetails((prev) => ({
+        ...(prev || {}),
+        ...d,
+        fullName:
+          d.fullName && String(d.fullName).trim() ? d.fullName : fullName,
+      }));
+    })
       .catch((e) => {
         if (inspectReqIdRef.current !== reqId) return;
         const msg = String(e || '').trim() || 'Unknown error.';
@@ -335,9 +375,13 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
         <div className="registry-browser__list">
           <div className="registry-browser__listHeader">Repositories</div>
           {reposLoading ? (
-            <div className="registry-browser__item"><span className="registry-browser__muted">Loading…</span></div>
+            <div className="registry-browser__item">
+              <span className="registry-browser__muted">Loading…</span>
+            </div>
           ) : repos.length === 0 ? (
-            <div className="registry-browser__item"><span className="registry-browser__muted">No repositories</span></div>
+            <div className="registry-browser__item">
+              <span className="registry-browser__muted">No repositories</span>
+            </div>
           ) : (
             repos.map((r) => (
               <div
@@ -366,16 +410,26 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
             ) : null}
           </div>
           {tagsLoading ? (
-            <div className="registry-browser__item"><span className="registry-browser__muted">Loading…</span></div>
+            <div className="registry-browser__item">
+              <span className="registry-browser__muted">Loading…</span>
+            </div>
           ) : !selectedRepo ? (
-            <div className="registry-browser__item"><span className="registry-browser__muted">Select a repository</span></div>
+            <div className="registry-browser__item">
+              <span className="registry-browser__muted">
+                Select a repository
+              </span>
+            </div>
           ) : tags.length === 0 ? (
-            <div className="registry-browser__item"><span className="registry-browser__muted">No tags</span></div>
+            <div className="registry-browser__item">
+              <span className="registry-browser__muted">No tags</span>
+            </div>
           ) : (
             tags.map((t) => (
               <div key={t} className="registry-browser__item">
                 <span>{t}</span>
-                <span className="registry-browser__muted">{digestByTag[t] || '…'}</span>
+                <span className="registry-browser__muted">
+                  {digestByTag[t] || '…'}
+                </span>
               </div>
             ))
           )}
@@ -385,7 +439,14 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
       {supportsSearch ? (
         <div className="registry-search">
           <div className="registry-search__header">
-            <div className="registry-search__title">Search {isDockerHub ? 'Docker Hub' : (isArtifactory ? 'Artifactory' : 'Registry')}</div>
+            <div className="registry-search__title">
+              Search{' '}
+              {isDockerHub
+                ? 'Docker Hub'
+                : isArtifactory
+                  ? 'Artifactory'
+                  : 'Registry'}
+            </div>
             <div className="registry-search__controls">
               <input
                 type="search"
@@ -402,9 +463,15 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                   }
                 }}
                 placeholder="Search repositories…"
-                aria-label={isDockerHub ? 'Search Docker Hub' : 'Search registry'}
+                aria-label={
+                  isDockerHub ? 'Search Docker Hub' : 'Search registry'
+                }
               />
-              <button className="registry-action-btn" onClick={runSearch} disabled={searchLoading}>
+              <button
+                className="registry-action-btn"
+                onClick={runSearch}
+                disabled={searchLoading}
+              >
                 Search
               </button>
             </div>
@@ -414,43 +481,171 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
             <thead>
               {isDockerHub ? (
                 <tr>
-                  <th aria-sort={searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'fullName'))}>
+                  <th
+                    aria-sort={
+                      searchSort.key === 'fullName'
+                        ? searchSort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() =>
+                        setSearchSort((cur) => toggleSortState(cur, 'fullName'))
+                      }
+                    >
                       <span>Name</span>
-                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {searchSort.key === 'fullName'
+                          ? searchSort.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th aria-sort={searchSort.key === 'description' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'description'))}>
+                  <th
+                    aria-sort={
+                      searchSort.key === 'description'
+                        ? searchSort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() =>
+                        setSearchSort((cur) =>
+                          toggleSortState(cur, 'description'),
+                        )
+                      }
+                    >
                       <span>Description</span>
-                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'description' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {searchSort.key === 'description'
+                          ? searchSort.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th aria-sort={searchSort.key === 'starCount' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'starCount'))}>
+                  <th
+                    aria-sort={
+                      searchSort.key === 'starCount'
+                        ? searchSort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() =>
+                        setSearchSort((cur) =>
+                          toggleSortState(cur, 'starCount'),
+                        )
+                      }
+                    >
                       <span>Stars</span>
-                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'starCount' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {searchSort.key === 'starCount'
+                          ? searchSort.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th aria-sort={searchSort.key === 'pullCount' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'pullCount'))}>
+                  <th
+                    aria-sort={
+                      searchSort.key === 'pullCount'
+                        ? searchSort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() =>
+                        setSearchSort((cur) =>
+                          toggleSortState(cur, 'pullCount'),
+                        )
+                      }
+                    >
                       <span>Pulls</span>
-                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'pullCount' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {searchSort.key === 'pullCount'
+                          ? searchSort.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
-                  <th aria-sort={searchSort.key === 'lastUpdated' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'lastUpdated'))}>
+                  <th
+                    aria-sort={
+                      searchSort.key === 'lastUpdated'
+                        ? searchSort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() =>
+                        setSearchSort((cur) =>
+                          toggleSortState(cur, 'lastUpdated'),
+                        )
+                      }
+                    >
                       <span>Updated</span>
-                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'lastUpdated' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {searchSort.key === 'lastUpdated'
+                          ? searchSort.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
                 </tr>
               ) : (
                 <tr>
-                  <th aria-sort={searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                    <button type="button" className="sortable-header" onClick={() => setSearchSort((cur) => toggleSortState(cur, 'fullName'))}>
+                  <th
+                    aria-sort={
+                      searchSort.key === 'fullName'
+                        ? searchSort.direction === 'asc'
+                          ? 'ascending'
+                          : 'descending'
+                        : 'none'
+                    }
+                  >
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() =>
+                        setSearchSort((cur) => toggleSortState(cur, 'fullName'))
+                      }
+                    >
                       <span>Name</span>
-                      <span className="sortable-indicator" aria-hidden="true">{searchSort.key === 'fullName' ? (searchSort.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {searchSort.key === 'fullName'
+                          ? searchSort.direction === 'asc'
+                            ? '▲'
+                            : '▼'
+                          : '↕'}
+                      </span>
                     </button>
                   </th>
                 </tr>
@@ -458,65 +653,127 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
             </thead>
             <tbody>
               {searchLoading ? (
-                <tr><td colSpan={isDockerHub ? 5 : 1} className="main-panel-loading">Searching…</td></tr>
+                <tr>
+                  <td
+                    colSpan={isDockerHub ? 5 : 1}
+                    className="main-panel-loading"
+                  >
+                    Searching…
+                  </td>
+                </tr>
               ) : searchResults.length === 0 ? (
-                <tr><td colSpan={isDockerHub ? 5 : 1} className="main-panel-loading">No results.</td></tr>
+                <tr>
+                  <td
+                    colSpan={isDockerHub ? 5 : 1}
+                    className="main-panel-loading"
+                  >
+                    No results.
+                  </td>
+                </tr>
               ) : (
                 sortedSearchResults.map((r) => {
-                  const rowFullName = (r.fullName || (r.namespace && r.name ? `${r.namespace}/${r.name}` : '') || r.name || '').trim();
-                  const rowKey = rowFullName || `${r.namespace || ''}/${r.name || ''}`;
-                  const isSelected = Boolean(selectedSearchKey && selectedSearchKey === rowFullName);
+                  const rowFullName = (
+                    r.fullName ||
+                    (r.namespace && r.name ? `${r.namespace}/${r.name}` : '') ||
+                    r.name ||
+                    ''
+                  ).trim();
+                  const rowKey =
+                    rowFullName || `${r.namespace || ''}/${r.name || ''}`;
+                  const isSelected = Boolean(
+                    selectedSearchKey && selectedSearchKey === rowFullName,
+                  );
                   const fallbackDetails = {
                     fullName: rowFullName,
                     description: r.description || '',
-                    starCount: typeof r.starCount === 'number' ? r.starCount : 0,
-                    pullCount: typeof r.pullCount === 'number' ? r.pullCount : 0,
+                    starCount:
+                      typeof r.starCount === 'number' ? r.starCount : 0,
+                    pullCount:
+                      typeof r.pullCount === 'number' ? r.pullCount : 0,
                     lastUpdated: r.lastUpdated || '',
                   };
-                  const details = isSelected ? (inspectDetails || fallbackDetails) : null;
+                  const details = isSelected
+                    ? inspectDetails || fallbackDetails
+                    : null;
 
                   return (
                     <Fragment key={rowKey}>
                       <tr
-                        className={isSelected ? 'registry-search__row--selected' : ''}
+                        className={
+                          isSelected ? 'registry-search__row--selected' : ''
+                        }
                         style={{ cursor: 'pointer' }}
-                        onClick={() => selectSearchRepo({ ...r, fullName: rowFullName })}
+                        onClick={() =>
+                          selectSearchRepo({ ...r, fullName: rowFullName })
+                        }
                       >
                         <td>{rowFullName || '-'}</td>
                         {isDockerHub ? (
                           <>
                             <td>{r.description || '-'}</td>
-                            <td>{typeof r.starCount === 'number' ? r.starCount : '-'}</td>
-                            <td>{typeof r.pullCount === 'number' ? r.pullCount : '-'}</td>
-                            <td>{r.lastUpdated ? String(r.lastUpdated).slice(0, 10) : '-'}</td>
+                            <td>
+                              {typeof r.starCount === 'number'
+                                ? r.starCount
+                                : '-'}
+                            </td>
+                            <td>
+                              {typeof r.pullCount === 'number'
+                                ? r.pullCount
+                                : '-'}
+                            </td>
+                            <td>
+                              {r.lastUpdated
+                                ? String(r.lastUpdated).slice(0, 10)
+                                : '-'}
+                            </td>
                           </>
                         ) : null}
                       </tr>
 
                       {isSelected ? (
                         <tr>
-                          <td colSpan={isDockerHub ? 5 : 1} style={{ paddingTop: 0 }}>
-                            <div className="registry-search__inspect" style={{ marginTop: 0 }}>
+                          <td
+                            colSpan={isDockerHub ? 5 : 1}
+                            style={{ paddingTop: 0 }}
+                          >
+                            <div
+                              className="registry-search__inspect"
+                              style={{ marginTop: 0 }}
+                            >
                               {inspectLoading ? (
-                                <div className="registry-browser__muted" style={{ marginBottom: 8 }}>Loading details…</div>
+                                <div
+                                  className="registry-browser__muted"
+                                  style={{ marginBottom: 8 }}
+                                >
+                                  Loading details…
+                                </div>
                               ) : null}
 
                               {details ? (
                                 <>
                                   <div className="registry-search__inspectGrid">
                                     <div>
-                                      <div className="registry-search__inspectLabel">Repository</div>
-                                      <div className="registry-search__inspectValue">{details.fullName || rowFullName}</div>
+                                      <div className="registry-search__inspectLabel">
+                                        Repository
+                                      </div>
+                                      <div className="registry-search__inspectValue">
+                                        {details.fullName || rowFullName}
+                                      </div>
                                     </div>
                                     <div>
-                                      <div className="registry-search__inspectLabel">URL</div>
+                                      <div className="registry-search__inspectLabel">
+                                        URL
+                                      </div>
                                       <div className="registry-search__inspectValue">
                                         {formatRepoURL(details) ? (
                                           <a
                                             href={formatRepoURL(details)}
                                             target="_blank"
                                             rel="noreferrer"
-                                            style={{ color: 'inherit', textDecoration: 'underline' }}
+                                            style={{
+                                              color: 'inherit',
+                                              textDecoration: 'underline',
+                                            }}
                                           >
                                             {formatRepoURL(details)}
                                           </a>
@@ -527,27 +784,55 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                                     </div>
                                     {isDockerHub ? (
                                       <div>
-                                        <div className="registry-search__inspectLabel">Description</div>
-                                        <div className="registry-search__inspectValue">{details.description || '-'}</div>
+                                        <div className="registry-search__inspectLabel">
+                                          Description
+                                        </div>
+                                        <div className="registry-search__inspectValue">
+                                          {details.description || '-'}
+                                        </div>
                                       </div>
                                     ) : null}
                                     <div>
-                                      <div className="registry-search__inspectLabel">Size</div>
-                                      <div className="registry-search__inspectValue">{formatBytes(typeof details.sizeBytes === 'number' ? details.sizeBytes : 0)}</div>
+                                      <div className="registry-search__inspectLabel">
+                                        Size
+                                      </div>
+                                      <div className="registry-search__inspectValue">
+                                        {formatBytes(
+                                          typeof details.sizeBytes === 'number'
+                                            ? details.sizeBytes
+                                            : 0,
+                                        )}
+                                      </div>
                                     </div>
                                     {isDockerHub ? (
                                       <>
                                         <div>
-                                          <div className="registry-search__inspectLabel">Stars</div>
-                                          <div className="registry-search__inspectValue">{details.starCount ?? '-'}</div>
+                                          <div className="registry-search__inspectLabel">
+                                            Stars
+                                          </div>
+                                          <div className="registry-search__inspectValue">
+                                            {details.starCount ?? '-'}
+                                          </div>
                                         </div>
                                         <div>
-                                          <div className="registry-search__inspectLabel">Pulls</div>
-                                          <div className="registry-search__inspectValue">{details.pullCount ?? '-'}</div>
+                                          <div className="registry-search__inspectLabel">
+                                            Pulls
+                                          </div>
+                                          <div className="registry-search__inspectValue">
+                                            {details.pullCount ?? '-'}
+                                          </div>
                                         </div>
                                         <div>
-                                          <div className="registry-search__inspectLabel">Last Updated</div>
-                                          <div className="registry-search__inspectValue">{details.lastUpdated ? String(details.lastUpdated).slice(0, 19) : '-'}</div>
+                                          <div className="registry-search__inspectLabel">
+                                            Last Updated
+                                          </div>
+                                          <div className="registry-search__inspectValue">
+                                            {details.lastUpdated
+                                              ? String(
+                                                  details.lastUpdated,
+                                                ).slice(0, 19)
+                                              : '-'}
+                                          </div>
                                         </div>
                                       </>
                                     ) : null}
@@ -555,15 +840,24 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                                       <button
                                         className="registry-action-btn"
                                         disabled={pulling}
-                                        onClick={() => handlePullLatest((details.fullName || rowFullName), registryName)}
+                                        onClick={() =>
+                                          handlePullLatest(
+                                            details.fullName || rowFullName,
+                                            registryName,
+                                          )
+                                        }
                                       >
                                         Pull
                                       </button>
                                     </div>
                                     {inspectError ? (
                                       <div style={{ gridColumn: '1 / -1' }}>
-                                        <div className="registry-search__inspectLabel">Error</div>
-                                        <div className="registry-search__inspectValue">{inspectError}</div>
+                                        <div className="registry-search__inspectLabel">
+                                          Error
+                                        </div>
+                                        <div className="registry-search__inspectValue">
+                                          {inspectError}
+                                        </div>
                                       </div>
                                     ) : null}
                                   </div>

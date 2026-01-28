@@ -61,7 +61,9 @@ describe('QuickInfoSection', () => {
     const onRefresh = vi.fn();
     const data = { anything: true };
     const fields = [{ key: 'anything', label: 'X' }];
-    render(<QuickInfoSection data={data} fields={fields} onRefresh={onRefresh} />);
+    render(
+      <QuickInfoSection data={data} fields={fields} onRefresh={onRefresh} />,
+    );
     fireEvent.click(screen.getByRole('button', { name: /refresh/i }));
     expect(onRefresh).toHaveBeenCalled();
   });

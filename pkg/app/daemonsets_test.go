@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -212,6 +213,44 @@ func TestGetDaemonSets_Details(t *testing.T) {
 	}
 	if d.Labels["version"] != "1.14" {
 		t.Errorf("expected label version=1.14, got %q", d.Labels["version"])
+	}
+}
+
+func TestStartDaemonSetPolling_ListActions(t *testing.T) {
+	disableWailsEvents = true
+
+	clientset := fake.NewSimpleClientset(&appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "ds-1", Namespace: "default"},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "x"}},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "x"}},
+				Spec:       v1.PodSpec{},
+			},
+		},
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:              ctx,
+		currentNamespace: "default",
+		testClientset:    clientset,
+	}
+
+	app.StartDaemonSetPolling()
+	start := time.Now()
+	for time.Since(start) < 1500*time.Millisecond {
+		if hasListAction(clientset.Actions(), "daemonsets") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+
+	if !hasListAction(clientset.Actions(), "daemonsets") {
+		t.Fatalf("expected daemonsets list action")
 	}
 }
 

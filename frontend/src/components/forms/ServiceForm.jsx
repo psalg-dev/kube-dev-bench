@@ -31,7 +31,13 @@ export default function ServiceForm({ data, onChange, errors }) {
         placeholder="nginx:latest"
       />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 16 }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+          gap: 16,
+        }}
+      >
         <SelectField
           id="swarm-service-mode"
           label="Mode"
@@ -58,17 +64,30 @@ export default function ServiceForm({ data, onChange, errors }) {
         )}
       </div>
 
-      <CollapsibleSection id="swarm-port-mappings-section" title="Port Mappings" count={d.ports?.length || 0}>
+      <CollapsibleSection
+        id="swarm-port-mappings-section"
+        title="Port Mappings"
+        count={d.ports?.length || 0}
+      >
         <PortMappingEditor
           ports={d.ports}
           onChange={(ports) => onChange({ ...d, ports })}
         />
         {e.ports ? (
-          <div style={{ marginTop: 8, fontSize: 12, color: '#f14c4c' }} role="alert">{e.ports}</div>
+          <div
+            style={{ marginTop: 8, fontSize: 12, color: '#f14c4c' }}
+            role="alert"
+          >
+            {e.ports}
+          </div>
         ) : null}
       </CollapsibleSection>
 
-      <CollapsibleSection id="swarm-env-vars-section" title="Environment Variables" count={d.env?.length || 0}>
+      <CollapsibleSection
+        id="swarm-env-vars-section"
+        title="Environment Variables"
+        count={d.env?.length || 0}
+      >
         <KeyValueEditor
           title="Environment Variables"
           rows={d.env}
@@ -81,7 +100,11 @@ export default function ServiceForm({ data, onChange, errors }) {
         />
       </CollapsibleSection>
 
-      <CollapsibleSection id="swarm-labels-section" title="Labels" count={d.labels?.length || 0}>
+      <CollapsibleSection
+        id="swarm-labels-section"
+        title="Labels"
+        count={d.labels?.length || 0}
+      >
         <KeyValueEditor
           title="Labels"
           rows={d.labels}

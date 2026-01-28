@@ -43,7 +43,7 @@ describe('SwarmSidebarSections', () => {
     const { container } = render(
       <MemoryRouter>
         <SwarmSidebarSections selected="swarm-overview" onSelect={() => {}} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     // Labels
@@ -59,14 +59,32 @@ describe('SwarmSidebarSections', () => {
     expect(screen.getByText('Registries')).toBeTruthy();
 
     // Counts (scoped to avoid duplicates like "2")
-    expect(within(container.querySelector('#section-swarm-services')).getByText('3')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-tasks')).getByText('10')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-nodes')).getByText('2')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-stacks')).getByText('1')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-networks')).getByText('5')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-configs')).getByText('2')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-volumes')).getByText('4')).toBeTruthy();
-    expect(within(container.querySelector('#section-swarm-registries')).getByText('7')).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-services')).getByText('3'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-tasks')).getByText('10'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-nodes')).getByText('2'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-stacks')).getByText('1'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-networks')).getByText('5'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-configs')).getByText('2'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-volumes')).getByText('4'),
+    ).toBeTruthy();
+    expect(
+      within(container.querySelector('#section-swarm-registries')).getByText(
+        '7',
+      ),
+    ).toBeTruthy();
   });
 
   it('calls onSelect with the clicked section key and stops propagation', () => {
@@ -78,7 +96,7 @@ describe('SwarmSidebarSections', () => {
         <div onClick={parentOnClick}>
           <SwarmSidebarSections selected="swarm-overview" onSelect={onSelect} />
         </div>
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const services = container.querySelector('#section-swarm-services');
@@ -97,7 +115,7 @@ describe('SwarmSidebarSections', () => {
     const { container } = render(
       <MemoryRouter>
         <SwarmSidebarSections selected="swarm-tasks" onSelect={() => {}} />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const tasks = container.querySelector('#section-swarm-tasks');

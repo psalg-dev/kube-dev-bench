@@ -12,37 +12,43 @@ describe('HolmesConfigModal', () => {
 
   it('does not render when showConfig is false', () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: false,
-          enabled: false,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: false,
+            enabled: false,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
-    expect(screen.queryByText('Holmes AI Configuration')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Holmes AI Configuration'),
+    ).not.toBeInTheDocument();
   });
 
   it('renders when showConfig is true', () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: false,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: false,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     expect(screen.getByText('Holmes AI Configuration')).toBeInTheDocument();
@@ -50,25 +56,29 @@ describe('HolmesConfigModal', () => {
     expect(screen.getByLabelText('Holmes Endpoint')).toBeInTheDocument();
     expect(screen.getByLabelText('API Key (optional)')).toBeInTheDocument();
     expect(screen.getByLabelText('Model key (optional)')).toBeInTheDocument();
-    expect(screen.getByLabelText('Response format (JSON schema, optional)')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Response format (JSON schema, optional)'),
+    ).toBeInTheDocument();
   });
 
   it('shows pre-filled values from state', () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: true,
-          endpoint: 'http://holmes.test:8080',
-          modelKey: 'fast-model',
-          responseFormat: '{"type":"json_schema"}',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: true,
+            endpoint: 'http://holmes.test:8080',
+            modelKey: 'fast-model',
+            responseFormat: '{"type":"json_schema"}',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const checkbox = screen.getByRole('checkbox');
@@ -80,24 +90,28 @@ describe('HolmesConfigModal', () => {
     const modelKeyInput = screen.getByLabelText('Model key (optional)');
     expect(modelKeyInput).toHaveValue('fast-model');
 
-    const responseFormatInput = screen.getByLabelText('Response format (JSON schema, optional)');
+    const responseFormatInput = screen.getByLabelText(
+      'Response format (JSON schema, optional)',
+    );
     expect(responseFormatInput).toHaveValue('{"type":"json_schema"}');
   });
 
   it('disables inputs when Holmes is disabled', () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: false,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: false,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const endpointInput = screen.getByLabelText('Holmes Endpoint');
@@ -109,24 +123,28 @@ describe('HolmesConfigModal', () => {
     const modelKeyInput = screen.getByLabelText('Model key (optional)');
     expect(modelKeyInput).toBeDisabled();
 
-    const responseFormatInput = screen.getByLabelText('Response format (JSON schema, optional)');
+    const responseFormatInput = screen.getByLabelText(
+      'Response format (JSON schema, optional)',
+    );
     expect(responseFormatInput).toBeDisabled();
   });
 
   it('enables inputs when Holmes is enabled', async () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: false,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: false,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     // Enable Holmes
@@ -143,18 +161,20 @@ describe('HolmesConfigModal', () => {
     const mockSaveConfig = vi.fn().mockResolvedValue(undefined);
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: true,
-          endpoint: 'http://test:8080',
-        },
-        saveConfig: mockSaveConfig,
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: true,
+            endpoint: 'http://test:8080',
+          },
+          saveConfig: mockSaveConfig,
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const saveButton = screen.getByRole('button', { name: /Save/ });
@@ -169,18 +189,20 @@ describe('HolmesConfigModal', () => {
     const mockTestConnection = vi.fn().mockResolvedValue({ connected: true });
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: true,
-          endpoint: 'http://test:8080',
-        },
-        saveConfig: vi.fn(),
-        testConnection: mockTestConnection,
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: true,
+            endpoint: 'http://test:8080',
+          },
+          saveConfig: vi.fn(),
+          testConnection: mockTestConnection,
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const testButton = screen.getByRole('button', { name: /Test Connection/ });
@@ -195,18 +217,20 @@ describe('HolmesConfigModal', () => {
     const mockHideConfigModal = vi.fn();
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: false,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: mockHideConfigModal,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: false,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: mockHideConfigModal,
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const cancelButton = screen.getByRole('button', { name: /Cancel/ });
@@ -219,18 +243,20 @@ describe('HolmesConfigModal', () => {
     const mockHideConfigModal = vi.fn();
 
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: false,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: mockHideConfigModal,
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: false,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: mockHideConfigModal,
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const closeButton = screen.getByTitle('Close');
@@ -241,18 +267,20 @@ describe('HolmesConfigModal', () => {
 
   it('disables Test Connection when no endpoint', () => {
     render(
-      <HolmesContext.Provider value={{
-        state: {
-          showConfig: true,
-          enabled: true,
-          endpoint: '',
-        },
-        saveConfig: vi.fn(),
-        testConnection: vi.fn(),
-        hideConfigModal: vi.fn(),
-      }}>
+      <HolmesContext.Provider
+        value={{
+          state: {
+            showConfig: true,
+            enabled: true,
+            endpoint: '',
+          },
+          saveConfig: vi.fn(),
+          testConnection: vi.fn(),
+          hideConfigModal: vi.fn(),
+        }}
+      >
         <HolmesConfigModal />
-      </HolmesContext.Provider>
+      </HolmesContext.Provider>,
     );
 
     const testButton = screen.getByRole('button', { name: /Test Connection/ });

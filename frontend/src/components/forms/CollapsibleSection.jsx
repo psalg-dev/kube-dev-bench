@@ -1,9 +1,18 @@
 import { useMemo, useState } from 'react';
 
-export default function CollapsibleSection({ id, title, count, defaultOpen = false, children }) {
+export default function CollapsibleSection({
+  id,
+  title,
+  count,
+  defaultOpen = false,
+  children,
+}) {
   const [open, setOpen] = useState(!!defaultOpen);
   const caret = open ? '▼' : '▶';
-  const headerText = useMemo(() => `${caret} ${title} (${count ?? 0})`, [caret, title, count]);
+  const headerText = useMemo(
+    () => `${caret} ${title} (${count ?? 0})`,
+    [caret, title, count],
+  );
 
   return (
     <div id={id} style={{ borderTop: '1px solid #3c3c3c', paddingTop: 10 }}>
@@ -23,11 +32,7 @@ export default function CollapsibleSection({ id, title, count, defaultOpen = fal
       >
         {headerText}
       </button>
-      {open ? (
-        <div style={{ marginTop: 10 }}>
-          {children}
-        </div>
-      ) : null}
+      {open ? <div style={{ marginTop: 10 }}>{children}</div> : null}
     </div>
   );
 }

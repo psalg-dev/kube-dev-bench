@@ -23,7 +23,7 @@ describe('ResourceEventsTab', () => {
         namespace="default"
         kind="Deployment"
         name="test-deploy"
-      />
+      />,
     );
 
     expect(screen.getByText(/loading events/i)).toBeInTheDocument();
@@ -56,7 +56,7 @@ describe('ResourceEventsTab', () => {
         namespace="default"
         kind="Deployment"
         name="test-deploy"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -76,7 +76,7 @@ describe('ResourceEventsTab', () => {
         namespace="test-ns"
         kind="StatefulSet"
         name="test-sts"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -85,14 +85,12 @@ describe('ResourceEventsTab', () => {
   });
 
   it('renders error state when API fails', async () => {
-    AppAPI.GetResourceEvents.mockRejectedValue(new Error('API connection failed'));
+    AppAPI.GetResourceEvents.mockRejectedValue(
+      new Error('API connection failed'),
+    );
 
     render(
-      <ResourceEventsTab
-        namespace="default"
-        kind="DaemonSet"
-        name="test-ds"
-      />
+      <ResourceEventsTab namespace="default" kind="DaemonSet" name="test-ds" />,
     );
 
     await waitFor(() => {
@@ -110,14 +108,14 @@ describe('ResourceEventsTab', () => {
         namespace="my-namespace"
         kind="ReplicaSet"
         name="my-replicaset"
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(AppAPI.GetResourceEvents).toHaveBeenCalledWith(
         'my-namespace',
         'ReplicaSet',
-        'my-replicaset'
+        'my-replicaset',
       );
     });
   });
@@ -145,11 +143,7 @@ describe('ResourceEventsTab', () => {
     AppAPI.GetResourceEvents.mockResolvedValue(mockEvents);
 
     render(
-      <ResourceEventsTab
-        namespace="default"
-        kind="Pod"
-        name="test-pod"
-      />
+      <ResourceEventsTab namespace="default" kind="Pod" name="test-pod" />,
     );
 
     await waitFor(() => {
@@ -166,14 +160,14 @@ describe('ResourceEventsTab', () => {
         namespace="default"
         resourceKind="Job"
         resourceName="test-job"
-      />
+      />,
     );
 
     await waitFor(() => {
       expect(AppAPI.GetResourceEvents).toHaveBeenCalledWith(
         'default',
         'Job',
-        'test-job'
+        'test-job',
       );
     });
   });
@@ -186,7 +180,7 @@ describe('ResourceEventsTab', () => {
         namespace="default"
         kind="CronJob"
         name="test-cronjob"
-      />
+      />,
     );
 
     await waitFor(() => {

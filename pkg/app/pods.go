@@ -479,20 +479,39 @@ func (a *App) StopPortForward(namespace, podName string, localPort int) error {
 	}
 	// Try exact same-port key for backward compatibility
 	keySame := portForwardKey(namespace, podName, localPort)
-	if v, ok := portForwardSessions.Load(keySame); ok {
-		sess := v.(*PortForwardSession)
-		if sess.Cancel != nil {
-			sess.Cancel()
-		}
-		if sess.Cmd != nil && sess.Cmd.Process != nil {
-			_ = sess.Cmd.Process.Kill()
-		}
-		portForwardSessions.Delete(keySame)
-		// emit snapshot after stop
-		a.emitPortForwardsUpdate()
+	if a.stopPortForwardByKey(keySame) {
 		return nil
 	}
 	// Otherwise, find any session for ns/pod with matching local port
+	foundKey := findPortForwardKey(namespace, podName, localPort)
+	if foundKey == "" {
+		return fmt.Errorf("no port-forward running for %s/%s on local %d", namespace, podName, localPort)
+	}
+	if a.stopPortForwardByKey(foundKey) {
+		return nil
+	}
+	return fmt.Errorf("session disappeared for %s", foundKey)
+}
+
+func (a *App) stopPortForwardByKey(key string) bool {
+	v, ok := portForwardSessions.Load(key)
+	if !ok {
+		return false
+	}
+	sess := v.(*PortForwardSession)
+	if sess.Cancel != nil {
+		sess.Cancel()
+	}
+	if sess.Cmd != nil && sess.Cmd.Process != nil {
+		_ = sess.Cmd.Process.Kill()
+	}
+	portForwardSessions.Delete(key)
+	// Emit snapshot after stop.
+	a.emitPortForwardsUpdate()
+	return true
+}
+
+func findPortForwardKey(namespace, podName string, localPort int) string {
 	prefix := fmt.Sprintf("%s/%s:", namespace, podName)
 	var foundKey string
 	portForwardSessions.Range(func(k, v any) bool {
@@ -510,23 +529,7 @@ func (a *App) StopPortForward(namespace, podName string, localPort int) error {
 		}
 		return true
 	})
-	if foundKey == "" {
-		return fmt.Errorf("no port-forward running for %s on local %d", prefix[:len(prefix)-1], localPort)
-	}
-	if v, ok := portForwardSessions.Load(foundKey); ok {
-		sess := v.(*PortForwardSession)
-		if sess.Cancel != nil {
-			sess.Cancel()
-		}
-		if sess.Cmd != nil && sess.Cmd.Process != nil {
-			_ = sess.Cmd.Process.Kill()
-		}
-		portForwardSessions.Delete(foundKey)
-		// emit snapshot after stop
-		a.emitPortForwardsUpdate()
-		return nil
-	}
-	return fmt.Errorf("session disappeared for %s", foundKey)
+	return foundKey
 }
 
 // GetRunningPods returns all running (and pending) pods (name, restarts, uptime) in a namespace
@@ -602,10 +605,18 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 // StartPodPolling emits pods:update events every second with the current pod list
 func (a *App) StartPodPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			// Determine namespaces to poll
 			nsList := a.preferredNamespaces
@@ -623,7 +634,7 @@ func (a *App) StartPodPolling() {
 				}
 				all = append(all, pods...)
 			}
-			emitEvent(a.ctx, "pods:update", all)
+			emitEvent(ctx, "pods:update", all)
 		}
 	}()
 }

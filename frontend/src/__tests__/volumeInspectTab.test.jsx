@@ -34,14 +34,19 @@ describe('VolumeInspectTab', () => {
 
   it('shows loading initially and passes stable props to TextViewerTab', async () => {
     const swarmApi = await import('../docker/swarmApi.js');
-    swarmApi.GetSwarmVolumeInspectJSON.mockImplementation(() => new Promise(() => {}));
+    swarmApi.GetSwarmVolumeInspectJSON.mockImplementation(
+      () => new Promise(() => {}),
+    );
 
-    const { default: VolumeInspectTab } = await import('../docker/resources/volumes/VolumeInspectTab.jsx');
+    const { default: VolumeInspectTab } =
+      await import('../docker/resources/volumes/VolumeInspectTab.jsx');
 
     render(<VolumeInspectTab volumeName="myvol" />);
 
     expect(screen.getByTestId('tv-loading').textContent).toBe('true');
-    expect(screen.getByTestId('tv-label').textContent).toBe('Loading volume inspect...');
+    expect(screen.getByTestId('tv-label').textContent).toBe(
+      'Loading volume inspect...',
+    );
     expect(screen.getByTestId('tv-filename').textContent).toBe('myvol.json');
 
     await waitFor(() => {
@@ -51,9 +56,12 @@ describe('VolumeInspectTab', () => {
 
   it('renders content on success', async () => {
     const swarmApi = await import('../docker/swarmApi.js');
-    swarmApi.GetSwarmVolumeInspectJSON.mockResolvedValueOnce('{"Name":"myvol"}');
+    swarmApi.GetSwarmVolumeInspectJSON.mockResolvedValueOnce(
+      '{"Name":"myvol"}',
+    );
 
-    const { default: VolumeInspectTab } = await import('../docker/resources/volumes/VolumeInspectTab.jsx');
+    const { default: VolumeInspectTab } =
+      await import('../docker/resources/volumes/VolumeInspectTab.jsx');
 
     render(<VolumeInspectTab volumeName="myvol" />);
 
@@ -62,14 +70,17 @@ describe('VolumeInspectTab', () => {
     });
 
     expect(screen.getByTestId('tv-error').textContent).toBe('');
-    expect(screen.getByTestId('tv-content').textContent).toBe('{"Name":"myvol"}');
+    expect(screen.getByTestId('tv-content').textContent).toBe(
+      '{"Name":"myvol"}',
+    );
   });
 
   it('renders empty content for null-ish results', async () => {
     const swarmApi = await import('../docker/swarmApi.js');
     swarmApi.GetSwarmVolumeInspectJSON.mockResolvedValueOnce(null);
 
-    const { default: VolumeInspectTab } = await import('../docker/resources/volumes/VolumeInspectTab.jsx');
+    const { default: VolumeInspectTab } =
+      await import('../docker/resources/volumes/VolumeInspectTab.jsx');
 
     render(<VolumeInspectTab volumeName="myvol" />);
 
@@ -84,7 +95,8 @@ describe('VolumeInspectTab', () => {
     const swarmApi = await import('../docker/swarmApi.js');
     swarmApi.GetSwarmVolumeInspectJSON.mockRejectedValueOnce(new Error('boom'));
 
-    const { default: VolumeInspectTab } = await import('../docker/resources/volumes/VolumeInspectTab.jsx');
+    const { default: VolumeInspectTab } =
+      await import('../docker/resources/volumes/VolumeInspectTab.jsx');
 
     render(<VolumeInspectTab volumeName="myvol" />);
 
@@ -100,7 +112,8 @@ describe('VolumeInspectTab', () => {
     const d = deferred();
     swarmApi.GetSwarmVolumeInspectJSON.mockReturnValueOnce(d.promise);
 
-    const { default: VolumeInspectTab } = await import('../docker/resources/volumes/VolumeInspectTab.jsx');
+    const { default: VolumeInspectTab } =
+      await import('../docker/resources/volumes/VolumeInspectTab.jsx');
 
     const { unmount } = render(<VolumeInspectTab volumeName="myvol" />);
 

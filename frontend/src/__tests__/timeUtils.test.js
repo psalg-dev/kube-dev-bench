@@ -36,13 +36,27 @@ describe('timeUtils', () => {
     });
 
     it('formats recent times with friendly phrasing', () => {
-      expect(formatRelativeTime(new Date('2026-01-11T00:00:00.000Z'))).toBe('just now');
-      expect(formatRelativeTime(new Date('2026-01-10T23:59:00.000Z'))).toBe('1 minute ago');
-      expect(formatRelativeTime(new Date('2026-01-10T23:58:00.000Z'))).toBe('2 minutes ago');
-      expect(formatRelativeTime(new Date('2026-01-10T23:00:00.000Z'))).toBe('1 hour ago');
-      expect(formatRelativeTime(new Date('2026-01-10T22:00:00.000Z'))).toBe('2 hours ago');
-      expect(formatRelativeTime(new Date('2026-01-10T00:00:00.000Z'))).toBe('yesterday');
-      expect(formatRelativeTime(new Date('2026-01-08T00:00:00.000Z'))).toBe('3 days ago');
+      expect(formatRelativeTime(new Date('2026-01-11T00:00:00.000Z'))).toBe(
+        'just now',
+      );
+      expect(formatRelativeTime(new Date('2026-01-10T23:59:00.000Z'))).toBe(
+        '1 minute ago',
+      );
+      expect(formatRelativeTime(new Date('2026-01-10T23:58:00.000Z'))).toBe(
+        '2 minutes ago',
+      );
+      expect(formatRelativeTime(new Date('2026-01-10T23:00:00.000Z'))).toBe(
+        '1 hour ago',
+      );
+      expect(formatRelativeTime(new Date('2026-01-10T22:00:00.000Z'))).toBe(
+        '2 hours ago',
+      );
+      expect(formatRelativeTime(new Date('2026-01-10T00:00:00.000Z'))).toBe(
+        'yesterday',
+      );
+      expect(formatRelativeTime(new Date('2026-01-08T00:00:00.000Z'))).toBe(
+        '3 days ago',
+      );
     });
   });
 });

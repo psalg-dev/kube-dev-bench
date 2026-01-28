@@ -48,7 +48,13 @@ export default function ConfigDataTab({ configId, configName }) {
 
   if (loading) {
     return (
-      <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+      <div
+        style={{
+          padding: 32,
+          textAlign: 'center',
+          color: 'var(--gh-text-secondary)',
+        }}
+      >
         Loading config data...
       </div>
     );
@@ -65,7 +71,16 @@ export default function ConfigDataTab({ configId, configName }) {
   const templateVars = extractTemplateVariables(data);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', gap: 10, padding: 12 }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+        padding: 12,
+      }}
+    >
       {templateVars.length > 0 ? (
         <div
           style={{
@@ -78,12 +93,25 @@ export default function ConfigDataTab({ configId, configName }) {
             lineHeight: 1.4,
           }}
         >
-          <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)', marginBottom: 6 }}>
+          <div
+            style={{
+              fontWeight: 600,
+              color: 'var(--gh-text, #c9d1d9)',
+              marginBottom: 6,
+            }}
+          >
             Detected template variables
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {templateVars.map((v) => (
-              <span key={v} style={{ border: '1px solid var(--gh-border, #30363d)', borderRadius: 999, padding: '2px 8px' }}>
+              <span
+                key={v}
+                style={{
+                  border: '1px solid var(--gh-border, #30363d)',
+                  borderRadius: 999,
+                  padding: '2px 8px',
+                }}
+              >
                 {v}
               </span>
             ))}
@@ -91,7 +119,15 @@ export default function ConfigDataTab({ configId, configName }) {
         </div>
       ) : null}
 
-      <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--gh-border, #30363d)', borderRadius: 6, overflow: 'hidden' }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          border: '1px solid var(--gh-border, #30363d)',
+          borderRadius: 6,
+          overflow: 'hidden',
+        }}
+      >
         <TextViewerTab
           content={data || '(empty)'}
           loading={false}

@@ -5,19 +5,23 @@ import PVCapacityUsageTab from '../k8s/resources/persistentvolumes/PVCapacityUsa
 describe('PVCapacityUsageTab', () => {
   it('displays PV name in message', () => {
     render(<PVCapacityUsageTab pvName="my-nfs-volume" />);
-    
+
     expect(screen.getByText(/my-nfs-volume/)).toBeInTheDocument();
   });
 
   it('displays capacity usage not available message', () => {
     render(<PVCapacityUsageTab pvName="test-pv" />);
-    
-    expect(screen.getByText(/Capacity usage metrics are not available/)).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/Capacity usage metrics are not available/),
+    ).toBeInTheDocument();
   });
 
   it('displays hint about volume usage metrics', () => {
     render(<PVCapacityUsageTab pvName="test-pv" />);
-    
-    expect(screen.getByText(/If your cluster exposes volume usage metrics/)).toBeInTheDocument();
+
+    expect(
+      screen.getByText(/If your cluster exposes volume usage metrics/),
+    ).toBeInTheDocument();
   });
 });

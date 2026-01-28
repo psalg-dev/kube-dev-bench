@@ -51,7 +51,13 @@ function ConnectionsSidebar({ onConnect }) {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--gh-text-secondary, #ccc)' }}>
+        <span
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: 'var(--gh-text-secondary, #ccc)',
+          }}
+        >
           Connections
         </span>
       </div>
@@ -89,14 +95,27 @@ function ConnectionsSidebar({ onConnect }) {
         {/* Pinned connections section */}
         {pinnedConnections.length > 0 && (
           <>
-            <hr style={{ border: 'none', borderTop: '1px solid var(--gh-border, #30363d)', margin: '16px 0' }} />
+            <hr
+              style={{
+                border: 'none',
+                borderTop: '1px solid var(--gh-border, #30363d)',
+                margin: '16px 0',
+              }}
+            />
             <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gh-text-muted, #8b949e)' }}>
+              <span
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--gh-text-muted, #8b949e)',
+                }}
+              >
                 PINNED
               </span>
             </div>
             {pinnedConnections.map((conn) => {
-              const isSelected = selectedSection === `pinned-${conn.type}-${conn.id}`;
+              const isSelected =
+                selectedSection === `pinned-${conn.type}-${conn.id}`;
               const connKey = `${conn.type}-${conn.id}`;
               const isConnecting = connecting === connKey;
 
@@ -107,7 +126,11 @@ function ConnectionsSidebar({ onConnect }) {
                 try {
                   // For pinned connections, directly connect
                   if (conn.type === 'kubernetes') {
-                    const config = { path: conn.path || conn.id, name: conn.name, contexts: conn.contexts };
+                    const config = {
+                      path: conn.path || conn.id,
+                      name: conn.name,
+                      contexts: conn.contexts,
+                    };
                     const success = await actions.connectKubeConfig(config);
                     if (success && onConnect) {
                       onConnect();
@@ -127,7 +150,10 @@ function ConnectionsSidebar({ onConnect }) {
                       onConnect();
                     } else if (!result?.connected) {
                       // Show error in console for debugging - error is visible in the main view
-                      console.warn('Docker Swarm connection failed:', result?.error || 'Unknown error');
+                      console.warn(
+                        'Docker Swarm connection failed:',
+                        result?.error || 'Unknown error',
+                      );
                     }
                   }
                 } finally {
@@ -145,9 +171,15 @@ function ConnectionsSidebar({ onConnect }) {
                     opacity: isConnecting ? 0.6 : 1,
                   }}
                   onClick={handlePinnedClick}
-                  title={isConnecting ? 'Connecting...' : `Click to connect to ${conn.name}`}
+                  title={
+                    isConnecting
+                      ? 'Connecting...'
+                      : `Click to connect to ${conn.name}`
+                  }
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                  >
                     <span>{conn.type === 'kubernetes' ? '☸️' : '🐳'}</span>
                     <span style={{ fontSize: 13 }}>
                       {isConnecting ? 'Connecting...' : conn.name}
@@ -169,7 +201,13 @@ function ConnectionsSidebar({ onConnect }) {
       </div>
 
       {/* Footer with proxy settings */}
-      <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--gh-border, #30363d)' }}>
+      <div
+        style={{
+          marginTop: 'auto',
+          paddingTop: 16,
+          borderTop: '1px solid var(--gh-border, #30363d)',
+        }}
+      >
         <button
           id="global-proxy-settings-btn"
           onClick={() => actions.showProxySettings(true)}

@@ -8,7 +8,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import {EventsOff, EventsOn} from '../../../../wailsjs/runtime';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
 import PodSummaryTab from './PodSummaryTab';
 import PodEventsTab from './PodEventsTab';
@@ -21,8 +21,9 @@ import PodMountsTab from './PodMountsTab';
 import PodFilesTab from './PodFilesTab';
 import '../../../layout/overview/OverviewTableWithPanel.css';
 import { showResourceOverlay } from '../../../resource-overlay.js';
-import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHolmesStream } from '../../../holmes/holmesApi';
+import { AnalyzePodStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import useHolmesStream from '../../../holmes/useHolmesStream';
 import StatusBadge from '../../../components/StatusBadge.jsx';
 
 // Resource types matching sidebar and templates in resource-overlay.js
@@ -38,7 +39,13 @@ const createOptions = [
   { key: 'ingress', label: 'Ingress' },
 ];
 
-export default function PodOverviewTable({ namespace, namespaces = [], data = [], loading = false, _onCreateResource }) {
+export default function PodOverviewTable({
+  namespace,
+  namespaces = [],
+  data = [],
+  loading = false,
+  _onCreateResource,
+}) {
   const [now, setNow] = useState(Date.now());
   // Default sorting: uptime ascending (youngest at top)
   const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
@@ -58,148 +65,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   const [forwardRemotePort, setForwardRemotePort] = useState(null);
   const [internalData, setInternalData] = useState([]);
   const [pfByKey, setPfByKey] = useState({}); // key: ns/pod -> { remotePort: [locals] }
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
-  });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
-
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId, _streamingText, _key } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let data;
-      try {
-        data = JSON.parse(payload.data);
-      } catch {
-        data = null;
-      }
-
-      if (eventType === 'ai_message' && data) {
-        let handled = false;
-        if (data.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + data.reasoning,
-          }));
-          handled = true;
-        }
-        if (data.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + data.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && data && data.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: data.id,
-            name: data.tool_name || 'tool',
-            status: 'running',
-            description: data.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && data && data.tool_call_id) {
-        const status = data.result?.status || data.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === data.tool_call_id
-              ? { ...item, status, description: data.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && data && data.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: data.analysis },
-          streamingText: data.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
+  const { holmesState, startAnalysis, cancelAnalysis } = useHolmesStream();
 
   const multiNs = Array.isArray(namespaces) && namespaces.length > 1;
 
@@ -226,7 +92,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   };
 
   const refreshPods = useCallback(async () => {
-    const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
+    const selected =
+      Array.isArray(namespaces) && namespaces.length > 0
+        ? namespaces
+        : [namespace];
     const targetNamespaces = selected.filter(Boolean);
     if (targetNamespaces.length === 0) return;
 
@@ -234,8 +103,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       const results = await Promise.all(
         targetNamespaces.map(async (ns) => {
           const pods = await AppAPI.GetRunningPods(ns);
-          return (Array.isArray(pods) ? pods : []).map((p) => normalizePod(p, ns));
-        })
+          return (Array.isArray(pods) ? pods : []).map((p) =>
+            normalizePod(p, ns),
+          );
+        }),
       );
       const combined = results.flat();
       if (mountedRef.current) {
@@ -253,7 +124,9 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     };
     EventsOn('pods:update', handler);
     return () => {
-      try { EventsOff('pods:update'); } catch (_) {}
+      try {
+        EventsOff('pods:update');
+      } catch (_) {}
     };
   }, []);
 
@@ -264,14 +137,19 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       const res = (eventData?.resource || '').toString().toLowerCase();
       if (res !== 'pod' && res !== 'pods') return;
       const ns = (eventData?.namespace || '').toString();
-      const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
+      const selected =
+        Array.isArray(namespaces) && namespaces.length > 0
+          ? namespaces
+          : [namespace];
       if (ns && !selected.includes(ns)) return;
       refreshPods();
     };
 
     const unsubscribe = EventsOn('resource-updated', onUpdate);
     return () => {
-      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
+      try {
+        EventsOff('resource-updated', unsubscribe);
+      } catch (_) {}
     };
   }, [namespace, namespaces, refreshPods]);
 
@@ -291,7 +169,13 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
           const pod = item.pod || item.Pod;
           const local = item.local ?? item.Local;
           const remote = item.remote ?? item.Remote;
-          if (!ns || !pod || !Number.isFinite(local) || !Number.isFinite(remote)) continue;
+          if (
+            !ns ||
+            !pod ||
+            !Number.isFinite(local) ||
+            !Number.isFinite(remote)
+          )
+            continue;
           const key = `${ns}/${pod}`;
           if (!map[key]) map[key] = {};
           if (!map[key][remote]) map[key][remote] = [];
@@ -312,15 +196,24 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       } catch (_) {}
     };
     maybeFetch();
-    return () => { try { EventsOff('portforwards:update'); } catch (_) {} };
+    return () => {
+      try {
+        EventsOff('portforwards:update');
+      } catch (_) {}
+    };
   }, []);
 
-  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   // ensure backend current namespace aligns with the row we're operating on
   async function ensureNamespace(ns) {
     if (!ns) return;
-    try { await AppAPI.SetCurrentNamespace(ns); } catch (_) {}
+    try {
+      await AppAPI.SetCurrentNamespace(ns);
+    } catch (_) {}
   }
 
   useEffect(() => {
@@ -332,7 +225,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     if (openMenuIndex === null) return;
 
     const handleClick = (e) => {
-      if (e.target.closest('.menu-content') || e.target.closest('.row-actions-button')) return;
+      if (
+        e.target.closest('.menu-content') ||
+        e.target.closest('.row-actions-button')
+      )
+        return;
       setOpenMenuIndex(null);
     };
 
@@ -343,7 +240,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     };
 
     const handleFocusIn = (e) => {
-      if (e.target.closest('.menu-content') || e.target.closest('.row-actions-button')) return;
+      if (
+        e.target.closest('.menu-content') ||
+        e.target.closest('.row-actions-button')
+      )
+        return;
       setOpenMenuIndex(null);
     };
 
@@ -369,9 +270,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
     const handleClick = (e) => {
       // Don't close if we're resizing or if the click is within the bottom panel
-      if (e.target.closest('.bottom-panel') ||
-          e.target.closest('[data-resizing]') ||
-          document.body.style.cursor === 'ns-resize') {
+      if (
+        e.target.closest('.bottom-panel') ||
+        e.target.closest('[data-resizing]') ||
+        document.body.style.cursor === 'ns-resize'
+      ) {
         return;
       }
       closeBottomPanel();
@@ -395,97 +298,151 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     e.stopPropagation();
   }
 
-  function formatUptime(startTime) {
-    if (!startTime) return '-';
-    const start = new Date(startTime).getTime();
-    if (isNaN(start)) return '-';
-    let diff = Math.floor((now - start) / 1000);
-    if (diff < 0) diff = 0;
-    const h = Math.floor(diff / 3600);
-    const m = Math.floor((diff % 3600) / 60);
-    const s = diff % 60;
-    return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
-  }
+  const formatUptime = useCallback(
+    (startTime) => {
+      if (!startTime) return '-';
+      const start = new Date(startTime).getTime();
+      if (isNaN(start)) return '-';
+      let diff = Math.floor((now - start) / 1000);
+      if (diff < 0) diff = 0;
+      const h = Math.floor(diff / 3600);
+      const m = Math.floor((diff % 3600) / 60);
+      const s = diff % 60;
+      return `${h > 0 ? h + 'h ' : ''}${m > 0 ? m + 'm ' : ''}${s}s`;
+    },
+    [now],
+  );
 
-  function renderPortsCell(pod) {
-    const ports = pod?.ports || [];
-    if (!ports || ports.length === 0) return '-';
-    const key = `${pod.namespace || ''}/${pod.name}`;
-    const fForPod = pfByKey[key] || {};
-    const sorted = [...ports].sort((a, b) => a - b);
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {sorted.map((p) => {
-          const locals = fForPod[p] || [];
-          const hasFwd = locals.length > 0;
-          return (
-            <span key={p} title={hasFwd ? `Forwarded to: ${locals.join(', ')}` : ''} style={{ whiteSpace: 'nowrap' }}>
-              <code style={{ background: 'rgba(99,110,123,0.2)', padding: '2px 6px', borderRadius: 0, border: '1px solid #353a42' }}>{p}</code>
-              {hasFwd && (
-                <>
-                  <span style={{ margin: '0 4px', color: '#aaa' }}>→</span>
-                  <code style={{ background: 'rgba(35,134,54,0.15)', padding: '2px 6px', borderRadius: 0, border: '1px solid rgba(35,134,54,0.4)', color: 'var(--gh-accent, #2ea44f)' }}>
-                    {locals.join(', ')}
-                  </code>
-                  <span aria-label="forward active" title="Port-forward active" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gh-accent, #2ea44f)', marginLeft: 6, verticalAlign: 'middle' }} />
-                </>
-              )}
-            </span>
-          );
-        })}
-      </div>
-    );
-  }
+  const renderPortsCell = useCallback(
+    (pod) => {
+      const ports = pod?.ports || [];
+      if (!ports || ports.length === 0) return '-';
+      const key = `${pod.namespace || ''}/${pod.name}`;
+      const fForPod = pfByKey[key] || {};
+      const sorted = [...ports].sort((a, b) => a - b);
+      return (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {sorted.map((p) => {
+            const locals = fForPod[p] || [];
+            const hasFwd = locals.length > 0;
+            return (
+              <span
+                key={p}
+                title={hasFwd ? `Forwarded to: ${locals.join(', ')}` : ''}
+                style={{ whiteSpace: 'nowrap' }}
+              >
+                <code
+                  style={{
+                    background: 'rgba(99,110,123,0.2)',
+                    padding: '2px 6px',
+                    borderRadius: 0,
+                    border: '1px solid #353a42',
+                  }}
+                >
+                  {p}
+                </code>
+                {hasFwd && (
+                  <>
+                    <span style={{ margin: '0 4px', color: '#aaa' }}>→</span>
+                    <code
+                      style={{
+                        background: 'rgba(35,134,54,0.15)',
+                        padding: '2px 6px',
+                        borderRadius: 0,
+                        border: '1px solid rgba(35,134,54,0.4)',
+                        color: 'var(--gh-accent, #2ea44f)',
+                      }}
+                    >
+                      {locals.join(', ')}
+                    </code>
+                    <span
+                      aria-label="forward active"
+                      title="Port-forward active"
+                      style={{
+                        display: 'inline-block',
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: 'var(--gh-accent, #2ea44f)',
+                        marginLeft: 6,
+                        verticalAlign: 'middle',
+                      }}
+                    />
+                  </>
+                )}
+              </span>
+            );
+          })}
+        </div>
+      );
+    },
+    [pfByKey],
+  );
 
-  function renderStatusCell(pod) {
+  const renderStatusCell = useCallback((pod) => {
     const status = pod.status || pod.phase || '-';
     if (!status || status === '-') {
       return '-';
     }
     const label = typeof status === 'string' ? status : String(status);
     return <StatusBadge status={label} size="small" />;
-  }
+  }, []);
 
-  const baseColumns = useMemo(() => [
-    {
-      accessorKey: 'name',
-      header: 'Name',
-      filterFn: 'includesString',
-      cell: info => info.getValue(),
-    },
-    ...(multiNs ? [{ accessorKey: 'namespace', header: 'Namespace', cell: info => info.getValue() }] : []),
-    {
-      id: 'status',
-      header: 'Status',
-      cell: info => renderStatusCell(info.row.original),
-      enableSorting: false,
-      filterFn: undefined,
-    },
-    {
-      id: 'ports',
-      header: 'Ports',
-      cell: info => renderPortsCell(info.row.original),
-      enableSorting: false,
-      filterFn: undefined,
-    },
-    {
-      accessorKey: 'restarts',
-      header: 'Restarts',
-      cell: info => info.getValue() || 0,
-      sortingFn: (a,b)=> (a.original.restarts||0)-(b.original.restarts||0),
-      filterFn: undefined,
-    },
-    {
-      accessorKey: 'uptime',
-      header: 'Uptime',
-      cell: info => formatUptime(info.row.original.startTime),
-      sortingFn: (a,b)=> new Date(b.original.startTime||0)-new Date(a.original.startTime||0),
-      filterFn: undefined,
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [now, pfByKey, multiNs]);
+  const baseColumns = useMemo(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Name',
+        filterFn: 'includesString',
+        cell: (info) => info.getValue(),
+      },
+      ...(multiNs
+        ? [
+            {
+              accessorKey: 'namespace',
+              header: 'Namespace',
+              cell: (info) => info.getValue(),
+            },
+          ]
+        : []),
+      {
+        id: 'status',
+        header: 'Status',
+        cell: (info) => renderStatusCell(info.row.original),
+        enableSorting: false,
+        filterFn: undefined,
+      },
+      {
+        id: 'ports',
+        header: 'Ports',
+        cell: (info) => renderPortsCell(info.row.original),
+        enableSorting: false,
+        filterFn: undefined,
+      },
+      {
+        accessorKey: 'restarts',
+        header: 'Restarts',
+        cell: (info) => info.getValue() || 0,
+        sortingFn: (a, b) =>
+          (a.original.restarts || 0) - (b.original.restarts || 0),
+        filterFn: undefined,
+      },
+      {
+        accessorKey: 'uptime',
+        header: 'Uptime',
+        cell: (info) => formatUptime(info.row.original.startTime),
+        sortingFn: (a, b) =>
+          new Date(b.original.startTime || 0) -
+          new Date(a.original.startTime || 0),
+        filterFn: undefined,
+      },
 
-  const tableData = (Array.isArray(data) && data.length > 0) ? data : internalData;
+    ],
+    [formatUptime, multiNs, renderPortsCell, renderStatusCell],
+  );
+
+  const tableData =
+    Array.isArray(data) && data.length > 0 ? data : internalData;
   const table = useReactTable({
     data: tableData,
     columns: baseColumns,
@@ -542,44 +499,23 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   const handleAnalyzeHolmes = async (podName, ns) => {
     const targetNs = ns || namespace;
     const key = `${targetNs}/${podName}`;
-    const streamId = `pod-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
-      key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
-    });
     setBottomPodName(podName);
     setBottomNamespace(targetNs);
     setBottomActiveTab('holmes');
     setBottomOpen(true);
 
-    try {
-      await AnalyzePodStream(targetNs, podName, streamId);
-      // The response comes via stream events, not from the return value
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showNotification(`❌ Holmes analysis failed: ${message}`, 'error');
-    }
+    await startAnalysis({
+      key,
+      streamPrefix: 'pod',
+      run: (streamId) => AnalyzePodStream(targetNs, podName, streamId),
+      onError: (message) =>
+        showNotification(`❌ Holmes analysis failed: ${message}`, 'error'),
+    });
     handleMenuClose();
   };
 
   const handleCancelHolmes = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
+    await cancelAnalysis();
   };
 
   async function handleShell(podName, ns) {
@@ -590,7 +526,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       setBottomActiveTab('console');
       setBottomOpen(true);
     } catch (err) {
-      showNotification(`❌ Failed to open shell for pod '${podName}': ${err.message || err}`, 'error');
+      showNotification(
+        `❌ Failed to open shell for pod '${podName}': ${err.message || err}`,
+        'error',
+      );
     }
     handleMenuClose();
   }
@@ -619,7 +558,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       setForwardRemotePort(sourcePort);
       setBottomActiveTab('portforward');
       setBottomOpen(true);
-      showNotification(`Starting port-forward to ${podName}: ${targetPort} -> ${sourcePort} ...`, 'success');
+      showNotification(
+        `Starting port-forward to ${podName}: ${targetPort} -> ${sourcePort} ...`,
+        'success',
+      );
       const start = window?.go?.main?.App?.PortForwardPodWith;
       if (typeof start === 'function') {
         await start(ns, podName, targetPort, sourcePort);
@@ -627,17 +569,27 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         await AppAPI.PortForwardPod(ns, podName, sourcePort);
       }
     } catch (err) {
-      showNotification(`❌ Failed to start port-forward for pod '${podName}': ${err?.message || err}`, 'error');
+      showNotification(
+        `❌ Failed to start port-forward for pod '${podName}': ${err?.message || err}`,
+        'error',
+      );
     }
   }
 
-  function cancelPortForwardDialog() { setShowPFDialog(false); setPfDialogPod(null); }
+  function cancelPortForwardDialog() {
+    setShowPFDialog(false);
+    setPfDialogPod(null);
+  }
 
   async function handleStopPortForward(podName, ns) {
     try {
-      let portToStop = (forwardLocalPort && bottomPodName === podName) ? forwardLocalPort : null;
+      let portToStop =
+        forwardLocalPort && bottomPodName === podName ? forwardLocalPort : null;
       if (!portToStop) {
-        const input = window.prompt('Enter local port to stop forwarding:', '20000');
+        const input = window.prompt(
+          'Enter local port to stop forwarding:',
+          '20000',
+        );
         if (input == null) return;
         const p = parseInt(String(input).trim(), 10);
         if (!Number.isFinite(p) || p <= 0 || p > 65535) {
@@ -649,12 +601,21 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       const stop = window?.go?.main?.App?.StopPortForward;
       if (typeof stop === 'function') {
         await stop(ns || namespace, podName, portToStop);
-        showNotification(`Stopped port-forward for ${podName}:${portToStop}.`, 'success');
+        showNotification(
+          `Stopped port-forward for ${podName}:${portToStop}.`,
+          'success',
+        );
       } else {
-        showNotification('❌ StopPortForward not available. Please rebuild bindings.', 'error');
+        showNotification(
+          '❌ StopPortForward not available. Please rebuild bindings.',
+          'error',
+        );
       }
     } catch (err) {
-      showNotification(`❌ Failed to stop port-forward for '${podName}': ${err?.message || err}`, 'error');
+      showNotification(
+        `❌ Failed to stop port-forward for '${podName}': ${err?.message || err}`,
+        'error',
+      );
     }
     handleMenuClose();
   }
@@ -667,19 +628,27 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       await AppAPI.DeletePod(ns || namespace, podName);
       showNotification(`Pod '${podName}' deleted.`, 'success');
     } catch (err) {
-      showNotification(`❌ Failed to delete pod '${podName}': ${err?.message || err}`, 'error');
+      showNotification(
+        `❌ Failed to delete pod '${podName}': ${err?.message || err}`,
+        'error',
+      );
     }
     handleMenuClose();
   }
 
-  function showNotification(message, type = 'success') { setNotification({ message, type }); }
+  function showNotification(message, type = 'success') {
+    setNotification({ message, type });
+  }
 
   async function handleRestart(podName, ns) {
     try {
       await AppAPI.RestartPod(ns || namespace, podName);
       showNotification(`Pod '${podName}' restarted successfully.`, 'success');
     } catch (err) {
-      showNotification(`❌ Failed to restart pod '${podName}': ${err.message || err}`, 'error');
+      showNotification(
+        `❌ Failed to restart pod '${podName}': ${err.message || err}`,
+        'error',
+      );
     }
     handleMenuClose();
   }
@@ -687,20 +656,38 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   // Removed panelHeader - the PodSummaryTab already includes ResourceActions with Restart/Delete buttons
 
   const tabs = [
-    { id: 'summary', label: 'Summary', content: <PodSummaryTab podName={bottomPodName} namespace={bottomNamespace || namespace} /> },
+    {
+      id: 'summary',
+      label: 'Summary',
+      content: (
+        <PodSummaryTab
+          podName={bottomPodName}
+          namespace={bottomNamespace || namespace}
+        />
+      ),
+    },
     {
       id: 'logs',
       label: 'Logs',
       content: (
         <div style={{ position: 'absolute', inset: 0 }}>
-          <LogViewerTab podName={bottomPodName} namespace={bottomNamespace || namespace} embedded={true} />
+          <LogViewerTab
+            podName={bottomPodName}
+            namespace={bottomNamespace || namespace}
+            embedded={true}
+          />
         </div>
-      )
+      ),
     },
     {
       id: 'events',
       label: 'Events',
-      content: <PodEventsTab namespace={bottomNamespace || namespace} podName={bottomPodName} />
+      content: (
+        <PodEventsTab
+          namespace={bottomNamespace || namespace}
+          podName={bottomPodName}
+        />
+      ),
     },
     {
       id: 'holmes',
@@ -710,50 +697,107 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
           kind="Pod"
           namespace={bottomNamespace || namespace}
           name={bottomPodName}
-          onAnalyze={() => handleAnalyzeHolmes(bottomPodName, bottomNamespace || namespace)}
+          onAnalyze={() =>
+            handleAnalyzeHolmes(bottomPodName, bottomNamespace || namespace)
+          }
           onCancel={holmesState.streamId ? () => handleCancelHolmes() : null}
-          response={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.response : null}
-          loading={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` && holmesState.loading}
-          error={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.error : null}
-          queryTimestamp={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.queryTimestamp : null}
-          streamingText={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.streamingText : ''}
-          reasoningText={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.reasoningText : ''}
-          toolEvents={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.toolEvents : []}
-          contextSteps={holmesState.key === `${bottomNamespace || namespace}/${bottomPodName}` ? holmesState.contextSteps : []}
+          response={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.response
+              : null
+          }
+          loading={
+            holmesState.key ===
+              `${bottomNamespace || namespace}/${bottomPodName}` &&
+            holmesState.loading
+          }
+          error={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.error
+              : null
+          }
+          queryTimestamp={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.queryTimestamp
+              : null
+          }
+          streamingText={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.streamingText
+              : ''
+          }
+          reasoningText={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.reasoningText
+              : ''
+          }
+          toolEvents={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.toolEvents
+              : []
+          }
+          contextSteps={
+            holmesState.key ===
+            `${bottomNamespace || namespace}/${bottomPodName}`
+              ? holmesState.contextSteps
+              : []
+          }
         />
-      )
+      ),
     },
     {
       id: 'yaml',
       label: 'YAML',
-      content: <PodYamlTab podName={bottomPodName} />
+      content: <PodYamlTab podName={bottomPodName} />,
     },
     {
       id: 'console',
       label: 'Console',
-      content: <ConsoleTab podExec={true} namespace={bottomNamespace || namespace} podName={bottomPodName} shell="auto" />
+      content: (
+        <ConsoleTab
+          podExec={true}
+          namespace={bottomNamespace || namespace}
+          podName={bottomPodName}
+          shell="auto"
+        />
+      ),
     },
     {
       id: 'portforward',
       label: 'Port Forward',
-      content: <PortForwardOutput namespace={bottomNamespace || namespace} podName={bottomPodName} localPort={forwardLocalPort} remotePort={forwardRemotePort} />
+      content: (
+        <PortForwardOutput
+          namespace={bottomNamespace || namespace}
+          podName={bottomPodName}
+          localPort={forwardLocalPort}
+          remotePort={forwardRemotePort}
+        />
+      ),
     },
     {
       id: 'files',
       label: 'Files',
-      content: <PodFilesTab podName={bottomPodName} />
+      content: <PodFilesTab podName={bottomPodName} />,
     },
     {
       id: 'mounts',
       label: 'Mounts',
-      content: <PodMountsTab podName={bottomPodName} />
-    }
+      content: <PodMountsTab podName={bottomPodName} />,
+    },
   ];
 
   // ensure backend namespace aligns when switching tabs that need it
   useEffect(() => {
     if (!bottomOpen || !bottomPodName) return;
-    if (['logs','yaml','summary','mounts','files'].includes(bottomActiveTab)) {
+    if (
+      ['logs', 'yaml', 'summary', 'mounts', 'files'].includes(bottomActiveTab)
+    ) {
       ensureNamespace(bottomNamespace || namespace);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -766,9 +810,14 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   // Calculate which rows to show
   const totalRows = table.getRowModel().rows.length;
   const visibleRowStart = Math.floor(scrollTop / ROW_HEIGHT);
-  const visibleRows = table.getRowModel().rows.slice(visibleRowStart, visibleRowStart + VISIBLE_COUNT);
+  const visibleRows = table
+    .getRowModel()
+    .rows.slice(visibleRowStart, visibleRowStart + VISIBLE_COUNT);
   const topPadHeight = visibleRowStart * ROW_HEIGHT;
-  const bottomPadHeight = Math.max(0, (totalRows - (visibleRowStart + VISIBLE_COUNT)) * ROW_HEIGHT);
+  const bottomPadHeight = Math.max(
+    0,
+    (totalRows - (visibleRowStart + VISIBLE_COUNT)) * ROW_HEIGHT,
+  );
 
   // Scroll handler
   const handleScroll = (e) => {
@@ -795,7 +844,12 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       bottomPanelHeight = bottomPanelRef.current.offsetHeight;
     }
     const margin = 100;
-    const newHeight = windowHeight - headerHeight - topHeaderHeight - bottomPanelHeight - margin;
+    const newHeight =
+      windowHeight -
+      headerHeight -
+      topHeaderHeight -
+      bottomPanelHeight -
+      margin;
     if (scrollDivRef.current) {
       scrollDivRef.current.style.height = `${newHeight}px`;
     }
@@ -817,53 +871,73 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   useEffect(() => {
     if (!notification.message) return;
-    const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
+    const timer = setTimeout(
+      () => setNotification({ message: '', type: '' }),
+      3000,
+    );
     return () => clearTimeout(timer);
   }, [notification]);
 
   function hasActivePF(podName, ns) {
     const m = pfByKey[`${ns || ''}/${podName}`];
     if (!m) return false;
-    return Object.values(m).some(arr => Array.isArray(arr) && arr.length > 0);
+    return Object.values(m).some((arr) => Array.isArray(arr) && arr.length > 0);
   }
 
   // Find the selected pod object for the bottom panel
-  const _selectedRow = bottomOpen && bottomPodName
-    ? tableData.find(pod => pod.name === bottomPodName && pod.namespace === (bottomNamespace || namespace))
-    : null;
+  const _selectedRow =
+    bottomOpen && bottomPodName
+      ? tableData.find(
+          (pod) =>
+            pod.name === bottomPodName &&
+            pod.namespace === (bottomNamespace || namespace),
+        )
+      : null;
 
   return (
     <>
-      <div style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: 0
-      }}>
+      <div
+        style={{
+          position: 'relative',
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+        }}
+      >
         {notification.message && (
-          <div style={{
-            position: 'absolute',
-            top: 16,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
-            minWidth: 320,
-            maxWidth: 600,
-            padding: '12px 18px',
-            background: notification.type === 'success' ? '#22863a' : '#d73a49',
-            color: '#fff',
-            textAlign: 'left',
-            fontWeight: 500,
-            fontSize: 16,
-            borderRadius: 6,
-            border: notification.type === 'success' ? '1px solid #2ea44f' : '1px solid #cb2431',
-            boxShadow: '0 4px 16px rgba(27,31,35,0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-          }}>
-            <span style={{fontSize: 20}}>{notification.type === 'success' ? '✔️' : '❌'}</span>
-            <span style={{flex: 1}}>{notification.message.replace(/^✔️ |^❌ /, '')}</span>
+          <div
+            style={{
+              position: 'absolute',
+              top: 16,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 100,
+              minWidth: 320,
+              maxWidth: 600,
+              padding: '12px 18px',
+              background:
+                notification.type === 'success' ? '#22863a' : '#d73a49',
+              color: '#fff',
+              textAlign: 'left',
+              fontWeight: 500,
+              fontSize: 16,
+              borderRadius: 6,
+              border:
+                notification.type === 'success'
+                  ? '1px solid #2ea44f'
+                  : '1px solid #cb2431',
+              boxShadow: '0 4px 16px rgba(27,31,35,0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+            }}
+          >
+            <span style={{ fontSize: 20 }}>
+              {notification.type === 'success' ? '✔️' : '❌'}
+            </span>
+            <span style={{ flex: 1 }}>
+              {notification.message.replace(/^✔️ |^❌ /, '')}
+            </span>
             <button
               onClick={() => setNotification({ message: '', type: '' })}
               style={{
@@ -876,7 +950,9 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                 opacity: 0.7,
               }}
               aria-label="Dismiss notification"
-            >×</button>
+            >
+              ×
+            </button>
           </div>
         )}
         <div ref={topHeaderRef} className="overview-header">
@@ -885,8 +961,12 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
               className="overview-create-btn menu-button"
               title="Create"
               aria-label="Create"
-              onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
-            >+
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu((v) => !v);
+              }}
+            >
+              +
             </button>
             {showMenu && (
               <div
@@ -906,12 +986,26 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                 }}
                 onClick={handleMenuClick}
               >
-                {createOptions.map(opt => (
+                {createOptions.map((opt) => (
                   <div
                     key={opt.key}
-                    style={{ padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap', textAlign: 'left' }}
-                    onClick={() => { setShowMenu(false); setTimeout(() => { showResourceOverlay(opt.key); }, 0); }}
-                  >{opt.label}</div>
+                    style={{
+                      padding: '8px 18px',
+                      cursor: 'pointer',
+                      color: '#fff',
+                      fontSize: 15,
+                      whiteSpace: 'nowrap',
+                      textAlign: 'left',
+                    }}
+                    onClick={() => {
+                      setShowMenu(false);
+                      setTimeout(() => {
+                        showResourceOverlay(opt.key);
+                      }, 0);
+                    }}
+                  >
+                    {opt.label}
+                  </div>
                 ))}
               </div>
             )}
@@ -921,7 +1015,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             <input
               type="search"
               value={filterValue}
-              onChange={e => setFilterValue(e.target.value)}
+              onChange={(e) => setFilterValue(e.target.value)}
               placeholder="Filter..."
             />
           </div>
@@ -929,7 +1023,12 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
         {/* Column widths: Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
-        <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
+        <table
+          id="pod-table-header"
+          className="gh-table"
+          ref={headerRef}
+          style={{ width: '100%', tableLayout: 'fixed' }}
+        >
           <colgroup>
             <col style={{ width: '25%' }} />
             {multiNs && <col style={{ width: '12%' }} />}
@@ -940,49 +1039,70 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             <col style={{ width: multiNs ? '15%' : '20%' }} />
           </colgroup>
           <thead>
-          {table.getHeaderGroups().map(headerGroup => (
+            {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                    <th
-                        key={header.id}
-                        onClick={header.column.getToggleSortingHandler()}
-                        style={{
-                          background: 'var(--gh-bg)',
-                          color: 'var(--gh-table-header-text, #fff)',
-                          borderBottom: '2px solid #353a42',
-                          fontWeight: 600,
-                          // fontSize removed to use global CSS for uniform height
-                          textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
-                          userSelect: 'none',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-                        }}
-                  >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
-                  </th>
-                ))}
-                <th
+                {headerGroup.headers.map((header) => (
+                  <th
+                    key={header.id}
+                    onClick={header.column.getToggleSortingHandler()}
                     style={{
                       background: 'var(--gh-bg)',
                       color: 'var(--gh-table-header-text, #fff)',
                       borderBottom: '2px solid #353a42',
                       fontWeight: 600,
                       // fontSize removed to use global CSS for uniform height
-                      textAlign: 'right',
+                      textAlign:
+                        header.column.id === 'uptime'
+                          ? 'right'
+                          : header.column.id === 'restarts'
+                            ? 'center'
+                            : 'left',
                       userSelect: 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
                     }}
-                    aria-label="Actions"
-                    title="Actions"
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                    {header.column.getIsSorted()
+                      ? header.column.getIsSorted() === 'asc'
+                        ? ' 🔼'
+                        : ' 🔽'
+                      : ''}
+                  </th>
+                ))}
+                <th
+                  style={{
+                    background: 'var(--gh-bg)',
+                    color: 'var(--gh-table-header-text, #fff)',
+                    borderBottom: '2px solid #353a42',
+                    fontWeight: 600,
+                    // fontSize removed to use global CSS for uniform height
+                    textAlign: 'right',
+                    userSelect: 'none',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
+                  }}
+                  aria-label="Actions"
+                  title="Actions"
                 >
                   Actions
                 </th>
               </tr>
-          ))}
+            ))}
           </thead>
         </table>
-        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
-          <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
+        <div
+          ref={scrollDivRef}
+          style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }}
+          onScroll={handleScroll}
+        >
+          <table
+            className="gh-table"
+            style={{ width: '100%', tableLayout: 'fixed' }}
+          >
             <colgroup>
               <col style={{ width: '25%' }} />
               {multiNs && <col style={{ width: '12%' }} />}
@@ -993,203 +1113,364 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
               <col style={{ width: multiNs ? '15%' : '20%' }} />
             </colgroup>
             <tbody>
-            {topPadHeight > 0 && (
-                <tr style={{height: topPadHeight}}>
-                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
-                </tr>
-            )}
-            {visibleRows.map((row, i) => (
-                <tr
-                    key={row.id}
-                    onClick={() => openDetails(row.original.name, row.original.namespace)}
+              {topPadHeight > 0 && (
+                <tr style={{ height: topPadHeight }}>
+                  <td
+                    colSpan={baseColumns.length + 1}
                     style={{
-                      borderBottom: '1px solid #353a42',
-                      transition: 'background 0.2s',
-                      height: ROW_HEIGHT
+                      padding: 0,
+                      border: 'none',
+                      background: 'transparent',
                     }}
+                  />
+                </tr>
+              )}
+              {visibleRows.map((row, i) => (
+                <tr
+                  key={row.id}
+                  onClick={() =>
+                    openDetails(row.original.name, row.original.namespace)
+                  }
+                  style={{
+                    borderBottom: '1px solid #353a42',
+                    transition: 'background 0.2s',
+                    height: ROW_HEIGHT,
+                  }}
                 >
-                  {row.getVisibleCells().map(cell => (
-                      <td
-                          key={cell.id}
-                          style={{
-                            // padding handled by CSS .gh-table tbody td
-                            fontSize: 14,
-                            color: 'var(--gh-table-text, #e0e0e0)',
-                            borderBottom: '1px solid #353a42',
-                            textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
-                            background: 'inherit',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
-                          }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      style={{
+                        // padding handled by CSS .gh-table tbody td
+                        fontSize: 14,
+                        color: 'var(--gh-table-text, #e0e0e0)',
+                        borderBottom: '1px solid #353a42',
+                        textAlign:
+                          cell.column.id === 'uptime'
+                            ? 'right'
+                            : cell.column.id === 'restarts'
+                              ? 'center'
+                              : 'left',
+                        background: 'inherit',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </td>
                   ))}
-                  <td style={{position: 'relative', textAlign: 'right'}}>
+                  <td style={{ position: 'relative', textAlign: 'right' }}>
                     <button
                       className="row-actions-button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleMenuClickRow(visibleRowStart + i);
                       }}
-                    >···
+                    >
+                      ···
                     </button>
-                    {openMenuIndex === (visibleRowStart + i) && (
+                    {openMenuIndex === visibleRowStart + i && (
+                      <div
+                        className="menu-content"
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          top: '100%',
+                          background: 'var(--gh-table-header-bg, #2d323b)',
+                          border: '1px solid #353a42',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                          zIndex: 1200, // raised above other floating UI
+                          minWidth: 180,
+                          textAlign: 'left',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div
-                            className="menu-content"
-                            style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: '100%',
-                              background: 'var(--gh-table-header-bg, #2d323b)',
-                              border: '1px solid #353a42',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                              zIndex: 1200, // raised above other floating UI
-                              minWidth: 180,
-                              textAlign: 'left',
-                            }}
-                            onClick={(e) => e.stopPropagation()}
+                          className="context-menu-item"
+                          style={{
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                          onClick={() =>
+                            handleKubectlLogs(
+                              row.original.name,
+                              row.original.namespace,
+                            )
+                          }
                         >
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={() => handleKubectlLogs(row.original.name, row.original.namespace)}
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 18,
+                              display: 'inline-block',
+                              textAlign: 'center',
+                            }}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>📜</span>
-                            <span>Logs</span>
-                          </div>
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={() => handleAnalyzeHolmes(row.original.name, row.original.namespace)}
-                          >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🧠</span>
-                            <span>Ask Holmes</span>
-                          </div>
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={() => handleRestart(row.original.name, row.original.namespace)}
-                          >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔄</span>
-                            <span>Restart</span>
-                          </div>
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={() => handleShell(row.original.name, row.original.namespace)}
-                          >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>💻</span>
-                            <span>Shell</span>
-                          </div>
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={() => handlePortForward(row.original.name, row.original.namespace)}
-                          >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔌</span>
-                            <span>Port Forward</span>
-                          </div>
-                          {hasActivePF(row.original.name, row.original.namespace) && (
-                              <div
-                                  className="context-menu-item"
-                                  style={{
-                                    padding: '8px 16px',
-                                    cursor: 'pointer',
-                                    color: '#fff',
-                                    fontSize: 15,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8
-                                  }}
-                                  onClick={() => handleStopPortForward(row.original.name, row.original.namespace)}
-                              >
-                                <span aria-hidden="true"
-                                      style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🛑</span>
-                                <span>Stop Port Forward</span>
-                              </div>
-                          )}
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
-                              onClick={() => handleDelete(row.original.name, row.original.namespace)}
-                          >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🗑️</span>
-                            <span>Delete</span>
-                          </div>
+                            📜
+                          </span>
+                          <span>Logs</span>
                         </div>
+                        <div
+                          className="context-menu-item"
+                          style={{
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                          onClick={() =>
+                            handleAnalyzeHolmes(
+                              row.original.name,
+                              row.original.namespace,
+                            )
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 18,
+                              display: 'inline-block',
+                              textAlign: 'center',
+                            }}
+                          >
+                            🧠
+                          </span>
+                          <span>Ask Holmes</span>
+                        </div>
+                        <div
+                          className="context-menu-item"
+                          style={{
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                          onClick={() =>
+                            handleRestart(
+                              row.original.name,
+                              row.original.namespace,
+                            )
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 18,
+                              display: 'inline-block',
+                              textAlign: 'center',
+                            }}
+                          >
+                            🔄
+                          </span>
+                          <span>Restart</span>
+                        </div>
+                        <div
+                          className="context-menu-item"
+                          style={{
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                          onClick={() =>
+                            handleShell(
+                              row.original.name,
+                              row.original.namespace,
+                            )
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 18,
+                              display: 'inline-block',
+                              textAlign: 'center',
+                            }}
+                          >
+                            💻
+                          </span>
+                          <span>Shell</span>
+                        </div>
+                        <div
+                          className="context-menu-item"
+                          style={{
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                          onClick={() =>
+                            handlePortForward(
+                              row.original.name,
+                              row.original.namespace,
+                            )
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 18,
+                              display: 'inline-block',
+                              textAlign: 'center',
+                            }}
+                          >
+                            🔌
+                          </span>
+                          <span>Port Forward</span>
+                        </div>
+                        {hasActivePF(
+                          row.original.name,
+                          row.original.namespace,
+                        ) && (
+                          <div
+                            className="context-menu-item"
+                            style={{
+                              padding: '8px 16px',
+                              cursor: 'pointer',
+                              color: '#fff',
+                              fontSize: 15,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                            }}
+                            onClick={() =>
+                              handleStopPortForward(
+                                row.original.name,
+                                row.original.namespace,
+                              )
+                            }
+                          >
+                            <span
+                              aria-hidden="true"
+                              style={{
+                                width: 18,
+                                display: 'inline-block',
+                                textAlign: 'center',
+                              }}
+                            >
+                              🛑
+                            </span>
+                            <span>Stop Port Forward</span>
+                          </div>
+                        )}
+                        <div
+                          className="context-menu-item"
+                          style={{
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            fontSize: 15,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                          onClick={() =>
+                            handleDelete(
+                              row.original.name,
+                              row.original.namespace,
+                            )
+                          }
+                        >
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              width: 18,
+                              display: 'inline-block',
+                              textAlign: 'center',
+                            }}
+                          >
+                            🗑️
+                          </span>
+                          <span>Delete</span>
+                        </div>
+                      </div>
                     )}
                   </td>
                 </tr>
               ))}
-            {bottomPadHeight > 0 && (
-                <tr style={{height: bottomPadHeight}}>
-                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+              {bottomPadHeight > 0 && (
+                <tr style={{ height: bottomPadHeight }}>
+                  <td
+                    colSpan={baseColumns.length + 1}
+                    style={{
+                      padding: 0,
+                      border: 'none',
+                      background: 'transparent',
+                    }}
+                  />
                 </tr>
-            )}
+              )}
             </tbody>
           </table>
         </div>
         {data.length >= 20 && (
-          <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
-            <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
-            <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-            <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
+          <div
+            style={{
+              marginTop: 8,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 0,
+                border: '1px solid #353a42',
+                background: 'var(--gh-table-header-bg, #2d323b)',
+                color: 'var(--gh-table-header-text, #fff)',
+                cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Previous
+            </button>
+            <span
+              style={{
+                margin: '0 8px',
+                fontSize: 14,
+                color: 'var(--gh-table-text, #e0e0e0)',
+              }}
+            >
+              Page {table.getState().pagination.pageIndex + 1} of{' '}
+              {table.getPageCount()}
+            </span>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 0,
+                border: '1px solid #353a42',
+                background: 'var(--gh-table-header-bg, #2d323b)',
+                color: 'var(--gh-table-header-text, #fff)',
+                cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed',
+              }}
+            >
+              Next
+            </button>
           </div>
         )}
 

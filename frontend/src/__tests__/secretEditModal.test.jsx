@@ -19,7 +19,7 @@ vi.mock('../notification.js', () => ({
 }));
 
 import { UpdateSwarmSecretData } from '../docker/swarmApi.js';
-import { showError, showSuccess } from '../notification.js';
+import { showSuccess } from '../notification.js';
 
 describe('SecretEditModal', () => {
   beforeEach(() => {
@@ -33,9 +33,9 @@ describe('SecretEditModal', () => {
           open={false}
           secretId="secret-123"
           secretName="my-secret"
-        />
+        />,
       );
-      
+
       expect(screen.queryByText(/Edit/)).not.toBeInTheDocument();
     });
 
@@ -45,9 +45,9 @@ describe('SecretEditModal', () => {
           open={true}
           secretId="secret-123"
           secretName="my-secret"
-        />
+        />,
       );
-      
+
       expect(screen.getByText(/my-secret/)).toBeInTheDocument();
     });
 
@@ -57,9 +57,9 @@ describe('SecretEditModal', () => {
           open={true}
           secretId="secret-123"
           secretName="production-secret"
-        />
+        />,
       );
-      
+
       expect(screen.getByText(/production-secret/)).toBeInTheDocument();
     });
 
@@ -69,9 +69,9 @@ describe('SecretEditModal', () => {
           open={true}
           secretId="secret-123"
           secretName="my-secret"
-        />
+        />,
       );
-      
+
       expect(screen.getByText('Cancel')).toBeInTheDocument();
       expect(screen.getByText('Save')).toBeInTheDocument();
     });
@@ -82,9 +82,9 @@ describe('SecretEditModal', () => {
           open={true}
           secretId="secret-123"
           secretName="my-secret"
-        />
+        />,
       );
-      
+
       // Should show warning about Swarm secrets being immutable
       expect(screen.getByText(/secrets are immutable/i)).toBeInTheDocument();
     });
@@ -99,11 +99,11 @@ describe('SecretEditModal', () => {
           secretId="secret-123"
           secretName="my-secret"
           onClose={onClose}
-        />
+        />,
       );
-      
+
       fireEvent.click(screen.getByText('Cancel'));
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
@@ -115,13 +115,13 @@ describe('SecretEditModal', () => {
           secretId="secret-123"
           secretName="my-secret"
           onClose={onClose}
-        />
+        />,
       );
-      
+
       // Click the overlay (outermost div)
       const overlay = container.firstChild;
       fireEvent.click(overlay);
-      
+
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -133,16 +133,16 @@ describe('SecretEditModal', () => {
           open={true}
           secretId="secret-123"
           secretName="my-secret"
-        />
+        />,
       );
-      
+
       // The acknowledgment checkbox should exist
       expect(screen.getByText(/I understand/i)).toBeInTheDocument();
-      
+
       // Save button should be disabled when no acknowledgment
       const saveButton = screen.getByText('Save');
       expect(saveButton).toBeDisabled();
-      
+
       // API should not be called
       expect(UpdateSwarmSecretData).not.toHaveBeenCalled();
     });
@@ -150,8 +150,11 @@ describe('SecretEditModal', () => {
 
   describe('save action', () => {
     it('calls UpdateSwarmSecretData API when saved with acknowledgment', async () => {
-      UpdateSwarmSecretData.mockResolvedValue({ newSecretName: 'new-secret', updated: [] });
-      
+      UpdateSwarmSecretData.mockResolvedValue({
+        newSecretName: 'new-secret',
+        updated: [],
+      });
+
       render(
         <SecretEditModal
           open={true}
@@ -159,33 +162,41 @@ describe('SecretEditModal', () => {
           secretName="my-secret"
           onClose={vi.fn()}
           onSaved={vi.fn()}
-        />
+        />,
       );
-      
+
       // Check the acknowledgment checkbox if present
       const checkboxes = screen.queryAllByRole('checkbox');
       if (checkboxes.length > 0) {
         fireEvent.click(checkboxes[0]);
       }
-      
+
       // Enter a value
       const textareas = screen.getAllByRole('textbox');
       if (textareas.length > 0) {
-        fireEvent.change(textareas[textareas.length - 1], { target: { value: 'secret-value' } });
+        fireEvent.change(textareas[textareas.length - 1], {
+          target: { value: 'secret-value' },
+        });
       }
-      
+
       fireEvent.click(screen.getByText('Save'));
-      
+
       // Wait for API call or error message
       await waitFor(() => {
         // Either API was called or error about acknowledgment shown
-        expect(UpdateSwarmSecretData.mock.calls.length > 0 || screen.queryByText(/confirm/i)).toBeTruthy();
+        expect(
+          UpdateSwarmSecretData.mock.calls.length > 0 ||
+            screen.queryByText(/confirm/i),
+        ).toBeTruthy();
       });
     });
 
     it('shows success notification on successful save', async () => {
-      UpdateSwarmSecretData.mockResolvedValue({ newSecretName: 'new-secret', updated: ['svc-1'] });
-      
+      UpdateSwarmSecretData.mockResolvedValue({
+        newSecretName: 'new-secret',
+        updated: ['svc-1'],
+      });
+
       render(
         <SecretEditModal
           open={true}
@@ -193,22 +204,24 @@ describe('SecretEditModal', () => {
           secretName="my-secret"
           onClose={vi.fn()}
           onSaved={vi.fn()}
-        />
+        />,
       );
-      
+
       // Check acknowledgment and enter value
       const checkboxes = screen.queryAllByRole('checkbox');
       if (checkboxes.length > 0) {
         fireEvent.click(checkboxes[0]);
       }
-      
+
       const textareas = screen.getAllByRole('textbox');
       if (textareas.length > 0) {
-        fireEvent.change(textareas[textareas.length - 1], { target: { value: 'secret-value' } });
+        fireEvent.change(textareas[textareas.length - 1], {
+          target: { value: 'secret-value' },
+        });
       }
-      
+
       fireEvent.click(screen.getByText('Save'));
-      
+
       await waitFor(() => {
         if (UpdateSwarmSecretData.mock.calls.length > 0) {
           expect(showSuccess).toHaveBeenCalled();

@@ -4,7 +4,12 @@ import AggregateLogsTab from '../components/AggregateLogsTab';
 
 // Mock TextViewerTab
 vi.mock('../layout/bottompanel/TextViewerTab', () => ({
-  default: function TextViewerTabMock({ content, loading, error, loadingLabel }) {
+  default: function TextViewerTabMock({
+    content,
+    loading,
+    error,
+    loadingLabel,
+  }) {
     if (loading) return <div data-testid="loading">{loadingLabel}</div>;
     if (error) return <div data-testid="error">{error}</div>;
     return <div data-testid="content">{content}</div>;
@@ -22,7 +27,9 @@ describe('AggregateLogsTab', () => {
 
       render(<AggregateLogsTab title="Test Logs" loadLogs={loadLogs} />);
 
-      expect(screen.getByTestId('loading')).toHaveTextContent('Loading Test Logs...');
+      expect(screen.getByTestId('loading')).toHaveTextContent(
+        'Loading Test Logs...',
+      );
     });
   });
 
@@ -31,17 +38,23 @@ describe('AggregateLogsTab', () => {
       render(<AggregateLogsTab title="Logs" loadLogs={undefined} />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Logs loader not configured');
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Logs loader not configured',
+        );
       });
     });
 
     it('shows error message when loadLogs throws', async () => {
-      const loadLogs = vi.fn().mockRejectedValue(new Error('Failed to fetch logs'));
+      const loadLogs = vi
+        .fn()
+        .mockRejectedValue(new Error('Failed to fetch logs'));
 
       render(<AggregateLogsTab title="Logs" loadLogs={loadLogs} />);
 
       await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Failed to fetch logs');
+        expect(screen.getByTestId('error')).toHaveTextContent(
+          'Failed to fetch logs',
+        );
       });
     });
 
@@ -58,7 +71,9 @@ describe('AggregateLogsTab', () => {
 
   describe('data display', () => {
     it('displays logs content when loaded successfully', async () => {
-      const loadLogs = vi.fn().mockResolvedValue('Log line 1\nLog line 2\nLog line 3');
+      const loadLogs = vi
+        .fn()
+        .mockResolvedValue('Log line 1\nLog line 2\nLog line 3');
 
       render(<AggregateLogsTab title="App Logs" loadLogs={loadLogs} />);
 
@@ -108,19 +123,22 @@ describe('AggregateLogsTab', () => {
 
   describe('reloadKey behavior', () => {
     it('reloads logs when reloadKey changes', async () => {
-      const loadLogs = vi.fn()
+      const loadLogs = vi
+        .fn()
         .mockResolvedValueOnce('First load')
         .mockResolvedValueOnce('Second load');
 
       const { rerender } = render(
-        <AggregateLogsTab title="Logs" loadLogs={loadLogs} reloadKey={1} />
+        <AggregateLogsTab title="Logs" loadLogs={loadLogs} reloadKey={1} />,
       );
 
       await waitFor(() => {
         expect(screen.getByTestId('content')).toHaveTextContent('First load');
       });
 
-      rerender(<AggregateLogsTab title="Logs" loadLogs={loadLogs} reloadKey={2} />);
+      rerender(
+        <AggregateLogsTab title="Logs" loadLogs={loadLogs} reloadKey={2} />,
+      );
 
       await waitFor(() => {
         expect(screen.getByTestId('content')).toHaveTextContent('Second load');

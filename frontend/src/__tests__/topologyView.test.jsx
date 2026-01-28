@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 
 vi.mock('../docker/swarmApi.js', () => ({
   GetClusterTopology: vi.fn(),
@@ -25,7 +31,9 @@ vi.mock('../layout/bottompanel/BottomPanel.jsx', () => ({
             </button>
           ))}
         </div>
-        <button type="button" onClick={onClose}>Close</button>
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
         <div data-testid="bottom-panel-content">{children}</div>
       </div>
     );
@@ -44,7 +52,9 @@ vi.mock('../layout/bottompanel/TextViewerTab', () => ({
 }));
 
 vi.mock('../docker/resources/nodes/NodeTasksTab.jsx', () => ({
-  default: ({ nodeId }) => <div data-testid="node-tasks">NodeTasks:{nodeId}</div>,
+  default: ({ nodeId }) => (
+    <div data-testid="node-tasks">NodeTasks:{nodeId}</div>
+  ),
 }));
 
 vi.mock('../docker/resources/nodes/NodeLogsTab.jsx', () => ({
@@ -55,28 +65,48 @@ vi.mock('../docker/resources/nodes/NodeLabelsTab.jsx', () => ({
   default: ({ nodeId, onSaved }) => (
     <div data-testid="node-labels">
       <div>NodeLabels:{nodeId}</div>
-      <button type="button" onClick={onSaved}>TriggerSaved</button>
+      <button type="button" onClick={onSaved}>
+        TriggerSaved
+      </button>
     </div>
   ),
 }));
 
 vi.mock('../docker/resources/services/ServiceTasksTab.jsx', () => ({
-  default: ({ serviceId }) => <div data-testid="service-tasks">ServiceTasks:{serviceId}</div>,
+  default: ({ serviceId }) => (
+    <div data-testid="service-tasks">ServiceTasks:{serviceId}</div>
+  ),
 }));
 
 function mockTopology() {
   return {
     timestamp: '2026-01-11 12:00:00',
     nodes: [
-      { id: 'n1', hostname: 'node-1', role: 'manager', state: 'Ready', taskCount: 2 },
-      { id: 'n2', hostname: 'node-2', role: 'worker', state: 'Down', taskCount: 0 },
+      {
+        id: 'n1',
+        hostname: 'node-1',
+        role: 'manager',
+        state: 'Ready',
+        taskCount: 2,
+      },
+      {
+        id: 'n2',
+        hostname: 'node-2',
+        role: 'worker',
+        state: 'Down',
+        taskCount: 0,
+      },
     ],
     services: [
-      { id: 's1', name: 'svc-1', mode: 'replicated', runningTasks: 1, taskCount: 1 },
+      {
+        id: 's1',
+        name: 'svc-1',
+        mode: 'replicated',
+        runningTasks: 1,
+        taskCount: 1,
+      },
     ],
-    links: [
-      { from: 's1', to: 'n1', weight: 5 },
-    ],
+    links: [{ from: 's1', to: 'n1', weight: 5 }],
   };
 }
 
@@ -104,17 +134,26 @@ describe('TopologyView', () => {
       labels: { a: 'b' },
     });
 
-    const { default: TopologyView } = await import('../docker/topology/TopologyView.jsx');
+    const { default: TopologyView } =
+      await import('../docker/topology/TopologyView.jsx');
 
     const { container } = render(<TopologyView />);
 
-    expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(0);
-    expect(await screen.findAllByTestId('topology-service-item')).not.toHaveLength(0);
+    expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(
+      0,
+    );
+    expect(
+      await screen.findAllByTestId('topology-service-item'),
+    ).not.toHaveLength(0);
 
     // SVG node color mapping (Ready / Down)
     const circles = Array.from(container.querySelectorAll('circle'));
-    expect(circles.some((c) => c.getAttribute('fill') === '#2ea44f')).toBe(true);
-    expect(circles.some((c) => c.getAttribute('fill') === '#ff7b72')).toBe(true);
+    expect(circles.some((c) => c.getAttribute('fill') === '#2ea44f')).toBe(
+      true,
+    );
+    expect(circles.some((c) => c.getAttribute('fill') === '#ff7b72')).toBe(
+      true,
+    );
 
     const nodeButtons = screen.getAllByTestId('topology-node-item');
     fireEvent.click(nodeButtons[0]);
@@ -160,7 +199,14 @@ describe('TopologyView', () => {
       runningTasks: 1,
       createdAt: '2026-01-11T12:00:00Z',
       image: 'nginx:latest',
-      ports: [{ publishedPort: 8080, targetPort: 80, protocol: 'tcp', publishMode: 'ingress' }],
+      ports: [
+        {
+          publishedPort: 8080,
+          targetPort: 80,
+          protocol: 'tcp',
+          publishMode: 'ingress',
+        },
+      ],
       env: ['PASSWORD=secret', 'EMPTY='],
       mounts: [{ type: 'bind', source: '/a', target: '/b', readOnly: true }],
       resources: {
@@ -171,11 +217,14 @@ describe('TopologyView', () => {
     });
     swarmApi.GetSwarmServiceLogs.mockResolvedValue('hello logs');
 
-    const { default: TopologyView } = await import('../docker/topology/TopologyView.jsx');
+    const { default: TopologyView } =
+      await import('../docker/topology/TopologyView.jsx');
 
     render(<TopologyView />);
 
-    expect(await screen.findAllByTestId('topology-service-item')).not.toHaveLength(0);
+    expect(
+      await screen.findAllByTestId('topology-service-item'),
+    ).not.toHaveLength(0);
 
     const svcButtons = screen.getAllByTestId('topology-service-item');
     fireEvent.click(svcButtons[0]);
@@ -214,15 +263,18 @@ describe('TopologyView', () => {
       return 123;
     });
 
-    swarmApi.GetClusterTopology
-      .mockResolvedValueOnce(mockTopology())
-      .mockRejectedValueOnce(new Error('boom'));
+    swarmApi.GetClusterTopology.mockResolvedValueOnce(
+      mockTopology(),
+    ).mockRejectedValueOnce(new Error('boom'));
 
-    const { default: TopologyView } = await import('../docker/topology/TopologyView.jsx');
+    const { default: TopologyView } =
+      await import('../docker/topology/TopologyView.jsx');
 
     render(<TopologyView />);
 
-    expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(0);
+    expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(
+      0,
+    );
 
     // Trigger silent auto-refresh.
     expect(intervalCallback).toBeTypeOf('function');
@@ -237,15 +289,18 @@ describe('TopologyView', () => {
 
   it('shows error and clears topology on non-silent refresh failures', async () => {
     const swarmApi = await import('../docker/swarmApi.js');
-    swarmApi.GetClusterTopology
-      .mockResolvedValueOnce(mockTopology())
-      .mockRejectedValueOnce(new Error('nope'));
+    swarmApi.GetClusterTopology.mockResolvedValueOnce(
+      mockTopology(),
+    ).mockRejectedValueOnce(new Error('nope'));
 
-    const { default: TopologyView } = await import('../docker/topology/TopologyView.jsx');
+    const { default: TopologyView } =
+      await import('../docker/topology/TopologyView.jsx');
 
     render(<TopologyView />);
 
-    expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(0);
+    expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(
+      0,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(await screen.findByText('nope')).toBeInTheDocument();

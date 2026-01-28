@@ -17,6 +17,7 @@ import (
 	"gowails/pkg/app/docker"
 	"gowails/pkg/app/docker/registry"
 	"gowails/pkg/app/docker/topology"
+	"gowails/pkg/app/internal/safeconv"
 
 	"github.com/docker/docker/api/types"
 	registrytypes "github.com/docker/docker/api/types/registry"
@@ -459,7 +460,11 @@ func (a *App) ScaleSwarmService(serviceID string, replicas int) error {
 	if err != nil {
 		return err
 	}
-	return docker.ScaleSwarmService(a.ctx, cli, serviceID, uint64(replicas))
+	count, err := safeconv.IntToUint64(replicas)
+	if err != nil {
+		return err
+	}
+	return docker.ScaleSwarmService(a.ctx, cli, serviceID, count)
 }
 
 // RemoveSwarmService removes a Swarm service
@@ -1142,20 +1147,28 @@ func (a *App) GetSwarmResourceCounts() (*docker.SwarmResourceCounts, error) {
 // StartSwarmServicePolling emits swarm:services:update events
 func (a *App) StartSwarmServicePolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			cli, err := a.getDockerClient()
 			if err != nil {
 				continue
 			}
-			services, err := docker.GetSwarmServices(a.ctx, cli)
+			services, err := docker.GetSwarmServices(ctx, cli)
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:services:update", services)
+			emitEvent(ctx, "swarm:services:update", services)
 		}
 	}()
 }
@@ -1163,20 +1176,28 @@ func (a *App) StartSwarmServicePolling() {
 // StartSwarmTaskPolling emits swarm:tasks:update events
 func (a *App) StartSwarmTaskPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			cli, err := a.getDockerClient()
 			if err != nil {
 				continue
 			}
-			tasks, err := docker.GetSwarmTasks(a.ctx, cli)
+			tasks, err := docker.GetSwarmTasks(ctx, cli)
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:tasks:update", tasks)
+			emitEvent(ctx, "swarm:tasks:update", tasks)
 		}
 	}()
 }
@@ -1184,20 +1205,28 @@ func (a *App) StartSwarmTaskPolling() {
 // StartSwarmNodePolling emits swarm:nodes:update events
 func (a *App) StartSwarmNodePolling() {
 	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(5 * time.Second) // Nodes change less frequently
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			cli, err := a.getDockerClient()
 			if err != nil {
 				continue
 			}
-			nodes, err := docker.GetSwarmNodes(a.ctx, cli)
+			nodes, err := docker.GetSwarmNodes(ctx, cli)
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:nodes:update", nodes)
+			emitEvent(ctx, "swarm:nodes:update", nodes)
 		}
 	}()
 }
@@ -1205,17 +1234,25 @@ func (a *App) StartSwarmNodePolling() {
 // StartSwarmResourceCountsPolling emits swarm:resourcecounts:update events
 func (a *App) StartSwarmResourceCountsPolling() {
 	go func() {
+		ticker := time.NewTicker(2 * time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(2 * time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			counts, err := a.GetSwarmResourceCounts()
 			if err != nil {
 				// Only log on first failure to avoid spam
 				continue
 			}
-			emitEvent(a.ctx, "swarm:resourcecounts:update", counts)
+			emitEvent(ctx, "swarm:resourcecounts:update", counts)
 		}
 	}()
 }

@@ -99,3 +99,91 @@ func TestUpdateSecretDataKey(t *testing.T) {
 		t.Fatalf("expected key updated to '2', got %q", string(sec.Data["a"]))
 	}
 }
+
+func TestPodSpecUsesSecret(t *testing.T) {
+	secretName := "s1"
+
+	t.Run("volume", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			Volumes: []corev1.Volume{{
+				Name: "sec",
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{SecretName: secretName},
+				},
+			}},
+			Containers: []corev1.Container{{Name: "c"}},
+		}
+		ok, ref := podSpecUsesSecret(spec, secretName)
+		if !ok || ref != "volume:sec" {
+			t.Fatalf("expected volume ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("envFrom", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name: "c",
+				EnvFrom: []corev1.EnvFromSource{{
+					SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: secretName}},
+				}},
+			}},
+		}
+		ok, ref := podSpecUsesSecret(spec, secretName)
+		if !ok || ref != "envFrom:c" {
+			t.Fatalf("expected envFrom ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("env", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name: "c",
+				Env: []corev1.EnvVar{{
+					Name: "K",
+					ValueFrom: &corev1.EnvVarSource{
+						SecretKeyRef: &corev1.SecretKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: secretName}},
+					},
+				}},
+			}},
+		}
+		ok, ref := podSpecUsesSecret(spec, secretName)
+		if !ok || ref != "env:c" {
+			t.Fatalf("expected env ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("initContainer", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name: "init",
+				EnvFrom: []corev1.EnvFromSource{{
+					SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: secretName}},
+				}},
+			}},
+			Containers: []corev1.Container{{Name: "c"}},
+		}
+		ok, ref := podSpecUsesSecret(spec, secretName)
+		if !ok || ref != "init:envFrom:init" {
+			t.Fatalf("expected init ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("imagePullSecret", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			ImagePullSecrets: []corev1.LocalObjectReference{{Name: secretName}},
+			Containers:       []corev1.Container{{Name: "c"}},
+		}
+		ok, ref := podSpecUsesSecret(spec, secretName)
+		if !ok || ref != "imagePullSecret" {
+			t.Fatalf("expected imagePullSecret ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("noMatch", func(t *testing.T) {
+		spec := corev1.PodSpec{Containers: []corev1.Container{{Name: "c"}}}
+		ok, ref := podSpecUsesSecret(spec, secretName)
+		if ok || ref != "" {
+			t.Fatalf("expected no match, got ok=%v ref=%q", ok, ref)
+		}
+	})
+}

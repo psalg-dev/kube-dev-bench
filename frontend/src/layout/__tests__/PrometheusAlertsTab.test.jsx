@@ -22,7 +22,9 @@ describe('PrometheusAlertsTab', () => {
 
     render(<PrometheusAlertsTab />);
 
-    fireEvent.change(screen.getByPlaceholderText(/Prometheus URL/i), { target: { value: 'http://localhost:9090' } });
+    fireEvent.change(screen.getByPlaceholderText(/Prometheus URL/i), {
+      target: { value: 'http://localhost:9090' },
+    });
     fireEvent.click(screen.getByText('Fetch Alerts'));
 
     await waitFor(() => {
@@ -41,14 +43,24 @@ describe('PrometheusAlertsTab', () => {
         activeAt: new Date().toISOString(),
       },
     ]);
-    appApiMocks.InvestigatePrometheusAlert.mockResolvedValueOnce({ response: 'Investigation result' });
-    appApiMocks.GetAlertInvestigationHistory.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      { alertName: 'DiskFull', timestamp: new Date().toISOString(), analysis: 'Investigation result' },
+    appApiMocks.InvestigatePrometheusAlert.mockResolvedValueOnce({
+      response: 'Investigation result',
+    });
+    appApiMocks.GetAlertInvestigationHistory.mockResolvedValueOnce(
+      [],
+    ).mockResolvedValueOnce([
+      {
+        alertName: 'DiskFull',
+        timestamp: new Date().toISOString(),
+        analysis: 'Investigation result',
+      },
     ]);
 
     render(<PrometheusAlertsTab />);
 
-    fireEvent.change(screen.getByPlaceholderText(/Prometheus URL/i), { target: { value: 'http://localhost:9090' } });
+    fireEvent.change(screen.getByPlaceholderText(/Prometheus URL/i), {
+      target: { value: 'http://localhost:9090' },
+    });
     fireEvent.click(screen.getByText('Fetch Alerts'));
 
     await waitFor(() => {

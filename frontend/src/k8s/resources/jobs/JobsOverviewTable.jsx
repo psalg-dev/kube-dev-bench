@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import JobYamlTab from './JobYamlTab';
@@ -11,8 +11,9 @@ import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { StartJob } from '../kubeApi';
-import { AnalyzeJobStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import { AnalyzeJobStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import useHolmesStream from '../../../holmes/useHolmesStream';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -46,8 +47,8 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           key: 'age',
           label: 'Age',
           type: 'age',
-          getValue: (data) => data.created || data.age
-        }
+          getValue: (data) => data.created || data.age,
+        },
       },
       { key: 'namespace', label: 'Namespace' },
       { key: 'succeeded', label: 'Succeeded' },
@@ -55,14 +56,42 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
       { key: 'failed', label: 'Failed' },
       { key: 'duration', label: 'Duration' },
       { key: 'image', label: 'Image', type: 'break-word' },
-      { key: 'name', label: 'Job name', type: 'break-word' }
+      { key: 'name', label: 'Job name', type: 'break-word' },
     ];
 
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="job" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('job', ns, n);}} />} />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <SummaryTabHeader
+          name={row.name}
+          labels={row.labels || row.Labels || row.metadata?.labels}
+          actions={
+            <ResourceActions
+              resourceType="job"
+              name={row.name}
+              namespace={row.namespace}
+              onDelete={async (n, ns) => {
+                await AppAPI.DeleteResource('job', ns, n);
+              }}
+            />
+          }
+        />
         {/* Main flex content */}
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            color: 'var(--gh-text, #c9d1d9)',
+          }}
+        >
           <QuickInfoSection
             resourceName={row.name}
             data={row}
@@ -72,14 +101,29 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           />
           {/* Logs + Event History at a glance */}
           <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                position: 'relative',
+              }}
+            >
               <AggregateLogsTab
                 title="Logs"
                 reloadKey={`${row.namespace}/${row.name}`}
                 loadLogs={() => AppAPI.GetJobLogs(row.namespace, row.name)}
               />
             </div>
-            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
+            <div
+              style={{
+                width: 420,
+                minWidth: 300,
+                minHeight: 0,
+                borderLeft: '1px solid var(--gh-border, #30363d)',
+                position: 'relative',
+              }}
+            >
               <ResourceEventsTab
                 namespace={row.namespace}
                 kind="Job"
@@ -106,11 +150,7 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
   }
   if (tab === 'events') {
     return (
-      <ResourceEventsTab
-        namespace={row.namespace}
-        kind="Job"
-        name={row.name}
-      />
+      <ResourceEventsTab namespace={row.namespace} kind="Job" name={row.name} />
     );
   }
   if (tab === 'yaml') {
@@ -124,11 +164,15 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
         namespace={row.namespace}
         name={row.name}
         onAnalyze={() => onAnalyze(row)}
-        onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+        onCancel={
+          holmesState.key === key && holmesState.streamId ? onCancel : null
+        }
         response={holmesState.key === key ? holmesState.response : null}
         loading={holmesState.key === key && holmesState.loading}
         error={holmesState.key === key ? holmesState.error : null}
-        queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+        queryTimestamp={
+          holmesState.key === key ? holmesState.queryTimestamp : null
+        }
         streamingText={holmesState.key === key ? holmesState.streamingText : ''}
         reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
         toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
@@ -146,170 +190,37 @@ function panelHeader(row) {
 export default function JobsOverviewTable({ namespaces, namespace }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
-  });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
+  const { holmesState, startAnalysis, cancelAnalysis } = useHolmesStream();
 
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let data;
-      try {
-        data = JSON.parse(payload.data);
-      } catch {
-        data = null;
-      }
-
-      if (eventType === 'ai_message' && data) {
-        let handled = false;
-        if (data.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + data.reasoning,
-          }));
-          handled = true;
-        }
-        if (data.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + data.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && data && data.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: data.id,
-            name: data.tool_name || 'tool',
-            status: 'running',
-            description: data.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && data && data.tool_call_id) {
-        const status = data.result?.status || data.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === data.tool_call_id
-              ? { ...item, status, description: data.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && data && data.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: data.analysis },
-          streamingText: data.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  const normalize = (arr) => (arr || []).filter(Boolean).map(j => ({
-    name: j.name ?? j.Name,
-    namespace: j.namespace ?? j.Namespace,
-    completions: j.completions ?? j.Completions ?? 0,
-    succeeded: j.succeeded ?? j.Succeeded ?? 0,
-    active: j.active ?? j.Active ?? 0,
-    failed: j.failed ?? j.Failed ?? 0,
-    age: j.age ?? j.Age ?? '-',
-    duration: j.duration ?? j.Duration ?? '-',
-    image: j.image ?? j.Image ?? '',
-    labels: j.labels ?? j.Labels ?? j.metadata?.labels ?? {}
-  }));
+  const normalize = (arr) =>
+    (arr || []).filter(Boolean).map((j) => ({
+      name: j.name ?? j.Name,
+      namespace: j.namespace ?? j.Namespace,
+      completions: j.completions ?? j.Completions ?? 0,
+      succeeded: j.succeeded ?? j.Succeeded ?? 0,
+      active: j.active ?? j.Active ?? 0,
+      failed: j.failed ?? j.Failed ?? 0,
+      age: j.age ?? j.Age ?? '-',
+      duration: j.duration ?? j.Duration ?? '-',
+      image: j.image ?? j.Image ?? '',
+      labels: j.labels ?? j.Labels ?? j.metadata?.labels ?? {},
+    }));
 
   // Fetch jobs data
   const fetchJobs = async () => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    const nsArr =
+      Array.isArray(namespaces) && namespaces.length > 0
+        ? namespaces
+        : namespace
+          ? [namespace]
+          : [];
     if (nsArr.length === 0) return;
 
     setLoading(true);
     try {
-      const lists = await Promise.all(nsArr.map(ns => AppAPI.GetJobs(ns).catch(() => [])));
+      const lists = await Promise.all(
+        nsArr.map((ns) => AppAPI.GetJobs(ns).catch(() => [])),
+      );
       setJobs(normalize(lists.flat()));
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -330,59 +241,57 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
 
   useEffect(() => {
     const handler = (jobsData) => {
-      try { setJobs(normalize(Array.isArray(jobsData) ? jobsData : [])); } catch { setJobs([]); }
+      try {
+        setJobs(normalize(Array.isArray(jobsData) ? jobsData : []));
+      } catch {
+        setJobs([]);
+      }
     };
     EventsOn('jobs:update', handler);
-    return () => { try { EventsOff('jobs:update'); } catch (_) {} };
+    return () => {
+      try {
+        EventsOff('jobs:update');
+      } catch (_) {}
+    };
   }, []);
 
   // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
   useEffect(() => {
     const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-      if (eventData?.resource === 'job' && nsArr.includes(eventData?.namespace)) {
+      const nsArr =
+        Array.isArray(namespaces) && namespaces.length > 0
+          ? namespaces
+          : namespace
+            ? [namespace]
+            : [];
+      if (
+        eventData?.resource === 'job' &&
+        nsArr.includes(eventData?.namespace)
+      ) {
         fetchJobs();
       }
     });
     return () => {
-      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
+      try {
+        EventsOff('resource-updated', unsubscribe);
+      } catch (_) {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(namespaces), namespace]);
 
   const analyzeJob = async (row) => {
     const key = `${row.namespace}/${row.name}`;
-    const streamId = `job-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
+    await startAnalysis({
       key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
+      streamPrefix: 'job',
+      run: (streamId) => AnalyzeJobStream(row.namespace, row.name, streamId),
+      onError: (message) =>
+        showError(`Holmes analysis failed: ${message}`),
     });
-    try {
-      await AnalyzeJobStream(row.namespace, row.name, streamId);
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showError(`Holmes analysis failed: ${message}`);
-    }
   };
 
   const cancelHolmesAnalysis = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
+    await cancelAnalysis();
   };
 
   const getRowActions = (row, api) => {
@@ -406,7 +315,9 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
             await StartJob(row.namespace, row.name);
             showSuccess(`Job '${row.name}' started`);
           } catch (err) {
-            showError(`Failed to start job '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to start job '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -419,7 +330,9 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
             await AppAPI.DeleteResource('job', row.namespace, row.name);
             showSuccess(`Job '${row.name}' deleted`);
           } catch (err) {
-            showError(`Failed to delete job '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to delete job '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -432,7 +345,15 @@ export default function JobsOverviewTable({ namespaces, namespace }) {
       data={jobs}
       loading={loading}
       tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeJob, cancelHolmesAnalysis)}
+      renderPanelContent={(row, tab) =>
+        renderPanelContent(
+          row,
+          tab,
+          holmesState,
+          analyzeJob,
+          cancelHolmesAnalysis,
+        )
+      }
       panelHeader={panelHeader}
       title="Jobs"
       onRefresh={fetchJobs}

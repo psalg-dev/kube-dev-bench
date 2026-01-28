@@ -7,7 +7,8 @@ function looksLikeYaml(text) {
   if (!s) return false;
   if (s.startsWith('{') || s.startsWith('[')) return false; // likely JSON
   // Very small heuristics: common k8s/docker-ish keys.
-  if (/^\s*(apiVersion|kind|metadata|services|version)\s*:/m.test(s)) return true;
+  if (/^\s*(apiVersion|kind|metadata|services|version)\s*:/m.test(s))
+    return true;
   // Generic YAML-ish key: value lines.
   if (/^\s*[^\s#:][^:]*:\s*.+/m.test(s)) return true;
   return false;

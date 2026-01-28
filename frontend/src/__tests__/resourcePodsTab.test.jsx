@@ -29,7 +29,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="test-deploy"
         resourceKind="Deployment"
-      />
+      />,
     );
 
     expect(screen.getByText(/loading pods/i)).toBeInTheDocument();
@@ -38,8 +38,22 @@ describe('ResourcePodsTab', () => {
   it('renders pods for Deployment', async () => {
     const mockDetail = {
       pods: [
-        { name: 'test-deploy-abc123', status: 'Running', ready: '1/1', restarts: 0, age: '2h', node: 'node-1' },
-        { name: 'test-deploy-def456', status: 'Running', ready: '1/1', restarts: 1, age: '2h', node: 'node-2' },
+        {
+          name: 'test-deploy-abc123',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '2h',
+          node: 'node-1',
+        },
+        {
+          name: 'test-deploy-def456',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 1,
+          age: '2h',
+          node: 'node-2',
+        },
       ],
     };
 
@@ -50,7 +64,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="test-deploy"
         resourceKind="Deployment"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -58,14 +72,31 @@ describe('ResourcePodsTab', () => {
     });
 
     expect(screen.getByText('test-deploy-def456')).toBeInTheDocument();
-    expect(mockGetDeploymentDetail).toHaveBeenCalledWith('default', 'test-deploy');
+    expect(mockGetDeploymentDetail).toHaveBeenCalledWith(
+      'default',
+      'test-deploy',
+    );
   });
 
   it('renders pods for StatefulSet', async () => {
     const mockDetail = {
       pods: [
-        { name: 'test-sts-0', status: 'Running', ready: '1/1', restarts: 0, age: '1h', node: 'node-1' },
-        { name: 'test-sts-1', status: 'Running', ready: '1/1', restarts: 0, age: '1h', node: 'node-2' },
+        {
+          name: 'test-sts-0',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '1h',
+          node: 'node-1',
+        },
+        {
+          name: 'test-sts-1',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '1h',
+          node: 'node-2',
+        },
       ],
     };
 
@@ -76,7 +107,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="test-sts"
         resourceKind="StatefulSet"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -84,14 +115,31 @@ describe('ResourcePodsTab', () => {
     });
 
     expect(screen.getByText('test-sts-1')).toBeInTheDocument();
-    expect(mockGetStatefulSetDetail).toHaveBeenCalledWith('default', 'test-sts');
+    expect(mockGetStatefulSetDetail).toHaveBeenCalledWith(
+      'default',
+      'test-sts',
+    );
   });
 
   it('renders pods for DaemonSet', async () => {
     const mockDetail = {
       pods: [
-        { name: 'test-ds-abc', status: 'Running', ready: '1/1', restarts: 0, age: '3h', node: 'worker-1' },
-        { name: 'test-ds-def', status: 'Running', ready: '1/1', restarts: 0, age: '3h', node: 'worker-2' },
+        {
+          name: 'test-ds-abc',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '3h',
+          node: 'worker-1',
+        },
+        {
+          name: 'test-ds-def',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '3h',
+          node: 'worker-2',
+        },
       ],
     };
 
@@ -102,7 +150,7 @@ describe('ResourcePodsTab', () => {
         namespace="kube-system"
         resourceName="test-ds"
         resourceKind="DaemonSet"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -110,13 +158,23 @@ describe('ResourcePodsTab', () => {
     });
 
     expect(screen.getByText('worker-1')).toBeInTheDocument();
-    expect(mockGetDaemonSetDetail).toHaveBeenCalledWith('kube-system', 'test-ds');
+    expect(mockGetDaemonSetDetail).toHaveBeenCalledWith(
+      'kube-system',
+      'test-ds',
+    );
   });
 
   it('renders pods for ReplicaSet', async () => {
     const mockDetail = {
       pods: [
-        { name: 'test-rs-xyz', status: 'Running', ready: '1/1', restarts: 0, age: '30m', node: 'node-1' },
+        {
+          name: 'test-rs-xyz',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '30m',
+          node: 'node-1',
+        },
       ],
     };
 
@@ -127,7 +185,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="test-rs"
         resourceKind="ReplicaSet"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -145,7 +203,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="empty-deploy"
         resourceKind="Deployment"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -154,14 +212,16 @@ describe('ResourcePodsTab', () => {
   });
 
   it('renders error state when API fails', async () => {
-    mockGetDeploymentDetail.mockRejectedValue(new Error('Failed to fetch pods'));
+    mockGetDeploymentDetail.mockRejectedValue(
+      new Error('Failed to fetch pods'),
+    );
 
     render(
       <ResourcePodsTab
         namespace="default"
         resourceName="failing-deploy"
         resourceKind="Deployment"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -174,9 +234,30 @@ describe('ResourcePodsTab', () => {
   it('shows pod status with color coding', async () => {
     const mockDetail = {
       pods: [
-        { name: 'running-pod', status: 'Running', ready: '1/1', restarts: 0, age: '1h', node: 'node-1' },
-        { name: 'pending-pod', status: 'Pending', ready: '0/1', restarts: 0, age: '5m', node: '' },
-        { name: 'failed-pod', status: 'Failed', ready: '0/1', restarts: 3, age: '10m', node: 'node-2' },
+        {
+          name: 'running-pod',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '1h',
+          node: 'node-1',
+        },
+        {
+          name: 'pending-pod',
+          status: 'Pending',
+          ready: '0/1',
+          restarts: 0,
+          age: '5m',
+          node: '',
+        },
+        {
+          name: 'failed-pod',
+          status: 'Failed',
+          ready: '0/1',
+          restarts: 3,
+          age: '10m',
+          node: 'node-2',
+        },
       ],
     };
 
@@ -187,7 +268,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="mixed-deploy"
         resourceKind="Deployment"
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -204,9 +285,30 @@ describe('ResourcePodsTab', () => {
   it('displays pod count in header', async () => {
     const mockDetail = {
       pods: [
-        { name: 'pod-1', status: 'Running', ready: '1/1', restarts: 0, age: '1h', node: 'node-1' },
-        { name: 'pod-2', status: 'Running', ready: '1/1', restarts: 0, age: '1h', node: 'node-2' },
-        { name: 'pod-3', status: 'Running', ready: '1/1', restarts: 0, age: '1h', node: 'node-3' },
+        {
+          name: 'pod-1',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '1h',
+          node: 'node-1',
+        },
+        {
+          name: 'pod-2',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '1h',
+          node: 'node-2',
+        },
+        {
+          name: 'pod-3',
+          status: 'Running',
+          ready: '1/1',
+          restarts: 0,
+          age: '1h',
+          node: 'node-3',
+        },
       ],
     };
 
@@ -217,7 +319,7 @@ describe('ResourcePodsTab', () => {
         namespace="default"
         resourceName="multi-pod-deploy"
         resourceKind="Deployment"
-      />
+      />,
     );
 
     await waitFor(() => {

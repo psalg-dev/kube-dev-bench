@@ -5,9 +5,10 @@ import Select from 'react-select';
 const baseControl = (base, state) => ({
   ...base,
   backgroundColor: 'var(--gh-bg, #0d1117)',
-  borderColor: (state.isFocused || state.menuIsOpen)
-    ? 'var(--gh-accent, #58a6ff)'
-    : 'var(--gh-border, #30363d)',
+  borderColor:
+    state.isFocused || state.menuIsOpen
+      ? 'var(--gh-accent, #58a6ff)'
+      : 'var(--gh-border, #30363d)',
   boxShadow: state.isFocused ? '0 0 0 2px rgba(56,139,253,0.3)' : 'none',
   minHeight: 40,
   borderWidth: 1,
@@ -18,7 +19,11 @@ const baseControl = (base, state) => ({
   // When menu is open, visually connect control with menu
   borderBottomLeftRadius: state.menuIsOpen ? 0 : 6,
   borderBottomRightRadius: state.menuIsOpen ? 0 : 6,
-  borderBottomColor: state.menuIsOpen ? 'transparent' : (state.isFocused ? 'var(--gh-accent, #58a6ff)' : 'var(--gh-border, #30363d)'),
+  borderBottomColor: state.menuIsOpen
+    ? 'transparent'
+    : state.isFocused
+      ? 'var(--gh-accent, #58a6ff)'
+      : 'var(--gh-border, #30363d)',
   cursor: state.isDisabled ? 'not-allowed' : 'pointer',
 });
 
@@ -66,11 +71,17 @@ const commonStyles = {
     caretColor: 'transparent',
     userSelect: 'none',
   }),
-  singleValue: (b) => ({ ...b, color: 'var(--gh-text, #c9d1d9)', userSelect: 'none' }),
+  singleValue: (b) => ({
+    ...b,
+    color: 'var(--gh-text, #c9d1d9)',
+    userSelect: 'none',
+  }),
   indicatorSeparator: () => ({ display: 'none' }),
   dropdownIndicator: (b, state) => ({
     ...b,
-    color: state.isFocused ? 'var(--gh-accent, #58a6ff)' : 'var(--gh-text-secondary, #8b949e)',
+    color: state.isFocused
+      ? 'var(--gh-accent, #58a6ff)'
+      : 'var(--gh-text-secondary, #8b949e)',
     ':hover': { color: 'var(--gh-accent, #58a6ff)' },
   }),
   // Hide clear button entirely
@@ -79,7 +90,11 @@ const commonStyles = {
 
 const multiStyles = {
   ...commonStyles,
-  multiValue: (b) => ({ ...b, backgroundColor: 'rgba(88,166,255,0.12)', borderRadius: 6 }),
+  multiValue: (b) => ({
+    ...b,
+    backgroundColor: 'rgba(88,166,255,0.12)',
+    borderRadius: 6,
+  }),
   multiValueLabel: (b) => ({ ...b, color: 'var(--gh-text, #c9d1d9)' }),
   multiValueRemove: (b) => ({
     ...b,
@@ -88,7 +103,13 @@ const multiStyles = {
   }),
 };
 
-export function ContextSelect({ value, options, disabled, onChange, onMenuOpen }) {
+export function ContextSelect({
+  value,
+  options,
+  disabled,
+  onChange,
+  onMenuOpen,
+}) {
   const selectOptions = (options || []).map((o) => ({ value: o, label: o }));
   const current = value ? { value, label: value } : null;
   return (
@@ -111,10 +132,19 @@ export function ContextSelect({ value, options, disabled, onChange, onMenuOpen }
   );
 }
 
-export function NamespaceMultiSelect({ values, options, disabled, onChange, placeholder = 'Select namespaces…', onMenuOpen }) {
+export function NamespaceMultiSelect({
+  values,
+  options,
+  disabled,
+  onChange,
+  placeholder = 'Select namespaces…',
+  onMenuOpen,
+}) {
   const [internal, setInternal] = useState(values || []);
   // Sync when parent updates values prop (controlled usage)
-  useEffect(() => { if (Array.isArray(values)) setInternal(values); }, [values]);
+  useEffect(() => {
+    if (Array.isArray(values)) setInternal(values);
+  }, [values]);
   const selectOptions = (options || []).map((o) => ({ value: o, label: o }));
   const current = internal.map((v) => ({ value: v, label: v }));
   function handleChange(opts) {

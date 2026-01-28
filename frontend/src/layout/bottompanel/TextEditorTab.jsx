@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
+import {
+  EditorView,
+  lineNumbers,
+  highlightActiveLineGutter,
+  keymap,
+} from '@codemirror/view';
 import { Compartment, EditorState } from '@codemirror/state';
 import { foldGutter, foldKeymap } from '@codemirror/language';
 import { getCodeMirrorLanguageExtensions } from '../../utils/codeMirrorLanguage.js';
@@ -33,17 +38,21 @@ export default function TextEditorTab({
             lineHeight: '1.45',
           },
           '.cm-whitespace': { opacity: 0.35 },
-          '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' },
+          '.cm-gutters': {
+            background: '#161b22',
+            color: '#8b949e',
+            borderRight: '1px solid #30363d',
+          },
           '.cm-gutterElement': { padding: '0 8px' },
         },
-        { dark: true }
+        { dark: true },
       ),
-    []
+    [],
   );
 
   const languageExtensions = useMemo(
     () => getCodeMirrorLanguageExtensions(filename, content),
-    [filename, content]
+    [filename, content],
   );
 
   const cmExtensions = useMemo(() => {
@@ -113,7 +122,9 @@ export default function TextEditorTab({
     const view = viewRef.current;
     if (!view) return;
     try {
-      view.dispatch({ effects: languageCompartmentRef.current.reconfigure(languageExtensions) });
+      view.dispatch({
+        effects: languageCompartmentRef.current.reconfigure(languageExtensions),
+      });
     } catch (_e) {
       // Best-effort.
     }

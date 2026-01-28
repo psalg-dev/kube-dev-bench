@@ -8,25 +8,36 @@ const detectSyntax = (content, key) => {
   if (ext === 'json' || ext === 'js') return 'json';
   if (ext === 'yaml' || ext === 'yml') return 'yaml';
   if (ext === 'xml') return 'xml';
-  if (ext === 'properties' || ext === 'ini' || ext === 'conf') return 'properties';
+  if (ext === 'properties' || ext === 'ini' || ext === 'conf')
+    return 'properties';
   if (ext === 'sh' || ext === 'bash') return 'shell';
 
   // Try to detect from content
   const trimmed = content.trim();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) return 'json';
-  if (trimmed.includes(':') && (trimmed.includes('\n  ') || trimmed.includes('\n-'))) return 'yaml';
+  if (
+    trimmed.includes(':') &&
+    (trimmed.includes('\n  ') || trimmed.includes('\n-'))
+  )
+    return 'yaml';
 
   return 'text';
 };
 
 const getSyntaxColor = (syntax) => {
   switch (syntax) {
-    case 'json': return '#f1e05a';
-    case 'yaml': return '#cb171e';
-    case 'xml': return '#e44b23';
-    case 'properties': return '#89e051';
-    case 'shell': return '#89e051';
-    default: return '#8b949e';
+    case 'json':
+      return '#f1e05a';
+    case 'yaml':
+      return '#cb171e';
+    case 'xml':
+      return '#e44b23';
+    case 'properties':
+      return '#89e051';
+    case 'shell':
+      return '#89e051';
+    default:
+      return '#8b949e';
   }
 };
 
@@ -46,7 +57,7 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
     setError(null);
 
     AppAPI.GetConfigMapDataByName(namespace, configMapName)
-      .then(result => {
+      .then((result) => {
         setData(result || []);
         setLoading(false);
         // Auto-expand first key if only one
@@ -54,14 +65,14 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
           setExpandedKeys(new Set([result[0].key]));
         }
       })
-      .catch(err => {
+      .catch((err) => {
         setError(err.message || 'Failed to fetch configmap data');
         setLoading(false);
       });
   }, [namespace, configMapName]);
 
   const toggleExpand = (key) => {
-    setExpandedKeys(prev => {
+    setExpandedKeys((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -87,12 +98,25 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
     if (!editingKey) return;
     setSaving(true);
     try {
-      await AppAPI.UpdateConfigMapDataKey(namespace, configMapName, editingKey, draftValue);
-      setData(prev => prev.map(it => (it.key === editingKey ? { ...it, value: draftValue, size: draftValue.length } : it)));
+      await AppAPI.UpdateConfigMapDataKey(
+        namespace,
+        configMapName,
+        editingKey,
+        draftValue,
+      );
+      setData((prev) =>
+        prev.map((it) =>
+          it.key === editingKey
+            ? { ...it, value: draftValue, size: draftValue.length }
+            : it,
+        ),
+      );
       showSuccess(`ConfigMap '${configMapName}' updated (${editingKey})`);
       cancelEdit();
     } catch (e) {
-      showError(`Failed to update ConfigMap '${configMapName}': ${e?.message || e}`);
+      showError(
+        `Failed to update ConfigMap '${configMapName}': ${e?.message || e}`,
+      );
       setSaving(false);
     }
   };
@@ -104,7 +128,11 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
   };
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -112,12 +140,22 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
   }
 
   if (!data || data.length === 0) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>This ConfigMap has no data.</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        This ConfigMap has no data.
+      </div>
+    );
   }
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <div style={{ marginBottom: 8, color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
+      <div
+        style={{
+          marginBottom: 8,
+          color: 'var(--gh-text-muted, #8b949e)',
+          fontSize: 12,
+        }}
+      >
         {data.length} key{data.length !== 1 ? 's' : ''}
       </div>
       {data.map((item) => {
@@ -130,7 +168,14 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
         const canEdit = !item.isBinary;
 
         return (
-          <div key={item.key} style={{ marginBottom: 8, border: '1px solid #30363d', borderRadius: 6 }}>
+          <div
+            key={item.key}
+            style={{
+              marginBottom: 8,
+              border: '1px solid #30363d',
+              borderRadius: 6,
+            }}
+          >
             <div
               onClick={() => toggleExpand(item.key)}
               style={{
@@ -140,43 +185,63 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderBottom: isExpanded ? '1px solid #30363d' : 'none'
+                borderBottom: isExpanded ? '1px solid #30363d' : 'none',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ color: 'var(--gh-text-muted, #8b949e)', width: 16 }}>
+                <span
+                  style={{ color: 'var(--gh-text-muted, #8b949e)', width: 16 }}
+                >
                   {isExpanded ? '▼' : '▶'}
                 </span>
-                <span style={{ color: 'var(--gh-text, #c9d1d9)', fontWeight: 500 }}>{item.key}</span>
-                <span style={{
-                  fontSize: 11,
-                  padding: '2px 6px',
-                  borderRadius: 3,
-                  backgroundColor: getSyntaxColor(syntax) + '20',
-                  color: getSyntaxColor(syntax),
-                  textTransform: 'uppercase'
-                }}>
-                  {syntax}
+                <span
+                  style={{ color: 'var(--gh-text, #c9d1d9)', fontWeight: 500 }}
+                >
+                  {item.key}
                 </span>
-                {item.isBinary && (
-                  <span style={{
+                <span
+                  style={{
                     fontSize: 11,
                     padding: '2px 6px',
                     borderRadius: 3,
-                    backgroundColor: '#f8514920',
-                    color: '#f85149'
-                  }}>
+                    backgroundColor: getSyntaxColor(syntax) + '20',
+                    color: getSyntaxColor(syntax),
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {syntax}
+                </span>
+                {item.isBinary && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      padding: '2px 6px',
+                      borderRadius: 3,
+                      backgroundColor: '#f8514920',
+                      color: '#f85149',
+                    }}
+                  >
                     binary
                   </span>
                 )}
               </div>
-              <span style={{ color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
+              <span
+                style={{ color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}
+              >
                 {formatSize(item.size)}
               </span>
             </div>
             {isExpanded && (
               <div style={{ backgroundColor: '#0d1117' }}>
-                <div style={{ padding: '8px 12px', borderBottom: '1px solid #21262d', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <div
+                  style={{
+                    padding: '8px 12px',
+                    borderBottom: '1px solid #21262d',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: 8,
+                  }}
+                >
                   {!isEditing && (
                     <button
                       type="button"
@@ -191,9 +256,13 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
                         borderColor: canEdit ? '#388bfd' : '#353a42',
                         color: '#fff',
                         opacity: canEdit ? 1 : 0.6,
-                        cursor: canEdit ? 'pointer' : 'not-allowed'
+                        cursor: canEdit ? 'pointer' : 'not-allowed',
                       }}
-                      title={canEdit ? 'Edit this key' : 'Binary keys cannot be edited'}
+                      title={
+                        canEdit
+                          ? 'Edit this key'
+                          : 'Binary keys cannot be edited'
+                      }
                     >
                       Edit
                     </button>
@@ -212,7 +281,7 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
                           background: '#2d323b',
                           color: '#fff',
                           opacity: saving ? 0.6 : 1,
-                          cursor: saving ? 'not-allowed' : 'pointer'
+                          cursor: saving ? 'not-allowed' : 'pointer',
                         }}
                       >
                         Cancel
@@ -230,7 +299,7 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
                           borderColor: '#2ea44f',
                           color: '#fff',
                           opacity: saving ? 0.6 : 1,
-                          cursor: saving ? 'not-allowed' : 'pointer'
+                          cursor: saving ? 'not-allowed' : 'pointer',
                         }}
                       >
                         {saving ? 'Saving…' : 'Save'}
@@ -239,17 +308,19 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
                   )}
                 </div>
                 {!isEditing ? (
-                  <pre style={{
-                    margin: 0,
-                    padding: 12,
-                    overflow: 'auto',
-                    maxHeight: 400,
-                    fontSize: 12,
-                    fontFamily: 'monospace',
-                    color: 'var(--gh-text, #c9d1d9)',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-all'
-                  }}>
+                  <pre
+                    style={{
+                      margin: 0,
+                      padding: 12,
+                      overflow: 'auto',
+                      maxHeight: 400,
+                      fontSize: 12,
+                      fontFamily: 'monospace',
+                      color: 'var(--gh-text, #c9d1d9)',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all',
+                    }}
+                  >
                     {displayValue}
                   </pre>
                 ) : (
@@ -268,7 +339,7 @@ export default function ConfigMapDataTab({ namespace, configMapName }) {
                       padding: 12,
                       fontSize: 12,
                       fontFamily: 'monospace',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
                     }}
                   />
                 )}

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  getColumnKey, 
-  pickDefaultSortKey, 
-  sortRows, 
-  toggleSortState 
+import {
+  getColumnKey,
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
 } from '../utils/tableSorting';
 
 describe('tableSorting', () => {
@@ -155,11 +155,7 @@ describe('tableSorting', () => {
     });
 
     it('handles undefined values in sort column', () => {
-      const rowsWithUndefined = [
-        { name: 'Charlie' },
-        {},
-        { name: 'Alice' },
-      ];
+      const rowsWithUndefined = [{ name: 'Charlie' }, {}, { name: 'Alice' }];
       const sorted = sortRows(rowsWithUndefined, 'name', 'asc');
       expect(sorted[0].name).toBe('Alice');
       expect(sorted[1].name).toBe('Charlie');
@@ -188,21 +184,13 @@ describe('tableSorting', () => {
 
     describe('duration parsing', () => {
       it('sorts duration strings correctly for age column', () => {
-        const rows = [
-          { age: '2d' },
-          { age: '1h' },
-          { age: '30m' },
-        ];
+        const rows = [{ age: '2d' }, { age: '1h' }, { age: '30m' }];
         const sorted = sortRows(rows, 'age', 'asc');
         expect(sorted.map((r) => r.age)).toEqual(['30m', '1h', '2d']);
       });
 
       it('handles complex duration strings', () => {
-        const rows = [
-          { age: '1d 12h' },
-          { age: '2d' },
-          { age: '36h' },
-        ];
+        const rows = [{ age: '1d 12h' }, { age: '2d' }, { age: '36h' }];
         const sorted = sortRows(rows, 'age', 'asc');
         // 36h = 1.5d, 1d12h = 1.5d, 2d = 2d
         // So order should be: 36h, 1d12h, 2d (ascending)
@@ -210,11 +198,7 @@ describe('tableSorting', () => {
       });
 
       it('handles seconds and minutes', () => {
-        const rows = [
-          { age: '90s' },
-          { age: '1m' },
-          { age: '2m' },
-        ];
+        const rows = [{ age: '90s' }, { age: '1m' }, { age: '2m' }];
         const sorted = sortRows(rows, 'age', 'asc');
         expect(sorted.map((r) => r.age)).toEqual(['1m', '90s', '2m']);
       });
@@ -235,11 +219,7 @@ describe('tableSorting', () => {
 
     describe('numeric string parsing', () => {
       it('sorts numeric strings numerically', () => {
-        const rows = [
-          { count: '10' },
-          { count: '2' },
-          { count: '1' },
-        ];
+        const rows = [{ count: '10' }, { count: '2' }, { count: '1' }];
         const sorted = sortRows(rows, 'count', 'asc');
         expect(sorted.map((r) => r.count)).toEqual(['1', '2', '10']);
       });
@@ -258,7 +238,10 @@ describe('tableSorting', () => {
     });
 
     it('toggles from desc to asc for same key', () => {
-      const result = toggleSortState({ key: 'name', direction: 'desc' }, 'name');
+      const result = toggleSortState(
+        { key: 'name', direction: 'desc' },
+        'name',
+      );
       expect(result).toEqual({ key: 'name', direction: 'asc' });
     });
 

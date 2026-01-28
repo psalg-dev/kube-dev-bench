@@ -23,7 +23,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="test-ingress"
         hosts={[]}
-      />
+      />,
     );
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
@@ -35,8 +35,16 @@ describe('IngressRulesTab', () => {
         {
           host: 'api.example.com',
           paths: [
-            { path: '/v1', pathType: 'Prefix', backend: { serviceName: 'api-v1', servicePort: 8080 } },
-            { path: '/v2', pathType: 'Prefix', backend: { serviceName: 'api-v2', servicePort: 8080 } },
+            {
+              path: '/v1',
+              pathType: 'Prefix',
+              backend: { serviceName: 'api-v1', servicePort: 8080 },
+            },
+            {
+              path: '/v2',
+              pathType: 'Prefix',
+              backend: { serviceName: 'api-v2', servicePort: 8080 },
+            },
           ],
         },
       ],
@@ -49,7 +57,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="api-ingress"
         hosts={['api.example.com']}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -70,7 +78,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="basic-ingress"
         hosts={['app.example.com', 'www.example.com']}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -86,7 +94,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="empty-ingress"
         hosts={[]}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -100,8 +108,16 @@ describe('IngressRulesTab', () => {
         {
           host: 'test.com',
           paths: [
-            { path: '/exact', pathType: 'Exact', backend: { serviceName: 'exact-svc', servicePort: 80 } },
-            { path: '/prefix', pathType: 'Prefix', backend: { serviceName: 'prefix-svc', servicePort: 80 } },
+            {
+              path: '/exact',
+              pathType: 'Exact',
+              backend: { serviceName: 'exact-svc', servicePort: 80 },
+            },
+            {
+              path: '/prefix',
+              pathType: 'Prefix',
+              backend: { serviceName: 'prefix-svc', servicePort: 80 },
+            },
           ],
         },
       ],
@@ -114,7 +130,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="mixed-ingress"
         hosts={['test.com']}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -130,7 +146,11 @@ describe('IngressRulesTab', () => {
         {
           host: 'secure.example.com',
           paths: [
-            { path: '/', pathType: 'Prefix', backend: { serviceName: 'secure-svc', servicePort: 443 } },
+            {
+              path: '/',
+              pathType: 'Prefix',
+              backend: { serviceName: 'secure-svc', servicePort: 443 },
+            },
           ],
         },
       ],
@@ -149,7 +169,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="tls-ingress"
         hosts={['secure.example.com']}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -167,20 +187,50 @@ describe('IngressRulesTab', () => {
         namespace="my-namespace"
         ingressName="my-ingress"
         hosts={[]}
-      />
+      />,
     );
 
     await waitFor(() => {
-      expect(mockGetIngressDetail).toHaveBeenCalledWith('my-namespace', 'my-ingress');
+      expect(mockGetIngressDetail).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-ingress',
+      );
     });
   });
 
   it('shows rule count in header', async () => {
     const mockDetail = {
       rules: [
-        { host: 'a.com', paths: [{ path: '/', pathType: 'Prefix', backend: { serviceName: 'a', servicePort: 80 } }] },
-        { host: 'b.com', paths: [{ path: '/', pathType: 'Prefix', backend: { serviceName: 'b', servicePort: 80 } }] },
-        { host: 'c.com', paths: [{ path: '/', pathType: 'Prefix', backend: { serviceName: 'c', servicePort: 80 } }] },
+        {
+          host: 'a.com',
+          paths: [
+            {
+              path: '/',
+              pathType: 'Prefix',
+              backend: { serviceName: 'a', servicePort: 80 },
+            },
+          ],
+        },
+        {
+          host: 'b.com',
+          paths: [
+            {
+              path: '/',
+              pathType: 'Prefix',
+              backend: { serviceName: 'b', servicePort: 80 },
+            },
+          ],
+        },
+        {
+          host: 'c.com',
+          paths: [
+            {
+              path: '/',
+              pathType: 'Prefix',
+              backend: { serviceName: 'c', servicePort: 80 },
+            },
+          ],
+        },
       ],
     };
 
@@ -191,7 +241,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="multi-host-ingress"
         hosts={['a.com', 'b.com', 'c.com']}
-      />
+      />,
     );
 
     await waitFor(() => {
@@ -205,9 +255,21 @@ describe('IngressRulesTab', () => {
         {
           host: 'api.test.com',
           paths: [
-            { path: '/users', pathType: 'Prefix', backend: { serviceName: 'users-svc', servicePort: 8080 } },
-            { path: '/orders', pathType: 'Prefix', backend: { serviceName: 'orders-svc', servicePort: 8081 } },
-            { path: '/products', pathType: 'Prefix', backend: { serviceName: 'products-svc', servicePort: 8082 } },
+            {
+              path: '/users',
+              pathType: 'Prefix',
+              backend: { serviceName: 'users-svc', servicePort: 8080 },
+            },
+            {
+              path: '/orders',
+              pathType: 'Prefix',
+              backend: { serviceName: 'orders-svc', servicePort: 8081 },
+            },
+            {
+              path: '/products',
+              pathType: 'Prefix',
+              backend: { serviceName: 'products-svc', servicePort: 8082 },
+            },
           ],
         },
       ],
@@ -220,7 +282,7 @@ describe('IngressRulesTab', () => {
         namespace="default"
         ingressName="multi-path-ingress"
         hosts={['api.test.com']}
-      />
+      />,
     );
 
     await waitFor(() => {

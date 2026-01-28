@@ -38,7 +38,11 @@ function ReplicaSetSummaryTab({ row }) {
     let cancelled = false;
     const checkEvents = async () => {
       try {
-        const count = await AppAPI.GetResourceEventsCount(row.namespace, 'ReplicaSet', row.name);
+        const count = await AppAPI.GetResourceEventsCount(
+          row.namespace,
+          'ReplicaSet',
+          row.name,
+        );
         if (cancelled) return;
         setHasEvents((count || 0) > 0);
       } catch (_err) {
@@ -63,13 +67,13 @@ function ReplicaSetSummaryTab({ row }) {
         key: 'age',
         label: 'Age',
         type: 'age',
-        getValue: (data) => data.created || data.age
-      }
+        getValue: (data) => data.created || data.age,
+      },
     },
     { key: 'namespace', label: 'Namespace' },
     { key: 'ready', label: 'Ready' },
     { key: 'image', label: 'Image', type: 'break-word' },
-    { key: 'name', label: 'ReplicaSet name', type: 'break-word' }
+    { key: 'name', label: 'ReplicaSet name', type: 'break-word' },
   ];
 
   const handlePodClick = (podName, podNamespace) => {
@@ -81,13 +85,38 @@ function ReplicaSetSummaryTab({ row }) {
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
       <SummaryTabHeader
         name={row.name}
         labels={row.labels || row.Labels || row.metadata?.labels}
-        actions={<ResourceActions resourceType="replicaset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('replicaset', ns, n);}} />}
+        actions={
+          <ResourceActions
+            resourceType="replicaset"
+            name={row.name}
+            namespace={row.namespace}
+            replicaCount={row.replicas}
+            onDelete={async (n, ns) => {
+              await AppAPI.DeleteResource('replicaset', ns, n);
+            }}
+          />
+        }
       />
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+      <div
+        style={{
+          display: 'flex',
+          flex: 1,
+          minHeight: 0,
+          color: 'var(--gh-text, #c9d1d9)',
+        }}
+      >
         <QuickInfoSection
           resourceName={row.name}
           data={row}
@@ -96,7 +125,9 @@ function ReplicaSetSummaryTab({ row }) {
           fields={quickInfoFields}
         />
         <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+          <div
+            style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}
+          >
             <ResourcePodsTab
               namespace={row.namespace}
               resourceKind="ReplicaSet"
@@ -105,7 +136,15 @@ function ReplicaSetSummaryTab({ row }) {
             />
           </div>
           {hasEvents ? (
-            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
+            <div
+              style={{
+                width: 420,
+                minWidth: 300,
+                minHeight: 0,
+                borderLeft: '1px solid var(--gh-border, #30363d)',
+                position: 'relative',
+              }}
+            >
               <ResourceEventsTab
                 namespace={row.namespace}
                 kind="ReplicaSet"
@@ -135,10 +174,7 @@ function renderPanelContent(row, tab) {
   }
   if (tab === 'owner') {
     return (
-      <ReplicaSetOwnerTab
-        namespace={row.namespace}
-        replicaSetName={row.name}
-      />
+      <ReplicaSetOwnerTab namespace={row.namespace} replicaSetName={row.name} />
     );
   }
   if (tab === 'logs') {
@@ -194,13 +230,20 @@ export default function ReplicaSetsOverviewTable({ namespaces, namespace }) {
 
   // Aggregate fetch across namespaces
   useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
+    const nsArr =
+      Array.isArray(namespaces) && namespaces.length > 0
+        ? namespaces
+        : namespace
+          ? [namespace]
+          : [];
     if (nsArr.length === 0) return;
     let cancelled = false;
     const run = async () => {
       try {
         setLoading(true);
-        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetReplicaSets(ns).catch(() => [])));
+        const lists = await Promise.all(
+          nsArr.map((ns) => AppAPI.GetReplicaSets(ns).catch(() => [])),
+        );
         if (cancelled) return;
         setItems(lists.flat());
       } catch (_e) {
@@ -210,7 +253,9 @@ export default function ReplicaSetsOverviewTable({ namespaces, namespace }) {
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [namespaces, namespace]);
 
   // Live updates (already aggregated by backend polling)
@@ -218,20 +263,28 @@ export default function ReplicaSetsOverviewTable({ namespaces, namespace }) {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        const norm = arr.map(x => ({
+        const norm = arr.map((x) => ({
           name: x.name ?? x.Name,
           namespace: x.namespace ?? x.Namespace,
           replicas: x.replicas ?? x.Replicas ?? 0,
           ready: x.ready ?? x.Ready ?? 0,
           age: x.age ?? x.Age ?? '-',
           image: x.image ?? x.Image ?? '',
-          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
+          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {},
         }));
         setItems(norm);
-      } catch (_) { setItems([]); } finally { setLoading(false); }
+      } catch (_) {
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
     };
     EventsOn('replicasets:update', onUpdate);
-    return () => { try { EventsOff('replicasets:update'); } catch (_) {} };
+    return () => {
+      try {
+        EventsOff('replicasets:update');
+      } catch (_) {}
+    };
   }, []);
 
   const getRowActions = (row) => [
@@ -244,7 +297,9 @@ export default function ReplicaSetsOverviewTable({ namespaces, namespace }) {
           await AppAPI.DeleteResource('replicaset', row.namespace, row.name);
           showSuccess(`ReplicaSet '${row.name}' deleted`);
         } catch (err) {
-          showError(`Failed to delete ReplicaSet '${row.name}': ${err?.message || err}`);
+          showError(
+            `Failed to delete ReplicaSet '${row.name}': ${err?.message || err}`,
+          );
         }
       },
     },

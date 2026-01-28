@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { clusterStateReducer as reducer, initialState } from '../state/ClusterStateContext.jsx';
+import {
+  clusterStateReducer as reducer,
+  initialState,
+} from '../state/ClusterStateContext.jsx';
 
 function reduce(actions, start = initialState) {
   return actions.reduce((s, a) => reducer(s, a), start);
@@ -12,15 +15,21 @@ describe('clusterStateReducer', () => {
   });
 
   it('sets contexts and enables context select', () => {
-    const ctxs = ['c1','c2'];
-    const state = reducer(initialState, { type: 'SET_CONTEXTS', contexts: ctxs });
+    const ctxs = ['c1', 'c2'];
+    const state = reducer(initialState, {
+      type: 'SET_CONTEXTS',
+      contexts: ctxs,
+    });
     expect(state.contexts).toEqual(ctxs);
     expect(state.contextDisabled).toBe(false);
   });
 
   it('sets namespaces and enables namespace select', () => {
-    const nss = ['default','kube-system'];
-    const state = reducer(initialState, { type: 'SET_NAMESPACES', namespaces: nss });
+    const nss = ['default', 'kube-system'];
+    const state = reducer(initialState, {
+      type: 'SET_NAMESPACES',
+      namespaces: nss,
+    });
     expect(state.namespaces).toEqual(nss);
     expect(state.namespaceDisabled).toBe(false);
   });
@@ -28,10 +37,10 @@ describe('clusterStateReducer', () => {
   it('selects context & namespaces', () => {
     const state = reduce([
       { type: 'SET_SELECTED_CONTEXT', value: 'c1' },
-      { type: 'SET_SELECTED_NAMESPACES', values: ['ns1','ns2'] },
+      { type: 'SET_SELECTED_NAMESPACES', values: ['ns1', 'ns2'] },
     ]);
     expect(state.selectedContext).toBe('c1');
-    expect(state.selectedNamespaces).toEqual(['ns1','ns2']);
+    expect(state.selectedNamespaces).toEqual(['ns1', 'ns2']);
   });
 
   it('disables namespaces', () => {
@@ -41,12 +50,18 @@ describe('clusterStateReducer', () => {
 
   it('sets connection status', () => {
     const statusObj = { isInsecure: true };
-    const state = reducer(initialState, { type: 'SET_CONNECTION_STATUS', status: statusObj });
+    const state = reducer(initialState, {
+      type: 'SET_CONNECTION_STATUS',
+      status: statusObj,
+    });
     expect(state.connectionStatus).toBe(statusObj);
   });
 
   it('sets wizard visibility', () => {
-    const state = reducer(initialState, { type: 'SET_SHOW_WIZARD', value: true });
+    const state = reducer(initialState, {
+      type: 'SET_SHOW_WIZARD',
+      value: true,
+    });
     expect(state.showWizard).toBe(true);
   });
 
@@ -60,4 +75,3 @@ describe('clusterStateReducer', () => {
     expect(state).toBe(initialState);
   });
 });
-

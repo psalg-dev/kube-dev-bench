@@ -1,4 +1,7 @@
-import { ConnectionsStateProvider, useConnectionsState } from './ConnectionsStateContext.jsx';
+import {
+  ConnectionsStateProvider,
+  useConnectionsState,
+} from './ConnectionsStateContext.jsx';
 import ConnectionsSidebar from './ConnectionsSidebar.jsx';
 import ConnectionsMainView from './ConnectionsMainView.jsx';
 
@@ -62,7 +65,8 @@ function ConnectionsFooter() {
     >
       <span>
         {kubeConfigCount} kubeconfig{kubeConfigCount !== 1 ? 's' : ''} •{' '}
-        {swarmConnectionCount} Docker connection{swarmConnectionCount !== 1 ? 's' : ''}
+        {swarmConnectionCount} Docker connection
+        {swarmConnectionCount !== 1 ? 's' : ''}
       </span>
       <span>Select a connection to continue</span>
     </div>

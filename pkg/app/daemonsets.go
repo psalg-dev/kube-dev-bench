@@ -87,10 +87,18 @@ func (a *App) GetDaemonSets(namespace string) ([]DaemonSetInfo, error) {
 // StartDaemonSetPolling emits daemonsets:update events periodically with the current daemonset list
 func (a *App) StartDaemonSetPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
@@ -107,7 +115,7 @@ func (a *App) StartDaemonSetPolling() {
 				}
 				all = append(all, list...)
 			}
-			emitEvent(a.ctx, "daemonsets:update", all)
+			emitEvent(ctx, "daemonsets:update", all)
 		}
 	}()
 }

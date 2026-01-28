@@ -23,9 +23,9 @@ describe('ConfigUsedBySection', () => {
   describe('loading state', () => {
     it('shows loading initially', () => {
       GetSwarmConfigUsage.mockImplementation(() => new Promise(() => {}));
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       expect(screen.getByText(/Loading/)).toBeInTheDocument();
     });
   });
@@ -33,9 +33,9 @@ describe('ConfigUsedBySection', () => {
   describe('error handling', () => {
     it('displays error when API call fails', async () => {
       GetSwarmConfigUsage.mockRejectedValue(new Error('Config not found'));
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/Failed to load usage/)).toBeInTheDocument();
         expect(screen.getByText(/Config not found/)).toBeInTheDocument();
@@ -46,9 +46,9 @@ describe('ConfigUsedBySection', () => {
   describe('empty state', () => {
     it('shows empty state when no services use the config', async () => {
       GetSwarmConfigUsage.mockResolvedValue([]);
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       await waitFor(() => {
         // Should show the "Used By" header
         expect(screen.getByText('Used By')).toBeInTheDocument();
@@ -66,9 +66,9 @@ describe('ConfigUsedBySection', () => {
 
     it('displays list of services using the config', async () => {
       GetSwarmConfigUsage.mockResolvedValue(mockServices);
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('web-service')).toBeInTheDocument();
         expect(screen.getByText('api-service')).toBeInTheDocument();
@@ -77,9 +77,9 @@ describe('ConfigUsedBySection', () => {
 
     it('displays Used By header', async () => {
       GetSwarmConfigUsage.mockResolvedValue(mockServices);
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       expect(screen.getByText('Used By')).toBeInTheDocument();
     });
   });
@@ -89,15 +89,15 @@ describe('ConfigUsedBySection', () => {
       GetSwarmConfigUsage.mockResolvedValue([
         { serviceId: 'svc-1', serviceName: 'web-service' },
       ]);
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('web-service')).toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('web-service'));
-      
+
       expect(navigateToResource).toHaveBeenCalledWith({
         resource: 'SwarmService',
         name: 'web-service',
@@ -108,15 +108,15 @@ describe('ConfigUsedBySection', () => {
       GetSwarmConfigUsage.mockResolvedValue([
         { serviceId: 'svc-1', serviceName: 'web-service' },
       ]);
-      
+
       render(<ConfigUsedBySection configId="config-abc123" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('web-service')).toBeInTheDocument();
       });
 
       fireEvent.keyDown(screen.getByText('web-service'), { key: 'Enter' });
-      
+
       expect(navigateToResource).toHaveBeenCalled();
     });
   });
@@ -124,9 +124,9 @@ describe('ConfigUsedBySection', () => {
   describe('API calls', () => {
     it('calls API with correct configId', async () => {
       GetSwarmConfigUsage.mockResolvedValue([]);
-      
+
       render(<ConfigUsedBySection configId="my-config-id" />);
-      
+
       await waitFor(() => {
         expect(GetSwarmConfigUsage).toHaveBeenCalledWith('my-config-id');
       });
@@ -134,15 +134,15 @@ describe('ConfigUsedBySection', () => {
 
     it('re-fetches when configId changes', async () => {
       GetSwarmConfigUsage.mockResolvedValue([]);
-      
+
       const { rerender } = render(<ConfigUsedBySection configId="config-1" />);
-      
+
       await waitFor(() => {
         expect(GetSwarmConfigUsage).toHaveBeenCalledWith('config-1');
       });
 
       rerender(<ConfigUsedBySection configId="config-2" />);
-      
+
       await waitFor(() => {
         expect(GetSwarmConfigUsage).toHaveBeenCalledWith('config-2');
       });

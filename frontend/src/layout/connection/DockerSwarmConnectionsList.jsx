@@ -82,7 +82,7 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
 
   const isPinned = (connection) => {
     return pinnedConnections.some(
-      (c) => c.type === 'swarm' && c.id === connection.id
+      (c) => c.type === 'swarm' && c.id === connection.id,
     );
   };
 
@@ -108,7 +108,10 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
       });
       setTestResults((prev) => ({ ...prev, [connection.id]: result }));
     } catch (err) {
-      setTestResults((prev) => ({ ...prev, [connection.id]: { connected: false, error: err.toString() } }));
+      setTestResults((prev) => ({
+        ...prev,
+        [connection.id]: { connected: false, error: err.toString() },
+      }));
     } finally {
       setTesting(null);
     }
@@ -132,7 +135,8 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
         [connection.id]: {
           connected: result?.connected || false,
           serverVersion: result?.serverVersion || '',
-          error: result?.error || (result?.connected ? '' : 'Connection failed'),
+          error:
+            result?.error || (result?.connected ? '' : 'Connection failed'),
         },
       }));
       if (result?.connected && onConnect) {
@@ -155,7 +159,11 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
 
   const handleHooksSettings = (e, connection) => {
     e.stopPropagation();
-    actions.showHooksSettings(true, { type: 'swarm', id: connection.id, ...connection });
+    actions.showHooksSettings(true, {
+      type: 'swarm',
+      id: connection.id,
+      ...connection,
+    });
   };
 
   const hookCountFor = (connection) => {
@@ -164,7 +172,11 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
     return list.filter((h) => {
       const scope = h?.scope || 'global';
       if (scope === 'global') return true;
-      return h?.scope === 'connection' && h?.connectionType === 'swarm' && h?.connectionId === id;
+      return (
+        h?.scope === 'connection' &&
+        h?.connectionType === 'swarm' &&
+        h?.connectionId === id
+      );
     }).length;
   };
 
@@ -173,10 +185,18 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
       {/* Header */}
       <div style={headerStyle}>
         <div>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 24 }}>
+          <h2
+            style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 24 }}
+          >
             🐳 Docker Swarm Connections
           </h2>
-          <p style={{ margin: '8px 0 0', color: 'var(--gh-text-secondary, #ccc)', fontSize: 14 }}>
+          <p
+            style={{
+              margin: '8px 0 0',
+              color: 'var(--gh-text-secondary, #ccc)',
+              fontSize: 14,
+            }}
+          >
             Connect to Docker hosts and manage Swarm clusters
           </p>
         </div>
@@ -201,14 +221,26 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
 
       {/* Loading state */}
       {swarmDetecting && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gh-text-secondary, #ccc)' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '40px',
+            color: 'var(--gh-text-secondary, #ccc)',
+          }}
+        >
           Detecting Docker connections...
         </div>
       )}
 
       {/* Empty state */}
       {!swarmDetecting && displayConnections.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--gh-text-secondary, #ccc)' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            color: 'var(--gh-text-secondary, #ccc)',
+          }}
+        >
           <div style={{ fontSize: 48, marginBottom: 16 }}>🐳</div>
           <h3 style={{ margin: '0 0 12px', color: 'var(--gh-text, #fff)' }}>
             No Docker Connections Found
@@ -238,13 +270,34 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
               <div
                 key={connection.id}
                 className="connection-item"
-                style={isConnected ? connectedCardStyle : isHovered ? cardHoverStyle : cardStyle}
+                style={
+                  isConnected
+                    ? connectedCardStyle
+                    : isHovered
+                      ? cardHoverStyle
+                      : cardStyle
+                }
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                  }}
+                >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 'bold', color: 'var(--gh-text, #fff)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div
+                      style={{
+                        fontWeight: 'bold',
+                        color: 'var(--gh-text, #fff)',
+                        marginBottom: 4,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
                       {connection.name}
                       {pinned && <span style={{ fontSize: 12 }}>📌</span>}
                       {isConnected && (
@@ -270,11 +323,23 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
                         </span>
                       )}
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #ccc)', fontFamily: 'monospace', marginBottom: 4 }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: 'var(--gh-text-secondary, #ccc)',
+                        fontFamily: 'monospace',
+                        marginBottom: 4,
+                      }}
+                    >
                       {connection.host}
                     </div>
                     {connection.serverVersion && (
-                      <div style={{ fontSize: 12, color: 'var(--gh-text-tertiary, #999)' }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--gh-text-tertiary, #999)',
+                        }}
+                      >
                         Docker {connection.serverVersion}
                       </div>
                     )}
@@ -298,13 +363,17 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div
+                    style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+                  >
                     <button
                       onClick={(e) => handleTogglePin(e, connection)}
                       style={{
                         background: 'transparent',
                         border: '1px solid var(--gh-border, #444)',
-                        color: pinned ? '#f0c674' : 'var(--gh-text-secondary, #ccc)',
+                        color: pinned
+                          ? '#f0c674'
+                          : 'var(--gh-text-secondary, #ccc)',
                         padding: '4px 8px',
                         borderRadius: 0,
                         cursor: 'pointer',
@@ -331,7 +400,9 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
                     </button>
 
                     <button
-                      id={`swarm-hooks-btn-${String(connection.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)}`}
+                      id={`swarm-hooks-btn-${String(connection.id)
+                        .replace(/[^a-zA-Z0-9_-]/g, '_')
+                        .slice(0, 40)}`}
                       onClick={(e) => handleHooksSettings(e, connection)}
                       style={{
                         background: 'transparent',

@@ -19,17 +19,24 @@ export function serviceFormToYaml(formData) {
     doc.replicas = toInt(formData?.replicas) ?? 1;
   }
 
-  doc.ports = (formData?.ports || []).map((p) => ({
-    protocol: (p?.protocol || 'tcp'),
-    targetPort: toInt(p?.targetPort),
-    publishedPort: toInt(p?.publishedPort),
-    publishMode: (p?.publishMode || 'ingress'),
-  })).filter((p) => p.targetPort !== undefined || p.publishedPort !== undefined);
+  doc.ports = (formData?.ports || [])
+    .map((p) => ({
+      protocol: p?.protocol || 'tcp',
+      targetPort: toInt(p?.targetPort),
+      publishedPort: toInt(p?.publishedPort),
+      publishMode: p?.publishMode || 'ingress',
+    }))
+    .filter((p) => p.targetPort !== undefined || p.publishedPort !== undefined);
 
-  doc.env = (formData?.envObject || formData?.env || {});
-  doc.labels = (formData?.labelsObject || formData?.labels || {});
+  doc.env = formData?.envObject || formData?.env || {};
+  doc.labels = formData?.labelsObject || formData?.labels || {};
 
-  const dumped = yaml.dump(doc, { noRefs: true, lineWidth: -1, sortKeys: false, indent: 2 });
+  const dumped = yaml.dump(doc, {
+    noRefs: true,
+    lineWidth: -1,
+    sortKeys: false,
+    indent: 2,
+  });
 
   // js-yaml renders empty arrays/maps in flow style (`ports: []`, `env: {}`), which looks "flat".
   // Replace those with indented placeholder blocks so users see the intended YAML shape.
@@ -40,21 +47,23 @@ export function serviceFormToYaml(formData) {
   };
 
   let out = dumped;
-  out = replaceLine(out, 'ports', [
-    'ports:',
-    '  # - protocol: tcp',
-    '  #   targetPort: 80',
-    '  #   publishedPort: 8080',
-    '  #   publishMode: ingress',
-  ].join('\n'));
-  out = replaceLine(out, 'env', [
-    'env:',
-    '  # KEY: value',
-  ].join('\n'));
-  out = replaceLine(out, 'labels', [
-    'labels:',
-    '  # com.example.label: value',
-  ].join('\n'));
+  out = replaceLine(
+    out,
+    'ports',
+    [
+      'ports:',
+      '  # - protocol: tcp',
+      '  #   targetPort: 80',
+      '  #   publishedPort: 8080',
+      '  #   publishMode: ingress',
+    ].join('\n'),
+  );
+  out = replaceLine(out, 'env', ['env:', '  # KEY: value'].join('\n'));
+  out = replaceLine(
+    out,
+    'labels',
+    ['labels:', '  # com.example.label: value'].join('\n'),
+  );
 
   return out;
 }
@@ -100,8 +109,10 @@ export function rowsToObject(rows) {
 }
 
 export function objectToRows(obj) {
-  const o = (obj && typeof obj === 'object' && !Array.isArray(obj)) ? obj : {};
-  return Object.keys(o).sort().map((k) => ({ id: `kv_${k}`, key: k, value: (o[k] ?? '').toString() }));
+  const o = obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+  return Object.keys(o)
+    .sort()
+    .map((k) => ({ id: `kv_${k}`, key: k, value: (o[k] ?? '').toString() }));
 }
 
 export function validateServiceForm(formData) {
@@ -113,7 +124,8 @@ export function validateServiceForm(formData) {
     errors.name = 'Name is required.';
   } else {
     const dns = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/;
-    if (!dns.test(name)) errors.name = 'Name must be lowercase DNS-compatible (a-z, 0-9, hyphen).';
+    if (!dns.test(name))
+      errors.name = 'Name must be lowercase DNS-compatible (a-z, 0-9, hyphen).';
   }
 
   if (!image) {
@@ -122,22 +134,27 @@ export function validateServiceForm(formData) {
 
   if ((formData?.mode || 'replicated') === 'replicated') {
     const r = toInt(formData?.replicas);
-    if (r === undefined || r < 0) errors.replicas = 'Replicas must be an integer >= 0.';
+    if (r === undefined || r < 0)
+      errors.replicas = 'Replicas must be an integer >= 0.';
   }
 
   const ports = formData?.ports || [];
   for (const p of ports) {
     const t = toInt(p?.targetPort);
     const pub = toInt(p?.publishedPort);
-    const any = (p?.targetPort !== '' && p?.targetPort !== undefined) || (p?.publishedPort !== '' && p?.publishedPort !== undefined);
+    const any =
+      (p?.targetPort !== '' && p?.targetPort !== undefined) ||
+      (p?.publishedPort !== '' && p?.publishedPort !== undefined);
     if (!any) continue;
 
     if (!t || t < 1 || t > 65535) {
-      errors.ports = 'All port mappings must have a valid target port (1-65535).';
+      errors.ports =
+        'All port mappings must have a valid target port (1-65535).';
       break;
     }
     if (!pub || pub < 1 || pub > 65535) {
-      errors.ports = 'All port mappings must have a valid published port (1-65535).';
+      errors.ports =
+        'All port mappings must have a valid published port (1-65535).';
       break;
     }
   }
@@ -170,14 +187,18 @@ export function configFormToYaml(formData) {
     labels: ensureMapping(formData?.labels),
     data: ensureString(formData?.data),
   };
-  const dumped = yaml.dump(doc, { noRefs: true, lineWidth: -1, sortKeys: false, indent: 2 });
-  return renderObjectPlaceholderBlocks(dumped, [{
-    key: 'labels',
-    replacement: [
-      'labels:',
-      '  # com.example.owner: dev',
-    ].join('\n')
-  }]);
+  const dumped = yaml.dump(doc, {
+    noRefs: true,
+    lineWidth: -1,
+    sortKeys: false,
+    indent: 2,
+  });
+  return renderObjectPlaceholderBlocks(dumped, [
+    {
+      key: 'labels',
+      replacement: ['labels:', '  # com.example.owner: dev'].join('\n'),
+    },
+  ]);
 }
 
 export function yamlToConfigForm(yamlText) {
@@ -198,14 +219,18 @@ export function secretFormToYaml(formData) {
     labels: ensureMapping(formData?.labels),
     data: ensureString(formData?.data),
   };
-  const dumped = yaml.dump(doc, { noRefs: true, lineWidth: -1, sortKeys: false, indent: 2 });
-  return renderObjectPlaceholderBlocks(dumped, [{
-    key: 'labels',
-    replacement: [
-      'labels:',
-      '  # com.example.owner: dev',
-    ].join('\n')
-  }]);
+  const dumped = yaml.dump(doc, {
+    noRefs: true,
+    lineWidth: -1,
+    sortKeys: false,
+    indent: 2,
+  });
+  return renderObjectPlaceholderBlocks(dumped, [
+    {
+      key: 'labels',
+      replacement: ['labels:', '  # com.example.owner: dev'].join('\n'),
+    },
+  ]);
 }
 
 export function yamlToSecretForm(yamlText) {
@@ -227,14 +252,18 @@ export function nodeFormToYaml(formData) {
     role: ensureString(formData?.role || 'worker').trim(),
     labels: ensureMapping(formData?.labels),
   };
-  const dumped = yaml.dump(doc, { noRefs: true, lineWidth: -1, sortKeys: false, indent: 2 });
-  return renderObjectPlaceholderBlocks(dumped, [{
-    key: 'labels',
-    replacement: [
-      'labels:',
-      '  # com.example.owner: dev',
-    ].join('\n')
-  }]);
+  const dumped = yaml.dump(doc, {
+    noRefs: true,
+    lineWidth: -1,
+    sortKeys: false,
+    indent: 2,
+  });
+  return renderObjectPlaceholderBlocks(dumped, [
+    {
+      key: 'labels',
+      replacement: ['labels:', '  # com.example.owner: dev'].join('\n'),
+    },
+  ]);
 }
 
 export function yamlToNodeForm(yamlText) {

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 export default function IngressBackendServicesTab({ namespace, ingressName }) {
   const [detail, setDetail] = useState(null);
@@ -26,7 +30,9 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [namespace, ingressName]);
 
   const services = useMemo(() => {
@@ -57,16 +63,50 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
           // ignore
         }
       }
-      if (!cancelled) setServiceDetails(prev => ({ ...prev, ...updates }));
+      if (!cancelled) setServiceDetails((prev) => ({ ...prev, ...updates }));
     };
 
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespace, services.map(s => s.name).join('|')]);
+  }, [namespace, services.map((s) => s.name).join('|')]);
+  const columns = useMemo(
+    () => [
+      { key: 'name', label: 'Service' },
+      { key: 'port', label: 'Port' },
+      { key: 'type', label: 'Type' },
+      { key: 'clusterIP', label: 'ClusterIP' },
+    ],
+    [],
+  );
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedServices = useMemo(() => {
+    return sortRows(
+      services,
+      sortState.key,
+      sortState.direction,
+      (row, key) => {
+        const extra = serviceDetails[row?.name];
+        if (key === 'type') return extra?.type ?? extra?.Type ?? '-';
+        if (key === 'clusterIP')
+          return extra?.clusterIP ?? extra?.ClusterIP ?? '-';
+        return row?.[key];
+      },
+    );
+  }, [services, sortState, serviceDetails]);
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -74,25 +114,12 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
   }
 
   if (!services.length) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No backend services found in rules.</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        No backend services found in rules.
+      </div>
+    );
   }
-
-  const columns = useMemo(() => ([
-    { key: 'name', label: 'Service' },
-    { key: 'port', label: 'Port' },
-    { key: 'type', label: 'Type' },
-    { key: 'clusterIP', label: 'ClusterIP' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedServices = useMemo(() => {
-    return sortRows(services, sortState.key, sortState.direction, (row, key) => {
-      const extra = serviceDetails[row?.name];
-      if (key === 'type') return extra?.type ?? extra?.Type ?? '-';
-      if (key === 'clusterIP') return extra?.clusterIP ?? extra?.ClusterIP ?? '-';
-      return row?.[key];
-    });
-  }, [services, sortState, serviceDetails]);
 
   const headerButtonStyle = {
     width: '100%',
@@ -114,28 +141,108 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
       <table className="panel-table">
         <thead>
           <tr>
-            <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+            <th
+              aria-sort={
+                sortState.key === 'name'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'name'))
+                }
+              >
                 <span>Service</span>
-                <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'name'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'port' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'port'))}>
+            <th
+              aria-sort={
+                sortState.key === 'port'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'port'))
+                }
+              >
                 <span>Port</span>
-                <span aria-hidden="true">{sortState.key === 'port' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'port'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'type' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'type'))}>
+            <th
+              aria-sort={
+                sortState.key === 'type'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'type'))
+                }
+              >
                 <span>Type</span>
-                <span aria-hidden="true">{sortState.key === 'type' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'type'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'clusterIP' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'clusterIP'))}>
+            <th
+              aria-sort={
+                sortState.key === 'clusterIP'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'clusterIP'))
+                }
+              >
                 <span>ClusterIP</span>
-                <span aria-hidden="true">{sortState.key === 'clusterIP' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'clusterIP'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
           </tr>
@@ -147,17 +254,31 @@ export default function IngressBackendServicesTab({ namespace, ingressName }) {
             const clusterIP = extra?.clusterIP ?? extra?.ClusterIP ?? '-';
             return (
               <tr key={`${s.name}:${s.port}`}>
-                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{s.name}</td>
+                <td style={{ fontFamily: 'monospace', fontSize: 12 }}>
+                  {s.name}
+                </td>
                 <td>{s.port}</td>
                 <td className="text-muted">{type}</td>
-                <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{clusterIP}</td>
+                <td
+                  className="text-muted"
+                  style={{ fontFamily: 'monospace', fontSize: 12 }}
+                >
+                  {clusterIP}
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
-      <div style={{ marginTop: 10, color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
-        This lists Services referenced by Ingress rules. Service details are fetched best-effort.
+      <div
+        style={{
+          marginTop: 10,
+          color: 'var(--gh-text-muted, #8b949e)',
+          fontSize: 12,
+        }}
+      >
+        This lists Services referenced by Ingress rules. Service details are
+        fetched best-effort.
       </div>
     </div>
   );

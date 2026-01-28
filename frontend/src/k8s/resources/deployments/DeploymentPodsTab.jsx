@@ -16,18 +16,22 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
     setError(null);
 
     AppAPI.GetDeploymentDetail(namespace, deploymentName)
-      .then(data => {
+      .then((data) => {
         setDetail(data);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         setError(err.message || 'Failed to fetch deployment details');
         setLoading(false);
       });
   }, [namespace, deploymentName]);
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -48,24 +52,27 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       {/* Section tabs */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        {['pods', 'conditions', 'revisions'].map(section => (
+        {['pods', 'conditions', 'revisions'].map((section) => (
           <button
             key={section}
             onClick={() => setActiveSection(section)}
             style={{
               padding: '6px 12px',
-              backgroundColor: activeSection === section ? '#238636' : '#21262d',
+              backgroundColor:
+                activeSection === section ? '#238636' : '#21262d',
               border: '1px solid #30363d',
               borderRadius: 4,
               color: 'var(--gh-text, #c9d1d9)',
               cursor: 'pointer',
               textTransform: 'capitalize',
-              fontSize: 13
+              fontSize: 13,
             }}
           >
             {section}
             {section === 'pods' && detail?.pods && ` (${detail.pods.length})`}
-            {section === 'revisions' && detail?.revisions && ` (${detail.revisions.length})`}
+            {section === 'revisions' &&
+              detail?.revisions &&
+              ` (${detail.revisions.length})`}
           </button>
         ))}
       </div>
@@ -74,7 +81,9 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
       {activeSection === 'pods' && (
         <>
           {!detail?.pods || detail.pods.length === 0 ? (
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No pods found.</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              No pods found.
+            </div>
           ) : (
             <table className="panel-table">
               <thead>
@@ -92,7 +101,11 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
                   <tr key={pod.name || idx}>
                     <td>{pod.name}</td>
                     <td>
-                      <StatusBadge status={pod.status || '-'} size="small" showDot={false} />
+                      <StatusBadge
+                        status={pod.status || '-'}
+                        size="small"
+                        showDot={false}
+                      />
                     </td>
                     <td>{pod.ready}</td>
                     <td>{pod.restarts}</td>
@@ -110,7 +123,9 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
       {activeSection === 'conditions' && (
         <>
           {!detail?.conditions || detail.conditions.length === 0 ? (
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No conditions.</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              No conditions.
+            </div>
           ) : (
             <table className="panel-table">
               <thead>
@@ -127,16 +142,29 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
                   <tr key={idx}>
                     <td>{cond.type}</td>
                     <td>
-                      <span style={{
-                        color: cond.status === 'True' ? '#2ea44f' : '#f85149',
-                        fontWeight: 500
-                      }}>
+                      <span
+                        style={{
+                          color: cond.status === 'True' ? '#2ea44f' : '#f85149',
+                          fontWeight: 500,
+                        }}
+                      >
                         {cond.status}
                       </span>
                     </td>
-                    <td className="text-muted">{formatDate(cond.lastTransition)}</td>
+                    <td className="text-muted">
+                      {formatDate(cond.lastTransition)}
+                    </td>
                     <td className="text-muted">{cond.reason || '-'}</td>
-                    <td className="text-muted" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{cond.message || '-'}</td>
+                    <td
+                      className="text-muted"
+                      style={{
+                        maxWidth: 300,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {cond.message || '-'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -149,7 +177,9 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
       {activeSection === 'revisions' && (
         <>
           {!detail?.revisions || detail.revisions.length === 0 ? (
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No revisions found.</div>
+            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+              No revisions found.
+            </div>
           ) : (
             <table className="panel-table">
               <thead>
@@ -164,23 +194,45 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
               </thead>
               <tbody>
                 {detail.revisions.map((rev, idx) => (
-                  <tr key={idx} style={{ backgroundColor: rev.isCurrent ? '#23863610' : 'transparent' }}>
+                  <tr
+                    key={idx}
+                    style={{
+                      backgroundColor: rev.isCurrent
+                        ? '#23863610'
+                        : 'transparent',
+                    }}
+                  >
                     <td style={{ fontWeight: rev.isCurrent ? 600 : 400 }}>
                       #{rev.revision}
                     </td>
-                    <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{rev.replicaSet}</td>
-                    <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rev.image}</td>
+                    <td
+                      className="text-muted"
+                      style={{ fontFamily: 'monospace', fontSize: 12 }}
+                    >
+                      {rev.replicaSet}
+                    </td>
+                    <td
+                      style={{
+                        maxWidth: 300,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {rev.image}
+                    </td>
                     <td className="text-muted">{formatDate(rev.createdAt)}</td>
                     <td style={{ textAlign: 'center' }}>{rev.replicas}</td>
                     <td style={{ textAlign: 'center' }}>
                       {rev.isCurrent && (
-                        <span style={{
-                          padding: '2px 8px',
-                          backgroundColor: '#238636',
-                          color: '#fff',
-                          borderRadius: 10,
-                          fontSize: 11
-                        }}>
+                        <span
+                          style={{
+                            padding: '2px 8px',
+                            backgroundColor: '#238636',
+                            color: '#fff',
+                            borderRadius: 10,
+                            fontSize: 11,
+                          }}
+                        >
                           Active
                         </span>
                       )}

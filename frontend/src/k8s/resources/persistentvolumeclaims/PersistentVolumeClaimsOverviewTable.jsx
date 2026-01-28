@@ -11,29 +11,18 @@ import ResourceActions from '../../../components/ResourceActions.jsx';
 import PVCBoundPVTab from './PVCBoundPVTab.jsx';
 import PVCConsumersTab from './PVCConsumersTab.jsx';
 import { showSuccess, showError } from '../../../notification';
-import { AnalyzePersistentVolumeClaimStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import { AnalyzePersistentVolumeClaimStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import useHolmesStream from '../../../holmes/useHolmesStream';
 
-export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
+export default function PersistentVolumeClaimsOverviewTable({
+  namespaces,
+  onPVCCreate,
+}) {
   const [pvcs, setPVCs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
-  });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
+  const { holmesState, startAnalysis, cancelAnalysis } = useHolmesStream();
 
   const fastTimerRef = useRef(null);
   const slowTimerRef = useRef(null);
@@ -50,16 +39,19 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   };
 
   // Normalize PVC data
-  const normalize = (arr) => (arr || []).filter(Boolean).map((i) => ({
-    name: i.name ?? i.Name,
-    namespace: i.namespace ?? i.Namespace,
-    status: i.status ?? i.Status ?? '-',
-    storage: i.storage ?? i.Storage ?? '-',
-    accessModes: Array.isArray(i.accessModes ?? i.AccessModes) ? (i.accessModes ?? i.AccessModes).join(', ') : '-',
-    volumeName: i.volumeName ?? i.VolumeName ?? '-',
-    age: i.age ?? i.Age ?? '-',
-    labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {}
-  }));
+  const normalize = (arr) =>
+    (arr || []).filter(Boolean).map((i) => ({
+      name: i.name ?? i.Name,
+      namespace: i.namespace ?? i.Namespace,
+      status: i.status ?? i.Status ?? '-',
+      storage: i.storage ?? i.Storage ?? '-',
+      accessModes: Array.isArray(i.accessModes ?? i.AccessModes)
+        ? (i.accessModes ?? i.AccessModes).join(', ')
+        : '-',
+      volumeName: i.volumeName ?? i.VolumeName ?? '-',
+      age: i.age ?? i.Age ?? '-',
+      labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {},
+    }));
 
   // Fetch PVCs for all selected namespaces
   const fetchAllPVCs = async (isInitialLoad = false) => {
@@ -73,7 +65,9 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     setError(null);
     try {
       const results = await Promise.all(
-        namespaces.map(ns => AppAPI.GetPersistentVolumeClaims(ns).catch(() => []))
+        namespaces.map((ns) =>
+          AppAPI.GetPersistentVolumeClaims(ns).catch(() => []),
+        ),
       );
       setPVCs(normalize([].concat(...results).filter(Boolean)));
     } catch (err) {
@@ -114,7 +108,10 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
   // Generic resource-updated fallback
   useEffect(() => {
     const onUpdate = (eventData) => {
-      if (eventData?.resource === 'persistentvolumeclaim' && (!namespaces || namespaces.includes(eventData?.namespace))) {
+      if (
+        eventData?.resource === 'persistentvolumeclaim' &&
+        (!namespaces || namespaces.includes(eventData?.namespace))
+      ) {
         fetchAllPVCs(false); // Refresh without loading state
         clearTimers();
         let elapsed = 0;
@@ -127,7 +124,10 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
                 clearInterval(fastTimerRef.current);
                 fastTimerRef.current = null;
               }
-              slowTimerRef.current = setInterval(() => fetchAllPVCs(false), 60000);
+              slowTimerRef.current = setInterval(
+                () => fetchAllPVCs(false),
+                60000,
+              );
             }
           }, 1000);
         }
@@ -140,131 +140,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaces]);
 
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let streamData;
-      try {
-        streamData = JSON.parse(payload.data);
-      } catch {
-        streamData = null;
-      }
-
-      if (eventType === 'ai_message' && streamData) {
-        let handled = false;
-        if (streamData.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + streamData.reasoning,
-          }));
-          handled = true;
-        }
-        if (streamData.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + streamData.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && streamData && streamData.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: streamData.id,
-            name: streamData.tool_name || 'tool',
-            status: 'running',
-            description: streamData.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && streamData && streamData.tool_call_id) {
-        const status = streamData.result?.status || streamData.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === streamData.tool_call_id
-              ? { ...item, status, description: streamData.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && streamData && streamData.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: streamData.analysis },
-          streamingText: streamData.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
 
   const columns = [
     { key: 'name', label: 'Name' },
@@ -273,7 +148,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     { key: 'storage', label: 'Storage' },
     { key: 'accessModes', label: 'Access Modes' },
     { key: 'volumeName', label: 'Volume' },
-    { key: 'age', label: 'Age' }
+    { key: 'age', label: 'Age' },
   ];
 
   const bottomTabs = [
@@ -298,21 +173,49 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
             key: 'age',
             label: 'Age',
             type: 'age',
-            getValue: (data) => data.created || data.age
-          }
+            getValue: (data) => data.created || data.age,
+          },
         },
         { key: 'namespace', label: 'Namespace' },
         { key: 'storage', label: 'Storage' },
         { key: 'accessModes', label: 'Access Modes' },
         { key: 'volumeName', label: 'Volume Name' },
-        { key: 'name', label: 'PVC name', type: 'break-word' }
+        { key: 'name', label: 'PVC name', type: 'break-word' },
       ];
 
       return (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="pvc" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('pvc', ns, n);}} />} />
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
+          <SummaryTabHeader
+            name={row.name}
+            labels={row.labels || row.Labels || row.metadata?.labels}
+            actions={
+              <ResourceActions
+                resourceType="pvc"
+                name={row.name}
+                namespace={row.namespace}
+                onDelete={async (n, ns) => {
+                  await AppAPI.DeleteResource('pvc', ns, n);
+                }}
+              />
+            }
+          />
           {/* Main content */}
-          <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <div
+            style={{
+              display: 'flex',
+              flex: 1,
+              minHeight: 0,
+              color: 'var(--gh-text, #c9d1d9)',
+            }}
+          >
             <QuickInfoSection
               resourceName={row.name}
               data={row}
@@ -321,21 +224,50 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
               fields={quickInfoFields}
             />
             {/* Event History at a glance */}
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
-              <ResourceEventsTab namespace={row.namespace} resourceKind="PersistentVolumeClaim" resourceName={row.name} limit={20} />
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                position: 'relative',
+              }}
+            >
+              <ResourceEventsTab
+                namespace={row.namespace}
+                resourceKind="PersistentVolumeClaim"
+                resourceName={row.name}
+                limit={20}
+              />
             </div>
           </div>
         </div>
       );
     }
     if (tab === 'yaml') {
-      return <PersistentVolumeClaimYamlTab namespace={row.namespace} name={row.name} />;
+      return (
+        <PersistentVolumeClaimYamlTab
+          namespace={row.namespace}
+          name={row.name}
+        />
+      );
     }
     if (tab === 'events') {
-      return <ResourceEventsTab namespace={row.namespace} resourceKind="PersistentVolumeClaim" resourceName={row.name} />;
+      return (
+        <ResourceEventsTab
+          namespace={row.namespace}
+          resourceKind="PersistentVolumeClaim"
+          resourceName={row.name}
+        />
+      );
     }
     if (tab === 'boundpv') {
-      return <PVCBoundPVTab namespace={row.namespace} pvcName={row.name} pvName={row.volumeName} />;
+      return (
+        <PVCBoundPVTab
+          namespace={row.namespace}
+          pvcName={row.name}
+          pvName={row.volumeName}
+        />
+      );
     }
     if (tab === 'consumers') {
       return <PVCConsumersTab namespace={row.namespace} pvcName={row.name} />;
@@ -351,13 +283,21 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
           namespace={row.namespace}
           name={row.name}
           onAnalyze={() => onAnalyze(row)}
-          onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+          onCancel={
+            holmesState.key === key && holmesState.streamId ? onCancel : null
+          }
           response={holmesState.key === key ? holmesState.response : null}
           loading={holmesState.key === key && holmesState.loading}
           error={holmesState.key === key ? holmesState.error : null}
-          queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
-          streamingText={holmesState.key === key ? holmesState.streamingText : ''}
-          reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
+          queryTimestamp={
+            holmesState.key === key ? holmesState.queryTimestamp : null
+          }
+          streamingText={
+            holmesState.key === key ? holmesState.streamingText : ''
+          }
+          reasoningText={
+            holmesState.key === key ? holmesState.reasoningText : ''
+          }
           toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
           contextSteps={holmesState.key === key ? holmesState.contextSteps : []}
         />
@@ -372,13 +312,15 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '200px',
-        color: 'var(--gh-text-muted)'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+          color: 'var(--gh-text-muted)',
+        }}
+      >
         Loading Persistent Volume Claims...
       </div>
     );
@@ -386,14 +328,16 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
   if (error) {
     return (
-      <div style={{
-        padding: '20px',
-        color: '#dc3545',
-        backgroundColor: 'var(--gh-danger-bg)',
-        border: '1px solid var(--gh-danger-border)',
-        borderRadius: '6px',
-        margin: '20px'
-      }}>
+      <div
+        style={{
+          padding: '20px',
+          color: '#dc3545',
+          backgroundColor: 'var(--gh-danger-bg)',
+          border: '1px solid var(--gh-danger-border)',
+          borderRadius: '6px',
+          margin: '20px',
+        }}
+      >
         Error loading Persistent Volume Claims: {error}
       </div>
     );
@@ -401,37 +345,17 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
   const analyzePersistentVolumeClaim = async (row) => {
     const key = `${row.namespace}/${row.name}`;
-    const streamId = `pvc-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
+    await startAnalysis({
       key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
+      streamPrefix: 'pvc',
+      run: (streamId) =>
+        AnalyzePersistentVolumeClaimStream(row.namespace, row.name, streamId),
+      onError: (message) => showError(`Holmes analysis failed: ${message}`),
     });
-    try {
-      await AnalyzePersistentVolumeClaimStream(row.namespace, row.name, streamId);
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showError(`Holmes analysis failed: ${message}`);
-    }
   };
 
   const cancelHolmesAnalysis = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
+    await cancelAnalysis();
   };
 
   const getRowActions = (row, api) => {
@@ -456,7 +380,9 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
             await AppAPI.DeleteResource('pvc', row.namespace, row.name);
             showSuccess(`PVC '${row.name}' deleted`);
           } catch (err) {
-            showError(`Failed to delete PVC '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to delete PVC '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -470,7 +396,15 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
       data={pvcs}
       loading={loading}
       tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzePersistentVolumeClaim, cancelHolmesAnalysis)}
+      renderPanelContent={(row, tab) =>
+        renderPanelContent(
+          row,
+          tab,
+          holmesState,
+          analyzePersistentVolumeClaim,
+          cancelHolmesAnalysis,
+        )
+      }
       panelHeader={panelHeader}
       resourceKind="persistentvolumeclaim"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}

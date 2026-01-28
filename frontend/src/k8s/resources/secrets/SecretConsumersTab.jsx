@@ -3,7 +3,11 @@ import * as AppAPI from '../../../../wailsjs/go/main/App';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 import { navigateToResource } from '../../../utils/resourceNavigation';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 export default function SecretConsumersTab({ namespace, secretName }) {
   const [items, setItems] = useState([]);
@@ -26,7 +30,9 @@ export default function SecretConsumersTab({ namespace, secretName }) {
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [namespace, secretName]);
 
   const handleRowClick = (consumer) => {
@@ -37,8 +43,34 @@ export default function SecretConsumersTab({ namespace, secretName }) {
     }
   };
 
+  const columns = useMemo(
+    () => [
+      { key: 'kind', label: 'Kind' },
+      { key: 'name', label: 'Name' },
+      { key: 'refType', label: 'Reference' },
+    ],
+    [],
+  );
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedItems = useMemo(() => {
+    return sortRows(items, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'kind') return row?.kind ?? row?.Kind;
+      if (key === 'name') return row?.name ?? row?.Name;
+      if (key === 'refType') return row?.refType ?? row?.RefType;
+      return row?.[key];
+    });
+  }, [items, sortState]);
+
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -56,22 +88,6 @@ export default function SecretConsumersTab({ namespace, secretName }) {
       />
     );
   }
-
-  const columns = useMemo(() => ([
-    { key: 'kind', label: 'Kind' },
-    { key: 'name', label: 'Name' },
-    { key: 'refType', label: 'Reference' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedItems = useMemo(() => {
-    return sortRows(items, sortState.key, sortState.direction, (row, key) => {
-      if (key === 'kind') return row?.kind ?? row?.Kind;
-      if (key === 'name') return row?.name ?? row?.Name;
-      if (key === 'refType') return row?.refType ?? row?.RefType;
-      return row?.[key];
-    });
-  }, [items, sortState]);
 
   const headerButtonStyle = {
     width: '100%',
@@ -108,22 +124,82 @@ export default function SecretConsumersTab({ namespace, secretName }) {
       <table className="panel-table consumers-table">
         <thead>
           <tr>
-            <th aria-sort={sortState.key === 'kind' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'kind'))}>
+            <th
+              aria-sort={
+                sortState.key === 'kind'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'kind'))
+                }
+              >
                 <span>Kind</span>
-                <span aria-hidden="true">{sortState.key === 'kind' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'kind'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+            <th
+              aria-sort={
+                sortState.key === 'name'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'name'))
+                }
+              >
                 <span>Name</span>
-                <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'name'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'refType' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'refType'))}>
+            <th
+              aria-sort={
+                sortState.key === 'refType'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'refType'))
+                }
+              >
                 <span>Reference</span>
-                <span aria-hidden="true">{sortState.key === 'refType' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'refType'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
           </tr>
@@ -137,7 +213,12 @@ export default function SecretConsumersTab({ namespace, secretName }) {
             >
               <td>{c.kind ?? c.Kind}</td>
               <td className="resource-link">{c.name ?? c.Name}</td>
-              <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
+              <td
+                className="text-muted"
+                style={{ fontFamily: 'monospace', fontSize: 12 }}
+              >
+                {c.refType ?? c.RefType ?? '-'}
+              </td>
             </tr>
           ))}
         </tbody>

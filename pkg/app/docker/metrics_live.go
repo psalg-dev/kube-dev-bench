@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"gowails/pkg/app/internal/safeconv"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -14,57 +16,74 @@ func CollectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 	return collectSwarmMetricsWithBreakdown(ctx, cli)
 }
 
-func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (SwarmMetricsPoint, SwarmMetricsBreakdown, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
+type swarmLists struct {
+	services []swarm.Service
+	tasks    []swarm.Task
+	nodes    []swarm.Node
+}
 
+type swarmStatsTotals struct {
+	containers     int
+	sumCpuPercent  float64
+	sumMemUsed     int64
+	sumNetRx       int64
+	sumNetTx       int64
+	serviceMetrics map[string]*SwarmServiceMetrics
+	nodeMetrics    map[string]*SwarmNodeMetrics
+}
+
+func listSwarmEntities(ctx context.Context, cli *client.Client) (swarmLists, error) {
 	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
-		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
+		return swarmLists{}, err
 	}
 	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
 	if err != nil {
-		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
+		return swarmLists{}, err
 	}
 	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
 	if err != nil {
-		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
+		return swarmLists{}, err
 	}
+	return swarmLists{services: services, tasks: tasks, nodes: nodes}, nil
+}
 
-	// Base point (counts + capacity/reservations/limits) and store append.
-	// We re-use the same logic as collectSwarmMetrics, but avoid re-listing by inlining.
-	readyNodes := 0
-	var cpuCap int64
-	var memCap int64
+func swarmCapacity(nodes []swarm.Node) (ready int, cpuCap int64, memCap int64) {
 	for _, n := range nodes {
-		if n.Status.State == swarm.NodeStateReady {
-			readyNodes++
-			if n.Description.Resources.NanoCPUs > 0 {
-				cpuCap += n.Description.Resources.NanoCPUs
-			}
-			if n.Description.Resources.MemoryBytes > 0 {
-				memCap += n.Description.Resources.MemoryBytes
-			}
+		if n.Status.State != swarm.NodeStateReady {
+			continue
+		}
+		ready++
+		if n.Description.Resources.NanoCPUs > 0 {
+			cpuCap += n.Description.Resources.NanoCPUs
+		}
+		if n.Description.Resources.MemoryBytes > 0 {
+			memCap += n.Description.Resources.MemoryBytes
 		}
 	}
+	return ready, cpuCap, memCap
+}
 
-	runningTasks := 0
+func runningTasksCount(tasks []swarm.Task) int {
+	count := 0
 	for _, t := range tasks {
 		if t.Status.State == swarm.TaskStateRunning {
-			runningTasks++
+			count++
 		}
 	}
+	return count
+}
 
-	var cpuRes int64
-	var memRes int64
-	var cpuLim int64
-	var memLim int64
+func swarmReservations(services []swarm.Service, readyNodes int) (cpuRes int64, memRes int64, cpuLim int64, memLim int64) {
 	for _, s := range services {
 		mult := int64(0)
 		if s.Spec.Mode.Replicated != nil {
 			if s.Spec.Mode.Replicated.Replicas != nil {
-				mult = int64(*s.Spec.Mode.Replicated.Replicas)
+				rep, err := safeconv.Uint64ToInt64(*s.Spec.Mode.Replicated.Replicas)
+				if err != nil {
+					continue
+				}
+				mult = rep
 			}
 		} else if s.Spec.Mode.Global != nil {
 			mult = int64(readyNodes)
@@ -86,24 +105,10 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 			memLim += req.Limits.MemoryBytes * mult
 		}
 	}
+	return cpuRes, memRes, cpuLim, memLim
+}
 
-	now := time.Now().UTC().Format(time.RFC3339)
-	point := SwarmMetricsPoint{
-		Timestamp:               now,
-		Services:                len(services),
-		Tasks:                   len(tasks),
-		RunningTasks:            runningTasks,
-		Nodes:                   len(nodes),
-		ReadyNodes:              readyNodes,
-		CpuCapacityNano:         cpuCap,
-		MemoryCapacityBytes:     memCap,
-		CpuReservationsNano:     cpuRes,
-		MemoryReservationsBytes: memRes,
-		CpuLimitsNano:           cpuLim,
-		MemoryLimitsBytes:       memLim,
-	}
-
-	// Build name maps.
+func buildNameMaps(services []swarm.Service, nodes []swarm.Node) (map[string]string, map[string]string) {
 	serviceNames := make(map[string]string, len(services))
 	for _, s := range services {
 		serviceNames[s.ID] = s.Spec.Name
@@ -112,24 +117,14 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 	for _, n := range nodes {
 		nodeNames[n.ID] = n.Description.Hostname
 	}
+	return serviceNames, nodeNames
+}
 
-	// Collect container stats for running tasks that have a container id.
-	// This is best-effort; individual stat failures are skipped.
-	type svcAgg struct {
-		m SwarmServiceMetrics
+func aggregateSwarmStats(ctx context.Context, cli *client.Client, tasks []swarm.Task, serviceNames map[string]string, nodeNames map[string]string, timestamp string) swarmStatsTotals {
+	totals := swarmStatsTotals{
+		serviceMetrics: map[string]*SwarmServiceMetrics{},
+		nodeMetrics:    map[string]*SwarmNodeMetrics{},
 	}
-	type nodeAgg struct {
-		m SwarmNodeMetrics
-	}
-
-	servicesAgg := map[string]*svcAgg{}
-	nodesAgg := map[string]*nodeAgg{}
-
-	var sumCpuPercent float64
-	var sumMemUsed int64
-	var sumNetRx int64
-	var sumNetTx int64
-	containers := 0
 
 	for _, t := range tasks {
 		if t.Status.State != swarm.TaskStateRunning {
@@ -155,62 +150,98 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		memUsed, memLimit := memoryUsage(&sj)
 		rx, tx := networkTotals(&sj)
 
-		containers++
-		sumCpuPercent += cpuP
-		sumMemUsed += memUsed
-		sumNetRx += rx
-		sumNetTx += tx
+		totals.containers++
+		totals.sumCpuPercent += cpuP
+		totals.sumMemUsed += memUsed
+		totals.sumNetRx += rx
+		totals.sumNetTx += tx
 
-		// Service aggregation.
 		sid := t.ServiceID
 		if sid != "" {
-			agg := servicesAgg[sid]
+			agg := totals.serviceMetrics[sid]
 			if agg == nil {
-				agg = &svcAgg{m: SwarmServiceMetrics{Timestamp: now, ServiceID: sid, ServiceName: serviceNames[sid]}}
-				servicesAgg[sid] = agg
+				agg = &SwarmServiceMetrics{Timestamp: timestamp, ServiceID: sid, ServiceName: serviceNames[sid]}
+				totals.serviceMetrics[sid] = agg
 			}
-			agg.m.RunningTasks++
-			agg.m.Containers++
-			agg.m.CpuPercent += cpuP
-			agg.m.MemoryUsedBytes += memUsed
-			agg.m.MemoryLimitBytes += memLimit
-			agg.m.NetworkRxBytes += rx
-			agg.m.NetworkTxBytes += tx
+			agg.RunningTasks++
+			agg.Containers++
+			agg.CpuPercent += cpuP
+			agg.MemoryUsedBytes += memUsed
+			agg.MemoryLimitBytes += memLimit
+			agg.NetworkRxBytes += rx
+			agg.NetworkTxBytes += tx
 		}
 
-		// Node aggregation.
 		nid := t.NodeID
 		if nid != "" {
-			agg := nodesAgg[nid]
+			agg := totals.nodeMetrics[nid]
 			if agg == nil {
-				agg = &nodeAgg{m: SwarmNodeMetrics{Timestamp: now, NodeID: nid, Hostname: nodeNames[nid]}}
-				nodesAgg[nid] = agg
+				agg = &SwarmNodeMetrics{Timestamp: timestamp, NodeID: nid, Hostname: nodeNames[nid]}
+				totals.nodeMetrics[nid] = agg
 			}
-			agg.m.RunningTasks++
-			agg.m.Containers++
-			agg.m.CpuPercent += cpuP
-			agg.m.MemoryUsedBytes += memUsed
-			agg.m.NetworkRxBytes += rx
-			agg.m.NetworkTxBytes += tx
+			agg.RunningTasks++
+			agg.Containers++
+			agg.CpuPercent += cpuP
+			agg.MemoryUsedBytes += memUsed
+			agg.NetworkRxBytes += rx
+			agg.NetworkTxBytes += tx
 		}
 	}
 
-	point.RunningContainers = containers
-	point.MemoryUsedBytes = sumMemUsed
-	point.NetworkRxBytes = sumNetRx
-	point.NetworkTxBytes = sumNetTx
-	point.CpuUsagePercent = cpuUsagePercentOfCapacity(sumCpuPercent, cpuCap)
+	return totals
+}
+
+func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (SwarmMetricsPoint, SwarmMetricsBreakdown, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	lists, err := listSwarmEntities(ctx, cli)
+	if err != nil {
+		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
+	}
+
+	// Base point (counts + capacity/reservations/limits) and store append.
+	// We re-use the same logic as collectSwarmMetrics, but avoid re-listing by inlining.
+	readyNodes, cpuCap, memCap := swarmCapacity(lists.nodes)
+	runningTasks := runningTasksCount(lists.tasks)
+	cpuRes, memRes, cpuLim, memLim := swarmReservations(lists.services, readyNodes)
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	point := SwarmMetricsPoint{
+		Timestamp:               now,
+		Services:                len(lists.services),
+		Tasks:                   len(lists.tasks),
+		RunningTasks:            runningTasks,
+		Nodes:                   len(lists.nodes),
+		ReadyNodes:              readyNodes,
+		CpuCapacityNano:         cpuCap,
+		MemoryCapacityBytes:     memCap,
+		CpuReservationsNano:     cpuRes,
+		MemoryReservationsBytes: memRes,
+		CpuLimitsNano:           cpuLim,
+		MemoryLimitsBytes:       memLim,
+	}
+
+	serviceNames, nodeNames := buildNameMaps(lists.services, lists.nodes)
+	totals := aggregateSwarmStats(ctx, cli, lists.tasks, serviceNames, nodeNames, now)
+
+	point.RunningContainers = totals.containers
+	point.MemoryUsedBytes = totals.sumMemUsed
+	point.NetworkRxBytes = totals.sumNetRx
+	point.NetworkTxBytes = totals.sumNetTx
+	point.CpuUsagePercent = cpuUsagePercentOfCapacity(totals.sumCpuPercent, cpuCap)
 
 	appendSwarmMetricsPoint(point)
 
 	breakdown := SwarmMetricsBreakdown{Timestamp: now}
-	breakdown.Services = make([]SwarmServiceMetrics, 0, len(servicesAgg))
-	for _, v := range servicesAgg {
-		breakdown.Services = append(breakdown.Services, v.m)
+	breakdown.Services = make([]SwarmServiceMetrics, 0, len(totals.serviceMetrics))
+	for _, v := range totals.serviceMetrics {
+		breakdown.Services = append(breakdown.Services, *v)
 	}
-	breakdown.Nodes = make([]SwarmNodeMetrics, 0, len(nodesAgg))
-	for _, v := range nodesAgg {
-		breakdown.Nodes = append(breakdown.Nodes, v.m)
+	breakdown.Nodes = make([]SwarmNodeMetrics, 0, len(totals.nodeMetrics))
+	for _, v := range totals.nodeMetrics {
+		breakdown.Nodes = append(breakdown.Nodes, *v)
 	}
 
 	return point, breakdown, nil
@@ -240,12 +271,21 @@ func memoryUsage(s *types.StatsJSON) (used int64, limit int64) {
 	if s == nil {
 		return 0, 0
 	}
-	usage := int64(s.MemoryStats.Usage)
-	limit = int64(s.MemoryStats.Limit)
+	usage, err := safeconv.Uint64ToInt64(s.MemoryStats.Usage)
+	if err != nil {
+		return 0, 0
+	}
+	limit, err = safeconv.Uint64ToInt64(s.MemoryStats.Limit)
+	if err != nil {
+		return 0, 0
+	}
 	cache := int64(0)
 	if s.MemoryStats.Stats != nil {
 		if v, ok := s.MemoryStats.Stats["cache"]; ok {
-			cache = int64(v)
+			cache, err = safeconv.Uint64ToInt64(v)
+			if err != nil {
+				cache = 0
+			}
 		}
 	}
 	if cache > 0 && usage > cache {
@@ -265,8 +305,14 @@ func networkTotals(s *types.StatsJSON) (rx int64, tx int64) {
 		return 0, 0
 	}
 	for _, v := range s.Networks {
-		rx += int64(v.RxBytes)
-		tx += int64(v.TxBytes)
+		rxBytes, err := safeconv.Uint64ToInt64(v.RxBytes)
+		if err == nil {
+			rx += rxBytes
+		}
+		txBytes, err := safeconv.Uint64ToInt64(v.TxBytes)
+		if err == nil {
+			tx += txBytes
+		}
 	}
 	return rx, tx
 }

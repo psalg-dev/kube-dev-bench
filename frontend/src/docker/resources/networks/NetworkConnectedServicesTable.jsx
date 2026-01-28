@@ -3,7 +3,11 @@ import { GetSwarmNetworkServices } from '../../swarmApi.js';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 import { navigateToResource } from '../../../utils/resourceNavigation';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 /**
  * Displays connected services for a network in a proper datatable format.
@@ -11,7 +15,10 @@ import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/ta
  * @param {string} props.networkId - The network ID to fetch services for
  * @param {boolean} [props.compact] - If true, renders a compact version for the summary tab
  */
-export default function NetworkConnectedServicesTable({ networkId, compact = false }) {
+export default function NetworkConnectedServicesTable({
+  networkId,
+  compact = false,
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [services, setServices] = useState([]);
@@ -26,12 +33,23 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
     return cols;
   }, [compact]);
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
   const sortedServices = useMemo(() => {
-    return sortRows(services, sortState.key, sortState.direction, (row, key) => {
-      if (key === 'aliases') return Array.isArray(row?.aliases) ? row.aliases.join(', ') : row?.aliases;
-      return row?.[key];
-    });
+    return sortRows(
+      services,
+      sortState.key,
+      sortState.direction,
+      (row, key) => {
+        if (key === 'aliases')
+          return Array.isArray(row?.aliases)
+            ? row.aliases.join(', ')
+            : row?.aliases;
+        return row?.[key];
+      },
+    );
   }, [services, sortState]);
 
   useEffect(() => {
@@ -80,7 +98,9 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
     return (
       <div style={containerStyle}>
         <div style={headerStyle}>Connected Services</div>
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>Loading…</div>
+        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>
+          Loading…
+        </div>
       </div>
     );
   }
@@ -135,30 +155,88 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
 
   return (
     <div style={containerStyle}>
-      <div style={headerStyle}>
-        Connected Services ({services.length})
-      </div>
+      <div style={headerStyle}>Connected Services ({services.length})</div>
       <div style={{ flex: 1, overflow: 'auto' }}>
         <table className="panel-table" style={{ width: '100%' }}>
           <thead>
             <tr>
-              <th aria-sort={sortState.key === 'serviceName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'serviceName'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'serviceName'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'serviceName'))
+                  }
+                >
                   <span>Service Name</span>
-                  <span aria-hidden="true">{sortState.key === 'serviceName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'serviceName'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'serviceId' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'serviceId'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'serviceId'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'serviceId'))
+                  }
+                >
                   <span>Service ID</span>
-                  <span aria-hidden="true">{sortState.key === 'serviceId' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'serviceId'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
               {!compact && (
-                <th aria-sort={sortState.key === 'aliases' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'aliases'))}>
+                <th
+                  aria-sort={
+                    sortState.key === 'aliases'
+                      ? sortState.direction === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                >
+                  <button
+                    type="button"
+                    style={headerButtonStyle}
+                    onClick={() =>
+                      setSortState((cur) => toggleSortState(cur, 'aliases'))
+                    }
+                  >
                     <span>Aliases</span>
-                    <span aria-hidden="true">{sortState.key === 'aliases' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    <span aria-hidden="true">
+                      {sortState.key === 'aliases'
+                        ? sortState.direction === 'asc'
+                          ? '▲'
+                          : '▼'
+                        : '↕'}
+                    </span>
                   </button>
                 </th>
               )}
@@ -167,23 +245,43 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
           <tbody>
             {sortedServices.map((svc) => {
               const hasService = !!(svc.serviceName || svc.serviceId);
-              const isHovered = hoveredRow === (svc.serviceId || svc.serviceName);
+              const isHovered =
+                hoveredRow === (svc.serviceId || svc.serviceName);
               return (
                 <tr
                   key={svc.serviceId || svc.serviceName}
                   onClick={() => handleRowClick(svc)}
-                  onMouseEnter={() => setHoveredRow(svc.serviceId || svc.serviceName)}
+                  onMouseEnter={() =>
+                    setHoveredRow(svc.serviceId || svc.serviceName)
+                  }
                   onMouseLeave={() => setHoveredRow(null)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(svc); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handleRowClick(svc);
+                  }}
                   role="button"
                   tabIndex={hasService ? 0 : -1}
-                  title={hasService ? `Open service: ${svc.serviceName || svc.serviceId}` : undefined}
+                  title={
+                    hasService
+                      ? `Open service: ${svc.serviceName || svc.serviceId}`
+                      : undefined
+                  }
                   style={{
                     cursor: hasService ? 'pointer' : 'default',
-                    background: isHovered && hasService ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                    background:
+                      isHovered && hasService
+                        ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))'
+                        : undefined,
                   }}
                 >
-                  <td style={{ fontWeight: 500, color: hasService && isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                  <td
+                    style={{
+                      fontWeight: 500,
+                      color:
+                        hasService && isHovered
+                          ? 'var(--gh-link, #58a6ff)'
+                          : undefined,
+                    }}
+                  >
                     {svc.serviceName || '-'}
                   </td>
                   <td style={{ fontFamily: 'monospace', fontSize: 11 }}>
@@ -191,7 +289,9 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
                       <span title={svc.serviceId}>
                         {compact ? svc.serviceId.slice(0, 12) : svc.serviceId}
                       </span>
-                    ) : '-'}
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   {!compact && (
                     <td>

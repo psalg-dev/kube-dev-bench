@@ -2,25 +2,43 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 
 vi.mock('../docker/swarmApi.js', () => ({
-  GetSwarmMetricsHistory: vi.fn(() => Promise.resolve([{ timestamp: 't1', services: 1, tasks: 2, runningTasks: 1, nodes: 1, readyNodes: 1 }])),
+  GetSwarmMetricsHistory: vi.fn(() =>
+    Promise.resolve([
+      {
+        timestamp: 't1',
+        services: 1,
+        tasks: 2,
+        runningTasks: 1,
+        nodes: 1,
+        readyNodes: 1,
+      },
+    ]),
+  ),
 }));
 
 const handlers = new Map();
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
   EventsOn: vi.fn((_event, cb) => {
     handlers.set(_event, cb);
-    return () => { handlers.delete(_event); };
+    return () => {
+      handlers.delete(_event);
+    };
   }),
   EventsOff: vi.fn(),
 }));
 
-import { MetricsStateProvider, useClusterMetrics } from '../docker/metrics/MetricsStateContext.jsx';
+import {
+  MetricsStateProvider,
+  useClusterMetrics,
+} from '../docker/metrics/MetricsStateContext.jsx';
 
 function Probe() {
   const { latest, history, services, nodes } = useClusterMetrics();
   return (
     <div>
-      <div data-testid="latest">{latest ? String(latest.services) : 'none'}</div>
+      <div data-testid="latest">
+        {latest ? String(latest.services) : 'none'}
+      </div>
       <div data-testid="len">{String(history?.length ?? 0)}</div>
       <div data-testid="svc">{String(services?.length ?? 0)}</div>
       <div data-testid="nodes">{String(nodes?.length ?? 0)}</div>
@@ -38,7 +56,7 @@ describe('MetricsStateContext', () => {
     render(
       <MetricsStateProvider>
         <Probe />
-      </MetricsStateProvider>
+      </MetricsStateProvider>,
     );
 
     await waitFor(() => {

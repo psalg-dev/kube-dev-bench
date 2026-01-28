@@ -8,12 +8,35 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // getRESTConfig returns a *rest.Config for the current kube context, performing an
 // insecure fallback (Insecure=true & clearing CA data) when a certificate error occurs.
 // It updates a.isInsecureConnection accordingly so the frontend can reflect connection security.
 func (a *App) getRESTConfig() (*rest.Config, error) {
+	cfg, err := a.loadKubeConfig()
+	if err != nil {
+		return nil, err
+	}
+	restConfig, err := a.buildRESTConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply proxy configuration if set.
+	a.applyProxyConfig(restConfig)
+
+	// Probe cluster to detect TLS issues early. We do a lightweight namespaced call via a temp clientset.
+	if err := a.probeRESTConfig(restConfig); err != nil {
+		return a.handleRESTProbeError(restConfig, err)
+	}
+
+	a.isInsecureConnection = false
+	return restConfig, nil
+}
+
+func (a *App) loadKubeConfig() (*clientcmdapi.Config, error) {
 	configPath := a.getKubeConfigPath()
 	cfg, err := clientcmd.LoadFromFile(configPath)
 	if err != nil {
@@ -22,38 +45,35 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 	if a.currentKubeContext == "" {
 		return nil, fmt.Errorf("no kube context selected")
 	}
+	return cfg, nil
+}
+
+func (a *App) buildRESTConfig(cfg *clientcmdapi.Config) (*rest.Config, error) {
 	clientConfig := clientcmd.NewNonInteractiveClientConfig(*cfg, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-	restConfig, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, err
+	return clientConfig.ClientConfig()
+}
+
+func (a *App) handleRESTProbeError(restConfig *rest.Config, probeErr error) (*rest.Config, error) {
+	if !isCertError(probeErr) || restConfig.TLSClientConfig.Insecure {
+		return nil, probeErr
 	}
 
-	// Apply proxy configuration if set
-	a.applyProxyConfig(restConfig)
+	// Apply insecure fallback.
+	restConfig.TLSClientConfig.Insecure = true
+	restConfig.TLSClientConfig.CAData = nil
+	restConfig.TLSClientConfig.CAFile = ""
+	a.isInsecureConnection = true
 
-	// Probe cluster to detect TLS issues early. We do a lightweight namespaced call via a temp clientset.
-	if err := a.probeRESTConfig(restConfig); err != nil {
-		if isCertError(err) && !restConfig.TLSClientConfig.Insecure {
-			// Apply insecure fallback
-			restConfig.TLSClientConfig.Insecure = true
-			restConfig.TLSClientConfig.CAData = nil
-			restConfig.TLSClientConfig.CAFile = ""
-			a.isInsecureConnection = true
-			// Log warning only once per application lifecycle
-			a.insecureWarnOnce.Do(func() {
-				fmt.Printf("[WARN] TLS error detected for context '%s'. Falling back to insecure mode (certificate verification disabled).\n", a.currentKubeContext)
-			})
-			// Re-probe only for non-permission errors
-			if perr := a.probeRESTConfig(restConfig); perr != nil && isCertError(perr) {
-				return nil, perr
-			}
-			return restConfig, nil
-		}
-		// Non cert error -> return original error (permission or others)
-		return nil, err
+	// Log warning only once per application lifecycle.
+	a.insecureWarnOnce.Do(func() {
+		fmt.Printf("[WARN] TLS error detected for context '%s'. Falling back to insecure mode (certificate verification disabled).\n", a.currentKubeContext)
+	})
+
+	// Re-probe only for non-permission errors.
+	if perr := a.probeRESTConfig(restConfig); perr != nil && isCertError(perr) {
+		return nil, perr
 	}
 
-	a.isInsecureConnection = false
 	return restConfig, nil
 }
 

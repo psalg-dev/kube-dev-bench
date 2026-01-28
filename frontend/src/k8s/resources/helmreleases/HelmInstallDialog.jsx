@@ -12,7 +12,9 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
 
   // Install form state
   const [releaseName, setReleaseName] = useState('');
-  const [targetNamespace, setTargetNamespace] = useState(namespace || 'default');
+  const [targetNamespace, setTargetNamespace] = useState(
+    namespace || 'default',
+  );
   const [version, setVersion] = useState('');
   const [valuesYaml, setValuesYaml] = useState('');
   const [createNamespace, setCreateNamespace] = useState(false);
@@ -126,9 +128,18 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+          }}
+        >
           <h3 style={{ margin: 0, color: 'var(--gh-text, #c9d1d9)' }}>
-            {step === 'search' ? 'Install Helm Chart' : `Configure: ${selectedChart?.name}`}
+            {step === 'search'
+              ? 'Install Helm Chart'
+              : `Configure: ${selectedChart?.name}`}
           </h3>
           {step === 'configure' && (
             <button
@@ -151,8 +162,19 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
         {step === 'search' && (
           <>
             {repos.length === 0 && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(230, 184, 0, 0.1)', border: '1px solid #e6b800', borderRadius: 6, color: '#e6b800', fontSize: 13 }}>
-                No Helm repositories configured. Add a repository first to search for charts.
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: 'rgba(230, 184, 0, 0.1)',
+                  border: '1px solid #e6b800',
+                  borderRadius: 6,
+                  color: '#e6b800',
+                  fontSize: 13,
+                }}
+              >
+                No Helm repositories configured. Add a repository first to
+                search for charts.
               </div>
             )}
 
@@ -182,7 +204,8 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
                   color: '#fff',
                   border: 'none',
                   borderRadius: 6,
-                  cursor: loading || repos.length === 0 ? 'not-allowed' : 'pointer',
+                  cursor:
+                    loading || repos.length === 0 ? 'not-allowed' : 'pointer',
                   fontSize: 14,
                 }}
               >
@@ -191,15 +214,33 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
             </div>
 
             {error && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(215, 58, 73, 0.1)', border: '1px solid #d73a49', borderRadius: 6, color: '#d73a49', fontSize: 13 }}>
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: 'rgba(215, 58, 73, 0.1)',
+                  border: '1px solid #d73a49',
+                  borderRadius: 6,
+                  color: '#d73a49',
+                  fontSize: 13,
+                }}
+              >
                 {error}
               </div>
             )}
 
             <div style={{ maxHeight: 400, overflow: 'auto' }}>
               {charts.length === 0 && !loading && (
-                <div style={{ padding: 20, textAlign: 'center', color: 'var(--gh-text-muted, #8b949e)' }}>
-                  {searchQuery ? 'No charts found. Try a different search term.' : 'Enter a search term to find charts.'}
+                <div
+                  style={{
+                    padding: 20,
+                    textAlign: 'center',
+                    color: 'var(--gh-text-muted, #8b949e)',
+                  }}
+                >
+                  {searchQuery
+                    ? 'No charts found. Try a different search term.'
+                    : 'Enter a search term to find charts.'}
                 </div>
               )}
               {charts.map((chart) => (
@@ -212,19 +253,48 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
                     cursor: 'pointer',
                     transition: 'background 0.15s',
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  onMouseEnter={(e) =>
+                    (e.currentTarget.style.background =
+                      'rgba(255,255,255,0.05)')
+                  }
+                  onMouseLeave={(e) =>
+                    (e.currentTarget.style.background = 'transparent')
+                  }
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                    }}
+                  >
                     <div>
-                      <div style={{ color: 'var(--gh-text, #c9d1d9)', fontWeight: 600, marginBottom: 4 }}>
+                      <div
+                        style={{
+                          color: 'var(--gh-text, #c9d1d9)',
+                          fontWeight: 600,
+                          marginBottom: 4,
+                        }}
+                      >
                         {chart.repo}/{chart.name}
                       </div>
-                      <div style={{ color: 'var(--gh-text-muted, #8b949e)', fontSize: 13, marginBottom: 4 }}>
+                      <div
+                        style={{
+                          color: 'var(--gh-text-muted, #8b949e)',
+                          fontSize: 13,
+                          marginBottom: 4,
+                        }}
+                      >
                         {chart.description || 'No description'}
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        color: 'var(--gh-text-muted, #8b949e)',
+                        fontSize: 12,
+                      }}
+                    >
                       <div>v{chart.version}</div>
                       {chart.appVersion && <div>App: {chart.appVersion}</div>}
                     </div>
@@ -238,7 +308,14 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
         {step === 'configure' && selectedChart && (
           <form onSubmit={handleInstall}>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                }}
+              >
                 Release Name *
               </label>
               <input
@@ -259,7 +336,14 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                }}
+              >
                 Namespace
               </label>
               <input
@@ -280,7 +364,14 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                }}
+              >
                 Version
               </label>
               <select
@@ -296,14 +387,27 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
                   fontSize: 14,
                 }}
               >
-                {(selectedChart.versions || [selectedChart.version]).map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
+                {(selectedChart.versions || [selectedChart.version]).map(
+                  (v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ),
+                )}
               </select>
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--gh-text, #c9d1d9)', fontSize: 13, cursor: 'pointer' }}>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                  cursor: 'pointer',
+                }}
+              >
                 <input
                   type="checkbox"
                   checked={createNamespace}
@@ -314,7 +418,14 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                }}
+              >
                 Values (YAML)
               </label>
               <textarea
@@ -337,12 +448,24 @@ export default function HelmInstallDialog({ namespace, onClose, onSuccess }) {
             </div>
 
             {error && (
-              <div style={{ marginBottom: 16, padding: 12, background: 'rgba(215, 58, 73, 0.1)', border: '1px solid #d73a49', borderRadius: 6, color: '#d73a49', fontSize: 13 }}>
+              <div
+                style={{
+                  marginBottom: 16,
+                  padding: 12,
+                  background: 'rgba(215, 58, 73, 0.1)',
+                  border: '1px solid #d73a49',
+                  borderRadius: 6,
+                  color: '#d73a49',
+                  fontSize: 13,
+                }}
+              >
                 {error}
               </div>
             )}
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+            <div
+              style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}
+            >
               <button
                 type="button"
                 onClick={onClose}

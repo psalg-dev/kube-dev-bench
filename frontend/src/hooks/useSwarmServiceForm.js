@@ -1,5 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { rowsToObject, serviceFormToYaml, validateServiceForm, yamlToServiceForm } from '../utils/swarmYamlUtils';
+import {
+  rowsToObject,
+  serviceFormToYaml,
+  validateServiceForm,
+  yamlToServiceForm,
+} from '../utils/swarmYamlUtils';
 
 export function getDefaultServiceForm() {
   return {
@@ -27,7 +32,8 @@ export default function useSwarmServiceForm() {
 
   const toCreateOptions = useCallback((d) => {
     const mode = d.mode || 'replicated';
-    const replicas = mode === 'replicated' ? Number.parseInt(String(d.replicas || 0), 10) : 0;
+    const replicas =
+      mode === 'replicated' ? Number.parseInt(String(d.replicas || 0), 10) : 0;
 
     return {
       name: d.name.trim(),
@@ -36,12 +42,17 @@ export default function useSwarmServiceForm() {
       replicas: Number.isFinite(replicas) ? replicas : 0,
       labels: rowsToObject(d.labels),
       env: rowsToObject(d.env),
-      ports: (d.ports || []).map((p) => ({
-        protocol: (p.protocol || 'tcp'),
-        targetPort: Number.parseInt(String(p.targetPort || 0), 10),
-        publishedPort: Number.parseInt(String(p.publishedPort || 0), 10),
-        publishMode: (p.publishMode || 'ingress'),
-      })).filter((p) => Number.isFinite(p.targetPort) && Number.isFinite(p.publishedPort)),
+      ports: (d.ports || [])
+        .map((p) => ({
+          protocol: p.protocol || 'tcp',
+          targetPort: Number.parseInt(String(p.targetPort || 0), 10),
+          publishedPort: Number.parseInt(String(p.publishedPort || 0), 10),
+          publishMode: p.publishMode || 'ingress',
+        }))
+        .filter(
+          (p) =>
+            Number.isFinite(p.targetPort) && Number.isFinite(p.publishedPort),
+        ),
     };
   }, []);
 
@@ -51,40 +62,57 @@ export default function useSwarmServiceForm() {
     return serviceFormToYaml({ ...d, envObject, labelsObject });
   }, []);
 
-  const switchTo = useCallback((nextMode) => {
-    if (nextMode === viewMode) return { ok: true };
+  const switchTo = useCallback(
+    (nextMode) => {
+      if (nextMode === viewMode) return { ok: true };
 
-    if (nextMode === 'yaml') {
-      const y = formToYaml(formData);
-      setYamlText(y);
-      setViewMode('yaml');
-      return { ok: true };
-    }
+      if (nextMode === 'yaml') {
+        const y = formToYaml(formData);
+        setYamlText(y);
+        setViewMode('yaml');
+        return { ok: true };
+      }
 
-    try {
-      const nextForm = yamlToServiceForm(yamlText);
-      setFormData(nextForm);
-      setViewMode('form');
-      validate(nextForm);
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: e?.message || String(e) };
-    }
-  }, [formData, formToYaml, validate, viewMode, yamlText]);
+      try {
+        const nextForm = yamlToServiceForm(yamlText);
+        setFormData(nextForm);
+        setViewMode('form');
+        validate(nextForm);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e?.message || String(e) };
+      }
+    },
+    [formData, formToYaml, validate, viewMode, yamlText],
+  );
 
-  const api = useMemo(() => ({
-    viewMode,
-    setViewMode,
-    formData,
-    setFormData,
-    yamlText,
-    setYamlText,
-    errors,
-    validate,
-    toCreateOptions,
-    formToYaml,
-    switchTo,
-  }), [errors, formData, formToYaml, setFormData, setViewMode, switchTo, toCreateOptions, validate, viewMode, yamlText]);
+  const api = useMemo(
+    () => ({
+      viewMode,
+      setViewMode,
+      formData,
+      setFormData,
+      yamlText,
+      setYamlText,
+      errors,
+      validate,
+      toCreateOptions,
+      formToYaml,
+      switchTo,
+    }),
+    [
+      errors,
+      formData,
+      formToYaml,
+      setFormData,
+      setViewMode,
+      switchTo,
+      toCreateOptions,
+      validate,
+      viewMode,
+      yamlText,
+    ],
+  );
 
   return api;
 }

@@ -101,6 +101,26 @@ func TestGetPodEvents(t *testing.T) {
 	}
 }
 
+func TestParseEventTime(t *testing.T) {
+	if got := parseEventTime(""); !got.IsZero() {
+		t.Fatalf("expected zero time for empty string")
+	}
+
+	nano := time.Now().UTC().Format(time.RFC3339Nano)
+	if got := parseEventTime(nano); got.IsZero() {
+		t.Fatalf("expected RFC3339Nano to parse")
+	}
+
+	std := time.Now().UTC().Format(time.RFC3339)
+	if got := parseEventTime(std); got.IsZero() {
+		t.Fatalf("expected RFC3339 to parse")
+	}
+
+	if got := parseEventTime("not-a-time"); !got.IsZero() {
+		t.Fatalf("expected zero time for invalid string")
+	}
+}
+
 func TestGetPodEvents_NoEvents(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 

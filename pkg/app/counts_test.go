@@ -1,7 +1,16 @@
 package app
 
 import (
+	"context"
 	"testing"
+	"time"
+
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestResourceCountsEqual_BothEmpty(t *testing.T) {
@@ -246,6 +255,164 @@ func TestGetResourceCounts_Concurrency(t *testing.T) {
 	// Wait for all goroutines
 	for i := 0; i < 10; i++ {
 		<-done
+	}
+}
+
+func TestRefreshPodStatusOnly_UpdatesPodStatus(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+	_, err := clientset.CoreV1().Pods("default").Create(context.Background(), &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+		Status:     v1.PodStatus{Phase: v1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+	_, err = clientset.CoreV1().Pods("default").Create(context.Background(), &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p2", Namespace: "default"},
+		Status:     v1.PodStatus{Phase: v1.PodFailed},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	app := &App{
+		ctx:                context.Background(),
+		currentKubeContext: "test",
+		currentNamespace:   "default",
+		testClientset:      clientset,
+		lastResourceCounts: ResourceCounts{
+			Deployments: 5,
+			PodStatus:   PodStatusCounts{Running: 99, Total: 99},
+		},
+	}
+
+	app.refreshPodStatusOnly()
+	got := app.lastResourceCounts
+	if got.PodStatus.Running != 1 || got.PodStatus.Failed != 1 || got.PodStatus.Total != 2 {
+		t.Fatalf("unexpected pod status counts: %+v", got.PodStatus)
+	}
+	if got.Deployments != 5 {
+		t.Fatalf("expected deployments to remain 5, got %d", got.Deployments)
+	}
+}
+
+func TestRefreshResourceCounts_AggregatesResources(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+
+	_, err := clientset.CoreV1().Pods("default").Create(context.Background(), &v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default", CreationTimestamp: metav1.NewTime(time.Now())},
+		Status:     v1.PodStatus{Phase: v1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+	_, err = clientset.AppsV1().Deployments("default").Create(context.Background(), &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "d1", Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "d1"}},
+			Template: v1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "d1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create deployment: %v", err)
+	}
+	_, err = clientset.CoreV1().Services("default").Create(context.Background(), &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "s1", Namespace: "default"},
+		Spec:       v1.ServiceSpec{Selector: map[string]string{"app": "d1"}},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create service: %v", err)
+	}
+	_, err = clientset.BatchV1().CronJobs("default").Create(context.Background(), &batchv1.CronJob{
+		ObjectMeta: metav1.ObjectMeta{Name: "cj1", Namespace: "default"},
+		Spec:       batchv1.CronJobSpec{Schedule: "* * * * *", JobTemplate: batchv1.JobTemplateSpec{Spec: batchv1.JobSpec{Template: v1.PodTemplateSpec{}}}},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create cronjob: %v", err)
+	}
+	_, err = clientset.BatchV1().Jobs("default").Create(context.Background(), &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: "j1", Namespace: "default"},
+		Spec:       batchv1.JobSpec{Template: v1.PodTemplateSpec{}},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create job: %v", err)
+	}
+	_, err = clientset.AppsV1().DaemonSets("default").Create(context.Background(), &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "ds1", Namespace: "default"},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "ds1"}},
+			Template: v1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "ds1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create daemonset: %v", err)
+	}
+	_, err = clientset.AppsV1().StatefulSets("default").Create(context.Background(), &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "ss1", Namespace: "default"},
+		Spec: appsv1.StatefulSetSpec{
+			Selector:    &metav1.LabelSelector{MatchLabels: map[string]string{"app": "ss1"}},
+			ServiceName: "svc",
+			Template:    v1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "ss1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create statefulset: %v", err)
+	}
+	_, err = clientset.AppsV1().ReplicaSets("default").Create(context.Background(), &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "rs1", Namespace: "default"},
+		Spec: appsv1.ReplicaSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "rs1"}},
+			Template: v1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "rs1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create replicaset: %v", err)
+	}
+	_, err = clientset.CoreV1().ConfigMaps("default").Create(context.Background(), &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: "cm1", Namespace: "default"},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create configmap: %v", err)
+	}
+	_, err = clientset.CoreV1().Secrets("default").Create(context.Background(), &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "sec1", Namespace: "default"},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create secret: %v", err)
+	}
+	_, err = clientset.NetworkingV1().Ingresses("default").Create(context.Background(), &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: "ing1", Namespace: "default"},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create ingress: %v", err)
+	}
+	_, err = clientset.CoreV1().PersistentVolumeClaims("default").Create(context.Background(), &v1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: "pvc1", Namespace: "default"},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pvc: %v", err)
+	}
+	_, err = clientset.CoreV1().PersistentVolumes().Create(context.Background(), &v1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{Name: "pv1"},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pv: %v", err)
+	}
+
+	app := &App{
+		ctx:                context.Background(),
+		currentKubeContext: "test",
+		currentNamespace:   "default",
+		testClientset:      clientset,
+	}
+
+	app.refreshResourceCounts()
+	got := app.lastResourceCounts
+	if got.PodStatus.Running != 1 || got.PodStatus.Total != 1 {
+		t.Fatalf("unexpected pod status counts: %+v", got.PodStatus)
+	}
+	if got.Deployments != 1 || got.Services != 1 || got.Jobs != 1 || got.CronJobs != 1 || got.DaemonSets != 1 || got.StatefulSets != 1 || got.ReplicaSets != 1 || got.ConfigMaps != 1 || got.Secrets != 1 || got.Ingresses != 1 || got.PersistentVolumeClaims != 1 || got.PersistentVolumes != 1 {
+		t.Fatalf("unexpected resource counts: %+v", got)
 	}
 }
 

@@ -64,25 +64,101 @@ func normalizeYAMLForParsing(input string) string {
 	return s
 }
 
+func parseResourceYAML(yamlContent string) (map[string]interface{}, *unstructured.Unstructured, string, string, error) {
+	var obj map[string]interface{}
+	if err := yaml.Unmarshal([]byte(yamlContent), &obj); err != nil {
+		return nil, nil, "", "", fmt.Errorf("YAML parse error: %w", err)
+	}
+	u := &unstructured.Unstructured{Object: obj}
+	apiVersion, ok := obj["apiVersion"].(string)
+	if !ok {
+		return nil, nil, "", "", fmt.Errorf("apiVersion not found in resource")
+	}
+	kind, ok := obj["kind"].(string)
+	if !ok {
+		return nil, nil, "", "", fmt.Errorf("kind not found in resource")
+	}
+
+	return obj, u, apiVersion, kind, nil
+}
+
+func resolveResourceNamespace(obj map[string]interface{}, fallback string) string {
+	if meta, ok := obj["metadata"].(map[string]interface{}); ok {
+		if ns, ok := meta["namespace"].(string); ok && ns != "" {
+			return ns
+		}
+	}
+	return fallback
+}
+
+var createResourceEmitters = map[string]func(*App, string){
+	"deployment": func(a *App, ns string) {
+		if deps, err := a.GetDeployments(ns); err == nil {
+			emitEvent(a.ctx, "deployments:update", deps)
+		}
+	},
+	"statefulset": func(a *App, ns string) {
+		if sts, err := a.GetStatefulSets(ns); err == nil {
+			emitEvent(a.ctx, "statefulsets:update", sts)
+		}
+	},
+	"daemonset": func(a *App, ns string) {
+		if dss, err := a.GetDaemonSets(ns); err == nil {
+			emitEvent(a.ctx, "daemonsets:update", dss)
+		}
+	},
+	"replicaset": func(a *App, ns string) {
+		if rss, err := a.GetReplicaSets(ns); err == nil {
+			emitEvent(a.ctx, "replicasets:update", rss)
+		}
+	},
+	"job": func(a *App, ns string) {
+		if jobs, err := a.GetJobs(ns); err == nil {
+			emitEvent(a.ctx, "jobs:update", jobs)
+		}
+	},
+	"cronjob": func(a *App, ns string) {
+		if cjs, err := a.GetCronJobs(ns); err == nil {
+			emitEvent(a.ctx, "cronjobs:update", cjs)
+		}
+	},
+	"ingress": func(a *App, ns string) {
+		if ings, err := a.GetIngresses(ns); err == nil {
+			emitEvent(a.ctx, "ingresses:update", ings)
+		}
+	},
+	"secret": func(a *App, ns string) {
+		if secs, err := a.GetSecrets(ns); err == nil {
+			emitEvent(a.ctx, "secrets:update", secs)
+		}
+	},
+	"configmap": func(a *App, ns string) {
+		if cms, err := a.GetConfigMaps(ns); err == nil {
+			emitEvent(a.ctx, "configmaps:update", cms)
+		}
+	},
+}
+
+func (a *App) emitCreateResourceSnapshots(kind, namespace string) {
+	if a.ctx == nil || namespace == "" {
+		return
+	}
+	if pods, err := a.GetRunningPods(namespace); err == nil {
+		emitEvent(a.ctx, "pods:update", pods)
+	}
+	kindKey := strings.ToLower(kind)
+	if emit, ok := createResourceEmitters[kindKey]; ok {
+		emit(a, namespace)
+	}
+}
+
 // CreateResource creates a resource in the cluster from YAML
 func (a *App) CreateResource(namespace string, yamlContent string) error {
 	yamlContent = normalizeYAMLForParsing(yamlContent)
 
-	// Parse YAML into map
-	var obj map[string]interface{}
-	if err := yaml.Unmarshal([]byte(yamlContent), &obj); err != nil {
-		return fmt.Errorf("YAML parse error: %w", err)
-	}
-	// Convert to unstructured
-	u := &unstructured.Unstructured{Object: obj}
-	// Extract apiVersion and kind
-	apiVersion, ok := obj["apiVersion"].(string)
-	if !ok {
-		return fmt.Errorf("apiVersion not found in resource")
-	}
-	kind, ok := obj["kind"].(string)
-	if !ok {
-		return fmt.Errorf("kind not found in resource")
+	obj, u, apiVersion, kind, err := parseResourceYAML(yamlContent)
+	if err != nil {
+		return err
 	}
 	if a.currentKubeContext == "" {
 		return fmt.Errorf("Kein Kontext gewählt")
@@ -112,12 +188,7 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 		return fmt.Errorf("could not find REST mapping for %s/%s: %w", apiVersion, kind, err)
 	}
 
-	resNamespace := namespace
-	if meta, ok := obj["metadata"].(map[string]interface{}); ok {
-		if ns, ok := meta["namespace"].(string); ok && ns != "" {
-			resNamespace = ns
-		}
-	}
+	resNamespace := resolveResourceNamespace(obj, namespace)
 
 	var ri dynamic.ResourceInterface
 	if mapping.Scope.Name() == "namespace" {
@@ -141,66 +212,7 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 		// Give the API server a brief moment to persist the object so our
 		// snapshot events include the newly created resource.
 		time.Sleep(500 * time.Millisecond)
-		if a.ctx != nil && ns != "" {
-			// Always emit pods snapshot for now (existing behavior)
-			if pods, err := a.GetRunningPods(ns); err == nil {
-				emitEvent(a.ctx, "pods:update", pods)
-			}
-			// If we created a Deployment, also emit deployments snapshot
-			if strings.EqualFold(k, "Deployment") {
-				if deps, err := a.GetDeployments(ns); err == nil {
-					emitEvent(a.ctx, "deployments:update", deps)
-				}
-			}
-			// If we created a StatefulSet, emit statefulsets snapshot
-			if strings.EqualFold(k, "StatefulSet") {
-				if sts, err := a.GetStatefulSets(ns); err == nil {
-					emitEvent(a.ctx, "statefulsets:update", sts)
-				}
-			}
-			// If we created a DaemonSet, emit daemonsets snapshot
-			if strings.EqualFold(k, "DaemonSet") {
-				if dss, err := a.GetDaemonSets(ns); err == nil {
-					emitEvent(a.ctx, "daemonsets:update", dss)
-				}
-			}
-			// If we created a ReplicaSet, emit replicasets snapshot
-			if strings.EqualFold(k, "ReplicaSet") {
-				if rss, err := a.GetReplicaSets(ns); err == nil {
-					emitEvent(a.ctx, "replicasets:update", rss)
-				}
-			}
-			// If we created a Job, emit jobs snapshot
-			if strings.EqualFold(k, "Job") {
-				if jobs, err := a.GetJobs(ns); err == nil {
-					emitEvent(a.ctx, "jobs:update", jobs)
-				}
-			}
-			// If we created a CronJob, emit cronjobs snapshot
-			if strings.EqualFold(k, "CronJob") {
-				if cjs, err := a.GetCronJobs(ns); err == nil {
-					emitEvent(a.ctx, "cronjobs:update", cjs)
-				}
-			}
-			// If we created an Ingress, emit ingresses snapshot
-			if strings.EqualFold(k, "Ingress") {
-				if ings, err := a.GetIngresses(ns); err == nil {
-					emitEvent(a.ctx, "ingresses:update", ings)
-				}
-			}
-			// If we created a Secret, emit secrets snapshot
-			if strings.EqualFold(k, "Secret") {
-				if secs, err := a.GetSecrets(ns); err == nil {
-					emitEvent(a.ctx, "secrets:update", secs)
-				}
-			}
-			// If we created a ConfigMap, emit configmaps snapshot
-			if strings.EqualFold(k, "ConfigMap") {
-				if cms, err := a.GetConfigMaps(ns); err == nil {
-					emitEvent(a.ctx, "configmaps:update", cms)
-				}
-			}
-		}
+		a.emitCreateResourceSnapshots(k, ns)
 	}(resNamespace, kind)
 	return nil
 }

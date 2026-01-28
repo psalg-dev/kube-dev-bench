@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import UpdateStackModal from '../docker/resources/stacks/UpdateStackModal';
 
 describe('UpdateStackModal', () => {
@@ -14,9 +14,9 @@ describe('UpdateStackModal', () => {
           open={false}
           stackName="my-stack"
           initialComposeYAML="version: '3.8'"
-        />
+        />,
       );
-      
+
       expect(screen.queryByText('Update Stack:')).not.toBeInTheDocument();
     });
 
@@ -26,9 +26,9 @@ describe('UpdateStackModal', () => {
           open={true}
           stackName="my-stack"
           initialComposeYAML="version: '3.8'"
-        />
+        />,
       );
-      
+
       expect(screen.getByText(/Update Stack:/)).toBeInTheDocument();
     });
 
@@ -38,9 +38,9 @@ describe('UpdateStackModal', () => {
           open={true}
           stackName="production-stack"
           initialComposeYAML=""
-        />
+        />,
       );
-      
+
       expect(screen.getByText(/production-stack/)).toBeInTheDocument();
     });
 
@@ -50,9 +50,9 @@ describe('UpdateStackModal', () => {
           open={true}
           stackName="my-stack"
           initialComposeYAML=""
-        />
+        />,
       );
-      
+
       expect(screen.getByText('Close')).toBeInTheDocument();
     });
 
@@ -62,9 +62,9 @@ describe('UpdateStackModal', () => {
           open={true}
           stackName="my-stack"
           initialComposeYAML=""
-        />
+        />,
       );
-      
+
       expect(screen.getByText(/stack redeploy/)).toBeInTheDocument();
     });
   });
@@ -77,9 +77,9 @@ describe('UpdateStackModal', () => {
           open={true}
           stackName="my-stack"
           initialComposeYAML={yaml}
-        />
+        />,
       );
-      
+
       const textarea = screen.getByRole('textbox');
       expect(textarea.value).toBe(yaml);
     });
@@ -90,12 +90,12 @@ describe('UpdateStackModal', () => {
           open={true}
           stackName="my-stack"
           initialComposeYAML=""
-        />
+        />,
       );
-      
+
       const textarea = screen.getByRole('textbox');
       fireEvent.change(textarea, { target: { value: 'version: "3.9"' } });
-      
+
       expect(textarea.value).toBe('version: "3.9"');
     });
   });
@@ -109,11 +109,11 @@ describe('UpdateStackModal', () => {
           stackName="my-stack"
           initialComposeYAML=""
           onClose={onClose}
-        />
+        />,
       );
-      
+
       fireEvent.click(screen.getByText('Close'));
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
@@ -125,13 +125,13 @@ describe('UpdateStackModal', () => {
           stackName="my-stack"
           initialComposeYAML=""
           onClose={onClose}
-        />
+        />,
       );
-      
+
       // Click the overlay (outermost div)
       const overlay = container.firstChild;
       fireEvent.click(overlay);
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
@@ -143,12 +143,12 @@ describe('UpdateStackModal', () => {
           stackName="my-stack"
           initialComposeYAML=""
           onClose={onClose}
-        />
+        />,
       );
-      
+
       // Click on the stack name text (inside modal)
       fireEvent.click(screen.getByText(/Update Stack:/));
-      
+
       expect(onClose).not.toHaveBeenCalled();
     });
   });
@@ -161,9 +161,9 @@ describe('UpdateStackModal', () => {
           stackName="my-stack"
           initialComposeYAML="version: '3.8'"
           onConfirm={vi.fn()}
-        />
+        />,
       );
-      
+
       expect(screen.getByText('Redeploy')).toBeInTheDocument();
     });
   });

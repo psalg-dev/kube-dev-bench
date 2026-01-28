@@ -39,7 +39,12 @@ describe('Helm Releases Overview Table', () => {
       return Promise.resolve([]);
     });
 
-    render(<HelmReleasesOverviewTable namespace="default" namespaces={['default']} />);
+    render(
+      <HelmReleasesOverviewTable
+        namespace="default"
+        namespaces={['default']}
+      />,
+    );
     // The table should render (loading is handled internally)
     expect(screen.getByText('Helm Releases')).toBeInTheDocument();
   });
@@ -52,7 +57,12 @@ describe('Helm Releases Overview Table', () => {
       return Promise.resolve([]);
     });
 
-    render(<HelmReleasesOverviewTable namespace="default" namespaces={['default']} />);
+    render(
+      <HelmReleasesOverviewTable
+        namespace="default"
+        namespaces={['default']}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Helm Releases')).toBeInTheDocument();
@@ -82,7 +92,12 @@ describe('Helm Releases Overview Table', () => {
       return Promise.resolve([]);
     });
 
-    render(<HelmReleasesOverviewTable namespace="default" namespaces={['default']} />);
+    render(
+      <HelmReleasesOverviewTable
+        namespace="default"
+        namespaces={['default']}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('my-nginx')).toBeInTheDocument();
@@ -244,7 +259,9 @@ describe('HelmNotesTab', () => {
     render(<HelmNotesTab namespace="default" releaseName="my-nginx" />);
 
     await waitFor(() => {
-      expect(screen.getByText(/thank you for installing nginx/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/thank you for installing nginx/i),
+      ).toBeInTheDocument();
     });
   });
 });
@@ -273,10 +290,30 @@ describe('HelmResourcesTab', () => {
     genericAPIMock.mockImplementation((name, ..._args) => {
       if (name === 'GetHelmReleaseManifest') return Promise.resolve(manifest);
       if (name === 'GetConfigMaps') {
-        return Promise.resolve([{ name: 'my-release-e2e', namespace: 'default', keys: 1, size: '1B', age: '1s', labels: {} }]);
+        return Promise.resolve([
+          {
+            name: 'my-release-e2e',
+            namespace: 'default',
+            keys: 1,
+            size: '1B',
+            age: '1s',
+            labels: {},
+          },
+        ]);
       }
       if (name === 'GetDeployments') {
-        return Promise.resolve([{ name: 'my-deploy', namespace: 'default', replicas: 1, ready: 1, available: 1, age: '1s', image: '', labels: {} }]);
+        return Promise.resolve([
+          {
+            name: 'my-deploy',
+            namespace: 'default',
+            replicas: 1,
+            ready: 1,
+            available: 1,
+            age: '1s',
+            image: '',
+            labels: {},
+          },
+        ]);
       }
       // Other kind lists used by health calculation
       if (
@@ -308,8 +345,12 @@ describe('HelmResourcesTab', () => {
       expect(screen.getByText(/Healthy/i)).toBeInTheDocument();
 
       // Color-coding should be applied to the health values.
-      expect(screen.getByText('OK')).toHaveStyle({ color: 'var(--gh-success-fg, #2ea44f)' });
-      expect(screen.getByText('Healthy')).toHaveStyle({ color: 'var(--gh-success-fg, #2ea44f)' });
+      expect(screen.getByText('OK')).toHaveStyle({
+        color: 'var(--gh-success-fg, #2ea44f)',
+      });
+      expect(screen.getByText('Healthy')).toHaveStyle({
+        color: 'var(--gh-success-fg, #2ea44f)',
+      });
     });
 
     const handler = vi.fn();
@@ -321,7 +362,11 @@ describe('HelmResourcesTab', () => {
 
       expect(handler).toHaveBeenCalled();
       const evt = handler.mock.calls[0][0];
-      expect(evt.detail).toEqual({ resource: 'Deployment', name: 'my-deploy', namespace: 'default' });
+      expect(evt.detail).toEqual({
+        resource: 'Deployment',
+        name: 'my-deploy',
+        namespace: 'default',
+      });
     } finally {
       window.removeEventListener('navigate-to-resource', handler);
     }
@@ -335,22 +380,32 @@ describe('HelmActions', () => {
   });
 
   it('renders upgrade and uninstall buttons', () => {
-    render(<HelmActions releaseName="my-nginx" namespace="default" chart="nginx" />);
+    render(
+      <HelmActions releaseName="my-nginx" namespace="default" chart="nginx" />,
+    );
 
-    expect(screen.getByRole('button', { name: /upgrade/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /uninstall/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /upgrade/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /uninstall/i }),
+    ).toBeInTheDocument();
   });
 
   it('prompts for confirmation before uninstall', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     genericAPIMock.mockImplementation(() => Promise.resolve());
 
-    render(<HelmActions releaseName="my-nginx" namespace="default" chart="nginx" />);
+    render(
+      <HelmActions releaseName="my-nginx" namespace="default" chart="nginx" />,
+    );
 
     const uninstallBtn = screen.getByRole('button', { name: /uninstall/i });
     fireEvent.click(uninstallBtn);
 
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('my-nginx'));
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('my-nginx'),
+    );
     confirmSpy.mockRestore();
   });
 });
@@ -393,7 +448,9 @@ describe('HelmRepositoriesDialog', () => {
     render(<HelmRepositoriesDialog onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /add repository/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /add repository/i }),
+      ).toBeInTheDocument();
     });
   });
 
@@ -425,12 +482,20 @@ describe('HelmInstallDialog', () => {
   it('renders search interface', async () => {
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHelmRepositories') {
-        return Promise.resolve([{ name: 'bitnami', url: 'https://charts.bitnami.com/bitnami' }]);
+        return Promise.resolve([
+          { name: 'bitnami', url: 'https://charts.bitnami.com/bitnami' },
+        ]);
       }
       return Promise.resolve([]);
     });
 
-    render(<HelmInstallDialog namespace="default" onClose={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <HelmInstallDialog
+        namespace="default"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/search charts/i)).toBeInTheDocument();
@@ -445,10 +510,18 @@ describe('HelmInstallDialog', () => {
       return Promise.resolve([]);
     });
 
-    render(<HelmInstallDialog namespace="default" onClose={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <HelmInstallDialog
+        namespace="default"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText(/no helm repositories configured/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/no helm repositories configured/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -466,7 +539,9 @@ describe('HelmInstallDialog', () => {
 
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHelmRepositories') {
-        return Promise.resolve([{ name: 'bitnami', url: 'https://charts.bitnami.com/bitnami' }]);
+        return Promise.resolve([
+          { name: 'bitnami', url: 'https://charts.bitnami.com/bitnami' },
+        ]);
       }
       if (name === 'SearchHelmCharts') {
         return Promise.resolve(mockCharts);
@@ -474,7 +549,13 @@ describe('HelmInstallDialog', () => {
       return Promise.resolve([]);
     });
 
-    render(<HelmInstallDialog namespace="default" onClose={vi.fn()} onSuccess={vi.fn()} />);
+    render(
+      <HelmInstallDialog
+        namespace="default"
+        onClose={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    );
 
     const searchInput = await screen.findByPlaceholderText(/search charts/i);
     fireEvent.change(searchInput, { target: { value: 'nginx' } });

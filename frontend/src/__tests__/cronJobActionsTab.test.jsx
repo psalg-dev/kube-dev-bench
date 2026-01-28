@@ -25,11 +25,13 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     expect(screen.getByText(/trigger now/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /trigger job now/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /trigger job now/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders Suspend action when CronJob is active', () => {
@@ -38,11 +40,13 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     expect(screen.getByText(/suspend cronjob/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^suspend$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^suspend$/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/active/i)).toBeInTheDocument();
   });
 
@@ -52,11 +56,13 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={true}
-      />
+      />,
     );
 
     expect(screen.getByText(/resume cronjob/i)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /^resume$/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /^resume$/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/suspended/i)).toBeInTheDocument();
   });
 
@@ -68,14 +74,17 @@ describe('CronJobActionsTab', () => {
         namespace="my-namespace"
         cronJobName="my-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     const triggerBtn = screen.getByRole('button', { name: /trigger job now/i });
     fireEvent.click(triggerBtn);
 
     await waitFor(() => {
-      expect(mockStartJobFromCronJob).toHaveBeenCalledWith('my-namespace', 'my-cronjob');
+      expect(mockStartJobFromCronJob).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-cronjob',
+      );
     });
   });
 
@@ -87,7 +96,7 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /trigger job now/i }));
@@ -98,14 +107,16 @@ describe('CronJobActionsTab', () => {
   });
 
   it('shows error message when trigger fails', async () => {
-    mockStartJobFromCronJob.mockRejectedValue(new Error('Failed to trigger job'));
+    mockStartJobFromCronJob.mockRejectedValue(
+      new Error('Failed to trigger job'),
+    );
 
     render(
       <CronJobActionsTab
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /trigger job now/i }));
@@ -123,7 +134,7 @@ describe('CronJobActionsTab', () => {
         namespace="prod"
         cronJobName="scheduled-job"
         suspend={false}
-      />
+      />,
     );
 
     const suspendBtn = screen.getByRole('button', { name: /^suspend$/i });
@@ -142,7 +153,7 @@ describe('CronJobActionsTab', () => {
         namespace="staging"
         cronJobName="paused-job"
         suspend={true}
-      />
+      />,
     );
 
     const resumeBtn = screen.getByRole('button', { name: /^resume$/i });
@@ -161,7 +172,7 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /^suspend$/i }));
@@ -179,7 +190,7 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={true}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /^resume$/i }));
@@ -191,14 +202,19 @@ describe('CronJobActionsTab', () => {
 
   it('disables buttons while loading', async () => {
     let resolvePromise;
-    mockStartJobFromCronJob.mockImplementation(() => new Promise(resolve => { resolvePromise = resolve; }));
+    mockStartJobFromCronJob.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePromise = resolve;
+        }),
+    );
 
     render(
       <CronJobActionsTab
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     const triggerBtn = screen.getByRole('button', { name: /trigger job now/i });
@@ -222,7 +238,7 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={false}
-      />
+      />,
     );
 
     expect(screen.getByText(/active/i)).toBeInTheDocument();
@@ -232,7 +248,7 @@ describe('CronJobActionsTab', () => {
         namespace="default"
         cronJobName="test-cronjob"
         suspend={true}
-      />
+      />,
     );
 
     expect(screen.getByText(/suspended/i)).toBeInTheDocument();

@@ -28,13 +28,17 @@ beforeEach(() => {
 
 describe('AddRegistryModal', () => {
   it('validates required fields (default dockerhub/basic)', async () => {
-    render(<AddRegistryModal open={true} onClose={vi.fn()} onSaved={vi.fn()} />);
+    render(
+      <AddRegistryModal open={true} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
 
     // Docker Hub URL is readonly
     expect(screen.getByText('https://registry-1.docker.io')).toBeTruthy();
 
     fireEvent.click(screen.getByText('Save'));
-    expect(notifications.showError).toHaveBeenCalledWith('Username is required for Basic auth.');
+    expect(notifications.showError).toHaveBeenCalledWith(
+      'Username is required for Basic auth.',
+    );
     expect(swarmApi.AddRegistry).not.toHaveBeenCalled();
   });
 
@@ -44,7 +48,9 @@ describe('AddRegistryModal', () => {
 
     swarmApi.AddRegistry.mockResolvedValueOnce(undefined);
 
-    const { container } = render(<AddRegistryModal open={true} onClose={onClose} onSaved={onSaved} />);
+    const { container } = render(
+      <AddRegistryModal open={true} onClose={onClose} onSaved={onSaved} />,
+    );
 
     const username = container.querySelector('#registry-username');
     const password = container.querySelector('#registry-password');
@@ -71,7 +77,9 @@ describe('AddRegistryModal', () => {
       allowInsecureHttp: false,
     });
 
-    expect(notifications.showSuccess).toHaveBeenCalledWith('Saved registry Docker Hub');
+    expect(notifications.showSuccess).toHaveBeenCalledWith(
+      'Saved registry Docker Hub',
+    );
     expect(onSaved).toHaveBeenCalled();
     expect(onClose).toHaveBeenCalled();
   });
@@ -79,7 +87,9 @@ describe('AddRegistryModal', () => {
   it('tests dockerhub token auth (token used as password)', async () => {
     swarmApi.TestRegistryConnection.mockResolvedValueOnce(undefined);
 
-    const { container } = render(<AddRegistryModal open={true} onClose={vi.fn()} onSaved={vi.fn()} />);
+    const { container } = render(
+      <AddRegistryModal open={true} onClose={vi.fn()} onSaved={vi.fn()} />,
+    );
 
     const authMethod = container.querySelector('#registry-auth-method');
     expect(authMethod).toBeTruthy();
@@ -106,6 +116,8 @@ describe('AddRegistryModal', () => {
       credentials: { username: 'user', password: 'tok', token: '', region: '' },
     });
 
-    expect(notifications.showSuccess).toHaveBeenCalledWith('Registry connection OK');
+    expect(notifications.showSuccess).toHaveBeenCalledWith(
+      'Registry connection OK',
+    );
   });
 });

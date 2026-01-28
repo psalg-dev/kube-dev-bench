@@ -1,4 +1,11 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+  useRef,
+} from 'react';
 import {
   AskHolmesStream,
   CancelHolmesStream,
@@ -10,7 +17,7 @@ import {
   onHolmesDeploymentStatus,
   onHolmesChatStream,
   ReconnectHolmes,
-  ClearHolmesConfig
+  ClearHolmesConfig,
 } from './holmesApi';
 import { showSuccess, showError, showNotification } from '../notification';
 
@@ -52,25 +59,63 @@ function holmesReducer(state, action) {
         responseFormat: action.config.responseFormat || '',
       };
     case 'SET_QUERY':
-      return { ...state, query: action.query, queryTimestamp: action.timestamp || null };
+      return {
+        ...state,
+        query: action.query,
+        queryTimestamp: action.timestamp || null,
+      };
     case 'SET_RESPONSE':
-      return { ...state, response: action.response, responseTimestamp: action.timestamp || null, loading: false, error: null, streamingText: '', reasoningText: '' };
+      return {
+        ...state,
+        response: action.response,
+        responseTimestamp: action.timestamp || null,
+        loading: false,
+        error: null,
+        streamingText: '',
+        reasoningText: '',
+      };
     case 'SET_LOADING':
       return { ...state, loading: action.loading };
     case 'SET_ERROR':
       return { ...state, error: action.error, loading: false };
     case 'START_STREAM':
-      return { ...state, loading: true, error: null, response: { response: '' }, responseTimestamp: null, streamId: action.streamId, streamingText: '', reasoningText: '', canceledStreamId: null, toolEvents: [] };
+      return {
+        ...state,
+        loading: true,
+        error: null,
+        response: { response: '' },
+        responseTimestamp: null,
+        streamId: action.streamId,
+        streamingText: '',
+        reasoningText: '',
+        canceledStreamId: null,
+        toolEvents: [],
+      };
     case 'STREAM_UPDATE':
-      return { ...state, response: { response: action.text }, streamingText: action.text };
+      return {
+        ...state,
+        response: { response: action.text },
+        streamingText: action.text,
+      };
     case 'STREAM_REASONING_UPDATE':
       return { ...state, reasoningText: action.text };
     case 'STREAM_DONE':
-      return { ...state, loading: false, response: { response: action.text }, responseTimestamp: action.timestamp || null, streamingText: action.text };
+      return {
+        ...state,
+        loading: false,
+        response: { response: action.text },
+        responseTimestamp: action.timestamp || null,
+        streamingText: action.text,
+      };
     case 'STREAM_ERROR':
       return { ...state, error: action.error, loading: false };
     case 'CANCEL_STREAM':
-      return { ...state, loading: false, streamId: null, canceledStreamId: action.streamId };
+      return {
+        ...state,
+        loading: false,
+        streamId: null,
+        canceledStreamId: action.streamId,
+      };
     case 'ADD_TOOL_EVENT':
       return { ...state, toolEvents: [...state.toolEvents, action.event] };
     case 'UPDATE_TOOL_EVENT':
@@ -80,7 +125,7 @@ function holmesReducer(state, action) {
       return {
         ...state,
         toolEvents: state.toolEvents.map((item) =>
-          item.id === action.event.id ? { ...item, ...action.event } : item
+          item.id === action.event.id ? { ...item, ...action.event } : item,
         ),
       };
     case 'SHOW_CONFIG':
@@ -94,7 +139,19 @@ function holmesReducer(state, action) {
     case 'TOGGLE_PANEL':
       return { ...state, showPanel: !state.showPanel };
     case 'CLEAR_RESPONSE':
-      return { ...state, response: null, responseTimestamp: null, error: null, query: '', queryTimestamp: null, streamId: null, streamingText: '', reasoningText: '', canceledStreamId: null, toolEvents: [] };
+      return {
+        ...state,
+        response: null,
+        responseTimestamp: null,
+        error: null,
+        query: '',
+        queryTimestamp: null,
+        streamId: null,
+        streamingText: '',
+        reasoningText: '',
+        canceledStreamId: null,
+        toolEvents: [],
+      };
     case 'SHOW_ONBOARDING':
       return { ...state, showOnboarding: true };
     case 'HIDE_ONBOARDING':
@@ -110,7 +167,12 @@ function holmesReducer(state, action) {
 
 export function HolmesProvider({ children }) {
   const [state, dispatch] = useReducer(holmesReducer, initialState);
-  const streamRef = useRef({ streamId: null, text: '', reasoningText: '', canceledStreamId: null });
+  const streamRef = useRef({
+    streamId: null,
+    text: '',
+    reasoningText: '',
+    canceledStreamId: null,
+  });
 
   const loadConfig = useCallback(async () => {
     try {
@@ -126,8 +188,18 @@ export function HolmesProvider({ children }) {
   }, [loadConfig]);
 
   useEffect(() => {
-    streamRef.current = { streamId: state.streamId, text: state.streamingText, reasoningText: state.reasoningText, canceledStreamId: state.canceledStreamId };
-  }, [state.streamId, state.streamingText, state.reasoningText, state.canceledStreamId]);
+    streamRef.current = {
+      streamId: state.streamId,
+      text: state.streamingText,
+      reasoningText: state.reasoningText,
+      canceledStreamId: state.canceledStreamId,
+    };
+  }, [
+    state.streamId,
+    state.streamingText,
+    state.reasoningText,
+    state.canceledStreamId,
+  ]);
 
   // Subscribe to deployment status events
   useEffect(() => {
@@ -148,15 +220,23 @@ export function HolmesProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
-      const { streamId, text, reasoningText, canceledStreamId } = streamRef.current;
+      const { streamId, text, reasoningText, canceledStreamId } =
+        streamRef.current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
-      if (payload.stream_id && canceledStreamId && payload.stream_id === canceledStreamId) {
+      if (
+        payload.stream_id &&
+        canceledStreamId &&
+        payload.stream_id === canceledStreamId
+      ) {
         return;
       }
       if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
+        if (
+          payload.error === 'context canceled' ||
+          payload.error === 'context cancelled'
+        ) {
           dispatch({ type: 'SET_LOADING', loading: false });
           return;
         }
@@ -169,7 +249,11 @@ export function HolmesProvider({ children }) {
 
       if (eventType === 'stream_end') {
         if (text) {
-          dispatch({ type: 'STREAM_DONE', text, timestamp: new Date().toISOString() });
+          dispatch({
+            type: 'STREAM_DONE',
+            text,
+            timestamp: new Date().toISOString(),
+          });
         } else {
           dispatch({ type: 'SET_LOADING', loading: false });
         }
@@ -193,13 +277,24 @@ export function HolmesProvider({ children }) {
         const parsedData = parseErrorPayload(payload.data);
         const parsed = parsedError || parsedData;
         if (parsed) {
-          errorMsg = parsed.error || parsed.message || parsed.detail || parsed.description || parsed.msg || errorMsg;
+          errorMsg =
+            parsed.error ||
+            parsed.message ||
+            parsed.detail ||
+            parsed.description ||
+            parsed.msg ||
+            errorMsg;
         }
 
         if (typeof errorMsg === 'string') {
           const lowerMsg = errorMsg.toLowerCase();
-          if (lowerMsg.includes('authenticationerror') || lowerMsg.includes('incorrect api key') || lowerMsg.includes('invalid api key')) {
-            errorMsg = 'Authentication failed. Please verify the Holmes API key.';
+          if (
+            lowerMsg.includes('authenticationerror') ||
+            lowerMsg.includes('incorrect api key') ||
+            lowerMsg.includes('invalid api key')
+          ) {
+            errorMsg =
+              'Authentication failed. Please verify the Holmes API key.';
           }
         }
 
@@ -222,7 +317,8 @@ export function HolmesProvider({ children }) {
       if (eventType === 'ai_message' && data) {
         let handled = false;
         if (data.reasoning) {
-          const nextReasoning = (reasoningText ? reasoningText + '\n' : '') + data.reasoning;
+          const nextReasoning =
+            (reasoningText ? reasoningText + '\n' : '') + data.reasoning;
           dispatch({ type: 'STREAM_REASONING_UPDATE', text: nextReasoning });
           handled = true;
         }
@@ -263,7 +359,11 @@ export function HolmesProvider({ children }) {
         return;
       }
 
-      if (eventType === 'approval_required' && data && Array.isArray(data.pending_approvals)) {
+      if (
+        eventType === 'approval_required' &&
+        data &&
+        Array.isArray(data.pending_approvals)
+      ) {
         data.pending_approvals.forEach((approval) => {
           dispatch({
             type: 'UPDATE_TOOL_EVENT',
@@ -279,10 +379,13 @@ export function HolmesProvider({ children }) {
       }
 
       if (eventType === 'ai_answer_end' && data && data.analysis) {
-        dispatch({ type: 'STREAM_DONE', text: data.analysis, timestamp: new Date().toISOString() });
+        dispatch({
+          type: 'STREAM_DONE',
+          text: data.analysis,
+          timestamp: new Date().toISOString(),
+        });
         return;
       }
-
     });
     return unsubscribe;
   }, []);
@@ -293,7 +396,11 @@ export function HolmesProvider({ children }) {
     }
     const streamId = `${Date.now()}`;
     dispatch({ type: 'START_STREAM', streamId });
-    dispatch({ type: 'SET_QUERY', query: question, timestamp: new Date().toISOString() });
+    dispatch({
+      type: 'SET_QUERY',
+      query: question,
+      timestamp: new Date().toISOString(),
+    });
 
     try {
       await AskHolmesStream(question, streamId);
@@ -338,7 +445,9 @@ export function HolmesProvider({ children }) {
       if (status.connected) {
         showSuccess('Holmes connection successful');
       } else {
-        showError('Holmes connection failed: ' + (status.error || 'Unknown error'));
+        showError(
+          'Holmes connection failed: ' + (status.error || 'Unknown error'),
+        );
       }
       return status;
     } catch (err) {
@@ -361,36 +470,44 @@ export function HolmesProvider({ children }) {
   }, []);
 
   // Deploy Holmes to the cluster
-  const deployHolmes = useCallback(async (request, _onStatusUpdate) => {
-    dispatch({ type: 'SET_DEPLOYING', deploying: true });
+  const deployHolmes = useCallback(
+    async (request, _onStatusUpdate) => {
+      dispatch({ type: 'SET_DEPLOYING', deploying: true });
 
-    try {
-      const result = await DeployHolmesGPT(request);
+      try {
+        const result = await DeployHolmesGPT(request);
 
-      if (result.phase === 'deployed') {
-        showSuccess('Holmes deployed successfully!');
-        await loadConfig(); // Reload config to pick up new settings
+        if (result.phase === 'deployed') {
+          showSuccess('Holmes deployed successfully!');
+          await loadConfig(); // Reload config to pick up new settings
+        }
+
+        return result;
+      } catch (err) {
+        const errorMsg = err.message || String(err);
+        showError('Failed to deploy Holmes: ' + errorMsg);
+        dispatch({ type: 'SET_DEPLOYING', deploying: false });
+        throw err;
       }
-
-      return result;
-    } catch (err) {
-      const errorMsg = err.message || String(err);
-      showError('Failed to deploy Holmes: ' + errorMsg);
-      dispatch({ type: 'SET_DEPLOYING', deploying: false });
-      throw err;
-    }
-  }, [loadConfig]);
+    },
+    [loadConfig],
+  );
 
   // Reconnect to Holmes (re-establish port-forward)
   const reconnectHolmes = useCallback(async () => {
     try {
-      showNotification('Reconnecting to Holmes...', { type: 'info', duration: 2000 });
+      showNotification('Reconnecting to Holmes...', {
+        type: 'info',
+        duration: 2000,
+      });
       const status = await ReconnectHolmes();
       if (status.connected) {
         showSuccess('Holmes reconnected successfully');
         await loadConfig(); // Reload config with new endpoint
       } else {
-        showError('Holmes reconnection failed: ' + (status.error || 'Unknown error'));
+        showError(
+          'Holmes reconnection failed: ' + (status.error || 'Unknown error'),
+        );
       }
       return status;
     } catch (err) {
@@ -413,14 +530,29 @@ export function HolmesProvider({ children }) {
     }
   }, [loadConfig]);
 
-  const showConfigModal = useCallback(() => dispatch({ type: 'SHOW_CONFIG' }), []);
-  const hideConfigModal = useCallback(() => dispatch({ type: 'HIDE_CONFIG' }), []);
+  const showConfigModal = useCallback(
+    () => dispatch({ type: 'SHOW_CONFIG' }),
+    [],
+  );
+  const hideConfigModal = useCallback(
+    () => dispatch({ type: 'HIDE_CONFIG' }),
+    [],
+  );
   const showPanel = useCallback(() => dispatch({ type: 'SHOW_PANEL' }), []);
   const hidePanel = useCallback(() => dispatch({ type: 'HIDE_PANEL' }), []);
   const togglePanel = useCallback(() => dispatch({ type: 'TOGGLE_PANEL' }), []);
-  const clearResponse = useCallback(() => dispatch({ type: 'CLEAR_RESPONSE' }), []);
-  const showOnboarding = useCallback(() => dispatch({ type: 'SHOW_ONBOARDING' }), []);
-  const hideOnboarding = useCallback(() => dispatch({ type: 'HIDE_ONBOARDING' }), []);
+  const clearResponse = useCallback(
+    () => dispatch({ type: 'CLEAR_RESPONSE' }),
+    [],
+  );
+  const showOnboarding = useCallback(
+    () => dispatch({ type: 'SHOW_ONBOARDING' }),
+    [],
+  );
+  const hideOnboarding = useCallback(
+    () => dispatch({ type: 'HIDE_ONBOARDING' }),
+    [],
+  );
 
   const value = {
     state,
@@ -443,7 +575,9 @@ export function HolmesProvider({ children }) {
     hideOnboarding,
   };
 
-  return <HolmesContext.Provider value={value}>{children}</HolmesContext.Provider>;
+  return (
+    <HolmesContext.Provider value={value}>{children}</HolmesContext.Provider>
+  );
 }
 
 export function useHolmes() {

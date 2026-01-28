@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 
-export default function UpdateServiceImageModal({ open, currentImage, serviceName, onClose, onConfirm }) {
+export default function UpdateServiceImageModal({
+  open,
+  currentImage,
+  serviceName,
+  onClose,
+  onConfirm,
+}) {
   const [image, setImage] = useState(currentImage || '');
 
   useEffect(() => {
@@ -50,12 +56,24 @@ export default function UpdateServiceImageModal({ open, currentImage, serviceNam
           Update Service Image: {serviceName}
         </h3>
 
-        <div style={{ marginBottom: 12, color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+        <div
+          style={{
+            marginBottom: 12,
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+          }}
+        >
           This updates the service spec and triggers a redeploy.
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-secondary)' }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: 6,
+              color: 'var(--gh-text-secondary)',
+            }}
+          >
             Image (including tag)
           </label>
           <input
@@ -77,12 +95,20 @@ export default function UpdateServiceImageModal({ open, currentImage, serviceNam
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button id="swarm-service-update-image-cancel-btn" style={buttonStyle} onClick={onClose}>
+          <button
+            id="swarm-service-update-image-cancel-btn"
+            style={buttonStyle}
+            onClick={onClose}
+          >
             Cancel
           </button>
           <button
             id="swarm-service-update-image-confirm-btn"
-            style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff' }}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#238636',
+              color: '#fff',
+            }}
             onClick={() => onConfirm?.(image.trim())}
             disabled={!canSave}
           >

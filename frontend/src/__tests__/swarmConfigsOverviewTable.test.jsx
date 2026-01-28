@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
 const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
@@ -39,7 +46,8 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
 
         <div data-testid="rows">
           {rows.map((row) => {
-            const actions = typeof getRowActions === 'function' ? getRowActions(row) : [];
+            const actions =
+              typeof getRowActions === 'function' ? getRowActions(row) : [];
             return (
               <div key={row.id} data-testid={`row-${row.id}`}>
                 <div data-testid={`name-${row.id}`}>{row.name}</div>
@@ -47,9 +55,14 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                 <div data-testid={`cells-${row.id}`}>
                   {(columns || []).map((col) => {
                     const rawValue = row[col.key];
-                    const content = col.cell ? col.cell({ getValue: () => rawValue }) : rawValue ?? '-';
+                    const content = col.cell
+                      ? col.cell({ getValue: () => rawValue })
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.id}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.id}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -64,7 +77,9 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                   ))}
                 </div>
 
-                <div data-testid={`panel-${row.id}`}>{renderPanelContent?.(row, 'summary')}</div>
+                <div data-testid={`panel-${row.id}`}>
+                  {renderPanelContent?.(row, 'summary')}
+                </div>
               </div>
             );
           })}
@@ -179,7 +194,9 @@ describe('SwarmConfigsOverviewTable', () => {
     expect(screen.getByTestId('name-cfg2')).toHaveTextContent('big-config');
 
     expect(screen.getByTestId('cell-cfg1-dataSize')).toHaveTextContent('500 B');
-    expect(screen.getByTestId('cell-cfg2-dataSize')).toHaveTextContent('1.5 KB');
+    expect(screen.getByTestId('cell-cfg2-dataSize')).toHaveTextContent(
+      '1.5 KB',
+    );
 
     expect(swarmApiMocks.GetSwarmConfigs).toHaveBeenCalledTimes(1);
   });
@@ -196,8 +213,14 @@ describe('SwarmConfigsOverviewTable', () => {
   });
 
   it('downloads/clones/deletes via row actions', async () => {
-    vi.stubGlobal('prompt', vi.fn(() => 'app-config-clone'));
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'prompt',
+      vi.fn(() => 'app-config-clone'),
+    );
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmConfigsOverviewTable />);
     await screen.findByTestId('row-cfg1');
@@ -205,16 +228,34 @@ describe('SwarmConfigsOverviewTable', () => {
     const actions = screen.getByTestId('actions-cfg1');
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Download' }));
-    await waitFor(() => expect(swarmApiMocks.ExportSwarmConfig).toHaveBeenCalledWith('cfg1', 'app-config.txt'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Saved config app-config');
+    await waitFor(() =>
+      expect(swarmApiMocks.ExportSwarmConfig).toHaveBeenCalledWith(
+        'cfg1',
+        'app-config.txt',
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Saved config app-config',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Clone…' }));
-    await waitFor(() => expect(swarmApiMocks.CloneSwarmConfig).toHaveBeenCalledWith('cfg1', 'app-config-clone'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Cloned config to app-config-clone');
+    await waitFor(() =>
+      expect(swarmApiMocks.CloneSwarmConfig).toHaveBeenCalledWith(
+        'cfg1',
+        'app-config-clone',
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Cloned config to app-config-clone',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmConfig).toHaveBeenCalledWith('cfg1'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Config app-config removed');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmConfig).toHaveBeenCalledWith('cfg1'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Config app-config removed',
+    );
   });
 
   it('deletes from the summary panel SwarmResourceActions', async () => {
@@ -225,8 +266,12 @@ describe('SwarmConfigsOverviewTable', () => {
     const delBtn = within(panel).getByRole('button', { name: 'Delete' });
     fireEvent.click(delBtn);
 
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmConfig).toHaveBeenCalledWith('cfg1'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Config app-config removed');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmConfig).toHaveBeenCalledWith('cfg1'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Config app-config removed',
+    );
   });
 
   it('updates configs from runtime event', async () => {

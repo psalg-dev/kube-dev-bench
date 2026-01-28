@@ -1,17 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import useSwarmServiceForm, { getDefaultServiceForm } from '../hooks/useSwarmServiceForm';
+import useSwarmServiceForm, {
+  getDefaultServiceForm,
+} from '../hooks/useSwarmServiceForm';
 
 // Mock swarmYamlUtils
 vi.mock('../utils/swarmYamlUtils', () => ({
   rowsToObject: vi.fn((rows) => {
     const obj = {};
-    (rows || []).forEach(r => {
+    (rows || []).forEach((r) => {
       if (r.key && r.key.trim()) obj[r.key.trim()] = r.value || '';
     });
     return obj;
   }),
-  serviceFormToYaml: vi.fn((form) => `name: ${form.name}\nimage: ${form.image}`),
+  serviceFormToYaml: vi.fn(
+    (form) => `name: ${form.name}\nimage: ${form.image}`,
+  ),
   validateServiceForm: vi.fn((form) => {
     const errs = {};
     if (!form.name?.trim()) errs.name = 'Name is required';
@@ -42,7 +46,9 @@ describe('getDefaultServiceForm', () => {
     expect(defaults.replicas).toBe(1);
     expect(defaults.ports).toEqual([]);
     expect(defaults.env).toEqual([{ id: 'kv_env_init', key: '', value: '' }]);
-    expect(defaults.labels).toEqual([{ id: 'kv_label_init', key: '', value: '' }]);
+    expect(defaults.labels).toEqual([
+      { id: 'kv_label_init', key: '', value: '' },
+    ]);
   });
 });
 
@@ -100,7 +106,14 @@ describe('useSwarmServiceForm', () => {
         replicas: 3,
         labels: [{ key: 'app', value: 'test' }],
         env: [{ key: 'NODE_ENV', value: 'production' }],
-        ports: [{ protocol: 'tcp', targetPort: 80, publishedPort: 8080, publishMode: 'ingress' }],
+        ports: [
+          {
+            protocol: 'tcp',
+            targetPort: 80,
+            publishedPort: 8080,
+            publishMode: 'ingress',
+          },
+        ],
       });
 
       expect(options.name).toBe('test-service');
@@ -210,7 +223,10 @@ describe('useSwarmServiceForm', () => {
       const { result } = renderHook(() => useSwarmServiceForm());
 
       act(() => {
-        result.current.setFormData({ name: 'new-service', image: 'alpine:3.14' });
+        result.current.setFormData({
+          name: 'new-service',
+          image: 'alpine:3.14',
+        });
       });
 
       expect(result.current.formData.name).toBe('new-service');

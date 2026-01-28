@@ -16,7 +16,10 @@ export default function ConfigMapConsumersTab({ namespace, configMapName }) {
       setLoading(true);
       setError(null);
       try {
-        const res = await AppAPI.GetConfigMapConsumers(namespace, configMapName);
+        const res = await AppAPI.GetConfigMapConsumers(
+          namespace,
+          configMapName,
+        );
         if (!cancelled) setItems(Array.isArray(res) ? res : []);
       } catch (e) {
         if (!cancelled) setError(e?.message || String(e));
@@ -25,7 +28,9 @@ export default function ConfigMapConsumersTab({ namespace, configMapName }) {
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [namespace, configMapName]);
 
   const handleRowClick = (consumer) => {
@@ -37,7 +42,11 @@ export default function ConfigMapConsumersTab({ namespace, configMapName }) {
   };
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -90,7 +99,12 @@ export default function ConfigMapConsumersTab({ namespace, configMapName }) {
             >
               <td>{c.kind ?? c.Kind}</td>
               <td className="resource-link">{c.name ?? c.Name}</td>
-              <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
+              <td
+                className="text-muted"
+                style={{ fontFamily: 'monospace', fontSize: 12 }}
+              >
+                {c.refType ?? c.RefType ?? '-'}
+              </td>
             </tr>
           ))}
         </tbody>

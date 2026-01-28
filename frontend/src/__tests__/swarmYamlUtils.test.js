@@ -12,7 +12,12 @@ import {
 describe('swarmYamlUtils', () => {
   describe('rowsToObject / objectToRows', () => {
     it('converts rows to object (ignoring empty keys)', () => {
-      expect(rowsToObject([{ key: 'A', value: '1' }, { key: '  ', value: 'x' }])).toEqual({ A: '1' });
+      expect(
+        rowsToObject([
+          { key: 'A', value: '1' },
+          { key: '  ', value: 'x' },
+        ]),
+      ).toEqual({ A: '1' });
     });
 
     it('converts object to sorted rows', () => {
@@ -37,7 +42,13 @@ describe('swarmYamlUtils', () => {
     });
 
     it('renders placeholder blocks for empty ports/env/labels', () => {
-      const out = serviceFormToYaml({ name: 'svc', image: 'nginx:1.25', ports: [], env: {}, labels: {} });
+      const out = serviceFormToYaml({
+        name: 'svc',
+        image: 'nginx:1.25',
+        ports: [],
+        env: {},
+        labels: {},
+      });
       expect(out).toContain('ports:');
       expect(out).toContain('# - protocol: tcp');
       expect(out).toContain('env:');
@@ -76,7 +87,9 @@ describe('swarmYamlUtils', () => {
     });
 
     it('throws for non-mapping YAML', () => {
-      expect(() => yamlToServiceForm('- a\n- b\n')).toThrow('YAML must be a mapping/object.');
+      expect(() => yamlToServiceForm('- a\n- b\n')).toThrow(
+        'YAML must be a mapping/object.',
+      );
     });
   });
 
@@ -87,30 +100,54 @@ describe('swarmYamlUtils', () => {
         image: 'Image is required.',
       });
 
-      expect(validateServiceForm({ name: 'Bad_Name', image: 'x' })).toMatchObject({
+      expect(
+        validateServiceForm({ name: 'Bad_Name', image: 'x' }),
+      ).toMatchObject({
         name: 'Name must be lowercase DNS-compatible (a-z, 0-9, hyphen).',
       });
     });
 
     it('validates replicas for replicated mode only', () => {
-      expect(validateServiceForm({ name: 'svc', image: 'x', mode: 'replicated', replicas: -1 })).toMatchObject({
+      expect(
+        validateServiceForm({
+          name: 'svc',
+          image: 'x',
+          mode: 'replicated',
+          replicas: -1,
+        }),
+      ).toMatchObject({
         replicas: 'Replicas must be an integer >= 0.',
       });
-      expect(validateServiceForm({ name: 'svc', image: 'x', mode: 'global', replicas: -1 })).toEqual({});
+      expect(
+        validateServiceForm({
+          name: 'svc',
+          image: 'x',
+          mode: 'global',
+          replicas: -1,
+        }),
+      ).toEqual({});
     });
 
     it('validates port mappings when any value is set', () => {
-      expect(validateServiceForm({
-        name: 'svc',
-        image: 'x',
-        ports: [{ targetPort: 0, publishedPort: 8080 }],
-      })).toMatchObject({ ports: 'All port mappings must have a valid target port (1-65535).' });
+      expect(
+        validateServiceForm({
+          name: 'svc',
+          image: 'x',
+          ports: [{ targetPort: 0, publishedPort: 8080 }],
+        }),
+      ).toMatchObject({
+        ports: 'All port mappings must have a valid target port (1-65535).',
+      });
 
-      expect(validateServiceForm({
-        name: 'svc',
-        image: 'x',
-        ports: [{ targetPort: 80, publishedPort: 70000 }],
-      })).toMatchObject({ ports: 'All port mappings must have a valid published port (1-65535).' });
+      expect(
+        validateServiceForm({
+          name: 'svc',
+          image: 'x',
+          ports: [{ targetPort: 80, publishedPort: 70000 }],
+        }),
+      ).toMatchObject({
+        ports: 'All port mappings must have a valid published port (1-65535).',
+      });
     });
   });
 
@@ -122,12 +159,20 @@ describe('swarmYamlUtils', () => {
     });
 
     it('parses mapping YAML to config form', () => {
-      const form = yamlToConfigForm('name: cfg\nlabels:\n  b: two\ndata: hello\n');
-      expect(form).toEqual({ name: 'cfg', labels: { b: 'two' }, data: 'hello' });
+      const form = yamlToConfigForm(
+        'name: cfg\nlabels:\n  b: two\ndata: hello\n',
+      );
+      expect(form).toEqual({
+        name: 'cfg',
+        labels: { b: 'two' },
+        data: 'hello',
+      });
     });
 
     it('throws for non-mapping YAML', () => {
-      expect(() => yamlToConfigForm('- a\n- b\n')).toThrow('YAML must be a mapping/object.');
+      expect(() => yamlToConfigForm('- a\n- b\n')).toThrow(
+        'YAML must be a mapping/object.',
+      );
     });
   });
 });

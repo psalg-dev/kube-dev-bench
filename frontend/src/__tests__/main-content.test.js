@@ -15,29 +15,73 @@ vi.mock('react-dom/client', () => ({
   createRoot: vi.fn(() => ({ render: vi.fn() })),
 }));
 
-vi.mock('../k8s/resources/deployments/DeploymentsOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/deployments/DeploymentsOverviewTable', () => ({
+  default: Stub,
+}));
 vi.mock('../k8s/resources/jobs/JobsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/cronjobs/CronJobsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/daemonsets/DaemonSetsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/statefulsets/StatefulSetsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/replicasets/ReplicaSetsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/configmaps/ConfigMapsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/secrets/SecretsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/ingresses/IngressesOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/persistentvolumes/PersistentVolumesOverviewTable', () => ({ default: Stub }));
-vi.mock('../k8s/resources/helmreleases/HelmReleasesOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/cronjobs/CronJobsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../k8s/resources/daemonsets/DaemonSetsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../k8s/resources/statefulsets/StatefulSetsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../k8s/resources/replicasets/ReplicaSetsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../k8s/resources/configmaps/ConfigMapsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../k8s/resources/secrets/SecretsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../k8s/resources/ingresses/IngressesOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock(
+  '../k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable',
+  () => ({ default: Stub }),
+);
+vi.mock(
+  '../k8s/resources/persistentvolumes/PersistentVolumesOverviewTable',
+  () => ({ default: Stub }),
+);
+vi.mock('../k8s/resources/helmreleases/HelmReleasesOverviewTable', () => ({
+  default: Stub,
+}));
 
-vi.mock('../docker/resources/services/SwarmServicesOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/tasks/SwarmTasksOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/nodes/SwarmNodesOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/networks/SwarmNetworksOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/configs/SwarmConfigsOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/secrets/SwarmSecretsOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/stacks/SwarmStacksOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/resources/volumes/SwarmVolumesOverviewTable', () => ({ default: Stub }));
-vi.mock('../docker/registry/SwarmRegistriesOverview.jsx', () => ({ default: Stub }));
-vi.mock('../docker/metrics/SwarmMetricsDashboard.jsx', () => ({ default: Stub }));
+vi.mock('../docker/resources/services/SwarmServicesOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/tasks/SwarmTasksOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/nodes/SwarmNodesOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/networks/SwarmNetworksOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/configs/SwarmConfigsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/secrets/SwarmSecretsOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/stacks/SwarmStacksOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/resources/volumes/SwarmVolumesOverviewTable', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/registry/SwarmRegistriesOverview.jsx', () => ({
+  default: Stub,
+}));
+vi.mock('../docker/metrics/SwarmMetricsDashboard.jsx', () => ({
+  default: Stub,
+}));
 vi.mock('../docker/topology/TopologyView.jsx', () => ({ default: Stub }));
 vi.mock('../docker/SwarmOverview.jsx', () => ({ default: Stub }));
 
@@ -66,7 +110,8 @@ describe('main-content.js', () => {
   it('renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable', async () => {
     const { renderPodsMainContent } = await importFreshMainContent();
 
-    const { renderPodOverviewTable } = await import('../k8s/resources/pods/PodOverviewEntry');
+    const { renderPodOverviewTable } =
+      await import('../k8s/resources/pods/PodOverviewEntry');
     const { showResourceOverlay } = await import('../resource-overlay.js');
 
     // Add a sibling panel to ensure it gets hidden
@@ -95,7 +140,9 @@ describe('main-content.js', () => {
     expect(showResourceOverlay).toHaveBeenCalledWith('job');
 
     // sibling should be hidden
-    expect(document.getElementById('some-other-panel').style.display).toBe('none');
+    expect(document.getElementById('some-other-panel').style.display).toBe(
+      'none',
+    );
     expect(panel.style.display).toBe('');
   });
 
@@ -119,7 +166,11 @@ describe('main-content.js', () => {
 
     renderResourceMainContent([], 'swarm-services', {
       swarmState: { connected: true },
-      swarmCounts: { counts: { services: 1 }, lastUpdated: 123, refetch: () => {} },
+      swarmCounts: {
+        counts: { services: 1 },
+        lastUpdated: 123,
+        refetch: () => {},
+      },
     });
 
     const root = createRoot.mock.results[0].value;
@@ -133,6 +184,9 @@ describe('main-content.js', () => {
     // inner Provider
     const inner = renderedEl.props.children;
     expect(inner.type).toBe(SwarmCountsProvider);
-    expect(inner.props.value).toMatchObject({ counts: { services: 1 }, lastUpdated: 123 });
+    expect(inner.props.value).toMatchObject({
+      counts: { services: 1 },
+      lastUpdated: 123,
+    });
   });
 });

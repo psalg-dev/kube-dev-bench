@@ -17,7 +17,11 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
   const [issueLoading, setIssueLoading] = useState({});
   const [dismissLoading, setDismissLoading] = useState({});
   const [height, setHeight] = useState(() => {
-    try { return Number(localStorage.getItem('monitorpanel.height')) || 400; } catch { return 400; }
+    try {
+      return Number(localStorage.getItem('monitorpanel.height')) || 400;
+    } catch {
+      return 400;
+    }
   });
   const resizeRef = useRef({ startY: 0, startH: 0, resizing: false });
 
@@ -26,7 +30,9 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
   }, [monitorInfo]);
 
   useEffect(() => {
-    try { localStorage.setItem('monitorpanel.height', String(height)); } catch {}
+    try {
+      localStorage.setItem('monitorpanel.height', String(height));
+    } catch {}
   }, [height]);
 
   // Smart tab pre-selection when panel opens
@@ -46,9 +52,12 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
       if (!updatedIssue?.issueID) return;
       setPanelInfo((prev) => {
         if (!prev) return prev;
-        const updateList = (list) => list.map((issue) => (
-          issue.issueID === updatedIssue.issueID ? { ...issue, ...updatedIssue } : issue
-        ));
+        const updateList = (list) =>
+          list.map((issue) =>
+            issue.issueID === updatedIssue.issueID
+              ? { ...issue, ...updatedIssue }
+              : issue,
+          );
         const errors = updateList(prev.errors || []);
         const warnings = updateList(prev.warnings || []);
         return {
@@ -70,7 +79,7 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
         resource: issue.resource,
         name: issue.name,
         namespace: issue.namespace,
-      }
+      },
     });
     window.dispatchEvent(event);
     onClose();
@@ -89,7 +98,13 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
       ev.preventDefault();
       ev.stopPropagation();
       const dy = resizeRef.current.startY - ev.clientY; // up increases height
-      const next = Math.max(200, Math.min(resizeRef.current.startH + dy, Math.floor(window.innerHeight * 0.9)));
+      const next = Math.max(
+        200,
+        Math.min(
+          resizeRef.current.startH + dy,
+          Math.floor(window.innerHeight * 0.9),
+        ),
+      );
       setHeight(next);
       document.body.style.cursor = 'ns-resize';
       document.body.style.userSelect = 'none';
@@ -111,7 +126,8 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
     document.addEventListener('mouseup', onUp);
   };
 
-  const issues = activeTab === 'errors' ? (panelInfo.errors || []) : (panelInfo.warnings || []);
+  const issues =
+    activeTab === 'errors' ? panelInfo.errors || [] : panelInfo.warnings || [];
 
   const handleAnalyzeIssue = async (issue) => {
     if (!issue?.issueID) return;
@@ -120,9 +136,10 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
       const updated = await AnalyzeMonitorIssue(issue.issueID);
       if (updated?.issueID) {
         setPanelInfo((prev) => {
-          const updateList = (list) => list.map((item) => (
-            item.issueID === updated.issueID ? { ...item, ...updated } : item
-          ));
+          const updateList = (list) =>
+            list.map((item) =>
+              item.issueID === updated.issueID ? { ...item, ...updated } : item,
+            );
           return {
             ...prev,
             errors: updateList(prev.errors || []),
@@ -143,7 +160,8 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
     try {
       await DismissMonitorIssue(issue.issueID);
       setPanelInfo((prev) => {
-        const removeIssue = (list) => list.filter((item) => item.issueID !== issue.issueID);
+        const removeIssue = (list) =>
+          list.filter((item) => item.issueID !== issue.issueID);
         const errors = removeIssue(prev.errors || []);
         const warnings = removeIssue(prev.warnings || []);
         return {
@@ -208,8 +226,10 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
-        transition: resizeRef.current.resizing ? 'none' : 'height 0.12s ease-out',
-        animation: 'slideUpPanel 0.2s ease-out'
+        transition: resizeRef.current.resizing
+          ? 'none'
+          : 'height 0.12s ease-out',
+        animation: 'slideUpPanel 0.2s ease-out',
       }}
     >
       <style>{`
@@ -233,32 +253,40 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
           cursor: 'ns-resize',
           background: 'transparent',
           borderTop: '2px solid var(--gh-border, #30363d)',
-          borderBottom: '1px solid var(--gh-border, #30363d)'
+          borderBottom: '1px solid var(--gh-border, #30363d)',
         }}
       />
 
       {/* Tabs header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '8px 10px',
-        background: 'var(--gh-bg-sidebar, #161b22)',
-        borderBottom: '1px solid var(--gh-border, #30363d)'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '8px 10px',
+          background: 'var(--gh-bg-sidebar, #161b22)',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+        }}
+      >
         <div style={{ display: 'flex', gap: 6 }}>
           <button
             id="monitor-tab-errors"
             onClick={() => setActiveTab('errors')}
             style={{
               border: '1px solid var(--gh-border, #30363d)',
-              borderBottom: activeTab === 'errors' ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
-              background: activeTab === 'errors' ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
+              borderBottom:
+                activeTab === 'errors'
+                  ? '2px solid var(--gh-accent, #238636)'
+                  : '1px solid var(--gh-border, #30363d)',
+              background:
+                activeTab === 'errors'
+                  ? 'rgba(56, 139, 253, 0.08)'
+                  : 'transparent',
               color: 'var(--gh-text, #c9d1d9)',
               padding: '6px 10px',
               cursor: 'pointer',
               borderRadius: 0,
-              fontSize: 13
+              fontSize: 13,
             }}
           >
             Errors ({panelInfo.errorCount || 0})
@@ -268,13 +296,19 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
             onClick={() => setActiveTab('warnings')}
             style={{
               border: '1px solid var(--gh-border, #30363d)',
-              borderBottom: activeTab === 'warnings' ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
-              background: activeTab === 'warnings' ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
+              borderBottom:
+                activeTab === 'warnings'
+                  ? '2px solid var(--gh-accent, #238636)'
+                  : '1px solid var(--gh-border, #30363d)',
+              background:
+                activeTab === 'warnings'
+                  ? 'rgba(56, 139, 253, 0.08)'
+                  : 'transparent',
               color: 'var(--gh-text, #c9d1d9)',
               padding: '6px 10px',
               cursor: 'pointer',
               borderRadius: 0,
-              fontSize: 13
+              fontSize: 13,
             }}
           >
             Warnings ({panelInfo.warningCount || 0})
@@ -284,13 +318,19 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
             onClick={() => setActiveTab('alerts')}
             style={{
               border: '1px solid var(--gh-border, #30363d)',
-              borderBottom: activeTab === 'alerts' ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
-              background: activeTab === 'alerts' ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
+              borderBottom:
+                activeTab === 'alerts'
+                  ? '2px solid var(--gh-accent, #238636)'
+                  : '1px solid var(--gh-border, #30363d)',
+              background:
+                activeTab === 'alerts'
+                  ? 'rgba(56, 139, 253, 0.08)'
+                  : 'transparent',
               color: 'var(--gh-text, #c9d1d9)',
               padding: '6px 10px',
               cursor: 'pointer',
               borderRadius: 0,
-              fontSize: 13
+              fontSize: 13,
             }}
           >
             Prometheus Alerts
@@ -307,7 +347,7 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
               color: '#fff',
               cursor: 'pointer',
               fontSize: 12,
-              padding: '6px 10px'
+              padding: '6px 10px',
             }}
           >
             {scanLoading ? 'Scanning…' : 'Scan Now'}
@@ -322,7 +362,7 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
               color: 'var(--gh-text, #c9d1d9)',
               cursor: 'pointer',
               fontSize: 12,
-              padding: '6px 10px'
+              padding: '6px 10px',
             }}
           >
             {analyzeAllLoading ? 'Analyzing…' : 'Analyze All'}
@@ -335,7 +375,7 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
               border: 'none',
               color: 'var(--gh-text, #c9d1d9)',
               cursor: 'pointer',
-              fontSize: 18
+              fontSize: 18,
             }}
           >
             ✕
@@ -344,24 +384,30 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
       </div>
 
       {/* Content */}
-      <div style={{
-        flex: 1,
-        minHeight: 0,
-        overflow: 'auto',
-        padding: '16px'
-      }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflow: 'auto',
+          padding: '16px',
+        }}
+      >
         {activeTab === 'alerts' ? (
           <PrometheusAlertsTab />
         ) : issues.length === 0 ? (
-          <div style={{
-            textAlign: 'center',
-            padding: '32px',
-            color: 'var(--gh-text-secondary, #8b949e)',
-          }}>
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '32px',
+              color: 'var(--gh-text-secondary, #8b949e)',
+            }}
+          >
             No {activeTab} found
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+          >
             {issues.map((issue, index) => (
               <MonitorIssueCard
                 key={`${issue.issueID || `${issue.resource}-${issue.name}-${issue.containerName || ''}-${issue.reason}`}-${index}`}

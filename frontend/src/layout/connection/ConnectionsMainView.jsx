@@ -23,7 +23,9 @@ function ConnectionsMainView({ onConnect }) {
       const parts = selectedSection.split('-');
       const type = parts[1];
       const id = parts.slice(2).join('-');
-      const pinned = pinnedConnections.find((c) => c.type === type && c.id === id);
+      const pinned = pinnedConnections.find(
+        (c) => c.type === type && c.id === id,
+      );
 
       if (pinned) {
         if (type === 'kubernetes') {

@@ -109,31 +109,19 @@ export default function SwarmResourceActions({
 
       {/* Node availability buttons */}
       {onDrain && availability !== 'drain' && (
-        <button
-          style={buttonStyle}
-          onClick={onDrain}
-          disabled={loading}
-        >
+        <button style={buttonStyle} onClick={onDrain} disabled={loading}>
           Drain
         </button>
       )}
       {onActivate && availability !== 'active' && (
-        <button
-          style={buttonStyle}
-          onClick={onActivate}
-          disabled={loading}
-        >
+        <button style={buttonStyle} onClick={onActivate} disabled={loading}>
           Activate
         </button>
       )}
 
       {/* Restart button */}
       {onRestart && (
-        <button
-          style={buttonStyle}
-          onClick={handleRestart}
-          disabled={loading}
-        >
+        <button style={buttonStyle} onClick={handleRestart} disabled={loading}>
           Restart
         </button>
       )}
@@ -151,13 +139,22 @@ export default function SwarmResourceActions({
 
       {/* Scale Dialog */}
       {showScaleDialog && (
-        <div style={modalOverlayStyle} onClick={() => setShowScaleDialog(false)}>
-          <div style={modalStyle} onClick={e => e.stopPropagation()}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowScaleDialog(false)}
+        >
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 16px', color: 'var(--gh-text)' }}>
               Scale {resourceType}: {name}
             </h3>
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-secondary)' }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text-secondary)',
+                }}
+              >
                 Number of replicas
               </label>
               <input
@@ -176,7 +173,9 @@ export default function SwarmResourceActions({
                 }}
               />
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+            >
               <button
                 style={buttonStyle}
                 onClick={() => setShowScaleDialog(false)}
@@ -185,7 +184,11 @@ export default function SwarmResourceActions({
                 Cancel
               </button>
               <button
-                style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff' }}
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: '#238636',
+                  color: '#fff',
+                }}
                 onClick={handleScale}
                 disabled={loading}
               >
@@ -198,16 +201,22 @@ export default function SwarmResourceActions({
 
       {/* Delete Confirmation Dialog */}
       {showDeleteDialog && (
-        <div style={modalOverlayStyle} onClick={() => setShowDeleteDialog(false)}>
-          <div style={modalStyle} onClick={e => e.stopPropagation()}>
+        <div
+          style={modalOverlayStyle}
+          onClick={() => setShowDeleteDialog(false)}
+        >
+          <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 16px', color: 'var(--gh-text)' }}>
               Delete {resourceType}?
             </h3>
             <p style={{ marginBottom: 16, color: 'var(--gh-text-secondary)' }}>
-              Are you sure you want to delete <strong style={{ color: 'var(--gh-text)' }}>{name}</strong>?
-              This action cannot be undone.
+              Are you sure you want to delete{' '}
+              <strong style={{ color: 'var(--gh-text)' }}>{name}</strong>? This
+              action cannot be undone.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <div
+              style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}
+            >
               <button
                 style={buttonStyle}
                 onClick={() => setShowDeleteDialog(false)}

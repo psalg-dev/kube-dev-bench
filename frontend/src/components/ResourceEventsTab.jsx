@@ -14,7 +14,15 @@ import './ResourceEventsTab.css';
  * @param {string} resourceName - Alias for name (for compatibility)
  * @param {number} refreshInterval - Refresh interval in ms (default: 5000)
  */
-export default function ResourceEventsTab({ namespace, kind, resourceKind, name, resourceName, refreshInterval = 5000, limit = null }) {
+export default function ResourceEventsTab({
+  namespace,
+  kind,
+  resourceKind,
+  name,
+  resourceName,
+  refreshInterval = 5000,
+  limit = null,
+}) {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -31,7 +39,11 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
     setError(null);
 
     try {
-      const result = await AppAPI.GetResourceEvents(namespace || '', actualKind, actualName);
+      const result = await AppAPI.GetResourceEvents(
+        namespace || '',
+        actualKind,
+        actualName,
+      );
       const arr = Array.isArray(result) ? result : [];
       arr.sort((a, b) => {
         const ta = a?.lastTimestamp ? new Date(a.lastTimestamp).getTime() : 0;
@@ -53,7 +65,10 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
 
   useEffect(() => {
     fetchEvents(true);
-    intervalRef.current = setInterval(() => fetchEvents(false), refreshInterval);
+    intervalRef.current = setInterval(
+      () => fetchEvents(false),
+      refreshInterval,
+    );
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -80,7 +95,11 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
       case 'normal':
         return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950', border: '#3fb950' };
       default:
-        return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', border: '#8b949e' };
+        return {
+          bg: 'rgba(110,118,129,0.12)',
+          fg: '#8b949e',
+          border: '#8b949e',
+        };
     }
   };
 
@@ -117,7 +136,9 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
   return (
     <div className="resource-events-tab">
       <div className="events-header">
-        <span className="events-count">{events.length} event{events.length !== 1 ? 's' : ''}</span>
+        <span className="events-count">
+          {events.length} event{events.length !== 1 ? 's' : ''}
+        </span>
       </div>
       <div className="events-list">
         <table className="events-table">
@@ -142,7 +163,7 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
                       style={{
                         background: typeColor.bg,
                         color: typeColor.fg,
-                        borderColor: typeColor.border
+                        borderColor: typeColor.border,
                       }}
                     >
                       {event.type || 'Unknown'}
@@ -151,7 +172,9 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
                   <td className="event-reason">{event.reason || '-'}</td>
                   <td className="event-message">{event.message || '-'}</td>
                   <td className="event-count">{event.count || 1}</td>
-                  <td className="event-time">{formatTime(event.lastTimestamp)}</td>
+                  <td className="event-time">
+                    {formatTime(event.lastTimestamp)}
+                  </td>
                   <td className="event-source">{event.source || '-'}</td>
                 </tr>
               );

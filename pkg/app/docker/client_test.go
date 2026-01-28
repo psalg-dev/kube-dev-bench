@@ -186,3 +186,15 @@ func Test_isSwarmActive(t *testing.T) {
 		t.Fatalf("expected false")
 	}
 }
+
+func Test_IsSwarmActive(t *testing.T) {
+	ok := IsSwarmActive(context.Background(), &fakeConnClient{swarmInfo: swarm.Swarm{ClusterInfo: swarm.ClusterInfo{ID: "x"}}})
+	if !ok {
+		t.Fatalf("expected true")
+	}
+
+	no := IsSwarmActive(context.Background(), &fakeConnClient{swarmErr: errors.New("no swarm")})
+	if no {
+		t.Fatalf("expected false")
+	}
+}

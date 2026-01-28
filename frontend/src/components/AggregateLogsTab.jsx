@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import TextViewerTab from '../layout/bottompanel/TextViewerTab';
 
-export default function AggregateLogsTab({ title = 'Logs', loadLogs, reloadKey }) {
+export default function AggregateLogsTab({
+  title = 'Logs',
+  loadLogs,
+  reloadKey,
+}) {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -34,16 +38,40 @@ export default function AggregateLogsTab({ title = 'Logs', loadLogs, reloadKey }
       }
     };
     run();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [reloadKey]);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+      }}
+    >
+      <div
+        style={{
+          height: 44,
+          padding: '0 12px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          display: 'flex',
+          alignItems: 'center',
+          fontWeight: 600,
+        }}
+      >
         {title}
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
-        <TextViewerTab content={content} loading={loading} error={error} loadingLabel={`Loading ${title}...`} />
+        <TextViewerTab
+          content={content}
+          loading={loading}
+          error={error}
+          loadingLabel={`Loading ${title}...`}
+        />
       </div>
     </div>
   );

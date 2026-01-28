@@ -4,7 +4,11 @@ import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 import { navigateToResource } from '../../../utils/resourceNavigation';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 // Mapping from resource type to empty message key
 const resourceMessageMap = {
@@ -30,8 +34,14 @@ function Empty({ resource }) {
 function Table({ columns, rows, rowKey, onRowClick, resourceType }) {
   const [hoveredRow, setHoveredRow] = useState(null);
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction), [rows, sortState]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedRows = useMemo(
+    () => sortRows(rows, sortState.key, sortState.direction),
+    [rows, sortState],
+  );
 
   const headerButtonStyle = {
     width: '100%',
@@ -49,19 +59,33 @@ function Table({ columns, rows, rowKey, onRowClick, resourceType }) {
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+    <div
+      style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}
+    >
+      <table
+        style={{
+          width: '100%',
+          borderCollapse: 'collapse',
+          tableLayout: 'fixed',
+        }}
+      >
         <colgroup>
-          {columns.map(c => (
+          {columns.map((c) => (
             <col key={c.key} style={{ width: c.width || 'auto' }} />
           ))}
         </colgroup>
         <thead>
           <tr>
-            {columns.map(c => (
+            {columns.map((c) => (
               <th
                 key={c.key}
-                aria-sort={sortState.key === c.key ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
+                aria-sort={
+                  sortState.key === c.key
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
                 style={{
                   textAlign: 'left',
                   fontWeight: 600,
@@ -77,17 +101,25 @@ function Table({ columns, rows, rowKey, onRowClick, resourceType }) {
                 <button
                   type="button"
                   style={headerButtonStyle}
-                  onClick={() => setSortState((cur) => toggleSortState(cur, c.key))}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, c.key))
+                  }
                 >
                   <span>{c.label}</span>
-                  <span aria-hidden="true">{sortState.key === c.key ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === c.key
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {sortedRows.map(r => {
+          {sortedRows.map((r) => {
             const key = rowKey(r);
             const isHovered = hoveredRow === key;
             const hasClickHandler = !!onRowClick;
@@ -97,13 +129,23 @@ function Table({ columns, rows, rowKey, onRowClick, resourceType }) {
                 onClick={hasClickHandler ? () => onRowClick(r) : undefined}
                 onMouseEnter={() => setHoveredRow(key)}
                 onMouseLeave={() => setHoveredRow(null)}
-                onKeyDown={(e) => { if (hasClickHandler && (e.key === 'Enter' || e.key === ' ')) onRowClick(r); }}
+                onKeyDown={(e) => {
+                  if (hasClickHandler && (e.key === 'Enter' || e.key === ' '))
+                    onRowClick(r);
+                }}
                 role={hasClickHandler ? 'button' : undefined}
                 tabIndex={hasClickHandler ? 0 : undefined}
-                title={hasClickHandler ? `Open ${resourceType}: ${r.name}` : undefined}
+                title={
+                  hasClickHandler
+                    ? `Open ${resourceType}: ${r.name}`
+                    : undefined
+                }
                 style={{
                   cursor: hasClickHandler ? 'pointer' : 'default',
-                  background: isHovered && hasClickHandler ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                  background:
+                    isHovered && hasClickHandler
+                      ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))'
+                      : undefined,
                 }}
               >
                 {columns.map((c, idx) => (
@@ -112,7 +154,10 @@ function Table({ columns, rows, rowKey, onRowClick, resourceType }) {
                     style={{
                       textAlign: 'left',
                       fontSize: 12,
-                      color: idx === 0 && isHovered && hasClickHandler ? 'var(--gh-link, #58a6ff)' : 'var(--gh-text, #c9d1d9)',
+                      color:
+                        idx === 0 && isHovered && hasClickHandler
+                          ? 'var(--gh-link, #58a6ff)'
+                          : 'var(--gh-text, #c9d1d9)',
                       borderBottom: '1px solid var(--gh-border, #30363d)',
                       padding: '8px 10px',
                       verticalAlign: 'middle',
@@ -169,11 +214,16 @@ export default function StackResourcesTab({ stackName, resource }) {
   const rows = useMemo(() => {
     if (!data) return [];
     switch (resource) {
-      case 'networks': return data.networks || [];
-      case 'volumes': return data.volumes || [];
-      case 'configs': return data.configs || [];
-      case 'secrets': return data.secrets || [];
-      default: return [];
+      case 'networks':
+        return data.networks || [];
+      case 'volumes':
+        return data.volumes || [];
+      case 'configs':
+        return data.configs || [];
+      case 'secrets':
+        return data.secrets || [];
+      default:
+        return [];
     }
   }, [data, resource]);
 
@@ -184,8 +234,18 @@ export default function StackResourcesTab({ stackName, resource }) {
           { key: 'name', label: 'Name', width: '25%' },
           { key: 'driver', label: 'Driver', width: '12%' },
           { key: 'scope', label: 'Scope', width: '10%' },
-          { key: 'attachable', label: 'Attachable', width: '10%', render: (r) => r.attachable ? 'Yes' : 'No' },
-          { key: 'internal', label: 'Internal', width: '10%', render: (r) => r.internal ? 'Yes' : 'No' },
+          {
+            key: 'attachable',
+            label: 'Attachable',
+            width: '10%',
+            render: (r) => (r.attachable ? 'Yes' : 'No'),
+          },
+          {
+            key: 'internal',
+            label: 'Internal',
+            width: '10%',
+            render: (r) => (r.internal ? 'Yes' : 'No'),
+          },
           { key: 'id', label: 'ID', width: '33%', mono: true, maxWidth: 300 },
         ];
       case 'volumes':
@@ -193,25 +253,48 @@ export default function StackResourcesTab({ stackName, resource }) {
           { key: 'name', label: 'Name', width: '35%' },
           { key: 'driver', label: 'Driver', width: '15%' },
           { key: 'scope', label: 'Scope', width: '15%' },
-          { key: 'createdAt', label: 'Created', width: '35%', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
+          {
+            key: 'createdAt',
+            label: 'Created',
+            width: '35%',
+            render: (r) =>
+              r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-',
+          },
         ];
       case 'configs':
         return [
           { key: 'name', label: 'Name', width: '30%' },
-          { key: 'dataSize', label: 'Size', width: '10%', render: (r) => {
-            const size = r.dataSize;
-            if (size === undefined || size === null) return '-';
-            if (size < 1024) return `${size} B`;
-            if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
-            return `${(size / 1024 / 1024).toFixed(1)} MB`;
-          }},
-          { key: 'createdAt', label: 'Created', width: '25%', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
+          {
+            key: 'dataSize',
+            label: 'Size',
+            width: '10%',
+            render: (r) => {
+              const size = r.dataSize;
+              if (size === undefined || size === null) return '-';
+              if (size < 1024) return `${size} B`;
+              if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+              return `${(size / 1024 / 1024).toFixed(1)} MB`;
+            },
+          },
+          {
+            key: 'createdAt',
+            label: 'Created',
+            width: '25%',
+            render: (r) =>
+              r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-',
+          },
           { key: 'id', label: 'ID', width: '35%', mono: true, maxWidth: 300 },
         ];
       case 'secrets':
         return [
           { key: 'name', label: 'Name', width: '30%' },
-          { key: 'createdAt', label: 'Created', width: '30%', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
+          {
+            key: 'createdAt',
+            label: 'Created',
+            width: '30%',
+            render: (r) =>
+              r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-',
+          },
           { key: 'id', label: 'ID', width: '40%', mono: true, maxWidth: 300 },
         ];
       default:
@@ -221,7 +304,13 @@ export default function StackResourcesTab({ stackName, resource }) {
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: 'center', color: 'var(--gh-text-secondary, #8b949e)' }}>
+      <div
+        style={{
+          padding: 24,
+          textAlign: 'center',
+          color: 'var(--gh-text-secondary, #8b949e)',
+        }}
+      >
         Loading {resource}...
       </div>
     );

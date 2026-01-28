@@ -58,24 +58,19 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
         </p>
       </div>
 
-      {message && (
-        <div className="actions-message success">
-          ✓ {message}
-        </div>
-      )}
+      {message && <div className="actions-message success">✓ {message}</div>}
 
-      {error && (
-        <div className="actions-message error">
-          ✗ {error}
-        </div>
-      )}
+      {error && <div className="actions-message error">✗ {error}</div>}
 
       <div className="actions-grid">
         <div className="action-card">
           <div className="action-icon">▶️</div>
           <div className="action-content">
             <h4>Trigger Now</h4>
-            <p>Manually create a Job from this CronJob immediately, regardless of the schedule.</p>
+            <p>
+              Manually create a Job from this CronJob immediately, regardless of
+              the schedule.
+            </p>
             <button
               className="action-btn primary"
               onClick={handleTriggerNow}
@@ -93,12 +88,13 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
             <p>
               {suspend
                 ? 'Resume scheduled job creation. New jobs will be created according to the schedule.'
-                : 'Suspend scheduled job creation. No new jobs will be created until resumed.'
-              }
+                : 'Suspend scheduled job creation. No new jobs will be created until resumed.'}
             </p>
             <div className="action-status">
               Current status:
-              <span className={`status-badge ${suspend ? 'suspended' : 'active'}`}>
+              <span
+                className={`status-badge ${suspend ? 'suspended' : 'active'}`}
+              >
                 {suspend ? 'Suspended' : 'Active'}
               </span>
             </div>
@@ -108,9 +104,12 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
               disabled={loading !== null}
             >
               {loading === 'suspend'
-                ? (suspend ? 'Resuming...' : 'Suspending...')
-                : (suspend ? 'Resume' : 'Suspend')
-              }
+                ? suspend
+                  ? 'Resuming...'
+                  : 'Suspending...'
+                : suspend
+                  ? 'Resume'
+                  : 'Suspend'}
             </button>
           </div>
         </div>

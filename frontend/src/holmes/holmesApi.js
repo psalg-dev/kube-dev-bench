@@ -334,7 +334,11 @@ export async function AnalyzePersistentVolumeStream(name, streamId) {
  * @param {string} streamId - Client-generated stream id
  * @returns {Promise<void>}
  */
-export async function AnalyzePersistentVolumeClaimStream(namespace, name, streamId) {
+export async function AnalyzePersistentVolumeClaimStream(
+  namespace,
+  name,
+  streamId,
+) {
   return await _AnalyzePersistentVolumeClaimStream(namespace, name, streamId);
 }
 

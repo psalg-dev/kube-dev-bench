@@ -6,7 +6,15 @@ import { EventsOn } from '../../../wailsjs/runtime';
 import * as AppAPI from '../../../wailsjs/go/main/App';
 import { v4 as uuidv4 } from 'uuid';
 
-export default function TerminalTab({ command, podExec, namespace, podName, swarmExec, swarmTaskId, shell }) {
+export default function TerminalTab({
+  command,
+  podExec,
+  namespace,
+  podName,
+  swarmExec,
+  swarmTaskId,
+  shell,
+}) {
   const termRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
@@ -15,15 +23,23 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
 
   useEffect(() => {
     // cleanup any previous session
-    unsubscribersRef.current.forEach(off => {
-      try { off && off(); } catch { /* ignore */ }
+    unsubscribersRef.current.forEach((off) => {
+      try {
+        off && off();
+      } catch {
+        /* ignore */
+      }
     });
     unsubscribersRef.current = [];
 
     if (!termRef.current) return;
 
     if (xtermRef.current) {
-      try { xtermRef.current.dispose(); } catch { /* ignore */ }
+      try {
+        xtermRef.current.dispose();
+      } catch {
+        /* ignore */
+      }
       xtermRef.current = null;
     }
 
@@ -53,7 +69,9 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
         const rows = xterm.rows;
         const sid = sessionIDRef.current;
         if (sid) AppAPI.ResizeShellSession(sid, cols, rows).catch(() => {});
-      } catch {/* ignore */}
+      } catch {
+        /* ignore */
+      }
     };
     window.addEventListener('resize', handleResize);
 
@@ -63,13 +81,15 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
     const outputEvent = `terminal:${sessionID}:output`;
     const exitEvent = `terminal:${sessionID}:exit`;
 
-    const offOut = EventsOn(outputEvent, data => {
+    const offOut = EventsOn(outputEvent, (data) => {
       // Wails may deliver strings or arrays; coerce to string
       const text = Array.isArray(data) ? data.join(' ') : String(data ?? '');
       xterm.write(text);
     });
-    const offExit = EventsOn(exitEvent, msg => {
-      const text = Array.isArray(msg) ? msg.join(' ') : String(msg ?? '[session closed]');
+    const offExit = EventsOn(exitEvent, (msg) => {
+      const text = Array.isArray(msg)
+        ? msg.join(' ')
+        : String(msg ?? '[session closed]');
       xterm.writeln(`\r\n${text}`);
     });
     unsubscribersRef.current.push(offOut, offExit);
@@ -77,22 +97,26 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
     // Start session: local shell, pod exec, or swarm task exec
     if (podExec && namespace && podName) {
       const sh = shell && shell.trim() ? shell.trim() : 'auto';
-      AppAPI.StartPodExecSession(sessionID, namespace, podName, sh).catch(err => {
-        xterm.write(`\r\nPod exec error: ${err?.message || err}\r\n`);
-      });
+      AppAPI.StartPodExecSession(sessionID, namespace, podName, sh).catch(
+        (err) => {
+          xterm.write(`\r\nPod exec error: ${err?.message || err}\r\n`);
+        },
+      );
     } else if (swarmExec && swarmTaskId) {
       const sh = shell && shell.trim() ? shell.trim() : 'auto';
-      AppAPI.StartSwarmTaskExecSession(sessionID, swarmTaskId, sh).catch(err => {
-        xterm.write(`\r\nSwarm exec error: ${err?.message || err}\r\n`);
-      });
+      AppAPI.StartSwarmTaskExecSession(sessionID, swarmTaskId, sh).catch(
+        (err) => {
+          xterm.write(`\r\nSwarm exec error: ${err?.message || err}\r\n`);
+        },
+      );
     } else {
-      AppAPI.StartShellSession(sessionID, command || '').catch(err => {
+      AppAPI.StartShellSession(sessionID, command || '').catch((err) => {
         xterm.write(`\r\nShell error: ${err?.message || err}\r\n`);
       });
     }
 
     // Handle input from xterm
-    const dataDisp = xterm.onData(data => {
+    const dataDisp = xterm.onData((data) => {
       AppAPI.SendShellInput(sessionID, data).catch(() => {});
     });
 
@@ -108,14 +132,24 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
 
     return () => {
       // unsubscribe events
-      unsubscribersRef.current.forEach(off => {
-        try { off && off(); } catch { /* ignore */ }
+      unsubscribersRef.current.forEach((off) => {
+        try {
+          off && off();
+        } catch {
+          /* ignore */
+        }
       });
       unsubscribersRef.current = [];
       // dispose xterm
-      try { dataDisp?.dispose && dataDisp.dispose(); } catch {}
-      try { resizeDisp?.dispose && resizeDisp.dispose(); } catch {}
-      try { xterm.dispose(); } catch {}
+      try {
+        dataDisp?.dispose && dataDisp.dispose();
+      } catch {}
+      try {
+        resizeDisp?.dispose && resizeDisp.dispose();
+      } catch {}
+      try {
+        xterm.dispose();
+      } catch {}
       window.removeEventListener('resize', handleResize);
       // stop backend session
       const sid = sessionIDRef.current;
@@ -125,8 +159,21 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
   }, [command, podExec, namespace, podName, shell, swarmExec, swarmTaskId]);
 
   return (
-    <div style={{ width: '100%', height: '100%', background: '#181c20', display: 'flex', alignItems: 'stretch', justifyContent: 'flex-start', textAlign: 'left' }}>
-      <div ref={termRef} style={{ width: '100%', height: '100%', textAlign: 'left' }} />
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        background: '#181c20',
+        display: 'flex',
+        alignItems: 'stretch',
+        justifyContent: 'flex-start',
+        textAlign: 'left',
+      }}
+    >
+      <div
+        ref={termRef}
+        style={{ width: '100%', height: '100%', textAlign: 'left' }}
+      />
     </div>
   );
 }

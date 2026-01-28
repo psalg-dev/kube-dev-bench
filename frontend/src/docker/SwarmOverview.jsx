@@ -30,7 +30,11 @@ export default function SwarmOverview({ initialTab = TAB_METRICS }) {
           <div className="swarmOverviewTitle">Swarm</div>
           <div className="swarmOverviewMeta">{headerText}</div>
         </div>
-        <div className="swarmOverviewTabs" role="tablist" aria-label="Docker Swarm Overview Tabs">
+        <div
+          className="swarmOverviewTabs"
+          role="tablist"
+          aria-label="Docker Swarm Overview Tabs"
+        >
           <button
             id="swarm-overview-tab-metrics"
             type="button"
@@ -55,12 +59,8 @@ export default function SwarmOverview({ initialTab = TAB_METRICS }) {
       </div>
 
       <div className="swarmOverviewContent">
-        {activeTab === TAB_METRICS ? (
-          <SwarmMetricsDashboard />
-        ) : null}
-        {activeTab === TAB_TOPOLOGY ? (
-          <TopologyView />
-        ) : null}
+        {activeTab === TAB_METRICS ? <SwarmMetricsDashboard /> : null}
+        {activeTab === TAB_TOPOLOGY ? <TopologyView /> : null}
       </div>
     </div>
   );

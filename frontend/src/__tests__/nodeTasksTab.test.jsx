@@ -29,7 +29,9 @@ describe('NodeTasksTab', () => {
 
     render(<NodeTasksTab nodeId="node1" nodeName="worker-1" />);
 
-    expect(await screen.findByText('No tasks running on this node.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('No tasks running on this node.'),
+    ).toBeInTheDocument();
   });
 
   it('renders tasks table and state colors', async () => {
@@ -60,12 +62,16 @@ describe('NodeTasksTab', () => {
     const rows = within(table).getAllByRole('row');
     expect(rows.length).toBeGreaterThanOrEqual(3);
 
-    const runningSpan = screen.getAllByText('running').find((el) => el.tagName.toLowerCase() === 'span');
+    const runningSpan = screen
+      .getAllByText('running')
+      .find((el) => el.tagName.toLowerCase() === 'span');
     expect(runningSpan).toHaveStyle({ color: '#3fb950' });
 
     const failedSpan = screen.getByText('failed');
     expect(failedSpan).toHaveStyle({ color: '#f85149' });
 
-    expect(screen.getAllByTestId('health-badge')[0]).toHaveTextContent('healthy');
+    expect(screen.getAllByTestId('health-badge')[0]).toHaveTextContent(
+      'healthy',
+    );
   });
 });

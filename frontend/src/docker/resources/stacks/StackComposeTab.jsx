@@ -33,16 +33,27 @@ export default function StackComposeTab({ stackName }) {
   }, [stackName]);
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ 
-        padding: '10px 16px', 
-        color: 'var(--gh-text-secondary, #8b949e)', 
-        fontSize: 12,
-        borderBottom: '1px solid var(--gh-border, #30363d)',
-        backgroundColor: 'var(--gh-bg-alt, #161b22)',
-        flexShrink: 0,
-      }}>
-        This compose is derived from current service specs and is not source-of-truth.
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          padding: '10px 16px',
+          color: 'var(--gh-text-secondary, #8b949e)',
+          fontSize: 12,
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          backgroundColor: 'var(--gh-bg-alt, #161b22)',
+          flexShrink: 0,
+        }}
+      >
+        This compose is derived from current service specs and is not
+        source-of-truth.
       </div>
       <div style={{ flex: 1, minHeight: 0 }}>
         <YamlTab content={yaml} loading={loading} error={error} />

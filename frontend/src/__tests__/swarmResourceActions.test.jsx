@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 
 const showWarningMock = vi.fn();
 
@@ -28,14 +34,16 @@ describe('SwarmResourceActions', () => {
         canScale
         currentReplicas={2}
         onScale={onScale}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Scale' }));
 
     expect(screen.getByText('Scale service: svc')).toBeTruthy();
 
-    const heading = screen.getByRole('heading', { name: /Scale\s+service:\s+svc/i });
+    const heading = screen.getByRole('heading', {
+      name: /Scale\s+service:\s+svc/i,
+    });
     const modal = heading.closest('div');
     if (!modal) throw new Error('Scale modal container not found');
 
@@ -63,12 +71,14 @@ describe('SwarmResourceActions', () => {
         canScale
         currentReplicas={2}
         onScale={onScale}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Scale' }));
 
-    const heading = screen.getByRole('heading', { name: /Scale\s+service:\s+svc/i });
+    const heading = screen.getByRole('heading', {
+      name: /Scale\s+service:\s+svc/i,
+    });
     const modal = heading.closest('div');
     if (!modal) throw new Error('Scale modal container not found');
 
@@ -89,7 +99,7 @@ describe('SwarmResourceActions', () => {
         resourceType="service"
         name="svc"
         onRestart={onRestart}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Restart' }));
@@ -107,7 +117,7 @@ describe('SwarmResourceActions', () => {
         resourceType="service"
         name="svc"
         onDelete={onDelete}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
@@ -115,11 +125,15 @@ describe('SwarmResourceActions', () => {
 
     // cancel closes
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    await waitFor(() => expect(screen.queryByText('Delete service?')).toBeNull());
+    await waitFor(() =>
+      expect(screen.queryByText('Delete service?')).toBeNull(),
+    );
 
     // reopen and confirm delete
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getAllByRole('button', { name: 'Delete' }).slice(-1)[0]);
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Delete' }).slice(-1)[0],
+    );
 
     await waitFor(() => {
       expect(onDelete).toHaveBeenCalledTimes(1);
@@ -141,7 +155,7 @@ describe('SwarmResourceActions', () => {
         availability="active"
         onDrain={onDrain}
         onActivate={onActivate}
-      />
+      />,
     );
 
     expect(screen.getByRole('button', { name: 'Drain' })).toBeTruthy();
@@ -154,7 +168,7 @@ describe('SwarmResourceActions', () => {
         availability="drain"
         onDrain={onDrain}
         onActivate={onActivate}
-      />
+      />,
     );
 
     expect(screen.queryByRole('button', { name: 'Drain' })).toBeNull();

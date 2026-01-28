@@ -53,8 +53,15 @@ vi.mock('@codemirror/search', () => ({
 }));
 
 vi.mock('@codemirror/lang-yaml', () => ({ yaml: vi.fn(() => ({})) }));
-vi.mock('@codemirror/autocomplete', () => ({ closeBracketsKeymap: [], completionKeymap: [] }));
-vi.mock('@codemirror/commands', () => ({ defaultKeymap: [], history: vi.fn(() => ({})), historyKeymap: [] }));
+vi.mock('@codemirror/autocomplete', () => ({
+  closeBracketsKeymap: [],
+  completionKeymap: [],
+}));
+vi.mock('@codemirror/commands', () => ({
+  defaultKeymap: [],
+  history: vi.fn(() => ({})),
+  historyKeymap: [],
+}));
 vi.mock('@codemirror/lint', () => ({ lintKeymap: [] }));
 
 import { createResourceMock } from './wailsMocks.js';
@@ -144,25 +151,25 @@ describe('resource-overlay.js', () => {
   it('closes overlay via cancel button and overlay background click', () => {
     const modPromise = importOverlay();
     return modPromise.then(({ showResourceOverlay }) => {
-    const onClose = vi.fn();
+      const onClose = vi.fn();
 
-    showResourceOverlay('configmap', { onClose });
+      showResourceOverlay('configmap', { onClose });
 
-    let overlay = document.querySelector('.overlay');
-    expect(overlay).toBeTruthy();
+      let overlay = document.querySelector('.overlay');
+      expect(overlay).toBeTruthy();
 
-    // cancel button
-    overlay.querySelector('.overlay-cancel-btn').onclick();
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(document.querySelector('.overlay')).toBeNull();
+      // cancel button
+      overlay.querySelector('.overlay-cancel-btn').onclick();
+      expect(onClose).toHaveBeenCalledTimes(1);
+      expect(document.querySelector('.overlay')).toBeNull();
 
-    // reopen and click on background
-    showResourceOverlay('secret', { onClose });
-    overlay = document.querySelector('.overlay');
-    overlay.onclick({ target: overlay });
+      // reopen and click on background
+      showResourceOverlay('secret', { onClose });
+      overlay = document.querySelector('.overlay');
+      overlay.onclick({ target: overlay });
 
-    expect(onClose).toHaveBeenCalledTimes(2);
-    expect(document.querySelector('.overlay')).toBeNull();
+      expect(onClose).toHaveBeenCalledTimes(2);
+      expect(document.querySelector('.overlay')).toBeNull();
     });
   });
 });

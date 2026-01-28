@@ -18,9 +18,7 @@ describe('HolmesResponseRenderer', () => {
   });
 
   it('renders code blocks with copy button', () => {
-    render(
-      <HolmesResponseRenderer text={'```js\nconst x = 1;\n```'} />
-    );
+    render(<HolmesResponseRenderer text={'```js\nconst x = 1;\n```'} />);
 
     const copyButton = screen.getByRole('button', { name: /copy/i });
     fireEvent.click(copyButton);

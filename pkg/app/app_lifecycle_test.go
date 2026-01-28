@@ -162,3 +162,27 @@ func TestGetCurrentConfig_PreferredNamespacesCopy(t *testing.T) {
 		t.Error("GetCurrentConfig should return a copy of PreferredNamespaces")
 	}
 }
+
+func TestShutdown_CancelsActiveLogStreams(t *testing.T) {
+	ctx := context.Background()
+	_, cancelA := context.WithCancel(ctx)
+	_, cancelB := context.WithCancel(ctx)
+
+	called := 0
+	app := &App{
+		logCancels: map[string]context.CancelFunc{
+			"a":   func() { called++; cancelA() },
+			"b":   func() { called++; cancelB() },
+			"nil": nil,
+		},
+	}
+
+	app.Shutdown(ctx)
+
+	if called != 2 {
+		t.Fatalf("expected 2 cancels, got %d", called)
+	}
+	if len(app.logCancels) != 0 {
+		t.Fatalf("expected logCancels to be cleared, got %d", len(app.logCancels))
+	}
+}

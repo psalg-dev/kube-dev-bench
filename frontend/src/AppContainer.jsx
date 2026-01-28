@@ -1,11 +1,17 @@
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext.jsx';
+import {
+  ClusterStateProvider,
+  useClusterState,
+} from './state/ClusterStateContext.jsx';
 import { AppLayout } from './layout/AppLayout.jsx';
 import ConnectionWizard from './layout/connection/ConnectionWizard.jsx';
 import { ContextSelect, NamespaceMultiSelect } from './Dropdowns.jsx';
 import { ResourceCountsProvider } from './state/ResourceCountsContext.jsx';
 // Docker Swarm providers
-import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext.jsx';
+import {
+  SwarmStateProvider,
+  useSwarmState,
+} from './docker/SwarmStateContext.jsx';
 import { SwarmResourceCountsProvider } from './docker/SwarmResourceCountsContext.jsx';
 import SwarmConnectionWizard from './docker/SwarmConnectionWizard.jsx';
 // Holmes AI provider
@@ -54,13 +60,22 @@ function MainApp({ selectedSection, setSelectedSection }) {
   } = useClusterState();
   const swarmState = useSwarmState();
   const holmes = useHolmes();
-  const firstNs = useMemo(() => (Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : ''), [selectedNamespaces]);
+  const firstNs = useMemo(
+    () =>
+      Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0
+        ? selectedNamespaces[0]
+        : '',
+    [selectedNamespaces],
+  );
   const [showHelmInstall, setShowHelmInstall] = useState(false);
   const [showHelmRepos, setShowHelmRepos] = useState(false);
 
   // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs), force Swarm as the active view.
   useEffect(() => {
-    if (kubernetesAvailable === false && !String(selectedSection).startsWith('swarm-')) {
+    if (
+      kubernetesAvailable === false &&
+      !String(selectedSection).startsWith('swarm-')
+    ) {
       setSelectedSection('swarm-services');
     }
   }, [kubernetesAvailable, selectedSection, setSelectedSection]);
@@ -69,20 +84,30 @@ function MainApp({ selectedSection, setSelectedSection }) {
   useEffect(() => {
     if (showWizard) return;
     const keyHandler = (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); actions.openWizard(); }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        actions.openWizard();
+      }
       // Ctrl+Shift+H toggles Holmes panel
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') { e.preventDefault(); holmes.togglePanel(); }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'H') {
+        e.preventDefault();
+        holmes.togglePanel();
+      }
     };
     document.addEventListener('keydown', keyHandler);
     const wizardBtn = document.getElementById('show-wizard-btn');
     if (wizardBtn) wizardBtn.onclick = () => actions.openWizard();
     const toggleBtn = document.getElementById('sidebar-toggle');
-    if (toggleBtn) toggleBtn.onclick = () => {
-      const sidebar = document.getElementById('sidebar');
-      if (!sidebar) return; sidebar.classList.toggle('collapsed');
-      const collapsed = sidebar.classList.contains('collapsed');
-      toggleBtn.innerHTML = collapsed ? '<span>▶</span><span>Show Sidebar</span>' : '<span>◀</span><span>Hide Sidebar</span>';
-    };
+    if (toggleBtn)
+      toggleBtn.onclick = () => {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+        sidebar.classList.toggle('collapsed');
+        const collapsed = sidebar.classList.contains('collapsed');
+        toggleBtn.innerHTML = collapsed
+          ? '<span>▶</span><span>Show Sidebar</span>'
+          : '<span>◀</span><span>Hide Sidebar</span>';
+      };
     return () => {
       document.removeEventListener('keydown', keyHandler);
       if (wizardBtn) wizardBtn.onclick = null;
@@ -94,10 +119,19 @@ function MainApp({ selectedSection, setSelectedSection }) {
   // Map selectedSection -> component
   const mainContentEl = useMemo(() => {
     if (showWizard) return null;
-    const commonNsProps = { namespaces: selectedNamespaces, namespace: firstNs };
+    const commonNsProps = {
+      namespaces: selectedNamespaces,
+      namespace: firstNs,
+    };
     switch (selectedSection) {
       case 'pods':
-        return <PodOverviewTable namespace={firstNs} namespaces={selectedNamespaces} onCreateResource={(type)=>showResourceOverlay(type)} />;
+        return (
+          <PodOverviewTable
+            namespace={firstNs}
+            namespaces={selectedNamespaces}
+            onCreateResource={(type) => showResourceOverlay(type)}
+          />
+        );
       case 'deployments':
         return <DeploymentsOverviewTable {...commonNsProps} />;
       case 'services':
@@ -113,13 +147,33 @@ function MainApp({ selectedSection, setSelectedSection }) {
       case 'replicasets':
         return <ReplicaSetsOverviewTable {...commonNsProps} />;
       case 'configmaps':
-        return <ConfigMapsOverviewTable {...commonNsProps} onConfigMapCreate={()=>showResourceOverlay('configmap')} />;
+        return (
+          <ConfigMapsOverviewTable
+            {...commonNsProps}
+            onConfigMapCreate={() => showResourceOverlay('configmap')}
+          />
+        );
       case 'secrets':
-        return <SecretsOverviewTable {...commonNsProps} onSecretCreate={()=>showResourceOverlay('secret')} />;
+        return (
+          <SecretsOverviewTable
+            {...commonNsProps}
+            onSecretCreate={() => showResourceOverlay('secret')}
+          />
+        );
       case 'ingresses':
-        return <IngressesOverviewTable {...commonNsProps} onIngressCreate={()=>showResourceOverlay('ingress')} />;
+        return (
+          <IngressesOverviewTable
+            {...commonNsProps}
+            onIngressCreate={() => showResourceOverlay('ingress')}
+          />
+        );
       case 'persistentvolumeclaims':
-        return <PersistentVolumeClaimsOverviewTable {...commonNsProps} onIngressCreate={()=>showResourceOverlay('persistentvolumeclaim')} />;
+        return (
+          <PersistentVolumeClaimsOverviewTable
+            {...commonNsProps}
+            onIngressCreate={() => showResourceOverlay('persistentvolumeclaim')}
+          />
+        );
       case 'persistentvolumes':
         return <PersistentVolumesOverviewTable namespace={firstNs} />;
       case 'helmreleases':
@@ -148,14 +202,23 @@ function MainApp({ selectedSection, setSelectedSection }) {
 
   const _renderPodsMainContent = useCallback(
     (selectedNamespaces) => {
-      return <PodOverviewTable namespace={firstNs} namespaces={selectedNamespaces} onCreateResource={(type)=>showResourceOverlay(type)} />;
+      return (
+        <PodOverviewTable
+          namespace={firstNs}
+          namespaces={selectedNamespaces}
+          onCreateResource={(type) => showResourceOverlay(type)}
+        />
+      );
     },
-    [firstNs]
+    [firstNs],
   );
 
   const _renderResourceMainContent = useCallback(
     (selectedNamespaces, selectedSection) => {
-      const commonNsProps = { namespaces: selectedNamespaces, namespace: firstNs };
+      const commonNsProps = {
+        namespaces: selectedNamespaces,
+        namespace: firstNs,
+      };
       switch (selectedSection) {
         case 'deployments':
           return <DeploymentsOverviewTable {...commonNsProps} />;
@@ -172,13 +235,35 @@ function MainApp({ selectedSection, setSelectedSection }) {
         case 'replicasets':
           return <ReplicaSetsOverviewTable {...commonNsProps} />;
         case 'configmaps':
-          return <ConfigMapsOverviewTable {...commonNsProps} onConfigMapCreate={()=>showResourceOverlay('configmap')} />;
+          return (
+            <ConfigMapsOverviewTable
+              {...commonNsProps}
+              onConfigMapCreate={() => showResourceOverlay('configmap')}
+            />
+          );
         case 'secrets':
-          return <SecretsOverviewTable {...commonNsProps} onSecretCreate={()=>showResourceOverlay('secret')} />;
+          return (
+            <SecretsOverviewTable
+              {...commonNsProps}
+              onSecretCreate={() => showResourceOverlay('secret')}
+            />
+          );
         case 'ingresses':
-          return <IngressesOverviewTable {...commonNsProps} onIngressCreate={()=>showResourceOverlay('ingress')} />;
+          return (
+            <IngressesOverviewTable
+              {...commonNsProps}
+              onIngressCreate={() => showResourceOverlay('ingress')}
+            />
+          );
         case 'persistentvolumeclaims':
-          return <PersistentVolumeClaimsOverviewTable {...commonNsProps} onIngressCreate={()=>showResourceOverlay('persistentvolumeclaim')} />;
+          return (
+            <PersistentVolumeClaimsOverviewTable
+              {...commonNsProps}
+              onIngressCreate={() =>
+                showResourceOverlay('persistentvolumeclaim')
+              }
+            />
+          );
         case 'persistentvolumes':
           return <PersistentVolumesOverviewTable namespace={firstNs} />;
         case 'helmreleases':
@@ -187,11 +272,14 @@ function MainApp({ selectedSection, setSelectedSection }) {
           return null;
       }
     },
-    [firstNs]
+    [firstNs],
   );
 
   const handleSelectSection = (section) => {
-    if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) {
+    if (
+      kubernetesAvailable === false &&
+      !String(section).startsWith('swarm-')
+    ) {
       return;
     }
     setSelectedSection(section);
@@ -205,20 +293,24 @@ function MainApp({ selectedSection, setSelectedSection }) {
     <>
       <AppLayout
         kubernetesAvailable={kubernetesAvailable}
-        contextSelectEl={<ContextSelect
-          value={selectedContext}
-          options={contexts}
-          disabled={contextDisabled}
-          onChange={(v) => actions.selectContext(v)}
-          onMenuOpen={() => actions.reloadContexts()}
-        />}
-        namespaceSelectEl={<NamespaceMultiSelect
-          values={selectedNamespaces}
-          options={namespaces}
-          disabled={namespaceDisabled}
-          onChange={(vals) => actions.selectNamespaces(vals)}
-          onMenuOpen={() => actions.reloadNamespaces()}
-        />}
+        contextSelectEl={
+          <ContextSelect
+            value={selectedContext}
+            options={contexts}
+            disabled={contextDisabled}
+            onChange={(v) => actions.selectContext(v)}
+            onMenuOpen={() => actions.reloadContexts()}
+          />
+        }
+        namespaceSelectEl={
+          <NamespaceMultiSelect
+            values={selectedNamespaces}
+            options={namespaces}
+            disabled={namespaceDisabled}
+            onChange={(vals) => actions.selectNamespaces(vals)}
+            onMenuOpen={() => actions.reloadNamespaces()}
+          />
+        }
         selectedSection={selectedSection}
         onSelectSection={handleSelectSection}
         mainContentEl={mainContentEl}
@@ -236,12 +328,12 @@ function MainApp({ selectedSection, setSelectedSection }) {
         />
       )}
       {showHelmRepos && (
-        <HelmRepositoriesDialog
-          onClose={() => setShowHelmRepos(false)}
-        />
+        <HelmRepositoriesDialog onClose={() => setShowHelmRepos(false)} />
       )}
       {swarmState.showWizard && (
-        <SwarmConnectionWizard onClose={() => swarmState.actions.closeWizard()} />
+        <SwarmConnectionWizard
+          onClose={() => swarmState.actions.closeWizard()}
+        />
       )}
     </>
   );
@@ -256,7 +348,10 @@ export default function AppContainer() {
         <SwarmStateProvider>
           <SwarmResourceCountsProvider>
             <HolmesProvider>
-              <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+              <MainApp
+                selectedSection={selectedSection}
+                setSelectedSection={setSelectedSection}
+              />
             </HolmesProvider>
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>

@@ -6,7 +6,13 @@ import { showError, showSuccess } from '../../../notification.js';
 function objectToRows(obj) {
   const entries = Object.entries(obj || {});
   if (entries.length === 0) {
-    return [{ id: `kv_${Date.now()}_${Math.random().toString(16).slice(2)}`, key: '', value: '' }];
+    return [
+      {
+        id: `kv_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+        key: '',
+        value: '',
+      },
+    ];
   }
   return entries
     .sort(([a], [b]) => a.localeCompare(b))
@@ -34,7 +40,7 @@ function stableStringifyLabels(labelsObj) {
       .reduce((acc, k) => {
         acc[k] = labelsObj[k];
         return acc;
-      }, {})
+      }, {}),
   );
 }
 
@@ -42,11 +48,14 @@ export default function NodeLabelsTab({ nodeId, initialLabels, onSaved }) {
   const [rows, setRows] = useState(() => objectToRows(initialLabels));
   const [saving, setSaving] = useState(false);
 
-  const initialLabelsCanonical = useMemo(() => stableStringifyLabels(initialLabels || {}), [initialLabels]);
+  const initialLabelsCanonical = useMemo(
+    () => stableStringifyLabels(initialLabels || {}),
+    [initialLabels],
+  );
   const currentLabelsObj = useMemo(() => rowsToObject(rows), [rows]);
   const isDirty = useMemo(
     () => stableStringifyLabels(currentLabelsObj) !== initialLabelsCanonical,
-    [currentLabelsObj, initialLabelsCanonical]
+    [currentLabelsObj, initialLabelsCanonical],
   );
 
   const buttonStyle = {
@@ -85,9 +94,21 @@ export default function NodeLabelsTab({ nodeId, initialLabels, onSaved }) {
   };
 
   return (
-    <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+    <div
+      style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 12,
+          alignItems: 'center',
+          marginBottom: 12,
+        }}
+      >
+        <div
+          style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}
+        >
           Labels are key/value metadata stored on the Swarm node.
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -103,7 +124,11 @@ export default function NodeLabelsTab({ nodeId, initialLabels, onSaved }) {
           <button
             id="swarm-node-labels-save-btn"
             type="button"
-            style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff' }}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#238636',
+              color: '#fff',
+            }}
             onClick={handleSave}
             disabled={saving || !isDirty}
           >

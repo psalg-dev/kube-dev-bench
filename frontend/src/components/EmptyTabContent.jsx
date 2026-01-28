@@ -62,14 +62,12 @@ export function EmptyTabContent({
     <div className={`empty-tab-content ${className}`}>
       <div className="empty-tab-icon">{displayIcon}</div>
       {title && <div className="empty-tab-title">{title}</div>}
-      {description && <div className="empty-tab-description">{description}</div>}
+      {description && (
+        <div className="empty-tab-description">{description}</div>
+      )}
       {tip && <div className="empty-tab-tip">{tip}</div>}
       {onAction && actionLabel && (
-        <button
-          type="button"
-          className="empty-tab-action"
-          onClick={onAction}
-        >
+        <button type="button" className="empty-tab-action" onClick={onAction}>
           {actionLabel}
         </button>
       )}

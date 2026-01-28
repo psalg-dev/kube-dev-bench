@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -106,6 +107,208 @@ func TestGetCronJobHistoryCount(t *testing.T) {
 	}
 }
 
+func TestGetPodsCountForResource_Deployment(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	_, err := clientset.AppsV1().Deployments("default").Create(ctx, &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "d1", Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "d1"}},
+			Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "d1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create deployment: %v", err)
+	}
+	_, err = clientset.CoreV1().Pods("default").Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default", Labels: map[string]string{"app": "d1"}},
+		Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetPodsCountForResource("default", "Deployment", "d1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 pod, got %d", count)
+	}
+}
+
+func TestGetPodsCountForResource_UnsupportedKind(t *testing.T) {
+	app := &App{}
+	_, err := app.GetPodsCountForResource("default", "Unknown", "name")
+	if err == nil {
+		t.Fatalf("expected error for unsupported kind")
+	}
+}
+
+func TestGetPodsCountForResource_StatefulSet(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	_, err := clientset.AppsV1().StatefulSets("default").Create(ctx, &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "ss1", Namespace: "default"},
+		Spec: appsv1.StatefulSetSpec{
+			ServiceName: "svc",
+			Selector:    &metav1.LabelSelector{MatchLabels: map[string]string{"app": "ss1"}},
+			Template:    corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "ss1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create statefulset: %v", err)
+	}
+	_, err = clientset.CoreV1().Pods("default").Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "p1",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "ss1"},
+			OwnerReferences: []metav1.OwnerReference{{
+				Kind: "StatefulSet",
+				Name: "ss1",
+			}},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetPodsCountForResource("default", "StatefulSet", "ss1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 pod, got %d", count)
+	}
+}
+
+func TestGetPodsCountForResource_DaemonSet(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	_, err := clientset.AppsV1().DaemonSets("default").Create(ctx, &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "ds1", Namespace: "default"},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "ds1"}},
+			Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "ds1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create daemonset: %v", err)
+	}
+	_, err = clientset.CoreV1().Pods("default").Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "p1",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "ds1"},
+			OwnerReferences: []metav1.OwnerReference{{
+				Kind: "DaemonSet",
+				Name: "ds1",
+			}},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetPodsCountForResource("default", "DaemonSet", "ds1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 pod, got %d", count)
+	}
+}
+
+func TestGetPodsCountForResource_ReplicaSet(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	_, err := clientset.AppsV1().ReplicaSets("default").Create(ctx, &appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "rs1", Namespace: "default"},
+		Spec: appsv1.ReplicaSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "rs1"}},
+			Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "rs1"}}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create replicaset: %v", err)
+	}
+	_, err = clientset.CoreV1().Pods("default").Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "p1",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "rs1"},
+			OwnerReferences: []metav1.OwnerReference{{
+				Kind: "ReplicaSet",
+				Name: "rs1",
+			}},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetPodsCountForResource("default", "ReplicaSet", "rs1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 pod, got %d", count)
+	}
+}
+
+func TestGetPodsCountForResource_Job(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	selector := map[string]string{"job": "j1"}
+	_, err := clientset.BatchV1().Jobs("default").Create(ctx, &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: "j1", Namespace: "default"},
+		Spec: batchv1.JobSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: selector},
+			Template: corev1.PodTemplateSpec{ObjectMeta: metav1.ObjectMeta{Labels: selector}},
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create job: %v", err)
+	}
+	_, err = clientset.CoreV1().Pods("default").Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "p1",
+			Namespace: "default",
+			Labels:    selector,
+			OwnerReferences: []metav1.OwnerReference{{
+				Kind: "Job",
+				Name: "j1",
+			}},
+		},
+		Status: corev1.PodStatus{Phase: corev1.PodRunning},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetPodsCountForResource("default", "Job", "j1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 pod, got %d", count)
+	}
+}
+
 func TestGetServiceEndpointsCount(t *testing.T) {
 	ctx := context.Background()
 	clientset := fake.NewSimpleClientset(
@@ -139,6 +342,85 @@ func TestGetServiceEndpointsCount(t *testing.T) {
 	}
 	if count != 3 {
 		t.Errorf("expected count 3, got %d", count)
+	}
+}
+
+func TestGetConfigMapConsumersCount(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{{
+					Name:  "c",
+					Image: "busybox",
+					EnvFrom: []corev1.EnvFromSource{{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: "cm1"}},
+					}},
+				}},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetConfigMapConsumersCount("default", "cm1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 consumer, got %d", count)
+	}
+}
+
+func TestGetSecretConsumersCount(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{{
+					Name:         "sec",
+					VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "s1"}},
+				}},
+				Containers: []corev1.Container{{Name: "c"}},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetSecretConsumersCount("default", "s1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 consumer, got %d", count)
+	}
+}
+
+func TestGetPVCConsumersCount(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+			Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{{
+					Name: "data",
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{ClaimName: "pvc1"},
+					},
+				}},
+				Containers: []corev1.Container{{Name: "c"}},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+	count, err := app.GetPVCConsumersCount("default", "pvc1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("expected 1 consumer, got %d", count)
 	}
 }
 

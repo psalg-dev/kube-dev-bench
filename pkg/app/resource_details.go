@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -187,33 +188,7 @@ func (a *App) GetJobDetail(namespace, jobName string) (*JobDetail, error) {
 				continue
 			}
 
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
+			detail.Pods = append(detail.Pods, buildResourcePodInfo(pod, now))
 		}
 	}
 
@@ -434,33 +409,7 @@ func (a *App) GetDeploymentDetail(namespace, deploymentName string) (*Deployment
 	if err == nil {
 		now := time.Now()
 		for _, pod := range pods.Items {
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
+			detail.Pods = append(detail.Pods, buildResourcePodInfo(pod, now))
 		}
 	}
 
@@ -561,45 +510,11 @@ func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*Stateful
 	if err == nil {
 		now := time.Now()
 		for _, pod := range pods.Items {
-			// Verify ownership
-			isOwned := false
-			for _, ref := range pod.OwnerReferences {
-				if ref.Kind == "StatefulSet" && ref.Name == statefulSetName {
-					isOwned = true
-					break
-				}
-			}
-			if !isOwned {
+			if !podOwnedBy(pod, "StatefulSet", statefulSetName) {
 				continue
 			}
 
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
+			detail.Pods = append(detail.Pods, buildResourcePodInfo(pod, now))
 		}
 
 		// Sort pods by name (to maintain statefulset ordering)
@@ -616,46 +531,8 @@ func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*Stateful
 			// Check if PVC name matches statefulset naming pattern
 			// StatefulSet PVCs are named: {volumeClaimTemplateName}-{statefulSetName}-{ordinal}
 			for _, vct := range ss.Spec.VolumeClaimTemplates {
-				prefix := fmt.Sprintf("%s-%s-", vct.Name, statefulSetName)
-				if len(pvc.Name) > len(prefix) && pvc.Name[:len(prefix)] == prefix {
-					age := "-"
-					if pvc.CreationTimestamp.Time != (time.Time{}) {
-						age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
-					}
-
-					capacity := "-"
-					if pvc.Status.Capacity != nil {
-						if qty, ok := pvc.Status.Capacity["storage"]; ok {
-							capacity = qty.String()
-						}
-					}
-
-					accessModes := ""
-					for i, mode := range pvc.Spec.AccessModes {
-						if i > 0 {
-							accessModes += ", "
-						}
-						accessModes += string(mode)
-					}
-
-					storageClass := ""
-					if pvc.Spec.StorageClassName != nil {
-						storageClass = *pvc.Spec.StorageClassName
-					}
-
-					// Extract pod name from PVC name
-					podName := pvc.Name[len(vct.Name)+1:]
-
-					detail.PVCs = append(detail.PVCs, StatefulSetPVCInfo{
-						Name:         pvc.Name,
-						Namespace:    pvc.Namespace,
-						Status:       string(pvc.Status.Phase),
-						Capacity:     capacity,
-						AccessModes:  accessModes,
-						StorageClass: storageClass,
-						Age:          age,
-						PodName:      podName,
-					})
+				if info, ok := statefulSetPVCInfo(pvc, vct.Name, statefulSetName, now); ok {
+					detail.PVCs = append(detail.PVCs, info)
 				}
 			}
 		}
@@ -705,33 +582,7 @@ func (a *App) GetDaemonSetDetail(namespace, daemonSetName string) (*DaemonSetDet
 				continue
 			}
 
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
+			detail.Pods = append(detail.Pods, buildResourcePodInfo(pod, now))
 		}
 
 		// Sort pods by node name
@@ -788,37 +639,93 @@ func (a *App) GetReplicaSetDetail(namespace, replicaSetName string) (*ReplicaSet
 				continue
 			}
 
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
+			detail.Pods = append(detail.Pods, buildResourcePodInfo(pod, now))
 		}
 	}
 
 	return detail, nil
+}
+
+func buildResourcePodInfo(pod corev1.Pod, now time.Time) ResourcePodInfo {
+	readyCount := 0
+	var restarts int32
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Ready {
+			readyCount++
+		}
+		restarts += cs.RestartCount
+	}
+
+	age := "-"
+	if pod.CreationTimestamp.Time != (time.Time{}) {
+		age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
+	}
+
+	return ResourcePodInfo{
+		Name:      pod.Name,
+		Namespace: pod.Namespace,
+		Status:    string(pod.Status.Phase),
+		Ready:     fmt.Sprintf("%d/%d", readyCount, len(pod.Spec.Containers)),
+		Restarts:  restarts,
+		Age:       age,
+		Node:      pod.Spec.NodeName,
+		IP:        pod.Status.PodIP,
+	}
+}
+
+func podOwnedBy(pod corev1.Pod, kind, name string) bool {
+	for _, ref := range pod.OwnerReferences {
+		if ref.Kind == kind && ref.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func statefulSetPVCInfo(pvc corev1.PersistentVolumeClaim, vctName, statefulSetName string, now time.Time) (StatefulSetPVCInfo, bool) {
+	prefix := fmt.Sprintf("%s-%s-", vctName, statefulSetName)
+	if len(pvc.Name) <= len(prefix) || pvc.Name[:len(prefix)] != prefix {
+		return StatefulSetPVCInfo{}, false
+	}
+
+	age := "-"
+	if pvc.CreationTimestamp.Time != (time.Time{}) {
+		age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
+	}
+
+	capacity := "-"
+	if pvc.Status.Capacity != nil {
+		if qty, ok := pvc.Status.Capacity["storage"]; ok {
+			capacity = qty.String()
+		}
+	}
+
+	accessModes := ""
+	for i, mode := range pvc.Spec.AccessModes {
+		if i > 0 {
+			accessModes += ", "
+		}
+		accessModes += string(mode)
+	}
+
+	storageClass := ""
+	if pvc.Spec.StorageClassName != nil {
+		storageClass = *pvc.Spec.StorageClassName
+	}
+
+	podName := pvc.Name[len(vctName)+1:]
+
+	info := StatefulSetPVCInfo{
+		Name:         pvc.Name,
+		Namespace:    pvc.Namespace,
+		Status:       string(pvc.Status.Phase),
+		Capacity:     capacity,
+		AccessModes:  accessModes,
+		StorageClass: storageClass,
+		Age:          age,
+		PodName:      podName,
+	}
+	return info, true
 }
 
 // GetIngressDetail returns detailed information about an ingress

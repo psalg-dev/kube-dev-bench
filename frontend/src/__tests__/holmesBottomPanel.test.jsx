@@ -13,10 +13,12 @@ describe('HolmesBottomPanel', () => {
         response={null}
         loading={false}
         error={null}
-      />
+      />,
     );
 
-    expect(screen.getByRole('button', { name: /Analyze with Holmes/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Analyze with Holmes/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/AI-powered insights/i)).toBeInTheDocument();
   });
 
@@ -30,11 +32,13 @@ describe('HolmesBottomPanel', () => {
         response={null}
         loading={true}
         error={null}
-      />
+      />,
     );
 
     expect(screen.getByText('Waiting for first response')).toBeInTheDocument();
-    expect(document.querySelector('.holmes-bottom-panel-analyzing-tag')).toHaveTextContent('Analyzing...');
+    expect(
+      document.querySelector('.holmes-bottom-panel-analyzing-tag'),
+    ).toHaveTextContent('Analyzing...');
   });
 
   it('shows stop button when loading and onCancel provided', () => {
@@ -49,7 +53,7 @@ describe('HolmesBottomPanel', () => {
         response={null}
         loading={true}
         error={null}
-      />
+      />,
     );
 
     const stopButton = screen.getByTitle('Stop analysis');
@@ -68,7 +72,7 @@ describe('HolmesBottomPanel', () => {
         response={null}
         loading={true}
         error={null}
-      />
+      />,
     );
 
     expect(screen.queryByTitle('Stop analysis')).not.toBeInTheDocument();
@@ -84,7 +88,7 @@ describe('HolmesBottomPanel', () => {
         response={null}
         loading={false}
         error="Boom"
-      />
+      />,
     );
 
     expect(screen.getByText(/analysis failed/i)).toBeInTheDocument();
@@ -101,7 +105,7 @@ describe('HolmesBottomPanel', () => {
         response={{ response: 'All good' }}
         loading={false}
         error={null}
-      />
+      />,
     );
 
     expect(screen.getByText('All good')).toBeInTheDocument();

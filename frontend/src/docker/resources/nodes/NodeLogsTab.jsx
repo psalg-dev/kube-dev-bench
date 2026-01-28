@@ -7,7 +7,9 @@ import { GetSwarmNodeTasks, GetSwarmTaskLogs } from '../../swarmApi.js';
 function pickBestTask(tasks) {
   const list = Array.isArray(tasks) ? tasks : [];
   const withContainer = list.filter((t) => t?.id && t?.containerId);
-  const running = withContainer.find((t) => String(t.state || '').toLowerCase() === 'running');
+  const running = withContainer.find(
+    (t) => String(t.state || '').toLowerCase() === 'running',
+  );
   return running || withContainer[0] || null;
 }
 
@@ -44,7 +46,13 @@ export default function NodeLogsTab({ nodeId, nodeName }) {
 
   if (loadingTasks) {
     return (
-      <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+      <div
+        style={{
+          padding: 32,
+          textAlign: 'center',
+          color: 'var(--gh-text-secondary)',
+        }}
+      >
         Loading node tasks...
       </div>
     );
@@ -57,7 +65,9 @@ export default function NodeLogsTab({ nodeId, nodeName }) {
         <div style={{ color: 'var(--gh-text-secondary)' }}>
           Unable to load node tasks. Node logs fallback requires tasks.
         </div>
-        <div style={{ marginTop: 12, color: 'var(--gh-text-secondary)' }}>Error: {tasksError}</div>
+        <div style={{ marginTop: 12, color: 'var(--gh-text-secondary)' }}>
+          Error: {tasksError}
+        </div>
       </div>
     );
   }
@@ -79,10 +89,31 @@ export default function NodeLogsTab({ nodeId, nodeName }) {
   const title = `Node Logs (task fallback: ${selectedTask.serviceName || selectedTask.serviceId?.slice(0, 12) || 'service'} / ${selectedTask.id?.slice(0, 12) || 'task'})`;
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--gh-border, #30363d)' }}>
-        <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>Node Logs</div>
-        <div style={{ marginTop: 4, fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: 0,
+      }}
+    >
+      <div
+        style={{
+          padding: '10px 12px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+        }}
+      >
+        <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
+          Node Logs
+        </div>
+        <div
+          style={{
+            marginTop: 4,
+            fontSize: 12,
+            color: 'var(--gh-text-secondary, #8b949e)',
+          }}
+        >
           Node: {nodeName || nodeId}. Showing task logs as a fallback.
         </div>
       </div>

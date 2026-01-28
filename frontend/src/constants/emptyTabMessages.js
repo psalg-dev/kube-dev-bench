@@ -44,7 +44,8 @@ export const emptyTabMessages = {
   pvcs: {
     icon: 'pvcs',
     title: 'No volume claims',
-    description: 'No persistent volume claims are associated with this resource.',
+    description:
+      'No persistent volume claims are associated with this resource.',
     tip: 'Volume claims will appear when the workload requests persistent storage.',
   },
   data: {
@@ -207,12 +208,14 @@ export const emptyTabMessages = {
  * @returns {Object} The message configuration or a default message
  */
 export function getEmptyTabMessage(tabType) {
-  return emptyTabMessages[tabType] || {
-    icon: 'default',
-    title: 'No data',
-    description: 'No items found for this tab.',
-    tip: '',
-  };
+  return (
+    emptyTabMessages[tabType] || {
+      icon: 'default',
+      title: 'No data',
+      description: 'No items found for this tab.',
+      tip: '',
+    }
+  );
 }
 
 /**

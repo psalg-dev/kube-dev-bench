@@ -33,11 +33,19 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
     if (!revision || busyRevision) return;
     setBusyRevision(revision);
     try {
-      await AppAPI.RollbackDeploymentToRevision(namespace, deploymentName, Number(revision));
-      showSuccess(`Rollback triggered for Deployment '${deploymentName}' to revision #${revision}`);
+      await AppAPI.RollbackDeploymentToRevision(
+        namespace,
+        deploymentName,
+        Number(revision),
+      );
+      showSuccess(
+        `Rollback triggered for Deployment '${deploymentName}' to revision #${revision}`,
+      );
       await fetchDetail();
     } catch (e) {
-      showError(`Failed to rollback Deployment '${deploymentName}': ${e?.message || e}`);
+      showError(
+        `Failed to rollback Deployment '${deploymentName}': ${e?.message || e}`,
+      );
     } finally {
       setBusyRevision(null);
     }
@@ -54,7 +62,11 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
   };
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading...
+      </div>
+    );
   }
 
   if (error) {
@@ -66,7 +78,9 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       {revisions.length === 0 ? (
-        <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No revisions found.</div>
+        <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
+          No revisions found.
+        </div>
       ) : (
         <table className="panel-table">
           <thead>
@@ -86,15 +100,45 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
               const revision = rev.revision;
               const rollbackDisabled = isCurrent || busyRevision !== null;
               return (
-                <tr key={idx} style={{ backgroundColor: isCurrent ? '#23863610' : 'transparent' }}>
-                  <td style={{ fontWeight: isCurrent ? 600 : 400 }}>#{revision}</td>
-                  <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{rev.replicaSet}</td>
-                  <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rev.image}</td>
+                <tr
+                  key={idx}
+                  style={{
+                    backgroundColor: isCurrent ? '#23863610' : 'transparent',
+                  }}
+                >
+                  <td style={{ fontWeight: isCurrent ? 600 : 400 }}>
+                    #{revision}
+                  </td>
+                  <td
+                    className="text-muted"
+                    style={{ fontFamily: 'monospace', fontSize: 12 }}
+                  >
+                    {rev.replicaSet}
+                  </td>
+                  <td
+                    style={{
+                      maxWidth: 300,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {rev.image}
+                  </td>
                   <td className="text-muted">{formatDate(rev.createdAt)}</td>
                   <td style={{ textAlign: 'center' }}>{rev.replicas}</td>
                   <td style={{ textAlign: 'center' }}>
                     {isCurrent && (
-                      <span style={{ padding: '2px 8px', backgroundColor: '#238636', color: '#fff', borderRadius: 10, fontSize: 11 }}>Active</span>
+                      <span
+                        style={{
+                          padding: '2px 8px',
+                          backgroundColor: '#238636',
+                          color: '#fff',
+                          borderRadius: 10,
+                          fontSize: 11,
+                        }}
+                      >
+                        Active
+                      </span>
                     )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
@@ -111,9 +155,13 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }) {
                         borderColor: rollbackDisabled ? '#353a42' : '#d29922',
                         color: '#fff',
                         opacity: rollbackDisabled ? 0.6 : 1,
-                        cursor: rollbackDisabled ? 'not-allowed' : 'pointer'
+                        cursor: rollbackDisabled ? 'not-allowed' : 'pointer',
                       }}
-                      title={isCurrent ? 'Current revision' : `Rollback to revision #${revision}`}
+                      title={
+                        isCurrent
+                          ? 'Current revision'
+                          : `Rollback to revision #${revision}`
+                      }
                     >
                       {busyRevision === revision ? 'Rolling back…' : 'Rollback'}
                     </button>

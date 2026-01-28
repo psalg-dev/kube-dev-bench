@@ -106,8 +106,12 @@ function ensureContainer() {
 
 function makeDraggable(el) {
   let dragging = false;
-  let startX = 0, startY = 0, origX = 0, origY = 0;
-  const wasAbsolute = el.style.position === 'absolute' || el.style.position === 'fixed';
+  let startX = 0,
+    startY = 0,
+    origX = 0,
+    origY = 0;
+  const wasAbsolute =
+    el.style.position === 'absolute' || el.style.position === 'fixed';
 
   const onMouseDown = (e) => {
     // Start dragging except when clicking the close button
@@ -158,14 +162,20 @@ function makeDraggable(el) {
 
 function iconFor(type) {
   switch (type) {
-    case 'success': return '✓';
-    case 'warning': return '⚠️';
+    case 'success':
+      return '✓';
+    case 'warning':
+      return '⚠️';
     case 'error':
-    default: return '⛔';
+    default:
+      return '⛔';
   }
 }
 
-export function showNotification(message, { type = 'error', duration = 3000, dismissible = true } = {}) {
+export function showNotification(
+  message,
+  { type = 'error', duration = 3000, dismissible = true } = {},
+) {
   ensureStylesInjected();
   const container = ensureContainer();
 
@@ -185,7 +195,12 @@ export function showNotification(message, { type = 'error', duration = 3000, dis
   const progress = el.querySelector('.gh-notification__progress');
   progress.style.transition = `width ${duration}ms linear`;
   // Force layout flush then start transition
-  requestAnimationFrame(() => { progress.style.width = '100%'; requestAnimationFrame(() => { progress.style.width = '0%'; }); });
+  requestAnimationFrame(() => {
+    progress.style.width = '100%';
+    requestAnimationFrame(() => {
+      progress.style.width = '0%';
+    });
+  });
 
   // Close handling
   let timeoutId = null;
@@ -197,7 +212,10 @@ export function showNotification(message, { type = 'error', duration = 3000, dis
   };
 
   if (dismissible) {
-    el.querySelector('.gh-notification__close').addEventListener('click', remove);
+    el.querySelector('.gh-notification__close').addEventListener(
+      'click',
+      remove,
+    );
   }
 
   // Auto-dismiss

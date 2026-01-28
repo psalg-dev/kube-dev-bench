@@ -307,6 +307,116 @@ func TestGetPodStatusCounts(t *testing.T) {
 	}
 }
 
+func TestStopPortForward_RemovesSession(t *testing.T) {
+	clearPortForwardSessions()
+	defer clearPortForwardSessions()
+
+	key := portForwardKeyLR("default", "pod-a", 8080, 80)
+	portForwardSessions.Store(key, &PortForwardSession{})
+
+	app := &App{}
+	if err := app.StopPortForward("default", "pod-a", 8080); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, ok := portForwardSessions.Load(key); ok {
+		t.Fatalf("expected session removed")
+	}
+}
+
+func TestStopPortForward_MissingSession(t *testing.T) {
+	clearPortForwardSessions()
+	defer clearPortForwardSessions()
+
+	app := &App{}
+	if err := app.StopPortForward("default", "missing", 8080); err == nil {
+		t.Fatalf("expected error for missing session")
+	}
+}
+
+func TestListPortForwards_ReturnsEntries(t *testing.T) {
+	clearPortForwardSessions()
+	defer clearPortForwardSessions()
+
+	portForwardSessions.Store(portForwardKeyLR("default", "pod-a", 8080, 80), &PortForwardSession{})
+	portForwardSessions.Store(portForwardKeyLR("ns", "pod-b", 9090, 90), &PortForwardSession{})
+
+	app := &App{}
+	list, err := app.ListPortForwards()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("expected 2 entries, got %d", len(list))
+	}
+}
+
+func clearPortForwardSessions() {
+	portForwardSessions.Range(func(k, _ any) bool {
+		portForwardSessions.Delete(k)
+		return true
+	})
+}
+
+func TestStartPodPolling_ListActions(t *testing.T) {
+	disableWailsEvents = true
+
+	clientset := fake.NewSimpleClientset(&v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+		Status:     v1.PodStatus{Phase: v1.PodRunning},
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:              ctx,
+		currentNamespace: "default",
+		testClientset:    clientset,
+	}
+
+	app.StartPodPolling()
+	start := time.Now()
+	for time.Since(start) < 1500*time.Millisecond {
+		if hasListAction(clientset.Actions(), "pods") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+
+	if !hasListAction(clientset.Actions(), "pods") {
+		t.Fatalf("expected pods list action")
+	}
+}
+
+func TestDeletePod(t *testing.T) {
+	clientset := fake.NewSimpleClientset(&v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+	})
+
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	if err := app.DeletePod("default", "p1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := clientset.CoreV1().Pods("default").Get(context.Background(), "p1", metav1.GetOptions{}); err == nil {
+		t.Fatalf("expected pod to be deleted")
+	}
+}
+
+func TestRestartPod(t *testing.T) {
+	clientset := fake.NewSimpleClientset(&v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p1", Namespace: "default"},
+	})
+
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	if err := app.RestartPod("default", "p1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if _, err := clientset.CoreV1().Pods("default").Get(context.Background(), "p1", metav1.GetOptions{}); err == nil {
+		t.Fatalf("expected pod to be deleted")
+	}
+}
+
 // Tests for GetRunningPods function
 func TestGetRunningPods(t *testing.T) {
 	now := time.Now()
@@ -533,46 +643,6 @@ func TestGetRunningPods_Ports(t *testing.T) {
 	// Should have 3 unique ports
 	if len(result[0].Ports) != 3 {
 		t.Errorf("expected 3 ports, got %d", len(result[0].Ports))
-	}
-}
-
-// Tests for DeletePod
-func TestDeletePod(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
-
-	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
-		Status:     v1.PodStatus{Phase: v1.PodRunning},
-	}
-	_, _ = clientset.CoreV1().Pods("default").Create(context.Background(), pod, metav1.CreateOptions{})
-
-	app := newTestAppWithClientset(clientset)
-	err := app.DeletePod("default", "test-pod")
-	if err != nil {
-		t.Fatalf("DeletePod failed: %v", err)
-	}
-
-	// Verify pod was deleted
-	_, err = clientset.CoreV1().Pods("default").Get(context.Background(), "test-pod", metav1.GetOptions{})
-	if err == nil {
-		t.Error("expected pod to be deleted")
-	}
-}
-
-// Tests for RestartPod
-func TestRestartPod(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
-
-	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
-		Status:     v1.PodStatus{Phase: v1.PodRunning},
-	}
-	_, _ = clientset.CoreV1().Pods("default").Create(context.Background(), pod, metav1.CreateOptions{})
-
-	app := newTestAppWithClientset(clientset)
-	err := app.RestartPod("default", "test-pod")
-	if err != nil {
-		t.Fatalf("RestartPod failed: %v", err)
 	}
 }
 

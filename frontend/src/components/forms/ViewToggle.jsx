@@ -15,7 +15,10 @@ export default function ViewToggle({ mode, onChange }) {
   };
 
   return (
-    <div id="swarm-view-toggle" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <div
+      id="swarm-view-toggle"
+      style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+    >
       <button
         id="swarm-view-form-btn"
         type="button"

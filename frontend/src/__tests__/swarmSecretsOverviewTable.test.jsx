@@ -1,22 +1,30 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
-const { runtimeHandlers, swarmApiMocks, notificationMocks, swarmStateMock } = vi.hoisted(() => {
-  return {
-    runtimeHandlers: new Map(),
-    swarmApiMocks: {
-      GetSwarmSecrets: vi.fn(),
-      RemoveSwarmSecret: vi.fn(),
-    },
-    notificationMocks: {
-      showSuccess: vi.fn(),
-      showError: vi.fn(),
-    },
-    swarmStateMock: {
-      connected: true,
-    },
-  };
-});
+const { runtimeHandlers, swarmApiMocks, notificationMocks, swarmStateMock } =
+  vi.hoisted(() => {
+    return {
+      runtimeHandlers: new Map(),
+      swarmApiMocks: {
+        GetSwarmSecrets: vi.fn(),
+        RemoveSwarmSecret: vi.fn(),
+      },
+      notificationMocks: {
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
+      },
+      swarmStateMock: {
+        connected: true,
+      },
+    };
+  });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
 vi.mock('../notification.js', () => notificationMocks);
@@ -44,7 +52,8 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
 
         <div data-testid="rows">
           {rows.map((row) => {
-            const actions = typeof getRowActions === 'function' ? getRowActions(row) : [];
+            const actions =
+              typeof getRowActions === 'function' ? getRowActions(row) : [];
             return (
               <div key={row.id} data-testid={`row-${row.id}`}>
                 <div data-testid={`name-${row.id}`}>{row.name}</div>
@@ -52,9 +61,14 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                 <div data-testid={`cells-${row.id}`}>
                   {(columns || []).map((col) => {
                     const rawValue = row[col.key];
-                    const content = col.cell ? col.cell({ getValue: () => rawValue }) : rawValue ?? '-';
+                    const content = col.cell
+                      ? col.cell({ getValue: () => rawValue })
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.id}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.id}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -74,7 +88,9 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                   ))}
                 </div>
 
-                <div data-testid={`panel-${row.id}`}>{renderPanelContent?.(row, 'summary')}</div>
+                <div data-testid={`panel-${row.id}`}>
+                  {renderPanelContent?.(row, 'summary')}
+                </div>
               </div>
             );
           })}
@@ -171,7 +187,9 @@ describe('SwarmSecretsOverviewTable', () => {
 
     render(<SwarmSecretsOverviewTable />);
 
-    expect(screen.getByText('Not connected to Docker Swarm')).toBeInTheDocument();
+    expect(
+      screen.getByText('Not connected to Docker Swarm'),
+    ).toBeInTheDocument();
     expect(swarmApiMocks.GetSwarmSecrets).not.toHaveBeenCalled();
   });
 
@@ -182,13 +200,18 @@ describe('SwarmSecretsOverviewTable', () => {
 
     expect(await screen.findByTestId('row-sec1')).toBeInTheDocument();
     expect(screen.getByTestId('name-sec1')).toHaveTextContent('db-password');
-    expect(screen.getByTestId('cell-sec1-labels')).toHaveTextContent('2 labels');
+    expect(screen.getByTestId('cell-sec1-labels')).toHaveTextContent(
+      '2 labels',
+    );
 
     expect(swarmApiMocks.GetSwarmSecrets).toHaveBeenCalledTimes(1);
   });
 
   it('deletes via row action', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmSecretsOverviewTable />);
     await screen.findByTestId('row-sec1');
@@ -196,15 +219,24 @@ describe('SwarmSecretsOverviewTable', () => {
     const actions = screen.getByTestId('actions-sec1');
     fireEvent.click(within(actions).getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmSecret).toHaveBeenCalledWith('sec1'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Secret "db-password" deleted');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmSecret).toHaveBeenCalledWith('sec1'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Secret "db-password" deleted',
+    );
 
     // refresh() should trigger a reload
-    await waitFor(() => expect(swarmApiMocks.GetSwarmSecrets).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmSecrets).toHaveBeenCalledTimes(2),
+    );
   });
 
   it('opens edit/rotate/clone modals from summary panel and deletes from panel actions', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmSecretsOverviewTable />);
     await screen.findByTestId('row-sec1');
@@ -225,9 +257,15 @@ describe('SwarmSecretsOverviewTable', () => {
     expect(screen.getByTestId('secret-clone-modal')).toBeInTheDocument();
 
     // delete via SwarmResourceActions mock
-    fireEvent.click(within(panel).getAllByRole('button', { name: 'Delete' })[0]);
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmSecret).toHaveBeenCalledWith('sec1'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Secret "db-password" deleted');
+    fireEvent.click(
+      within(panel).getAllByRole('button', { name: 'Delete' })[0],
+    );
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmSecret).toHaveBeenCalledWith('sec1'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Secret "db-password" deleted',
+    );
   });
 
   it('applies runtime updates when swarm:secrets:update emits an array', async () => {

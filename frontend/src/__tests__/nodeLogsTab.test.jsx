@@ -17,7 +17,9 @@ vi.mock('../components/AggregateLogsTab.jsx', () => ({
     return (
       <div data-testid="aggregate-logs">
         <div data-testid="logs-title">{title}</div>
-        <button type="button" onClick={() => loadLogs()}>Load</button>
+        <button type="button" onClick={() => loadLogs()}>
+          Load
+        </button>
       </div>
     );
   },
@@ -62,7 +64,9 @@ describe('NodeLogsTab', () => {
     render(<NodeLogsTab nodeId="node1" nodeName="worker-1" />);
 
     expect(await screen.findByTestId('aggregate-logs')).toBeInTheDocument();
-    expect(screen.getByTestId('logs-title')).toHaveTextContent('Node Logs (task fallback: web');
+    expect(screen.getByTestId('logs-title')).toHaveTextContent(
+      'Node Logs (task fallback: web',
+    );
 
     // clicking Load should call GetSwarmTaskLogs for selected running task (t2)
     screen.getByRole('button', { name: 'Load' }).click();

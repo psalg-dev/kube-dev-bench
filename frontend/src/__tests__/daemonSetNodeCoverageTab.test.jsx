@@ -17,29 +17,48 @@ describe('DaemonSetNodeCoverageTab', () => {
   describe('loading state', () => {
     it('shows loading indicator initially', () => {
       GetDaemonSetNodeCoverage.mockImplementation(() => new Promise(() => {}));
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       expect(screen.getByText('Loading...')).toBeInTheDocument();
     });
   });
 
   describe('error state', () => {
     it('displays error message when API call fails', async () => {
-      GetDaemonSetNodeCoverage.mockRejectedValue(new Error('Connection failed'));
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+      GetDaemonSetNodeCoverage.mockRejectedValue(
+        new Error('Connection failed'),
+      );
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
-        expect(screen.getByText(/Error: Connection failed/)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Error: Connection failed/),
+        ).toBeInTheDocument();
       });
     });
 
     it('handles non-Error exceptions', async () => {
       GetDaemonSetNodeCoverage.mockRejectedValue('Some error');
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText(/Error: Some error/)).toBeInTheDocument();
       });
@@ -49,9 +68,14 @@ describe('DaemonSetNodeCoverageTab', () => {
   describe('empty state', () => {
     it('shows no nodes message when nodes array is empty', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({ nodes: [] });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('No nodes found.')).toBeInTheDocument();
       });
@@ -59,9 +83,14 @@ describe('DaemonSetNodeCoverageTab', () => {
 
     it('shows no nodes message when data is null', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue(null);
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('No nodes found.')).toBeInTheDocument();
       });
@@ -72,13 +101,30 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('displays table with node coverage data', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-1', hasPod: true, podName: 'nginx-ds-abc', podStatus: 'Running', ready: 'True' },
-          { node: 'node-2', hasPod: false, podName: '', podStatus: '', ready: 'True' },
-        ]
+          {
+            node: 'node-1',
+            hasPod: true,
+            podName: 'nginx-ds-abc',
+            podStatus: 'Running',
+            ready: 'True',
+          },
+          {
+            node: 'node-2',
+            hasPod: false,
+            podName: '',
+            podStatus: '',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('node-1')).toBeInTheDocument();
         expect(screen.getByText('node-2')).toBeInTheDocument();
@@ -88,12 +134,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('shows Covered for nodes with pods', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-1', hasPod: true, podName: 'nginx-ds-abc', podStatus: 'Running', ready: 'True' },
-        ]
+          {
+            node: 'node-1',
+            hasPod: true,
+            podName: 'nginx-ds-abc',
+            podStatus: 'Running',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Covered')).toBeInTheDocument();
       });
@@ -102,12 +159,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('shows Missing for nodes without pods', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-2', hasPod: false, podName: '', podStatus: '', ready: 'True' },
-        ]
+          {
+            node: 'node-2',
+            hasPod: false,
+            podName: '',
+            podStatus: '',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Missing')).toBeInTheDocument();
       });
@@ -116,12 +184,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('displays pod name when available', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-1', hasPod: true, podName: 'nginx-ds-xyz123', podStatus: 'Running', ready: 'True' },
-        ]
+          {
+            node: 'node-1',
+            hasPod: true,
+            podName: 'nginx-ds-xyz123',
+            podStatus: 'Running',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('nginx-ds-xyz123')).toBeInTheDocument();
       });
@@ -130,12 +209,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('displays pod status', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-1', hasPod: true, podName: 'nginx-ds-abc', podStatus: 'Running', ready: 'True' },
-        ]
+          {
+            node: 'node-1',
+            hasPod: true,
+            podName: 'nginx-ds-abc',
+            podStatus: 'Running',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Running')).toBeInTheDocument();
       });
@@ -144,12 +234,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('displays ready status', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-1', hasPod: true, podName: 'nginx-ds-abc', podStatus: 'Running', ready: 'True' },
-        ]
+          {
+            node: 'node-1',
+            hasPod: true,
+            podName: 'nginx-ds-abc',
+            podStatus: 'Running',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('True')).toBeInTheDocument();
       });
@@ -158,12 +259,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('shows dash for missing pod name', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         nodes: [
-          { node: 'node-1', hasPod: false, podName: '', podStatus: '', ready: 'True' },
-        ]
+          {
+            node: 'node-1',
+            hasPod: false,
+            podName: '',
+            podStatus: '',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         const cells = screen.getAllByText('-');
         expect(cells.length).toBeGreaterThan(0);
@@ -174,23 +286,33 @@ describe('DaemonSetNodeCoverageTab', () => {
   describe('API integration', () => {
     it('calls API with correct namespace and daemonSetName', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({ nodes: [] });
-      
-      render(<DaemonSetNodeCoverageTab namespace="kube-system" daemonSetName="kube-proxy" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="kube-system"
+          daemonSetName="kube-proxy"
+        />,
+      );
+
       await waitFor(() => {
-        expect(GetDaemonSetNodeCoverage).toHaveBeenCalledWith('kube-system', 'kube-proxy');
+        expect(GetDaemonSetNodeCoverage).toHaveBeenCalledWith(
+          'kube-system',
+          'kube-proxy',
+        );
       });
     });
 
     it('does not call API when namespace is missing', () => {
-      render(<DaemonSetNodeCoverageTab namespace="" daemonSetName="nginx-ds" />);
-      
+      render(
+        <DaemonSetNodeCoverageTab namespace="" daemonSetName="nginx-ds" />,
+      );
+
       expect(GetDaemonSetNodeCoverage).not.toHaveBeenCalled();
     });
 
     it('does not call API when daemonSetName is missing', () => {
       render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="" />);
-      
+
       expect(GetDaemonSetNodeCoverage).not.toHaveBeenCalled();
     });
   });
@@ -198,11 +320,24 @@ describe('DaemonSetNodeCoverageTab', () => {
   describe('table headers', () => {
     it('renders all column headers', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
-        nodes: [{ node: 'node-1', hasPod: true, podName: 'pod-1', podStatus: 'Running', ready: 'True' }]
+        nodes: [
+          {
+            node: 'node-1',
+            hasPod: true,
+            podName: 'pod-1',
+            podStatus: 'Running',
+            ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('Node')).toBeInTheDocument();
         expect(screen.getByText('Coverage')).toBeInTheDocument();
@@ -217,12 +352,23 @@ describe('DaemonSetNodeCoverageTab', () => {
     it('handles Node/Nodes capitalized format', async () => {
       GetDaemonSetNodeCoverage.mockResolvedValue({
         Nodes: [
-          { Node: 'node-1', HasPod: true, PodName: 'nginx-ds-abc', PodStatus: 'Running', Ready: 'True' },
-        ]
+          {
+            Node: 'node-1',
+            HasPod: true,
+            PodName: 'nginx-ds-abc',
+            PodStatus: 'Running',
+            Ready: 'True',
+          },
+        ],
       });
-      
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-      
+
+      render(
+        <DaemonSetNodeCoverageTab
+          namespace="default"
+          daemonSetName="nginx-ds"
+        />,
+      );
+
       await waitFor(() => {
         expect(screen.getByText('node-1')).toBeInTheDocument();
         expect(screen.getByText('nginx-ds-abc')).toBeInTheDocument();

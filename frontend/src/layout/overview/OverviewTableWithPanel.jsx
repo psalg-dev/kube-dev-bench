@@ -1,11 +1,16 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
 import { showNotification } from '../../notification.js';
 import { fetchTabCounts } from '../../api/tabCounts';
 import StatusBadge from '../../components/StatusBadge.jsx';
-import { getColumnKey, pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
+import {
+  getColumnKey,
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../utils/tableSorting.js';
 
 const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
 
@@ -32,10 +37,35 @@ const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
  * @param {function(row): (Promise<Object>|Object)} [tabCountsFetcher] - Optional async function to fetch tab counts for a row.
  * @param {boolean} [enableTabCounts=true] - Whether to fetch and display tab counts.
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId, headerActions, getRowActions, tabCountsFetcher, enableTabCounts = true }) {
+export default function OverviewTableWithPanel({
+  columns,
+  data,
+  tabs,
+  renderPanelContent,
+  panelHeader,
+  title,
+  resourceKind,
+  namespace,
+  createPlatform = 'k8s',
+  createKind,
+  createButtonTitle,
+  createNotice,
+  createHint,
+  tableTestId,
+  headerActions,
+  getRowActions,
+  tabCountsFetcher,
+  enableTabCounts = true,
+}) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
-  const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
+    const safeTabs = useMemo(
+      () =>
+        Array.isArray(tabs) && tabs.length > 0
+          ? tabs
+          : [{ key: 'summary', label: 'Summary' }],
+      [tabs],
+    );
   const [activeTab, setActiveTab] = useState(safeTabs[0]?.key || 'summary');
   // Filter text state
   const [filterText, setFilterText] = useState('');
@@ -46,9 +76,17 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   // Tab counts state
   const [tabCounts, setTabCounts] = useState({});
   const [tabCountsLoading, setTabCountsLoading] = useState(false);
+  const tabCountsRef = useRef({});
+
+  useEffect(() => {
+    tabCountsRef.current = tabCounts;
+  }, [tabCounts]);
 
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
 
   useEffect(() => {
     if (!defaultSortKey) return;
@@ -88,9 +126,11 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     if (!bottomOpen) return;
     const handleClick = (e) => {
       // Don't close if we're resizing or if the click is within the bottom panel
-      if (e.target.closest('.bottom-panel') ||
-          e.target.closest('[data-resizing]') ||
-          document.body.style.cursor === 'ns-resize') {
+      if (
+        e.target.closest('.bottom-panel') ||
+        e.target.closest('[data-resizing]') ||
+        document.body.style.cursor === 'ns-resize'
+      ) {
         return;
       }
       closeBottomPanel();
@@ -116,7 +156,11 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     if (!openMenuKey) return;
 
     const handleClick = (e) => {
-      if (e.target.closest('.row-actions-menu') || e.target.closest('.row-actions-button')) return;
+      if (
+        e.target.closest('.row-actions-menu') ||
+        e.target.closest('.row-actions-button')
+      )
+        return;
       closeRowMenu();
     };
 
@@ -127,7 +171,11 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     };
 
     const handleFocusIn = (e) => {
-      if (e.target.closest('.row-actions-menu') || e.target.closest('.row-actions-button')) return;
+      if (
+        e.target.closest('.row-actions-menu') ||
+        e.target.closest('.row-actions-button')
+      )
+        return;
       closeRowMenu();
     };
 
@@ -155,7 +203,9 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     }
 
     // Check if any tabs are countable
-    const hasCountableTabs = safeTabs.some(t => t.countable !== false && t.countKey);
+    const hasCountableTabs = safeTabs.some(
+      (t) => t.countable !== false && t.countKey,
+    );
     if (!hasCountableTabs) {
       return;
     }
@@ -171,7 +221,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     let cancelled = false;
     // Only show loading indicator on initial load (when no counts exist)
     // This prevents badge flickering when counts are being refreshed
-    const isInitialLoad = Object.keys(tabCounts).length === 0;
+    const isInitialLoad = Object.keys(tabCountsRef.current || {}).length === 0;
     if (isInitialLoad) {
       setTabCountsLoading(true);
     }
@@ -188,7 +238,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
 
     Promise.resolve()
       .then(fetchCounts)
-      .then(counts => {
+      .then((counts) => {
         if (!cancelled) {
           setTabCounts(counts || {});
         }
@@ -223,7 +273,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
           const value = row?.[col.accessorKey || col.key];
           if (value === null || value === undefined) return false;
           return String(value).toLowerCase().includes(normalizedFilter);
-        })
+        }),
       );
     } catch (_) {
       return data;
@@ -237,12 +287,16 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
 
   const handleOpenCreate = () => {
     if (createNotice) {
-      const notice = typeof createNotice === 'string' ? { message: createNotice } : createNotice;
+      const notice =
+        typeof createNotice === 'string'
+          ? { message: createNotice }
+          : createNotice;
       const message = notice?.message;
       if (message) {
         showNotification(message, {
           type: notice?.type || 'warning',
-          duration: typeof notice?.duration === 'number' ? notice.duration : 3000,
+          duration:
+            typeof notice?.duration === 'number' ? notice.duration : 3000,
         });
       }
     }
@@ -261,7 +315,8 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       openDetails: (tabKey) => openBottomPanelAtTab(row, tabKey),
       setActiveTab,
     };
-    const extra = typeof getRowActions === 'function' ? (getRowActions(row, api) || []) : [];
+    const extra =
+      typeof getRowActions === 'function' ? getRowActions(row, api) || [] : [];
     const normalizedExtra = Array.isArray(extra) ? extra.filter(Boolean) : [];
     // Removed Close item - menu closes automatically on click outside, focus loss, or Escape
     return [
@@ -297,10 +352,17 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </div>
       </div>
 
-      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%', tableLayout: 'fixed' }}>
+      <table
+        className="gh-table"
+        data-testid={tableTestId}
+        style={{ width: '100%', tableLayout: 'fixed' }}
+      >
         <colgroup>
           {columns.map((col, idx) => (
-            <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
+            <col
+              key={col.accessorKey || col.key || idx}
+              style={{ width: col.width || 'auto' }}
+            />
           ))}
           <col style={{ width: '100px' }} />
         </colgroup>
@@ -311,11 +373,22 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
               const isActive = key && sortState?.key === key;
               const direction = isActive ? sortState?.direction : undefined;
               return (
-                <th key={key || col.header || col.label} aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
+                <th
+                  key={key || col.header || col.label}
+                  aria-sort={
+                    direction === 'asc'
+                      ? 'ascending'
+                      : direction === 'desc'
+                        ? 'descending'
+                        : 'none'
+                  }
+                >
                   <button
                     type="button"
                     className="sortable-header"
-                    onClick={() => key && setSortState((cur) => toggleSortState(cur, key))}
+                    onClick={() =>
+                      key && setSortState((cur) => toggleSortState(cur, key))
+                    }
                   >
                     <span>{col.header || col.label}</span>
                     <span className="sortable-indicator" aria-hidden="true">
@@ -329,23 +402,48 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
           </tr>
         </thead>
         <tbody>
-          {sortedData.map((row, idx) => (
+          {sortedData.map((row, idx) =>
             !row ? null : (
-              <tr key={getRowKey(row, idx)} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+              <tr
+                key={getRowKey(row, idx)}
+                style={{ cursor: 'pointer' }}
+                onClick={() => openBottomPanel(row)}
+              >
                 {columns.map((col, colIdx) => (
-                  <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
+                  <td
+                    key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}
+                  >
                     {(() => {
                       const key = col.accessorKey || col.key;
                       const rawValue = key ? row[key] : undefined;
-                      if (!col.cell && key && STATUS_BADGE_KEYS.has(String(key).toLowerCase())) {
-                        if (rawValue === null || rawValue === undefined || rawValue === '') return '-';
-                        return <StatusBadge status={String(rawValue)} size="small" />;
+                      if (
+                        !col.cell &&
+                        key &&
+                        STATUS_BADGE_KEYS.has(String(key).toLowerCase())
+                      ) {
+                        if (
+                          rawValue === null ||
+                          rawValue === undefined ||
+                          rawValue === ''
+                        )
+                          return '-';
+                        return (
+                          <StatusBadge status={String(rawValue)} size="small" />
+                        );
                       }
-                      return col.cell ? col.cell({ getValue: () => row[key] }) : rawValue;
+                      return col.cell
+                        ? col.cell({ getValue: () => row[key] })
+                        : rawValue;
                     })()}
                   </td>
                 ))}
-                <td style={{ position: 'relative', textAlign: 'right', overflow: 'visible' }}>
+                <td
+                  style={{
+                    position: 'relative',
+                    textAlign: 'right',
+                    overflow: 'visible',
+                  }}
+                >
                   <button
                     type="button"
                     className="row-actions-button"
@@ -356,7 +454,8 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                       const key = getRowKey(row, idx);
                       setOpenMenuKey((cur) => (cur === key ? null : key));
                     }}
-                  >···
+                  >
+                    ···
                   </button>
 
                   {openMenuKey === getRowKey(row, idx) && (
@@ -379,50 +478,64 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                       {(() => {
                         const menuActions = buildMenuActions(row);
                         return menuActions.map((a, i) => {
-                        const disabled = Boolean(a?.disabled);
-                        const danger = Boolean(a?.danger);
-                        return (
-                          <div
-                            key={`${a?.label || 'action'}-${i}`}
-                            className="context-menu-item"
-                            style={{
-                              padding: '8px 16px',
-                              cursor: disabled ? 'not-allowed' : 'pointer',
-                              color: danger ? '#f85149' : '#fff',
-                              opacity: disabled ? 0.55 : 1,
-                              fontSize: 15,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                            }}
-                            onClick={() => {
-                              if (disabled) return;
-                              try {
-                                a?.onClick?.(row);
-                              } finally {
-                                closeRowMenu();
-                              }
-                            }}
-                          >
-                            {a?.icon ? (
-                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>{a.icon}</span>
-                            ) : (
-                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block' }} />
-                            )}
-                            <span>{a?.label}</span>
-                          </div>
-                        );
+                          const disabled = Boolean(a?.disabled);
+                          const danger = Boolean(a?.danger);
+                          return (
+                            <div
+                              key={`${a?.label || 'action'}-${i}`}
+                              className="context-menu-item"
+                              style={{
+                                padding: '8px 16px',
+                                cursor: disabled ? 'not-allowed' : 'pointer',
+                                color: danger ? '#f85149' : '#fff',
+                                opacity: disabled ? 0.55 : 1,
+                                fontSize: 15,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 8,
+                              }}
+                              onClick={() => {
+                                if (disabled) return;
+                                try {
+                                  a?.onClick?.(row);
+                                } finally {
+                                  closeRowMenu();
+                                }
+                              }}
+                            >
+                              {a?.icon ? (
+                                <span
+                                  aria-hidden="true"
+                                  style={{
+                                    width: 18,
+                                    display: 'inline-block',
+                                    textAlign: 'center',
+                                  }}
+                                >
+                                  {a.icon}
+                                </span>
+                              ) : (
+                                <span
+                                  aria-hidden="true"
+                                  style={{ width: 18, display: 'inline-block' }}
+                                />
+                              )}
+                              <span>{a?.label}</span>
+                            </div>
+                          );
                         });
                       })()}
                     </div>
                   )}
                 </td>
               </tr>
-            )
-          ))}
+            ),
+          )}
           {filteredData.length === 0 && (
             <tr>
-              <td colSpan={columns.length + 1} className="main-panel-loading">No rows match the filter.</td>
+              <td colSpan={columns.length + 1} className="main-panel-loading">
+                No rows match the filter.
+              </td>
             </tr>
           )}
         </tbody>
@@ -433,12 +546,18 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         tabs={safeTabs}
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
+        headerRight={
+          selectedRow && panelHeader ? panelHeader(selectedRow) : null
+        }
         tabCounts={tabCounts}
         tabCountsLoading={tabCountsLoading}
       >
         {selectedRow && typeof renderPanelContent === 'function'
-          ? renderPanelContent(selectedRow, activeTab, { activeTab, setActiveTab, tabCounts })
+          ? renderPanelContent(selectedRow, activeTab, {
+              activeTab,
+              setActiveTab,
+              tabCounts,
+            })
           : null}
       </BottomPanel>
 

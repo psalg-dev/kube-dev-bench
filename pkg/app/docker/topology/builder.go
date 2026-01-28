@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"gowails/pkg/app/internal/safeconv"
+
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -62,7 +64,10 @@ func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (Cluster
 		if s.Spec.Mode.Global != nil {
 			mode = "global"
 		} else if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
-			desired = int(*s.Spec.Mode.Replicated.Replicas)
+			value, err := safeconv.Uint64ToInt(*s.Spec.Mode.Replicated.Replicas)
+			if err == nil {
+				desired = value
+			}
 		}
 		serviceMode[s.ID] = mode
 		serviceDesired[s.ID] = desired

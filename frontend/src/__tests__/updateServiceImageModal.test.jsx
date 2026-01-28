@@ -7,7 +7,13 @@ import UpdateServiceImageModal from '../docker/resources/services/UpdateServiceI
 describe('UpdateServiceImageModal', () => {
   it('renders null when closed', () => {
     const { container } = render(
-      <UpdateServiceImageModal open={false} currentImage="nginx:1" serviceName="svc" onClose={vi.fn()} onConfirm={vi.fn()} />
+      <UpdateServiceImageModal
+        open={false}
+        currentImage="nginx:1"
+        serviceName="svc"
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
     );
     expect(container.textContent).toBe('');
   });
@@ -23,7 +29,7 @@ describe('UpdateServiceImageModal', () => {
         serviceName="svc"
         onClose={onClose}
         onConfirm={onConfirm}
-      />
+      />,
     );
 
     const input = document.querySelector('#swarm-service-update-image-input');

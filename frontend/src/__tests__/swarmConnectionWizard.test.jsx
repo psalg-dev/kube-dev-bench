@@ -34,7 +34,8 @@ describe('SwarmConnectionWizard', () => {
       },
     });
 
-    const { default: SwarmConnectionWizard } = await import('../docker/SwarmConnectionWizard.jsx');
+    const { default: SwarmConnectionWizard } =
+      await import('../docker/SwarmConnectionWizard.jsx');
 
     render(<SwarmConnectionWizard />);
 
@@ -58,7 +59,8 @@ describe('SwarmConnectionWizard', () => {
       },
     });
 
-    const { default: SwarmConnectionWizard } = await import('../docker/SwarmConnectionWizard.jsx');
+    const { default: SwarmConnectionWizard } =
+      await import('../docker/SwarmConnectionWizard.jsx');
 
     render(<SwarmConnectionWizard />);
 
@@ -66,18 +68,30 @@ describe('SwarmConnectionWizard', () => {
     expect(radios).toHaveLength(3);
 
     // local
-    expect(screen.getByRole('textbox').value).toBe('unix:///var/run/docker.sock');
-    expect(screen.queryByPlaceholderText('/path/to/ca.pem')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox').value).toBe(
+      'unix:///var/run/docker.sock',
+    );
+    expect(
+      screen.queryByPlaceholderText('/path/to/ca.pem'),
+    ).not.toBeInTheDocument();
 
     // tcp
     fireEvent.click(radios[1]);
-    expect(screen.getByPlaceholderText('tcp://hostname:port').value).toBe('tcp://localhost:2375');
-    expect(screen.queryByPlaceholderText('/path/to/ca.pem')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('tcp://hostname:port').value).toBe(
+      'tcp://localhost:2375',
+    );
+    expect(
+      screen.queryByPlaceholderText('/path/to/ca.pem'),
+    ).not.toBeInTheDocument();
 
     // tls
     fireEvent.click(radios[2]);
-    expect(screen.getByPlaceholderText('tcp://hostname:port').value).toBe('tcp://localhost:2376');
-    expect(await screen.findByPlaceholderText('/path/to/ca.pem')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('tcp://hostname:port').value).toBe(
+      'tcp://localhost:2376',
+    );
+    expect(
+      await screen.findByPlaceholderText('/path/to/ca.pem'),
+    ).toBeInTheDocument();
 
     restore();
   });
@@ -104,13 +118,16 @@ describe('SwarmConnectionWizard', () => {
       },
     });
 
-    const { default: SwarmConnectionWizard } = await import('../docker/SwarmConnectionWizard.jsx');
+    const { default: SwarmConnectionWizard } =
+      await import('../docker/SwarmConnectionWizard.jsx');
 
     render(<SwarmConnectionWizard />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Test Connection' }));
 
-    expect(await screen.findByText(/Connection Successful/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/Connection Successful/i),
+    ).toBeInTheDocument();
     expect(screen.getByText('Docker Version: Docker 25.0')).toBeInTheDocument();
     expect(screen.getByText('Swarm Active: Yes')).toBeInTheDocument();
     expect(screen.getByText('Manager Node: Yes')).toBeInTheDocument();
@@ -126,7 +143,9 @@ describe('SwarmConnectionWizard', () => {
   it('shows error when connection test fails', async () => {
     const restore = setNavigatorPlatform('Linux x86_64');
 
-    const testConnection = vi.fn().mockResolvedValue({ connected: false, error: 'bad cert' });
+    const testConnection = vi
+      .fn()
+      .mockResolvedValue({ connected: false, error: 'bad cert' });
 
     const swarmState = await import('../docker/SwarmStateContext');
     swarmState.useSwarmState.mockReturnValue({
@@ -139,7 +158,8 @@ describe('SwarmConnectionWizard', () => {
       },
     });
 
-    const { default: SwarmConnectionWizard } = await import('../docker/SwarmConnectionWizard.jsx');
+    const { default: SwarmConnectionWizard } =
+      await import('../docker/SwarmConnectionWizard.jsx');
 
     render(<SwarmConnectionWizard />);
 
@@ -168,7 +188,8 @@ describe('SwarmConnectionWizard', () => {
       },
     });
 
-    const { default: SwarmConnectionWizard } = await import('../docker/SwarmConnectionWizard.jsx');
+    const { default: SwarmConnectionWizard } =
+      await import('../docker/SwarmConnectionWizard.jsx');
 
     render(<SwarmConnectionWizard onComplete={onComplete} />);
 

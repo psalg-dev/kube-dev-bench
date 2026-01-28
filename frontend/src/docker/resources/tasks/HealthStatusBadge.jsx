@@ -60,7 +60,13 @@ export default function HealthStatusBadge({ status, lastCheckAt }) {
       }}
     >
       <span style={{ fontSize: 10, lineHeight: 1 }}>
-        {s === 'healthy' ? '✓' : s === 'unhealthy' ? '!' : s === 'starting' ? '…' : '—'}
+        {s === 'healthy'
+          ? '✓'
+          : s === 'unhealthy'
+            ? '!'
+            : s === 'starting'
+              ? '…'
+              : '—'}
       </span>
       {label}
     </span>

@@ -20,7 +20,7 @@ export default function ResourcePodsTab({
   resourceKind,
   resourceName,
   onPodClick,
-  refreshInterval = 5000
+  refreshInterval = 5000,
 }) {
   const [pods, setPods] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -114,7 +114,9 @@ export default function ResourcePodsTab({
   return (
     <div className="resource-pods-tab">
       <div className="pods-header">
-        <span className="pods-count">{pods.length} pod{pods.length !== 1 ? 's' : ''}</span>
+        <span className="pods-count">
+          {pods.length} pod{pods.length !== 1 ? 's' : ''}
+        </span>
       </div>
       <div className="pods-list">
         <table className="pods-table">
@@ -139,7 +141,11 @@ export default function ResourcePodsTab({
                 >
                   <td className="pod-name">{pod.name || '-'}</td>
                   <td>
-                    <StatusBadge status={pod.status || 'Unknown'} size="small" showDot={false} />
+                    <StatusBadge
+                      status={pod.status || 'Unknown'}
+                      size="small"
+                      showDot={false}
+                    />
                   </td>
                   <td className="pod-ready">{pod.ready || '-'}</td>
                   <td className="pod-restarts">{pod.restarts ?? 0}</td>

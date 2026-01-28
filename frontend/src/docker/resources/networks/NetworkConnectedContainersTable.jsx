@@ -3,7 +3,11 @@ import { GetSwarmNetworkContainers } from '../../swarmApi.js';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 import { navigateToResource } from '../../../utils/resourceNavigation';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 /**
  * Displays connected containers (tasks) for a network in a proper datatable format.
@@ -11,7 +15,10 @@ import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/ta
  * @param {string} props.networkId - The network ID to fetch containers for
  * @param {boolean} [props.compact] - If true, renders a compact version for the summary tab
  */
-export default function NetworkConnectedContainersTable({ networkId, compact = false }) {
+export default function NetworkConnectedContainersTable({
+  networkId,
+  compact = false,
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tasks, setTasks] = useState([]);
@@ -32,7 +39,10 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
     return cols;
   }, [compact]);
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
   const sortedTasks = useMemo(() => {
     return sortRows(tasks, sortState.key, sortState.direction, (row, key) => {
       if (key === 'serviceName') return row?.serviceName || row?.serviceId;
@@ -87,7 +97,9 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
     return (
       <div style={containerStyle}>
         <div style={headerStyle}>Containers (Tasks)</div>
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>Loading…</div>
+        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>
+          Loading…
+        </div>
       </div>
     );
   }
@@ -96,7 +108,9 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
     return (
       <div style={containerStyle}>
         <div style={headerStyle}>Containers (Tasks)</div>
-        <div style={{ color: '#f85149' }}>Failed to load containers: {error}</div>
+        <div style={{ color: '#f85149' }}>
+          Failed to load containers: {error}
+        </div>
       </div>
     );
   }
@@ -144,22 +158,42 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
 
     switch (state?.toLowerCase()) {
       case 'running':
-        return { ...baseStyle, background: 'rgba(63, 185, 80, 0.2)', color: '#3fb950' };
+        return {
+          ...baseStyle,
+          background: 'rgba(63, 185, 80, 0.2)',
+          color: '#3fb950',
+        };
       case 'complete':
       case 'shutdown':
-        return { ...baseStyle, background: 'rgba(139, 148, 158, 0.2)', color: '#8b949e' };
+        return {
+          ...baseStyle,
+          background: 'rgba(139, 148, 158, 0.2)',
+          color: '#8b949e',
+        };
       case 'failed':
       case 'rejected':
-        return { ...baseStyle, background: 'rgba(248, 81, 73, 0.2)', color: '#f85149' };
+        return {
+          ...baseStyle,
+          background: 'rgba(248, 81, 73, 0.2)',
+          color: '#f85149',
+        };
       case 'pending':
       case 'assigned':
       case 'accepted':
       case 'preparing':
       case 'ready':
       case 'starting':
-        return { ...baseStyle, background: 'rgba(187, 128, 9, 0.2)', color: '#bb8009' };
+        return {
+          ...baseStyle,
+          background: 'rgba(187, 128, 9, 0.2)',
+          color: '#bb8009',
+        };
       default:
-        return { ...baseStyle, background: 'rgba(139, 148, 158, 0.15)', color: '#8b949e' };
+        return {
+          ...baseStyle,
+          background: 'rgba(139, 148, 158, 0.15)',
+          color: '#8b949e',
+        };
     }
   };
 
@@ -175,69 +209,235 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
 
   return (
     <div style={containerStyle}>
-      <div style={headerStyle}>
-        Containers (Tasks) ({tasks.length})
-      </div>
-      <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12, marginBottom: 10 }}>
+      <div style={headerStyle}>Containers (Tasks) ({tasks.length})</div>
+      <div
+        style={{
+          color: 'var(--gh-text-secondary, #8b949e)',
+          fontSize: 12,
+          marginBottom: 10,
+        }}
+      >
         Swarm attaches tasks (containers) to networks.
       </div>
       <div style={{ flex: 1, overflow: 'auto' }}>
         <table className="panel-table" style={{ width: '100%' }}>
           <thead>
             <tr>
-              <th aria-sort={sortState.key === 'serviceName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'serviceName'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'serviceName'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'serviceName'))
+                  }
+                >
                   <span>Service</span>
-                  <span aria-hidden="true">{sortState.key === 'serviceName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'serviceName'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
               {!compact && (
-                <th aria-sort={sortState.key === 'slot' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'slot'))}>
+                <th
+                  aria-sort={
+                    sortState.key === 'slot'
+                      ? sortState.direction === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                >
+                  <button
+                    type="button"
+                    style={headerButtonStyle}
+                    onClick={() =>
+                      setSortState((cur) => toggleSortState(cur, 'slot'))
+                    }
+                  >
                     <span>Slot</span>
-                    <span aria-hidden="true">{sortState.key === 'slot' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    <span aria-hidden="true">
+                      {sortState.key === 'slot'
+                        ? sortState.direction === 'asc'
+                          ? '▲'
+                          : '▼'
+                        : '↕'}
+                    </span>
                   </button>
                 </th>
               )}
-              <th aria-sort={sortState.key === 'id' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'id'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'id'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'id'))
+                  }
+                >
                   <span>Task ID</span>
-                  <span aria-hidden="true">{sortState.key === 'id' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'id'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
-              <th aria-sort={sortState.key === 'state' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'state'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'state'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'state'))
+                  }
+                >
                   <span>State</span>
-                  <span aria-hidden="true">{sortState.key === 'state' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'state'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
               {!compact && (
-                <th aria-sort={sortState.key === 'desiredState' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'desiredState'))}>
+                <th
+                  aria-sort={
+                    sortState.key === 'desiredState'
+                      ? sortState.direction === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                >
+                  <button
+                    type="button"
+                    style={headerButtonStyle}
+                    onClick={() =>
+                      setSortState((cur) =>
+                        toggleSortState(cur, 'desiredState'),
+                      )
+                    }
+                  >
                     <span>Desired</span>
-                    <span aria-hidden="true">{sortState.key === 'desiredState' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    <span aria-hidden="true">
+                      {sortState.key === 'desiredState'
+                        ? sortState.direction === 'asc'
+                          ? '▲'
+                          : '▼'
+                        : '↕'}
+                    </span>
                   </button>
                 </th>
               )}
-              <th aria-sort={sortState.key === 'nodeName' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'nodeName'))}>
+              <th
+                aria-sort={
+                  sortState.key === 'nodeName'
+                    ? sortState.direction === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none'
+                }
+              >
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() =>
+                    setSortState((cur) => toggleSortState(cur, 'nodeName'))
+                  }
+                >
                   <span>Node</span>
-                  <span aria-hidden="true">{sortState.key === 'nodeName' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                  <span aria-hidden="true">
+                    {sortState.key === 'nodeName'
+                      ? sortState.direction === 'asc'
+                        ? '▲'
+                        : '▼'
+                      : '↕'}
+                  </span>
                 </button>
               </th>
               {!compact && (
-                <th aria-sort={sortState.key === 'containerId' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'containerId'))}>
+                <th
+                  aria-sort={
+                    sortState.key === 'containerId'
+                      ? sortState.direction === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                >
+                  <button
+                    type="button"
+                    style={headerButtonStyle}
+                    onClick={() =>
+                      setSortState((cur) => toggleSortState(cur, 'containerId'))
+                    }
+                  >
                     <span>Container ID</span>
-                    <span aria-hidden="true">{sortState.key === 'containerId' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    <span aria-hidden="true">
+                      {sortState.key === 'containerId'
+                        ? sortState.direction === 'asc'
+                          ? '▲'
+                          : '▼'
+                        : '↕'}
+                    </span>
                   </button>
                 </th>
               )}
               {!compact && (
-                <th aria-sort={sortState.key === 'error' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                  <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'error'))}>
+                <th
+                  aria-sort={
+                    sortState.key === 'error'
+                      ? sortState.direction === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  }
+                >
+                  <button
+                    type="button"
+                    style={headerButtonStyle}
+                    onClick={() =>
+                      setSortState((cur) => toggleSortState(cur, 'error'))
+                    }
+                  >
                     <span>Error</span>
-                    <span aria-hidden="true">{sortState.key === 'error' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    <span aria-hidden="true">
+                      {sortState.key === 'error'
+                        ? sortState.direction === 'asc'
+                          ? '▲'
+                          : '▼'
+                        : '↕'}
+                    </span>
                   </button>
                 </th>
               )}
@@ -253,16 +453,33 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
                   onClick={() => handleRowClick(t)}
                   onMouseEnter={() => setHoveredRow(t.id)}
                   onMouseLeave={() => setHoveredRow(null)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(t); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') handleRowClick(t);
+                  }}
                   role="button"
                   tabIndex={hasService ? 0 : -1}
-                  title={hasService ? `Open service: ${t.serviceName || t.serviceId}` : undefined}
+                  title={
+                    hasService
+                      ? `Open service: ${t.serviceName || t.serviceId}`
+                      : undefined
+                  }
                   style={{
                     cursor: hasService ? 'pointer' : 'default',
-                    background: isHovered && hasService ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                    background:
+                      isHovered && hasService
+                        ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))'
+                        : undefined,
                   }}
                 >
-                  <td style={{ fontWeight: 500, color: hasService && isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                  <td
+                    style={{
+                      fontWeight: 500,
+                      color:
+                        hasService && isHovered
+                          ? 'var(--gh-link, #58a6ff)'
+                          : undefined,
+                    }}
+                  >
                     {t.serviceName || t.serviceId || '-'}
                   </td>
                   {!compact && (
@@ -272,13 +489,15 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
                   )}
                   <td style={{ fontFamily: 'monospace', fontSize: 11 }}>
                     <span title={t.id}>
-                      {t.id ? (compact ? t.id.slice(0, 12) : t.id.slice(0, 12)) : '-'}
+                      {t.id
+                        ? compact
+                          ? t.id.slice(0, 12)
+                          : t.id.slice(0, 12)
+                        : '-'}
                     </span>
                   </td>
                   <td>
-                    <span style={getStateStyle(t.state)}>
-                      {t.state || '-'}
-                    </span>
+                    <span style={getStateStyle(t.state)}>{t.state || '-'}</span>
                   </td>
                   {!compact && (
                     <td style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>
@@ -291,12 +510,19 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
                   {!compact && (
                     <td style={{ fontFamily: 'monospace', fontSize: 11 }}>
                       {t.containerId ? (
-                        <span title={t.containerId}>{t.containerId.slice(0, 12)}</span>
-                      ) : '-'}
+                        <span title={t.containerId}>
+                          {t.containerId.slice(0, 12)}
+                        </span>
+                      ) : (
+                        '-'
+                      )}
                     </td>
                   )}
                   {!compact && (
-                    <td style={{ color: '#f85149', maxWidth: 200 }} className="wrap-text">
+                    <td
+                      style={{ color: '#f85149', maxWidth: 200 }}
+                      className="wrap-text"
+                    >
                       {t.error || '-'}
                     </td>
                   )}

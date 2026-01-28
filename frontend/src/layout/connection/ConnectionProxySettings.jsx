@@ -100,7 +100,14 @@ const secondaryButtonStyle = {
 };
 
 function ConnectionProxySettings({ onClose }) {
-  const { proxyConfig, systemProxy, editingConnectionProxy, loading, error, actions } = useConnectionsState();
+  const {
+    proxyConfig,
+    systemProxy,
+    editingConnectionProxy,
+    loading,
+    error,
+    actions,
+  } = useConnectionsState();
 
   const [authType, setAuthType] = useState(proxyConfig.authType || 'none');
   const [url, setUrl] = useState(proxyConfig.url || '');
@@ -154,7 +161,9 @@ function ConnectionProxySettings({ onClose }) {
       <div style={dialogStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
+          <h2
+            style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}
+          >
             {title}
           </h2>
           <button
@@ -190,7 +199,13 @@ function ConnectionProxySettings({ onClose }) {
             </div>
           )}
 
-          <p style={{ margin: '0 0 20px', color: 'var(--gh-text-secondary, #ccc)', fontSize: 14 }}>
+          <p
+            style={{
+              margin: '0 0 20px',
+              color: 'var(--gh-text-secondary, #ccc)',
+              fontSize: 14,
+            }}
+          >
             Configure HTTP/HTTPS proxy for API connections.
           </p>
 
@@ -200,7 +215,8 @@ function ConnectionProxySettings({ onClose }) {
             <div
               style={{
                 ...radioGroupStyle,
-                borderColor: authType === 'none' ? '#238636' : 'var(--gh-border, #30363d)',
+                borderColor:
+                  authType === 'none' ? '#238636' : 'var(--gh-border, #30363d)',
               }}
               onClick={() => setAuthType('none')}
             >
@@ -212,8 +228,15 @@ function ConnectionProxySettings({ onClose }) {
                 onChange={() => setAuthType('none')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>No Proxy</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>
+                  No Proxy
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gh-text-secondary, #8b949e)',
+                  }}
+                >
                   Connect directly without a proxy
                 </div>
               </div>
@@ -221,7 +244,10 @@ function ConnectionProxySettings({ onClose }) {
             <div
               style={{
                 ...radioGroupStyle,
-                borderColor: authType === 'system' ? '#238636' : 'var(--gh-border, #30363d)',
+                borderColor:
+                  authType === 'system'
+                    ? '#238636'
+                    : 'var(--gh-border, #30363d)',
               }}
               onClick={() => setAuthType('system')}
             >
@@ -233,8 +259,15 @@ function ConnectionProxySettings({ onClose }) {
                 onChange={() => setAuthType('system')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>Use System Proxy</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>
+                  Use System Proxy
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gh-text-secondary, #8b949e)',
+                  }}
+                >
                   Use proxy settings from environment
                 </div>
               </div>
@@ -242,7 +275,10 @@ function ConnectionProxySettings({ onClose }) {
             <div
               style={{
                 ...radioGroupStyle,
-                borderColor: authType === 'basic' ? '#238636' : 'var(--gh-border, #30363d)',
+                borderColor:
+                  authType === 'basic'
+                    ? '#238636'
+                    : 'var(--gh-border, #30363d)',
               }}
               onClick={() => setAuthType('basic')}
             >
@@ -254,8 +290,15 @@ function ConnectionProxySettings({ onClose }) {
                 onChange={() => setAuthType('basic')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>Manual Configuration</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>
+                  Manual Configuration
+                </div>
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: 'var(--gh-text-secondary, #8b949e)',
+                  }}
+                >
                   Specify proxy URL and credentials
                 </div>
               </div>
@@ -272,8 +315,16 @@ function ConnectionProxySettings({ onClose }) {
                 marginBottom: 16,
               }}
             >
-              <label style={{ ...labelStyle, marginBottom: 8 }}>Detected System Proxy:</label>
-              <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--gh-text, #ccc)' }}>
+              <label style={{ ...labelStyle, marginBottom: 8 }}>
+                Detected System Proxy:
+              </label>
+              <div
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: 'var(--gh-text, #ccc)',
+                }}
+              >
                 <div>HTTP_PROXY: {systemProxy.HTTP_PROXY || '(not set)'}</div>
                 <div>HTTPS_PROXY: {systemProxy.HTTPS_PROXY || '(not set)'}</div>
                 <div>NO_PROXY: {systemProxy.NO_PROXY || '(not set)'}</div>
@@ -329,14 +380,19 @@ function ConnectionProxySettings({ onClose }) {
 
         {/* Footer */}
         <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose} disabled={loading}>
+          <button
+            style={secondaryButtonStyle}
+            onClick={onClose}
+            disabled={loading}
+          >
             Cancel
           </button>
           <button
             id="save-proxy-btn"
             style={{
               ...primaryButtonStyle,
-              opacity: loading || (authType === 'basic' && !url.trim()) ? 0.5 : 1,
+              opacity:
+                loading || (authType === 'basic' && !url.trim()) ? 0.5 : 1,
             }}
             onClick={handleSave}
             disabled={loading || (authType === 'basic' && !url.trim())}

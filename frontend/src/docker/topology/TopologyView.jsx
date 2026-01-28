@@ -157,9 +157,10 @@ export default function TopologyView() {
     setPanelLoading(true);
     setPanelError('');
     try {
-      const data = panelKind === 'node'
-        ? await GetSwarmNode(panelId)
-        : await GetSwarmService(panelId);
+      const data =
+        panelKind === 'node'
+          ? await GetSwarmNode(panelId)
+          : await GetSwarmService(panelId);
       setPanelRow(data || null);
     } catch (e) {
       setPanelRow(null);
@@ -224,12 +225,17 @@ export default function TopologyView() {
       svcPos.set(s.id, { x: rightX, y: topPad + i * rowH });
     });
 
-    const h = Math.max(260, topPad + Math.max(nodes.length, services.length) * rowH + 40);
+    const h = Math.max(
+      260,
+      topPad + Math.max(nodes.length, services.length) * rowH + 40,
+    );
     return { w, h, leftX, rightX, nodePos, svcPos };
   }, [nodes, services]);
 
   const linkMax = useMemo(() => {
-    const ws = links.map((l) => Number(l?.weight ?? 0)).filter((x) => Number.isFinite(x));
+    const ws = links
+      .map((l) => Number(l?.weight ?? 0))
+      .filter((x) => Number.isFinite(x));
     return ws.length ? Math.max(...ws) : 1;
   }, [links]);
 
@@ -257,10 +263,14 @@ export default function TopologyView() {
 
     if (panelKind === 'node') {
       if (panelActiveTab === 'tasks') {
-        return <NodeTasksTab nodeId={panelRow.id} nodeName={panelRow.hostname} />;
+        return (
+          <NodeTasksTab nodeId={panelRow.id} nodeName={panelRow.hostname} />
+        );
       }
       if (panelActiveTab === 'logs') {
-        return <NodeLogsTab nodeId={panelRow.id} nodeName={panelRow.hostname} />;
+        return (
+          <NodeLogsTab nodeId={panelRow.id} nodeName={panelRow.hostname} />
+        );
       }
       if (panelActiveTab === 'labels') {
         return (
@@ -279,7 +289,11 @@ export default function TopologyView() {
           key: 'role',
           label: 'Role',
           layout: 'flex',
-          rightField: { key: 'leader', label: 'Leader', getValue: (d) => d.leader ? 'Yes' : 'No' },
+          rightField: {
+            key: 'leader',
+            label: 'Leader',
+            getValue: (d) => (d.leader ? 'Yes' : 'No'),
+          },
         },
         {
           key: 'availability',
@@ -293,7 +307,8 @@ export default function TopologyView() {
         {
           key: 'platform',
           label: 'Platform',
-          getValue: (d) => (d.os || d.arch) ? `${d.os || '?'} / ${d.arch || '?'}` : '-',
+          getValue: (d) =>
+            d.os || d.arch ? `${d.os || '?'} / ${d.arch || '?'}` : '-',
         },
         {
           key: 'capacity',
@@ -309,9 +324,24 @@ export default function TopologyView() {
       ];
 
       return (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
           <SummaryTabHeader name={panelRow.hostname} labels={panelRow.labels} />
-          <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <div
+            style={{
+              display: 'flex',
+              flex: 1,
+              minHeight: 0,
+              color: 'var(--gh-text, #c9d1d9)',
+            }}
+          >
             <QuickInfoSection
               resourceName={panelRow.hostname}
               data={panelRow}
@@ -326,7 +356,12 @@ export default function TopologyView() {
 
     if (panelKind === 'service') {
       if (panelActiveTab === 'tasks') {
-        return <ServiceTasksTab serviceId={panelRow.id} serviceName={panelRow.name} />;
+        return (
+          <ServiceTasksTab
+            serviceId={panelRow.id}
+            serviceName={panelRow.name}
+          />
+        );
       }
       if (panelActiveTab === 'logs') {
         return (
@@ -356,9 +391,11 @@ export default function TopologyView() {
           key: 'ports',
           label: 'Ports',
           type: 'list',
-          getValue: (d) => (Array.isArray(d.ports) ? d.ports : []).map(
-            (p) => `${p.publishedPort}:${p.targetPort}/${p.protocol}${p.publishMode ? ` (${p.publishMode})` : ''}`
-          ),
+          getValue: (d) =>
+            (Array.isArray(d.ports) ? d.ports : []).map(
+              (p) =>
+                `${p.publishedPort}:${p.targetPort}/${p.protocol}${p.publishMode ? ` (${p.publishMode})` : ''}`,
+            ),
         },
         {
           key: 'env',
@@ -370,7 +407,8 @@ export default function TopologyView() {
           key: 'mounts',
           label: 'Mounts',
           type: 'list',
-          getValue: (d) => (Array.isArray(d.mounts) ? d.mounts : []).map(formatMount),
+          getValue: (d) =>
+            (Array.isArray(d.mounts) ? d.mounts : []).map(formatMount),
         },
         {
           key: 'resources',
@@ -385,8 +423,12 @@ export default function TopologyView() {
               out.push(`limits.mem: ${formatBytes(r.limits.memoryBytes)}`);
             }
             if (r.reservations) {
-              out.push(`reservations.cpu: ${formatNanoCPUs(r.reservations.nanoCpus)}`);
-              out.push(`reservations.mem: ${formatBytes(r.reservations.memoryBytes)}`);
+              out.push(
+                `reservations.cpu: ${formatNanoCPUs(r.reservations.nanoCpus)}`,
+              );
+              out.push(
+                `reservations.mem: ${formatBytes(r.reservations.memoryBytes)}`,
+              );
             }
             return out;
           },
@@ -394,9 +436,24 @@ export default function TopologyView() {
       ];
 
       return (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}
+        >
           <SummaryTabHeader name={panelRow.name} labels={panelRow.labels} />
-          <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <div
+            style={{
+              display: 'flex',
+              flex: 1,
+              minHeight: 0,
+              color: 'var(--gh-text, #c9d1d9)',
+            }}
+          >
             <QuickInfoSection
               resourceName={panelRow.name}
               data={panelRow}
@@ -404,7 +461,14 @@ export default function TopologyView() {
               error={null}
               fields={quickInfoFields}
             />
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                position: 'relative',
+              }}
+            >
               <AggregateLogsTab
                 title="Service Logs"
                 reloadKey={panelRow.id}
@@ -427,7 +491,12 @@ export default function TopologyView() {
           <div className="topologyMeta">
             {topo?.timestamp ? `Updated: ${topo.timestamp}` : ''}
           </div>
-          <button className="topologyBtn" type="button" onClick={() => refresh({ silent: false })} disabled={loading}>
+          <button
+            className="topologyBtn"
+            type="button"
+            onClick={() => refresh({ silent: false })}
+            disabled={loading}
+          >
             {loading ? 'Refreshing…' : 'Refresh'}
           </button>
         </div>
@@ -436,7 +505,11 @@ export default function TopologyView() {
       {error ? <div className="topologyError">{error}</div> : null}
 
       <div className="topologyCanvas">
-        <svg width={layout.w} height={layout.h} viewBox={`0 0 ${layout.w} ${layout.h}`}>
+        <svg
+          width={layout.w}
+          height={layout.h}
+          viewBox={`0 0 ${layout.w} ${layout.h}`}
+        >
           {/* Links */}
           {links.map((l) => {
             const from = layout.svcPos.get(l.from);
@@ -465,7 +538,12 @@ export default function TopologyView() {
             if (!p) return null;
             return (
               <g key={n.id}>
-                <circle cx={p.x} cy={p.y} r={10} fill={nodeColorByState(n.state)} />
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={10}
+                  fill={nodeColorByState(n.state)}
+                />
                 <text x={p.x + 16} y={p.y + 4} fill="#c9d1d9" fontSize="12">
                   {n.hostname || n.id}
                 </text>
@@ -482,7 +560,13 @@ export default function TopologyView() {
             if (!p) return null;
             return (
               <g key={s.id}>
-                <rect x={p.x - 14} y={p.y - 10} width={12} height={12} fill="#a371f7" />
+                <rect
+                  x={p.x - 14}
+                  y={p.y - 10}
+                  width={12}
+                  height={12}
+                  fill="#a371f7"
+                />
                 <text x={p.x} y={p.y + 4} fill="#c9d1d9" fontSize="12">
                   {s.name || s.id}
                 </text>
@@ -494,8 +578,12 @@ export default function TopologyView() {
           })}
 
           {/* Column headers */}
-          <text x={layout.leftX} y={22} fill="#8b949e" fontSize="12">Nodes</text>
-          <text x={layout.rightX} y={22} fill="#8b949e" fontSize="12">Services</text>
+          <text x={layout.leftX} y={22} fill="#8b949e" fontSize="12">
+            Nodes
+          </text>
+          <text x={layout.rightX} y={22} fill="#8b949e" fontSize="12">
+            Services
+          </text>
         </svg>
       </div>
 
@@ -503,18 +591,22 @@ export default function TopologyView() {
         <div className="topologyList">
           <div className="topologyListTitle">Nodes</div>
           <div className="topologyListBody">
-            {nodes.length ? nodes.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                className="topologyListItemBtn"
-                data-testid="topology-node-item"
-                onClick={() => openNodeDetails(n)}
-              >
-                <div className="topologyListItemMain">{n.hostname || n.id}</div>
-                <div className="topologyListItemSub">{`${n.role || ''} • ${n.state || ''} • tasks: ${n.taskCount ?? 0}`}</div>
-              </button>
-            )) : (
+            {nodes.length ? (
+              nodes.map((n) => (
+                <button
+                  key={n.id}
+                  type="button"
+                  className="topologyListItemBtn"
+                  data-testid="topology-node-item"
+                  onClick={() => openNodeDetails(n)}
+                >
+                  <div className="topologyListItemMain">
+                    {n.hostname || n.id}
+                  </div>
+                  <div className="topologyListItemSub">{`${n.role || ''} • ${n.state || ''} • tasks: ${n.taskCount ?? 0}`}</div>
+                </button>
+              ))
+            ) : (
               <div className="topologyEmpty">No nodes found.</div>
             )}
           </div>
@@ -523,18 +615,20 @@ export default function TopologyView() {
         <div className="topologyList">
           <div className="topologyListTitle">Services</div>
           <div className="topologyListBody">
-            {services.length ? services.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                className="topologyListItemBtn"
-                data-testid="topology-service-item"
-                onClick={() => openServiceDetails(s)}
-              >
-                <div className="topologyListItemMain">{s.name || s.id}</div>
-                <div className="topologyListItemSub">{`${s.mode || ''} • running: ${s.runningTasks ?? 0} • tasks: ${s.taskCount ?? 0}`}</div>
-              </button>
-            )) : (
+            {services.length ? (
+              services.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  className="topologyListItemBtn"
+                  data-testid="topology-service-item"
+                  onClick={() => openServiceDetails(s)}
+                >
+                  <div className="topologyListItemMain">{s.name || s.id}</div>
+                  <div className="topologyListItemSub">{`${s.mode || ''} • running: ${s.runningTasks ?? 0} • tasks: ${s.taskCount ?? 0}`}</div>
+                </button>
+              ))
+            ) : (
               <div className="topologyEmpty">No services found.</div>
             )}
           </div>
@@ -542,7 +636,8 @@ export default function TopologyView() {
       </div>
 
       <div className="topologyFootnote">
-        Links show running task placement (service → node). In multi-node Swarm, data reflects what the connected manager can observe.
+        Links show running task placement (service → node). In multi-node Swarm,
+        data reflects what the connected manager can observe.
       </div>
 
       <BottomPanel

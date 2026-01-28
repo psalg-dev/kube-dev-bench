@@ -19,10 +19,7 @@ describe('StatefulSetPVCsTab', () => {
     mockGetStatefulSetDetail.mockReturnValue(new Promise(() => {}));
 
     render(
-      <StatefulSetPVCsTab
-        namespace="default"
-        statefulSetName="test-sts"
-      />
+      <StatefulSetPVCsTab namespace="default" statefulSetName="test-sts" />,
     );
 
     expect(screen.getByText(/loading/i)).toBeInTheDocument();
@@ -31,18 +28,27 @@ describe('StatefulSetPVCsTab', () => {
   it('renders PVCs when loaded', async () => {
     const mockDetail = {
       pvcs: [
-        { name: 'data-test-sts-0', status: 'Bound', capacity: '10Gi', accessModes: 'ReadWriteOnce', volumeName: 'pv-123' },
-        { name: 'data-test-sts-1', status: 'Bound', capacity: '10Gi', accessModes: 'ReadWriteOnce', volumeName: 'pv-456' },
+        {
+          name: 'data-test-sts-0',
+          status: 'Bound',
+          capacity: '10Gi',
+          accessModes: 'ReadWriteOnce',
+          volumeName: 'pv-123',
+        },
+        {
+          name: 'data-test-sts-1',
+          status: 'Bound',
+          capacity: '10Gi',
+          accessModes: 'ReadWriteOnce',
+          volumeName: 'pv-456',
+        },
       ],
     };
 
     mockGetStatefulSetDetail.mockResolvedValue(mockDetail);
 
     render(
-      <StatefulSetPVCsTab
-        namespace="default"
-        statefulSetName="test-sts"
-      />
+      <StatefulSetPVCsTab namespace="default" statefulSetName="test-sts" />,
     );
 
     await waitFor(() => {
@@ -58,10 +64,7 @@ describe('StatefulSetPVCsTab', () => {
     mockGetStatefulSetDetail.mockResolvedValue({ pvcs: [] });
 
     render(
-      <StatefulSetPVCsTab
-        namespace="default"
-        statefulSetName="empty-sts"
-      />
+      <StatefulSetPVCsTab namespace="default" statefulSetName="empty-sts" />,
     );
 
     await waitFor(() => {
@@ -73,10 +76,7 @@ describe('StatefulSetPVCsTab', () => {
     mockGetStatefulSetDetail.mockRejectedValue(new Error('Connection failed'));
 
     render(
-      <StatefulSetPVCsTab
-        namespace="default"
-        statefulSetName="failing-sts"
-      />
+      <StatefulSetPVCsTab namespace="default" statefulSetName="failing-sts" />,
     );
 
     await waitFor(() => {
@@ -93,29 +93,41 @@ describe('StatefulSetPVCsTab', () => {
       <StatefulSetPVCsTab
         namespace="my-namespace"
         statefulSetName="my-statefulset"
-      />
+      />,
     );
 
     await waitFor(() => {
-      expect(mockGetStatefulSetDetail).toHaveBeenCalledWith('my-namespace', 'my-statefulset');
+      expect(mockGetStatefulSetDetail).toHaveBeenCalledWith(
+        'my-namespace',
+        'my-statefulset',
+      );
     });
   });
 
   it('displays PVC status with appropriate styling', async () => {
     const mockDetail = {
       pvcs: [
-        { name: 'bound-pvc', status: 'Bound', storage: '5Gi', accessModes: 'ReadWriteOnce', volumeName: 'pv-bound' },
-        { name: 'pending-pvc', status: 'Pending', storage: '5Gi', accessModes: 'ReadWriteOnce', volumeName: '' },
+        {
+          name: 'bound-pvc',
+          status: 'Bound',
+          storage: '5Gi',
+          accessModes: 'ReadWriteOnce',
+          volumeName: 'pv-bound',
+        },
+        {
+          name: 'pending-pvc',
+          status: 'Pending',
+          storage: '5Gi',
+          accessModes: 'ReadWriteOnce',
+          volumeName: '',
+        },
       ],
     };
 
     mockGetStatefulSetDetail.mockResolvedValue(mockDetail);
 
     render(
-      <StatefulSetPVCsTab
-        namespace="default"
-        statefulSetName="mixed-sts"
-      />
+      <StatefulSetPVCsTab namespace="default" statefulSetName="mixed-sts" />,
     );
 
     await waitFor(() => {
@@ -130,9 +142,27 @@ describe('StatefulSetPVCsTab', () => {
   it('shows PVC count in header', async () => {
     const mockDetail = {
       pvcs: [
-        { name: 'pvc-0', status: 'Bound', storage: '1Gi', accessModes: 'RWO', volumeName: 'pv-0' },
-        { name: 'pvc-1', status: 'Bound', storage: '1Gi', accessModes: 'RWO', volumeName: 'pv-1' },
-        { name: 'pvc-2', status: 'Bound', storage: '1Gi', accessModes: 'RWO', volumeName: 'pv-2' },
+        {
+          name: 'pvc-0',
+          status: 'Bound',
+          storage: '1Gi',
+          accessModes: 'RWO',
+          volumeName: 'pv-0',
+        },
+        {
+          name: 'pvc-1',
+          status: 'Bound',
+          storage: '1Gi',
+          accessModes: 'RWO',
+          volumeName: 'pv-1',
+        },
+        {
+          name: 'pvc-2',
+          status: 'Bound',
+          storage: '1Gi',
+          accessModes: 'RWO',
+          volumeName: 'pv-2',
+        },
       ],
     };
 
@@ -142,7 +172,7 @@ describe('StatefulSetPVCsTab', () => {
       <StatefulSetPVCsTab
         namespace="default"
         statefulSetName="three-replica-sts"
-      />
+      />,
     );
 
     await waitFor(() => {

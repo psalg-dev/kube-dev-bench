@@ -26,7 +26,10 @@ beforeEach(() => {
 
 describe('ImageUpdateSettingsModal', () => {
   it('loads settings on open and populates fields', async () => {
-    swarmApi.GetImageUpdateSettings.mockResolvedValueOnce({ enabled: true, intervalSeconds: 600 });
+    swarmApi.GetImageUpdateSettings.mockResolvedValueOnce({
+      enabled: true,
+      intervalSeconds: 600,
+    });
 
     render(<ImageUpdateSettingsModal open={true} onClose={vi.fn()} />);
 
@@ -41,7 +44,10 @@ describe('ImageUpdateSettingsModal', () => {
 
   it('saves settings (minutes -> seconds) and closes', async () => {
     const onClose = vi.fn();
-    swarmApi.GetImageUpdateSettings.mockResolvedValueOnce({ enabled: false, intervalSeconds: 300 });
+    swarmApi.GetImageUpdateSettings.mockResolvedValueOnce({
+      enabled: false,
+      intervalSeconds: 300,
+    });
     swarmApi.SetImageUpdateSettings.mockResolvedValueOnce(undefined);
 
     render(<ImageUpdateSettingsModal open={true} onClose={onClose} />);
@@ -57,8 +63,13 @@ describe('ImageUpdateSettingsModal', () => {
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => {
-      expect(swarmApi.SetImageUpdateSettings).toHaveBeenCalledWith({ enabled: true, intervalSeconds: 120 });
-      expect(notifications.showSuccess).toHaveBeenCalledWith('Image update settings saved');
+      expect(swarmApi.SetImageUpdateSettings).toHaveBeenCalledWith({
+        enabled: true,
+        intervalSeconds: 120,
+      });
+      expect(notifications.showSuccess).toHaveBeenCalledWith(
+        'Image update settings saved',
+      );
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -69,12 +80,17 @@ describe('ImageUpdateSettingsModal', () => {
     render(<ImageUpdateSettingsModal open={true} onClose={vi.fn()} />);
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Failed to load image update settings: boom');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Failed to load image update settings: boom',
+      );
     });
   });
 
   it('shows save error', async () => {
-    swarmApi.GetImageUpdateSettings.mockResolvedValueOnce({ enabled: false, intervalSeconds: 300 });
+    swarmApi.GetImageUpdateSettings.mockResolvedValueOnce({
+      enabled: false,
+      intervalSeconds: 300,
+    });
     swarmApi.SetImageUpdateSettings.mockRejectedValueOnce('nope');
 
     render(<ImageUpdateSettingsModal open={true} onClose={vi.fn()} />);
@@ -83,7 +99,9 @@ describe('ImageUpdateSettingsModal', () => {
     fireEvent.click(screen.getByText('Save'));
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Failed to save image update settings: nope');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Failed to save image update settings: nope',
+      );
     });
   });
 });

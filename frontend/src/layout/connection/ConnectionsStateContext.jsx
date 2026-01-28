@@ -1,4 +1,10 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+} from 'react';
 import {
   GetKubeConfigs,
   GetKubeContextsFromFile,
@@ -36,7 +42,9 @@ function withTimeout(promise, timeoutMs, timeoutMessage) {
   const timeout = new Promise((_, reject) => {
     timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
   });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
+  return Promise.race([promise, timeout]).finally(() =>
+    clearTimeout(timeoutId),
+  );
 }
 
 const ConnectionsStateContext = createContext(null);
@@ -104,13 +112,13 @@ function reducer(state, action) {
     case 'TOGGLE_PIN': {
       const { connectionType, connectionId, connectionData } = action;
       const isPinned = state.pinnedConnections.some(
-        (c) => c.type === connectionType && c.id === connectionId
+        (c) => c.type === connectionType && c.id === connectionId,
       );
       if (isPinned) {
         return {
           ...state,
           pinnedConnections: state.pinnedConnections.filter(
-            (c) => !(c.type === connectionType && c.id === connectionId)
+            (c) => !(c.type === connectionType && c.id === connectionId),
           ),
         };
       } else {
@@ -135,7 +143,11 @@ function reducer(state, action) {
     case 'SHOW_ADD_SWARM_OVERLAY':
       return { ...state, showAddSwarmOverlay: action.show };
     case 'SHOW_PROXY_SETTINGS':
-      return { ...state, showProxySettings: action.show, editingConnectionProxy: action.connection || null };
+      return {
+        ...state,
+        showProxySettings: action.show,
+        editingConnectionProxy: action.connection || null,
+      };
 
     case 'SHOW_HOOKS_SETTINGS':
       return {
@@ -182,7 +194,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
   // Allow callers to force the initially-selected section (e.g. open on Docker Swarm)
   useEffect(() => {
     if (initialSelectedSection) {
-      dispatch({ type: 'SET_SELECTED_SECTION', section: initialSelectedSection });
+      dispatch({
+        type: 'SET_SELECTED_SECTION',
+        section: initialSelectedSection,
+      });
     }
   }, [initialSelectedSection]);
 
@@ -203,7 +218,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
       }
       return safe;
     } catch (err) {
-      dispatch({ type: 'SET_ERROR', error: 'Failed to load kubeconfig files: ' + err });
+      dispatch({
+        type: 'SET_ERROR',
+        error: 'Failed to load kubeconfig files: ' + err,
+      });
       return [];
     } finally {
       dispatch({ type: 'SET_LOADING', loading: false });
@@ -247,7 +265,9 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
       console.error('Failed to detect Docker connections:', err);
       // Still set a placeholder - use a generic value since we couldn't get the default
       const isWindows = navigator.platform?.toLowerCase().includes('win');
-      const fallbackHost = isWindows ? 'npipe:////./pipe/dockerDesktopLinuxEngine' : 'unix:///var/run/docker.sock';
+      const fallbackHost = isWindows
+        ? 'npipe:////./pipe/dockerDesktopLinuxEngine'
+        : 'unix:///var/run/docker.sock';
       dispatch({
         type: 'SET_SWARM_CONNECTIONS',
         connections: [
@@ -269,7 +289,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
   // Load proxy config
   const loadProxyConfig = useCallback(async () => {
     try {
-      const [proxyConfig, sysProxy] = await Promise.all([GetProxyConfig(), DetectSystemProxy()]);
+      const [proxyConfig, sysProxy] = await Promise.all([
+        GetProxyConfig(),
+        DetectSystemProxy(),
+      ]);
       if (proxyConfig) {
         dispatch({
           type: 'SET_PROXY_CONFIG',
@@ -316,20 +339,29 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
       offs.push(
         EventsOn('hook:started', (payload) => {
           const hookName = payload?.hook?.name || 'Hook';
-          showWarning(`Running hook: ${hookName}`, { duration: 1500, dismissible: true });
-        })
+          showWarning(`Running hook: ${hookName}`, {
+            duration: 1500,
+            dismissible: true,
+          });
+        }),
       );
       offs.push(
         EventsOn('hook:completed', (payload) => {
           const hookName = payload?.hook?.name || 'Hook';
           const res = payload?.result;
           if (res?.success) {
-            showSuccess(`Hook completed: ${hookName}`, { duration: 2000, dismissible: true });
+            showSuccess(`Hook completed: ${hookName}`, {
+              duration: 2000,
+              dismissible: true,
+            });
           } else {
             const msg = res?.error || res?.stderr || 'Hook failed';
-            showWarning(`Hook failed: ${hookName}\n${msg}`, { duration: 3000, dismissible: true });
+            showWarning(`Hook failed: ${hookName}\n${msg}`, {
+              duration: 3000,
+              dismissible: true,
+            });
           }
-        })
+        }),
       );
     } catch {
       // ignore; EventsOn may not be available in some test environments
@@ -348,22 +380,31 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
 
   // Actions
   const actions = {
-    selectSection: (section) => dispatch({ type: 'SET_SELECTED_SECTION', section }),
+    selectSection: (section) =>
+      dispatch({ type: 'SET_SELECTED_SECTION', section }),
 
-    selectKubeConfig: (config) => dispatch({ type: 'SET_SELECTED_KUBE_CONFIG', config }),
+    selectKubeConfig: (config) =>
+      dispatch({ type: 'SET_SELECTED_KUBE_CONFIG', config }),
 
     togglePin: (connectionType, connectionId, connectionData) => {
-      dispatch({ type: 'TOGGLE_PIN', connectionType, connectionId, connectionData });
+      dispatch({
+        type: 'TOGGLE_PIN',
+        connectionType,
+        connectionId,
+        connectionData,
+      });
     },
 
     isPinned: (connectionType, connectionId) => {
       return state.pinnedConnections.some(
-        (c) => c.type === connectionType && c.id === connectionId
+        (c) => c.type === connectionType && c.id === connectionId,
       );
     },
 
-    showAddKubeConfigOverlay: (show) => dispatch({ type: 'SHOW_ADD_KUBECONFIG_OVERLAY', show }),
-    showAddSwarmOverlay: (show) => dispatch({ type: 'SHOW_ADD_SWARM_OVERLAY', show }),
+    showAddKubeConfigOverlay: (show) =>
+      dispatch({ type: 'SHOW_ADD_KUBECONFIG_OVERLAY', show }),
+    showAddSwarmOverlay: (show) =>
+      dispatch({ type: 'SHOW_ADD_SWARM_OVERLAY', show }),
     showProxySettings: (show, connection = null) =>
       dispatch({ type: 'SHOW_PROXY_SETTINGS', show, connection }),
 
@@ -381,7 +422,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         const p = await SelectHookScript();
         return p || '';
       } catch (err) {
-        dispatch({ type: 'SET_ERROR', error: 'Failed to select hook script: ' + err });
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'Failed to select hook script: ' + err,
+        });
         return '';
       }
     },
@@ -448,7 +492,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         }
         return null;
       } catch (err) {
-        dispatch({ type: 'SET_ERROR', error: 'Failed to load kubeconfig file: ' + err });
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'Failed to load kubeconfig file: ' + err,
+        });
         return null;
       }
     },
@@ -461,7 +508,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         await loadKubeConfigs();
         return true;
       } catch (err) {
-        dispatch({ type: 'SET_ERROR', error: 'Failed to save kubeconfig: ' + err });
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'Failed to save kubeconfig: ' + err,
+        });
         return false;
       } finally {
         dispatch({ type: 'SET_LOADING', loading: false });
@@ -480,7 +530,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         }
         return path;
       } catch (err) {
-        dispatch({ type: 'SET_ERROR', error: 'Failed to save kubeconfig: ' + err });
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'Failed to save kubeconfig: ' + err,
+        });
         return null;
       } finally {
         dispatch({ type: 'SET_LOADING', loading: false });
@@ -546,7 +599,10 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         dispatch({ type: 'SET_PROXY_CONFIG', config });
         return true;
       } catch (err) {
-        dispatch({ type: 'SET_ERROR', error: 'Failed to save proxy config: ' + err });
+        dispatch({
+          type: 'SET_ERROR',
+          error: 'Failed to save proxy config: ' + err,
+        });
         return false;
       } finally {
         dispatch({ type: 'SET_LOADING', loading: false });
@@ -566,7 +622,7 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         const result = await withTimeout(
           TestDockerConnection(dockerConfig),
           15_000,
-          'Docker connection test timed out'
+          'Docker connection test timed out',
         );
         return result;
       } catch (err) {
@@ -588,16 +644,23 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
         const result = await withTimeout(
           ConnectToDocker(dockerConfig),
           30_000,
-          'Docker connect timed out'
+          'Docker connect timed out',
         );
 
-		// Surface hook-abort errors as notifications.
-		if (result && !result.connected && String(result.error || '').includes('pre-connect hook aborted')) {
-			showError('Docker connection aborted by hook', { duration: 3000 });
-		}
+        // Surface hook-abort errors as notifications.
+        if (
+          result &&
+          !result.connected &&
+          String(result.error || '').includes('pre-connect hook aborted')
+        ) {
+          showError('Docker connection aborted by hook', { duration: 3000 });
+        }
         return result;
       } catch (err) {
-        dispatch({ type: 'SET_ERROR', error: `Failed to connect to Docker: ${err}` });
+        dispatch({
+          type: 'SET_ERROR',
+          error: `Failed to connect to Docker: ${err}`,
+        });
         return { connected: false, error: err.toString() };
       } finally {
         dispatch({ type: 'SET_LOADING', loading: false });
@@ -630,7 +693,9 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }) {
 export function useConnectionsState() {
   const ctx = useContext(ConnectionsStateContext);
   if (!ctx) {
-    throw new Error('useConnectionsState must be used within ConnectionsStateProvider');
+    throw new Error(
+      'useConnectionsState must be used within ConnectionsStateProvider',
+    );
   }
   return ctx;
 }

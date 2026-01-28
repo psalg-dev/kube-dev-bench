@@ -16,18 +16,24 @@ export default function MetricsChart({
     .filter((v) => Number.isFinite(v));
 
   if (values.length < 2) {
-    return <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>{emptyText}</div>;
+    return (
+      <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+        {emptyText}
+      </div>
+    );
   }
 
   const min = Math.min(...values);
   const max = Math.max(...values);
   const span = Math.max(1, max - min);
 
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * (width - 2) + 1;
-    const y = height - 1 - ((v - min) / span) * (height - 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  const pts = values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * (width - 2) + 1;
+      const y = height - 1 - ((v - min) / span) * (height - 2);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
 
   return (
     <svg

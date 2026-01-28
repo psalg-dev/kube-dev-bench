@@ -6,7 +6,8 @@ import './HolmesConfigModal.css';
  * HolmesConfigModal - Configuration overlay for Holmes AI settings
  */
 export function HolmesConfigModal() {
-  const { state, saveConfig, clearConfig, testConnection, hideConfigModal } = useHolmes();
+  const { state, saveConfig, clearConfig, testConnection, hideConfigModal } =
+    useHolmes();
   const [formData, setFormData] = useState({
     enabled: false,
     endpoint: '',
@@ -28,13 +29,19 @@ export function HolmesConfigModal() {
         responseFormat: state.responseFormat || '',
       });
     }
-  }, [state.showConfig, state.enabled, state.endpoint, state.modelKey, state.responseFormat]);
+  }, [
+    state.showConfig,
+    state.enabled,
+    state.endpoint,
+    state.modelKey,
+    state.responseFormat,
+  ]);
 
   if (!state.showConfig) return null;
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
@@ -121,7 +128,8 @@ export function HolmesConfigModal() {
                 <span>Enable Holmes AI</span>
               </label>
               <p className="holmes-config-help">
-                Holmes AI provides intelligent troubleshooting for your Kubernetes cluster.
+                Holmes AI provides intelligent troubleshooting for your
+                Kubernetes cluster.
               </p>
             </div>
 
@@ -138,7 +146,8 @@ export function HolmesConfigModal() {
                 disabled={!formData.enabled}
               />
               <p className="holmes-config-help">
-                URL of the HolmesGPT API server (e.g., http://localhost:8080 or in-cluster URL)
+                URL of the HolmesGPT API server (e.g., http://localhost:8080 or
+                in-cluster URL)
               </p>
             </div>
 
@@ -156,7 +165,8 @@ export function HolmesConfigModal() {
                 autoComplete="off"
               />
               <p className="holmes-config-help">
-                API key for authentication (only required if your Holmes instance requires it)
+                API key for authentication (only required if your Holmes
+                instance requires it)
               </p>
             </div>
 
@@ -173,12 +183,15 @@ export function HolmesConfigModal() {
                 disabled={!formData.enabled}
               />
               <p className="holmes-config-help">
-                Use a modelList key from your HolmesGPT Helm values for faster responses.
+                Use a modelList key from your HolmesGPT Helm values for faster
+                responses.
               </p>
             </div>
 
             <div className="holmes-config-field">
-              <label htmlFor="holmes-response-format">Response format (JSON schema, optional)</label>
+              <label htmlFor="holmes-response-format">
+                Response format (JSON schema, optional)
+              </label>
               <textarea
                 id="holmes-response-format"
                 name="responseFormat"
@@ -190,7 +203,8 @@ export function HolmesConfigModal() {
                 rows={6}
               />
               <p className="holmes-config-help">
-                Provide a JSON schema to structure responses. Leave empty for free-form output.
+                Provide a JSON schema to structure responses. Leave empty for
+                free-form output.
               </p>
             </div>
           </div>

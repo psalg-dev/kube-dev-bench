@@ -73,10 +73,18 @@ func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
 // StartStatefulSetPolling emits statefulsets:update events periodically with the current statefulset list
 func (a *App) StartStatefulSetPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
@@ -93,7 +101,7 @@ func (a *App) StartStatefulSetPolling() {
 				}
 				all = append(all, list...)
 			}
-			emitEvent(a.ctx, "statefulsets:update", all)
+			emitEvent(ctx, "statefulsets:update", all)
 		}
 	}()
 }

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { GetImageUpdateSettings, SetImageUpdateSettings } from '../../swarmApi.js';
+import {
+  GetImageUpdateSettings,
+  SetImageUpdateSettings,
+} from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';
 
 export default function ImageUpdateSettingsModal({ open, onClose }) {
@@ -86,12 +89,28 @@ export default function ImageUpdateSettingsModal({ open, onClose }) {
   return (
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ margin: 0, color: 'var(--gh-text)' }}>Image Update Detection</h3>
-        <div style={{ marginTop: 10, color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
-          When enabled, KubeDevBench periodically checks registry digests and updates the Services table.
+        <h3 style={{ margin: 0, color: 'var(--gh-text)' }}>
+          Image Update Detection
+        </h3>
+        <div
+          style={{
+            marginTop: 10,
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+          }}
+        >
+          When enabled, KubeDevBench periodically checks registry digests and
+          updates the Services table.
         </div>
 
-        <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div
+          style={{
+            marginTop: 14,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
           <input
             id="swarm-image-update-enabled"
             type="checkbox"
@@ -99,13 +118,23 @@ export default function ImageUpdateSettingsModal({ open, onClose }) {
             onChange={(e) => setEnabled(e.target.checked)}
             disabled={loading || saving}
           />
-          <label htmlFor="swarm-image-update-enabled" style={{ color: 'var(--gh-text)' }}>
+          <label
+            htmlFor="swarm-image-update-enabled"
+            style={{ color: 'var(--gh-text)' }}
+          >
             Enable auto-check
           </label>
         </div>
 
         <div style={{ marginTop: 14 }}>
-          <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: 6,
+              color: 'var(--gh-text-secondary, #8b949e)',
+              fontSize: 12,
+            }}
+          >
             Check interval (minutes)
           </label>
           <input
@@ -127,14 +156,33 @@ export default function ImageUpdateSettingsModal({ open, onClose }) {
               boxSizing: 'border-box',
             }}
           />
-          <div style={{ marginTop: 6, color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+          <div
+            style={{
+              marginTop: 6,
+              color: 'var(--gh-text-secondary, #8b949e)',
+              fontSize: 12,
+            }}
+          >
             Minimum enforced by backend. Default is 5 minutes.
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <button style={button} onClick={onClose} disabled={saving}>Cancel</button>
-          <button style={{ ...button, backgroundColor: '#238636', color: '#fff' }} onClick={save} disabled={!canSave || saving}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+            marginTop: 16,
+          }}
+        >
+          <button style={button} onClick={onClose} disabled={saving}>
+            Cancel
+          </button>
+          <button
+            style={{ ...button, backgroundColor: '#238636', color: '#fff' }}
+            onClick={save}
+            disabled={!canSave || saving}
+          >
             Save
           </button>
         </div>

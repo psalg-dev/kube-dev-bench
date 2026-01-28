@@ -22,7 +22,9 @@ export default function HolmesBottomPanel({
   const startedAt = queryTimestamp ? new Date(queryTimestamp) : null;
   const startedLabel = startedAt ? startedAt.toLocaleTimeString() : '';
   const visibleTools = Array.isArray(toolEvents) ? toolEvents.slice(0, 5) : [];
-  const visibleSteps = Array.isArray(contextSteps) ? contextSteps.slice(0, 6) : [];
+  const visibleSteps = Array.isArray(contextSteps)
+    ? contextSteps.slice(0, 6)
+    : [];
 
   return (
     <div className="holmes-bottom-panel">
@@ -64,19 +66,30 @@ export default function HolmesBottomPanel({
               </span>
             </div>
             <ul className="holmes-bottom-panel-progress-list">
-              {startedAt && (
-                <li>Request started at {startedLabel}</li>
-              )}
-              <li>{hasStreamOutput ? 'Receiving response from Holmes' : 'Waiting for first response'}</li>
+              {startedAt && <li>Request started at {startedLabel}</li>}
+              <li>
+                {hasStreamOutput
+                  ? 'Receiving response from Holmes'
+                  : 'Waiting for first response'}
+              </li>
               {visibleSteps.length > 0 && (
                 <li>
                   <div className="holmes-bottom-panel-steps">
                     {visibleSteps.map((step) => (
-                      <div key={step.id || step.step} className={`holmes-bottom-panel-step holmes-bottom-panel-step-${step.status || 'running'}`}>
-                        <span className="holmes-bottom-panel-step-name">{step.step || step.label}</span>
-                        <span className="holmes-bottom-panel-step-status">{step.status || 'running'}</span>
+                      <div
+                        key={step.id || step.step}
+                        className={`holmes-bottom-panel-step holmes-bottom-panel-step-${step.status || 'running'}`}
+                      >
+                        <span className="holmes-bottom-panel-step-name">
+                          {step.step || step.label}
+                        </span>
+                        <span className="holmes-bottom-panel-step-status">
+                          {step.status || 'running'}
+                        </span>
                         {step.detail && (
-                          <span className="holmes-bottom-panel-step-desc">{step.detail}</span>
+                          <span className="holmes-bottom-panel-step-desc">
+                            {step.detail}
+                          </span>
                         )}
                       </div>
                     ))}
@@ -87,11 +100,20 @@ export default function HolmesBottomPanel({
                 <li>
                   <div className="holmes-bottom-panel-tools">
                     {visibleTools.map((tool) => (
-                      <div key={tool.id} className={`holmes-bottom-panel-tool holmes-bottom-panel-tool-${tool.status || 'running'}`}>
-                        <span className="holmes-bottom-panel-tool-name">{tool.name || 'tool'}</span>
-                        <span className="holmes-bottom-panel-tool-status">{tool.status || 'running'}</span>
+                      <div
+                        key={tool.id}
+                        className={`holmes-bottom-panel-tool holmes-bottom-panel-tool-${tool.status || 'running'}`}
+                      >
+                        <span className="holmes-bottom-panel-tool-name">
+                          {tool.name || 'tool'}
+                        </span>
+                        <span className="holmes-bottom-panel-tool-status">
+                          {tool.status || 'running'}
+                        </span>
                         {tool.description && (
-                          <span className="holmes-bottom-panel-tool-desc">{tool.description}</span>
+                          <span className="holmes-bottom-panel-tool-desc">
+                            {tool.description}
+                          </span>
                         )}
                       </div>
                     ))}
@@ -121,7 +143,6 @@ export default function HolmesBottomPanel({
           <HolmesResponseRenderer response={response} />
         </div>
       )}
-
     </div>
   );
 }

@@ -14,7 +14,8 @@ export const getColumnKey = (column) => {
 };
 
 const getColumnLabel = (column) => {
-  const label = column?.label ?? column?.header ?? column?.title ?? column?.name;
+  const label =
+    column?.label ?? column?.header ?? column?.title ?? column?.name;
   return label ? String(label) : '';
 };
 
@@ -71,7 +72,11 @@ const normalizeSortValue = (value, sortKey) => {
   if (typeof value === 'boolean') return value ? 1 : 0;
 
   const key = String(sortKey || '').toLowerCase();
-  if (key.includes('age') || key.includes('uptime') || key.includes('duration')) {
+  if (
+    key.includes('age') ||
+    key.includes('uptime') ||
+    key.includes('duration')
+  ) {
     const duration = parseDurationToSeconds(value);
     if (duration !== null) return duration;
   }
@@ -97,7 +102,10 @@ const compareValues = (a, b) => {
     return a - b;
   }
 
-  return String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+  return String(a).localeCompare(String(b), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
 };
 
 export const sortRows = (rows, sortKey, direction = 'asc', getValue) => {
@@ -105,7 +113,8 @@ export const sortRows = (rows, sortKey, direction = 'asc', getValue) => {
   if (!sortKey) return rows;
 
   const dir = direction === 'desc' ? -1 : 1;
-  const valueGetter = typeof getValue === 'function' ? getValue : ((row, key) => row?.[key]);
+  const valueGetter =
+    typeof getValue === 'function' ? getValue : (row, key) => row?.[key];
 
   return rows
     .map((row, idx) => ({ row, idx }))

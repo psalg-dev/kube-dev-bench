@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
-import { CheckServiceImageUpdates, UpdateSwarmServiceImage } from '../../swarmApi.js';
+import {
+  CheckServiceImageUpdates,
+  UpdateSwarmServiceImage,
+} from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';
 
 function shortDigest(d) {
   const s = String(d || '').trim();
   if (!s) return '-';
-  if (s.startsWith('sha256:') && s.length > 20) return `${s.slice(0, 14)}…${s.slice(-6)}`;
+  if (s.startsWith('sha256:') && s.length > 20)
+    return `${s.slice(0, 14)}…${s.slice(-6)}`;
   return s.length > 32 ? `${s.slice(0, 28)}…` : s;
 }
 
@@ -95,40 +99,147 @@ export default function ImageUpdateModal({ open, service, onClose }) {
   return (
     <div style={overlay} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            gap: 12,
+          }}
+        >
           <h3 style={{ margin: 0, color: 'var(--gh-text)' }}>Image Updates</h3>
-          <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>{stateLabel}</div>
-        </div>
-
-        <div style={{ marginTop: 10, color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
-          Service: <span style={{ color: 'var(--gh-text)' }}>{serviceName || serviceId}</span>
-        </div>
-
-        <div style={{ marginTop: 10, padding: 12, border: '1px solid var(--gh-border, #30363d)', background: 'rgba(110,118,129,0.10)' }}>
-          <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)', marginBottom: 6 }}>Image</div>
-          <div style={{ fontSize: 12, color: 'var(--gh-text)', wordBreak: 'break-all' }}>{image || '-'}</div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
-          <div style={{ padding: 12, border: '1px solid var(--gh-border, #30363d)' }}>
-            <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>Local digest</div>
-            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gh-text)' }}>{shortDigest(localDigest)}</div>
-          </div>
-          <div style={{ padding: 12, border: '1px solid var(--gh-border, #30363d)' }}>
-            <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>Remote digest</div>
-            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--gh-text)' }}>{shortDigest(remoteDigest)}</div>
+          <div
+            style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}
+          >
+            {stateLabel}
           </div>
         </div>
 
-        <div style={{ marginTop: 10, color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
+        <div
+          style={{
+            marginTop: 10,
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+          }}
+        >
+          Service:{' '}
+          <span style={{ color: 'var(--gh-text)' }}>
+            {serviceName || serviceId}
+          </span>
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            padding: 12,
+            border: '1px solid var(--gh-border, #30363d)',
+            background: 'rgba(110,118,129,0.10)',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--gh-text-secondary, #8b949e)',
+              marginBottom: 6,
+            }}
+          >
+            Image
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--gh-text)',
+              wordBreak: 'break-all',
+            }}
+          >
+            {image || '-'}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
+          <div
+            style={{
+              padding: 12,
+              border: '1px solid var(--gh-border, #30363d)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--gh-text-secondary, #8b949e)',
+              }}
+            >
+              Local digest
+            </div>
+            <div
+              style={{ marginTop: 6, fontSize: 12, color: 'var(--gh-text)' }}
+            >
+              {shortDigest(localDigest)}
+            </div>
+          </div>
+          <div
+            style={{
+              padding: 12,
+              border: '1px solid var(--gh-border, #30363d)',
+            }}
+          >
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--gh-text-secondary, #8b949e)',
+              }}
+            >
+              Remote digest
+            </div>
+            <div
+              style={{ marginTop: 6, fontSize: 12, color: 'var(--gh-text)' }}
+            >
+              {shortDigest(remoteDigest)}
+            </div>
+          </div>
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            color: 'var(--gh-text-secondary, #8b949e)',
+            fontSize: 12,
+          }}
+        >
           Checked: {checkedAt || '-'}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
-          <button style={button} onClick={onClose} disabled={busy}>Close</button>
-          <button style={button} onClick={runCheck} disabled={!serviceId || busy}>Check now</button>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: 8,
+            marginTop: 16,
+          }}
+        >
+          <button style={button} onClick={onClose} disabled={busy}>
+            Close
+          </button>
           <button
-            style={{ ...button, backgroundColor: updateAvailable ? '#d29922' : '#238636', color: '#fff' }}
+            style={button}
+            onClick={runCheck}
+            disabled={!serviceId || busy}
+          >
+            Check now
+          </button>
+          <button
+            style={{
+              ...button,
+              backgroundColor: updateAvailable ? '#d29922' : '#238636',
+              color: '#fff',
+            }}
             onClick={updateNow}
             disabled={!serviceId || !image || busy}
             title="Triggers a rolling update using the current image reference"

@@ -48,7 +48,9 @@ vi.mock('../docker/registry/AddRegistryModal.jsx', () => ({
 
 vi.mock('../docker/registry/RegistryBrowser.jsx', () => ({
   default: ({ registryName, registryType }) => (
-    <div data-testid="registry-browser">{registryName}::{registryType}</div>
+    <div data-testid="registry-browser">
+      {registryName}::{registryType}
+    </div>
   ),
 }));
 
@@ -64,16 +66,18 @@ beforeEach(() => {
 
 describe('SwarmRegistriesOverview', () => {
   it('loads registries, opens bottom panel, and can remove a registry', async () => {
-    swarmApi.GetRegistries
-      .mockResolvedValueOnce([
-        { name: 'Docker Hub', type: 'dockerhub', url: 'https://registry-1.docker.io' },
-        { name: 'Generic', type: 'generic_v2', url: 'https://reg.example.com' },
-        { name: 'ECR', type: 'ecr', url: '' },
-        { name: 'Custom', type: 'foo', url: 'http://custom' },
-      ])
-      .mockResolvedValueOnce([
-        { name: 'Generic', type: 'generic_v2', url: 'https://reg.example.com' },
-      ]);
+    swarmApi.GetRegistries.mockResolvedValueOnce([
+      {
+        name: 'Docker Hub',
+        type: 'dockerhub',
+        url: 'https://registry-1.docker.io',
+      },
+      { name: 'Generic', type: 'generic_v2', url: 'https://reg.example.com' },
+      { name: 'ECR', type: 'ecr', url: '' },
+      { name: 'Custom', type: 'foo', url: 'http://custom' },
+    ]).mockResolvedValueOnce([
+      { name: 'Generic', type: 'generic_v2', url: 'https://reg.example.com' },
+    ]);
 
     vi.spyOn(window, 'confirm').mockImplementation(() => true);
     swarmApi.RemoveRegistry.mockResolvedValueOnce(undefined);
@@ -92,17 +96,23 @@ describe('SwarmRegistriesOverview', () => {
     expect(screen.getByText('foo')).toBeTruthy();
 
     // Open bottom panel by clicking the first row
-    const dockerHubRow = screen.getByText('https://registry-1.docker.io').closest('tr');
+    const dockerHubRow = screen
+      .getByText('https://registry-1.docker.io')
+      .closest('tr');
     expect(dockerHubRow).toBeTruthy();
     fireEvent.click(dockerHubRow);
-    expect(await screen.findByTestId('registry-browser')).toHaveTextContent('Docker Hub::dockerhub');
+    expect(await screen.findByTestId('registry-browser')).toHaveTextContent(
+      'Docker Hub::dockerhub',
+    );
 
     // Remove
     fireEvent.click(screen.getByTitle('Remove registry'));
 
     await waitFor(() => {
       expect(swarmApi.RemoveRegistry).toHaveBeenCalledWith('Docker Hub');
-      expect(notifications.showSuccess).toHaveBeenCalledWith('Removed registry Docker Hub');
+      expect(notifications.showSuccess).toHaveBeenCalledWith(
+        'Removed registry Docker Hub',
+      );
     });
 
     // After removal, it reloads

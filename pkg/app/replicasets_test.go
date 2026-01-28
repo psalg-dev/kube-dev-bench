@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -218,6 +219,44 @@ func TestGetReplicaSets_Details(t *testing.T) {
 	}
 	if r.Labels["version"] != "1.0" {
 		t.Errorf("expected label version=1.0, got %q", r.Labels["version"])
+	}
+}
+
+func TestStartReplicaSetPolling_ListActions(t *testing.T) {
+	disableWailsEvents = true
+
+	clientset := fake.NewSimpleClientset(&appsv1.ReplicaSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "rs-1", Namespace: "default"},
+		Spec: appsv1.ReplicaSetSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "x"}},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "x"}},
+				Spec:       v1.PodSpec{},
+			},
+		},
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:              ctx,
+		currentNamespace: "default",
+		testClientset:    clientset,
+	}
+
+	app.StartReplicaSetPolling()
+	start := time.Now()
+	for time.Since(start) < 1500*time.Millisecond {
+		if hasListAction(clientset.Actions(), "replicasets") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+
+	if !hasListAction(clientset.Actions(), "replicasets") {
+		t.Fatalf("expected replicasets list action")
 	}
 }
 

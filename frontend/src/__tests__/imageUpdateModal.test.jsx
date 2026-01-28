@@ -25,12 +25,20 @@ beforeEach(() => {
 
 describe('ImageUpdateModal', () => {
   it('renders null when closed', () => {
-    const { container } = render(<ImageUpdateModal open={false} service={{}} onClose={vi.fn()} />);
+    const { container } = render(
+      <ImageUpdateModal open={false} service={{}} onClose={vi.fn()} />,
+    );
     expect(container.textContent).toBe('');
   });
 
   it('shows unknown state when digests missing', () => {
-    render(<ImageUpdateModal open={true} service={{ id: 's1', name: 'svc', image: 'nginx:latest' }} onClose={vi.fn()} />);
+    render(
+      <ImageUpdateModal
+        open={true}
+        service={{ id: 's1', name: 'svc', image: 'nginx:latest' }}
+        onClose={vi.fn()}
+      />,
+    );
     expect(screen.getByText('Unknown')).toBeTruthy();
     expect(screen.getByText('Image Updates')).toBeTruthy();
   });
@@ -38,24 +46,42 @@ describe('ImageUpdateModal', () => {
   it('check now shows success when no error', async () => {
     swarmApi.CheckServiceImageUpdates.mockResolvedValueOnce({ s1: {} });
 
-    render(<ImageUpdateModal open={true} service={{ id: 's1', name: 'svc', image: 'nginx:latest' }} onClose={vi.fn()} />);
+    render(
+      <ImageUpdateModal
+        open={true}
+        service={{ id: 's1', name: 'svc', image: 'nginx:latest' }}
+        onClose={vi.fn()}
+      />,
+    );
 
     fireEvent.click(screen.getByText('Check now'));
 
     await waitFor(() => {
       expect(swarmApi.CheckServiceImageUpdates).toHaveBeenCalledWith(['s1']);
-      expect(notifications.showSuccess).toHaveBeenCalledWith('Image update check complete');
+      expect(notifications.showSuccess).toHaveBeenCalledWith(
+        'Image update check complete',
+      );
     });
   });
 
   it('check now shows error when response includes error', async () => {
-    swarmApi.CheckServiceImageUpdates.mockResolvedValueOnce({ s1: { error: 'bad auth' } });
+    swarmApi.CheckServiceImageUpdates.mockResolvedValueOnce({
+      s1: { error: 'bad auth' },
+    });
 
-    render(<ImageUpdateModal open={true} service={{ id: 's1', name: 'svc', image: 'nginx:latest' }} onClose={vi.fn()} />);
+    render(
+      <ImageUpdateModal
+        open={true}
+        service={{ id: 's1', name: 'svc', image: 'nginx:latest' }}
+        onClose={vi.fn()}
+      />,
+    );
     fireEvent.click(screen.getByText('Check now'));
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Image update check failed: bad auth');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Image update check failed: bad auth',
+      );
     });
   });
 
@@ -75,14 +101,19 @@ describe('ImageUpdateModal', () => {
           imageUpdateAvailable: true,
         }}
         onClose={onClose}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('Update now'));
 
     await waitFor(() => {
-      expect(swarmApi.UpdateSwarmServiceImage).toHaveBeenCalledWith('s1', 'nginx:latest');
-      expect(notifications.showSuccess).toHaveBeenCalledWith('Triggered update for svc');
+      expect(swarmApi.UpdateSwarmServiceImage).toHaveBeenCalledWith(
+        's1',
+        'nginx:latest',
+      );
+      expect(notifications.showSuccess).toHaveBeenCalledWith(
+        'Triggered update for svc',
+      );
       expect(onClose).toHaveBeenCalled();
     });
   });
@@ -95,13 +126,15 @@ describe('ImageUpdateModal', () => {
         open={true}
         service={{ id: 's1', name: 'svc', image: 'nginx:latest' }}
         onClose={vi.fn()}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('Update now'));
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Failed to trigger update: boom');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Failed to trigger update: boom',
+      );
     });
   });
 });

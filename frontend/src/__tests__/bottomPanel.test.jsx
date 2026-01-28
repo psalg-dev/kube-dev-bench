@@ -8,7 +8,18 @@ function Wrapper({ initialTab = 'one', open = true }) {
   return (
     <BottomPanel
       open={open}
-      tabs={[{ key: 'one', label: 'One', content: <div data-testid="content-one">ONE</div> }, { key: 'two', label: 'Two', content: <div data-testid="content-two">TWO</div> }]}
+      tabs={[
+        {
+          key: 'one',
+          label: 'One',
+          content: <div data-testid="content-one">ONE</div>,
+        },
+        {
+          key: 'two',
+          label: 'Two',
+          content: <div data-testid="content-two">TWO</div>,
+        },
+      ]}
       activeTab={active}
       onTabChange={setActive}
       onClose={vi.fn()}
@@ -51,7 +62,9 @@ describe('BottomPanel', () => {
     fireEvent.mouseUp(document, { clientY: 460 });
     const after = panel.style.height;
     expect(after).not.toBe(initial);
-    expect(Number(after.replace('px',''))).toBeGreaterThan(Number(initial.replace('px','')) - 1); // increased
+    expect(Number(after.replace('px', ''))).toBeGreaterThan(
+      Number(initial.replace('px', '')) - 1,
+    ); // increased
     // Height persisted
     expect(localStorage.getItem('bottompanel.height')).toBeTruthy();
   });
@@ -60,7 +73,15 @@ describe('BottomPanel', () => {
     const onClose = vi.fn();
     function CustomWrapper() {
       const [active, setActive] = useState('one');
-      return <BottomPanel open tabs={[{ key: 'one', label: 'One', content: <div /> }]} activeTab={active} onTabChange={setActive} onClose={onClose} />;
+      return (
+        <BottomPanel
+          open
+          tabs={[{ key: 'one', label: 'One', content: <div /> }]}
+          activeTab={active}
+          onTabChange={setActive}
+          onClose={onClose}
+        />
+      );
     }
     render(<CustomWrapper />);
     const closeBtn = screen.getByTitle('Close');
@@ -68,4 +89,3 @@ describe('BottomPanel', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
-

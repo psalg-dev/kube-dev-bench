@@ -73,10 +73,18 @@ func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
 // StartReplicaSetPolling emits replicasets:update events periodically with the current replicaset list
 func (a *App) StartReplicaSetPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
@@ -93,7 +101,7 @@ func (a *App) StartReplicaSetPolling() {
 				}
 				all = append(all, list...)
 			}
-			emitEvent(a.ctx, "replicasets:update", all)
+			emitEvent(ctx, "replicasets:update", all)
 		}
 	}()
 }

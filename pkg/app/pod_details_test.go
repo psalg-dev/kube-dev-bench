@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,6 +118,85 @@ func TestGetPodYAML_NoNamespace(t *testing.T) {
 	if err == nil {
 		t.Error("expected error when no namespace selected")
 	}
+}
+
+func TestBuildInitContainerInfo(t *testing.T) {
+	now := time.Now().UTC()
+
+	t.Run("no init containers", func(t *testing.T) {
+		pod := &corev1.Pod{}
+		if got := buildInitContainerInfo(pod); got != nil {
+			t.Fatalf("expected nil, got %+v", got)
+		}
+	})
+
+	t.Run("waiting", func(t *testing.T) {
+		pod := &corev1.Pod{
+			Spec: corev1.PodSpec{InitContainers: []corev1.Container{{Name: "init", Image: "busybox"}}},
+			Status: corev1.PodStatus{InitContainerStatuses: []corev1.ContainerStatus{{
+				Name:         "init",
+				Ready:        false,
+				RestartCount: 2,
+				State:        corev1.ContainerState{Waiting: &corev1.ContainerStateWaiting{Reason: "Init", Message: "starting"}},
+			}}},
+		}
+
+		info := buildInitContainerInfo(pod)
+		if len(info) != 1 || info[0].State != "Waiting" || info[0].StateReason != "Init" {
+			t.Fatalf("unexpected info: %+v", info)
+		}
+	})
+
+	t.Run("running", func(t *testing.T) {
+		pod := &corev1.Pod{
+			Spec: corev1.PodSpec{InitContainers: []corev1.Container{{Name: "init", Image: "busybox"}}},
+			Status: corev1.PodStatus{InitContainerStatuses: []corev1.ContainerStatus{{
+				Name:         "init",
+				Ready:        true,
+				RestartCount: 1,
+				State:        corev1.ContainerState{Running: &corev1.ContainerStateRunning{StartedAt: metav1.NewTime(now)}},
+			}}},
+		}
+
+		info := buildInitContainerInfo(pod)
+		if len(info) != 1 || info[0].State != "Running" || info[0].StartedAt == "" {
+			t.Fatalf("unexpected info: %+v", info)
+		}
+	})
+
+	t.Run("terminated", func(t *testing.T) {
+		finished := now.Add(5 * time.Second)
+		pod := &corev1.Pod{
+			Spec: corev1.PodSpec{InitContainers: []corev1.Container{{Name: "init", Image: "busybox"}}},
+			Status: corev1.PodStatus{InitContainerStatuses: []corev1.ContainerStatus{{
+				Name:         "init",
+				Ready:        false,
+				RestartCount: 0,
+				State: corev1.ContainerState{Terminated: &corev1.ContainerStateTerminated{
+					Reason:     "Done",
+					Message:    "ok",
+					ExitCode:   0,
+					StartedAt:  metav1.NewTime(now),
+					FinishedAt: metav1.NewTime(finished),
+				}},
+			}}},
+		}
+
+		info := buildInitContainerInfo(pod)
+		if len(info) != 1 || info[0].State != "Terminated" || info[0].FinishedAt == "" {
+			t.Fatalf("unexpected info: %+v", info)
+		}
+	})
+
+	t.Run("missing status", func(t *testing.T) {
+		pod := &corev1.Pod{
+			Spec: corev1.PodSpec{InitContainers: []corev1.Container{{Name: "init", Image: "busybox"}}},
+		}
+		info := buildInitContainerInfo(pod)
+		if len(info) != 1 || info[0].State != "Pending" || info[0].StateReason != "ContainerNotStarted" {
+			t.Fatalf("unexpected info: %+v", info)
+		}
+	})
 }
 
 // Tests for GetPodContainers

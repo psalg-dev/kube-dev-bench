@@ -18,7 +18,9 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function getContainer() { return document.getElementById('gh-notification-container'); }
+function getContainer() {
+  return document.getElementById('gh-notification-container');
+}
 
 describe('notification system', () => {
   it('injects styles & container once', () => {
@@ -37,7 +39,9 @@ describe('notification system', () => {
     showSuccess('first');
     showWarning('second');
     const container = getContainer();
-    const texts = [...container.querySelectorAll('.gh-notification__text')].map(n=>n.textContent);
+    const texts = [...container.querySelectorAll('.gh-notification__text')].map(
+      (n) => n.textContent,
+    );
     expect(texts[0]).toBe('second');
     expect(texts[1]).toBe('first');
   });
@@ -113,19 +117,31 @@ describe('notification system', () => {
       toJSON: () => ({}),
     });
 
-    note.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 60, clientY: 100 }));
+    note.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, clientX: 60, clientY: 100 }),
+    );
     expect(note.style.position).toBe('fixed');
     expect(note.style.left).toBe('50px');
     expect(note.style.top).toBe('80px');
 
-    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 70, clientY: 110 }));
+    document.dispatchEvent(
+      new MouseEvent('mousemove', { bubbles: true, clientX: 70, clientY: 110 }),
+    );
     expect(note.style.left).toBe('60px');
     expect(note.style.top).toBe('90px');
 
-    document.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: 70, clientY: 110 }));
+    document.dispatchEvent(
+      new MouseEvent('mouseup', { bubbles: true, clientX: 70, clientY: 110 }),
+    );
     const afterLeft = note.style.left;
     const afterTop = note.style.top;
-    document.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, clientX: 200, clientY: 300 }));
+    document.dispatchEvent(
+      new MouseEvent('mousemove', {
+        bubbles: true,
+        clientX: 200,
+        clientY: 300,
+      }),
+    );
     expect(note.style.left).toBe(afterLeft);
     expect(note.style.top).toBe(afterTop);
   });
@@ -148,8 +164,9 @@ describe('notification system', () => {
       toJSON: () => ({}),
     });
 
-    close.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: 15, clientY: 25 }));
+    close.dispatchEvent(
+      new MouseEvent('mousedown', { bubbles: true, clientX: 15, clientY: 25 }),
+    );
     expect(note.style.position).not.toBe('fixed');
   });
 });
-

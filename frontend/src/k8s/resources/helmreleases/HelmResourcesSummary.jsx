@@ -97,7 +97,8 @@ function getHealthColor(health) {
 
   if (!h || h === '…' || h === '...') return muted;
   if (h.startsWith('healthy') || h === 'ok') return success;
-  if (h.startsWith('progressing') || h === 'suspended' || h === 'pending') return attention;
+  if (h.startsWith('progressing') || h === 'suspended' || h === 'pending')
+    return attention;
   if (h === 'unhealthy' || h === 'failed' || h === 'error') return danger;
   if (h === 'missing' || h === 'unknown') return muted;
 
@@ -129,7 +130,10 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
       .map(parseResourceFromManifestDoc)
       .filter(Boolean)
       .map((r) => {
-        if ((r.namespace === '-' || !r.namespace) && !isLikelyClusterScopedKind(r.kind)) {
+        if (
+          (r.namespace === '-' || !r.namespace) &&
+          !isLikelyClusterScopedKind(r.kind)
+        ) {
           return { ...r, namespace: namespace || '-' };
         }
         return r;
@@ -220,22 +224,34 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
         case 'Deployment': {
           const d = nsData?.deployments?.get(name);
           if (!d) return 'Missing';
-          return computeWorkloadHealth({ ready: d.ready ?? d.Ready, desired: d.replicas ?? d.Replicas });
+          return computeWorkloadHealth({
+            ready: d.ready ?? d.Ready,
+            desired: d.replicas ?? d.Replicas,
+          });
         }
         case 'StatefulSet': {
           const s = nsData?.statefulSets?.get(name);
           if (!s) return 'Missing';
-          return computeWorkloadHealth({ ready: s.ready ?? s.Ready, desired: s.replicas ?? s.Replicas });
+          return computeWorkloadHealth({
+            ready: s.ready ?? s.Ready,
+            desired: s.replicas ?? s.Replicas,
+          });
         }
         case 'DaemonSet': {
           const ds = nsData?.daemonSets?.get(name);
           if (!ds) return 'Missing';
-          return computeWorkloadHealth({ ready: ds.current ?? ds.Current, desired: ds.desired ?? ds.Desired });
+          return computeWorkloadHealth({
+            ready: ds.current ?? ds.Current,
+            desired: ds.desired ?? ds.Desired,
+          });
         }
         case 'ReplicaSet': {
           const rs = nsData?.replicaSets?.get(name);
           if (!rs) return 'Missing';
-          return computeWorkloadHealth({ ready: rs.ready ?? rs.Ready, desired: rs.replicas ?? rs.Replicas });
+          return computeWorkloadHealth({
+            ready: rs.ready ?? rs.Ready,
+            desired: rs.replicas ?? rs.Replicas,
+          });
         }
         case 'Job': {
           const j = nsData?.jobs?.get(name);
@@ -288,9 +304,11 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
         new Set(
           resources
             .filter((r) => !isLikelyClusterScopedKind(r.kind))
-            .map((r) => (r.namespace && r.namespace !== '-' ? r.namespace : namespace))
-            .filter(Boolean)
-        )
+            .map((r) =>
+              r.namespace && r.namespace !== '-' ? r.namespace : namespace,
+            )
+            .filter(Boolean),
+        ),
       );
 
       const nsDataByNamespace = new Map();
@@ -298,7 +316,7 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
         namespacesNeeded.map(async (ns) => {
           const nsData = await fetchForNamespace(ns);
           nsDataByNamespace.set(ns, nsData);
-        })
+        }),
       );
 
       const next = {};
@@ -320,7 +338,8 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
 
   const effectiveNamespace = (r) => {
     if (!r) return namespace;
-    if (r.namespace && r.namespace !== '-' && r.namespace !== '') return r.namespace;
+    if (r.namespace && r.namespace !== '-' && r.namespace !== '')
+      return r.namespace;
     return namespace;
   };
 
@@ -329,7 +348,9 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
       detail: {
         resource: r.kind,
         name: r.name,
-        namespace: isLikelyClusterScopedKind(r.kind) ? '' : (effectiveNamespace(r) || ''),
+        namespace: isLikelyClusterScopedKind(r.kind)
+          ? ''
+          : effectiveNamespace(r) || '',
       },
     });
     window.dispatchEvent(event);
@@ -337,19 +358,55 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
 
   if (loading) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: 44,
+            padding: '0 12px',
+            borderBottom: '1px solid var(--gh-border, #30363d)',
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: 600,
+          }}
+        >
           Resources
         </div>
-        <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading resources...</div>
+        <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+          Loading resources...
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: 44,
+            padding: '0 12px',
+            borderBottom: '1px solid var(--gh-border, #30363d)',
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: 600,
+          }}
+        >
           Resources
         </div>
         <div style={{ padding: 16, color: '#d73a49' }}>Error: {error}</div>
@@ -359,18 +416,54 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
 
   if (resources.length === 0) {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: 44,
+            padding: '0 12px',
+            borderBottom: '1px solid var(--gh-border, #30363d)',
+            display: 'flex',
+            alignItems: 'center',
+            fontWeight: 600,
+          }}
+        >
           Resources
         </div>
-        <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No resources found</div>
+        <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+          No resources found
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}
+    >
+      <div
+        style={{
+          height: 44,
+          padding: '0 12px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          display: 'flex',
+          alignItems: 'center',
+          fontWeight: 600,
+        }}
+      >
         Resources ({resources.length})
       </div>
       <style>{`
@@ -390,12 +483,39 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
         }
       `}</style>
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-        <table className="helm-resources-summary-table panel-table" style={{ fontSize: 13, width: '100%', borderCollapse: 'collapse' }}>
+        <table
+          className="helm-resources-summary-table panel-table"
+          style={{ fontSize: 13, width: '100%', borderCollapse: 'collapse' }}
+        >
           <thead>
             <tr>
-              <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid var(--gh-border, #3c3c3c)' }}>Health</th>
-              <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid var(--gh-border, #3c3c3c)' }}>Kind</th>
-              <th style={{ padding: '10px 12px', textAlign: 'left', borderBottom: '1px solid var(--gh-border, #3c3c3c)' }}>Name</th>
+              <th
+                style={{
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  borderBottom: '1px solid var(--gh-border, #3c3c3c)',
+                }}
+              >
+                Health
+              </th>
+              <th
+                style={{
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  borderBottom: '1px solid var(--gh-border, #3c3c3c)',
+                }}
+              >
+                Kind
+              </th>
+              <th
+                style={{
+                  padding: '10px 12px',
+                  textAlign: 'left',
+                  borderBottom: '1px solid var(--gh-border, #3c3c3c)',
+                }}
+              >
+                Name
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -406,13 +526,47 @@ export default function HelmResourcesSummary({ namespace, releaseName }) {
                 style={{ cursor: 'pointer' }}
                 title={`Open ${r.kind} ${r.name}`}
               >
-                <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--gh-border, #3c3c3c)', whiteSpace: 'nowrap' }}>
-                  <span style={{ color: getHealthColor(healthByKey[`${r.kind}/${r.namespace}/${r.name}`]), fontWeight: 600 }}>
+                <td
+                  style={{
+                    padding: '10px 12px',
+                    borderBottom: '1px solid var(--gh-border, #3c3c3c)',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <span
+                    style={{
+                      color: getHealthColor(
+                        healthByKey[`${r.kind}/${r.namespace}/${r.name}`],
+                      ),
+                      fontWeight: 600,
+                    }}
+                  >
                     {healthByKey[`${r.kind}/${r.namespace}/${r.name}`] || '…'}
                   </span>
                 </td>
-                <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--gh-border, #3c3c3c)', fontWeight: 500 }}>{r.kind}</td>
-                <td style={{ padding: '10px 12px', borderBottom: '1px solid var(--gh-border, #3c3c3c)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--gh-text-muted, #858585)' }} title={r.name}>{r.name}</td>
+                <td
+                  style={{
+                    padding: '10px 12px',
+                    borderBottom: '1px solid var(--gh-border, #3c3c3c)',
+                    fontWeight: 500,
+                  }}
+                >
+                  {r.kind}
+                </td>
+                <td
+                  style={{
+                    padding: '10px 12px',
+                    borderBottom: '1px solid var(--gh-border, #3c3c3c)',
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    color: 'var(--gh-text-muted, #858585)',
+                  }}
+                  title={r.name}
+                >
+                  {r.name}
+                </td>
               </tr>
             ))}
           </tbody>

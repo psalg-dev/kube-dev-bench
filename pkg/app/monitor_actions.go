@@ -15,6 +15,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const monitorIssuesFileName = "monitor_issues.json"
@@ -158,6 +159,188 @@ func (a *App) enrichMonitorInfo(info MonitorInfo) MonitorInfo {
 	return info
 }
 
+type issueBuckets struct {
+	warnings []MonitorIssue
+	errors   []MonitorIssue
+}
+
+func (b *issueBuckets) add(issue MonitorIssue) {
+	if issue.Type == "error" {
+		b.errors = append(b.errors, issue)
+		return
+	}
+	b.warnings = append(b.warnings, issue)
+}
+
+func (b *issueBuckets) merge(issues []MonitorIssue) {
+	for _, issue := range issues {
+		b.add(issue)
+	}
+}
+
+func (a *App) collectNamespaceIssues(ctx context.Context, clientset kubernetes.Interface, nsName string) []MonitorIssue {
+	issues := append([]MonitorIssue{}, a.checkPodIssues(nsName)...)
+	issues = append(issues, a.checkEventIssues(nsName)...)
+	issues = append(issues, deploymentIssues(ctx, clientset, nsName)...)
+	issues = append(issues, statefulSetIssues(ctx, clientset, nsName)...)
+	issues = append(issues, daemonSetIssues(ctx, clientset, nsName)...)
+	issues = append(issues, quotaIssues(ctx, clientset, nsName)...)
+	return issues
+}
+
+func deploymentIssues(ctx context.Context, clientset kubernetes.Interface, namespace string) []MonitorIssue {
+	deployments, _ := clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+	issues := make([]MonitorIssue, 0, len(deployments.Items))
+	for _, deploy := range deployments.Items {
+		desired := int32(1)
+		if deploy.Spec.Replicas != nil {
+			desired = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < desired {
+			issues = append(issues, MonitorIssue{
+				Type:      "warning",
+				Resource:  "Deployment",
+				Namespace: namespace,
+				Name:      deploy.Name,
+				Reason:    "UnavailableReplicas",
+				Message:   fmt.Sprintf("Ready replicas %d/%d", deploy.Status.ReadyReplicas, desired),
+				Age:       formatAge(deploy.CreationTimestamp.Time),
+			})
+		}
+	}
+	return issues
+}
+
+func statefulSetIssues(ctx context.Context, clientset kubernetes.Interface, namespace string) []MonitorIssue {
+	statefulSets, _ := clientset.AppsV1().StatefulSets(namespace).List(ctx, metav1.ListOptions{})
+	issues := make([]MonitorIssue, 0, len(statefulSets.Items))
+	for _, sts := range statefulSets.Items {
+		desired := int32(1)
+		if sts.Spec.Replicas != nil {
+			desired = *sts.Spec.Replicas
+		}
+		if sts.Status.ReadyReplicas < desired {
+			issues = append(issues, MonitorIssue{
+				Type:      "warning",
+				Resource:  "StatefulSet",
+				Namespace: namespace,
+				Name:      sts.Name,
+				Reason:    "UnavailableReplicas",
+				Message:   fmt.Sprintf("Ready replicas %d/%d", sts.Status.ReadyReplicas, desired),
+				Age:       formatAge(sts.CreationTimestamp.Time),
+			})
+		}
+	}
+	return issues
+}
+
+func daemonSetIssues(ctx context.Context, clientset kubernetes.Interface, namespace string) []MonitorIssue {
+	daemonSets, _ := clientset.AppsV1().DaemonSets(namespace).List(ctx, metav1.ListOptions{})
+	issues := make([]MonitorIssue, 0, len(daemonSets.Items))
+	for _, ds := range daemonSets.Items {
+		if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
+			issues = append(issues, MonitorIssue{
+				Type:      "warning",
+				Resource:  "DaemonSet",
+				Namespace: namespace,
+				Name:      ds.Name,
+				Reason:    "UnavailablePods",
+				Message:   fmt.Sprintf("Ready %d/%d", ds.Status.NumberReady, ds.Status.DesiredNumberScheduled),
+				Age:       formatAge(ds.CreationTimestamp.Time),
+			})
+		}
+	}
+	return issues
+}
+
+func quotaIssues(ctx context.Context, clientset kubernetes.Interface, namespace string) []MonitorIssue {
+	quotas, _ := clientset.CoreV1().ResourceQuotas(namespace).List(ctx, metav1.ListOptions{})
+	issues := []MonitorIssue{}
+	for _, quota := range quotas.Items {
+		for resourceName, hard := range quota.Status.Hard {
+			used, ok := quota.Status.Used[resourceName]
+			if !ok {
+				continue
+			}
+			if used.Cmp(hard) >= 0 {
+				issues = append(issues, MonitorIssue{
+					Type:      "warning",
+					Resource:  "ResourceQuota",
+					Namespace: namespace,
+					Name:      quota.Name,
+					Reason:    "QuotaExceeded",
+					Message:   fmt.Sprintf("%s usage %s/%s", resourceName, used.String(), hard.String()),
+					Age:       formatAge(quota.CreationTimestamp.Time),
+				})
+			}
+		}
+	}
+	return issues
+}
+
+func nodeIssues(nodes []v1.Node) []MonitorIssue {
+	issues := []MonitorIssue{}
+	for _, node := range nodes {
+		age := formatAge(node.CreationTimestamp.Time)
+		for _, cond := range node.Status.Conditions {
+			reason := string(cond.Type)
+			message := cond.Message
+			if cond.Type == v1.NodeReady && cond.Status != v1.ConditionTrue {
+				issues = append(issues, MonitorIssue{
+					Type:      "error",
+					Resource:  "Node",
+					Namespace: "",
+					Name:      node.Name,
+					Reason:    "NotReady",
+					Message:   message,
+					Age:       age,
+				})
+				continue
+			}
+			if strings.Contains(string(cond.Type), "Pressure") && cond.Status == v1.ConditionTrue {
+				issues = append(issues, MonitorIssue{
+					Type:      "warning",
+					Resource:  "Node",
+					Namespace: "",
+					Name:      node.Name,
+					Reason:    reason,
+					Message:   message,
+					Age:       age,
+				})
+			}
+		}
+	}
+	return issues
+}
+
+func persistentVolumeIssues(pvs []v1.PersistentVolume) []MonitorIssue {
+	issues := []MonitorIssue{}
+	for _, pv := range pvs {
+		age := formatAge(pv.CreationTimestamp.Time)
+		switch pv.Status.Phase {
+		case v1.VolumeFailed:
+			issues = append(issues, MonitorIssue{
+				Type:     "error",
+				Resource: "PersistentVolume",
+				Name:     pv.Name,
+				Reason:   "VolumeFailed",
+				Message:  pv.Status.Message,
+				Age:      age,
+			})
+		case v1.VolumePending:
+			issues = append(issues, MonitorIssue{
+				Type:     "warning",
+				Resource: "PersistentVolume",
+				Name:     pv.Name,
+				Reason:   "VolumePending",
+				Message:  pv.Status.Message,
+				Age:      age,
+			})
+		}
+	}
+	return issues
+}
+
 // ScanClusterHealth performs a deep scan across all namespaces.
 func (a *App) ScanClusterHealth() (MonitorInfo, error) {
 	clientset, err := a.getKubernetesInterface()
@@ -174,165 +357,24 @@ func (a *App) ScanClusterHealth() (MonitorInfo, error) {
 		return MonitorInfo{}, err
 	}
 
-	var warnings []MonitorIssue
-	var errors []MonitorIssue
+	buckets := issueBuckets{}
 
 	for _, ns := range nsList.Items {
 		nsName := ns.Name
-		podIssues := a.checkPodIssues(nsName)
-		for _, issue := range podIssues {
-			if issue.Type == "error" {
-				errors = append(errors, issue)
-			} else {
-				warnings = append(warnings, issue)
-			}
-		}
-
-		eventIssues := a.checkEventIssues(nsName)
-		for _, issue := range eventIssues {
-			if issue.Type == "error" {
-				errors = append(errors, issue)
-			} else {
-				warnings = append(warnings, issue)
-			}
-		}
-
-		deployments, _ := clientset.AppsV1().Deployments(nsName).List(ctx, metav1.ListOptions{})
-		for _, deploy := range deployments.Items {
-			desired := int32(1)
-			if deploy.Spec.Replicas != nil {
-				desired = *deploy.Spec.Replicas
-			}
-			if deploy.Status.ReadyReplicas < desired {
-				issues := MonitorIssue{
-					Type:      "warning",
-					Resource:  "Deployment",
-					Namespace: nsName,
-					Name:      deploy.Name,
-					Reason:    "UnavailableReplicas",
-					Message:   fmt.Sprintf("Ready replicas %d/%d", deploy.Status.ReadyReplicas, desired),
-					Age:       formatAge(deploy.CreationTimestamp.Time),
-				}
-				warnings = append(warnings, issues)
-			}
-		}
-
-		statefulSets, _ := clientset.AppsV1().StatefulSets(nsName).List(ctx, metav1.ListOptions{})
-		for _, sts := range statefulSets.Items {
-			desired := int32(1)
-			if sts.Spec.Replicas != nil {
-				desired = *sts.Spec.Replicas
-			}
-			if sts.Status.ReadyReplicas < desired {
-				warnings = append(warnings, MonitorIssue{
-					Type:      "warning",
-					Resource:  "StatefulSet",
-					Namespace: nsName,
-					Name:      sts.Name,
-					Reason:    "UnavailableReplicas",
-					Message:   fmt.Sprintf("Ready replicas %d/%d", sts.Status.ReadyReplicas, desired),
-					Age:       formatAge(sts.CreationTimestamp.Time),
-				})
-			}
-		}
-
-		daemonSets, _ := clientset.AppsV1().DaemonSets(nsName).List(ctx, metav1.ListOptions{})
-		for _, ds := range daemonSets.Items {
-			if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
-				warnings = append(warnings, MonitorIssue{
-					Type:      "warning",
-					Resource:  "DaemonSet",
-					Namespace: nsName,
-					Name:      ds.Name,
-					Reason:    "UnavailablePods",
-					Message:   fmt.Sprintf("Ready %d/%d", ds.Status.NumberReady, ds.Status.DesiredNumberScheduled),
-					Age:       formatAge(ds.CreationTimestamp.Time),
-				})
-			}
-		}
-
-		quotas, _ := clientset.CoreV1().ResourceQuotas(nsName).List(ctx, metav1.ListOptions{})
-		for _, quota := range quotas.Items {
-			for resourceName, hard := range quota.Status.Hard {
-				used, ok := quota.Status.Used[resourceName]
-				if !ok {
-					continue
-				}
-				if used.Cmp(hard) >= 0 {
-					warnings = append(warnings, MonitorIssue{
-						Type:      "warning",
-						Resource:  "ResourceQuota",
-						Namespace: nsName,
-						Name:      quota.Name,
-						Reason:    "QuotaExceeded",
-						Message:   fmt.Sprintf("%s usage %s/%s", resourceName, used.String(), hard.String()),
-						Age:       formatAge(quota.CreationTimestamp.Time),
-					})
-				}
-			}
-		}
+		buckets.merge(a.collectNamespaceIssues(ctx, clientset, nsName))
 	}
 
 	nodes, _ := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
-	for _, node := range nodes.Items {
-		age := formatAge(node.CreationTimestamp.Time)
-		for _, cond := range node.Status.Conditions {
-			reason := string(cond.Type)
-			message := cond.Message
-			if cond.Type == v1.NodeReady && cond.Status != v1.ConditionTrue {
-				errors = append(errors, MonitorIssue{
-					Type:      "error",
-					Resource:  "Node",
-					Namespace: "",
-					Name:      node.Name,
-					Reason:    "NotReady",
-					Message:   message,
-					Age:       age,
-				})
-			} else if strings.Contains(string(cond.Type), "Pressure") && cond.Status == v1.ConditionTrue {
-				warnings = append(warnings, MonitorIssue{
-					Type:      "warning",
-					Resource:  "Node",
-					Namespace: "",
-					Name:      node.Name,
-					Reason:    reason,
-					Message:   message,
-					Age:       age,
-				})
-			}
-		}
-	}
+	buckets.merge(nodeIssues(nodes.Items))
 
 	pvs, _ := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
-	for _, pv := range pvs.Items {
-		age := formatAge(pv.CreationTimestamp.Time)
-		switch pv.Status.Phase {
-		case v1.VolumeFailed:
-			errors = append(errors, MonitorIssue{
-				Type:     "error",
-				Resource: "PersistentVolume",
-				Name:     pv.Name,
-				Reason:   "VolumeFailed",
-				Message:  pv.Status.Message,
-				Age:      age,
-			})
-		case v1.VolumePending:
-			warnings = append(warnings, MonitorIssue{
-				Type:     "warning",
-				Resource: "PersistentVolume",
-				Name:     pv.Name,
-				Reason:   "VolumePending",
-				Message:  pv.Status.Message,
-				Age:      age,
-			})
-		}
-	}
+	buckets.merge(persistentVolumeIssues(pvs.Items))
 
 	info := MonitorInfo{
-		WarningCount: len(warnings),
-		ErrorCount:   len(errors),
-		Warnings:     warnings,
-		Errors:       errors,
+		WarningCount: len(buckets.warnings),
+		ErrorCount:   len(buckets.errors),
+		Warnings:     buckets.warnings,
+		Errors:       buckets.errors,
 	}
 	return a.enrichMonitorInfo(info), nil
 }

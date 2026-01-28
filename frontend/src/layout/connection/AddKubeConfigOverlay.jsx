@@ -117,7 +117,10 @@ function AddKubeConfigOverlay({ onClose, onSuccess }) {
         setLocalError('Please provide a name for the configuration');
         return;
       }
-      const success = await actions.saveCustomKubeConfig(configName, configContent);
+      const success = await actions.saveCustomKubeConfig(
+        configName,
+        configContent,
+      );
       if (success) {
         onSuccess();
       }
@@ -145,8 +148,12 @@ function AddKubeConfigOverlay({ onClose, onSuccess }) {
       <div style={dialogStyle}>
         {/* Header */}
         <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
-            {isFirstConfig ? '☸️ Create Your First Kubeconfig' : '☸️ Add Kubeconfig'}
+          <h2
+            style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}
+          >
+            {isFirstConfig
+              ? '☸️ Create Your First Kubeconfig'
+              : '☸️ Add Kubeconfig'}
           </h2>
           <button
             onClick={onClose}
@@ -186,7 +193,14 @@ function AddKubeConfigOverlay({ onClose, onSuccess }) {
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>Configuration Type</label>
               <div style={{ display: 'flex', gap: 12 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                  }}
+                >
                   <input
                     type="radio"
                     name="mode"
@@ -194,9 +208,18 @@ function AddKubeConfigOverlay({ onClose, onSuccess }) {
                     checked={mode === 'paste'}
                     onChange={() => setMode('paste')}
                   />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Save as primary (~/.kube/kubeconfig)</span>
+                  <span style={{ color: 'var(--gh-text, #fff)' }}>
+                    Save as primary (~/.kube/kubeconfig)
+                  </span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    cursor: 'pointer',
+                  }}
+                >
                   <input
                     type="radio"
                     name="mode"
@@ -204,7 +227,9 @@ function AddKubeConfigOverlay({ onClose, onSuccess }) {
                     checked={mode === 'named'}
                     onChange={() => setMode('named')}
                   />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Save with custom name</span>
+                  <span style={{ color: 'var(--gh-text, #fff)' }}>
+                    Save with custom name
+                  </span>
                 </label>
               </div>
             </div>
@@ -257,25 +282,36 @@ users:
             />
           </div>
 
-          <p style={{ margin: 0, color: 'var(--gh-text-tertiary, #999)', fontSize: 12 }}>
+          <p
+            style={{
+              margin: 0,
+              color: 'var(--gh-text-tertiary, #999)',
+              fontSize: 12,
+            }}
+          >
             {isFirstConfig
               ? 'Paste your kubeconfig YAML content above. This will be saved as your primary kubeconfig.'
               : mode === 'paste'
-              ? 'This will overwrite your primary kubeconfig at ~/.kube/kubeconfig'
-              : 'This will save a custom kubeconfig that you can select later'}
+                ? 'This will overwrite your primary kubeconfig at ~/.kube/kubeconfig'
+                : 'This will save a custom kubeconfig that you can select later'}
           </p>
         </div>
 
         {/* Footer */}
         <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose} disabled={loading}>
+          <button
+            style={secondaryButtonStyle}
+            onClick={onClose}
+            disabled={loading}
+          >
             Cancel
           </button>
           <button
             style={{
               ...primaryButtonStyle,
               opacity: loading || !configContent.trim() ? 0.5 : 1,
-              cursor: loading || !configContent.trim() ? 'not-allowed' : 'pointer',
+              cursor:
+                loading || !configContent.trim() ? 'not-allowed' : 'pointer',
             }}
             onClick={handleSave}
             disabled={loading || !configContent.trim()}

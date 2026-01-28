@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { GetSwarmEvents as ApiGetSwarmEvents, GetSwarmServiceEvents as ApiGetSwarmServiceEvents } from '../swarmApi.js';
+import {
+  GetSwarmEvents as ApiGetSwarmEvents,
+  GetSwarmServiceEvents as ApiGetSwarmServiceEvents,
+} from '../swarmApi.js';
 import './SwarmEventsTab.css';
 
 /**
@@ -24,7 +27,9 @@ export default function SwarmEventsTab({ serviceId, sinceMinutes = 30 }) {
         data = await ApiGetSwarmEvents(sinceMinutes);
       }
       // Sort by time descending (most recent first)
-      const sorted = (data || []).sort((a, b) => (b.timeUnix || 0) - (a.timeUnix || 0));
+      const sorted = (data || []).sort(
+        (a, b) => (b.timeUnix || 0) - (a.timeUnix || 0),
+      );
       setEvents(sorted);
     } catch (err) {
       setError(err.message || 'Failed to load events');
@@ -75,20 +80,34 @@ export default function SwarmEventsTab({ serviceId, sinceMinutes = 30 }) {
 
   const getEventTypeColor = (type) => {
     switch (type) {
-      case 'service': return '#58a6ff';
-      case 'container': return '#3fb950';
-      case 'node': return '#d29922';
-      case 'network': return '#a371f7';
-      case 'volume': return '#8b949e';
-      case 'config': return '#79c0ff';
-      case 'secret': return '#f85149';
-      default: return '#8b949e';
+      case 'service':
+        return '#58a6ff';
+      case 'container':
+        return '#3fb950';
+      case 'node':
+        return '#d29922';
+      case 'network':
+        return '#a371f7';
+      case 'volume':
+        return '#8b949e';
+      case 'config':
+        return '#79c0ff';
+      case 'secret':
+        return '#f85149';
+      default:
+        return '#8b949e';
     }
   };
 
   const getActionColor = (action) => {
     if (action.includes('create') || action.includes('start')) return '#3fb950';
-    if (action.includes('remove') || action.includes('delete') || action.includes('die') || action.includes('kill')) return '#f85149';
+    if (
+      action.includes('remove') ||
+      action.includes('delete') ||
+      action.includes('die') ||
+      action.includes('kill')
+    )
+      return '#f85149';
     if (action.includes('update') || action.includes('scale')) return '#d29922';
     return '#8b949e';
   };
@@ -96,7 +115,11 @@ export default function SwarmEventsTab({ serviceId, sinceMinutes = 30 }) {
   const formatTime = (timeStr) => {
     try {
       const date = new Date(timeStr);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
     } catch {
       return timeStr;
     }
@@ -106,22 +129,37 @@ export default function SwarmEventsTab({ serviceId, sinceMinutes = 30 }) {
     <div className="swarm-events-tab">
       <div className="events-header">
         <span className="events-count">{events.length} events</span>
-        <button type="button" onClick={fetchEvents} className="refresh-btn" title="Refresh events">
+        <button
+          type="button"
+          onClick={fetchEvents}
+          className="refresh-btn"
+          title="Refresh events"
+        >
           ↻
         </button>
       </div>
       <div className="events-list">
         {events.map((event, idx) => (
-          <div key={`${event.actor}-${event.timeUnix}-${idx}`} className="event-item">
+          <div
+            key={`${event.actor}-${event.timeUnix}-${idx}`}
+            className="event-item"
+          >
             <div className="event-time">{formatTime(event.time)}</div>
-            <div className="event-type" style={{ color: getEventTypeColor(event.type) }}>
+            <div
+              className="event-type"
+              style={{ color: getEventTypeColor(event.type) }}
+            >
               {event.type}
             </div>
-            <div className="event-action" style={{ color: getActionColor(event.action) }}>
+            <div
+              className="event-action"
+              style={{ color: getActionColor(event.action) }}
+            >
               {event.action}
             </div>
             <div className="event-actor" title={event.actor}>
-              {event.actorName || (event.actor ? `${event.actor.substring(0, 12)}...` : '-')}
+              {event.actorName ||
+                (event.actor ? `${event.actor.substring(0, 12)}...` : '-')}
             </div>
           </div>
         ))}

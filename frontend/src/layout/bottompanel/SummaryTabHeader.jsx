@@ -7,7 +7,13 @@ import LabelsInline from '../../LabelsInline.jsx';
  * Updated: Removed centered "Summary for <name>" title. Now header just shows labels (or '-' if none) left-aligned.
  * hideTitle is retained for backward compatibility but has no visual difference now.
  */
-export default function SummaryTabHeader({ _name, labels, _hideTitle = false, actions = null }) { // name kept in signature in case future use
+export default function SummaryTabHeader({
+  _name,
+  labels,
+  _hideTitle = false,
+  actions = null,
+}) {
+  // name kept in signature in case future use
   const normalized = useMemo(() => {
     if (!labels || typeof labels !== 'object') return {};
     return labels;
@@ -28,18 +34,38 @@ export default function SummaryTabHeader({ _name, labels, _hideTitle = false, ac
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        textAlign: 'left'
+        textAlign: 'left',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, overflow: 'hidden' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          flexWrap: 'wrap',
+          flex: 1,
+          overflow: 'hidden',
+        }}
+      >
         {hasLabels ? (
-          <LabelsInline labels={normalized} maxVisible={6} style={{ maxWidth: '100%' }} />
+          <LabelsInline
+            labels={normalized}
+            maxVisible={6}
+            style={{ maxWidth: '100%' }}
+          />
         ) : (
           <span style={{ opacity: 0.6, fontSize: 12 }}>-</span>
         )}
       </div>
       {actions && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            marginLeft: 'auto',
+          }}
+        >
           {actions}
         </div>
       )}

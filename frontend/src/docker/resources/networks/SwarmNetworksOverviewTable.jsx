@@ -6,7 +6,10 @@ import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import NetworkConnectedServicesTable from './NetworkConnectedServicesTable.jsx';
 import NetworkConnectedContainersTable from './NetworkConnectedContainersTable.jsx';
 import NetworkInspectTab from './NetworkInspectTab.jsx';
-import { NetworkIPAMSection, NetworkOptionsSection } from './NetworkDetailsSections.jsx';
+import {
+  NetworkIPAMSection,
+  NetworkOptionsSection,
+} from './NetworkDetailsSections.jsx';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
@@ -20,22 +23,36 @@ import { showSuccess, showError } from '../../../notification.js';
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'driver', label: 'Driver' },
-  { key: 'scope', label: 'Scope', cell: ({ getValue }) => {
-    const scope = getValue();
-    const isSwarm = scope === 'swarm';
-    return (
-      <span style={{ color: isSwarm ? '#58a6ff' : 'inherit' }}>
-        {scope}
-      </span>
-    );
-  }},
-  { key: 'attachable', label: 'Attachable', cell: ({ getValue }) => getValue() ? 'Yes' : 'No' },
-  { key: 'internal', label: 'Internal', cell: ({ getValue }) => getValue() ? 'Yes' : 'No' },
-  { key: 'createdAt', label: 'Created', cell: ({ getValue }) => {
-    const val = getValue();
-    if (!val) return '-';
-    return formatTimestampDMYHMS(val);
-  }},
+  {
+    key: 'scope',
+    label: 'Scope',
+    cell: ({ getValue }) => {
+      const scope = getValue();
+      const isSwarm = scope === 'swarm';
+      return (
+        <span style={{ color: isSwarm ? '#58a6ff' : 'inherit' }}>{scope}</span>
+      );
+    },
+  },
+  {
+    key: 'attachable',
+    label: 'Attachable',
+    cell: ({ getValue }) => (getValue() ? 'Yes' : 'No'),
+  },
+  {
+    key: 'internal',
+    label: 'Internal',
+    cell: ({ getValue }) => (getValue() ? 'Yes' : 'No'),
+  },
+  {
+    key: 'createdAt',
+    label: 'Created',
+    cell: ({ getValue }) => {
+      const val = getValue();
+      if (!val) return '-';
+      return formatTimestampDMYHMS(val);
+    },
+  },
 ];
 
 const bottomTabs = [
@@ -51,14 +68,28 @@ function renderPanelContent(row, tab, onRefresh) {
     { key: 'name', label: 'Name' },
     { key: 'driver', label: 'Driver' },
     { key: 'scope', label: 'Scope' },
-    { key: 'attachable', label: 'Attachable', getValue: (d) => d.attachable ? 'Yes' : 'No' },
-    { key: 'internal', label: 'Internal', getValue: (d) => d.internal ? 'Yes' : 'No' },
+    {
+      key: 'attachable',
+      label: 'Attachable',
+      getValue: (d) => (d.attachable ? 'Yes' : 'No'),
+    },
+    {
+      key: 'internal',
+      label: 'Internal',
+      getValue: (d) => (d.internal ? 'Yes' : 'No'),
+    },
     { key: 'labels', label: 'Labels', type: 'labels' },
     { key: 'createdAt', label: 'Created', type: 'date' },
   ];
 
   // Can't delete built-in networks
-  const isBuiltIn = ['bridge', 'host', 'none', 'ingress', 'docker_gwbridge'].includes(row.name);
+  const isBuiltIn = [
+    'bridge',
+    'host',
+    'none',
+    'ingress',
+    'docker_gwbridge',
+  ].includes(row.name);
 
   const handleDelete = async () => {
     try {
@@ -72,7 +103,15 @@ function renderPanelContent(row, tab, onRefresh) {
 
   if (tab === 'summary') {
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
         <SummaryTabHeader
           name={row.name}
           labels={row.labels}
@@ -86,7 +125,14 @@ function renderPanelContent(row, tab, onRefresh) {
             )
           }
         />
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            color: 'var(--gh-text, #c9d1d9)',
+          }}
+        >
           <QuickInfoSection
             resourceName={row.name}
             data={row}
@@ -96,11 +142,28 @@ function renderPanelContent(row, tab, onRefresh) {
           />
           {/* Middle column: Connected Services */}
           <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
-            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <div
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 0,
+                position: 'relative',
+              }}
+            >
               <NetworkConnectedServicesTable networkId={row.id} compact />
             </div>
             {/* Right column: Options and IPAM */}
-            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+            <div
+              style={{
+                width: 420,
+                minWidth: 300,
+                minHeight: 0,
+                borderLeft: '1px solid var(--gh-border, #30363d)',
+                overflow: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
               <NetworkOptionsSection options={row.options} />
               <NetworkIPAMSection ipam={row.ipam} />
             </div>
@@ -131,7 +194,7 @@ export default function SwarmNetworksOverviewTable() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const refresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
+    setRefreshKey((k) => k + 1);
   }, []);
 
   const fetchTabCountsForRow = useCallback(async (row) => {
@@ -198,7 +261,13 @@ export default function SwarmNetworksOverviewTable() {
       createKind="network"
       tableTestId="swarm-networks-table"
       getRowActions={(row) => {
-        const isBuiltIn = ['bridge', 'host', 'none', 'ingress', 'docker_gwbridge'].includes(row.name);
+        const isBuiltIn = [
+          'bridge',
+          'host',
+          'none',
+          'ingress',
+          'docker_gwbridge',
+        ].includes(row.name);
         return [
           {
             label: 'Delete',

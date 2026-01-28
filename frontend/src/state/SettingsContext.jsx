@@ -1,24 +1,31 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from 'react';
 
 /**
  * Default application settings.
  */
 const defaultSettings = {
   // Polling intervals (milliseconds)
-  fastPollingInterval: 1000,      // For newly created resources
-  slowPollingInterval: 60000,     // For stable resources after first minute
-  normalRefreshInterval: 5000,    // Standard refresh rate
+  fastPollingInterval: 1000, // For newly created resources
+  slowPollingInterval: 60000, // For stable resources after first minute
+  normalRefreshInterval: 5000, // Standard refresh rate
 
   // UI preferences
-  showTimestampsRelative: true,   // Show "2 minutes ago" vs "2024-01-15 10:30:00"
-  tableRowsPerPage: 50,           // Default rows per page in tables
-  animationsEnabled: true,        // Enable/disable UI animations
+  showTimestampsRelative: true, // Show "2 minutes ago" vs "2024-01-15 10:30:00"
+  tableRowsPerPage: 50, // Default rows per page in tables
+  animationsEnabled: true, // Enable/disable UI animations
 
   // Logging
-  verboseLogging: false,          // Enable verbose console logging
+  verboseLogging: false, // Enable verbose console logging
 
   // Theme (for future use)
-  theme: 'system',                // 'light', 'dark', 'system'
+  theme: 'system', // 'light', 'dark', 'system'
 };
 
 const STORAGE_KEY = 'kubedevbench_settings';

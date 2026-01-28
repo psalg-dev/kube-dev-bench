@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import SecretDataTab from '../k8s/resources/secrets/SecretDataTab';
 
 // Mock notification module
@@ -15,7 +15,6 @@ vi.mock('../../wailsjs/go/main/App', () => ({
 }));
 
 import * as AppAPI from '../../wailsjs/go/main/App';
-import { showError, showSuccess } from '../notification';
 
 describe('SecretDataTab', () => {
   beforeEach(() => {
@@ -24,20 +23,24 @@ describe('SecretDataTab', () => {
 
   describe('loading state', () => {
     it('shows loading message while fetching data', () => {
-      AppAPI.GetSecretDataByName.mockImplementation(() => new Promise(() => {}));
-      
+      AppAPI.GetSecretDataByName.mockImplementation(
+        () => new Promise(() => {}),
+      );
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       expect(screen.getByText(/Loading/i)).toBeInTheDocument();
     });
   });
 
   describe('error state', () => {
     it('displays error message when API call fails', async () => {
-      AppAPI.GetSecretDataByName.mockRejectedValue(new Error('Connection failed'));
-      
+      AppAPI.GetSecretDataByName.mockRejectedValue(
+        new Error('Connection failed'),
+      );
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText(/Connection failed/)).toBeInTheDocument();
       });
@@ -45,11 +48,13 @@ describe('SecretDataTab', () => {
 
     it('shows generic error when no message provided', async () => {
       AppAPI.GetSecretDataByName.mockRejectedValue({});
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
-        expect(screen.getByText(/Failed to fetch secret data/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Failed to fetch secret data/i),
+        ).toBeInTheDocument();
       });
     });
   });
@@ -57,9 +62,9 @@ describe('SecretDataTab', () => {
   describe('empty state', () => {
     it('handles empty data array', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue([]);
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
       });
@@ -67,9 +72,9 @@ describe('SecretDataTab', () => {
 
     it('handles null response', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(null);
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.queryByText(/Loading/i)).not.toBeInTheDocument();
       });
@@ -85,9 +90,9 @@ describe('SecretDataTab', () => {
 
     it('displays secret keys', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(mockData);
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('username')).toBeInTheDocument();
         expect(screen.getByText('password')).toBeInTheDocument();
@@ -97,13 +102,13 @@ describe('SecretDataTab', () => {
 
     it('values are hidden by default', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(mockData);
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('username')).toBeInTheDocument();
       });
-      
+
       // Values should be masked/hidden
       expect(screen.queryByText('admin')).not.toBeInTheDocument();
       expect(screen.queryByText('secret123')).not.toBeInTheDocument();
@@ -113,53 +118,62 @@ describe('SecretDataTab', () => {
   describe('API calls', () => {
     it('calls GetSecretDataByName with correct params', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue([]);
-      
+
       render(<SecretDataTab namespace="test-ns" secretName="test-secret" />);
-      
+
       await waitFor(() => {
-        expect(AppAPI.GetSecretDataByName).toHaveBeenCalledWith('test-ns', 'test-secret');
+        expect(AppAPI.GetSecretDataByName).toHaveBeenCalledWith(
+          'test-ns',
+          'test-secret',
+        );
       });
     });
 
     it('does not call API when namespace is missing', () => {
       render(<SecretDataTab namespace="" secretName="my-secret" />);
-      
+
       expect(AppAPI.GetSecretDataByName).not.toHaveBeenCalled();
     });
 
     it('does not call API when secretName is missing', () => {
       render(<SecretDataTab namespace="default" secretName="" />);
-      
+
       expect(AppAPI.GetSecretDataByName).not.toHaveBeenCalled();
     });
 
     it('re-fetches when props change', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue([]);
-      
-      const { rerender } = render(<SecretDataTab namespace="ns1" secretName="secret1" />);
-      
+
+      const { rerender } = render(
+        <SecretDataTab namespace="ns1" secretName="secret1" />,
+      );
+
       await waitFor(() => {
-        expect(AppAPI.GetSecretDataByName).toHaveBeenCalledWith('ns1', 'secret1');
+        expect(AppAPI.GetSecretDataByName).toHaveBeenCalledWith(
+          'ns1',
+          'secret1',
+        );
       });
-      
+
       rerender(<SecretDataTab namespace="ns2" secretName="secret2" />);
-      
+
       await waitFor(() => {
-        expect(AppAPI.GetSecretDataByName).toHaveBeenCalledWith('ns2', 'secret2');
+        expect(AppAPI.GetSecretDataByName).toHaveBeenCalledWith(
+          'ns2',
+          'secret2',
+        );
       });
     });
   });
 
   describe('visibility toggle', () => {
-    const mockData = [
-      { key: 'password', value: btoa('secret123'), size: 9 },
-    ];
+    const mockData = [{ key: 'password', value: btoa('secret123'), size: 9 }];
 
     it('can toggle secret visibility', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(mockData);
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('password')).toBeInTheDocument();
       });
@@ -167,15 +181,13 @@ describe('SecretDataTab', () => {
   });
 
   describe('copy functionality', () => {
-    const mockData = [
-      { key: 'token', value: btoa('my-token'), size: 8 },
-    ];
+    const mockData = [{ key: 'token', value: btoa('my-token'), size: 8 }];
 
     it('renders copy button', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(mockData);
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('token')).toBeInTheDocument();
       });
@@ -188,9 +200,9 @@ describe('SecretDataTab', () => {
     it('can save edited content', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(mockData);
       AppAPI.UpdateSecretDataKey.mockResolvedValue({});
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('config')).toBeInTheDocument();
       });
@@ -199,9 +211,9 @@ describe('SecretDataTab', () => {
     it('shows error notification on save failure', async () => {
       AppAPI.GetSecretDataByName.mockResolvedValue(mockData);
       AppAPI.UpdateSecretDataKey.mockRejectedValue(new Error('Update failed'));
-      
+
       render(<SecretDataTab namespace="default" secretName="my-secret" />);
-      
+
       await waitFor(() => {
         expect(screen.getByText('config')).toBeInTheDocument();
       });

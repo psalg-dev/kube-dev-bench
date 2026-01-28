@@ -25,15 +25,20 @@ export function TabLabel({
   const showLoadingIndicator = loading && showCount && !hasCount;
 
   return (
-    <span className={`tab-label ${isEmpty ? 'tab-label-muted' : ''} ${className}`}>
+    <span
+      className={`tab-label ${isEmpty ? 'tab-label-muted' : ''} ${className}`}
+    >
       <span className="tab-label-text">{label}</span>
       {showLoadingIndicator && (
-        <span className="tab-count tab-count-loading" aria-label="Loading count">
+        <span
+          className="tab-count tab-count-loading"
+          aria-label="Loading count"
+        >
           ...
         </span>
       )}
       {hasCount && (
-        <span 
+        <span
           className={`tab-count ${isEmpty ? 'tab-count-empty' : ''}`}
           aria-label={`${count} items`}
         >

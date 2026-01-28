@@ -15,7 +15,11 @@ function KeyValueGrid({ data, emptyLabel, emptyMessageKey }) {
         />
       );
     }
-    return <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>{emptyLabel}</div>;
+    return (
+      <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>
+        {emptyLabel}
+      </div>
+    );
   }
 
   return (
@@ -46,10 +50,20 @@ function KeyValueGrid({ data, emptyLabel, emptyMessageKey }) {
 export function NetworkOptionsSection({ options }) {
   return (
     <div style={{ padding: 16, overflow: 'auto', flex: 1, minWidth: 0 }}>
-      <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)', marginBottom: 8 }}>
+      <div
+        style={{
+          fontWeight: 600,
+          color: 'var(--gh-text, #c9d1d9)',
+          marginBottom: 8,
+        }}
+      >
         Options
       </div>
-      <KeyValueGrid data={options} emptyLabel="No options." emptyMessageKey="swarm-options" />
+      <KeyValueGrid
+        data={options}
+        emptyLabel="No options."
+        emptyMessageKey="swarm-options"
+      />
     </div>
   );
 }
@@ -60,7 +74,13 @@ export function NetworkIPAMSection({ ipam }) {
 
   return (
     <div style={{ padding: 16, overflow: 'auto', flex: 1, minWidth: 0 }}>
-      <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)', marginBottom: 8 }}>
+      <div
+        style={{
+          fontWeight: 600,
+          color: 'var(--gh-text, #c9d1d9)',
+          marginBottom: 8,
+        }}
+      >
         IPAM
       </div>
 
@@ -89,12 +109,18 @@ export function NetworkIPAMSection({ ipam }) {
               }}
             >
               <div>
-                subnet {cfg?.subnet || '-'} · gateway {cfg?.gateway || '-'} · ipRange {cfg?.ipRange || '-'}
+                subnet {cfg?.subnet || '-'} · gateway {cfg?.gateway || '-'} ·
+                ipRange {cfg?.ipRange || '-'}
               </div>
               <div>
-                <span style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>aux addresses</span>
+                <span style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>
+                  aux addresses
+                </span>
               </div>
-              <KeyValueGrid data={cfg?.auxAddresses || {}} emptyLabel="(none)" />
+              <KeyValueGrid
+                data={cfg?.auxAddresses || {}}
+                emptyLabel="(none)"
+              />
             </div>
           ))}
         </div>

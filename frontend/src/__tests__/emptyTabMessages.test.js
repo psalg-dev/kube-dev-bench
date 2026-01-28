@@ -1,16 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { emptyTabMessages, getEmptyTabMessage } from '../constants/emptyTabMessages';
+import {
+  emptyTabMessages,
+  getEmptyTabMessage,
+} from '../constants/emptyTabMessages';
 
 describe('emptyTabMessages', () => {
   it('has messages for all expected tab types', () => {
-    const expectedTypes = ['events', 'pods', 'consumers', 'endpoints', 'history', 'rules', 'pvcs', 'data'];
-    expectedTypes.forEach(type => {
+    const expectedTypes = [
+      'events',
+      'pods',
+      'consumers',
+      'endpoints',
+      'history',
+      'rules',
+      'pvcs',
+      'data',
+    ];
+    expectedTypes.forEach((type) => {
       expect(emptyTabMessages[type]).toBeDefined();
     });
   });
 
   it('each message has required properties', () => {
-    Object.entries(emptyTabMessages).forEach(([key, msg]) => {
+    Object.entries(emptyTabMessages).forEach(([_key, msg]) => {
       expect(msg.icon).toBeDefined();
       expect(msg.title).toBeDefined();
       expect(typeof msg.title).toBe('string');

@@ -22,9 +22,13 @@ describe('logger', () => {
     consoleTraceSpy = vi.spyOn(console, 'trace').mockImplementation(() => {});
     consoleTableSpy = vi.spyOn(console, 'table').mockImplementation(() => {});
     consoleGroupSpy = vi.spyOn(console, 'group').mockImplementation(() => {});
-    consoleGroupEndSpy = vi.spyOn(console, 'groupEnd').mockImplementation(() => {});
+    consoleGroupEndSpy = vi
+      .spyOn(console, 'groupEnd')
+      .mockImplementation(() => {});
     consoleTimeSpy = vi.spyOn(console, 'time').mockImplementation(() => {});
-    consoleTimeEndSpy = vi.spyOn(console, 'timeEnd').mockImplementation(() => {});
+    consoleTimeEndSpy = vi
+      .spyOn(console, 'timeEnd')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -106,7 +110,11 @@ describe('logger', () => {
       const { logger } = await import('../utils/logger');
       const errorObj = new Error('test error');
       logger.error('Error occurred:', errorObj, { context: 'test' });
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Error occurred:', errorObj, { context: 'test' });
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error occurred:',
+        errorObj,
+        { context: 'test' },
+      );
     });
   });
 

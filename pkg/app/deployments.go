@@ -98,10 +98,18 @@ func formatDuration(d time.Duration) string {
 // StartDeploymentPolling emits deployments:update events every second with the current deployment list
 func (a *App) StartDeploymentPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
@@ -118,7 +126,7 @@ func (a *App) StartDeploymentPolling() {
 				}
 				all = append(all, deploys...)
 			}
-			emitEvent(a.ctx, "deployments:update", all)
+			emitEvent(ctx, "deployments:update", all)
 		}
 	}()
 }

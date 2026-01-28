@@ -71,10 +71,15 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
     setBusy(false);
   }, [open]);
 
-  const typeLabel = useMemo(() => REGISTRY_TYPES.find(t => t.value === form.type)?.label ?? form.type, [form.type]);
+  const typeLabel = useMemo(
+    () => REGISTRY_TYPES.find((t) => t.value === form.type)?.label ?? form.type,
+    [form.type],
+  );
   const isDockerHub = form.type === 'dockerhub';
 
-  const effectiveUrl = isDockerHub ? 'https://registry-1.docker.io' : (form.url || '');
+  const effectiveUrl = isDockerHub
+    ? 'https://registry-1.docker.io'
+    : form.url || '';
 
   const buildConfig = () => {
     const credentials = { username: '', password: '', token: '', region: '' };
@@ -105,18 +110,24 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
 
   const validate = () => {
     if (!String(form.name || '').trim()) return 'Name is required.';
-    if (!isDockerHub && !String(effectiveUrl || '').trim()) return 'URL is required.';
+    if (!isDockerHub && !String(effectiveUrl || '').trim())
+      return 'URL is required.';
 
     if (form.authMethod === 'basic') {
-      if (!String(form.username || '').trim()) return 'Username is required for Basic auth.';
-      if (!String(form.password || '').trim()) return 'Password is required for Basic auth.';
+      if (!String(form.username || '').trim())
+        return 'Username is required for Basic auth.';
+      if (!String(form.password || '').trim())
+        return 'Password is required for Basic auth.';
     }
     if (form.authMethod === 'token') {
       if (isDockerHub) {
-        if (!String(form.username || '').trim()) return 'Username is required for Docker Hub token auth.';
-        if (!String(form.token || '').trim()) return 'Token is required for Docker Hub token auth.';
+        if (!String(form.username || '').trim())
+          return 'Username is required for Docker Hub token auth.';
+        if (!String(form.token || '').trim())
+          return 'Token is required for Docker Hub token auth.';
       } else {
-        if (!String(form.token || '').trim()) return 'Token is required for Token auth.';
+        if (!String(form.token || '').trim())
+          return 'Token is required for Token auth.';
       }
     }
 
@@ -164,10 +175,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
   if (!open) return null;
 
   return (
-    <div
-      className="overlay registry-modal"
-      onClick={() => onClose?.()}
-    >
+    <div className="overlay registry-modal" onClick={() => onClose?.()}>
       <div
         className="overlay-content registry-modal__content"
         onClick={(e) => e.stopPropagation()}
@@ -197,7 +205,9 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 disabled={busy}
               >
                 {REGISTRY_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -206,7 +216,9 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
               <input
                 id="registry-name"
                 value={form.name}
-                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, name: e.target.value }))
+                }
                 disabled={busy}
                 placeholder="e.g. Docker Hub"
               />
@@ -221,7 +233,9 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
               <input
                 id="registry-url"
                 value={form.url}
-                onChange={(e) => setForm((s) => ({ ...s, url: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, url: e.target.value }))
+                }
                 disabled={busy}
                 placeholder="https://registry.example.com"
               />
@@ -234,11 +248,21 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
               <select
                 id="registry-auth-method"
                 value={form.authMethod}
-                onChange={(e) => setForm((s) => ({ ...s, authMethod: e.target.value, username: '', password: '', token: '' }))}
+                onChange={(e) =>
+                  setForm((s) => ({
+                    ...s,
+                    authMethod: e.target.value,
+                    username: '',
+                    password: '',
+                    token: '',
+                  }))
+                }
                 disabled={busy}
               >
                 {AUTH_METHODS.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -249,7 +273,9 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 type="number"
                 min={0}
                 value={form.timeoutSeconds}
-                onChange={(e) => setForm((s) => ({ ...s, timeoutSeconds: e.target.value }))}
+                onChange={(e) =>
+                  setForm((s) => ({ ...s, timeoutSeconds: e.target.value }))
+                }
                 disabled={busy}
               />
             </div>
@@ -262,7 +288,9 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 <input
                   id="registry-username"
                   value={form.username}
-                  onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, username: e.target.value }))
+                  }
                   disabled={busy}
                 />
               </div>
@@ -272,7 +300,9 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                   id="registry-password"
                   type="password"
                   value={form.password}
-                  onChange={(e) => setForm((s) => ({ ...s, password: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, password: e.target.value }))
+                  }
                   disabled={busy}
                 />
               </div>
@@ -280,25 +310,35 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
           )}
 
           {form.authMethod === 'token' && (
-            <div className={isDockerHub ? 'registry-modal__grid2' : 'registry-modal__grid1'}>
+            <div
+              className={
+                isDockerHub ? 'registry-modal__grid2' : 'registry-modal__grid1'
+              }
+            >
               {isDockerHub && (
                 <div>
                   <div className="registry-modal__label">Username</div>
                   <input
                     id="registry-username"
                     value={form.username}
-                    onChange={(e) => setForm((s) => ({ ...s, username: e.target.value }))}
+                    onChange={(e) =>
+                      setForm((s) => ({ ...s, username: e.target.value }))
+                    }
                     disabled={busy}
                   />
                 </div>
               )}
               <div>
-                <div className="registry-modal__label">{isDockerHub ? 'Access Token' : 'Token'}</div>
+                <div className="registry-modal__label">
+                  {isDockerHub ? 'Access Token' : 'Token'}
+                </div>
                 <input
                   id="registry-token"
                   type="password"
                   value={form.token}
-                  onChange={(e) => setForm((s) => ({ ...s, token: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((s) => ({ ...s, token: e.target.value }))
+                  }
                   disabled={busy}
                 />
               </div>
@@ -311,7 +351,12 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 id="registry-insecure-skip-tls"
                 type="checkbox"
                 checked={!!form.insecureSkipTlsVerify}
-                onChange={(e) => setForm((s) => ({ ...s, insecureSkipTlsVerify: e.target.checked }))}
+                onChange={(e) =>
+                  setForm((s) => ({
+                    ...s,
+                    insecureSkipTlsVerify: e.target.checked,
+                  }))
+                }
                 disabled={busy}
               />
               Insecure Skip TLS Verify
@@ -321,7 +366,12 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
                 id="registry-allow-insecure-http"
                 type="checkbox"
                 checked={!!form.allowInsecureHttp}
-                onChange={(e) => setForm((s) => ({ ...s, allowInsecureHttp: e.target.checked }))}
+                onChange={(e) =>
+                  setForm((s) => ({
+                    ...s,
+                    allowInsecureHttp: e.target.checked,
+                  }))
+                }
                 disabled={busy}
               />
               Allow Insecure HTTP
@@ -331,15 +381,27 @@ export default function AddRegistryModal({ open, onClose, onSaved }) {
 
         <div className="registry-modal__footer">
           <div className="registry-modal__footerLeft">
-            <button onClick={handleTest} disabled={busy} className="overlay-cancel-btn">
+            <button
+              onClick={handleTest}
+              disabled={busy}
+              className="overlay-cancel-btn"
+            >
               Test Connection
             </button>
           </div>
           <div className="registry-modal__footerRight">
-            <button onClick={() => onClose?.()} disabled={busy} className="overlay-cancel-btn">
+            <button
+              onClick={() => onClose?.()}
+              disabled={busy}
+              className="overlay-cancel-btn"
+            >
               Cancel
             </button>
-            <button onClick={handleSave} disabled={busy} className="overlay-create-btn">
+            <button
+              onClick={handleSave}
+              disabled={busy}
+              className="overlay-create-btn"
+            >
               Save
             </button>
           </div>

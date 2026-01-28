@@ -101,3 +101,80 @@ func TestUpdateConfigMapDataKey(t *testing.T) {
 		t.Fatalf("expected key updated to '2', got %q", cm.Data["a"])
 	}
 }
+
+func TestPodSpecUsesConfigMap(t *testing.T) {
+	configMapName := "cm1"
+
+	t.Run("volume", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			Volumes: []corev1.Volume{{
+				Name: "cfg",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: configMapName}},
+				},
+			}},
+			Containers: []corev1.Container{{Name: "c"}},
+		}
+		ok, ref := podSpecUsesConfigMap(spec, configMapName)
+		if !ok || ref != "volume:cfg" {
+			t.Fatalf("expected volume ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("envFrom", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name: "c",
+				EnvFrom: []corev1.EnvFromSource{{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: configMapName}},
+				}},
+			}},
+		}
+		ok, ref := podSpecUsesConfigMap(spec, configMapName)
+		if !ok || ref != "envFrom:c" {
+			t.Fatalf("expected envFrom ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("env", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name: "c",
+				Env: []corev1.EnvVar{{
+					Name: "K",
+					ValueFrom: &corev1.EnvVarSource{
+						ConfigMapKeyRef: &corev1.ConfigMapKeySelector{LocalObjectReference: corev1.LocalObjectReference{Name: configMapName}},
+					},
+				}},
+			}},
+		}
+		ok, ref := podSpecUsesConfigMap(spec, configMapName)
+		if !ok || ref != "env:c" {
+			t.Fatalf("expected env ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("initContainer", func(t *testing.T) {
+		spec := corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name: "init",
+				EnvFrom: []corev1.EnvFromSource{{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: configMapName}},
+				}},
+			}},
+			Containers: []corev1.Container{{Name: "c"}},
+		}
+		ok, ref := podSpecUsesConfigMap(spec, configMapName)
+		if !ok || ref != "init:envFrom:init" {
+			t.Fatalf("expected init ref, got ok=%v ref=%q", ok, ref)
+		}
+	})
+
+	t.Run("noMatch", func(t *testing.T) {
+		spec := corev1.PodSpec{Containers: []corev1.Container{{Name: "c"}}}
+		ok, ref := podSpecUsesConfigMap(spec, configMapName)
+		if ok || ref != "" {
+			t.Fatalf("expected no match, got ok=%v ref=%q", ok, ref)
+		}
+	})
+}

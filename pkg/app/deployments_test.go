@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
@@ -309,5 +310,43 @@ func TestGetDeployments_NoContainers(t *testing.T) {
 
 	if result[0].Image != "" {
 		t.Errorf("expected empty image for no containers, got %q", result[0].Image)
+	}
+}
+
+func TestStartDeploymentPolling_ListActions(t *testing.T) {
+	disableWailsEvents = true
+
+	clientset := fake.NewSimpleClientset(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "deploy-1", Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "x"}},
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "x"}},
+				Spec:       v1.PodSpec{},
+			},
+		},
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:              ctx,
+		currentNamespace: "default",
+		testClientset:    clientset,
+	}
+
+	app.StartDeploymentPolling()
+	start := time.Now()
+	for time.Since(start) < 1500*time.Millisecond {
+		if hasListAction(clientset.Actions(), "deployments") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+
+	if !hasListAction(clientset.Actions(), "deployments") {
+		t.Fatalf("expected deployments list action")
 	}
 }

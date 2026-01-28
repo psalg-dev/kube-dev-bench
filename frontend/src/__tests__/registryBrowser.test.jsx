@@ -34,24 +34,42 @@ beforeEach(() => {
 
 describe('RegistryBrowser', () => {
   it('loads repositories, tags, and digests', async () => {
-    swarmApi.ListRegistryRepositories.mockResolvedValueOnce(['library/ubuntu', 'nginx']);
+    swarmApi.ListRegistryRepositories.mockResolvedValueOnce([
+      'library/ubuntu',
+      'nginx',
+    ]);
     swarmApi.ListRegistryTags.mockResolvedValueOnce(['latest', '1.0']);
-    swarmApi.GetImageDigest.mockImplementation(async (_registry, _repo, tag) => `sha-${tag}`);
+    swarmApi.GetImageDigest.mockImplementation(
+      async (_registry, _repo, tag) => `sha-${tag}`,
+    );
 
-    render(<RegistryBrowser registryName="Docker Hub" registryType="dockerhub" />);
+    render(
+      <RegistryBrowser registryName="Docker Hub" registryType="dockerhub" />,
+    );
 
     // First repo selected automatically
     await screen.findByText('library/ubuntu');
 
     await waitFor(() => {
-      expect(swarmApi.ListRegistryTags).toHaveBeenCalledWith('Docker Hub', 'library/ubuntu');
+      expect(swarmApi.ListRegistryTags).toHaveBeenCalledWith(
+        'Docker Hub',
+        'library/ubuntu',
+      );
     });
 
     expect(await screen.findByText('latest')).toBeTruthy();
     expect(await screen.findByText('sha-latest')).toBeTruthy();
 
-    expect(swarmApi.GetImageDigest).toHaveBeenCalledWith('Docker Hub', 'library/ubuntu', 'latest');
-    expect(swarmApi.GetImageDigest).toHaveBeenCalledWith('Docker Hub', 'library/ubuntu', '1.0');
+    expect(swarmApi.GetImageDigest).toHaveBeenCalledWith(
+      'Docker Hub',
+      'library/ubuntu',
+      'latest',
+    );
+    expect(swarmApi.GetImageDigest).toHaveBeenCalledWith(
+      'Docker Hub',
+      'library/ubuntu',
+      '1.0',
+    );
   });
 
   it('searches Docker Hub, inspects a repo, and pulls latest', async () => {
@@ -78,9 +96,14 @@ describe('RegistryBrowser', () => {
 
     swarmApi.PullDockerImageLatest.mockResolvedValueOnce(undefined);
 
-    render(<RegistryBrowser registryName="Docker Hub" registryType="dockerhub" />);
+    render(
+      <RegistryBrowser registryName="Docker Hub" registryType="dockerhub" />,
+    );
 
-    await userEvent.type(screen.getByRole('searchbox', { name: 'Search Docker Hub' }), 'ubun');
+    await userEvent.type(
+      screen.getByRole('searchbox', { name: 'Search Docker Hub' }),
+      'ubun',
+    );
     fireEvent.click(screen.getByText('Search'));
 
     expect(await screen.findByText('library/ubuntu')).toBeTruthy();
@@ -89,19 +112,28 @@ describe('RegistryBrowser', () => {
     fireEvent.click(screen.getByText('library/ubuntu').closest('tr'));
 
     await waitFor(() => {
-      expect(swarmApi.GetDockerHubRepositoryDetails).toHaveBeenCalledWith('library/ubuntu');
+      expect(swarmApi.GetDockerHubRepositoryDetails).toHaveBeenCalledWith(
+        'library/ubuntu',
+      );
     });
 
     // URL is derived for library/* official images
-    const link = await screen.findByRole('link', { name: 'https://hub.docker.com/_/ubuntu' });
+    const link = await screen.findByRole('link', {
+      name: 'https://hub.docker.com/_/ubuntu',
+    });
     expect(link.getAttribute('href')).toBe('https://hub.docker.com/_/ubuntu');
 
     // Pull
     fireEvent.click(screen.getAllByText('Pull').slice(-1)[0]);
 
     await waitFor(() => {
-      expect(swarmApi.PullDockerImageLatest).toHaveBeenCalledWith('library/ubuntu', 'Docker Hub');
-      expect(notifications.showSuccess).toHaveBeenCalledWith('Pulled library/ubuntu:latest');
+      expect(swarmApi.PullDockerImageLatest).toHaveBeenCalledWith(
+        'library/ubuntu',
+        'Docker Hub',
+      );
+      expect(notifications.showSuccess).toHaveBeenCalledWith(
+        'Pulled library/ubuntu:latest',
+      );
     });
   });
 
@@ -109,14 +141,25 @@ describe('RegistryBrowser', () => {
     swarmApi.ListRegistryRepositories.mockResolvedValueOnce([]);
 
     swarmApi.SearchDockerHubRepositories.mockResolvedValueOnce([
-      { fullName: 'library/ubuntu', description: '', starCount: 0, pullCount: 0, lastUpdated: '' },
+      {
+        fullName: 'library/ubuntu',
+        description: '',
+        starCount: 0,
+        pullCount: 0,
+        lastUpdated: '',
+      },
     ]);
 
     swarmApi.GetDockerHubRepositoryDetails.mockRejectedValueOnce('boom');
 
-    render(<RegistryBrowser registryName="Docker Hub" registryType="dockerhub" />);
+    render(
+      <RegistryBrowser registryName="Docker Hub" registryType="dockerhub" />,
+    );
 
-    await userEvent.type(screen.getByRole('searchbox', { name: 'Search Docker Hub' }), 'ub');
+    await userEvent.type(
+      screen.getByRole('searchbox', { name: 'Search Docker Hub' }),
+      'ub',
+    );
     fireEvent.click(screen.getByText('Search'));
 
     expect(await screen.findByText('library/ubuntu')).toBeTruthy();
@@ -125,7 +168,9 @@ describe('RegistryBrowser', () => {
     expect(await screen.findByText('boom')).toBeTruthy();
 
     await waitFor(() => {
-      expect(notifications.showError).toHaveBeenCalledWith('Failed to inspect repository: boom');
+      expect(notifications.showError).toHaveBeenCalledWith(
+        'Failed to inspect repository: boom',
+      );
     });
   });
 });

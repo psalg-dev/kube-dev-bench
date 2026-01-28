@@ -9,6 +9,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	clienttesting "k8s.io/client-go/testing"
 )
 
 func TestComputeNextRunString_ValidSchedule(t *testing.T) {
@@ -261,6 +262,50 @@ func TestGetCronJobs(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStartCronJobPolling_ListActions(t *testing.T) {
+	disableWailsEvents = true
+
+	clientset := fake.NewSimpleClientset(&batchv1.CronJob{
+		ObjectMeta: metav1.ObjectMeta{Name: "cj-1", Namespace: "default"},
+		Spec: batchv1.CronJobSpec{
+			Schedule:    "* * * * *",
+			JobTemplate: batchv1.JobTemplateSpec{Spec: batchv1.JobSpec{Template: v1.PodTemplateSpec{Spec: v1.PodSpec{}}}},
+		},
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:              ctx,
+		currentNamespace: "default",
+		testClientset:    clientset,
+	}
+
+	app.StartCronJobPolling()
+	start := time.Now()
+	for time.Since(start) < 1500*time.Millisecond {
+		if hasListAction(clientset.Actions(), "cronjobs") {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	cancel()
+
+	if !hasListAction(clientset.Actions(), "cronjobs") {
+		t.Fatalf("expected cronjobs list action")
+	}
+}
+
+func hasListAction(actions []clienttesting.Action, resource string) bool {
+	for _, action := range actions {
+		if action.Matches("list", resource) {
+			return true
+		}
+	}
+	return false
 }
 
 func TestGetCronJobs_Details(t *testing.T) {

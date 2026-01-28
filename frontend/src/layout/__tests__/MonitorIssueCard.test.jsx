@@ -25,7 +25,7 @@ describe('MonitorIssueCard', () => {
         onNavigate={onNavigate}
         onAnalyze={() => {}}
         onDismiss={() => {}}
-      />
+      />,
     );
 
     expect(screen.getByText('CrashLoopBackOff')).toBeInTheDocument();
@@ -39,7 +39,7 @@ describe('MonitorIssueCard', () => {
         onNavigate={() => {}}
         onAnalyze={() => {}}
         onDismiss={() => {}}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('Show Analysis'));
@@ -58,7 +58,7 @@ describe('MonitorIssueCard', () => {
         onNavigate={() => {}}
         onAnalyze={onAnalyze}
         onDismiss={onDismiss}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText('Analyze'));
@@ -77,7 +77,7 @@ describe('MonitorIssueCard', () => {
         onDismiss={() => {}}
         analyzing={true}
         dismissing={true}
-      />
+      />,
     );
 
     expect(screen.getByText('Analyzing…')).toBeInTheDocument();

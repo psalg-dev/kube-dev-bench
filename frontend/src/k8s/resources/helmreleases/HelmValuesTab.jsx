@@ -20,13 +20,34 @@ export default function HelmValuesTab({ namespace, releaseName }) {
   }, [namespace, releaseName, showAll]);
 
   if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading values...</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        Loading values...
+      </div>
+    );
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13, cursor: 'pointer' }}>
+      <div
+        style={{
+          padding: '8px 12px',
+          borderBottom: '1px solid var(--gh-border, #30363d)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            color: 'var(--gh-text, #c9d1d9)',
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
           <input
             type="checkbox"
             checked={showAll}

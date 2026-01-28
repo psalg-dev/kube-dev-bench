@@ -1,21 +1,51 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  cleanup,
+} from '@testing-library/react';
 
 // Mock the kube API calls used during ClusterStateProvider initialization INCLUDING GetResourceCounts
 vi.mock('../k8s/resources/kubeApi.js', () => ({
-  GetKubeConfigs: vi.fn(() => Promise.resolve([{ path: '/tmp/kubeconfig', name: 'kubeconfig', contexts: ['ctx1'] }])),
-  GetCurrentConfig: vi.fn(() => Promise.resolve({ currentContext: 'ctx1', preferredNamespaces: ['ns1'] })),
+  GetKubeConfigs: vi.fn(() =>
+    Promise.resolve([
+      { path: '/tmp/kubeconfig', name: 'kubeconfig', contexts: ['ctx1'] },
+    ]),
+  ),
+  GetCurrentConfig: vi.fn(() =>
+    Promise.resolve({ currentContext: 'ctx1', preferredNamespaces: ['ns1'] }),
+  ),
   GetKubeContexts: vi.fn(() => Promise.resolve(['ctx1', 'ctx2'])),
   GetNamespaces: vi.fn(() => Promise.resolve(['ns1', 'ns2'])),
   SetCurrentKubeContext: vi.fn(() => Promise.resolve()),
   SetCurrentNamespace: vi.fn(() => Promise.resolve()),
   SetPreferredNamespaces: vi.fn(() => Promise.resolve()),
   GetConnectionStatus: vi.fn(() => Promise.resolve({ ok: true })),
-  GetResourceCounts: vi.fn(() => Promise.resolve({
-    podStatus: { running: 1, pending: 0, failed: 0, succeeded: 0, unknown: 0, total: 1 },
-    deployments: 2, jobs: 1, cronjobs: 0, daemonsets: 0, statefulsets: 0, replicasets: 0,
-    configmaps: 0, secrets: 0, ingresses: 0, persistentvolumeclaims: 0, persistentvolumes: 0
-  })),
+  GetResourceCounts: vi.fn(() =>
+    Promise.resolve({
+      podStatus: {
+        running: 1,
+        pending: 0,
+        failed: 0,
+        succeeded: 0,
+        unknown: 0,
+        total: 1,
+      },
+      deployments: 2,
+      jobs: 1,
+      cronjobs: 0,
+      daemonsets: 0,
+      statefulsets: 0,
+      replicasets: 0,
+      configmaps: 0,
+      secrets: 0,
+      ingresses: 0,
+      persistentvolumeclaims: 0,
+      persistentvolumes: 0,
+    }),
+  ),
 }));
 
 // Mock runtime events to no-op
@@ -26,7 +56,9 @@ vi.mock('../../wailsjs/runtime', () => ({
 
 // Mock Holmes API
 vi.mock('../holmes/holmesApi', () => ({
-  GetHolmesConfig: vi.fn(() => Promise.resolve({ enabled: false, endpoint: '' })),
+  GetHolmesConfig: vi.fn(() =>
+    Promise.resolve({ enabled: false, endpoint: '' }),
+  ),
   SaveHolmesConfig: vi.fn(() => Promise.resolve()),
   AskHolmes: vi.fn(() => Promise.resolve('')),
   CheckHolmesDeployment: vi.fn(() => Promise.resolve({ deployed: false })),
@@ -66,11 +98,13 @@ describe('AppContainer resource switching', () => {
     render(
       <MemoryRouter initialEntries={['/pods']}>
         <AppContainer />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     // Wait for initial pods render (cluster becomes connected)
-    await waitFor(() => expect(mockRenderPods).toHaveBeenCalled(), { timeout: 2000 });
+    await waitFor(() => expect(mockRenderPods).toHaveBeenCalled(), {
+      timeout: 2000,
+    });
 
     // Click on Jobs sidebar entry
     const jobsItem = await screen.findByText('Jobs');
@@ -88,9 +122,11 @@ describe('AppContainer resource switching', () => {
     render(
       <MemoryRouter initialEntries={['/pods']}>
         <AppContainer />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
-    await waitFor(() => expect(mockRenderPods).toHaveBeenCalled(), { timeout: 2000 });
+    await waitFor(() => expect(mockRenderPods).toHaveBeenCalled(), {
+      timeout: 2000,
+    });
 
     const deploymentsItem = await screen.findByText('Deployments');
     const secretsItem = await screen.findByText('Secrets');
@@ -100,7 +136,7 @@ describe('AppContainer resource switching', () => {
 
     await waitFor(() => {
       // Find a call whose second arg is 'secrets'
-      const sections = mockRenderResource.mock.calls.map(c => c[1]);
+      const sections = mockRenderResource.mock.calls.map((c) => c[1]);
       expect(sections).toContain('deployments');
       expect(sections).toContain('secrets');
     });

@@ -36,6 +36,24 @@ func Test_getSwarmConfigs_listsAndConverts(t *testing.T) {
 	}
 }
 
+func Test_GetSwarmConfigs_delegates(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ConfigListFn: func(context.Context, types.ConfigListOptions) ([]swarm.Config, error) {
+			return []swarm.Config{{Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "cfg"}}}}, nil
+		},
+	}
+
+	items, err := GetSwarmConfigs(ctx, cli)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(items) != 1 || items[0].Name != "cfg" {
+		t.Fatalf("unexpected items: %+v", items)
+	}
+}
+
 func Test_getSwarmConfig_returnsItem(t *testing.T) {
 	ctx := context.Background()
 

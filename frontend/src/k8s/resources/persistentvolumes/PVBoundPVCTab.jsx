@@ -30,7 +30,7 @@ export default function PVBoundPVCTab({ _pvName, claim }) {
         resource: 'PersistentVolumeClaim',
         name: claimInfo.pvcName,
         namespace: claimInfo.namespace,
-      }
+      },
     });
     window.dispatchEvent(event);
   };
@@ -41,8 +41,13 @@ export default function PVBoundPVCTab({ _pvName, claim }) {
         <div className="no-pvc-message">
           <div className="icon">📦</div>
           <h3>No Bound PVC</h3>
-          <p>This PersistentVolume is not currently bound to any PersistentVolumeClaim.</p>
-          <p className="hint">The volume is available for binding when a matching PVC is created.</p>
+          <p>
+            This PersistentVolume is not currently bound to any
+            PersistentVolumeClaim.
+          </p>
+          <p className="hint">
+            The volume is available for binding when a matching PVC is created.
+          </p>
         </div>
       </div>
     );
@@ -73,7 +78,9 @@ export default function PVBoundPVCTab({ _pvName, claim }) {
         </div>
       </div>
 
-      <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+      <div
+        style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}
+      >
         <button
           type="button"
           onClick={openPVC}
@@ -84,7 +91,7 @@ export default function PVBoundPVCTab({ _pvName, claim }) {
             border: '1px solid #353a42',
             background: '#2d323b',
             color: '#fff',
-            cursor: 'pointer'
+            cursor: 'pointer',
           }}
           title="Open bound PersistentVolumeClaim"
         >
@@ -95,12 +102,14 @@ export default function PVBoundPVCTab({ _pvName, claim }) {
       <div className="info-section">
         <h4>About PV-PVC Binding</h4>
         <p>
-          A PersistentVolume (PV) is a piece of storage in the cluster that has been provisioned
-          by an administrator or dynamically provisioned using Storage Classes.
+          A PersistentVolume (PV) is a piece of storage in the cluster that has
+          been provisioned by an administrator or dynamically provisioned using
+          Storage Classes.
         </p>
         <p>
-          When a PersistentVolumeClaim (PVC) requests storage, Kubernetes binds it to an available
-          PV that matches the requested storage size, access modes, and storage class.
+          When a PersistentVolumeClaim (PVC) requests storage, Kubernetes binds
+          it to an available PV that matches the requested storage size, access
+          modes, and storage class.
         </p>
       </div>
     </div>

@@ -1,23 +1,32 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
-const { runtimeHandlers, swarmApiMocks, holmesApiMocks, rowApis } = vi.hoisted(() => {
-  return {
-    runtimeHandlers: new Map(),
-    swarmApiMocks: {
-      GetSwarmTasks: vi.fn(),
-      GetSwarmTaskLogs: vi.fn(),
-      GetSwarmTaskHealthLogs: vi.fn(),
-    },
-    holmesApiMocks: {
-      AnalyzeSwarmTaskStream: vi.fn(),
-      CancelHolmesStream: vi.fn(),
-      onHolmesChatStream: vi.fn(() => vi.fn()),
-      onHolmesContextProgress: vi.fn(() => vi.fn()),
-    },
-    rowApis: new Map(),
-  };
-});
+const { runtimeHandlers, swarmApiMocks, holmesApiMocks, rowApis } = vi.hoisted(
+  () => {
+    return {
+      runtimeHandlers: new Map(),
+      swarmApiMocks: {
+        GetSwarmTasks: vi.fn(),
+        GetSwarmTaskLogs: vi.fn(),
+        GetSwarmTaskHealthLogs: vi.fn(),
+      },
+      holmesApiMocks: {
+        AnalyzeSwarmTaskStream: vi.fn(),
+        CancelHolmesStream: vi.fn(),
+        onHolmesChatStream: vi.fn(() => vi.fn()),
+        onHolmesContextProgress: vi.fn(() => vi.fn()),
+      },
+      rowApis: new Map(),
+    };
+  },
+);
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
 vi.mock('../holmes/holmesApi', () => holmesApiMocks);
@@ -35,7 +44,8 @@ vi.mock('../../wailsjs/runtime/runtime.js', () => ({
 
 vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
   default: function OverviewTableWithPanelMock(props) {
-    const { title, columns, data, getRowActions, renderPanelContent, tabs } = props;
+    const { title, columns, data, getRowActions, renderPanelContent, tabs } =
+      props;
     const rows = Array.isArray(data) ? data : [];
 
     return (
@@ -49,7 +59,10 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
             };
             rowApis.set(row.id, api);
 
-            const actions = typeof getRowActions === 'function' ? getRowActions(row, api) : [];
+            const actions =
+              typeof getRowActions === 'function'
+                ? getRowActions(row, api)
+                : [];
             const panelTabs = Array.isArray(tabs) ? tabs.map((t) => t.key) : [];
 
             return (
@@ -58,10 +71,16 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                   {(columns || []).map((col) => {
                     const rawValue = row[col.key];
                     const content = col.cell
-                      ? col.cell({ getValue: () => rawValue, row: { original: row } })
-                      : rawValue ?? '-';
+                      ? col.cell({
+                          getValue: () => rawValue,
+                          row: { original: row },
+                        })
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.id}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.id}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -103,7 +122,9 @@ vi.mock('../QuickInfoSection.jsx', () => ({
       <div data-testid="quick-info">
         {(fields || []).map((f) => {
           const value = f.getValue ? f.getValue(data) : data?.[f.key];
-          const text = Array.isArray(value) ? value.join(' | ') : String(value ?? '-');
+          const text = Array.isArray(value)
+            ? value.join(' | ')
+            : String(value ?? '-');
           return (
             <div key={f.key} data-testid={`q-${f.key}`}>
               {f.label}:{text}
@@ -131,7 +152,9 @@ vi.mock('../components/AggregateLogsTab.jsx', () => ({
     return (
       <div data-testid="agg-logs">
         <div data-testid="agg-title">{title}</div>
-        <button type="button" onClick={() => loadLogs()}>Load</button>
+        <button type="button" onClick={() => loadLogs()}>
+          Load
+        </button>
       </div>
     );
   },
@@ -139,7 +162,11 @@ vi.mock('../components/AggregateLogsTab.jsx', () => ({
 
 vi.mock('../layout/bottompanel/ConsoleTab.jsx', () => ({
   default: function ConsoleTabMock({ swarmExec, swarmTaskId }) {
-    return <div data-testid="console">exec:{String(swarmExec)} task:{swarmTaskId}</div>;
+    return (
+      <div data-testid="console">
+        exec:{String(swarmExec)} task:{swarmTaskId}
+      </div>
+    );
   },
 }));
 
@@ -181,9 +208,16 @@ describe('SwarmTasksOverviewTable', () => {
         desiredState: 'running',
         containerId: 'cont1234567890abcdef',
         healthStatus: 'healthy',
-        healthCheck: { test: ['CMD-SHELL', 'curl', '-f', 'http://localhost/health'], retries: 2 },
-        networks: [{ networkId: 'net1234567890abcdef', addresses: ['10.0.0.2/24'] }],
-        mounts: [{ type: 'volume', source: 'data', target: '/data', readOnly: false }],
+        healthCheck: {
+          test: ['CMD-SHELL', 'curl', '-f', 'http://localhost/health'],
+          retries: 2,
+        },
+        networks: [
+          { networkId: 'net1234567890abcdef', addresses: ['10.0.0.2/24'] },
+        ],
+        mounts: [
+          { type: 'volume', source: 'data', target: '/data', readOnly: false },
+        ],
         createdAt: '2026-01-01T00:00:00Z',
         updatedAt: '2026-01-01T00:01:00Z',
         image: 'nginx:latest',
@@ -214,10 +248,16 @@ describe('SwarmTasksOverviewTable', () => {
 
     expect(screen.getByText('Loading Swarm tasks...')).toBeInTheDocument();
 
-    expect(await screen.findByTestId('row-task1234567890abcdef')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('row-task1234567890abcdef'),
+    ).toBeInTheDocument();
 
-    expect(screen.getByTestId('cell-task1234567890abcdef-id')).toHaveTextContent('task12345678...');
-    expect(screen.getByTestId('cell-task1234567890abcdef-containerId')).toHaveTextContent('cont12345678...');
+    expect(
+      screen.getByTestId('cell-task1234567890abcdef-id'),
+    ).toHaveTextContent('task12345678...');
+    expect(
+      screen.getByTestId('cell-task1234567890abcdef-containerId'),
+    ).toHaveTextContent('cont12345678...');
 
     // state cell styling
     const stateCell = screen.getByTestId('cell-task1234567890abcdef-state');
@@ -225,7 +265,11 @@ describe('SwarmTasksOverviewTable', () => {
     expect(stateSpan).toHaveStyle({ color: '#3fb950' });
 
     // health badge renderer
-    expect(within(screen.getByTestId('cell-task1234567890abcdef-healthStatus')).getByTestId('health-badge')).toHaveTextContent('healthy');
+    expect(
+      within(
+        screen.getByTestId('cell-task1234567890abcdef-healthStatus'),
+      ).getByTestId('health-badge'),
+    ).toHaveTextContent('healthy');
   });
 
   it('reacts to runtime updates: array replaces, non-array triggers reload', async () => {
@@ -234,7 +278,15 @@ describe('SwarmTasksOverviewTable', () => {
 
     act(() => {
       emit('swarm:tasks:update', [
-        { id: 'task3', serviceName: 'db', nodeName: 'worker-3', slot: 3, state: 'running', desiredState: 'running', containerId: 'c3' },
+        {
+          id: 'task3',
+          serviceName: 'db',
+          nodeName: 'worker-3',
+          slot: 3,
+          state: 'running',
+          desiredState: 'running',
+          containerId: 'c3',
+        },
       ]);
     });
 
@@ -244,7 +296,9 @@ describe('SwarmTasksOverviewTable', () => {
       emit('swarm:tasks:update', { reason: 'unknown' });
     });
 
-    await waitFor(() => expect(swarmApiMocks.GetSwarmTasks).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmTasks).toHaveBeenCalledTimes(2),
+    );
   });
 
   it('row actions open details for eligible tasks', async () => {
@@ -274,7 +328,10 @@ describe('SwarmTasksOverviewTable', () => {
       fireEvent.click(askButton);
     });
 
-    expect(holmesApiMocks.AnalyzeSwarmTaskStream).toHaveBeenCalledWith('task1234567890abcdef', expect.any(String));
+    expect(holmesApiMocks.AnalyzeSwarmTaskStream).toHaveBeenCalledWith(
+      'task1234567890abcdef',
+      expect.any(String),
+    );
   });
 
   it('panel content: logs/exec branches and exec button sets active tab', async () => {
@@ -283,16 +340,25 @@ describe('SwarmTasksOverviewTable', () => {
 
     // logs tab uses AggregateLogsTab and calls GetSwarmTaskLogs with 500
     const logsPanel = screen.getByTestId('panel-task1234567890abcdef-logs');
-    expect(within(logsPanel).getByTestId('agg-title')).toHaveTextContent('Task Logs');
+    expect(within(logsPanel).getByTestId('agg-title')).toHaveTextContent(
+      'Task Logs',
+    );
     fireEvent.click(within(logsPanel).getByRole('button', { name: 'Load' }));
-    expect(swarmApiMocks.GetSwarmTaskLogs).toHaveBeenCalledWith('task1234567890abcdef', '500');
+    expect(swarmApiMocks.GetSwarmTaskLogs).toHaveBeenCalledWith(
+      'task1234567890abcdef',
+      '500',
+    );
 
     // exec tab renders ConsoleTab for running tasks
     const execPanel = screen.getByTestId('panel-task1234567890abcdef-exec');
-    expect(within(execPanel).getByTestId('console')).toHaveTextContent('task:task1234567890abcdef');
+    expect(within(execPanel).getByTestId('console')).toHaveTextContent(
+      'task:task1234567890abcdef',
+    );
 
     // summary tab exec button should call setActiveTab('exec')
-    const summaryPanel = screen.getByTestId('panel-task1234567890abcdef-summary');
+    const summaryPanel = screen.getByTestId(
+      'panel-task1234567890abcdef-summary',
+    );
     const execBtn = within(summaryPanel).getByRole('button', { name: 'Exec' });
     expect(execBtn).not.toBeDisabled();
     fireEvent.click(execBtn);
@@ -311,15 +377,27 @@ describe('SwarmTasksOverviewTable', () => {
     render(<SwarmTasksOverviewTable />);
     await screen.findByTestId('row-task1234567890abcdef');
 
-    const summaryPanel = screen.getByTestId('panel-task1234567890abcdef-summary');
+    const summaryPanel = screen.getByTestId(
+      'panel-task1234567890abcdef-summary',
+    );
 
-    await waitFor(() => expect(swarmApiMocks.GetSwarmTaskHealthLogs).toHaveBeenCalledWith('task1234567890abcdef'));
-    expect(within(summaryPanel).getAllByText('Configured').length).toBeGreaterThanOrEqual(1);
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmTaskHealthLogs).toHaveBeenCalledWith(
+        'task1234567890abcdef',
+      ),
+    );
+    expect(
+      within(summaryPanel).getAllByText('Configured').length,
+    ).toBeGreaterThanOrEqual(1);
     expect(within(summaryPanel).getByText('Exit 0')).toBeInTheDocument();
-    expect(within(summaryPanel).getByText('FMT(2026-01-01T00:00:20Z)')).toBeInTheDocument();
+    expect(
+      within(summaryPanel).getByText('FMT(2026-01-01T00:00:20Z)'),
+    ).toBeInTheDocument();
     expect(within(summaryPanel).getByText('ok')).toBeInTheDocument();
 
     // for task2 without container: should not fetch health logs
-    expect(swarmApiMocks.GetSwarmTaskHealthLogs).not.toHaveBeenCalledWith('task2');
+    expect(swarmApiMocks.GetSwarmTaskHealthLogs).not.toHaveBeenCalledWith(
+      'task2',
+    );
   });
 });

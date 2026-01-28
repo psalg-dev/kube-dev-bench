@@ -36,7 +36,7 @@ describe('ResourceActions scale control', () => {
         name="example-deploy"
         namespace="test"
         replicaCount={3}
-      />
+      />,
     );
 
     const scaleBtn = screen.getByRole('button', { name: /scale/i });
@@ -49,8 +49,15 @@ describe('ResourceActions scale control', () => {
     fireEvent.click(screen.getByRole('button', { name: /apply/i }));
 
     await waitFor(() => expect(scaleSpy).toHaveBeenCalledTimes(1));
-    expect(scaleSpy).toHaveBeenCalledWith('deployment', 'test', 'example-deploy', 5);
-    expect(showSuccess).toHaveBeenCalledWith("Scaled deployment 'example-deploy' to 5 replicas");
+    expect(scaleSpy).toHaveBeenCalledWith(
+      'deployment',
+      'test',
+      'example-deploy',
+      5,
+    );
+    expect(showSuccess).toHaveBeenCalledWith(
+      "Scaled deployment 'example-deploy' to 5 replicas",
+    );
   });
 
   it('cancels inline scale editor and restores original value', () => {
@@ -60,7 +67,7 @@ describe('ResourceActions scale control', () => {
         name="example-stateful"
         namespace="test"
         replicaCount={4}
-      />
+      />,
     );
 
     const scaleBtn = screen.getByRole('button', { name: /scale/i });
@@ -84,7 +91,7 @@ describe('ResourceActions scale control', () => {
         name="example-pod"
         namespace="test"
         replicaCount={1}
-      />
+      />,
     );
 
     expect(screen.queryByRole('button', { name: /scale/i })).toBeNull();
@@ -97,7 +104,7 @@ describe('ResourceActions scale control', () => {
         name="example-ds"
         namespace="test"
         replicaCount={2}
-      />
+      />,
     );
 
     const scaleBtn = screen.getByRole('button', { name: /scale/i });
@@ -109,7 +116,13 @@ describe('ResourceActions scale control', () => {
 
 // Need to import these for additional tests
 import { showError, showWarning } from '../notification';
-import { StartJob, SuspendCronJob, ResumeCronJob, StartJobFromCronJob, ResizePersistentVolumeClaim } from '../k8s/resources/kubeApi';
+import {
+  StartJob,
+  SuspendCronJob,
+  ResumeCronJob,
+  StartJobFromCronJob,
+  ResizePersistentVolumeClaim,
+} from '../k8s/resources/kubeApi';
 
 describe('ResourceActions Job controls', () => {
   beforeEach(() => {
@@ -122,7 +135,7 @@ describe('ResourceActions Job controls', () => {
         resourceType="job"
         name="example-job"
         namespace="test"
-      />
+      />,
     );
 
     const startBtn = screen.getByRole('button', { name: /start/i });
@@ -137,13 +150,15 @@ describe('ResourceActions Job controls', () => {
         resourceType="job"
         name="example-job"
         namespace="test"
-      />
+      />,
     );
 
     const startBtn = screen.getByRole('button', { name: /start/i });
     fireEvent.click(startBtn);
 
-    await waitFor(() => expect(StartJob).toHaveBeenCalledWith('test', 'example-job'));
+    await waitFor(() =>
+      expect(StartJob).toHaveBeenCalledWith('test', 'example-job'),
+    );
     expect(showSuccess).toHaveBeenCalledWith("Job 'example-job' started");
   });
 
@@ -151,16 +166,16 @@ describe('ResourceActions Job controls', () => {
     StartJob.mockRejectedValueOnce(new Error('Job failed'));
 
     render(
-      <ResourceActions
-        resourceType="job"
-        name="my-job"
-        namespace="ns1"
-      />
+      <ResourceActions resourceType="job" name="my-job" namespace="ns1" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /start/i }));
 
-    await waitFor(() => expect(showError).toHaveBeenCalledWith(expect.stringContaining('Job failed')));
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith(
+        expect.stringContaining('Job failed'),
+      ),
+    );
   });
 });
 
@@ -175,11 +190,13 @@ describe('ResourceActions CronJob controls', () => {
         resourceType="cronjob"
         name="example-cronjob"
         namespace="test"
-      />
+      />,
     );
 
     expect(screen.getByRole('button', { name: /start/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /suspend/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /suspend/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /resume/i })).toBeInTheDocument();
   });
 
@@ -191,13 +208,17 @@ describe('ResourceActions CronJob controls', () => {
         resourceType="cronjob"
         name="my-cronjob"
         namespace="prod"
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /start/i }));
 
-    await waitFor(() => expect(StartJobFromCronJob).toHaveBeenCalledWith('prod', 'my-cronjob'));
-    expect(showSuccess).toHaveBeenCalledWith("Job started from CronJob 'my-cronjob'");
+    await waitFor(() =>
+      expect(StartJobFromCronJob).toHaveBeenCalledWith('prod', 'my-cronjob'),
+    );
+    expect(showSuccess).toHaveBeenCalledWith(
+      "Job started from CronJob 'my-cronjob'",
+    );
   });
 
   it('calls SuspendCronJob when suspend clicked', async () => {
@@ -208,12 +229,14 @@ describe('ResourceActions CronJob controls', () => {
         resourceType="cronjob"
         name="my-cronjob"
         namespace="prod"
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /suspend/i }));
 
-    await waitFor(() => expect(SuspendCronJob).toHaveBeenCalledWith('prod', 'my-cronjob'));
+    await waitFor(() =>
+      expect(SuspendCronJob).toHaveBeenCalledWith('prod', 'my-cronjob'),
+    );
     expect(showSuccess).toHaveBeenCalledWith("CronJob 'my-cronjob' suspended");
   });
 
@@ -225,12 +248,14 @@ describe('ResourceActions CronJob controls', () => {
         resourceType="cronjob"
         name="my-cronjob"
         namespace="prod"
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /resume/i }));
 
-    await waitFor(() => expect(ResumeCronJob).toHaveBeenCalledWith('prod', 'my-cronjob'));
+    await waitFor(() =>
+      expect(ResumeCronJob).toHaveBeenCalledWith('prod', 'my-cronjob'),
+    );
     expect(showSuccess).toHaveBeenCalledWith("CronJob 'my-cronjob' resumed");
   });
 
@@ -238,16 +263,16 @@ describe('ResourceActions CronJob controls', () => {
     SuspendCronJob.mockRejectedValueOnce(new Error('Suspend failed'));
 
     render(
-      <ResourceActions
-        resourceType="cronjob"
-        name="cron1"
-        namespace="ns"
-      />
+      <ResourceActions resourceType="cronjob" name="cron1" namespace="ns" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /suspend/i }));
 
-    await waitFor(() => expect(showError).toHaveBeenCalledWith(expect.stringContaining('Suspend failed')));
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith(
+        expect.stringContaining('Suspend failed'),
+      ),
+    );
   });
 });
 
@@ -263,10 +288,12 @@ describe('ResourceActions restart and delete', () => {
         name="app"
         namespace="test"
         onRestart={vi.fn()}
-      />
+      />,
     );
 
-    expect(screen.getByRole('button', { name: /restart/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /restart/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders delete button when onDelete provided', () => {
@@ -276,7 +303,7 @@ describe('ResourceActions restart and delete', () => {
         name="app"
         namespace="test"
         onDelete={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
@@ -291,11 +318,11 @@ describe('ResourceActions restart and delete', () => {
         name="my-app"
         namespace="prod"
         onRestart={onRestart}
-      />
+      />,
     );
 
     const restartBtn = screen.getByRole('button', { name: /restart/i });
-    
+
     // First click shows warning
     fireEvent.click(restartBtn);
     expect(showWarning).toHaveBeenCalled();
@@ -303,12 +330,16 @@ describe('ResourceActions restart and delete', () => {
 
     // Button should now show "Confirm"
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /confirm/i }),
+      ).toBeInTheDocument();
     });
 
     // Second click confirms
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
-    await waitFor(() => expect(onRestart).toHaveBeenCalledWith('my-app', 'prod'));
+    await waitFor(() =>
+      expect(onRestart).toHaveBeenCalledWith('my-app', 'prod'),
+    );
     expect(showSuccess).toHaveBeenCalledWith("deployment 'my-app' restarted");
   });
 
@@ -321,11 +352,11 @@ describe('ResourceActions restart and delete', () => {
         name="my-pod"
         namespace="default"
         onDelete={onDelete}
-      />
+      />,
     );
 
     const deleteBtn = screen.getByRole('button', { name: /delete/i });
-    
+
     // First click shows warning
     fireEvent.click(deleteBtn);
     expect(showWarning).toHaveBeenCalled();
@@ -333,7 +364,9 @@ describe('ResourceActions restart and delete', () => {
 
     // Second click confirms
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith('my-pod', 'default'));
+    await waitFor(() =>
+      expect(onDelete).toHaveBeenCalledWith('my-pod', 'default'),
+    );
     expect(showSuccess).toHaveBeenCalledWith("pod 'my-pod' deleted");
   });
 
@@ -346,13 +379,17 @@ describe('ResourceActions restart and delete', () => {
         name="app"
         namespace="ns"
         onRestart={onRestart}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /restart/i }));
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
 
-    await waitFor(() => expect(showError).toHaveBeenCalledWith(expect.stringContaining('Restart failed')));
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith(
+        expect.stringContaining('Restart failed'),
+      ),
+    );
   });
 });
 
@@ -363,11 +400,7 @@ describe('ResourceActions PVC resize', () => {
 
   it('renders resize button for PVC resource type', () => {
     render(
-      <ResourceActions
-        resourceType="pvc"
-        name="my-pvc"
-        namespace="test"
-      />
+      <ResourceActions resourceType="pvc" name="my-pvc" namespace="test" />,
     );
 
     expect(screen.getByRole('button', { name: /resize/i })).toBeInTheDocument();
@@ -375,11 +408,7 @@ describe('ResourceActions PVC resize', () => {
 
   it('shows size input when resize clicked', () => {
     render(
-      <ResourceActions
-        resourceType="pvc"
-        name="my-pvc"
-        namespace="test"
-      />
+      <ResourceActions resourceType="pvc" name="my-pvc" namespace="test" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /resize/i }));
@@ -393,45 +422,45 @@ describe('ResourceActions PVC resize', () => {
     ResizePersistentVolumeClaim.mockResolvedValueOnce();
 
     render(
-      <ResourceActions
-        resourceType="pvc"
-        name="my-pvc"
-        namespace="test"
-      />
+      <ResourceActions resourceType="pvc" name="my-pvc" namespace="test" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /resize/i }));
-    
+
     const input = screen.getByPlaceholderText(/5gi/i);
     fireEvent.change(input, { target: { value: '10Gi' } });
     fireEvent.click(screen.getByRole('button', { name: /apply/i }));
 
-    await waitFor(() => expect(ResizePersistentVolumeClaim).toHaveBeenCalledWith('test', 'my-pvc', '10Gi'));
-    expect(showSuccess).toHaveBeenCalledWith("Resize requested for PVC 'my-pvc' to 10Gi");
+    await waitFor(() =>
+      expect(ResizePersistentVolumeClaim).toHaveBeenCalledWith(
+        'test',
+        'my-pvc',
+        '10Gi',
+      ),
+    );
+    expect(showSuccess).toHaveBeenCalledWith(
+      "Resize requested for PVC 'my-pvc' to 10Gi",
+    );
   });
 
   it('shows error when resize value is empty', async () => {
     render(
-      <ResourceActions
-        resourceType="pvc"
-        name="my-pvc"
-        namespace="test"
-      />
+      <ResourceActions resourceType="pvc" name="my-pvc" namespace="test" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /resize/i }));
     fireEvent.click(screen.getByRole('button', { name: /apply/i }));
 
-    await waitFor(() => expect(showError).toHaveBeenCalledWith(expect.stringContaining('Enter a size')));
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith(
+        expect.stringContaining('Enter a size'),
+      ),
+    );
   });
 
   it('cancels resize and hides input', () => {
     render(
-      <ResourceActions
-        resourceType="pvc"
-        name="my-pvc"
-        namespace="test"
-      />
+      <ResourceActions resourceType="pvc" name="my-pvc" namespace="test" />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /resize/i }));
@@ -453,7 +482,7 @@ describe('ResourceActions disabled state', () => {
         onDelete={vi.fn()}
         replicaCount={3}
         disabled={true}
-      />
+      />,
     );
 
     expect(screen.getByRole('button', { name: /restart/i })).toBeDisabled();

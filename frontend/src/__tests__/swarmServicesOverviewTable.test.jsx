@@ -1,29 +1,37 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
-const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } = vi.hoisted(() => {
-  return {
-    runtimeHandlers: new Map(),
-    swarmApiMocks: {
-      GetSwarmServices: vi.fn(),
-      ScaleSwarmService: vi.fn(),
-      RemoveSwarmService: vi.fn(),
-      RestartSwarmService: vi.fn(),
-      GetSwarmServiceLogs: vi.fn(),
-      UpdateSwarmServiceImage: vi.fn(),
-    },
-    holmesApiMocks: {
-      AnalyzeSwarmServiceStream: vi.fn(),
-      CancelHolmesStream: vi.fn(),
-      onHolmesChatStream: vi.fn(() => vi.fn()),
-      onHolmesContextProgress: vi.fn(() => vi.fn()),
-    },
-    notificationMocks: {
-      showSuccess: vi.fn(),
-      showError: vi.fn(),
-    },
-  };
-});
+const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } =
+  vi.hoisted(() => {
+    return {
+      runtimeHandlers: new Map(),
+      swarmApiMocks: {
+        GetSwarmServices: vi.fn(),
+        ScaleSwarmService: vi.fn(),
+        RemoveSwarmService: vi.fn(),
+        RestartSwarmService: vi.fn(),
+        GetSwarmServiceLogs: vi.fn(),
+        UpdateSwarmServiceImage: vi.fn(),
+      },
+      holmesApiMocks: {
+        AnalyzeSwarmServiceStream: vi.fn(),
+        CancelHolmesStream: vi.fn(),
+        onHolmesChatStream: vi.fn(() => vi.fn()),
+        onHolmesContextProgress: vi.fn(() => vi.fn()),
+      },
+      notificationMocks: {
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
+      },
+    };
+  });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
 vi.mock('../holmes/holmesApi', () => holmesApiMocks);
@@ -48,7 +56,8 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
 
         <div data-testid="rows">
           {(data || []).map((row) => {
-            const actions = typeof getRowActions === 'function' ? getRowActions(row) : [];
+            const actions =
+              typeof getRowActions === 'function' ? getRowActions(row) : [];
             return (
               <div key={row.id} data-testid={`row-${row.id}`}>
                 <div data-testid={`row-name-${row.id}`}>{row.name}</div>
@@ -58,9 +67,12 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                     const rawValue = row[col.key];
                     const content = col.cell
                       ? col.cell({ getValue: () => rawValue })
-                      : rawValue ?? '-';
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.id}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.id}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -68,8 +80,12 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                 </div>
 
                 <div data-testid={`row-digests-${row.id}`}>
-                  <div data-testid={`localDigest-${row.id}`}>{row.imageLocalDigest || ''}</div>
-                  <div data-testid={`remoteDigest-${row.id}`}>{row.imageRemoteDigest || ''}</div>
+                  <div data-testid={`localDigest-${row.id}`}>
+                    {row.imageLocalDigest || ''}
+                  </div>
+                  <div data-testid={`remoteDigest-${row.id}`}>
+                    {row.imageRemoteDigest || ''}
+                  </div>
                 </div>
 
                 <div data-testid={`actions-${row.id}`}>
@@ -134,7 +150,9 @@ vi.mock('../docker/resources/services/ImageUpdateModal.jsx', () => ({
     return (
       <div data-testid="image-update-modal">
         <div>service:{service?.name || '-'}</div>
-        <button type="button" onClick={onClose}>Close</button>
+        <button type="button" onClick={onClose}>
+          Close
+        </button>
       </div>
     );
   },
@@ -213,10 +231,14 @@ describe('SwarmServicesOverviewTable', () => {
     expect(imageCell).toHaveTextContent('nginx:1.2.3');
 
     // ports cell rendered
-    expect(screen.getByTestId('cell-svc1-ports')).toHaveTextContent('8080:80/tcp');
+    expect(screen.getByTestId('cell-svc1-ports')).toHaveTextContent(
+      '8080:80/tcp',
+    );
 
     // created cell formatted in local time via Date object
-    expect(screen.getByTestId('cell-svc1-createdAt')).toHaveTextContent('02.01.2025');
+    expect(screen.getByTestId('cell-svc1-createdAt')).toHaveTextContent(
+      '02.01.2025',
+    );
 
     // second service has no createdAt
     expect(screen.getByTestId('cell-svc2-createdAt')).toHaveTextContent('-');
@@ -236,7 +258,10 @@ describe('SwarmServicesOverviewTable', () => {
       fireEvent.click(askButton);
     });
 
-    expect(holmesApiMocks.AnalyzeSwarmServiceStream).toHaveBeenCalledWith('svc1', expect.any(String));
+    expect(holmesApiMocks.AnalyzeSwarmServiceStream).toHaveBeenCalledWith(
+      'svc1',
+      expect.any(String),
+    );
   });
 
   it('opens image update settings modal from header button', async () => {
@@ -244,15 +269,25 @@ describe('SwarmServicesOverviewTable', () => {
     await screen.findByTestId('row-svc1');
 
     const header = screen.getByTestId('header-actions');
-    const button = within(header).getByRole('button', { name: 'Image Updates' });
+    const button = within(header).getByRole('button', {
+      name: 'Image Updates',
+    });
     fireEvent.click(button);
 
-    expect(screen.getByTestId('image-update-settings-modal')).toBeInTheDocument();
+    expect(
+      screen.getByTestId('image-update-settings-modal'),
+    ).toBeInTheDocument();
   });
 
   it('row actions call APIs and emit notifications', async () => {
-    vi.stubGlobal('prompt', vi.fn(() => '5'));
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'prompt',
+      vi.fn(() => '5'),
+    );
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmServicesOverviewTable />);
     await screen.findByTestId('row-svc1');
@@ -260,16 +295,28 @@ describe('SwarmServicesOverviewTable', () => {
     const actions = screen.getByTestId('actions-svc1');
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Restart' }));
-    await waitFor(() => expect(swarmApiMocks.RestartSwarmService).toHaveBeenCalledWith('svc1'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Restarted service api');
+    await waitFor(() =>
+      expect(swarmApiMocks.RestartSwarmService).toHaveBeenCalledWith('svc1'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Restarted service api',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Scale…' }));
-    await waitFor(() => expect(swarmApiMocks.ScaleSwarmService).toHaveBeenCalledWith('svc1', 5));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Scaled service api to 5 replicas');
+    await waitFor(() =>
+      expect(swarmApiMocks.ScaleSwarmService).toHaveBeenCalledWith('svc1', 5),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Scaled service api to 5 replicas',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmService).toHaveBeenCalledWith('svc1'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Removed service api');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmService).toHaveBeenCalledWith('svc1'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Removed service api',
+    );
 
     // Scale is disabled for non-replicated services
     const actions2 = screen.getByTestId('actions-svc2');
@@ -290,8 +337,16 @@ describe('SwarmServicesOverviewTable', () => {
     expect(await screen.findByTestId('image-update-modal')).toBeInTheDocument();
     expect(screen.getByText('service:api')).toBeInTheDocument();
 
-    fireEvent.click(within(screen.getByTestId('image-update-modal')).getByRole('button', { name: 'Close' }));
-    await waitFor(() => expect(screen.queryByTestId('image-update-modal')).not.toBeInTheDocument());
+    fireEvent.click(
+      within(screen.getByTestId('image-update-modal')).getByRole('button', {
+        name: 'Close',
+      }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryByTestId('image-update-modal'),
+      ).not.toBeInTheDocument(),
+    );
   });
 
   it('applies runtime updates for services and image digests', async () => {
@@ -329,8 +384,12 @@ describe('SwarmServicesOverviewTable', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByTestId('localDigest-svc3')).toHaveTextContent('sha256:local');
-      expect(screen.getByTestId('remoteDigest-svc3')).toHaveTextContent('sha256:remote');
+      expect(screen.getByTestId('localDigest-svc3')).toHaveTextContent(
+        'sha256:local',
+      );
+      expect(screen.getByTestId('remoteDigest-svc3')).toHaveTextContent(
+        'sha256:remote',
+      );
     });
   });
 });

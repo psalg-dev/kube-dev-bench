@@ -1,10 +1,11 @@
+/* eslint-disable no-console */
 /**
  * Logger utility for production-safe logging.
  * In development, logs are output to console.
  * In production, logs are suppressed to avoid console noise.
  */
 
-const isDev = import.meta.env?.DEV ?? process.env.NODE_ENV === 'development';
+const isDev = Boolean(import.meta?.env?.DEV);
 
 /**
  * Logger object with methods matching console API.

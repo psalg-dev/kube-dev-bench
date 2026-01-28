@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { EventsOn } from '../../../wailsjs/runtime/runtime.js';
 import { GetSwarmMetricsHistory } from '../swarmApi.js';
 
@@ -28,7 +36,9 @@ export function MetricsStateProvider({ children, maxPoints = 720 }) {
     setHistory((prev) => {
       const next = [...(Array.isArray(prev) ? prev : []), p];
       const max = Number(maxRef.current) || 0;
-      return max > 0 && next.length > max ? next.slice(next.length - max) : next;
+      return max > 0 && next.length > max
+        ? next.slice(next.length - max)
+        : next;
     });
   }, []);
 
@@ -78,15 +88,18 @@ export function MetricsStateProvider({ children, maxPoints = 720 }) {
     return arr.length ? arr[arr.length - 1] : null;
   }, [history]);
 
-  const value = useMemo(() => ({
-    history,
-    latest,
-    services,
-    nodes,
-    loading,
-    error,
-    refetch,
-  }), [history, latest, services, nodes, loading, error, refetch]);
+  const value = useMemo(
+    () => ({
+      history,
+      latest,
+      services,
+      nodes,
+      loading,
+      error,
+      refetch,
+    }),
+    [history, latest, services, nodes, loading, error, refetch],
+  );
 
   return (
     <MetricsStateContext.Provider value={value}>

@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
 const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
@@ -37,7 +44,8 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
         <div data-testid="title">{title}</div>
         <div data-testid="rows">
           {rows.map((row) => {
-            const actions = typeof getRowActions === 'function' ? getRowActions(row) : [];
+            const actions =
+              typeof getRowActions === 'function' ? getRowActions(row) : [];
             return (
               <div key={row.id} data-testid={`row-${row.id}`}>
                 <div data-testid={`name-${row.id}`}>{row.hostname}</div>
@@ -45,9 +53,14 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                 <div data-testid={`cells-${row.id}`}>
                   {(columns || []).map((col) => {
                     const rawValue = row[col.key];
-                    const content = col.cell ? col.cell({ getValue: () => rawValue }) : rawValue ?? '-';
+                    const content = col.cell
+                      ? col.cell({ getValue: () => rawValue })
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.id}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.id}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -79,7 +92,9 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                   ))}
                 </div>
 
-                <div data-testid={`panel-${row.id}`}>{renderPanelContent?.(row, 'summary')}</div>
+                <div data-testid={`panel-${row.id}`}>
+                  {renderPanelContent?.(row, 'summary')}
+                </div>
               </div>
             );
           })}
@@ -107,12 +122,24 @@ vi.mock('../layout/bottompanel/SummaryTabHeader.jsx', () => ({
 }));
 
 vi.mock('../docker/resources/SwarmResourceActions.jsx', () => ({
-  default: function SwarmResourceActionsMock({ onDrain, onActivate, onDelete }) {
+  default: function SwarmResourceActionsMock({
+    onDrain,
+    onActivate,
+    onDelete,
+  }) {
     return (
       <div>
-        <button type="button" onClick={onDrain}>Drain</button>
-        <button type="button" onClick={onActivate}>Activate</button>
-        {onDelete ? <button type="button" onClick={onDelete}>Delete</button> : null}
+        <button type="button" onClick={onDrain}>
+          Drain
+        </button>
+        <button type="button" onClick={onActivate}>
+          Activate
+        </button>
+        {onDelete ? (
+          <button type="button" onClick={onDelete}>
+            Delete
+          </button>
+        ) : null}
       </div>
     );
   },
@@ -193,13 +220,19 @@ describe('SwarmNodesOverviewTable', () => {
     expect(screen.getByTestId('name-node2')).toHaveTextContent('manager-1');
 
     const a1 = screen.getByTestId('actions-node1');
-    expect(within(a1).getByRole('button', { name: 'Drain' })).not.toBeDisabled();
+    expect(
+      within(a1).getByRole('button', { name: 'Drain' }),
+    ).not.toBeDisabled();
     expect(within(a1).getByRole('button', { name: 'Activate' })).toBeDisabled();
-    expect(within(a1).getByRole('button', { name: 'Promote…' })).not.toBeDisabled();
+    expect(
+      within(a1).getByRole('button', { name: 'Promote…' }),
+    ).not.toBeDisabled();
 
     const a2 = screen.getByTestId('actions-node2');
     expect(within(a2).getByRole('button', { name: 'Drain' })).toBeDisabled();
-    expect(within(a2).getByRole('button', { name: 'Activate' })).not.toBeDisabled();
+    expect(
+      within(a2).getByRole('button', { name: 'Activate' }),
+    ).not.toBeDisabled();
     expect(within(a2).getByRole('button', { name: 'Demote…' })).toBeDisabled();
     expect(within(a2).getByRole('button', { name: 'Remove' })).toBeDisabled();
 
@@ -208,7 +241,10 @@ describe('SwarmNodesOverviewTable', () => {
   });
 
   it('executes row actions and shows notifications', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmNodesOverviewTable />);
     await screen.findByTestId('row-node1');
@@ -216,24 +252,50 @@ describe('SwarmNodesOverviewTable', () => {
     const a1 = screen.getByTestId('actions-node1');
 
     fireEvent.click(within(a1).getByRole('button', { name: 'Drain' }));
-    await waitFor(() => expect(swarmApiMocks.UpdateSwarmNodeAvailability).toHaveBeenCalledWith('node1', 'drain'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Node worker-1 set to drain');
+    await waitFor(() =>
+      expect(swarmApiMocks.UpdateSwarmNodeAvailability).toHaveBeenCalledWith(
+        'node1',
+        'drain',
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Node worker-1 set to drain',
+    );
 
     fireEvent.click(within(a1).getByRole('button', { name: 'Promote…' }));
-    await waitFor(() => expect(swarmApiMocks.UpdateSwarmNodeRole).toHaveBeenCalledWith('node1', 'manager'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Node worker-1 promoted to manager');
+    await waitFor(() =>
+      expect(swarmApiMocks.UpdateSwarmNodeRole).toHaveBeenCalledWith(
+        'node1',
+        'manager',
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Node worker-1 promoted to manager',
+    );
 
     fireEvent.click(within(a1).getByRole('button', { name: 'Remove' }));
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmNode).toHaveBeenCalledWith('node1', false));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Node worker-1 removed');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmNode).toHaveBeenCalledWith(
+        'node1',
+        false,
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Node worker-1 removed',
+    );
 
     // refresh() should trigger reload
     // initial load + one refresh-triggered load per action above
-    await waitFor(() => expect(swarmApiMocks.GetSwarmNodes).toHaveBeenCalledTimes(4));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmNodes).toHaveBeenCalledTimes(4),
+    );
   });
 
   it('demote on a leader manager shows an error without confirming', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmNodesOverviewTable />);
     await screen.findByTestId('row-node2');
@@ -242,7 +304,9 @@ describe('SwarmNodesOverviewTable', () => {
 
     // Use force-invoke to hit the guard branch even though the UI disables the button.
     fireEvent.click(within(a2).getByTestId('force-node2-Demote…'));
-    expect(notificationMocks.showError).toHaveBeenCalledWith('Cannot demote the current leader node');
+    expect(notificationMocks.showError).toHaveBeenCalledWith(
+      'Cannot demote the current leader node',
+    );
     expect(swarmApiMocks.UpdateSwarmNodeRole).not.toHaveBeenCalled();
   });
 
@@ -252,7 +316,15 @@ describe('SwarmNodesOverviewTable', () => {
 
     act(() => {
       emit('swarm:nodes:update', [
-        { id: 'node3', hostname: 'worker-2', role: 'worker', availability: 'active', state: 'ready', address: '10.0.0.4', engineVersion: '25.0.0' },
+        {
+          id: 'node3',
+          hostname: 'worker-2',
+          role: 'worker',
+          availability: 'active',
+          state: 'ready',
+          address: '10.0.0.4',
+          engineVersion: '25.0.0',
+        },
       ]);
     });
 
@@ -260,7 +332,10 @@ describe('SwarmNodesOverviewTable', () => {
   });
 
   it('panel actions call APIs (promote/drain/activate/delete)', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     render(<SwarmNodesOverviewTable />);
     await screen.findByTestId('row-node1');
@@ -268,17 +343,37 @@ describe('SwarmNodesOverviewTable', () => {
     const panel = screen.getByTestId('panel-node1');
 
     fireEvent.click(within(panel).getByRole('button', { name: 'Promote' }));
-    await waitFor(() => expect(swarmApiMocks.UpdateSwarmNodeRole).toHaveBeenCalledWith('node1', 'manager'));
+    await waitFor(() =>
+      expect(swarmApiMocks.UpdateSwarmNodeRole).toHaveBeenCalledWith(
+        'node1',
+        'manager',
+      ),
+    );
 
     // SwarmResourceActions mock buttons
     const header = within(panel).getByTestId('summary-tab-header');
     fireEvent.click(within(header).getByRole('button', { name: 'Drain' }));
-    await waitFor(() => expect(swarmApiMocks.UpdateSwarmNodeAvailability).toHaveBeenCalledWith('node1', 'drain'));
+    await waitFor(() =>
+      expect(swarmApiMocks.UpdateSwarmNodeAvailability).toHaveBeenCalledWith(
+        'node1',
+        'drain',
+      ),
+    );
 
     fireEvent.click(within(header).getByRole('button', { name: 'Activate' }));
-    await waitFor(() => expect(swarmApiMocks.UpdateSwarmNodeAvailability).toHaveBeenCalledWith('node1', 'active'));
+    await waitFor(() =>
+      expect(swarmApiMocks.UpdateSwarmNodeAvailability).toHaveBeenCalledWith(
+        'node1',
+        'active',
+      ),
+    );
 
     fireEvent.click(within(header).getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmNode).toHaveBeenCalledWith('node1', false));
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmNode).toHaveBeenCalledWith(
+        'node1',
+        false,
+      ),
+    );
   });
 });

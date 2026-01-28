@@ -20,7 +20,13 @@ describe('HolmesContext', () => {
     // Default mock for GetHolmesConfig
     genericAPIMock.mockImplementation((name, ..._args) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: false, endpoint: '', apiKey: '', modelKey: '', responseFormat: '' });
+        return Promise.resolve({
+          enabled: false,
+          endpoint: '',
+          apiKey: '',
+          modelKey: '',
+          responseFormat: '',
+        });
       }
       return Promise.resolve(undefined);
     });
@@ -30,8 +36,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -45,7 +55,13 @@ describe('HolmesContext', () => {
   it('loads configuration on mount', async () => {
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '********', modelKey: 'fast-model', responseFormat: '' });
+        return Promise.resolve({
+          enabled: true,
+          endpoint: 'http://test:8080',
+          apiKey: '********',
+          modelKey: 'fast-model',
+          responseFormat: '',
+        });
       }
       return Promise.resolve(undefined);
     });
@@ -53,8 +69,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -68,8 +88,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -93,8 +117,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -123,7 +151,13 @@ describe('HolmesContext', () => {
 
     genericAPIMock.mockImplementation((name, ..._args) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
+        return Promise.resolve({
+          enabled: true,
+          endpoint: 'http://test:8080',
+          apiKey: '',
+          modelKey: '',
+          responseFormat: '',
+        });
       }
       if (name === 'AskHolmesStream') {
         return Promise.resolve();
@@ -134,8 +168,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -150,7 +188,9 @@ describe('HolmesContext', () => {
 
     await waitFor(() => {
       expect(capturedContext.state.response).toBeDefined();
-      expect(capturedContext.state.response.response).toBe('Test answer from Holmes');
+      expect(capturedContext.state.response.response).toBe(
+        'Test answer from Holmes',
+      );
       expect(capturedContext.state.loading).toBe(false);
     });
   });
@@ -158,7 +198,13 @@ describe('HolmesContext', () => {
   it('askHolmes handles errors', async () => {
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
+        return Promise.resolve({
+          enabled: true,
+          endpoint: 'http://test:8080',
+          apiKey: '',
+          modelKey: '',
+          responseFormat: '',
+        });
       }
       if (name === 'AskHolmesStream') {
         return Promise.reject(new Error('Connection failed'));
@@ -169,8 +215,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -200,7 +250,13 @@ describe('HolmesContext', () => {
 
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
-        return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
+        return Promise.resolve({
+          enabled: true,
+          endpoint: 'http://test:8080',
+          apiKey: '',
+          modelKey: '',
+          responseFormat: '',
+        });
       }
       if (name === 'AskHolmesStream') {
         return Promise.resolve();
@@ -211,8 +267,12 @@ describe('HolmesContext', () => {
     let capturedContext;
     render(
       <HolmesProvider>
-        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
-      </HolmesProvider>
+        <TestConsumer
+          onContext={(ctx) => {
+            capturedContext = ctx;
+          }}
+        />
+      </HolmesProvider>,
     );
 
     await waitFor(() => {
@@ -244,7 +304,9 @@ describe('HolmesContext', () => {
       return null;
     }
 
-    expect(() => render(<BadComponent />)).toThrow('useHolmes must be used within HolmesProvider');
+    expect(() => render(<BadComponent />)).toThrow(
+      'useHolmes must be used within HolmesProvider',
+    );
 
     consoleSpy.mockRestore();
   });

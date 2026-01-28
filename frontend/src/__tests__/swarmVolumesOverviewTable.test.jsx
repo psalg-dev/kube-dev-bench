@@ -1,26 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import {
+  render,
+  screen,
+  within,
+  fireEvent,
+  waitFor,
+  act,
+} from '@testing-library/react';
 
-const { runtimeHandlers, swarmApiMocks, notificationMocks, swarmStateMocks } = vi.hoisted(() => {
-  return {
-    runtimeHandlers: new Map(),
-    swarmApiMocks: {
-      GetSwarmVolumes: vi.fn(),
-      BackupSwarmVolume: vi.fn(),
-      RestoreSwarmVolume: vi.fn(),
-      CloneSwarmVolume: vi.fn(),
-      RemoveSwarmVolume: vi.fn(),
-      GetSwarmVolumeUsage: vi.fn(),
-    },
-    notificationMocks: {
-      showSuccess: vi.fn(),
-      showError: vi.fn(),
-    },
-    swarmStateMocks: {
-      useSwarmState: vi.fn(),
-    },
-  };
-});
+const { runtimeHandlers, swarmApiMocks, notificationMocks, swarmStateMocks } =
+  vi.hoisted(() => {
+    return {
+      runtimeHandlers: new Map(),
+      swarmApiMocks: {
+        GetSwarmVolumes: vi.fn(),
+        BackupSwarmVolume: vi.fn(),
+        RestoreSwarmVolume: vi.fn(),
+        CloneSwarmVolume: vi.fn(),
+        RemoveSwarmVolume: vi.fn(),
+        GetSwarmVolumeUsage: vi.fn(),
+      },
+      notificationMocks: {
+        showSuccess: vi.fn(),
+        showError: vi.fn(),
+      },
+      swarmStateMocks: {
+        useSwarmState: vi.fn(),
+      },
+    };
+  });
 
 vi.mock('../docker/swarmApi.js', () => swarmApiMocks);
 vi.mock('../notification.js', () => notificationMocks);
@@ -47,15 +55,21 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
         <div data-testid="title">{title}</div>
         <div data-testid="rows">
           {rows.map((row) => {
-            const actions = typeof getRowActions === 'function' ? getRowActions(row) : [];
+            const actions =
+              typeof getRowActions === 'function' ? getRowActions(row) : [];
             return (
               <div key={row.name} data-testid={`row-${row.name}`}>
                 <div data-testid={`cells-${row.name}`}>
                   {(columns || []).map((col) => {
                     const rawValue = row[col.key];
-                    const content = col.cell ? col.cell({ getValue: () => rawValue }) : rawValue ?? '-';
+                    const content = col.cell
+                      ? col.cell({ getValue: () => rawValue })
+                      : (rawValue ?? '-');
                     return (
-                      <div key={col.key} data-testid={`cell-${row.name}-${col.key}`}>
+                      <div
+                        key={col.key}
+                        data-testid={`cell-${row.name}-${col.key}`}
+                      >
                         {content}
                       </div>
                     );
@@ -70,7 +84,9 @@ vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
                   ))}
                 </div>
 
-                <div data-testid={`panel-${row.name}`}>{renderPanelContent?.(row, 'summary')}</div>
+                <div data-testid={`panel-${row.name}`}>
+                  {renderPanelContent?.(row, 'summary')}
+                </div>
               </div>
             );
           })}
@@ -99,7 +115,11 @@ vi.mock('../layout/bottompanel/SummaryTabHeader.jsx', () => ({
 
 vi.mock('../docker/resources/SwarmResourceActions.jsx', () => ({
   default: function SwarmResourceActionsMock({ onDelete }) {
-    return onDelete ? <button type="button" onClick={onDelete}>Delete</button> : null;
+    return onDelete ? (
+      <button type="button" onClick={onDelete}>
+        Delete
+      </button>
+    ) : null;
   },
 }));
 
@@ -159,7 +179,9 @@ describe('SwarmVolumesOverviewTable', () => {
 
     render(<SwarmVolumesOverviewTable />);
 
-    expect(screen.getByText('Not connected to Docker Swarm')).toBeInTheDocument();
+    expect(
+      screen.getByText('Not connected to Docker Swarm'),
+    ).toBeInTheDocument();
   });
 
   it('loads and renders volumes with formatted cells', async () => {
@@ -168,13 +190,23 @@ describe('SwarmVolumesOverviewTable', () => {
     expect(screen.getByText('Loading Swarm volumes...')).toBeInTheDocument();
 
     expect(await screen.findByTestId('row-data')).toBeInTheDocument();
-    expect(screen.getByTestId('cell-data-createdAt')).toHaveTextContent('FMT(2026-01-01T12:00:00Z)');
-    expect(screen.getByTestId('cell-data-labels')).toHaveTextContent('2 labels');
+    expect(screen.getByTestId('cell-data-createdAt')).toHaveTextContent(
+      'FMT(2026-01-01T12:00:00Z)',
+    );
+    expect(screen.getByTestId('cell-data-labels')).toHaveTextContent(
+      '2 labels',
+    );
   });
 
   it('row actions call APIs and trigger refresh where expected', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
-    vi.stubGlobal('prompt', vi.fn(() => 'data-clone'));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
+    vi.stubGlobal(
+      'prompt',
+      vi.fn(() => 'data-clone'),
+    );
 
     render(<SwarmVolumesOverviewTable />);
     await screen.findByTestId('row-data');
@@ -182,27 +214,54 @@ describe('SwarmVolumesOverviewTable', () => {
     const actions = screen.getByTestId('actions-data');
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Backup' }));
-    await waitFor(() => expect(swarmApiMocks.BackupSwarmVolume).toHaveBeenCalledWith('data'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Backed up volume "data"');
+    await waitFor(() =>
+      expect(swarmApiMocks.BackupSwarmVolume).toHaveBeenCalledWith('data'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Backed up volume "data"',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Restore…' }));
-    await waitFor(() => expect(swarmApiMocks.RestoreSwarmVolume).toHaveBeenCalledWith('data'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Restored backup into volume "data"');
+    await waitFor(() =>
+      expect(swarmApiMocks.RestoreSwarmVolume).toHaveBeenCalledWith('data'),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Restored backup into volume "data"',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Clone…' }));
-    await waitFor(() => expect(swarmApiMocks.CloneSwarmVolume).toHaveBeenCalledWith('data', 'data-clone'));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Cloned volume to "data-clone"');
+    await waitFor(() =>
+      expect(swarmApiMocks.CloneSwarmVolume).toHaveBeenCalledWith(
+        'data',
+        'data-clone',
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Cloned volume to "data-clone"',
+    );
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Delete' }));
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmVolume).toHaveBeenCalledWith('data', false));
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Volume "data" deleted');
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmVolume).toHaveBeenCalledWith(
+        'data',
+        false,
+      ),
+    );
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Volume "data" deleted',
+    );
 
     // clone + delete each call refresh() => another load
-    await waitFor(() => expect(swarmApiMocks.GetSwarmVolumes).toHaveBeenCalledTimes(3));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmVolumes).toHaveBeenCalledTimes(3),
+    );
   });
 
   it('summary panel delete checks usage list for confirm message', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true),
+    );
 
     swarmApiMocks.GetSwarmVolumeUsage.mockResolvedValue([
       { serviceName: 'api', serviceId: 'svc1' },
@@ -217,14 +276,25 @@ describe('SwarmVolumesOverviewTable', () => {
 
     fireEvent.click(within(header).getByRole('button', { name: 'Delete' }));
 
-    await waitFor(() => expect(swarmApiMocks.GetSwarmVolumeUsage).toHaveBeenCalledWith('data'));
-    await waitFor(() => expect(swarmApiMocks.RemoveSwarmVolume).toHaveBeenCalledWith('data', false));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmVolumeUsage).toHaveBeenCalledWith('data'),
+    );
+    await waitFor(() =>
+      expect(swarmApiMocks.RemoveSwarmVolume).toHaveBeenCalledWith(
+        'data',
+        false,
+      ),
+    );
 
-    expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Volume "data" deleted');
+    expect(notificationMocks.showSuccess).toHaveBeenCalledWith(
+      'Volume "data" deleted',
+    );
     expect(globalThis.confirm).toHaveBeenCalled();
 
     // panel delete calls onRefresh which reloads
-    await waitFor(() => expect(swarmApiMocks.GetSwarmVolumes).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmVolumes).toHaveBeenCalledTimes(2),
+    );
   });
 
   it('applies runtime updates for swarm:volumes:update', async () => {
@@ -233,7 +303,13 @@ describe('SwarmVolumesOverviewTable', () => {
 
     act(() => {
       emit('swarm:volumes:update', [
-        { name: 'logs', driver: 'local', scope: 'local', createdAt: '2026-01-02T00:00:00Z', labels: {} },
+        {
+          name: 'logs',
+          driver: 'local',
+          scope: 'local',
+          createdAt: '2026-01-02T00:00:00Z',
+          labels: {},
+        },
       ]);
     });
 
@@ -243,6 +319,8 @@ describe('SwarmVolumesOverviewTable', () => {
       emit('swarm:volumes:update', { reason: 'unknown' });
     });
 
-    await waitFor(() => expect(swarmApiMocks.GetSwarmVolumes).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(swarmApiMocks.GetSwarmVolumes).toHaveBeenCalledTimes(2),
+    );
   });
 });

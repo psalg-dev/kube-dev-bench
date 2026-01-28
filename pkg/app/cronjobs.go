@@ -127,10 +127,18 @@ func computeNextRuns(schedule string, base time.Time, count int) []string {
 // StartCronJobPolling emits cronjobs:update events periodically with the current cronjob list
 func (a *App) StartCronJobPolling() {
 	go func() {
+		ticker := time.NewTicker(time.Second)
+		defer ticker.Stop()
 		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
+			ctx := a.ctx
+			if ctx == nil {
+				<-ticker.C
 				continue
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
 			}
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
@@ -147,7 +155,7 @@ func (a *App) StartCronJobPolling() {
 				}
 				all = append(all, cjs...)
 			}
-			emitEvent(a.ctx, "cronjobs:update", all)
+			emitEvent(ctx, "cronjobs:update", all)
 		}
 	}()
 }

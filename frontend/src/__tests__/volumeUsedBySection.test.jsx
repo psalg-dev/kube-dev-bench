@@ -27,7 +27,8 @@ describe('VolumeUsedBySection', () => {
       { serviceId: 'a', serviceName: 'aaa' },
     ]);
 
-    const { default: VolumeUsedBySection } = await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
+    const { default: VolumeUsedBySection } =
+      await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
 
     render(<VolumeUsedBySection volumeName="myvol" />);
 
@@ -50,19 +51,23 @@ describe('VolumeUsedBySection', () => {
     const swarmApi = await import('../docker/swarmApi.js');
     swarmApi.GetSwarmVolumeUsage.mockResolvedValueOnce({});
 
-    const { default: VolumeUsedBySection } = await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
+    const { default: VolumeUsedBySection } =
+      await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
 
     render(<VolumeUsedBySection volumeName="myvol" />);
 
     expect(await screen.findByText('Not in use')).toBeTruthy();
-    expect(screen.getByText('No services currently reference this volume.')).toBeTruthy();
+    expect(
+      screen.getByText('No services currently reference this volume.'),
+    ).toBeTruthy();
   });
 
   it('renders error state when api fails', async () => {
     const swarmApi = await import('../docker/swarmApi.js');
     swarmApi.GetSwarmVolumeUsage.mockRejectedValueOnce(new Error('nope'));
 
-    const { default: VolumeUsedBySection } = await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
+    const { default: VolumeUsedBySection } =
+      await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
 
     render(<VolumeUsedBySection volumeName="myvol" />);
 
@@ -74,7 +79,8 @@ describe('VolumeUsedBySection', () => {
     const d = deferred();
     swarmApi.GetSwarmVolumeUsage.mockReturnValueOnce(d.promise);
 
-    const { default: VolumeUsedBySection } = await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
+    const { default: VolumeUsedBySection } =
+      await import('../docker/resources/volumes/VolumeUsedBySection.jsx');
 
     const { unmount } = render(<VolumeUsedBySection volumeName="myvol" />);
 

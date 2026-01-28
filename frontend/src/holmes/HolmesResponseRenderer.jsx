@@ -4,12 +4,13 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 export function HolmesResponseRenderer({ text, response }) {
-  const renderText = text
-    || response?.response
-    || response?.Response
-    || response?.analysis
-    || response?.Analysis
-    || '';
+  const renderText =
+    text ||
+    response?.response ||
+    response?.Response ||
+    response?.analysis ||
+    response?.Analysis ||
+    '';
 
   if (!renderText) {
     return null;
@@ -31,7 +32,12 @@ export function HolmesResponseRenderer({ text, response }) {
         components={{
           a({ children, href, ...props }) {
             return (
-              <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                {...props}
+              >
                 {children}
               </a>
             );
@@ -77,7 +83,13 @@ export function HolmesResponseRenderer({ text, response }) {
       {(response?.rich_output || response?.RichOutput) && (
         <div className="holmes-rich-output">
           <div className="holmes-rich-output-title">Additional Information</div>
-          <pre>{JSON.stringify(response?.rich_output || response?.RichOutput, null, 2)}</pre>
+          <pre>
+            {JSON.stringify(
+              response?.rich_output || response?.RichOutput,
+              null,
+              2,
+            )}
+          </pre>
         </div>
       )}
     </div>

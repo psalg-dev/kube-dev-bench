@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import SecretYamlTab from './SecretYamlTab';
@@ -10,8 +10,9 @@ import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
-import { AnalyzeSecretStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import { AnalyzeSecretStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import useHolmesStream from '../../../holmes/useHolmesStream';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -42,19 +43,47 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
           key: 'age',
           label: 'Age',
           type: 'age',
-          getValue: (data) => data.created || data.age
-        }
+          getValue: (data) => data.created || data.age,
+        },
       },
       { key: 'namespace', label: 'Namespace' },
       { key: 'keys', label: 'Keys' },
       { key: 'size', label: 'Size' },
-      { key: 'name', label: 'Secret name', type: 'break-word' }
+      { key: 'name', label: 'Secret name', type: 'break-word' },
     ];
 
     return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="secret" name={row.name} namespace={row.namespace} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('secret', ns, n);}} />} />
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <SummaryTabHeader
+          name={row.name}
+          labels={row.labels || row.Labels || row.metadata?.labels}
+          actions={
+            <ResourceActions
+              resourceType="secret"
+              name={row.name}
+              namespace={row.namespace}
+              onDelete={async (n, ns) => {
+                await AppAPI.DeleteResource('secret', ns, n);
+              }}
+            />
+          }
+        />
+        <div
+          style={{
+            display: 'flex',
+            flex: 1,
+            minHeight: 0,
+            color: 'var(--gh-text, #c9d1d9)',
+          }}
+        >
           <QuickInfoSection
             resourceName={row.name}
             data={row}
@@ -62,13 +91,25 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
             error={null}
             fields={quickInfoFields}
           />
-          {/* Editable Data + Event History at a glance */}
           <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
               <SecretDataTab namespace={row.namespace} secretName={row.name} />
             </div>
-            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
-              <ResourceEventsTab namespace={row.namespace} resourceKind="Secret" resourceName={row.name} limit={20} />
+            <div
+              style={{
+                width: 420,
+                minWidth: 300,
+                minHeight: 0,
+                borderLeft: '1px solid var(--gh-border, #30363d)',
+                position: 'relative',
+              }}
+            >
+              <ResourceEventsTab
+                namespace={row.namespace}
+                kind="Secret"
+                name={row.name}
+                limit={20}
+              />
             </div>
           </div>
         </div>
@@ -76,23 +117,21 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
     );
   }
   if (tab === 'data') {
-    return (
-      <SecretDataTab
-        namespace={row.namespace}
-        secretName={row.name}
-      />
-    );
+    return <SecretDataTab namespace={row.namespace} secretName={row.name} />;
   }
   if (tab === 'consumers') {
     return (
-      <SecretConsumersTab
-        namespace={row.namespace}
-        secretName={row.name}
-      />
+      <SecretConsumersTab namespace={row.namespace} secretName={row.name} />
     );
   }
   if (tab === 'events') {
-    return <ResourceEventsTab namespace={row.namespace} resourceKind="Secret" resourceName={row.name} />;
+    return (
+      <ResourceEventsTab
+        namespace={row.namespace}
+        kind="Secret"
+        name={row.name}
+      />
+    );
   }
   if (tab === 'yaml') {
     return <SecretYamlTab namespace={row.namespace} name={row.name} />;
@@ -105,11 +144,15 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
         namespace={row.namespace}
         name={row.name}
         onAnalyze={() => onAnalyze(row)}
-        onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+        onCancel={
+          holmesState.key === key && holmesState.streamId ? onCancel : null
+        }
         response={holmesState.key === key ? holmesState.response : null}
         loading={holmesState.key === key && holmesState.loading}
         error={holmesState.key === key ? holmesState.error : null}
-        queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+        queryTimestamp={
+          holmesState.key === key ? holmesState.queryTimestamp : null
+        }
         streamingText={holmesState.key === key ? holmesState.streamingText : ''}
         reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
         toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
@@ -120,175 +163,34 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
   return null;
 }
 
-export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
-  const [data, setData] = useState([]);
-  const [_loading, setLoading] = useState(false);
-  const [_error, setError] = useState(null);
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
-  });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
-
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let streamData;
-      try {
-        streamData = JSON.parse(payload.data);
-      } catch {
-        streamData = null;
-      }
-
-      if (eventType === 'ai_message' && streamData) {
-        let handled = false;
-        if (streamData.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + streamData.reasoning,
-          }));
-          handled = true;
-        }
-        if (streamData.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + streamData.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && streamData && streamData.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: streamData.id,
-            name: streamData.tool_name || 'tool',
-            status: 'running',
-            description: streamData.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && streamData && streamData.tool_call_id) {
-        const status = streamData.result?.status || streamData.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === streamData.tool_call_id
-              ? { ...item, status, description: streamData.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && streamData && streamData.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: streamData.analysis },
-          streamingText: streamData.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  const normalize = (arr) => (arr || []).filter(Boolean).map((s) => ({
+const normalizeSecrets = (arr) =>
+  (arr || []).filter(Boolean).map((s) => ({
     name: s.name ?? s.Name,
     namespace: s.namespace ?? s.Namespace,
     type: s.type ?? s.Type ?? '-',
     keys: s.keys ?? s.Keys ?? '-',
     size: s.size ?? s.Size ?? '-',
     age: s.age ?? s.Age ?? '-',
-    labels: s.labels ?? s.Labels ?? s.metadata?.labels ?? {}
+    labels: s.labels ?? s.Labels ?? s.metadata?.labels ?? {},
   }));
 
+export default function SecretsOverviewTable({ namespaces = [], namespace }) {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const { holmesState, startAnalysis, cancelAnalysis } = useHolmesStream();
+
   const fetchAllSecrets = async () => {
-    if (!Array.isArray(namespaces) || namespaces.length === 0) {
-      setData([]);
-      return;
-    }
+    const nsList =
+      namespaces.length > 0 ? namespaces : namespace ? [namespace] : [];
+    if (nsList.length === 0) return;
     setLoading(true);
     setError(null);
     try {
       const results = await Promise.all(
-        namespaces.map(ns => AppAPI.GetSecrets(ns).catch(() => []))
+        nsList.map((ns) => AppAPI.GetSecrets(ns).catch(() => [])),
       );
-      setData(normalize([].concat(...results).filter(Boolean)));
+      setData(normalizeSecrets([].concat(...results).filter(Boolean)));
     } catch (err) {
       console.error('Error fetching secrets:', err);
       setError(err.message || 'Failed to fetch secrets');
@@ -301,52 +203,39 @@ export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
   useEffect(() => {
     fetchAllSecrets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespaces]);
+  }, [namespaces, namespace]);
 
   useEffect(() => {
     const onUpdate = (list) => {
       try {
         const arr = Array.isArray(list) ? list : [];
-        setData(normalize(arr));
-      } catch { /* ignore */ }
+        setData(normalizeSecrets(arr));
+      } catch {
+        /* ignore */
+      } finally {
+        setLoading(false);
+      }
     };
     EventsOn('secrets:update', onUpdate);
-    return () => { try { EventsOff('secrets:update'); } catch (_) {} };
+    return () => {
+      try {
+        EventsOff('secrets:update');
+      } catch (_) {}
+    };
   }, [namespaces]);
 
   const analyzeSecret = async (row) => {
     const key = `${row.namespace}/${row.name}`;
-    const streamId = `secret-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
+    await startAnalysis({
       key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
+      streamPrefix: 'secret',
+      run: (streamId) => AnalyzeSecretStream(row.namespace, row.name, streamId),
+      onError: (message) => showError(`Holmes analysis failed: ${message}`),
     });
-    try {
-      await AnalyzeSecretStream(row.namespace, row.name, streamId);
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showError(`Holmes analysis failed: ${message}`);
-    }
   };
 
   const cancelHolmesAnalysis = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
+    await cancelAnalysis();
   };
 
   const getRowActions = (row, api) => {
@@ -371,7 +260,9 @@ export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
             await AppAPI.DeleteResource('secret', row.namespace, row.name);
             showSuccess(`Secret '${row.name}' deleted`);
           } catch (err) {
-            showError(`Failed to delete Secret '${row.name}': ${err?.message || err}`);
+            showError(
+              `Failed to delete Secret '${row.name}': ${err?.message || err}`,
+            );
           }
         },
       },
@@ -383,10 +274,20 @@ export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
       columns={columns}
       data={data}
       tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeSecret, cancelHolmesAnalysis)}
+      renderPanelContent={(row, tab) =>
+        renderPanelContent(
+          row,
+          tab,
+          holmesState,
+          analyzeSecret,
+          cancelHolmesAnalysis,
+        )
+      }
       title="Secrets"
       resourceKind="secret"
       namespace={namespaces && namespaces.length === 1 ? namespaces[0] : ''}
+      loading={loading}
+      error={error}
       getRowActions={getRowActions}
     />
   );

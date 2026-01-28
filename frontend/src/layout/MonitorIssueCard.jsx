@@ -2,7 +2,14 @@ import { useMemo, useState } from 'react';
 import HolmesResponseRenderer from '../holmes/HolmesResponseRenderer.jsx';
 import './MonitorIssueCard.css';
 
-export function MonitorIssueCard({ issue, onNavigate, onAnalyze, onDismiss, analyzing, dismissing }) {
+export function MonitorIssueCard({
+  issue,
+  onNavigate,
+  onAnalyze,
+  onDismiss,
+  analyzing,
+  dismissing,
+}) {
   const [expanded, setExpanded] = useState(false);
 
   const resourcePath = useMemo(() => {
@@ -50,7 +57,9 @@ export function MonitorIssueCard({ issue, onNavigate, onAnalyze, onDismiss, anal
       onClick={() => onNavigate(issue)}
     >
       <div className="monitor-issue-header">
-        <span className={`monitor-issue-pill ${issue.type === 'error' ? 'is-error' : 'is-warning'}`}>
+        <span
+          className={`monitor-issue-pill ${issue.type === 'error' ? 'is-error' : 'is-warning'}`}
+        >
           {issue.reason}
         </span>
         <div className="monitor-issue-meta">
@@ -66,13 +75,23 @@ export function MonitorIssueCard({ issue, onNavigate, onAnalyze, onDismiss, anal
       {(issue.podPhase || issue.nodeName || issue.restartCount > 0) && (
         <div className="monitor-issue-details">
           {issue.podPhase && (
-            <span><strong>Phase:</strong> {issue.podPhase}</span>
+            <span>
+              <strong>Phase:</strong> {issue.podPhase}
+            </span>
           )}
           {issue.nodeName && (
-            <span><strong>Node:</strong> {issue.nodeName}</span>
+            <span>
+              <strong>Node:</strong> {issue.nodeName}
+            </span>
           )}
           {issue.restartCount > 0 && (
-            <span className={issue.restartCount > 5 ? 'monitor-issue-restarts hot' : 'monitor-issue-restarts'}>
+            <span
+              className={
+                issue.restartCount > 5
+                  ? 'monitor-issue-restarts hot'
+                  : 'monitor-issue-restarts'
+              }
+            >
               <strong>Restarts:</strong> {issue.restartCount}
             </span>
           )}
@@ -83,7 +102,10 @@ export function MonitorIssueCard({ issue, onNavigate, onAnalyze, onDismiss, anal
         <div className="monitor-issue-message">{issue.message}</div>
       )}
 
-      <div className="monitor-issue-actions" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="monitor-issue-actions"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           className="monitor-issue-btn"
@@ -116,7 +138,9 @@ export function MonitorIssueCard({ issue, onNavigate, onAnalyze, onDismiss, anal
 
       {expanded && issue.holmesAnalysis && (
         <div className="monitor-issue-analysis">
-          <HolmesResponseRenderer response={{ response: issue.holmesAnalysis }} />
+          <HolmesResponseRenderer
+            response={{ response: issue.holmesAnalysis }}
+          />
         </div>
       )}
     </div>

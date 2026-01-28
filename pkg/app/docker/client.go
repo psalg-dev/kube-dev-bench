@@ -159,8 +159,8 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 	}, nil
 }
 
-// IsSwarmActive checks if Docker Swarm is active on the connected daemon
-func IsSwarmActive(ctx context.Context, cli *client.Client) bool {
+// IsSwarmActive checks if Docker Swarm is active on the connected daemon.
+func IsSwarmActive(ctx context.Context, cli dockerSwarmInspector) bool {
 	return isSwarmActive(ctx, cli)
 }
 

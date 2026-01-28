@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
 import MetricsChart from './MetricsChart.jsx';
-import { MetricsStateProvider, useClusterMetrics } from './MetricsStateContext.jsx';
+import {
+  MetricsStateProvider,
+  useClusterMetrics,
+} from './MetricsStateContext.jsx';
 import TimeRangeSelector from './TimeRangeSelector.jsx';
 import { navigateToResource } from '../../utils/resourceNavigation';
 import './SwarmMetricsDashboard.css';
@@ -52,7 +55,8 @@ function Card({ title, value, sub }) {
 }
 
 function SwarmMetricsDashboardInner() {
-  const { history, latest, services, nodes, loading, error, refetch } = useClusterMetrics();
+  const { history, latest, services, nodes, loading, error, refetch } =
+    useClusterMetrics();
   const [rangeSeconds, setRangeSeconds] = useState(900);
   const [hoveredService, setHoveredService] = useState(null);
   const [hoveredNode, setHoveredNode] = useState(null);
@@ -100,14 +104,19 @@ function SwarmMetricsDashboardInner() {
 
       const t0 = Date.parse(prev?.timestamp);
       const t1 = Date.parse(curr?.timestamp);
-      const dt = Number.isFinite(t0) && Number.isFinite(t1) ? Math.max(0, (t1 - t0) / 1000) : 0;
+      const dt =
+        Number.isFinite(t0) && Number.isFinite(t1)
+          ? Math.max(0, (t1 - t0) / 1000)
+          : 0;
       const rx0 = Number(prev?.networkRxBytes ?? 0);
       const rx1 = Number(curr?.networkRxBytes ?? 0);
       const tx0 = Number(prev?.networkTxBytes ?? 0);
       const tx1 = Number(curr?.networkTxBytes ?? 0);
 
-      const rxDelta = Number.isFinite(rx0) && Number.isFinite(rx1) ? (rx1 - rx0) : 0;
-      const txDelta = Number.isFinite(tx0) && Number.isFinite(tx1) ? (tx1 - tx0) : 0;
+      const rxDelta =
+        Number.isFinite(rx0) && Number.isFinite(rx1) ? rx1 - rx0 : 0;
+      const txDelta =
+        Number.isFinite(tx0) && Number.isFinite(tx1) ? tx1 - tx0 : 0;
 
       out.push({
         timestamp: curr?.timestamp,
@@ -123,7 +132,9 @@ function SwarmMetricsDashboardInner() {
   const serviceTopCpu = useMemo(() => {
     const arr = Array.isArray(services) ? services : [];
     return [...arr]
-      .filter((s) => Number(s?.cpuPercent) > 0 || Number(s?.memoryUsedBytes) > 0)
+      .filter(
+        (s) => Number(s?.cpuPercent) > 0 || Number(s?.memoryUsedBytes) > 0,
+      )
       .sort((a, b) => Number(b?.cpuPercent ?? 0) - Number(a?.cpuPercent ?? 0))
       .slice(0, 6);
   }, [services]);
@@ -131,47 +142,75 @@ function SwarmMetricsDashboardInner() {
   const nodeTopCpu = useMemo(() => {
     const arr = Array.isArray(nodes) ? nodes : [];
     return [...arr]
-      .filter((n) => Number(n?.cpuPercent) > 0 || Number(n?.memoryUsedBytes) > 0)
+      .filter(
+        (n) => Number(n?.cpuPercent) > 0 || Number(n?.memoryUsedBytes) > 0,
+      )
       .sort((a, b) => Number(b?.cpuPercent ?? 0) - Number(a?.cpuPercent ?? 0))
       .slice(0, 6);
   }, [nodes]);
 
   return (
-    <div className="swarm-metrics-dashboard" data-testid="swarm-metrics-dashboard">
+    <div
+      className="swarm-metrics-dashboard"
+      data-testid="swarm-metrics-dashboard"
+    >
       <div className="swarm-metrics-dashboard__container">
         <div className="swarm-metrics-dashboard__header">
           <h2 className="swarm-metrics-dashboard__title">Swarm Metrics</h2>
           <div className="swarm-metrics-dashboard__meta">
-            {latest?.timestamp ? `Last update: ${latest.timestamp}` : 'Waiting for first update…'}
+            {latest?.timestamp
+              ? `Last update: ${latest.timestamp}`
+              : 'Waiting for first update…'}
           </div>
         </div>
 
-        {(loading || error) ? (
+        {loading || error ? (
           <div className="swarm-metrics-dashboard__status">
-            <div className={
-              error
-                ? 'swarm-metrics-dashboard__statusText swarm-metrics-dashboard__statusText--error'
-                : 'swarm-metrics-dashboard__statusText'
-            }>
+            <div
+              className={
+                error
+                  ? 'swarm-metrics-dashboard__statusText swarm-metrics-dashboard__statusText--error'
+                  : 'swarm-metrics-dashboard__statusText'
+              }
+            >
               {error ? `Metrics error: ${error}` : 'Loading metrics…'}
             </div>
-            <button type="button" onClick={() => refetch()} className="swarm-metrics-dashboard__button">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="swarm-metrics-dashboard__button"
+            >
               Refresh
             </button>
           </div>
         ) : null}
 
         <div className="swarm-metrics-dashboard__cards swarm-metrics-dashboard__cards--top">
-          <Card title="CPU capacity" value={latest ? formatNanoCPUs(latest.cpuCapacityNano) : '-'} />
-          <Card title="CPU usage" value={latest ? formatPercent(latest.cpuUsagePercent) : '-'} sub={latest ? `Containers: ${latest.runningContainers ?? 0}` : ''} />
-          <Card title="Memory capacity" value={latest ? formatBytes(latest.memoryCapacityBytes) : '-'} />
-          <Card title="Memory used" value={latest ? formatBytes(latest.memoryUsedBytes) : '-'} />
+          <Card
+            title="CPU capacity"
+            value={latest ? formatNanoCPUs(latest.cpuCapacityNano) : '-'}
+          />
+          <Card
+            title="CPU usage"
+            value={latest ? formatPercent(latest.cpuUsagePercent) : '-'}
+            sub={latest ? `Containers: ${latest.runningContainers ?? 0}` : ''}
+          />
+          <Card
+            title="Memory capacity"
+            value={latest ? formatBytes(latest.memoryCapacityBytes) : '-'}
+          />
+          <Card
+            title="Memory used"
+            value={latest ? formatBytes(latest.memoryUsedBytes) : '-'}
+          />
         </div>
 
-        {(serviceTopCpu.length || nodeTopCpu.length) ? (
+        {serviceTopCpu.length || nodeTopCpu.length ? (
           <div className="swarm-metrics-dashboard__sectionGrid">
             <div className="swarm-metrics-panel">
-              <div className="swarm-metrics-panel__title">Top services (CPU)</div>
+              <div className="swarm-metrics-panel__title">
+                Top services (CPU)
+              </div>
               {serviceTopCpu.length ? (
                 <table className="swarm-metrics-miniTable">
                   <thead>
@@ -190,16 +229,27 @@ function SwarmMetricsDashboardInner() {
                           onClick={() => handleServiceClick(s)}
                           onMouseEnter={() => setHoveredService(s.serviceId)}
                           onMouseLeave={() => setHoveredService(null)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleServiceClick(s); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ')
+                              handleServiceClick(s);
+                          }}
                           role="button"
                           tabIndex={0}
                           title={`Open service: ${s.serviceName || s.serviceId}`}
                           style={{
                             cursor: 'pointer',
-                            background: isHovered ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                            background: isHovered
+                              ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))'
+                              : undefined,
                           }}
                         >
-                          <td style={{ color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                          <td
+                            style={{
+                              color: isHovered
+                                ? 'var(--gh-link, #58a6ff)'
+                                : undefined,
+                            }}
+                          >
                             {s.serviceName || s.serviceId}
                           </td>
                           <td>{formatPercent(s.cpuPercent)}</td>
@@ -210,7 +260,9 @@ function SwarmMetricsDashboardInner() {
                   </tbody>
                 </table>
               ) : (
-                <div className="swarm-metrics-dashboard__hint">Waiting for stats…</div>
+                <div className="swarm-metrics-dashboard__hint">
+                  Waiting for stats…
+                </div>
               )}
             </div>
 
@@ -234,16 +286,27 @@ function SwarmMetricsDashboardInner() {
                           onClick={() => handleNodeClick(n)}
                           onMouseEnter={() => setHoveredNode(n.nodeId)}
                           onMouseLeave={() => setHoveredNode(null)}
-                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleNodeClick(n); }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ')
+                              handleNodeClick(n);
+                          }}
                           role="button"
                           tabIndex={0}
                           title={`Open node: ${n.hostname || n.nodeId}`}
                           style={{
                             cursor: 'pointer',
-                            background: isHovered ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                            background: isHovered
+                              ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))'
+                              : undefined,
                           }}
                         >
-                          <td style={{ color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                          <td
+                            style={{
+                              color: isHovered
+                                ? 'var(--gh-link, #58a6ff)'
+                                : undefined,
+                            }}
+                          >
                             {n.hostname || n.nodeId}
                           </td>
                           <td>{formatPercent(n.cpuPercent)}</td>
@@ -254,7 +317,9 @@ function SwarmMetricsDashboardInner() {
                   </tbody>
                 </table>
               ) : (
-                <div className="swarm-metrics-dashboard__hint">Waiting for stats…</div>
+                <div className="swarm-metrics-dashboard__hint">
+                  Waiting for stats…
+                </div>
               )}
             </div>
           </div>
@@ -262,61 +327,105 @@ function SwarmMetricsDashboardInner() {
 
         <div className="swarm-metrics-dashboard__controls">
           <div className="swarm-metrics-dashboard__hint">
-            Charts use: {rangeSeconds ? `last ${Math.round(rangeSeconds / 60)} min` : 'all cached points'} ({filteredHistory.length} points)
+            Charts use:{' '}
+            {rangeSeconds
+              ? `last ${Math.round(rangeSeconds / 60)} min`
+              : 'all cached points'}{' '}
+            ({filteredHistory.length} points)
           </div>
-          <TimeRangeSelector valueSeconds={rangeSeconds} onChangeSeconds={setRangeSeconds} disabled={loading} />
+          <TimeRangeSelector
+            valueSeconds={rangeSeconds}
+            onChangeSeconds={setRangeSeconds}
+            disabled={loading}
+          />
         </div>
 
         <div className="swarm-metrics-dashboard__charts">
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">Running tasks (sparkline)</div>
+            <div className="swarm-metrics-panel__title">
+              Running tasks (sparkline)
+            </div>
             <MetricsChart points={filteredHistory} valueKey="runningTasks" />
             <div className="swarm-metrics-panel__sub">
-              {latest ? `Now: ${latest.runningTasks ?? '-'} (Total: ${latest.tasks ?? '-'})` : ''}
+              {latest
+                ? `Now: ${latest.runningTasks ?? '-'} (Total: ${latest.tasks ?? '-'})`
+                : ''}
             </div>
           </div>
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">Services (sparkline)</div>
-            <MetricsChart points={filteredHistory} valueKey="services" color="#2ea44f" />
+            <div className="swarm-metrics-panel__title">
+              Services (sparkline)
+            </div>
+            <MetricsChart
+              points={filteredHistory}
+              valueKey="services"
+              color="#2ea44f"
+            />
             <div className="swarm-metrics-panel__sub">
               {latest ? `Now: ${latest.services ?? '-'}` : ''}
             </div>
           </div>
           <div className="swarm-metrics-panel">
             <div className="swarm-metrics-panel__title">Nodes (sparkline)</div>
-            <MetricsChart points={filteredHistory} valueKey="nodes" color="#a371f7" emptyText="No node data yet" />
+            <MetricsChart
+              points={filteredHistory}
+              valueKey="nodes"
+              color="#a371f7"
+              emptyText="No node data yet"
+            />
             <div className="swarm-metrics-panel__sub">
-              {latest ? `Ready: ${latest.readyNodes ?? '-'} (Total: ${latest.nodes ?? '-'})` : ''}
+              {latest
+                ? `Ready: ${latest.readyNodes ?? '-'} (Total: ${latest.nodes ?? '-'})`
+                : ''}
             </div>
           </div>
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">CPU reservations (% of capacity)</div>
+            <div className="swarm-metrics-panel__title">
+              CPU reservations (% of capacity)
+            </div>
             <MetricsChart
               points={filteredHistory}
-              valueFn={(p) => percent(p?.cpuReservationsNano, p?.cpuCapacityNano)}
+              valueFn={(p) =>
+                percent(p?.cpuReservationsNano, p?.cpuCapacityNano)
+              }
               color="#d29922"
               emptyText="No CPU data yet"
             />
             <div className="swarm-metrics-panel__sub">
-              {latest ? `Reservations: ${formatNanoCPUs(latest.cpuReservationsNano)} • Limits: ${formatNanoCPUs(latest.cpuLimitsNano)}` : ''}
+              {latest
+                ? `Reservations: ${formatNanoCPUs(latest.cpuReservationsNano)} • Limits: ${formatNanoCPUs(latest.cpuLimitsNano)}`
+                : ''}
             </div>
           </div>
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">Memory reservations (% of capacity)</div>
+            <div className="swarm-metrics-panel__title">
+              Memory reservations (% of capacity)
+            </div>
             <MetricsChart
               points={filteredHistory}
-              valueFn={(p) => percent(p?.memoryReservationsBytes, p?.memoryCapacityBytes)}
+              valueFn={(p) =>
+                percent(p?.memoryReservationsBytes, p?.memoryCapacityBytes)
+              }
               color="#a371f7"
               emptyText="No memory data yet"
             />
             <div className="swarm-metrics-panel__sub">
-              {latest ? `Reservations: ${formatBytes(latest.memoryReservationsBytes)} • Limits: ${formatBytes(latest.memoryLimitsBytes)}` : ''}
+              {latest
+                ? `Reservations: ${formatBytes(latest.memoryReservationsBytes)} • Limits: ${formatBytes(latest.memoryLimitsBytes)}`
+                : ''}
             </div>
           </div>
 
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">CPU usage (% of capacity)</div>
-            <MetricsChart points={rateHistory} valueKey="cpuUsagePercent" color="#58a6ff" emptyText="No CPU usage yet" />
+            <div className="swarm-metrics-panel__title">
+              CPU usage (% of capacity)
+            </div>
+            <MetricsChart
+              points={rateHistory}
+              valueKey="cpuUsagePercent"
+              color="#58a6ff"
+              emptyText="No CPU usage yet"
+            />
           </div>
 
           <div className="swarm-metrics-panel">
@@ -333,18 +442,36 @@ function SwarmMetricsDashboardInner() {
           </div>
 
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">Network RX (bytes/s)</div>
-            <MetricsChart points={rateHistory} valueKey="rxPerSec" color="#d29922" emptyText="No network data yet" />
+            <div className="swarm-metrics-panel__title">
+              Network RX (bytes/s)
+            </div>
+            <MetricsChart
+              points={rateHistory}
+              valueKey="rxPerSec"
+              color="#d29922"
+              emptyText="No network data yet"
+            />
             <div className="swarm-metrics-panel__sub">
-              {rateHistory.length ? `Last: ${formatBytesPerSec(rateHistory[rateHistory.length - 1]?.rxPerSec)}` : ''}
+              {rateHistory.length
+                ? `Last: ${formatBytesPerSec(rateHistory[rateHistory.length - 1]?.rxPerSec)}`
+                : ''}
             </div>
           </div>
 
           <div className="swarm-metrics-panel">
-            <div className="swarm-metrics-panel__title">Network TX (bytes/s)</div>
-            <MetricsChart points={rateHistory} valueKey="txPerSec" color="#ff7b72" emptyText="No network data yet" />
+            <div className="swarm-metrics-panel__title">
+              Network TX (bytes/s)
+            </div>
+            <MetricsChart
+              points={rateHistory}
+              valueKey="txPerSec"
+              color="#ff7b72"
+              emptyText="No network data yet"
+            />
             <div className="swarm-metrics-panel__sub">
-              {rateHistory.length ? `Last: ${formatBytesPerSec(rateHistory[rateHistory.length - 1]?.txPerSec)}` : ''}
+              {rateHistory.length
+                ? `Last: ${formatBytesPerSec(rateHistory[rateHistory.length - 1]?.txPerSec)}`
+                : ''}
             </div>
           </div>
         </div>

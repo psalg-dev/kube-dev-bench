@@ -1,21 +1,41 @@
 import { useMemo, useState } from 'react';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
+import {
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState,
+} from '../../../utils/tableSorting.js';
 
 export default function PVAnnotationsTab({ annotations }) {
-  const ann = annotations || {};
-  const entries = Object.entries(ann).map(([key, value]) => ({ key, value }));
+  const ann = useMemo(() => annotations || {}, [annotations]);
+  const entries = useMemo(
+    () => Object.entries(ann).map(([key, value]) => ({ key, value })),
+    [ann],
+  );
+
+  const columns = useMemo(
+    () => [
+      { key: 'key', label: 'Key' },
+      { key: 'value', label: 'Value' },
+    ],
+    [],
+  );
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({
+    key: defaultSortKey,
+    direction: 'asc',
+  }));
+  const sortedEntries = useMemo(
+    () => sortRows(entries, sortState.key, sortState.direction),
+    [entries, sortState],
+  );
 
   if (!entries.length) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No annotations.</div>;
+    return (
+      <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
+        No annotations.
+      </div>
+    );
   }
-
-  const columns = useMemo(() => ([
-    { key: 'key', label: 'Key' },
-    { key: 'value', label: 'Value' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedEntries = useMemo(() => sortRows(entries, sortState.key, sortState.direction), [entries, sortState]);
 
   const headerButtonStyle = {
     width: '100%',
@@ -37,16 +57,57 @@ export default function PVAnnotationsTab({ annotations }) {
       <table className="panel-table">
         <thead>
           <tr>
-            <th style={{ width: 320 }} aria-sort={sortState.key === 'key' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'key'))}>
+            <th
+              style={{ width: 320 }}
+              aria-sort={
+                sortState.key === 'key'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'key'))
+                }
+              >
                 <span>Key</span>
-                <span aria-hidden="true">{sortState.key === 'key' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'key'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
-            <th aria-sort={sortState.key === 'value' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
-              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'value'))}>
+            <th
+              aria-sort={
+                sortState.key === 'value'
+                  ? sortState.direction === 'asc'
+                    ? 'ascending'
+                    : 'descending'
+                  : 'none'
+              }
+            >
+              <button
+                type="button"
+                style={headerButtonStyle}
+                onClick={() =>
+                  setSortState((cur) => toggleSortState(cur, 'value'))
+                }
+              >
                 <span>Value</span>
-                <span aria-hidden="true">{sortState.key === 'value' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                <span aria-hidden="true">
+                  {sortState.key === 'value'
+                    ? sortState.direction === 'asc'
+                      ? '▲'
+                      : '▼'
+                    : '↕'}
+                </span>
               </button>
             </th>
           </tr>
@@ -54,8 +115,19 @@ export default function PVAnnotationsTab({ annotations }) {
         <tbody>
           {sortedEntries.map(({ key, value }) => (
             <tr key={key}>
-              <td style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', verticalAlign: 'top' }}>{key}</td>
-              <td style={{ wordBreak: 'break-all' }}>{String(value ?? '') || '-'}</td>
+              <td
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  wordBreak: 'break-all',
+                  verticalAlign: 'top',
+                }}
+              >
+                {key}
+              </td>
+              <td style={{ wordBreak: 'break-all' }}>
+                {String(value ?? '') || '-'}
+              </td>
             </tr>
           ))}
         </tbody>

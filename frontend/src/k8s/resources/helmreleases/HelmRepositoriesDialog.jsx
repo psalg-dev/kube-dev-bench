@@ -104,7 +104,14 @@ export default function HelmRepositoriesDialog({ onClose }) {
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 20,
+          }}
+        >
           <h3 style={{ margin: 0, color: 'var(--gh-text, #c9d1d9)' }}>
             Helm Repositories
           </h3>
@@ -118,7 +125,8 @@ export default function HelmRepositoriesDialog({ onClose }) {
                 color: 'var(--gh-btn-text, #c9d1d9)',
                 border: '1px solid var(--gh-border, #30363d)',
                 borderRadius: 6,
-                cursor: updating || repos.length === 0 ? 'not-allowed' : 'pointer',
+                cursor:
+                  updating || repos.length === 0 ? 'not-allowed' : 'pointer',
                 fontSize: 13,
               }}
             >
@@ -142,15 +150,41 @@ export default function HelmRepositoriesDialog({ onClose }) {
         </div>
 
         {error && (
-          <div style={{ marginBottom: 16, padding: 12, background: 'rgba(215, 58, 73, 0.1)', border: '1px solid #d73a49', borderRadius: 6, color: '#d73a49', fontSize: 13 }}>
+          <div
+            style={{
+              marginBottom: 16,
+              padding: 12,
+              background: 'rgba(215, 58, 73, 0.1)',
+              border: '1px solid #d73a49',
+              borderRadius: 6,
+              color: '#d73a49',
+              fontSize: 13,
+            }}
+          >
             {error}
           </div>
         )}
 
         {showAddForm && (
-          <form onSubmit={handleAdd} style={{ marginBottom: 20, padding: 16, background: 'var(--gh-canvas-default, #0d1117)', borderRadius: 6, border: '1px solid var(--gh-border, #30363d)' }}>
+          <form
+            onSubmit={handleAdd}
+            style={{
+              marginBottom: 20,
+              padding: 16,
+              background: 'var(--gh-canvas-default, #0d1117)',
+              borderRadius: 6,
+              border: '1px solid var(--gh-border, #30363d)',
+            }}
+          >
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                }}
+              >
                 Name
               </label>
               <input
@@ -170,7 +204,14 @@ export default function HelmRepositoriesDialog({ onClose }) {
               />
             </div>
             <div style={{ marginBottom: 12 }}>
-              <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #c9d1d9)', fontSize: 13 }}>
+              <label
+                style={{
+                  display: 'block',
+                  marginBottom: 6,
+                  color: 'var(--gh-text, #c9d1d9)',
+                  fontSize: 13,
+                }}
+              >
                 URL
               </label>
               <input
@@ -189,7 +230,9 @@ export default function HelmRepositoriesDialog({ onClose }) {
                 }}
               />
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+            <div
+              style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -229,12 +272,25 @@ export default function HelmRepositoriesDialog({ onClose }) {
         )}
 
         {loading ? (
-          <div style={{ padding: 20, textAlign: 'center', color: 'var(--gh-text-muted, #8b949e)' }}>
+          <div
+            style={{
+              padding: 20,
+              textAlign: 'center',
+              color: 'var(--gh-text-muted, #8b949e)',
+            }}
+          >
             Loading repositories...
           </div>
         ) : repos.length === 0 ? (
-          <div style={{ padding: 20, textAlign: 'center', color: 'var(--gh-text-muted, #8b949e)' }}>
-            No repositories configured. Add a repository to start searching for charts.
+          <div
+            style={{
+              padding: 20,
+              textAlign: 'center',
+              color: 'var(--gh-text-muted, #8b949e)',
+            }}
+          >
+            No repositories configured. Add a repository to start searching for
+            charts.
           </div>
         ) : (
           <table className="panel-table">
@@ -248,9 +304,7 @@ export default function HelmRepositoriesDialog({ onClose }) {
             <tbody>
               {repos.map((repo) => (
                 <tr key={repo.name}>
-                  <td style={{ fontWeight: 500 }}>
-                    {repo.name}
-                  </td>
+                  <td style={{ fontWeight: 500 }}>{repo.name}</td>
                   <td className="text-muted" style={{ wordBreak: 'break-all' }}>
                     {repo.url}
                   </td>
@@ -277,7 +331,9 @@ export default function HelmRepositoriesDialog({ onClose }) {
           </table>
         )}
 
-        <div style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}>
+        <div
+          style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end' }}
+        >
           <button
             onClick={onClose}
             style={{
