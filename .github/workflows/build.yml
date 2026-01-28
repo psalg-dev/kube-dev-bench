@@ -232,7 +232,7 @@ jobs:
         run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/3 --ignore='**/registry/**'
         env:
           CI: true
-          PW_WORKERS: '3'
+          PW_WORKERS: '2'
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 
