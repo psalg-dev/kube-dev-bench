@@ -4,6 +4,9 @@ import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { ensureArtifactory, getArtifactoryConfig } from '../../src/support/artifactory-bootstrap.js';
 
+// Skip entire suite when E2E_REGISTRY_SUITE is not enabled
+test.skip(() => process.env.E2E_REGISTRY_SUITE !== '1', 'Requires E2E_REGISTRY_SUITE=1');
+
 test.describe('Artifactory Registry Integration', () => {
   test.beforeAll(async () => {
     // Fail fast with a clear message if JCR isn't running/configured.
