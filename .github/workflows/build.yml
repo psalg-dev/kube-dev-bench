@@ -108,6 +108,10 @@ jobs:
   e2e:
     runs-on: ubuntu-22.04
     needs: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -123,20 +127,16 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: |
-            frontend/package-lock.json
-            e2e/package-lock.json
+          cache-dependency-path: e2e/package-lock.json
 
       - name: Install Go dependencies
         run: go mod download
 
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build frontend (for Wails assetdir)
-        working-directory: frontend
-        run: npm run build
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
@@ -163,9 +163,27 @@ jobs:
           fi
           docker info --format '{{.Swarm.LocalNodeState}}'
 
+      - name: Cache KinD node image
+        uses: actions/cache@v4
+        id: kind-image-cache
+        with:
+          path: /tmp/kind-node-image.tar
+          key: kind-v0.23.0-node-image
+
+      - name: Load cached KinD node image
+        if: steps.kind-image-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/kind-node-image.tar
+
       - name: Create KinD cluster
         run: |
           kind create cluster --name kdb-e2e --wait 120s
+
+      - name: Save KinD node image for cache
+        if: steps.kind-image-cache.outputs.cache-hit != 'true'
+        run: |
+          NODE_IMAGE=$(docker ps --filter "name=kdb-e2e-control-plane" --format "{{.Image}}")
+          echo "Saving KinD node image: $NODE_IMAGE"
+          docker save "$NODE_IMAGE" -o /tmp/kind-node-image.tar || true
 
       - name: Cache apt packages
         uses: actions/cache@v4
@@ -187,13 +205,26 @@ jobs:
         working-directory: e2e
         run: npm ci
 
+      - name: Get Playwright version
+        id: playwright-version
+        working-directory: e2e
+        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests (excluding registry tests)
+      - name: Run e2e tests (shard ${{ matrix.shard }}/3)
         working-directory: e2e
-        run: xvfb-run -a npm test
+        run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/3
         env:
           CI: true
           PW_WORKERS: '3'
@@ -203,7 +234,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results
+          name: e2e-test-results-shard-${{ matrix.shard }}
           path: |
             e2e/test-results
             e2e/playwright-report
