@@ -502,10 +502,6 @@ export function GetJobLogs(arg1, arg2) {
   return window['go']['main']['App']['GetJobLogs'](arg1, arg2);
 }
 
-export function GetReplicaSetLogs(arg1, arg2) {
-  return window['go']['main']['App']['GetReplicaSetLogs'](arg1, arg2);
-}
-
 export function GetJobYAML(arg1, arg2) {
   return window['go']['main']['App']['GetJobYAML'](arg1, arg2);
 }
@@ -648,6 +644,10 @@ export function GetRememberNamespace() {
 
 export function GetReplicaSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetDetail'](arg1, arg2);
+}
+
+export function GetReplicaSetLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetReplicaSetLogs'](arg1, arg2);
 }
 
 export function GetReplicaSets(arg1) {

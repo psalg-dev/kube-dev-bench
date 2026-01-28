@@ -25,7 +25,7 @@ export class SwarmBottomPanel {
     const header = this.root.locator('> div').nth(1);
     const tabStrip = header.locator('> div').first();
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const name = new RegExp(`^${escaped}(\\s*(\\d+|\\.\\.\\.))?$`);
+    const name = new RegExp(`^${escaped}(\\s*(\\(?\\d+\\)?|\\.\\.\\.)(\\s*items?)?)?$`, 'i');
     return tabStrip.getByRole('button', { name });
   }
 

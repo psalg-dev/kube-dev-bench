@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { GetDockerHubRepositoryDetails, GetImageDigest, GetRegistryRepositoryDetails, ListRegistryRepositories, ListRegistryTags, PullDockerImageLatest, SearchDockerHubRepositories, SearchRegistryRepositories } from '../swarmApi.js';
 import { showError, showSuccess } from '../../notification.js';
 import './registry.css';
@@ -476,7 +476,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                   const details = isSelected ? (inspectDetails || fallbackDetails) : null;
 
                   return (
-                    <React.Fragment key={rowKey}>
+                    <Fragment key={rowKey}>
                       <tr
                         className={isSelected ? 'registry-search__row--selected' : ''}
                         style={{ cursor: 'pointer' }}
@@ -573,7 +573,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }) {
                           </td>
                         </tr>
                       ) : null}
-                    </React.Fragment>
+                    </Fragment>
                   );
                 })
               )}

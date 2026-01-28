@@ -1,14 +1,13 @@
-[] open ai integration for error / warning resolution assist
-[] talk to your cluster?
-[] global command prompt
+[x] open ai integration for error / warning resolution assist
+[x] talk to your cluster? 
 [x] pre / post connect callbacks
-[] cluster debug helpers
-[] kubectl shortcuts
+[] cluster debug helpers 
 [x] full coverage reporting
 [x] swarm support
 [x] helm support
 [] helm v4 support
-[] volume cloning?
+[] mcp server
+[] bulk actions
 [] Node updates?
-[] linux support
-[] vulnerability reporting?
+[] volume cloning?
+[] linux support 

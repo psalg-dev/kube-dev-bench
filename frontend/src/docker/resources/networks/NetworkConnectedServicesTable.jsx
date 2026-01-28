@@ -17,6 +17,23 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
   const [services, setServices] = useState([]);
   const [hoveredRow, setHoveredRow] = useState(null);
 
+  const columns = useMemo(() => {
+    const cols = [
+      { key: 'serviceName', label: 'Service Name' },
+      { key: 'serviceId', label: 'Service ID' },
+      !compact ? { key: 'aliases', label: 'Aliases' } : null,
+    ].filter(Boolean);
+    return cols;
+  }, [compact]);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedServices = useMemo(() => {
+    return sortRows(services, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'aliases') return Array.isArray(row?.aliases) ? row.aliases.join(', ') : row?.aliases;
+      return row?.[key];
+    });
+  }, [services, sortState]);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -90,23 +107,6 @@ export default function NetworkConnectedServicesTable({ networkId, compact = fal
       </div>
     );
   }
-
-  const columns = useMemo(() => {
-    const cols = [
-      { key: 'serviceName', label: 'Service Name' },
-      { key: 'serviceId', label: 'Service ID' },
-      !compact ? { key: 'aliases', label: 'Aliases' } : null,
-    ].filter(Boolean);
-    return cols;
-  }, [compact]);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedServices = useMemo(() => {
-    return sortRows(services, sortState.key, sortState.direction, (row, key) => {
-      if (key === 'aliases') return Array.isArray(row?.aliases) ? row.aliases.join(', ') : row?.aliases;
-      return row?.[key];
-    });
-  }, [services, sortState]);
 
   const headerButtonStyle = {
     width: '100%',

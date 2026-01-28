@@ -68,6 +68,17 @@ function fmtMs(ms: number) {
   return `${(ms / 1_000).toFixed(1)}s`;
 }
 
+function shouldAutoSkipKindForSwarmOnly(): boolean {
+  const cliArgs = process.argv.slice(2);
+  const testTargets = cliArgs.filter((arg) => arg !== 'test' && !arg.startsWith('-'));
+  if (testTargets.length === 0) return false;
+
+  return testTargets.every((arg) => {
+    const normalized = arg.replace(/\\/g, '/');
+    return normalized.includes('tests/swarm/');
+  });
+}
+
 async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
   const start = Date.now();
   console.log(`[e2e][setup] ${isoNow()} ▶ ${label}`);
@@ -85,7 +96,10 @@ export default async function globalSetup(config: FullConfig) {
   const setupStart = Date.now();
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
-  const skipKind = process.env.E2E_SKIP_KIND === '1';
+  const skipKindEnv = process.env.E2E_SKIP_KIND === '1';
+  const skipKindAuto = shouldAutoSkipKindForSwarmOnly();
+  const skipKind = skipKindEnv || skipKindAuto;
+  const registrySuite = process.env.E2E_REGISTRY_SUITE === '1';
   const isCI = process.env.CI === 'true' || process.env.CI === '1';
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
@@ -96,6 +110,13 @@ export default async function globalSetup(config: FullConfig) {
     `[e2e][setup] ${isoNow()} starting runId=${runId} platform=${platform} ` +
       `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}`
   );
+
+  if (skipKindAuto && !skipKindEnv) {
+    console.log(`[e2e][setup] ${isoNow()} auto-skip KinD for Swarm-only run`);
+  }
+  if (!registrySuite) {
+    console.log(`[e2e][setup] ${isoNow()} registry suite disabled; skipping JFrog bootstrap`);
+  }
 
   if (isCI) {
     await timed('ensure Docker Swarm is active (CI)', async () =>
@@ -185,34 +206,36 @@ export default async function globalSetup(config: FullConfig) {
   // Run it once per test run so registry tests are reliable.
   // Always capture logs for debugging setup vs data issues.
   let jfrogLogPath: string | undefined;
-  try {
-    const jfrog = await timed('ensure JFrog JCR is running + bootstrapped', async () =>
-      ensureJFrogJcrBootstrapped({ runId })
-    );
-    jfrogLogPath = jfrog.logPath;
-
+  if (registrySuite) {
     try {
-      await timed('verify Artifactory Docker /v2/ endpoint', async () => {
-        await ensureArtifactory();
-      });
-    } catch (verifyErr: unknown) {
-      // Stale local volumes can leave Artifactory in a state where the admin password
-      // doesn't match what our bootstrap expects, or the docker-local repo is missing.
-      // One deterministic recovery attempt: reset volume and re-bootstrap.
-      console.log(`[e2e][setup] ${isoNow()} Artifactory verification failed; retrying with JFrog reset`);
-
-      const jfrog2 = await timed('reset JFrog JCR volume and re-bootstrap', async () =>
-        ensureJFrogJcrBootstrapped({ runId, reset: true })
+      const jfrog = await timed('ensure JFrog JCR is running + bootstrapped', async () =>
+        ensureJFrogJcrBootstrapped({ runId })
       );
-      jfrogLogPath = jfrog2.logPath;
+      jfrogLogPath = jfrog.logPath;
 
-      await timed('re-verify Artifactory Docker /v2/ endpoint', async () => {
-        await ensureArtifactory();
-      });
+      try {
+        await timed('verify Artifactory Docker /v2/ endpoint', async () => {
+          await ensureArtifactory();
+        });
+      } catch (verifyErr: unknown) {
+        // Stale local volumes can leave Artifactory in a state where the admin password
+        // doesn't match what our bootstrap expects, or the docker-local repo is missing.
+        // One deterministic recovery attempt: reset volume and re-bootstrap.
+        console.log(`[e2e][setup] ${isoNow()} Artifactory verification failed; retrying with JFrog reset`);
+
+        const jfrog2 = await timed('reset JFrog JCR volume and re-bootstrap', async () =>
+          ensureJFrogJcrBootstrapped({ runId, reset: true })
+        );
+        jfrogLogPath = jfrog2.logPath;
+
+        await timed('re-verify Artifactory Docker /v2/ endpoint', async () => {
+          await ensureArtifactory();
+        });
+      }
+    } catch (err: unknown) {
+      const msg = String((err as { message?: string })?.message ?? err);
+      throw new Error(`${msg}${jfrogLogPath ? `\nJFrog logs: ${jfrogLogPath}` : ''}`);
     }
-  } catch (err: unknown) {
-    const msg = String((err as { message?: string })?.message ?? err);
-    throw new Error(`${msg}${jfrogLogPath ? `\nJFrog logs: ${jfrogLogPath}` : ''}`);
   }
 
   // Start a local proxy suitable for real cluster connections.

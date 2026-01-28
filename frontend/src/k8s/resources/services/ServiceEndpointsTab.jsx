@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './ServiceEndpointsTab.css';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';

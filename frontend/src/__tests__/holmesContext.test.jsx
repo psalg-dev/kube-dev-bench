@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
-import React from 'react';
+import { useEffect } from 'react';
 import './wailsMocks';
 import { genericAPIMock, resetAllMocks, eventsOnMock } from './wailsMocks';
 import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
@@ -8,7 +8,7 @@ import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
 // Test component that exposes context for testing
 function TestConsumer({ onContext }) {
   const context = useHolmes();
-  React.useEffect(() => {
+  useEffect(() => {
     onContext(context);
   }, [context, onContext]);
   return null;

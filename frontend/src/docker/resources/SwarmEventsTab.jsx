@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { GetSwarmEvents as ApiGetSwarmEvents, GetSwarmServiceEvents as ApiGetSwarmServiceEvents } from '../swarmApi.js';
 import './SwarmEventsTab.css';
 

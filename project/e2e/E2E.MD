@@ -51,6 +51,16 @@ Prereqs:
 
    `cd e2e && npx playwright test`
 
+Registry suite (Artifactory/JFrog):
+
+- Run only registry tests (boots JFrog by default):
+
+   `cd e2e && npm run test:registry`
+
+- If you already have JFrog running and want to reuse it:
+
+   `E2E_SKIP_JFROG=1 cd e2e && npm run test:registry`
+
 Optional knobs:
 - Override workers: `PW_WORKERS=2`
 - Override KinD cluster name: `KIND_CLUSTER_NAME=kdb-e2e`

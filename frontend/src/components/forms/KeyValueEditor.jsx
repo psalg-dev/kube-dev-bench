@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 
 export default function KeyValueEditor({
   title,
@@ -28,7 +28,7 @@ export default function KeyValueEditor({
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', maxWidth: '100%' }}>
         {safeRows.map((row, idx) => (
-          <React.Fragment key={row.id || idx}>
+          <Fragment key={row.id || idx}>
             <input
               value={row.key}
               onChange={(e) => {
@@ -63,7 +63,7 @@ export default function KeyValueEditor({
             >
               ×
             </button>
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     </div>

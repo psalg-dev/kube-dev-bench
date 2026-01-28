@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 export default function PodMountsTab({ podName }) {
   const [data, setData] = useState(null);
@@ -179,7 +179,7 @@ export default function PodMountsTab({ podName }) {
                       const isSecret = isSecretVolume(v);
                       const expanded = expandedRows.has(key);
                       return (
-                        <React.Fragment key={key}>
+                        <Fragment key={key}>
                           <tr>
                             <td style={{ padding: '6px 8px', borderBottom: '1px solid #353a42', textAlign: 'left' }}>
                               <span>{key}</span>
@@ -256,7 +256,7 @@ export default function PodMountsTab({ podName }) {
                               </td>
                             </tr>
                           )}
-                        </React.Fragment>
+                        </Fragment>
                       );
                     })}
                   </tbody>

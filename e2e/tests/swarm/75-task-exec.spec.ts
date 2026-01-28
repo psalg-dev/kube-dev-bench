@@ -102,8 +102,11 @@ test.describe('Docker Swarm Task Exec', () => {
     const textarea = terminal.locator('textarea').first();
     await textarea.focus();
 
-    // Run a simple command.
-    await page.keyboard.type('echo READY', { delay: 20 });
+    // Give the terminal time to stabilize before typing - PTY can drop/reorder characters.
+    await page.waitForTimeout(500);
+
+    // Run a simple command with slower typing to ensure PTY receives all characters.
+    await page.keyboard.type('echo READY', { delay: 100 });
     await page.keyboard.press('Enter');
 
     await expect(terminal).toContainText('READY', { timeout: 30_000 });

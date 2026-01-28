@@ -1,4 +1,4 @@
-import React from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import MetricsChart from './MetricsChart.jsx';
 import { MetricsStateProvider, useClusterMetrics } from './MetricsStateContext.jsx';
 import TimeRangeSelector from './TimeRangeSelector.jsx';
@@ -53,9 +53,9 @@ function Card({ title, value, sub }) {
 
 function SwarmMetricsDashboardInner() {
   const { history, latest, services, nodes, loading, error, refetch } = useClusterMetrics();
-  const [rangeSeconds, setRangeSeconds] = React.useState(900);
-  const [hoveredService, setHoveredService] = React.useState(null);
-  const [hoveredNode, setHoveredNode] = React.useState(null);
+  const [rangeSeconds, setRangeSeconds] = useState(900);
+  const [hoveredService, setHoveredService] = useState(null);
+  const [hoveredNode, setHoveredNode] = useState(null);
 
   const handleServiceClick = (svc) => {
     const name = svc.serviceName || svc.serviceId;
@@ -71,7 +71,7 @@ function SwarmMetricsDashboardInner() {
     }
   };
 
-  const filteredHistory = React.useMemo(() => {
+  const filteredHistory = useMemo(() => {
     const arr = Array.isArray(history) ? history : [];
     const seconds = Number(rangeSeconds) || 0;
     if (!seconds) return arr;
@@ -82,14 +82,14 @@ function SwarmMetricsDashboardInner() {
     });
   }, [history, rangeSeconds]);
 
-  const percent = React.useCallback((num, den) => {
+  const percent = useCallback((num, den) => {
     const n = Number(num);
     const d = Number(den);
     if (!Number.isFinite(n) || !Number.isFinite(d) || d <= 0) return 0;
     return (n / d) * 100;
   }, []);
 
-  const rateHistory = React.useMemo(() => {
+  const rateHistory = useMemo(() => {
     const arr = Array.isArray(filteredHistory) ? filteredHistory : [];
     if (arr.length < 2) return [];
 
@@ -120,7 +120,7 @@ function SwarmMetricsDashboardInner() {
     return out;
   }, [filteredHistory]);
 
-  const serviceTopCpu = React.useMemo(() => {
+  const serviceTopCpu = useMemo(() => {
     const arr = Array.isArray(services) ? services : [];
     return [...arr]
       .filter((s) => Number(s?.cpuPercent) > 0 || Number(s?.memoryUsedBytes) > 0)
@@ -128,7 +128,7 @@ function SwarmMetricsDashboardInner() {
       .slice(0, 6);
   }, [services]);
 
-  const nodeTopCpu = React.useMemo(() => {
+  const nodeTopCpu = useMemo(() => {
     const arr = Array.isArray(nodes) ? nodes : [];
     return [...arr]
       .filter((n) => Number(n?.cpuPercent) > 0 || Number(n?.memoryUsedBytes) > 0)

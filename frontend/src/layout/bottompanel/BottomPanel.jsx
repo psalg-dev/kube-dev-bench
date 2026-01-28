@@ -92,7 +92,7 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
         background: 'var(--gh-bg-sidebar, #161b22)',
         borderBottom: '1px solid var(--gh-border, #30363d)'
       }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', rowGap: 6, overflowX: 'auto', paddingBottom: 2 }}>
           {tabs.map(t => {
             const tabKey = t.key || t.id;
             const countKey = t.countKey || tabKey;
@@ -105,6 +105,7 @@ const BottomPanel = forwardRef(function BottomPanel({ open, onClose, tabs = [], 
               <button key={tabKey}
                 onClick={() => onTabChange && onTabChange(tabKey)}
                 data-testid={`tab-${tabKey}`}
+                aria-label={t.ariaLabel || t.label}
                 style={{
                   border: '1px solid var(--gh-border, #30363d)',
                   borderBottom: activeTab === tabKey ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',

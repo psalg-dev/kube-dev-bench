@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab.jsx';
 import { DownloadFromSwarmVolume, GetSwarmVolumeFileContent, IsSwarmVolumeReadOnly, ListSwarmVolumeFiles, UploadToSwarmVolume } from '../../swarmApi.js';
@@ -416,10 +416,10 @@ export default function VolumeFilesTab({ volumeName }) {
         <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(-1)}>root</span>
           {breadcrumbs.map((b, idx) => (
-            <React.Fragment key={idx}>
+            <Fragment key={idx}>
               <span style={{ margin: '0 4px' }}>/</span>
               <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(idx)}>{b}</span>
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>

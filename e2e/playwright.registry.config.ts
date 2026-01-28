@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  testIgnore: ['registry/**'],
+  testMatch: ['registry/**/*.spec.ts'],
   outputDir: './test-results',
   // Note: worker-scoped fixtures (like starting Wails) run under the test timeout.
   // Keep this high enough to allow cold-starts when running with multiple workers.
@@ -26,6 +26,6 @@ export default defineConfig({
     video: 'retain-on-failure',
     trace: 'on',
   },
-  globalSetup: './src/support/global-setup.ts',
+  globalSetup: './src/support/global-setup-registry.ts',
   globalTeardown: './src/support/global-teardown.ts',
 });

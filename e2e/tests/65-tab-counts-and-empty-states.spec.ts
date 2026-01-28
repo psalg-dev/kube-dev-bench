@@ -52,11 +52,11 @@ data:
 
     // Verify the Events tab exists - may have 0 or more events
     // The tab label should show the count in parentheses
-    const eventsTab = panel.root.locator('.tab-label').filter({ hasText: /^Events/ });
+    const eventsTab = panel.tabLabel('Events');
     await expect(eventsTab).toBeVisible();
 
     // Verify the Consumers tab exists with count 0 (unused ConfigMap)
-    const consumersTab = panel.root.locator('.tab-label').filter({ hasText: /^Consumers/ });
+    const consumersTab = panel.tabLabel('Consumers');
     await expect(consumersTab).toBeVisible();
 
     // Click on Consumers tab and verify empty state
@@ -118,11 +118,11 @@ spec:
     await panel.expectVisible();
 
     // Verify the Pods tab shows a count
-    const podsTab = panel.root.locator('.tab-label').filter({ hasText: /^Pods\s*\(\d+\)$/ });
-    await expect(podsTab).toBeVisible({ timeout: 30_000 });
+    const podsTab = panel.tabLabel('Pods');
+    await expect(podsTab.locator('.tab-count')).toBeVisible({ timeout: 30_000 });
 
     // Verify Events tab shows a count (Deployment creation events)
-    const eventsTab = panel.root.locator('.tab-label').filter({ hasText: /^Events/ });
+    const eventsTab = panel.tabLabel('Events');
     await expect(eventsTab).toBeVisible();
 
     // Clean up - close panel
@@ -213,11 +213,11 @@ spec:
     await panel.expectVisible();
 
     // Verify the History tab exists (initially may have 0 jobs)
-    const historyTab = panel.root.locator('.tab-label').filter({ hasText: /^History/ });
+    const historyTab = panel.tabLabel('History');
     await expect(historyTab).toBeVisible();
 
     // Verify Events tab exists
-    const eventsTab = panel.root.locator('.tab-label').filter({ hasText: /^Events/ });
+    const eventsTab = panel.tabLabel('Events');
     await expect(eventsTab).toBeVisible();
 
     // Clean up - close panel
@@ -256,7 +256,7 @@ data:
 
     // Eventually tabs should show counts (loading state is transient)
     // Wait for at least one tab to have a count displayed
-    const tabWithCount = panel.root.locator('.tab-label').filter({ hasText: /\(\d+\)$/ }).first();
+    const tabWithCount = panel.root.locator('.tab-count').first();
     await expect(tabWithCount).toBeVisible({ timeout: 30_000 });
 
     // Clean up - close panel

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import PersistentVolumeClaimYamlTab from './PersistentVolumeClaimYamlTab';
@@ -31,7 +31,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     toolEvents: [],
   });
   const holmesStateRef = useRef(holmesState);
-  React.useEffect(() => {
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 

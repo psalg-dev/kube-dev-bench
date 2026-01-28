@@ -17,6 +17,30 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
   const [tasks, setTasks] = useState([]);
   const [hoveredRow, setHoveredRow] = useState(null);
 
+  // Define columns for sorting - must be before any early returns (Rules of Hooks)
+  const columns = useMemo(() => {
+    const cols = [
+      { key: 'serviceName', label: 'Service' },
+      !compact ? { key: 'slot', label: 'Slot' } : null,
+      { key: 'id', label: 'Task ID' },
+      { key: 'state', label: 'State' },
+      !compact ? { key: 'desiredState', label: 'Desired' } : null,
+      { key: 'nodeName', label: 'Node' },
+      !compact ? { key: 'containerId', label: 'Container ID' } : null,
+      !compact ? { key: 'error', label: 'Error' } : null,
+    ].filter(Boolean);
+    return cols;
+  }, [compact]);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedTasks = useMemo(() => {
+    return sortRows(tasks, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'serviceName') return row?.serviceName || row?.serviceId;
+      if (key === 'nodeName') return row?.nodeName || row?.nodeId;
+      return row?.[key];
+    });
+  }, [tasks, sortState]);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -90,29 +114,6 @@ export default function NetworkConnectedContainersTable({ networkId, compact = f
       </div>
     );
   }
-
-  const columns = useMemo(() => {
-    const cols = [
-      { key: 'serviceName', label: 'Service' },
-      !compact ? { key: 'slot', label: 'Slot' } : null,
-      { key: 'id', label: 'Task ID' },
-      { key: 'state', label: 'State' },
-      !compact ? { key: 'desiredState', label: 'Desired' } : null,
-      { key: 'nodeName', label: 'Node' },
-      !compact ? { key: 'containerId', label: 'Container ID' } : null,
-      !compact ? { key: 'error', label: 'Error' } : null,
-    ].filter(Boolean);
-    return cols;
-  }, [compact]);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedTasks = useMemo(() => {
-    return sortRows(tasks, sortState.key, sortState.direction, (row, key) => {
-      if (key === 'serviceName') return row?.serviceName || row?.serviceId;
-      if (key === 'nodeName') return row?.nodeName || row?.nodeId;
-      return row?.[key];
-    });
-  }, [tasks, sortState]);
 
   const headerButtonStyle = {
     width: '100%',

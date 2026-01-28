@@ -8,6 +8,31 @@ export default function JobPodsTab({ namespace, jobName }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // All hooks must be called before any early returns to follow Rules of Hooks
+  const podColumns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'status', label: 'Status' },
+    { key: 'ready', label: 'Ready' },
+    { key: 'restarts', label: 'Restarts' },
+    { key: 'age', label: 'Age' },
+    { key: 'node', label: 'Node' },
+  ]), []);
+  const defaultPodSortKey = useMemo(() => pickDefaultSortKey(podColumns), [podColumns]);
+  const [podSortState, setPodSortState] = useState(() => ({ key: defaultPodSortKey, direction: 'asc' }));
+  const pods = detail?.pods || [];
+  const sortedPods = useMemo(() => sortRows(pods, podSortState.key, podSortState.direction), [pods, podSortState]);
+
+  const conditionColumns = useMemo(() => ([
+    { key: 'type', label: 'Type' },
+    { key: 'status', label: 'Status' },
+    { key: 'reason', label: 'Reason' },
+    { key: 'message', label: 'Message' },
+  ]), []);
+  const defaultConditionSortKey = useMemo(() => pickDefaultSortKey(conditionColumns), [conditionColumns]);
+  const [conditionSortState, setConditionSortState] = useState(() => ({ key: defaultConditionSortKey, direction: 'asc' }));
+  const conditions = detail?.conditions || [];
+  const sortedConditions = useMemo(() => sortRows(conditions, conditionSortState.key, conditionSortState.direction), [conditions, conditionSortState]);
+
   useEffect(() => {
     if (!namespace || !jobName) return;
 
@@ -36,28 +61,6 @@ export default function JobPodsTab({ namespace, jobName }) {
   if (!detail || !detail.pods || detail.pods.length === 0) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No pods found for this job.</div>;
   }
-
-  const podColumns = useMemo(() => ([
-    { key: 'name', label: 'Name' },
-    { key: 'status', label: 'Status' },
-    { key: 'ready', label: 'Ready' },
-    { key: 'restarts', label: 'Restarts' },
-    { key: 'age', label: 'Age' },
-    { key: 'node', label: 'Node' },
-  ]), []);
-  const defaultPodSortKey = useMemo(() => pickDefaultSortKey(podColumns), [podColumns]);
-  const [podSortState, setPodSortState] = useState(() => ({ key: defaultPodSortKey, direction: 'asc' }));
-  const sortedPods = useMemo(() => sortRows(detail.pods, podSortState.key, podSortState.direction), [detail.pods, podSortState]);
-
-  const conditionColumns = useMemo(() => ([
-    { key: 'type', label: 'Type' },
-    { key: 'status', label: 'Status' },
-    { key: 'reason', label: 'Reason' },
-    { key: 'message', label: 'Message' },
-  ]), []);
-  const defaultConditionSortKey = useMemo(() => pickDefaultSortKey(conditionColumns), [conditionColumns]);
-  const [conditionSortState, setConditionSortState] = useState(() => ({ key: defaultConditionSortKey, direction: 'asc' }));
-  const sortedConditions = useMemo(() => sortRows(detail.conditions || [], conditionSortState.key, conditionSortState.direction), [detail.conditions, conditionSortState]);
 
   const headerButtonStyle = {
     width: '100%',

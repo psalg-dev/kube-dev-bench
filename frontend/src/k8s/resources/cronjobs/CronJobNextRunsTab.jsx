@@ -8,6 +8,18 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // All hooks must be called before any early returns to follow Rules of Hooks
+  const columns = useMemo(() => ([
+    { key: 'index', label: '#' },
+    { key: 'time', label: 'Scheduled Time' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+
+  const runs = Array.isArray(detail?.nextRuns) ? detail.nextRuns : (Array.isArray(detail?.NextRuns) ? detail.NextRuns : []);
+  const rows = useMemo(() => runs.map((t, idx) => ({ index: idx + 1, time: t })), [runs]);
+  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction, (row, key) => row?.[key]), [rows, sortState]);
+
   useEffect(() => {
     if (!namespace || !cronJobName) return;
 
@@ -37,20 +49,9 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>CronJob is suspended.</div>;
   }
 
-  const runs = Array.isArray(detail?.nextRuns) ? detail.nextRuns : (Array.isArray(detail?.NextRuns) ? detail.NextRuns : []);
   if (!runs || runs.length === 0) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No upcoming runs available.</div>;
   }
-
-  const columns = useMemo(() => ([
-    { key: 'index', label: '#' },
-    { key: 'time', label: 'Scheduled Time' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-
-  const rows = useMemo(() => runs.map((t, idx) => ({ index: idx + 1, time: t })), [runs]);
-  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction, (row, key) => row?.[key]), [rows, sortState]);
 
   const headerButtonStyle = {
     width: '100%',

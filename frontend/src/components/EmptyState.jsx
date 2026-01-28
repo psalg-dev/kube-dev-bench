@@ -1,4 +1,3 @@
-import React from 'react';
 import './EmptyState.css';
 
 const EMPTY_STATE_ICONS = {

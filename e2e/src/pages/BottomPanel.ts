@@ -12,12 +12,15 @@ export class BottomPanel {
   }
 
   tab(label: string): Locator {
-    return this.root.getByRole('button', { name: label, exact: true });
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const name = new RegExp(`^${escaped}(\\s*(\\(?\\d+\\)?|\\.\\.\\.)(\\s*items?)?)?$`, 'i');
+    return this.root.getByRole('button', { name });
   }
 
   tabWithCount(label: string): Locator {
-    // Match tabs with count badges like "Events (3)" or "Pods (0)"
-    return this.root.locator('.tab-label').filter({ hasText: new RegExp(`^${label}\\s*\\(\\d+\\)$`) });
+    // Match tabs with count badges like "Events 3" or "Pods 0"
+    const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return this.root.locator('.tab-label').filter({ hasText: new RegExp(`^${escaped}`, 'i') }).locator('.tab-count');
   }
 
   tabLabel(label: string): Locator {
@@ -40,9 +43,9 @@ export class BottomPanel {
   }
 
   async expectTabWithCount(label: string, count: number) {
-    // Expects a tab with a specific count badge, e.g. "Events (3)"
-    const tabWithCount = this.root.locator('.tab-label').filter({ hasText: new RegExp(`^${label}\\s*\\(${count}\\)$`) });
-    await expect(tabWithCount).toBeVisible();
+    // Expects a tab with a specific count badge, e.g. "Events 3"
+    const tabCount = this.tabWithCount(label);
+    await expect(tabCount).toHaveText(new RegExp(`^${count}$`));
   }
 
   async expectTabMuted(label: string) {
@@ -73,7 +76,17 @@ export class BottomPanel {
   }
 
   async clickTab(label: string) {
-    await this.tab(label).click();
+    const tab = this.tab(label);
+    await expect(tab).toBeVisible({ timeout: 10_000 });
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await tab.click({ timeout: 5_000 });
+        return;
+      } catch (err) {
+        if (attempt === 2) throw err;
+        await this.page.waitForTimeout(250);
+      }
+    }
   }
 
   async expectNoErrorText() {

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import SecretYamlTab from './SecretYamlTab';
@@ -137,7 +137,7 @@ export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
     toolEvents: [],
   });
   const holmesStateRef = useRef(holmesState);
-  React.useEffect(() => {
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 

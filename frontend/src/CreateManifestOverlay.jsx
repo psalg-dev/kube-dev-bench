@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { yaml as yamlLang } from '@codemirror/lang-yaml';
@@ -126,7 +126,7 @@ function KeyValueEditor({
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', maxWidth: '100%' }}>
         {(rows || []).map((row, idx) => (
-          <React.Fragment key={row.id || idx}>
+          <Fragment key={row.id || idx}>
             <input
               value={row.key}
               onChange={(e) => {
@@ -161,7 +161,7 @@ function KeyValueEditor({
             >
               ×
             </button>
-          </React.Fragment>
+          </Fragment>
         ))}
       </div>
     </div>

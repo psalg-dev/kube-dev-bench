@@ -42,7 +42,7 @@ const bottomTabs = [
   { key: 'summary', label: 'Summary', countable: false },
   { key: 'services', label: 'Connected Services', countKey: 'services' },
   { key: 'containers', label: 'Containers', countKey: 'containers' },
-  { key: 'inspect', label: 'JSON', countable: false },
+  { key: 'inspect', label: 'Inspect', countable: false },
 ];
 
 function renderPanelContent(row, tab, onRefresh) {

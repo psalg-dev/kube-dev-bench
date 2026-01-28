@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -70,8 +70,8 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
@@ -203,7 +203,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   const multiNs = Array.isArray(namespaces) && namespaces.length > 1;
 
-  const mountedRef = React.useRef(true);
+  const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -225,7 +225,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     };
   };
 
-  const refreshPods = React.useCallback(async () => {
+  const refreshPods = useCallback(async () => {
     const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
     const targetNamespaces = selected.filter(Boolean);
     if (targetNamespaces.length === 0) return;
@@ -776,10 +776,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   };
 
   // Dynamically adjust scrollable div height based on BottomPanel
-  const scrollDivRef = React.useRef(null);
-  const bottomPanelRef = React.useRef(null);
-  const headerRef = React.useRef(null);
-  const topHeaderRef = React.useRef(null);
+  const scrollDivRef = useRef(null);
+  const bottomPanelRef = useRef(null);
+  const headerRef = useRef(null);
+  const topHeaderRef = useRef(null);
   function updateScrollDivHeight() {
     const windowHeight = window.innerHeight;
     let headerHeight = 0;

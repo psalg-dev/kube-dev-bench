@@ -222,7 +222,8 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
     await panelRoot.getByRole('button', { name: 'Compose File', exact: true }).click();
     await expect(panelRoot.getByText(/derived from current service specs/i)).toBeVisible({ timeout: 60_000 });
-    await expect(panelRoot.locator('pre').first()).toContainText('services:', { timeout: 60_000 });
+    const composeContent = panelRoot.locator('pre, .cm-content').first();
+    await expect(composeContent).toContainText('services:', { timeout: 60_000 });
 
     // Export button is only rendered in the Summary panel header (actions).
     // Assert via success toast rather than relying on downloads/filesystem.

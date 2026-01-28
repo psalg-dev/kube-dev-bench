@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -232,9 +232,9 @@ function TaskInfoPanel({ row }) {
   }
 
   // Health check config info
+  infoItems.push({ label: 'Health Status', value: row?.healthStatus || 'none' });
+  infoItems.push({ label: 'Health Config', value: hasHc ? 'Configured' : 'Not configured' });
   if (hasHc) {
-    infoItems.push({ label: 'Health Status', value: row?.healthStatus || 'none' });
-    infoItems.push({ label: 'Health Config', value: 'Configured' });
     infoItems.push({ label: 'Health Test', value: hc.test.join(' '), breakWord: true });
     if (hc.retries != null) {
       infoItems.push({ label: 'Retries', value: String(hc.retries) });
@@ -313,40 +313,44 @@ function TaskInfoPanel({ row }) {
           );
         })}
 
-        {hasHc && (
-          <div style={{ marginTop: 6 }}>
-            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: '#d4d4d4' }}>
-              Recent Results
-            </div>
-            {loadingLogs ? (
-              <div style={{ fontSize: 12, color: '#858585' }}>Loading…</div>
-            ) : !logs || logs.length === 0 ? (
-              <div style={{ fontSize: 12, color: '#858585' }}>No health check results.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {logs.slice(-4).map((l, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      border: '1px solid #30363d',
-                      padding: '6px 8px',
-                      fontSize: 11,
-                      color: '#858585',
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-                      <div>Exit {l.exitCode}</div>
-                      <div style={{ fontSize: 10 }}>{l.end ? formatTimestampDMYHMS(l.end) : '-'}</div>
-                    </div>
-                    {l.output ? (
-                      <div style={{ marginTop: 4, color: '#d4d4d4', whiteSpace: 'pre-wrap', fontSize: 10 }}>{l.output}</div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            )}
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: '#d4d4d4' }}>
+            Health Check
           </div>
-        )}
+          <div style={{ fontSize: 12, color: '#858585', marginBottom: 10 }}>
+            {hasHc ? 'Configured' : 'Not configured'}
+          </div>
+          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: '#d4d4d4' }}>
+            Recent Results
+          </div>
+          {loadingLogs ? (
+            <div style={{ fontSize: 12, color: '#858585' }}>Loading…</div>
+          ) : !logs || logs.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#858585' }}>No health check results.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {logs.slice(-4).map((l, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    border: '1px solid #30363d',
+                    padding: '6px 8px',
+                    fontSize: 11,
+                    color: '#858585',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <div>Exit {l.exitCode}</div>
+                    <div style={{ fontSize: 10 }}>{l.end ? formatTimestampDMYHMS(l.end) : '-'}</div>
+                  </div>
+                  {l.output ? (
+                    <div style={{ marginTop: 4, color: '#d4d4d4', whiteSpace: 'pre-wrap', fontSize: 10 }}>{l.output}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -556,8 +560,8 @@ export default function SwarmTasksOverviewTable() {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 

@@ -34,7 +34,18 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
 
   // Always ensure we're on the app root; baseURL routing handles host.
   if (!page.url() || page.url() === 'about:blank') {
-    await page.goto('/');
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await page.goto('/', { waitUntil: 'domcontentloaded', timeout: 60_000 });
+        lastErr = undefined;
+        break;
+      } catch (err) {
+        lastErr = err;
+        await page.waitForTimeout(1000);
+      }
+    }
+    if (lastErr) throw lastErr;
   }
 
   // Wait for page to be fully loaded before checking connection state

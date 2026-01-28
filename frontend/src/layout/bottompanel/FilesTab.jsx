@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import * as AppAPI from '../../../wailsjs/go/main/App';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
@@ -211,10 +211,10 @@ export default function FilesTab({ namespace, pvcName }) {
         <div style={{ fontSize: 12, color: 'var(--gh-text-muted,#8b949e)', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(-1)}>root</span>
           {breadcrumbs.map((b, idx) => (
-            <React.Fragment key={idx}>
+            <Fragment key={idx}>
               <span style={{ margin: '0 4px' }}>/</span>
               <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(idx)}>{b}</span>
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
