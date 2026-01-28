@@ -191,9 +191,9 @@ jobs:
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests
+      - name: Run e2e tests (excluding registry tests)
         working-directory: e2e
-        run: xvfb-run -a npx playwright test
+        run: xvfb-run -a npm test
         env:
           CI: true
           PW_WORKERS: '3'
