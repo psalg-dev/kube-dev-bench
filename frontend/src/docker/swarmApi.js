@@ -39,6 +39,7 @@ import {
   UpdateSwarmNodeLabels,
   GetSwarmNodeTasks,
   RemoveSwarmNode,
+  GetSwarmJoinTokens,
 
   // Networks
   GetSwarmNetworks,
@@ -164,6 +165,7 @@ export {
   UpdateSwarmNodeLabels,
   GetSwarmNodeTasks,
   RemoveSwarmNode,
+  GetSwarmJoinTokens,
 
   // Networks
   GetSwarmNetworks,

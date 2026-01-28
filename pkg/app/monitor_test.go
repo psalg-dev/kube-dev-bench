@@ -318,10 +318,11 @@ func TestCollectMonitorInfo_FiltersDismissedIssues(t *testing.T) {
 	app := newTestApp(clientset)
 
 	issue := MonitorIssue{
-		Resource:  "Pod",
-		Namespace: "default",
-		Name:      "dismissed-pod",
-		Reason:    "CrashLoopBackOff",
+		Resource:      "Pod",
+		Namespace:     "default",
+		Name:          "dismissed-pod",
+		Reason:        "CrashLoopBackOff",
+		ContainerName: "container",
 	}
 	issueID := generateIssueID(issue)
 	persisted := map[string]PersistedIssue{

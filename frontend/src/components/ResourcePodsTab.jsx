@@ -1,6 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
+import EmptyTabContent from './EmptyTabContent';
+import { getEmptyTabMessage } from '../constants/emptyTabMessages';
 import './ResourcePodsTab.css';
+import StatusBadge from './StatusBadge.jsx';
 
 /**
  * Reusable pods tab component for workload resources.
@@ -72,15 +75,6 @@ export default function ResourcePodsTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, resourceKind, resourceName, refreshInterval]);
 
-  const getStatusColor = (status) => {
-    const s = (status || '').toLowerCase();
-    if (s === 'running') return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950' };
-    if (s === 'pending' || s === 'containercreating') return { bg: 'rgba(187,128,9,0.15)', fg: '#d29922' };
-    if (s === 'failed' || s === 'error' || s === 'crashloopbackoff') return { bg: 'rgba(248,81,73,0.15)', fg: '#f85149' };
-    if (s === 'succeeded' || s === 'completed') return { bg: 'rgba(56,139,253,0.15)', fg: '#58a6ff' };
-    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e' };
-  };
-
   const handlePodClick = (pod) => {
     if (onPodClick) {
       onPodClick(pod.name, pod.namespace);
@@ -104,9 +98,15 @@ export default function ResourcePodsTab({
   }
 
   if (pods.length === 0) {
+    const emptyMsg = getEmptyTabMessage('pods');
     return (
       <div className="resource-pods-tab">
-        <div className="pods-empty">No pods found for this {resourceKind.toLowerCase()}.</div>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       </div>
     );
   }
@@ -131,7 +131,6 @@ export default function ResourcePodsTab({
           </thead>
           <tbody>
             {pods.map((pod, idx) => {
-              const statusColor = getStatusColor(pod.status);
               return (
                 <tr
                   key={idx}
@@ -140,12 +139,7 @@ export default function ResourcePodsTab({
                 >
                   <td className="pod-name">{pod.name || '-'}</td>
                   <td>
-                    <span
-                      className="pod-status-badge"
-                      style={{ background: statusColor.bg, color: statusColor.fg }}
-                    >
-                      {pod.status || 'Unknown'}
-                    </span>
+                    <StatusBadge status={pod.status || 'Unknown'} size="small" showDot={false} />
                   </td>
                   <td className="pod-ready">{pod.ready || '-'}</td>
                   <td className="pod-restarts">{pod.restarts ?? 0}</td>

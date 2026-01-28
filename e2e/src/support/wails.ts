@@ -120,10 +120,12 @@ export async function startWailsDev(opts: {
   const e2eDialogDir = path.join(tmpDir, 'kdb-e2e-dialogs');
   const kubeDir = path.join(homeDir, '.kube');
   const kubeConfigPath = path.join(kubeDir, 'config');
+  const viteCacheDir = path.join(tmpDir, 'vite-cache');
   await Promise.all([
     fsp.mkdir(appDataDir, { recursive: true }),
     fsp.mkdir(localAppDataDir, { recursive: true }),
     fsp.mkdir(tmpDir, { recursive: true }),
+    fsp.mkdir(viteCacheDir, { recursive: true }),
     fsp.mkdir(e2eDialogDir, { recursive: true }),
     fsp.mkdir(kubeDir, { recursive: true }),
   ]);
@@ -214,6 +216,9 @@ export async function startWailsDev(opts: {
       TMP: tmpDir,
       XDG_CONFIG_HOME: path.join(homeDir, '.config'),
       XDG_DATA_HOME: path.join(homeDir, '.local', 'share'),
+      VITE_CACHE_DIR: viteCacheDir,
+      E2E_VITE_ALLOW_OUTSIDE_ROOT: '1',
+      VITE_FS_STRICT: '0',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });

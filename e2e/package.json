@@ -6,6 +6,7 @@
     "test": "node ./scripts/run-playwright.mjs test",
     "test:headed": "node ./scripts/run-playwright.mjs test --headed",
     "test:debug": "node ./scripts/run-playwright.mjs test --debug",
+    "test:registry": "node ./scripts/run-playwright.mjs test -c playwright.registry.config.ts",
     "install:browsers": "playwright install --with-deps chromium"
   },
   "devDependencies": {

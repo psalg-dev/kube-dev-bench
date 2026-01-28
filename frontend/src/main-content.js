@@ -26,8 +26,8 @@ import SwarmRegistriesOverview from './docker/registry/SwarmRegistriesOverview.j
 import SwarmOverview from './docker/SwarmOverview.jsx';
 import SwarmStateContext from './docker/SwarmStateContext.jsx';
 import SwarmResourceCountsContext from './docker/SwarmResourceCountsContext.jsx';
-import {createRoot} from 'react-dom/client';
-import React from 'react';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 
 // React roots are bound to a specific DOM container. Recreating containers (via innerHTML)
 // or re-calling createRoot causes unmount/remount cycles which show up as visible flicker.
@@ -296,7 +296,7 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
         rootByContainerId.set(target.id, root);
     }
 
-    const baseEl = React.createElement(target.table, target.props);
+    const baseEl = createElement(target.table, target.props);
 
     // NOTE: main-content.js renders into a separate React root.
     // React context does NOT cross roots, so we explicitly bridge Swarm contexts
@@ -304,10 +304,10 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
     if (target.section?.startsWith('swarm-') && options?.swarmState) {
         const swarmCountsValue = options?.swarmCounts ?? { counts: null, lastUpdated: 0, refetch: () => {} };
         root.render(
-            React.createElement(
+            createElement(
                 SwarmStateContext.Provider,
                 { value: options.swarmState },
-                React.createElement(
+                createElement(
                     SwarmResourceCountsContext.Provider,
                     { value: swarmCountsValue },
                     baseEl

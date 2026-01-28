@@ -1,6 +1,20 @@
-function KeyValueGrid({ data, emptyLabel }) {
+import EmptyTabContent from '../../../components/EmptyTabContent';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+
+function KeyValueGrid({ data, emptyLabel, emptyMessageKey }) {
   const keys = data ? Object.keys(data) : [];
   if (!data || keys.length === 0) {
+    if (emptyMessageKey) {
+      const emptyMsg = getEmptyTabMessage(emptyMessageKey);
+      return (
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
+      );
+    }
     return <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>{emptyLabel}</div>;
   }
 
@@ -35,13 +49,14 @@ export function NetworkOptionsSection({ options }) {
       <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)', marginBottom: 8 }}>
         Options
       </div>
-      <KeyValueGrid data={options} emptyLabel="No options." />
+      <KeyValueGrid data={options} emptyLabel="No options." emptyMessageKey="swarm-options" />
     </div>
   );
 }
 
 export function NetworkIPAMSection({ ipam }) {
   const list = Array.isArray(ipam) ? ipam : [];
+  const emptyMsg = getEmptyTabMessage('swarm-ipam');
 
   return (
     <div style={{ padding: 16, overflow: 'auto', flex: 1, minWidth: 0 }}>
@@ -50,7 +65,12 @@ export function NetworkIPAMSection({ ipam }) {
       </div>
 
       {list.length === 0 ? (
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)' }}>No IPAM configuration.</div>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       ) : (
         <div style={{ display: 'grid', gap: 10 }}>
           {list.map((cfg, idx) => (

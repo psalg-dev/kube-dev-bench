@@ -21,6 +21,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  table-layout: fixed;
 }
 
 .stack-services-table th,
@@ -28,6 +29,10 @@
   padding: 8px 12px;
   text-align: left;
   border-bottom: 1px solid var(--gh-border, #3c3c3c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 
 .stack-services-table th {

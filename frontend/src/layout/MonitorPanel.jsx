@@ -362,9 +362,9 @@ export function MonitorPanel({ monitorInfo, open, onClose }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {issues.map((issue) => (
+            {issues.map((issue, index) => (
               <MonitorIssueCard
-                key={issue.issueID || `${issue.resource}-${issue.name}-${issue.reason}`}
+                key={`${issue.issueID || `${issue.resource}-${issue.name}-${issue.containerName || ''}-${issue.reason}`}-${index}`}
                 issue={issue}
                 onNavigate={handleIssueClick}
                 onAnalyze={handleAnalyzeIssue}

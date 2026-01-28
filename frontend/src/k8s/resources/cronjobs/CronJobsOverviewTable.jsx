@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import CronJobYamlTab from './CronJobYamlTab';
@@ -26,13 +26,13 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'history', label: 'Job History' },
-  { key: 'nextruns', label: 'Next Runs' },
-  { key: 'actions', label: 'Actions' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'history', label: 'History', ariaLabel: 'Job History', countKey: 'history' },
+  { key: 'nextruns', label: 'Next Runs', countable: false },
+  { key: 'actions', label: 'Actions', countable: false },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
@@ -142,8 +142,8 @@ export default function CronJobsOverviewTable({ namespaces }) {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 

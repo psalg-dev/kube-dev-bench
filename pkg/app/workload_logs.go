@@ -152,3 +152,24 @@ func (a *App) GetJobLogs(namespace, jobName string) (string, error) {
 	}
 	return a.aggregatePodsLogs(namespace, podList.Items)
 }
+
+// GetReplicaSetLogs aggregates recent logs for all pods belonging to a ReplicaSet.
+func (a *App) GetReplicaSetLogs(namespace, replicaSetName string) (string, error) {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", err
+	}
+	rs, err := clientset.AppsV1().ReplicaSets(namespace).Get(a.ctx, replicaSetName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	if rs.Spec.Selector == nil {
+		return "", fmt.Errorf("replicaset has no selector")
+	}
+	selector := labels.SelectorFromSet(rs.Spec.Selector.MatchLabels)
+	podList, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return "", err
+	}
+	return a.aggregatePodsLogs(namespace, podList.Items)
+}

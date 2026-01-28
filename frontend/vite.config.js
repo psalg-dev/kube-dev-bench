@@ -79,6 +79,7 @@ export default defineConfig(async ({ command, mode }) => {
   const hostOverride = process.env.VITE_HOST;
   const cacheDirOverride = process.env.VITE_CACHE_DIR;
   const isE2E = Boolean(cacheDirOverride);
+  const allowOutsideRoot = process.env.E2E_VITE_ALLOW_OUTSIDE_ROOT === '1' || process.env.VITE_FS_STRICT === '0';
 
   return {
     plugins: [react()],
@@ -86,11 +87,12 @@ export default defineConfig(async ({ command, mode }) => {
     // Allow E2E runs to isolate Vite's dependency optimization cache per process.
     // This prevents flake when multiple Wails instances start Vite concurrently.
     cacheDir: cacheDirOverride || undefined,
-    // In E2E, disable dependency optimization to avoid rare optimizer crashes when
-    // multiple Vite dev servers are started concurrently.
-    optimizeDeps: isE2E ? { disabled: true } : undefined,
+    // In E2E, keep dependency optimization enabled with an isolated cache dir.
+    // This avoids ESM default export issues when deps import React as default.
+    optimizeDeps: isE2E ? { include: ['react', 'react-dom'], force: true } : undefined,
     server: {
       host: hostOverride || undefined,
+      fs: allowOutsideRoot ? { strict: false } : undefined,
       watch: {
         ignored: [
           '**/coverage/**',

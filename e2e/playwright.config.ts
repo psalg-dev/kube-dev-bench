@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['registry/**'],
   outputDir: './test-results',
   // Note: worker-scoped fixtures (like starting Wails) run under the test timeout.
   // Keep this high enough to allow cold-starts when running with multiple workers.

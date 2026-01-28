@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
 
 const cardStyle = {
@@ -66,7 +66,7 @@ function KubernetesConnectionsList({ onConnect, filterConfig }) {
     actions,
   } = useConnectionsState();
 
-  const [hoveredIndex, setHoveredIndex] = React.useState(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   const displayConfigs = filterConfig
     ? kubeConfigs.filter((c) => c.path === filterConfig.path)

@@ -100,6 +100,12 @@ export class ConnectionWizardPage {
       return OPEN_WIZARD_STATUS.AutoOpened;
     }
 
+    // If the main app is already visible but the open buttons are missing,
+    // assume we are already connected and allow the flow to continue.
+    if (await mainApp.isVisible().catch(() => false)) {
+      return OPEN_WIZARD_STATUS.AlreadyVisible;
+    }
+
     // If we reach here, neither wizard nor open buttons appeared in time.
     const btnCounts = {
       showWizard: await openBtn.count().catch(() => 0),

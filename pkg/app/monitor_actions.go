@@ -30,6 +30,10 @@ type PersistedIssue struct {
 }
 
 func generateIssueID(issue MonitorIssue) string {
+	// Include container name if present to differentiate container-level issues
+	if issue.ContainerName != "" {
+		return fmt.Sprintf("%s-%s-%s-%s-%s", issue.Resource, issue.Namespace, issue.Name, issue.ContainerName, issue.Reason)
+	}
 	return fmt.Sprintf("%s-%s-%s-%s", issue.Resource, issue.Namespace, issue.Name, issue.Reason)
 }
 

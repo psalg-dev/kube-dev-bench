@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   flexRender,
   getCoreRowModel,
@@ -23,6 +23,7 @@ import '../../../layout/overview/OverviewTableWithPanel.css';
 import { showResourceOverlay } from '../../../resource-overlay.js';
 import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHolmesStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 // Resource types matching sidebar and templates in resource-overlay.js
 const createOptions = [
@@ -69,8 +70,8 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
@@ -202,7 +203,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   const multiNs = Array.isArray(namespaces) && namespaces.length > 1;
 
-  const mountedRef = React.useRef(true);
+  const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
     return () => {
@@ -224,7 +225,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     };
   };
 
-  const refreshPods = React.useCallback(async () => {
+  const refreshPods = useCallback(async () => {
     const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
     const targetNamespaces = selected.filter(Boolean);
     if (targetNamespaces.length === 0) return;
@@ -438,27 +439,11 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   function renderStatusCell(pod) {
     const status = pod.status || pod.phase || '-';
-    let color = '#aaa';
-    let label = status;
-    if (typeof status === 'string') {
-      const s = status.toLowerCase();
-      if (s === 'running') {
-        color = '#2ea44f'; // green
-        label = 'Running';
-      } else if (s === 'pending' || s === 'creating' || s === 'containercreating') {
-        color = '#e6b800'; // yellow
-        label = 'Creating';
-      } else if (s === 'failed' || s === 'error' || s === 'crashloopbackoff') {
-        color = '#d73a49'; // red
-        label = 'Failed';
-      }
+    if (!status || status === '-') {
+      return '-';
     }
-    return (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, display: 'inline-block', border: '1px solid #888' }} />
-        <span>{label}</span>
-      </span>
-    );
+    const label = typeof status === 'string' ? status : String(status);
+    return <StatusBadge status={label} size="small" />;
   }
 
   const baseColumns = useMemo(() => [
@@ -791,10 +776,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   };
 
   // Dynamically adjust scrollable div height based on BottomPanel
-  const scrollDivRef = React.useRef(null);
-  const bottomPanelRef = React.useRef(null);
-  const headerRef = React.useRef(null);
-  const topHeaderRef = React.useRef(null);
+  const scrollDivRef = useRef(null);
+  const bottomPanelRef = useRef(null);
+  const headerRef = useRef(null);
+  const topHeaderRef = useRef(null);
   function updateScrollDivHeight() {
     const windowHeight = window.innerHeight;
     let headerHeight = 0;
@@ -943,7 +928,17 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         </div>
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
+        {/* Column widths: Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
         <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
+          <colgroup>
+            <col style={{ width: '25%' }} />
+            {multiNs && <col style={{ width: '12%' }} />}
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '15%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: multiNs ? '10%' : '15%' }} />
+            <col style={{ width: multiNs ? '15%' : '20%' }} />
+          </colgroup>
           <thead>
           {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
@@ -988,6 +983,15 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         </table>
         <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
+            <colgroup>
+              <col style={{ width: '25%' }} />
+              {multiNs && <col style={{ width: '12%' }} />}
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: multiNs ? '10%' : '15%' }} />
+              <col style={{ width: multiNs ? '15%' : '20%' }} />
+            </colgroup>
             <tbody>
             {topPadHeight > 0 && (
                 <tr style={{height: topPadHeight}}>

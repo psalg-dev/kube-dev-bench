@@ -1,9 +1,29 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { showError, showSuccess } from '../../../notification.js';
 
 export default function HelmActions({ releaseName, namespace, chart, onRefresh }) {
   const [uninstalling, setUninstalling] = useState(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const [rollingBack, setRollingBack] = useState(false);
+  const [showRollbackPicker, setShowRollbackPicker] = useState(false);
+  const [rollbackOptions, setRollbackOptions] = useState([]);
+  const [selectedRevision, setSelectedRevision] = useState(null);
+  const [loadingRollbackOptions, setLoadingRollbackOptions] = useState(false);
+  const rollbackPickerRef = useRef(null);
+
+  useEffect(() => {
+    if (!showRollbackPicker) return;
+
+    const handleClickOutside = (event) => {
+      if (rollbackPickerRef.current && !rollbackPickerRef.current.contains(event.target)) {
+        setShowRollbackPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showRollbackPicker]);
 
   const handleUninstall = async () => {
     if (!window.confirm(`Are you sure you want to uninstall "${releaseName}" from namespace "${namespace}"?`)) {
@@ -12,11 +32,57 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
     setUninstalling(true);
     try {
       await AppAPI.UninstallHelmRelease(namespace, releaseName);
+      showSuccess(`Helm release '${releaseName}' uninstalled`);
       if (onRefresh) onRefresh();
     } catch (err) {
-      alert(`Failed to uninstall: ${err.message || err}`);
+      showError(`Failed to uninstall: ${err?.message || err}`);
     } finally {
       setUninstalling(false);
+    }
+  };
+
+  const openRollbackPicker = async () => {
+    setLoadingRollbackOptions(true);
+    try {
+      const history = await AppAPI.GetHelmReleaseHistory(namespace, releaseName);
+      const revisions = (history || []).map((h) => h.revision).filter((r) => Number.isInteger(r));
+      if (revisions.length <= 1) {
+        showError(`No previous revision available for '${releaseName}'`);
+        return;
+      }
+
+      const currentRevision = revisions[0];
+      const candidates = revisions.filter((r) => r !== currentRevision);
+      if (candidates.length === 0) {
+        showError(`No previous revision available for '${releaseName}'`);
+        return;
+      }
+
+      setRollbackOptions(candidates);
+      setSelectedRevision(candidates[0]);
+      setShowRollbackPicker(true);
+    } catch (err) {
+      showError(`Failed to load revisions: ${err?.message || err}`);
+    } finally {
+      setLoadingRollbackOptions(false);
+    }
+  };
+
+  const confirmRollback = async () => {
+    if (!selectedRevision) return;
+    if (!window.confirm(`Rollback "${releaseName}" to revision ${selectedRevision}?`)) {
+      return;
+    }
+    setRollingBack(true);
+    try {
+      await AppAPI.RollbackHelmRelease(namespace, releaseName, selectedRevision);
+      showSuccess(`Rolled back "${releaseName}" to revision ${selectedRevision}`);
+      if (onRefresh) onRefresh();
+      setShowRollbackPicker(false);
+    } catch (err) {
+      showError(`Rollback failed: ${err?.message || err}`);
+    } finally {
+      setRollingBack(false);
     }
   };
 
@@ -25,7 +91,7 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
   };
 
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
       <button
         onClick={handleUpgrade}
         disabled={false}
@@ -41,6 +107,22 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
         }}
       >
         Upgrade
+      </button>
+      <button
+        onClick={openRollbackPicker}
+        disabled={rollingBack || loadingRollbackOptions}
+        style={{
+          padding: '6px 12px',
+          background: rollingBack || loadingRollbackOptions ? '#666' : 'var(--gh-btn-bg, #21262d)',
+          color: 'var(--gh-btn-text, #c9d1d9)',
+          border: '1px solid var(--gh-border, #30363d)',
+          borderRadius: 6,
+          cursor: rollingBack || loadingRollbackOptions ? 'not-allowed' : 'pointer',
+          fontSize: 13,
+          fontWeight: 500,
+        }}
+      >
+        {rollingBack ? 'Rolling back...' : (loadingRollbackOptions ? 'Loading...' : 'Rollback')}
       </button>
       <button
         onClick={handleUninstall}
@@ -70,6 +152,78 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
             if (onRefresh) onRefresh();
           }}
         />
+      )}
+
+      {showRollbackPicker && (
+        <div
+          ref={rollbackPickerRef}
+          style={{
+            position: 'absolute',
+            top: 42,
+            right: 0,
+            zIndex: 20,
+            background: 'var(--gh-canvas-subtle, #161b22)',
+            border: '1px solid var(--gh-border, #30363d)',
+            borderRadius: 8,
+            padding: 12,
+            minWidth: 260,
+            boxShadow: '0 6px 24px rgba(0,0,0,0.35)'
+          }}
+        >
+          <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 6 }}>
+            Select revision
+          </div>
+          <select
+            value={selectedRevision ?? ''}
+            onChange={(e) => setSelectedRevision(Number(e.target.value))}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              background: 'var(--gh-canvas-default, #0d1117)',
+              border: '1px solid var(--gh-border, #30363d)',
+              borderRadius: 6,
+              color: 'var(--gh-text, #c9d1d9)',
+              fontSize: 13,
+            }}
+          >
+            {rollbackOptions.map((rev) => (
+              <option key={rev} value={rev}>{rev}</option>
+            ))}
+          </select>
+          <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={() => setShowRollbackPicker(false)}
+              style={{
+                padding: '6px 10px',
+                background: 'var(--gh-btn-bg, #21262d)',
+                color: 'var(--gh-btn-text, #c9d1d9)',
+                border: '1px solid var(--gh-border, #30363d)',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmRollback}
+              disabled={rollingBack || !selectedRevision}
+              style={{
+                padding: '6px 10px',
+                background: rollingBack ? '#666' : '#9e6a03',
+                border: '1px solid #d29922',
+                color: '#fff',
+                borderRadius: 6,
+                cursor: rollingBack || !selectedRevision ? 'not-allowed' : 'pointer',
+                fontSize: 12,
+              }}
+            >
+              {rollingBack ? 'Rolling back...' : 'Rollback'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

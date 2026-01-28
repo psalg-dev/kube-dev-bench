@@ -60,9 +60,17 @@ export function AnalyzeStatefulSet(arg1:string,arg2:string):Promise<holmesgpt.Ho
 
 export function AnalyzeStatefulSetStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
+export function AnalyzeSwarmNode(arg1:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzeSwarmNodeStream(arg1:string,arg2:string):Promise<void>;
+
 export function AnalyzeSwarmService(arg1:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeSwarmServiceStream(arg1:string,arg2:string):Promise<void>;
+
+export function AnalyzeSwarmStack(arg1:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzeSwarmStackStream(arg1:string,arg2:string):Promise<void>;
 
 export function AnalyzeSwarmTask(arg1:string):Promise<holmesgpt.HolmesResponse>;
 
@@ -160,11 +168,17 @@ export function ExportSwarmConfig(arg1:string,arg2:string):Promise<string>;
 
 export function GetAlertInvestigationHistory():Promise<Array<app.AlertInvestigation>>;
 
+export function GetAllTabCounts(arg1:string,arg2:string,arg3:string):Promise<app.TabCounts>;
+
 export function GetClusterTopology():Promise<topology.ClusterTopology>;
 
 export function GetConfigMapConsumers(arg1:string,arg2:string):Promise<Array<app.ConfigMapConsumer>>;
 
+export function GetConfigMapConsumersCount(arg1:string,arg2:string):Promise<number>;
+
 export function GetConfigMapDataByName(arg1:string,arg2:string):Promise<Array<app.ConfigMapDataInfo>>;
+
+export function GetConfigMapDataCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetConfigMapYAML(arg1:string,arg2:string):Promise<string>;
 
@@ -173,6 +187,8 @@ export function GetConfigMaps(arg1:string):Promise<Array<app.ConfigMapInfo>>;
 export function GetConnectionStatus():Promise<Record<string, any>>;
 
 export function GetCronJobDetail(arg1:string,arg2:string):Promise<app.CronJobDetail>;
+
+export function GetCronJobHistoryCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetCronJobYAML(arg1:string,arg2:string):Promise<string>;
 
@@ -230,6 +246,8 @@ export function GetImageUpdateSettings():Promise<docker.ImageUpdateSettings>;
 
 export function GetIngressDetail(arg1:string,arg2:string):Promise<app.IngressDetail>;
 
+export function GetIngressRulesCount(arg1:string,arg2:string):Promise<number>;
+
 export function GetIngressTLSSummary(arg1:string,arg2:string):Promise<Array<app.IngressTLSSummary>>;
 
 export function GetIngressYAML(arg1:string,arg2:string):Promise<string>;
@@ -255,6 +273,8 @@ export function GetNamespaces():Promise<Array<string>>;
 export function GetOverview(arg1:string):Promise<app.OverviewInfo>;
 
 export function GetPVCConsumers(arg1:string,arg2:string):Promise<Array<app.PVCConsumer>>;
+
+export function GetPVCConsumersCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetPVCFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
 
@@ -292,6 +312,8 @@ export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 
 export function GetPodYAML(arg1:string):Promise<string>;
 
+export function GetPodsCountForResource(arg1:string,arg2:string,arg3:string):Promise<number>;
+
 export function GetPrometheusAlerts(arg1:string):Promise<Array<app.PrometheusAlert>>;
 
 export function GetProxyConfig():Promise<app.ProxyConfig>;
@@ -308,25 +330,35 @@ export function GetRememberNamespace():Promise<boolean>;
 
 export function GetReplicaSetDetail(arg1:string,arg2:string):Promise<app.ReplicaSetDetail>;
 
+export function GetReplicaSetLogs(arg1:string,arg2:string):Promise<string>;
+
 export function GetReplicaSets(arg1:string):Promise<Array<app.ReplicaSetInfo>>;
 
 export function GetResourceCounts():Promise<app.ResourceCounts>;
 
 export function GetResourceEvents(arg1:string,arg2:string,arg3:string):Promise<Array<app.EventInfo>>;
 
+export function GetResourceEventsCount(arg1:string,arg2:string,arg3:string):Promise<number>;
+
 export function GetRunningPods(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetSecretConsumers(arg1:string,arg2:string):Promise<Array<app.SecretConsumer>>;
 
+export function GetSecretConsumersCount(arg1:string,arg2:string):Promise<number>;
+
 export function GetSecretData(arg1:string):Promise<Record<string, string>>;
 
 export function GetSecretDataByName(arg1:string,arg2:string):Promise<Array<app.SecretDataInfo>>;
+
+export function GetSecretDataCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetSecretYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
 
 export function GetServiceEndpoints(arg1:string,arg2:string):Promise<Array<app.ServiceEndpoint>>;
+
+export function GetServiceEndpointsCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetServiceSummary(arg1:string,arg2:string):Promise<app.ServiceSummary>;
 
@@ -337,6 +369,8 @@ export function GetServices(arg1:string):Promise<Array<app.ServiceInfo>>;
 export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.StatefulSetDetail>;
 
 export function GetStatefulSetLogs(arg1:string,arg2:string):Promise<string>;
+
+export function GetStatefulSetPVCsCount(arg1:string,arg2:string):Promise<number>;
 
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
 
@@ -351,6 +385,8 @@ export function GetSwarmConfigUsage(arg1:string):Promise<Array<docker.SwarmServi
 export function GetSwarmConfigs():Promise<Array<docker.SwarmConfigInfo>>;
 
 export function GetSwarmEvents(arg1:number):Promise<Array<docker.SwarmEvent>>;
+
+export function GetSwarmJoinTokens():Promise<docker.SwarmJoinTokens>;
 
 export function GetSwarmMetricsHistory():Promise<Array<docker.SwarmMetricsPoint>>;
 

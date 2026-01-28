@@ -8,6 +8,7 @@ import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import SecretEditModal from './SecretEditModal.jsx';
 import SecretCloneModal from './SecretCloneModal.jsx';
 import SecretUsedBySection from './SecretUsedBySection.jsx';
+import SecretDataSection from './SecretDataSection.jsx';
 import SecretInspectTab from './SecretInspectTab.jsx';
 import { GetSwarmSecrets, RemoveSwarmSecret } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
@@ -47,7 +48,7 @@ const columns = [
 
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
-  { key: 'inspect', label: 'Inspect' },
+  { key: 'inspect', label: 'JSON' },
 ];
 
 function SecretSummaryPanel({ row, onRefresh }) {
@@ -127,7 +128,15 @@ function SecretSummaryPanel({ row, onRefresh }) {
           error={null}
           fields={quickInfoFields}
         />
-        <SecretUsedBySection secretId={row.id} />
+        {/* Secret Data + Used By sections */}
+        <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+            <SecretDataSection />
+          </div>
+          <div style={{ width: 320, minWidth: 200, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)' }}>
+            <SecretUsedBySection secretId={row.id} />
+          </div>
+        </div>
       </div>
 
       <SecretEditModal

@@ -284,8 +284,9 @@ export default function TopologyView() {
         {
           key: 'availability',
           label: 'Availability',
+          type: 'status',
           layout: 'flex',
-          rightField: { key: 'state', label: 'State' },
+          rightField: { key: 'state', label: 'State', type: 'status' },
         },
         { key: 'address', label: 'Address' },
         { key: 'engineVersion', label: 'Docker Version' },

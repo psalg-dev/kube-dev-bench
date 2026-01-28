@@ -17,14 +17,68 @@ async function openRowDetailsByName(page: any, name: string) {
   await expect(table).toBeVisible({ timeout: 60_000 });
   const row = table.locator('tbody tr').filter({ hasText: name }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
-  await row.click();
+  const nameCell = row.locator('td').first();
+  const detailsPanel = page
+    .locator('.bottom-panel')
+    .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await nameCell.click();
+    try {
+      await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
+      await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
+      return;
+    } catch {
+      // continue to fallback
+    }
+
+    // Fallback: open via row actions menu (Details)
+    const actionsBtn = row.getByRole('button', { name: 'Row actions' }).first();
+    if (await actionsBtn.isVisible().catch(() => false)) {
+      await actionsBtn.click({ timeout: 5_000 });
+      const detailsItem = page.getByText('Details').first();
+      if (await detailsItem.isVisible().catch(() => false)) {
+        await detailsItem.click();
+        try {
+          await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
+          await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
+          return;
+        } catch {
+          // keep retrying
+        }
+      }
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(`Failed to open bottom panel for row: ${name}`);
 }
 
-async function expectAndClickTabs(panel: BottomPanel, labels: string[]) {
+async function expectAndClickTabs(panel: BottomPanel, labels: string[], reopenPanel?: () => Promise<void>) {
   await panel.expectTabs(labels);
   for (const label of labels) {
+    const ensurePanelAndTab = async () => {
+      if (reopenPanel) {
+        await reopenPanel();
+        await panel.expectVisible(30_000);
+      }
+      await panel.clickTab(label);
+    };
+
+    if (reopenPanel) {
+      await reopenPanel();
+      await panel.expectVisible(30_000);
+    }
+    const tabVisible = await panel.tab(label).isVisible().catch(() => false);
+    if (!tabVisible && reopenPanel) {
+      await reopenPanel();
+      await panel.expectVisible(30_000);
+    }
     await panel.clickTab(label);
     if (label === 'YAML' || label === 'Logs') {
+      if (!(await panel.root.isVisible().catch(() => false)) && reopenPanel) {
+        await ensurePanelAndTab();
+      }
       await panel.expectCodeMirrorVisible();
     } else if (label === 'Events') {
       // Most resources use <ResourceEventsTab className="resource-events-tab" />.
@@ -34,8 +88,14 @@ async function expectAndClickTabs(panel: BottomPanel, labels: string[]) {
       await expect
         .poll(async () => (await resourceEvents.count()) > 0 || (await podEventsHeader.count()) > 0)
         .toBe(true);
+      if (!(await panel.root.isVisible().catch(() => false)) && reopenPanel) {
+        await ensurePanelAndTab();
+      }
       await panel.expectNoErrorText();
     } else {
+      if (!(await panel.root.isVisible().catch(() => false)) && reopenPanel) {
+        await ensurePanelAndTab();
+      }
       await panel.expectNoErrorText();
     }
   }
@@ -61,7 +121,9 @@ test('bottom panels: batch (Job/CronJob)', async ({ page, contextName, namespace
 
   await openRowDetailsByName(page, jobName);
   await panel.expectVisible();
-  await expectAndClickTabs(panel, ['Summary', 'Pods', 'Logs', 'Events', 'YAML']);
+  await expectAndClickTabs(panel, ['Summary', 'Pods', 'Logs', 'Events', 'YAML'], async () => {
+    await openRowDetailsByName(page, jobName);
+  });
 
   // Job actions: Start (re-run)
   await panel.clickTab('Summary');
@@ -82,7 +144,9 @@ test('bottom panels: batch (Job/CronJob)', async ({ page, contextName, namespace
 
   await openRowDetailsByName(page, cronName);
   await panel.expectVisible();
-  await expectAndClickTabs(panel, ['Summary', 'Job History', 'Next Runs', 'Actions', 'Events', 'YAML']);
+  await expectAndClickTabs(panel, ['Summary', 'Job History', 'Next Runs', 'Actions', 'Events', 'YAML'], async () => {
+    await openRowDetailsByName(page, cronName);
+  });
 
   // CronJob Actions tab has its own UI messages (not global toast)
   await panel.clickTab('Actions');

@@ -178,6 +178,273 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 	holmesMu.Unlock()
 }
 
+func TestDismissMonitorIssue_Success(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	app := &App{ctx: context.Background()}
+
+	issueID := "Pod-default-test-pod-CrashLoopBackOff"
+	err := app.DismissMonitorIssue(issueID)
+	if err != nil {
+		t.Fatalf("DismissMonitorIssue failed: %v", err)
+	}
+
+	loaded, err := loadPersistedIssues()
+	if err != nil {
+		t.Fatalf("loadPersistedIssues failed: %v", err)
+	}
+	if !loaded[issueID].Dismissed {
+		t.Fatalf("expected issue to be dismissed")
+	}
+	if loaded[issueID].DismissedAt.IsZero() {
+		t.Fatalf("expected DismissedAt to be set")
+	}
+}
+
+func TestDismissMonitorIssue_EmptyID(t *testing.T) {
+	app := &App{ctx: context.Background()}
+
+	err := app.DismissMonitorIssue("")
+	if err == nil {
+		t.Fatalf("expected error for empty issueID")
+	}
+}
+
+func TestGetDismissedIssues_ReturnsDismissed(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	persisted := map[string]PersistedIssue{
+		"issue-1": {
+			IssueID:     "issue-1",
+			Dismissed:   true,
+			DismissedAt: time.Now().Add(-time.Hour),
+		},
+		"issue-2": {
+			IssueID:     "issue-2",
+			Dismissed:   true,
+			DismissedAt: time.Now().Add(-2 * time.Hour),
+		},
+		"issue-3": {
+			IssueID:   "issue-3",
+			Dismissed: false,
+		},
+	}
+	if err := savePersistedIssues(persisted); err != nil {
+		t.Fatalf("savePersistedIssues failed: %v", err)
+	}
+
+	app := &App{ctx: context.Background()}
+	issues, err := app.GetDismissedIssues()
+	if err != nil {
+		t.Fatalf("GetDismissedIssues failed: %v", err)
+	}
+
+	if len(issues) != 2 {
+		t.Fatalf("expected 2 dismissed issues, got %d", len(issues))
+	}
+	// Should be sorted by dismissedAt descending
+	if issues[0].IssueID != "issue-1" {
+		t.Errorf("expected issue-1 first (most recent), got %s", issues[0].IssueID)
+	}
+}
+
+func TestGetDismissedIssues_FiltersExpired(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	persisted := map[string]PersistedIssue{
+		"recent": {
+			IssueID:     "recent",
+			Dismissed:   true,
+			DismissedAt: time.Now().Add(-time.Hour),
+		},
+		"expired": {
+			IssueID:     "expired",
+			Dismissed:   true,
+			DismissedAt: time.Now().Add(-dismissedIssueTTL - time.Hour),
+		},
+	}
+	if err := savePersistedIssues(persisted); err != nil {
+		t.Fatalf("savePersistedIssues failed: %v", err)
+	}
+
+	app := &App{ctx: context.Background()}
+	issues, err := app.GetDismissedIssues()
+	if err != nil {
+		t.Fatalf("GetDismissedIssues failed: %v", err)
+	}
+
+	if len(issues) != 1 {
+		t.Fatalf("expected 1 dismissed issue (expired filtered), got %d", len(issues))
+	}
+	if issues[0].IssueID != "recent" {
+		t.Errorf("expected recent issue, got %s", issues[0].IssueID)
+	}
+}
+
+func TestSaveMonitorIssueAnalysis_Success(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	app := &App{ctx: context.Background()}
+
+	issueID := "Pod-default-test-pod-CrashLoopBackOff"
+	resp := &holmesgpt.HolmesResponse{Response: "Test analysis response"}
+	err := app.SaveMonitorIssueAnalysis(issueID, resp)
+	if err != nil {
+		t.Fatalf("SaveMonitorIssueAnalysis failed: %v", err)
+	}
+
+	loaded, err := loadPersistedIssues()
+	if err != nil {
+		t.Fatalf("loadPersistedIssues failed: %v", err)
+	}
+	if loaded[issueID].HolmesAnalysis != "Test analysis response" {
+		t.Errorf("expected analysis to be saved, got %s", loaded[issueID].HolmesAnalysis)
+	}
+	if loaded[issueID].HolmesAnalyzedAt.IsZero() {
+		t.Errorf("expected HolmesAnalyzedAt to be set")
+	}
+}
+
+func TestSaveMonitorIssueAnalysis_InvalidInput(t *testing.T) {
+	app := &App{ctx: context.Background()}
+
+	err := app.SaveMonitorIssueAnalysis("", nil)
+	if err == nil {
+		t.Fatalf("expected error for invalid input")
+	}
+
+	err = app.SaveMonitorIssueAnalysis("issue-id", nil)
+	if err == nil {
+		t.Fatalf("expected error for nil response")
+	}
+}
+
+func TestMergePersistedIntoIssue(t *testing.T) {
+	issue := MonitorIssue{
+		Resource:  "Pod",
+		Namespace: "default",
+		Name:      "test-pod",
+		Reason:    "CrashLoopBackOff",
+	}
+	now := time.Now()
+	persisted := PersistedIssue{
+		IssueID:          "test-id",
+		Dismissed:        true,
+		DismissedAt:      now.Add(-time.Hour),
+		HolmesAnalysis:   "Analysis text",
+		HolmesAnalyzedAt: now.Add(-30 * time.Minute),
+	}
+
+	merged := mergePersistedIntoIssue(issue, persisted)
+
+	if !merged.Dismissed {
+		t.Errorf("expected Dismissed to be true")
+	}
+	if merged.DismissedAt != persisted.DismissedAt {
+		t.Errorf("expected DismissedAt to match")
+	}
+	if merged.HolmesAnalysis != "Analysis text" {
+		t.Errorf("expected HolmesAnalysis to be set")
+	}
+	if !merged.HolmesAnalyzed {
+		t.Errorf("expected HolmesAnalyzed to be true")
+	}
+}
+
+func TestGenerateIssueID_WithContainerName(t *testing.T) {
+	issue := MonitorIssue{
+		Resource:      "Pod",
+		Namespace:     "default",
+		Name:          "my-pod",
+		Reason:        "CrashLoopBackOff",
+		ContainerName: "main",
+	}
+	id := generateIssueID(issue)
+	expected := "Pod-default-my-pod-main-CrashLoopBackOff"
+	if id != expected {
+		t.Errorf("expected %s, got %s", expected, id)
+	}
+}
+
+func TestGenerateIssueID_WithoutContainerName(t *testing.T) {
+	issue := MonitorIssue{
+		Resource:  "Pod",
+		Namespace: "default",
+		Name:      "my-pod",
+		Reason:    "PodFailed",
+	}
+	id := generateIssueID(issue)
+	expected := "Pod-default-my-pod-PodFailed"
+	if id != expected {
+		t.Errorf("expected %s, got %s", expected, id)
+	}
+}
+
+func TestLoadPersistedIssues_EmptyFile(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	// Create empty file
+	if err := os.WriteFile(path, []byte(""), 0644); err != nil {
+		t.Fatalf("failed to create empty file: %v", err)
+	}
+
+	issues, err := loadPersistedIssues()
+	if err != nil {
+		t.Fatalf("loadPersistedIssues failed: %v", err)
+	}
+	if issues == nil {
+		t.Fatalf("expected non-nil map")
+	}
+	if len(issues) != 0 {
+		t.Errorf("expected empty map, got %d items", len(issues))
+	}
+}
+
+func TestLoadPersistedIssues_NonExistent(t *testing.T) {
+	tmpDir := t.TempDir()
+	path := filepath.Join(tmpDir, "nonexistent", "monitor_issues.json")
+	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
+		t.Fatalf("failed to set env: %v", err)
+	}
+	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
+
+	issues, err := loadPersistedIssues()
+	if err != nil {
+		t.Fatalf("loadPersistedIssues failed: %v", err)
+	}
+	if issues == nil {
+		t.Fatalf("expected non-nil map")
+	}
+	if len(issues) != 0 {
+		t.Errorf("expected empty map, got %d items", len(issues))
+	}
+}
+
 func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {

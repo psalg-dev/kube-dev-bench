@@ -87,6 +87,7 @@ test.describe('Docker Swarm Configs', () => {
 
       const panelRoot = page.locator('.bottom-panel').filter({ hasText: cfgName }).first();
       await expect(panelRoot).toBeVisible({ timeout: 30_000 });
+      await panelRoot.getByRole('button', { name: 'Summary', exact: true }).click();
 
       // Used By should list our service.
       await expect(panelRoot.getByText('Used By', { exact: true })).toBeVisible();
@@ -107,21 +108,35 @@ test.describe('Docker Swarm Configs', () => {
       await expect(table.getByText(cloneName).first()).toBeVisible({ timeout: 60_000 });
 
       // Edit config: creates timestamp-suffixed new config, migrates service, deletes old.
-      await panelRoot.getByRole('button', { name: 'Edit', exact: true }).click();
+      const openEditModal = async () => {
+        const editBtn = panelRoot.getByRole('button', { name: 'Edit', exact: true });
+        if (!(await editBtn.isVisible().catch(() => false))) {
+          const actionsBtn = row.getByRole('button', { name: 'Row actions' }).first();
+          if (await actionsBtn.isVisible().catch(() => false)) {
+            await actionsBtn.click({ timeout: 5_000 });
+            await page.getByText('Details').first().click();
+          }
+        }
+        await panelRoot.getByRole('button', { name: 'Summary', exact: true }).click();
+        await editBtn.click();
+        const modal = page.locator('[data-testid="swarm-config-edit-modal"]').first();
+        await expect(modal).toBeVisible({ timeout: 30_000 });
+        return modal;
+      };
 
-      const modal = page.locator('text=Edit Swarm config:').first();
-      await expect(modal).toBeVisible({ timeout: 30_000 });
+      const modal = await openEditModal();
 
       const editor = page.locator('.cm-content').first();
       await expect(editor).toBeVisible({ timeout: 30_000 });
-
-      const mod = os.platform() === 'darwin' ? 'Meta' : 'Control';
-      await editor.click();
-      await page.keyboard.press(`${mod}+A`);
-      await page.keyboard.type(updated);
+      await page.locator('[data-testid="swarm-config-edit-textarea"]').fill(updated);
 
       // Save button text is in modal.
-      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      const saveBtn = page.locator('#swarm-config-edit-save-btn');
+      if (!(await saveBtn.isVisible().catch(() => false))) {
+        await openEditModal();
+      }
+      await expect(page.locator('#swarm-config-edit-save-btn')).toBeEnabled({ timeout: 10_000 });
+      await page.locator('#swarm-config-edit-save-btn').click({ timeout: 10_000 });
       await notifications.expectSuccessContains(/Config updated/i);
 
       // New config should appear with _timestamp suffix.

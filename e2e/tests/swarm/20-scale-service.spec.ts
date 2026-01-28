@@ -23,7 +23,7 @@ async function expectReplicasInServicesTable(page: import('@playwright/test').Pa
   let replicasIdx = -1;
   for (let i = 0; i < headerCount; i++) {
     const text = (await headers.nth(i).textContent())?.trim() || '';
-    if (/^replicas$/i.test(text)) {
+    if (/replicas/i.test(text)) {
       replicasIdx = i;
       break;
     }

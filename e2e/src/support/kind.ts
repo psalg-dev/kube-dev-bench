@@ -20,7 +20,7 @@ export async function ensureKindCluster(clusterName: string): Promise<KindInfo> 
   for (let attempt = 1; attempt <= 2; attempt++) {
     console.log(`[e2e][kind] ${new Date().toISOString()} ensureKindCluster name=${clusterName} attempt=${attempt}`);
     // Check cluster exists
-    const list = await exec('kind', ['get', 'clusters'], { timeoutMs: 60_000 });
+    const list = await exec('kind', ['get', 'clusters'], { timeoutMs: 120_000 });
     if (list.code !== 0) {
       throw new Error(`kind get clusters failed: ${list.stderr || list.stdout}`);
     }
@@ -42,7 +42,7 @@ export async function ensureKindCluster(clusterName: string): Promise<KindInfo> 
       console.log(`[e2e][kind] ${new Date().toISOString()} reusing existing cluster '${clusterName}'`);
     }
 
-    const kc = await exec('kind', ['get', 'kubeconfig', '--name', clusterName], { timeoutMs: 60_000 });
+    const kc = await exec('kind', ['get', 'kubeconfig', '--name', clusterName], { timeoutMs: 120_000 });
     if (kc.code === 0) {
       const kubeconfigYaml = kc.stdout;
       // Convention: kind names the context like "kind-<clusterName>"
@@ -90,9 +90,23 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
   const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
   if (get.code === 0) return;
-  const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
-  if (create.code !== 0) {
-    throw new Error(`Failed creating namespace ${namespace}: ${create.stderr || create.stdout}`);
+
+  const isTransientConnectError = (output: string) =>
+    /unable to connect to the server/i.test(output) ||
+    /connectex/i.test(output) ||
+    /only one usage of each socket address/i.test(output);
+
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
+    if (create.code === 0) return;
+
+    const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
+    if (attempt < 3 && isTransientConnectError(message)) {
+      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      continue;
+    }
+
+    throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
   }
 }
 

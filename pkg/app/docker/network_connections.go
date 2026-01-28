@@ -23,6 +23,13 @@ func GetSwarmNetworkServices(ctx context.Context, cli *client.Client, networkID 
 }
 
 func getSwarmNetworkServices(ctx context.Context, cli swarmNetworkConnectionsClient, networkID string) ([]SwarmServiceRef, error) {
+	networkName := networkID
+	if netInfo, err := cli.NetworkInspect(ctx, networkID, types.NetworkInspectOptions{}); err == nil {
+		if netInfo.Name != "" {
+			networkName = netInfo.Name
+		}
+	}
+
 	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
@@ -32,7 +39,7 @@ func getSwarmNetworkServices(ctx context.Context, cli swarmNetworkConnectionsCli
 	for _, svc := range services {
 		attached := false
 		for _, n := range svc.Spec.TaskTemplate.Networks {
-			if n.Target == networkID {
+			if n.Target == networkID || n.Target == networkName {
 				attached = true
 				break
 			}

@@ -1,4 +1,3 @@
-import React from 'react';
 import './StatusBadge.css';
 
 /**
@@ -15,6 +14,7 @@ const STATUS_COLORS = {
   complete: '#3fb950',
   succeeded: '#3fb950',
   bound: '#3fb950',
+  deployed: '#3fb950',
 
   // Warning states
   pending: '#d29922',
@@ -25,6 +25,9 @@ const STATUS_COLORS = {
   initializing: '#d29922',
   terminating: '#d29922',
   suspended: '#d29922',
+  pause: '#d29922',
+  paused: '#d29922',
+  uninstalling: '#d29922',
 
   // Error states
   failed: '#f85149',
@@ -34,11 +37,18 @@ const STATUS_COLORS = {
   errpullimage: '#f85149',
   rejected: '#f85149',
   lost: '#f85149',
+  inactive: '#f85149',
+  deleted: '#f85149',
+  down: '#f85149',
+  notready: '#f85149',
+  drain: '#f85149',
+  stopped: '#f85149',
 
   // Neutral/Unknown states
   unknown: '#8b949e',
   released: '#8b949e',
   terminated: '#8b949e',
+  superseded: '#8b949e',
 };
 
 /**
@@ -50,6 +60,17 @@ function getStatusColor(status) {
   if (!status) return STATUS_COLORS.unknown;
   const normalized = status.toLowerCase().replace(/[\s-_]/g, '');
   return STATUS_COLORS[normalized] || STATUS_COLORS.unknown;
+}
+
+function hexToRgba(hex, alpha) {
+  if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return `rgba(110,118,129,${alpha})`;
+  const normalized = hex.replace('#', '').trim();
+  if (normalized.length !== 6) return `rgba(110,118,129,${alpha})`;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if ([r, g, b].some((c) => Number.isNaN(c))) return `rgba(110,118,129,${alpha})`;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 /**
@@ -68,19 +89,28 @@ export function StatusBadge({
   className = '',
 }) {
   const color = getStatusColor(status);
+  const bgColor = hexToRgba(color, 0.16);
+  const borderColor = hexToRgba(color, 0.4);
   const displayStatus = status || 'Unknown';
 
   const sizeClass = size !== 'medium' ? `status-badge-${size}` : '';
 
   return (
-    <span className={`status-badge ${sizeClass} ${className}`}>
+    <span
+      className={`status-badge status-badge-component ${sizeClass} ${className}`}
+      style={{
+        color,
+        background: bgColor,
+        border: `1px solid ${borderColor}`,
+      }}
+    >
       {showDot && (
         <span
           className="status-dot"
           style={{ backgroundColor: color }}
         />
       )}
-      <span className="status-text">{displayStatus}</span>
+      <span className={`status-text ${className}`} style={{ color }}>{displayStatus}</span>
     </span>
   );
 }

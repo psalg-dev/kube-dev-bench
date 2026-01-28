@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import EmptyTabContent from '../../../components/EmptyTabContent';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import { navigateToResource } from '../../../utils/resourceNavigation';
 
 export default function ConfigMapConsumersTab({ namespace, configMapName }) {
   const [items, setItems] = useState([]);
@@ -25,6 +28,14 @@ export default function ConfigMapConsumersTab({ namespace, configMapName }) {
     return () => { cancelled = true; };
   }, [namespace, configMapName]);
 
+  const handleRowClick = (consumer) => {
+    const kind = consumer.kind ?? consumer.Kind;
+    const name = consumer.name ?? consumer.Name;
+    if (kind && name) {
+      navigateToResource({ resource: kind, name, namespace });
+    }
+  };
+
   if (loading) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
   }
@@ -34,25 +45,52 @@ export default function ConfigMapConsumersTab({ namespace, configMapName }) {
   }
 
   if (!items || items.length === 0) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No consumers found.</div>;
+    const emptyMsg = getEmptyTabMessage('consumers');
+    return (
+      <EmptyTabContent
+        icon={emptyMsg.icon}
+        title={emptyMsg.title}
+        description={emptyMsg.description}
+        tip={emptyMsg.tip}
+      />
+    );
   }
 
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <style>{`
+        .consumers-table tbody tr {
+          cursor: pointer;
+          transition: background-color 0.15s ease;
+        }
+        .consumers-table tbody tr:hover td {
+          background-color: var(--gh-hover-bg, rgba(177, 186, 196, 0.12));
+        }
+        .consumers-table .resource-link {
+          color: var(--gh-link, #58a6ff);
+        }
+        .consumers-table tbody tr:hover .resource-link {
+          text-decoration: underline;
+        }
+      `}</style>
+      <table className="panel-table consumers-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Kind</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Reference</th>
+          <tr>
+            <th>Kind</th>
+            <th>Name</th>
+            <th>Reference</th>
           </tr>
         </thead>
         <tbody>
           {items.map((c, idx) => (
-            <tr key={`${c.kind || c.Kind}-${c.name || c.Name}-${idx}`} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{c.kind ?? c.Kind}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{c.name ?? c.Name}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
+            <tr
+              key={`${c.kind || c.Kind}-${c.name || c.Name}-${idx}`}
+              onClick={() => handleRowClick(c)}
+              title={`Open ${c.kind ?? c.Kind}: ${c.name ?? c.Name}`}
+            >
+              <td>{c.kind ?? c.Kind}</td>
+              <td className="resource-link">{c.name ?? c.Name}</td>
+              <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{c.refType ?? c.RefType ?? '-'}</td>
             </tr>
           ))}
         </tbody>

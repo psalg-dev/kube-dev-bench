@@ -40,7 +40,7 @@ const columns = [
 const bottomTabs = [
   { key: 'summary', label: 'Summary' },
   { key: 'files', label: 'Files' },
-  { key: 'inspect', label: 'Inspect' },
+  { key: 'inspect', label: 'JSON' },
 ];
 
 function VolumeSummaryPanel({ row, onRefresh }) {

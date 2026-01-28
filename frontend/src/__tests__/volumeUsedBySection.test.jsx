@@ -54,7 +54,8 @@ describe('VolumeUsedBySection', () => {
 
     render(<VolumeUsedBySection volumeName="myvol" />);
 
-    expect(await screen.findByText('No services reference this volume.')).toBeTruthy();
+    expect(await screen.findByText('Not in use')).toBeTruthy();
+    expect(screen.getByText('No services currently reference this volume.')).toBeTruthy();
   });
 
   it('renders error state when api fails', async () => {

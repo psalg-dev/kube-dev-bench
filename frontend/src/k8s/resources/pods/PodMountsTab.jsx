@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 
 export default function PodMountsTab({ podName }) {
   const [data, setData] = useState(null);
@@ -148,7 +148,7 @@ export default function PodMountsTab({ podName }) {
             <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 600 }}>Volumes</div>
             <div style={{ padding: 12, overflow: 'auto' }}>
               {Array.isArray(data?.volumes) && data.volumes.length > 0 ? (
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <thead>
                     <tr>
                       <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #353a42' }}>Name</th>
@@ -179,7 +179,7 @@ export default function PodMountsTab({ podName }) {
                       const isSecret = isSecretVolume(v);
                       const expanded = expandedRows.has(key);
                       return (
-                        <React.Fragment key={key}>
+                        <Fragment key={key}>
                           <tr>
                             <td style={{ padding: '6px 8px', borderBottom: '1px solid #353a42', textAlign: 'left' }}>
                               <span>{key}</span>
@@ -217,7 +217,7 @@ export default function PodMountsTab({ podName }) {
                                               </div>
                                               <div style={{ padding: 8 }}>
                                                 {entry.data && Object.keys(entry.data).length > 0 ? (
-                                                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                  <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                                                     <thead>
                                                       <tr>
                                                         <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #353a42', width: 220 }}>Key</th>
@@ -256,7 +256,7 @@ export default function PodMountsTab({ podName }) {
                               </td>
                             </tr>
                           )}
-                        </React.Fragment>
+                        </Fragment>
                       );
                     })}
                   </tbody>
@@ -285,7 +285,7 @@ export default function PodMountsTab({ podName }) {
                         </div>
                         <div style={{ padding: 10 }}>
                           {mounts.length > 0 ? (
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                               <thead>
                                 <tr>
                                   <th style={{ textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #353a42' }}>Volume</th>

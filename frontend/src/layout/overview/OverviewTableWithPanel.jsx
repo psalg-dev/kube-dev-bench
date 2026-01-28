@@ -1,14 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
 import { showNotification } from '../../notification.js';
+import { fetchTabCounts } from '../../api/tabCounts';
+import StatusBadge from '../../components/StatusBadge.jsx';
+import { getColumnKey, pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
+
+const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
 
 /**
  * Reusable overview table with bottom panel.
  * @param {Object[]} columns - Array of { key, label } for table columns.
  * @param {Object[]} data - Array of row objects.
- * @param {Object[]} tabs - Array of { key, label } for panel tabs.
+ * @param {Object[]} tabs - Array of { key, label, countKey?, countable? } for panel tabs.
  * @param {function(row, tab, panelApi): React.ReactNode} renderPanelContent - Function to render panel content for a row and tab.
  * @param {function(row): React.ReactNode} panelHeader - Optional function to render panel header.
  * @param {string} title - Table title.
@@ -24,8 +29,10 @@ import { showNotification } from '../../notification.js';
  * @param {function(row, api): Array<{label:string,onClick?:function,disabled?:boolean,danger?:boolean,icon?:React.ReactNode}>} [getRowActions]
  *   Optional per-row extra actions for the row context menu (beyond the default Details).
  *   The api includes: { openDetails(tabKey?:string), setActiveTab(tabKey:string) }.
+ * @param {function(row): (Promise<Object>|Object)} [tabCountsFetcher] - Optional async function to fetch tab counts for a row.
+ * @param {boolean} [enableTabCounts=true] - Whether to fetch and display tab counts.
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId, headerActions, getRowActions }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId, headerActions, getRowActions, tabCountsFetcher, enableTabCounts = true }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
@@ -36,6 +43,22 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   const [showCreate, setShowCreate] = useState(false);
   // Row actions menu
   const [openMenuKey, setOpenMenuKey] = useState(null);
+  // Tab counts state
+  const [tabCounts, setTabCounts] = useState({});
+  const [tabCountsLoading, setTabCountsLoading] = useState(false);
+
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+
+  useEffect(() => {
+    if (!defaultSortKey) return;
+    setSortState((cur) => {
+      const curKey = cur?.key;
+      const hasKey = columns.some((col) => getColumnKey(col) === curKey);
+      if (curKey && hasKey) return cur;
+      return { key: defaultSortKey, direction: 'asc' };
+    });
+  }, [columns, defaultSortKey]);
 
   const openBottomPanel = (row) => {
     setSelectedRow(row);
@@ -54,6 +77,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     setBottomOpen(false);
     setSelectedRow(null);
     setActiveTab(safeTabs[0]?.key || 'summary'); // Reset to default tab
+    setTabCounts({}); // Clear tab counts when closing
   };
 
   const closeRowMenu = () => {
@@ -123,6 +147,72 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     };
   }, [openMenuKey]);
 
+  // Fetch tab counts when a row is selected
+  useEffect(() => {
+    if (!selectedRow || !enableTabCounts) {
+      setTabCounts({});
+      return;
+    }
+
+    // Check if any tabs are countable
+    const hasCountableTabs = safeTabs.some(t => t.countable !== false && t.countKey);
+    if (!hasCountableTabs) {
+      return;
+    }
+
+    if (!tabCountsFetcher && !resourceKind) {
+      return;
+    }
+
+    const kind = resourceKind || 'Unknown';
+    const name = selectedRow?.name || selectedRow?.Name;
+    const ns = selectedRow?.namespace || selectedRow?.Namespace;
+
+    let cancelled = false;
+    // Only show loading indicator on initial load (when no counts exist)
+    // This prevents badge flickering when counts are being refreshed
+    const isInitialLoad = Object.keys(tabCounts).length === 0;
+    if (isInitialLoad) {
+      setTabCountsLoading(true);
+    }
+
+    const fetchCounts = async () => {
+      if (typeof tabCountsFetcher === 'function') {
+        return await tabCountsFetcher(selectedRow);
+      }
+      if (!name) {
+        return {};
+      }
+      return fetchTabCounts(kind, ns, name);
+    };
+
+    Promise.resolve()
+      .then(fetchCounts)
+      .then(counts => {
+        if (!cancelled) {
+          setTabCounts(counts || {});
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          // Keep existing counts on error to prevent flicker
+          // Only clear if this was the initial load
+          if (isInitialLoad) {
+            setTabCounts({});
+          }
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setTabCountsLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRow, enableTabCounts, resourceKind, safeTabs, tabCountsFetcher]);
+
   // Memoized filter to avoid flicker and unnecessary recomputation
   const normalizedFilter = filterText.trim().toLowerCase();
   const filteredData = useMemo(() => {
@@ -139,6 +229,11 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       return data;
     }
   }, [data, columns, normalizedFilter]);
+
+  const sortedData = useMemo(() => {
+    if (!sortState?.key) return filteredData;
+    return sortRows(filteredData, sortState.key, sortState.direction);
+  }, [filteredData, sortState]);
 
   const handleOpenCreate = () => {
     if (createNotice) {
@@ -202,23 +297,55 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </div>
       </div>
 
-      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%' }}>
+      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%', tableLayout: 'fixed' }}>
+        <colgroup>
+          {columns.map((col, idx) => (
+            <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
+          ))}
+          <col style={{ width: '100px' }} />
+        </colgroup>
         <thead>
           <tr>
-            {columns.map(col => <th key={col.accessorKey || col.key}>{col.header || col.label}</th>)}
+            {columns.map((col) => {
+              const key = col.accessorKey || col.key;
+              const isActive = key && sortState?.key === key;
+              const direction = isActive ? sortState?.direction : undefined;
+              return (
+                <th key={key || col.header || col.label} aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
+                  <button
+                    type="button"
+                    className="sortable-header"
+                    onClick={() => key && setSortState((cur) => toggleSortState(cur, key))}
+                  >
+                    <span>{col.header || col.label}</span>
+                    <span className="sortable-indicator" aria-hidden="true">
+                      {isActive ? (direction === 'asc' ? '▲' : '▼') : '↕'}
+                    </span>
+                  </button>
+                </th>
+              );
+            })}
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {filteredData.map((row, idx) => (
+          {sortedData.map((row, idx) => (
             !row ? null : (
               <tr key={getRowKey(row, idx)} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
                 {columns.map((col, colIdx) => (
                   <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
-                    {col.cell ? col.cell({ getValue: () => row[col.accessorKey || col.key] }) : row[col.accessorKey || col.key]}
+                    {(() => {
+                      const key = col.accessorKey || col.key;
+                      const rawValue = key ? row[key] : undefined;
+                      if (!col.cell && key && STATUS_BADGE_KEYS.has(String(key).toLowerCase())) {
+                        if (rawValue === null || rawValue === undefined || rawValue === '') return '-';
+                        return <StatusBadge status={String(rawValue)} size="small" />;
+                      }
+                      return col.cell ? col.cell({ getValue: () => row[key] }) : rawValue;
+                    })()}
                   </td>
                 ))}
-                <td style={{ position: 'relative', textAlign: 'right' }}>
+                <td style={{ position: 'relative', textAlign: 'right', overflow: 'visible' }}>
                   <button
                     type="button"
                     className="row-actions-button"
@@ -307,9 +434,11 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         activeTab={activeTab}
         onTabChange={setActiveTab}
         headerRight={selectedRow && panelHeader ? panelHeader(selectedRow) : null}
+        tabCounts={tabCounts}
+        tabCountsLoading={tabCountsLoading}
       >
         {selectedRow && typeof renderPanelContent === 'function'
-          ? renderPanelContent(selectedRow, activeTab, { activeTab, setActiveTab })
+          ? renderPanelContent(selectedRow, activeTab, { activeTab, setActiveTab, tabCounts })
           : null}
       </BottomPanel>
 

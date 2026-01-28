@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -24,13 +24,13 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'pods', label: 'Pods' },
-  { key: 'pvcs', label: 'PVCs' },
-  { key: 'logs', label: 'Logs' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'pods', label: 'Pods', countKey: 'pods' },
+  { key: 'pvcs', label: 'PVCs', countKey: 'pvcs' },
+  { key: 'logs', label: 'Logs', countable: false },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
@@ -186,8 +186,8 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 

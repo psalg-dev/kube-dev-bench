@@ -4,12 +4,14 @@ import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ReplicaSetOwnerTab from './ReplicaSetOwnerTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
+import { navigateToResource } from '../../../utils/resourceNavigation';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -21,51 +23,106 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'pods', label: 'Pods' },
-  { key: 'owner', label: 'Owner' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'pods', label: 'Pods', countKey: 'pods' },
+  { key: 'owner', label: 'Owner', countable: false },
+  { key: 'logs', label: 'Logs', countable: false },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
 ];
+
+function ReplicaSetSummaryTab({ row }) {
+  const [hasEvents, setHasEvents] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkEvents = async () => {
+      try {
+        const count = await AppAPI.GetResourceEventsCount(row.namespace, 'ReplicaSet', row.name);
+        if (cancelled) return;
+        setHasEvents((count || 0) > 0);
+      } catch (_err) {
+        if (!cancelled) setHasEvents(false);
+      }
+    };
+
+    checkEvents();
+    const interval = setInterval(checkEvents, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [row.namespace, row.name]);
+
+  const quickInfoFields = [
+    {
+      key: 'replicas',
+      label: 'Replicas',
+      layout: 'flex',
+      rightField: {
+        key: 'age',
+        label: 'Age',
+        type: 'age',
+        getValue: (data) => data.created || data.age
+      }
+    },
+    { key: 'namespace', label: 'Namespace' },
+    { key: 'ready', label: 'Ready' },
+    { key: 'image', label: 'Image', type: 'break-word' },
+    { key: 'name', label: 'ReplicaSet name', type: 'break-word' }
+  ];
+
+  const handlePodClick = (podName, podNamespace) => {
+    navigateToResource({
+      resource: 'Pod',
+      name: podName,
+      namespace: podNamespace || row.namespace,
+    });
+  };
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <SummaryTabHeader
+        name={row.name}
+        labels={row.labels || row.Labels || row.metadata?.labels}
+        actions={<ResourceActions resourceType="replicaset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('replicaset', ns, n);}} />}
+      />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+        <QuickInfoSection
+          resourceName={row.name}
+          data={row}
+          loading={false}
+          error={null}
+          fields={quickInfoFields}
+        />
+        <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+            <ResourcePodsTab
+              namespace={row.namespace}
+              resourceKind="ReplicaSet"
+              resourceName={row.name}
+              onPodClick={handlePodClick}
+            />
+          </div>
+          {hasEvents ? (
+            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative' }}>
+              <ResourceEventsTab
+                namespace={row.namespace}
+                kind="ReplicaSet"
+                name={row.name}
+                limit={20}
+              />
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function renderPanelContent(row, tab) {
   if (tab === 'summary') {
-    const quickInfoFields = [
-      {
-        key: 'replicas',
-        label: 'Replicas',
-        layout: 'flex',
-        rightField: {
-          key: 'age',
-          label: 'Age',
-          type: 'age',
-          getValue: (data) => data.created || data.age
-        }
-      },
-      { key: 'namespace', label: 'Namespace' },
-      { key: 'ready', label: 'Ready' },
-      { key: 'image', label: 'Image', type: 'break-word' },
-      { key: 'name', label: 'ReplicaSet name', type: 'break-word' }
-    ];
-
-    return (
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="replicaset" name={row.name} namespace={row.namespace} replicaCount={row.replicas} onDelete={async (n,ns)=>{await AppAPI.DeleteResource('replicaset', ns, n);}} />} />
-        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
-          <QuickInfoSection
-            resourceName={row.name}
-            data={row}
-            loading={false}
-            error={null}
-            fields={quickInfoFields}
-          />
-          {/* Event History at a glance */}
-          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
-            <ResourceEventsTab namespace={row.namespace} kind="ReplicaSet" name={row.name} limit={20} />
-          </div>
-        </div>
-      </div>
-    );
+    return <ReplicaSetSummaryTab row={row} />;
   }
   if (tab === 'pods') {
     return (
@@ -81,6 +138,15 @@ function renderPanelContent(row, tab) {
       <ReplicaSetOwnerTab
         namespace={row.namespace}
         replicaSetName={row.name}
+      />
+    );
+  }
+  if (tab === 'logs') {
+    return (
+      <AggregateLogsTab
+        title="ReplicaSet Logs"
+        reloadKey={`${row.namespace}/${row.name}`}
+        loadLogs={() => AppAPI.GetReplicaSetLogs(row.namespace, row.name)}
       />
     );
   }

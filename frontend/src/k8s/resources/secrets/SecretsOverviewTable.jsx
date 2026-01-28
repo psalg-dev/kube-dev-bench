@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import SecretYamlTab from './SecretYamlTab';
@@ -23,12 +23,12 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'data', label: 'Data' },
-  { key: 'consumers', label: 'Consumers' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'data', label: 'Data', countKey: 'data' },
+  { key: 'consumers', label: 'Consumers', countKey: 'consumers' },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
@@ -137,7 +137,7 @@ export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
     toolEvents: [],
   });
   const holmesStateRef = useRef(holmesState);
-  React.useEffect(() => {
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 

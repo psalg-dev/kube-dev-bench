@@ -108,6 +108,16 @@ jobs:
   e2e:
     runs-on: ubuntu-22.04
     needs: backend
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: 1
+            base_port: 34200
+          - shard: 2
+            base_port: 34300
+          - shard: 3
+            base_port: 34400
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -134,9 +144,11 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build frontend (for Wails assetdir)
-        working-directory: frontend
-        run: npm run build
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
 
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
@@ -163,22 +175,33 @@ jobs:
           fi
           docker info --format '{{.Swarm.LocalNodeState}}'
 
+      - name: Cache KinD node image
+        uses: actions/cache@v4
+        id: kind-image-cache
+        with:
+          path: /tmp/kind-node-image.tar
+          key: kind-v0.23.0-node-image
+
+      - name: Load cached KinD node image
+        if: steps.kind-image-cache.outputs.cache-hit == 'true'
+        run: docker load -i /tmp/kind-node-image.tar
+
       - name: Create KinD cluster
         run: |
           kind create cluster --name kdb-e2e --wait 120s
 
-      - name: Cache apt packages
-        uses: actions/cache@v4
-        id: apt-cache
-        with:
-          path: |
-            /var/cache/apt/archives
-          key: apt-${{ runner.os }}-wails-deps-v1
-
-      - name: Install Wails Linux dependencies
+      - name: Save KinD node image for cache
+        if: steps.kind-image-cache.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev xvfb
+          NODE_IMAGE=$(docker ps --filter "name=kdb-e2e-control-plane" --format "{{.Image}}")
+          echo "Saving KinD node image: $NODE_IMAGE"
+          docker save "$NODE_IMAGE" -o /tmp/kind-node-image.tar || true
+
+      - name: Install Wails Linux dependencies (cached)
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libgtk-3-dev libwebkit2gtk-4.0-dev xvfb
+          version: 1.0
 
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
@@ -187,23 +210,37 @@ jobs:
         working-directory: e2e
         run: npm ci
 
+      - name: Get Playwright version
+        id: playwright-version
+        working-directory: e2e
+        run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests
+      - name: Run e2e tests (shard ${{ matrix.shard }}/3)
         working-directory: e2e
-        run: xvfb-run -a npx playwright test
+        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
         env:
           CI: true
-          PW_WORKERS: '3'
+          PW_WORKERS: '2'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 
       - name: Upload e2e test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results
+          name: e2e-test-results-shard-${{ matrix.shard }}
           path: |
             e2e/test-results
             e2e/playwright-report
@@ -266,11 +303,12 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Wails Linux dependencies
+      - name: Install Wails Linux dependencies (cached)
         if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libgtk-3-dev libwebkit2gtk-4.0-dev
+          version: 1.0
 
       - name: Install cross-compilation dependencies (Linux ARM64)
         if: matrix.platform == 'linux' && matrix.arch == 'arm64'

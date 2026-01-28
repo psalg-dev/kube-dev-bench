@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 export default function DeploymentPodsTab({ namespace, deploymentName }) {
   const [detail, setDetail] = useState(null);
@@ -32,16 +33,6 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
   if (error) {
     return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
   }
-
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'running': return '#2ea44f';
-      case 'succeeded': return '#2ea44f';
-      case 'pending': return '#e6b800';
-      case 'failed': return '#f85149';
-      default: return '#8b949e';
-    }
-  };
 
   const formatDate = (dateStr) => {
     if (!dateStr || dateStr === '-') return '-';
@@ -85,34 +76,28 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
           {!detail?.pods || detail.pods.length === 0 ? (
             <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No pods found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="panel-table">
               <thead>
-                <tr style={{ borderBottom: '1px solid #30363d' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Name</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Ready</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Restarts</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Age</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Node</th>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Ready</th>
+                  <th>Restarts</th>
+                  <th>Age</th>
+                  <th>Node</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.pods.map((pod, idx) => (
-                  <tr key={pod.name || idx} style={{ borderBottom: '1px solid #21262d' }}>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.name}</td>
-                    <td style={{ padding: '8px 12px' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{
-                          width: 8, height: 8, borderRadius: '50%',
-                          backgroundColor: getStatusColor(pod.status)
-                        }} />
-                        <span style={{ color: 'var(--gh-text, #c9d1d9)' }}>{pod.status}</span>
-                      </span>
+                  <tr key={pod.name || idx}>
+                    <td>{pod.name}</td>
+                    <td>
+                      <StatusBadge status={pod.status || '-'} size="small" showDot={false} />
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.ready}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.restarts}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{pod.age}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{pod.node || '-'}</td>
+                    <td>{pod.ready}</td>
+                    <td>{pod.restarts}</td>
+                    <td>{pod.age}</td>
+                    <td className="text-muted">{pod.node || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -127,21 +112,21 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
           {!detail?.conditions || detail.conditions.length === 0 ? (
             <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No conditions.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="panel-table">
               <thead>
-                <tr style={{ borderBottom: '1px solid #30363d' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Type</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Status</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Last Transition</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Reason</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Message</th>
+                <tr>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Last Transition</th>
+                  <th>Reason</th>
+                  <th>Message</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.conditions.map((cond, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{cond.type}</td>
-                    <td style={{ padding: '8px 12px' }}>
+                  <tr key={idx}>
+                    <td>{cond.type}</td>
+                    <td>
                       <span style={{
                         color: cond.status === 'True' ? '#2ea44f' : '#f85149',
                         fontWeight: 500
@@ -149,9 +134,9 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
                         {cond.status}
                       </span>
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{formatDate(cond.lastTransition)}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{cond.reason || '-'}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{cond.message || '-'}</td>
+                    <td className="text-muted">{formatDate(cond.lastTransition)}</td>
+                    <td className="text-muted">{cond.reason || '-'}</td>
+                    <td className="text-muted" style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{cond.message || '-'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -166,28 +151,28 @@ export default function DeploymentPodsTab({ namespace, deploymentName }) {
           {!detail?.revisions || detail.revisions.length === 0 ? (
             <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No revisions found.</div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <table className="panel-table">
               <thead>
-                <tr style={{ borderBottom: '1px solid #30363d' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Revision</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>ReplicaSet</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Image</th>
-                  <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Created</th>
-                  <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Replicas</th>
-                  <th style={{ textAlign: 'center', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Current</th>
+                <tr>
+                  <th>Revision</th>
+                  <th>ReplicaSet</th>
+                  <th>Image</th>
+                  <th>Created</th>
+                  <th style={{ textAlign: 'center' }}>Replicas</th>
+                  <th style={{ textAlign: 'center' }}>Current</th>
                 </tr>
               </thead>
               <tbody>
                 {detail.revisions.map((rev, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #21262d', backgroundColor: rev.isCurrent ? '#23863610' : 'transparent' }}>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontWeight: rev.isCurrent ? 600 : 400 }}>
+                  <tr key={idx} style={{ backgroundColor: rev.isCurrent ? '#23863610' : 'transparent' }}>
+                    <td style={{ fontWeight: rev.isCurrent ? 600 : 400 }}>
                       #{rev.revision}
                     </td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', fontFamily: 'monospace', fontSize: 12 }}>{rev.replicaSet}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rev.image}</td>
-                    <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>{formatDate(rev.createdAt)}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'center', color: 'var(--gh-text, #c9d1d9)' }}>{rev.replicas}</td>
-                    <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                    <td className="text-muted" style={{ fontFamily: 'monospace', fontSize: 12 }}>{rev.replicaSet}</td>
+                    <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>{rev.image}</td>
+                    <td className="text-muted">{formatDate(rev.createdAt)}</td>
+                    <td style={{ textAlign: 'center' }}>{rev.replicas}</td>
+                    <td style={{ textAlign: 'center' }}>
                       {rev.isCurrent && (
                         <span style={{
                           padding: '2px 8px',

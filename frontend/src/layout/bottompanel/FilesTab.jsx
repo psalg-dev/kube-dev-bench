@@ -1,9 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import * as AppAPI from '../../../wailsjs/go/main/App';
 import { Compartment, EditorState } from '@codemirror/state';
 import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
 import { foldGutter, foldKeymap, defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { yaml as yamlLang } from '@codemirror/lang-yaml';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
 
 // Minimal file browser for PVCs (Enhanced)
 // Props: namespace, pvcName
@@ -17,6 +18,14 @@ export default function FilesTab({ namespace, pvcName }) {
   const [contentError, setContentError] = useState(null);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState(null);
+  const columns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'mode', label: 'Perms' },
+    { key: 'size', label: 'Size' },
+    { key: 'modified', label: 'Modified' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
 
   const editorParentRef = useRef(null);
   const cmViewRef = useRef(null);
@@ -108,6 +117,11 @@ export default function FilesTab({ namespace, pvcName }) {
 
   const breadcrumbs = path === '/' ? [''] : path.split('/').filter(Boolean);
 
+  useEffect(() => {
+    if (!defaultSortKey) return;
+    setSortState((cur) => (cur?.key ? cur : { key: defaultSortKey, direction: 'asc' }));
+  }, [defaultSortKey]);
+
   const handleCrumbClick = (idx) => {
     if (idx === -1) { loadDir('/'); return; }
     const newPath = '/' + breadcrumbs.slice(0, idx + 1).join('/');
@@ -167,6 +181,27 @@ export default function FilesTab({ namespace, pvcName }) {
   };
 
   const _currentEntry = (fileContent && entries.find(e => e.path === fileContent.path)) || null;
+  const sortedEntries = useMemo(() => {
+    return sortRows(entries, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'size') return row?.isDir ? null : row?.size;
+      return row?.[key];
+    });
+  }, [entries, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
 
   return (
     <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -176,10 +211,10 @@ export default function FilesTab({ namespace, pvcName }) {
         <div style={{ fontSize: 12, color: 'var(--gh-text-muted,#8b949e)', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(-1)}>root</span>
           {breadcrumbs.map((b, idx) => (
-            <React.Fragment key={idx}>
+            <Fragment key={idx}>
               <span style={{ margin: '0 4px' }}>/</span>
               <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(idx)}>{b}</span>
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -199,17 +234,37 @@ export default function FilesTab({ namespace, pvcName }) {
           {error && (<div style={{ padding: 12, fontSize: 13, color: '#f85149' }}>Error: {error}</div>)}
           {!loading && !error && entries.length === 0 && (<div style={{ padding: 12, fontSize: 13, color: 'var(--gh-text-muted,#8b949e)' }}>Empty directory or not accessible.</div>)}
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
               <thead style={{ position: 'sticky', top: 0 }}>
                 <tr style={{ background: '#161b22' }}>
-                  <th style={thStyle}>Name</th>
-                  <th style={thStyle}>Perms</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>Size</th>
-                  <th style={thStyle}>Modified</th>
+                  <th style={thStyle} aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                      <span>Name</span>
+                      <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th style={thStyle} aria-sort={sortState.key === 'mode' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'mode'))}>
+                      <span>Perms</span>
+                      <span aria-hidden="true">{sortState.key === 'mode' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th style={{ ...thStyle, textAlign: 'right' }} aria-sort={sortState.key === 'size' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={{ ...headerButtonStyle, justifyContent: 'flex-end' }} onClick={() => setSortState((cur) => toggleSortState(cur, 'size'))}>
+                      <span>Size</span>
+                      <span aria-hidden="true">{sortState.key === 'size' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th style={thStyle} aria-sort={sortState.key === 'modified' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'modified'))}>
+                      <span>Modified</span>
+                      <span aria-hidden="true">{sortState.key === 'modified' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map(e => (
+                {sortedEntries.map(e => (
                   <tr key={e.path} onClick={() => openEntry(e)} style={{ cursor: 'pointer' }} className={e.isDir ? 'dir-row' : 'file-row'}>
                     <td style={{ padding: '4px 8px', color: e.isDir ? '#58a6ff' : 'var(--gh-text,#c9d1d9)', display: 'flex', gap: 6, alignItems: 'center' }}>
                       <span>{iconFor(e)}</span>

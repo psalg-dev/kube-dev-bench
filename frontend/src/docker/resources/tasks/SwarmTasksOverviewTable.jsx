@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
 import ConsoleTab from '../../../layout/bottompanel/ConsoleTab.jsx';
+import EmptyTabContent from '../../../components/EmptyTabContent.jsx';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { AnalyzeSwarmTaskStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
@@ -15,6 +17,7 @@ import {
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import HealthStatusBadge from './HealthStatusBadge.jsx';
 import { showError } from '../../../notification.js';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 const columns = [
   { key: 'id', label: 'Task ID', cell: ({ getValue }) => {
@@ -26,25 +29,16 @@ const columns = [
   { key: 'slot', label: 'Slot' },
   { key: 'state', label: 'State', cell: ({ getValue }) => {
     const state = getValue();
-    const getColor = (s) => {
-      switch (s?.toLowerCase()) {
-        case 'running': return '#3fb950';
-        case 'pending':
-        case 'preparing':
-        case 'starting': return '#e6b800';
-        case 'complete': return '#8b949e';
-        case 'failed':
-        case 'rejected': return '#f85149';
-        default: return '#8b949e';
-      }
-    };
-    return <span style={{ color: getColor(state), fontWeight: 500 }}>{state}</span>;
+    return <StatusBadge status={state || '-'} size="small" />;
   }},
   { key: 'healthStatus', label: 'Health', cell: ({ row }) => {
     const data = row?.original;
     return <HealthStatusBadge status={data?.healthStatus} />;
   }},
-  { key: 'desiredState', label: 'Desired' },
+  { key: 'desiredState', label: 'Desired', cell: ({ getValue }) => {
+    const desired = getValue();
+    return <StatusBadge status={desired || '-'} size="small" />;
+  }},
   { key: 'containerId', label: 'Container', cell: ({ getValue }) => {
     const val = getValue();
     return val ? `${val.substring(0, 12)}...` : '-';
@@ -175,6 +169,193 @@ function HealthCheckSection({ row }) {
   );
 }
 
+function TaskInfoPanel({ row }) {
+  const [logs, setLogs] = useState(null);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const STATUS_LABELS = new Set(['Current State', 'Desired State', 'Health Status']);
+
+  useEffect(() => {
+    let active = true;
+
+    const load = async () => {
+      if (!row?.id) return;
+      setLoadingLogs(true);
+      try {
+        const data = await GetSwarmTaskHealthLogs(row.id);
+        if (!active) return;
+        setLogs(Array.isArray(data) ? data : []);
+      } catch (_e) {
+        if (!active) return;
+        setLogs([]);
+      } finally {
+        // eslint-disable-next-line no-unsafe-finally
+        if (!active) return;
+        setLoadingLogs(false);
+      }
+    };
+
+    // Only attempt to fetch when there is a container.
+    if (row?.containerId) {
+      load();
+    } else {
+      setLogs([]);
+    }
+
+    return () => {
+      active = false;
+    };
+  }, [row?.id, row?.containerId]);
+
+  const hc = row?.healthCheck;
+  const hasHc = !!hc && Array.isArray(hc.test) && hc.test.length > 0;
+  const hasTimeline = row?.createdAt || row?.updatedAt || row?.state || row?.desiredState;
+
+  // Hide panel if no data
+  if (!hasTimeline && !hasHc) {
+    return null;
+  }
+
+  const infoItems = [];
+
+  // Timeline info
+  if (row?.createdAt) {
+    infoItems.push({ label: 'Created', value: formatTimestampDMYHMS(row.createdAt) });
+  }
+  if (row?.updatedAt) {
+    infoItems.push({ label: 'Updated', value: formatTimestampDMYHMS(row.updatedAt) });
+  }
+  if (row?.state) {
+    infoItems.push({ label: 'Current State', value: row.state });
+  }
+  if (row?.desiredState) {
+    infoItems.push({ label: 'Desired State', value: row.desiredState });
+  }
+
+  // Health check config info
+  infoItems.push({ label: 'Health Status', value: row?.healthStatus || 'none' });
+  infoItems.push({ label: 'Health Config', value: hasHc ? 'Configured' : 'Not configured' });
+  if (hasHc) {
+    infoItems.push({ label: 'Health Test', value: hc.test.join(' '), breakWord: true });
+    if (hc.retries != null) {
+      infoItems.push({ label: 'Retries', value: String(hc.retries) });
+    }
+    if (hc.interval) {
+      infoItems.push({ label: 'Interval', value: hc.interval });
+    }
+    if (hc.timeout) {
+      infoItems.push({ label: 'Timeout', value: hc.timeout });
+    }
+    if (hc.startPeriod) {
+      infoItems.push({ label: 'Start Period', value: hc.startPeriod });
+    }
+  }
+
+  if (infoItems.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{
+      width: 320,
+      minWidth: 260,
+      borderLeft: '1px solid #30363d',
+      background: '#0d1117',
+      display: 'flex',
+      flexDirection: 'column',
+      flexShrink: 0,
+      textAlign: 'left',
+    }}>
+      <div style={{
+        height: 44,
+        padding: '0 12px',
+        borderBottom: '1px solid #30363d',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        fontWeight: 600,
+        textAlign: 'left',
+        background: '#161b22',
+        color: '#d4d4d4',
+      }}>
+        Details
+      </div>
+      <div style={{
+        padding: 12,
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gap: 10,
+        flex: 1,
+        overflow: 'auto',
+        textAlign: 'left',
+        color: '#d4d4d4',
+      }}>
+        {infoItems.map((item, idx) => {
+          const isStatus = STATUS_LABELS.has(item.label);
+          return (
+            <div key={idx} style={{ fontSize: 12, display: 'grid', gap: 4 }}>
+              <div style={{ color: '#858585' }}>{item.label}</div>
+              <div style={{
+                color: '#d4d4d4',
+                wordBreak: item.breakWord ? 'break-word' : 'normal',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                justifyContent: 'flex-start',
+                textAlign: 'left',
+              }}>
+                {isStatus ? (
+                  <StatusBadge status={item.value || '-'} size="small" showDot={false} />
+                ) : (
+                  item.value
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        <div style={{ marginTop: 6 }}>
+          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: '#d4d4d4' }}>
+            Health Check
+          </div>
+          <div style={{ fontSize: 12, color: '#858585', marginBottom: 10 }}>
+            {hasHc ? 'Configured' : 'Not configured'}
+          </div>
+          <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: '#d4d4d4' }}>
+            Recent Results
+          </div>
+          {loadingLogs ? (
+            <div style={{ fontSize: 12, color: '#858585' }}>Loading…</div>
+          ) : !logs || logs.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#858585' }}>No health check results.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {logs.slice(-4).map((l, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    border: '1px solid #30363d',
+                    padding: '6px 8px',
+                    fontSize: 11,
+                    color: '#858585',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                    <div>Exit {l.exitCode}</div>
+                    <div style={{ fontSize: 10 }}>{l.end ? formatTimestampDMYHMS(l.end) : '-'}</div>
+                  </div>
+                  {l.output ? (
+                    <div style={{ marginTop: 4, color: '#d4d4d4', whiteSpace: 'pre-wrap', fontSize: 10 }}>{l.output}</div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function TaskSummaryPanel({ row, onExec }) {
   const quickInfoFields = [
     { key: 'id', label: 'Task ID', type: 'break-word' },
@@ -186,10 +367,11 @@ function TaskSummaryPanel({ row, onExec }) {
     {
       key: 'state',
       label: 'State',
+      type: 'status',
       layout: 'flex',
-      rightField: { key: 'desiredState', label: 'Desired State' }
+      rightField: { key: 'desiredState', label: 'Desired State', type: 'status' }
     },
-    { key: 'healthStatus', label: 'Health', getValue: (d) => d.healthStatus || 'none' },
+    { key: 'healthStatus', label: 'Health', type: 'status', getValue: (d) => d.healthStatus || 'none' },
     { key: 'containerId', label: 'Container ID', type: 'break-word' },
     { key: 'image', label: 'Image', type: 'break-word' },
     {
@@ -255,33 +437,7 @@ function TaskSummaryPanel({ row, onExec }) {
           fields={quickInfoFields}
         />
         <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '12px 16px 0 16px' }}>
-            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 8, color: 'var(--gh-text, #c9d1d9)' }}>
-              Timeline (derived)
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
-              <div>
-                <div style={{ marginBottom: 2 }}>Created</div>
-                <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.createdAt ? formatTimestampDMYHMS(row.createdAt) : '-'}</div>
-              </div>
-              <div>
-                <div style={{ marginBottom: 2 }}>Updated</div>
-                <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.updatedAt ? formatTimestampDMYHMS(row.updatedAt) : '-'}</div>
-              </div>
-              <div>
-                <div style={{ marginBottom: 2 }}>Current State</div>
-                <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.state || '-'}</div>
-              </div>
-              <div>
-                <div style={{ marginBottom: 2 }}>Desired State</div>
-                <div style={{ color: 'var(--gh-text, #c9d1d9)' }}>{row.desiredState || '-'}</div>
-              </div>
-            </div>
-          </div>
-
-          <HealthCheckSection row={row} />
-
-          <div style={{ flex: 1, minHeight: 0, position: 'relative', marginTop: 12 }}>
+          <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
             {row.containerId ? (
               <AggregateLogsTab
                 title="Task Logs (preview)"
@@ -295,6 +451,7 @@ function TaskSummaryPanel({ row, onExec }) {
             )}
           </div>
         </div>
+        <TaskInfoPanel row={row} />
       </div>
     </div>
   );
@@ -316,10 +473,14 @@ function renderPanelContent(row, tab, panelApi, holmesState, onAnalyze, onCancel
 
   if (tab === 'logs') {
     if (!row.containerId) {
+      const emptyMsg = getEmptyTabMessage('swarm-task-logs');
       return (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
-          No container associated with this task yet.
-        </div>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       );
     }
     return (
@@ -333,10 +494,14 @@ function renderPanelContent(row, tab, panelApi, holmesState, onAnalyze, onCancel
 
   if (tab === 'exec') {
     if (!row?.containerId) {
+      const emptyMsg = getEmptyTabMessage('swarm-task-exec');
       return (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
-          No container associated with this task yet.
-        </div>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       );
     }
     if ((row?.state || '').toLowerCase() !== 'running') {
@@ -395,8 +560,8 @@ export default function SwarmTasksOverviewTable() {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
