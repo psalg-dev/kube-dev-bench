@@ -479,6 +479,9 @@ export default async function globalSetup(config: FullConfig) {
       return repoCopyRoot;
     };
 
+    // Prepare all instances first (clear ports, create directories, resolve repo roots)
+    const preparations: Array<{ index: number; port: number; homeDir: string; repoRoot: string }> = [];
+
     for (let i = 0; i < instanceCount; i++) {
       const port = basePort + i;
       if (isWin32) {
@@ -489,30 +492,40 @@ export default async function globalSetup(config: FullConfig) {
       await fs.mkdir(homeDir, { recursive: true });
 
       const repoRootResolved = await repoRootForWails(i);
-      const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
+      preparations.push({ index: i, port, homeDir, repoRoot: repoRootResolved });
+    }
+
+    // Start all wails dev instances in parallel
+    console.log(`[e2e][setup] ${isoNow()} starting ${instanceCount} wails dev instances in parallel...`);
+
+    const startPromises = preparations.map(async ({ index, port, homeDir, repoRoot: repoRootResolved }) => {
+      const instance = await timed(`start wails dev instance #${index} port=${port}`, async () =>
         startWailsDev({
           repoRoot: repoRootResolved,
           logRepoRoot: withinRepo(),
           port,
           homeDir,
           assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
-          // Sequential startup in global setup; allow more time here.
+          // Parallel startup; allow more time here.
           readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
         })
       );
 
       if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
 
-      console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
+      console.log(`[e2e][setup] ${isoNow()} wails #${index} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
-      wailsInstances.push({
+      return {
         baseURL: instance.baseURL,
         pid: instance.process.pid ?? undefined,
         port,
         homeDir,
         dialogDir: path.join(homeDir, 'tmp', 'kdb-e2e-dialogs'),
-      });
-    }
+      };
+    });
+
+    const results = await Promise.all(startPromises);
+    wailsInstances.push(...results);
 
     await writeRunState({
       runId,
