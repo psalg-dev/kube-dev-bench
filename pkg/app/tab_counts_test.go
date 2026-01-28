@@ -289,3 +289,260 @@ func TestGetAllTabCounts(t *testing.T) {
 		t.Errorf("expected Data count 1, got %d", counts.Data)
 	}
 }
+func TestGetStatefulSetPVCsCount_ByOwnerReference(t *testing.T) {
+	ctx := context.Background()
+	stsOwner := metav1.OwnerReference{
+		Kind: "StatefulSet",
+		Name: "my-sts",
+	}
+
+	clientset := fake.NewSimpleClientset(
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "data-my-sts-0",
+				Namespace:       "default",
+				OwnerReferences: []metav1.OwnerReference{stsOwner},
+			},
+		},
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "data-my-sts-1",
+				Namespace:       "default",
+				OwnerReferences: []metav1.OwnerReference{stsOwner},
+			},
+		},
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "other-pvc",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	count, err := app.GetStatefulSetPVCsCount("default", "my-sts")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected count 2, got %d", count)
+	}
+}
+
+func TestGetStatefulSetPVCsCount_ByNamePrefix(t *testing.T) {
+	ctx := context.Background()
+
+	clientset := fake.NewSimpleClientset(
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-sts-data-0",
+				Namespace: "default",
+			},
+		},
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-sts-data-1",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	count, err := app.GetStatefulSetPVCsCount("default", "my-sts")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 2 {
+		t.Errorf("expected count 2, got %d", count)
+	}
+}
+
+func TestGetAllTabCounts_Secret(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-secret",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"password": []byte("secret"),
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "Secret", "my-secret")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Data != 1 {
+		t.Errorf("expected Data count 1, got %d", counts.Data)
+	}
+}
+
+func TestGetAllTabCounts_Service(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-service",
+				Namespace: "default",
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{IP: "10.0.0.1"},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "Service", "my-service")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Endpoints != 1 {
+		t.Errorf("expected Endpoints count 1, got %d", counts.Endpoints)
+	}
+}
+
+func TestGetAllTabCounts_Ingress(t *testing.T) {
+	ctx := context.Background()
+	pathType := networkingv1.PathTypePrefix
+	clientset := fake.NewSimpleClientset(
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-ingress",
+				Namespace: "default",
+			},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						Host: "example.com",
+						IngressRuleValue: networkingv1.IngressRuleValue{
+							HTTP: &networkingv1.HTTPIngressRuleValue{
+								Paths: []networkingv1.HTTPIngressPath{
+									{
+										Path:     "/api",
+										PathType: &pathType,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "Ingress", "my-ingress")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Rules != 1 {
+		t.Errorf("expected Rules count 1, got %d", counts.Rules)
+	}
+}
+
+func TestGetAllTabCounts_CronJob(t *testing.T) {
+	ctx := context.Background()
+	cronJobOwner := metav1.OwnerReference{
+		Kind: "CronJob",
+		Name: "my-cronjob",
+	}
+
+	clientset := fake.NewSimpleClientset(
+		&batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "my-cronjob-12345",
+				Namespace:       "default",
+				OwnerReferences: []metav1.OwnerReference{cronJobOwner},
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "CronJob", "my-cronjob")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.History != 1 {
+		t.Errorf("expected History count 1, got %d", counts.History)
+	}
+}
+
+func TestGetIngressRulesCount_NoHTTP(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "tcp-ingress",
+				Namespace: "default",
+			},
+			Spec: networkingv1.IngressSpec{
+				Rules: []networkingv1.IngressRule{
+					{
+						Host: "tcp.example.com",
+						// No HTTP spec
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	count, err := app.GetIngressRulesCount("default", "tcp-ingress")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if count != 1 {
+		t.Errorf("expected count 1 (rule without HTTP), got %d", count)
+	}
+}
+
+func TestGetServiceEndpointsCount_NotFound(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	_, err := app.GetServiceEndpointsCount("default", "nonexistent")
+	if err == nil {
+		t.Error("expected error for nonexistent service")
+	}
+}
