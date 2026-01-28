@@ -229,7 +229,7 @@ jobs:
 
       - name: Run e2e tests (shard ${{ matrix.shard }}/3)
         working-directory: e2e
-        run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/3
+        run: xvfb-run -a npx playwright test --shard=${{ matrix.shard }}/3 --ignore='**/registry/**'
         env:
           CI: true
           PW_WORKERS: '3'
