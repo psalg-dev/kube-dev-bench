@@ -111,7 +111,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
+        include:
+          - shard: 1
+            base_port: 34200
+          - shard: 2
+            base_port: 34300
+          - shard: 3
+            base_port: 34400
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -222,6 +228,7 @@ jobs:
           CI: true
           PW_WORKERS: '3'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 
       - name: Upload e2e test results
         if: always()
