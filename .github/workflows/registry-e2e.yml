@@ -1,9 +1,9 @@
 name: Registry E2E
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 3 * * 1'
+  push:
+  pull_request:
+    branches: [ main ]
 
 jobs:
   e2e-registry:

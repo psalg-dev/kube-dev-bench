@@ -8,6 +8,25 @@ export default function ServiceEndpointsTab({ namespace, serviceName }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // All hooks must be called before any early returns (React rules of hooks)
+  const columns = useMemo(() => ([
+    { key: 'status', label: 'Status' },
+    { key: 'ip', label: 'IP' },
+    { key: 'port', label: 'Port' },
+    { key: 'protocol', label: 'Protocol' },
+    { key: 'podName', label: 'Pod' },
+    { key: 'nodeName', label: 'Node' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+
+  const sortedEndpoints = useMemo(() => {
+    return sortRows(endpoints, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'status') return row?.ready ? 'Ready' : 'Not Ready';
+      return row?.[key];
+    });
+  }, [endpoints, sortState]);
+
   useEffect(() => {
     if (!namespace || !serviceName) {
       setEndpoints([]);
@@ -75,22 +94,6 @@ export default function ServiceEndpointsTab({ namespace, serviceName }) {
 
   const readyEndpoints = endpoints.filter(ep => ep.ready);
   const notReadyEndpoints = endpoints.filter(ep => !ep.ready);
-  const columns = useMemo(() => ([
-    { key: 'status', label: 'Status' },
-    { key: 'ip', label: 'IP' },
-    { key: 'port', label: 'Port' },
-    { key: 'protocol', label: 'Protocol' },
-    { key: 'podName', label: 'Pod' },
-    { key: 'nodeName', label: 'Node' },
-  ]), []);
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
-  const sortedEndpoints = useMemo(() => {
-    return sortRows(endpoints, sortState.key, sortState.direction, (row, key) => {
-      if (key === 'status') return row?.ready ? 'Ready' : 'Not Ready';
-      return row?.[key];
-    });
-  }, [endpoints, sortState]);
 
   const headerButtonStyle = {
     width: '100%',

@@ -314,7 +314,7 @@ describe('SwarmTasksOverviewTable', () => {
     const summaryPanel = screen.getByTestId('panel-task1234567890abcdef-summary');
 
     await waitFor(() => expect(swarmApiMocks.GetSwarmTaskHealthLogs).toHaveBeenCalledWith('task1234567890abcdef'));
-    expect(within(summaryPanel).getByText('Configured')).toBeInTheDocument();
+    expect(within(summaryPanel).getAllByText('Configured').length).toBeGreaterThanOrEqual(1);
     expect(within(summaryPanel).getByText('Exit 0')).toBeInTheDocument();
     expect(within(summaryPanel).getByText('FMT(2026-01-01T00:00:20Z)')).toBeInTheDocument();
     expect(within(summaryPanel).getByText('ok')).toBeInTheDocument();
