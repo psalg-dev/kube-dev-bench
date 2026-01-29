@@ -72,90 +72,118 @@ func (a *App) refreshPodStatusOnly() {
 
 // refreshResourceCounts computes counts and emits an event if anything changed.
 func (a *App) refreshResourceCounts() {
-	if a.ctx == nil {
-		return
-	}
-	if a.currentKubeContext == "" {
+	if a.ctx == nil || a.currentKubeContext == "" {
 		return
 	}
 
 	// Snapshot namespaces (avoid holding lock during I/O)
-	nsList := append([]string(nil), a.preferredNamespaces...)
-	if len(nsList) == 0 && a.currentNamespace != "" { // legacy single-namespace path
-		nsList = []string{a.currentNamespace}
-	}
+	nsList := a.getNamespaceList()
 	if len(nsList) == 0 {
 		return
 	}
 
 	// Aggregate counts
+	agg := a.aggregateResourceCounts(nsList)
+
+	// Compare with last snapshot and update if changed
+	if a.shouldUpdateResourceCounts(agg) {
+		a.updateResourceCounts(agg)
+		emitEvent(a.ctx, "resourcecounts:update", agg)
+	}
+}
+
+// getNamespaceList returns the list of namespaces to query
+func (a *App) getNamespaceList() []string {
+	nsList := append([]string(nil), a.preferredNamespaces...)
+	if len(nsList) == 0 && a.currentNamespace != "" {
+		nsList = []string{a.currentNamespace}
+	}
+	return nsList
+}
+
+// aggregateResourceCounts aggregates resource counts across namespaces
+func (a *App) aggregateResourceCounts(nsList []string) ResourceCounts {
 	var agg ResourceCounts
-	// Pod status counts aggregated across namespaces
+
 	for _, ns := range nsList {
 		if ns == "" {
 			continue
 		}
-		if pcs, err := a.GetPodStatusCounts(ns); err == nil {
-			agg.PodStatus.Running += pcs.Running
-			agg.PodStatus.Pending += pcs.Pending
-			agg.PodStatus.Failed += pcs.Failed
-			agg.PodStatus.Succeeded += pcs.Succeeded
-			agg.PodStatus.Unknown += pcs.Unknown
-			agg.PodStatus.Total += pcs.Total
-		}
-		if deps, err := a.GetDeployments(ns); err == nil {
-			agg.Deployments += len(deps)
-		}
-		if svcs, err := a.GetServices(ns); err == nil {
-			agg.Services += len(svcs)
-		}
-		if jobs, err := a.GetJobs(ns); err == nil {
-			agg.Jobs += len(jobs)
-		}
-		if cjs, err := a.GetCronJobs(ns); err == nil {
-			agg.CronJobs += len(cjs)
-		}
-		if dss, err := a.GetDaemonSets(ns); err == nil {
-			agg.DaemonSets += len(dss)
-		}
-		if sss, err := a.GetStatefulSets(ns); err == nil {
-			agg.StatefulSets += len(sss)
-		}
-		if rss, err := a.GetReplicaSets(ns); err == nil {
-			agg.ReplicaSets += len(rss)
-		}
-		if cms, err := a.GetConfigMaps(ns); err == nil {
-			agg.ConfigMaps += len(cms)
-		}
-		if secs, err := a.GetSecrets(ns); err == nil {
-			agg.Secrets += len(secs)
-		}
-		if ings, err := a.GetIngresses(ns); err == nil {
-			agg.Ingresses += len(ings)
-		}
-		if pvcs, err := a.GetPersistentVolumeClaims(ns); err == nil {
-			agg.PersistentVolumeClaims += len(pvcs)
-		}
-		if helmReleases, err := a.GetHelmReleases(ns); err == nil {
-			agg.HelmReleases += len(helmReleases)
-		}
+		a.aggregateNamespaceResourceCounts(ns, &agg)
 	}
+
+	// Get cluster-wide resources
 	if pvs, err := a.GetPersistentVolumes(); err == nil {
 		agg.PersistentVolumes = len(pvs)
 	}
 
-	// Compare with last snapshot
+	return agg
+}
+
+// aggregateNamespaceResourceCounts aggregates resource counts for a single namespace
+func (a *App) aggregateNamespaceResourceCounts(ns string, agg *ResourceCounts) {
+	// Pod status counts
+	if pcs, err := a.GetPodStatusCounts(ns); err == nil {
+		agg.PodStatus.Running += pcs.Running
+		agg.PodStatus.Pending += pcs.Pending
+		agg.PodStatus.Failed += pcs.Failed
+		agg.PodStatus.Succeeded += pcs.Succeeded
+		agg.PodStatus.Unknown += pcs.Unknown
+		agg.PodStatus.Total += pcs.Total
+	}
+
+	// Count each resource type
+	if deps, err := a.GetDeployments(ns); err == nil {
+		agg.Deployments += len(deps)
+	}
+	if svcs, err := a.GetServices(ns); err == nil {
+		agg.Services += len(svcs)
+	}
+	if jobs, err := a.GetJobs(ns); err == nil {
+		agg.Jobs += len(jobs)
+	}
+	if cjs, err := a.GetCronJobs(ns); err == nil {
+		agg.CronJobs += len(cjs)
+	}
+	if dss, err := a.GetDaemonSets(ns); err == nil {
+		agg.DaemonSets += len(dss)
+	}
+	if sss, err := a.GetStatefulSets(ns); err == nil {
+		agg.StatefulSets += len(sss)
+	}
+	if rss, err := a.GetReplicaSets(ns); err == nil {
+		agg.ReplicaSets += len(rss)
+	}
+	if cms, err := a.GetConfigMaps(ns); err == nil {
+		agg.ConfigMaps += len(cms)
+	}
+	if secs, err := a.GetSecrets(ns); err == nil {
+		agg.Secrets += len(secs)
+	}
+	if ings, err := a.GetIngresses(ns); err == nil {
+		agg.Ingresses += len(ings)
+	}
+	if pvcs, err := a.GetPersistentVolumeClaims(ns); err == nil {
+		agg.PersistentVolumeClaims += len(pvcs)
+	}
+	if helmReleases, err := a.GetHelmReleases(ns); err == nil {
+		agg.HelmReleases += len(helmReleases)
+	}
+}
+
+// shouldUpdateResourceCounts checks if resource counts have changed
+func (a *App) shouldUpdateResourceCounts(newCounts ResourceCounts) bool {
 	a.resourceCountsMu.RLock()
 	last := a.lastResourceCounts
 	a.resourceCountsMu.RUnlock()
-	if resourceCountsEqual(last, agg) {
-		return // no change
-	}
-	a.resourceCountsMu.Lock()
-	a.lastResourceCounts = agg
-	a.resourceCountsMu.Unlock()
+	return !resourceCountsEqual(last, newCounts)
+}
 
-	emitEvent(a.ctx, "resourcecounts:update", agg)
+// updateResourceCounts updates the stored resource counts
+func (a *App) updateResourceCounts(newCounts ResourceCounts) {
+	a.resourceCountsMu.Lock()
+	a.lastResourceCounts = newCounts
+	a.resourceCountsMu.Unlock()
 }
 
 // resourceCountsEqual shallow comparison including embedded pod status counts.
