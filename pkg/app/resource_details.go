@@ -6,6 +6,8 @@ import (
 	"sort"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 )
@@ -559,114 +561,135 @@ func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*Stateful
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		now := time.Now()
-		for _, pod := range pods.Items {
-			// Verify ownership
-			isOwned := false
-			for _, ref := range pod.OwnerReferences {
-				if ref.Kind == "StatefulSet" && ref.Name == statefulSetName {
-					isOwned = true
-					break
-				}
-			}
-			if !isOwned {
-				continue
-			}
-
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
-		}
-
-		// Sort pods by name (to maintain statefulset ordering)
-		sort.Slice(detail.Pods, func(i, j int) bool {
-			return detail.Pods[i].Name < detail.Pods[j].Name
-		})
+		detail.Pods = a.extractStatefulSetPods(pods.Items, statefulSetName)
 	}
 
 	// Get PVCs owned by this statefulset's pods
 	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(a.ctx, metav1.ListOptions{})
 	if err == nil {
-		now := time.Now()
-		for _, pvc := range pvcs.Items {
-			// Check if PVC name matches statefulset naming pattern
-			// StatefulSet PVCs are named: {volumeClaimTemplateName}-{statefulSetName}-{ordinal}
-			for _, vct := range ss.Spec.VolumeClaimTemplates {
-				prefix := fmt.Sprintf("%s-%s-", vct.Name, statefulSetName)
-				if len(pvc.Name) > len(prefix) && pvc.Name[:len(prefix)] == prefix {
-					age := "-"
-					if pvc.CreationTimestamp.Time != (time.Time{}) {
-						age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
-					}
-
-					capacity := "-"
-					if pvc.Status.Capacity != nil {
-						if qty, ok := pvc.Status.Capacity["storage"]; ok {
-							capacity = qty.String()
-						}
-					}
-
-					accessModes := ""
-					for i, mode := range pvc.Spec.AccessModes {
-						if i > 0 {
-							accessModes += ", "
-						}
-						accessModes += string(mode)
-					}
-
-					storageClass := ""
-					if pvc.Spec.StorageClassName != nil {
-						storageClass = *pvc.Spec.StorageClassName
-					}
-
-					// Extract pod name from PVC name
-					podName := pvc.Name[len(vct.Name)+1:]
-
-					detail.PVCs = append(detail.PVCs, StatefulSetPVCInfo{
-						Name:         pvc.Name,
-						Namespace:    pvc.Namespace,
-						Status:       string(pvc.Status.Phase),
-						Capacity:     capacity,
-						AccessModes:  accessModes,
-						StorageClass: storageClass,
-						Age:          age,
-						PodName:      podName,
-					})
-				}
-			}
-		}
-
-		// Sort PVCs by name
-		sort.Slice(detail.PVCs, func(i, j int) bool {
-			return detail.PVCs[i].Name < detail.PVCs[j].Name
-		})
+		detail.PVCs = a.extractStatefulSetPVCs(pvcs.Items, ss, statefulSetName)
 	}
 
 	return detail, nil
+}
+
+// extractStatefulSetPods extracts pod information for a statefulset
+func (a *App) extractStatefulSetPods(pods []corev1.Pod, statefulSetName string) []ResourcePodInfo {
+	result := []ResourcePodInfo{}
+	now := time.Now()
+
+	for _, pod := range pods {
+		// Verify ownership
+		if !isOwnedByResource(pod.OwnerReferences, "StatefulSet", statefulSetName) {
+			continue
+		}
+
+		ready := "0/0"
+		total := len(pod.Spec.Containers)
+		readyCount := 0
+		var restarts int32
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.Ready {
+				readyCount++
+			}
+			restarts += cs.RestartCount
+		}
+		ready = fmt.Sprintf("%d/%d", readyCount, total)
+
+		age := "-"
+		if pod.CreationTimestamp.Time != (time.Time{}) {
+			age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
+		}
+
+		result = append(result, ResourcePodInfo{
+			Name:      pod.Name,
+			Namespace: pod.Namespace,
+			Status:    string(pod.Status.Phase),
+			Ready:     ready,
+			Restarts:  restarts,
+			Age:       age,
+			Node:      pod.Spec.NodeName,
+			IP:        pod.Status.PodIP,
+		})
+	}
+
+	// Sort pods by name (to maintain statefulset ordering)
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result
+}
+
+// extractStatefulSetPVCs extracts PVC information for a statefulset
+func (a *App) extractStatefulSetPVCs(pvcs []corev1.PersistentVolumeClaim, ss *appsv1.StatefulSet, statefulSetName string) []StatefulSetPVCInfo {
+	result := []StatefulSetPVCInfo{}
+	now := time.Now()
+
+	for _, pvc := range pvcs {
+		// Check if PVC name matches statefulset naming pattern
+		// StatefulSet PVCs are named: {volumeClaimTemplateName}-{statefulSetName}-{ordinal}
+		for _, vct := range ss.Spec.VolumeClaimTemplates {
+			prefix := fmt.Sprintf("%s-%s-", vct.Name, statefulSetName)
+			if len(pvc.Name) > len(prefix) && pvc.Name[:len(prefix)] == prefix {
+				age := "-"
+				if pvc.CreationTimestamp.Time != (time.Time{}) {
+					age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
+				}
+
+				capacity := "-"
+				if pvc.Status.Capacity != nil {
+					if qty, ok := pvc.Status.Capacity["storage"]; ok {
+						capacity = qty.String()
+					}
+				}
+
+				accessModes := ""
+				for i, mode := range pvc.Spec.AccessModes {
+					if i > 0 {
+						accessModes += ", "
+					}
+					accessModes += string(mode)
+				}
+
+				storageClass := ""
+				if pvc.Spec.StorageClassName != nil {
+					storageClass = *pvc.Spec.StorageClassName
+				}
+
+				// Extract pod name from PVC name
+				podName := pvc.Name[len(vct.Name)+1:]
+
+				result = append(result, StatefulSetPVCInfo{
+					Name:         pvc.Name,
+					Namespace:    pvc.Namespace,
+					Status:       string(pvc.Status.Phase),
+					Capacity:     capacity,
+					AccessModes:  accessModes,
+					StorageClass: storageClass,
+					Age:          age,
+					PodName:      podName,
+				})
+			}
+		}
+	}
+
+	// Sort PVCs by name
+	sort.Slice(result, func(i, j int) bool {
+		return result[i].Name < result[j].Name
+	})
+
+	return result
+}
+
+// isOwnedByResource checks if a pod is owned by a specific resource
+func isOwnedByResource(refs []metav1.OwnerReference, kind, name string) bool {
+	for _, ref := range refs {
+		if ref.Kind == kind && ref.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // GetDaemonSetDetail returns detailed information about a daemonset

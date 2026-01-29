@@ -137,70 +137,67 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	}
 
 	// Emit updated lists shortly after creating a resource
-	go func(ns string, k string) {
-		// Give the API server a brief moment to persist the object so our
-		// snapshot events include the newly created resource.
-		time.Sleep(500 * time.Millisecond)
-		if a.ctx != nil && ns != "" {
-			// Always emit pods snapshot for now (existing behavior)
-			if pods, err := a.GetRunningPods(ns); err == nil {
-				emitEvent(a.ctx, "pods:update", pods)
-			}
-			// If we created a Deployment, also emit deployments snapshot
-			if strings.EqualFold(k, "Deployment") {
-				if deps, err := a.GetDeployments(ns); err == nil {
-					emitEvent(a.ctx, "deployments:update", deps)
-				}
-			}
-			// If we created a StatefulSet, emit statefulsets snapshot
-			if strings.EqualFold(k, "StatefulSet") {
-				if sts, err := a.GetStatefulSets(ns); err == nil {
-					emitEvent(a.ctx, "statefulsets:update", sts)
-				}
-			}
-			// If we created a DaemonSet, emit daemonsets snapshot
-			if strings.EqualFold(k, "DaemonSet") {
-				if dss, err := a.GetDaemonSets(ns); err == nil {
-					emitEvent(a.ctx, "daemonsets:update", dss)
-				}
-			}
-			// If we created a ReplicaSet, emit replicasets snapshot
-			if strings.EqualFold(k, "ReplicaSet") {
-				if rss, err := a.GetReplicaSets(ns); err == nil {
-					emitEvent(a.ctx, "replicasets:update", rss)
-				}
-			}
-			// If we created a Job, emit jobs snapshot
-			if strings.EqualFold(k, "Job") {
-				if jobs, err := a.GetJobs(ns); err == nil {
-					emitEvent(a.ctx, "jobs:update", jobs)
-				}
-			}
-			// If we created a CronJob, emit cronjobs snapshot
-			if strings.EqualFold(k, "CronJob") {
-				if cjs, err := a.GetCronJobs(ns); err == nil {
-					emitEvent(a.ctx, "cronjobs:update", cjs)
-				}
-			}
-			// If we created an Ingress, emit ingresses snapshot
-			if strings.EqualFold(k, "Ingress") {
-				if ings, err := a.GetIngresses(ns); err == nil {
-					emitEvent(a.ctx, "ingresses:update", ings)
-				}
-			}
-			// If we created a Secret, emit secrets snapshot
-			if strings.EqualFold(k, "Secret") {
-				if secs, err := a.GetSecrets(ns); err == nil {
-					emitEvent(a.ctx, "secrets:update", secs)
-				}
-			}
-			// If we created a ConfigMap, emit configmaps snapshot
-			if strings.EqualFold(k, "ConfigMap") {
-				if cms, err := a.GetConfigMaps(ns); err == nil {
-					emitEvent(a.ctx, "configmaps:update", cms)
-				}
-			}
-		}
-	}(resNamespace, kind)
+	go a.emitResourceUpdateEvents(resNamespace, kind)
 	return nil
+}
+
+// emitResourceUpdateEvents emits events for resource updates after a brief delay
+func (a *App) emitResourceUpdateEvents(namespace, kind string) {
+	// Give the API server a brief moment to persist the object so our
+	// snapshot events include the newly created resource.
+	time.Sleep(500 * time.Millisecond)
+	
+	if a.ctx == nil || namespace == "" {
+		return
+	}
+
+	// Always emit pods snapshot for now (existing behavior)
+	if pods, err := a.GetRunningPods(namespace); err == nil {
+		emitEvent(a.ctx, "pods:update", pods)
+	}
+
+	// Emit resource-specific snapshot based on kind
+	a.emitResourceSpecificEvent(namespace, kind)
+}
+
+// emitResourceSpecificEvent emits an event for a specific resource type
+func (a *App) emitResourceSpecificEvent(namespace, kind string) {
+	switch strings.ToLower(kind) {
+	case "deployment":
+		if deps, err := a.GetDeployments(namespace); err == nil {
+			emitEvent(a.ctx, "deployments:update", deps)
+		}
+	case "statefulset":
+		if sts, err := a.GetStatefulSets(namespace); err == nil {
+			emitEvent(a.ctx, "statefulsets:update", sts)
+		}
+	case "daemonset":
+		if dss, err := a.GetDaemonSets(namespace); err == nil {
+			emitEvent(a.ctx, "daemonsets:update", dss)
+		}
+	case "replicaset":
+		if rss, err := a.GetReplicaSets(namespace); err == nil {
+			emitEvent(a.ctx, "replicasets:update", rss)
+		}
+	case "job":
+		if jobs, err := a.GetJobs(namespace); err == nil {
+			emitEvent(a.ctx, "jobs:update", jobs)
+		}
+	case "cronjob":
+		if cjs, err := a.GetCronJobs(namespace); err == nil {
+			emitEvent(a.ctx, "cronjobs:update", cjs)
+		}
+	case "ingress":
+		if ings, err := a.GetIngresses(namespace); err == nil {
+			emitEvent(a.ctx, "ingresses:update", ings)
+		}
+	case "secret":
+		if secs, err := a.GetSecrets(namespace); err == nil {
+			emitEvent(a.ctx, "secrets:update", secs)
+		}
+	case "configmap":
+		if cms, err := a.GetConfigMaps(namespace); err == nil {
+			emitEvent(a.ctx, "configmaps:update", cms)
+		}
+	}
 }
