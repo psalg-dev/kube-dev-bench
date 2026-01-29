@@ -7,6 +7,8 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/mount"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/volume"
 )
 
@@ -122,5 +124,43 @@ func Test_formatVolumeAge_formatsRFC3339(t *testing.T) {
 	created := time.Now().Add(-10 * time.Second).UTC().Format(time.RFC3339)
 	if got := formatVolumeAge(created); got == "-" {
 		t.Fatalf("expected non-dash")
+	}
+}
+
+// Note: The public wrapper functions (GetSwarmVolumes, GetSwarmVolume, CreateSwarmVolume, etc.) 
+// that accept *client.Client cannot be easily unit tested since they require a real Docker client.
+// These wrappers are thin delegates to the internal functions (getSwarmVolumes, getSwarmVolume, etc.)
+// which are already comprehensively tested above.
+
+func Test_getSwarmVolumeUsage_findsServicesUsingVolume(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
+			return []swarm.Service{
+				{
+					ID: "svc-1",
+					Spec: swarm.ServiceSpec{
+						Annotations: swarm.Annotations{Name: "service1"},
+						TaskTemplate: swarm.TaskSpec{
+							ContainerSpec: &swarm.ContainerSpec{
+								Mounts: []mount.Mount{
+									{Type: mount.TypeVolume, Source: "myvol"},
+								},
+							},
+						},
+					},
+				},
+				{ID: "svc-2", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service2"}}},
+			}, nil
+		},
+	}
+
+	refs, err := getSwarmVolumeUsage(ctx, cli, "myvol")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(refs) != 1 || refs[0].ServiceID != "svc-1" {
+		t.Fatalf("expected 1 ref to svc-1, got %+v", refs)
 	}
 }

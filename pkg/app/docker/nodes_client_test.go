@@ -288,3 +288,8 @@ func Test_getSwarmJoinTokens_propagatesInfoError(t *testing.T) {
 		t.Fatalf("expected DeadlineExceeded, got %v", err)
 	}
 }
+
+// Note: The public wrapper functions (GetSwarmNodes, GetSwarmNode, UpdateSwarmNodeAvailability, etc.) 
+// that accept *client.Client cannot be easily unit tested since they require a real Docker client.
+// These wrappers are thin delegates to the internal functions (getSwarmNodes, getSwarmNode, etc.)
+// which are already comprehensively tested above.
