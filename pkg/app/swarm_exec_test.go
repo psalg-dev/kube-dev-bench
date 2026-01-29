@@ -73,14 +73,17 @@ type mockReader struct {
 }
 
 func (m *mockReader) Read(p []byte) (n int, err error) {
-	if m.err != nil {
-		return 0, m.err
-	}
 	if m.position >= len(m.data) {
+		if m.err != nil {
+			return 0, m.err
+		}
 		return 0, io.EOF
 	}
 	n = copy(p, m.data[m.position:])
 	m.position += n
+	if m.position >= len(m.data) && m.err != nil {
+		return n, m.err
+	}
 	return n, nil
 }
 
