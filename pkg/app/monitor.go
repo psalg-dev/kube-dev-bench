@@ -94,15 +94,9 @@ func getOwnerInfo(pod *v1.Pod) (string, string) {
 func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 	var issues []MonitorIssue
 
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.createKubernetesClient()
-		if err != nil {
-			return issues
-		}
+	clientset, err := a.getClientsetForMonitoring()
+	if err != nil {
+		return issues
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
@@ -111,155 +105,159 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 	}
 
 	for _, pod := range pods.Items {
-		age := formatAge(pod.CreationTimestamp.Time)
-		ownerKind, ownerName := getOwnerInfo(&pod)
-		podPhase := string(pod.Status.Phase)
-		nodeName := pod.Spec.NodeName
+		podIssues := a.checkSinglePodIssues(pod, namespace)
+		issues = append(issues, podIssues...)
+	}
 
-		// Check overall pod phase
-		if pod.Status.Phase == v1.PodFailed {
-			issues = append(issues, MonitorIssue{
-				Type:      "error",
-				Resource:  "Pod",
-				Namespace: namespace,
-				Name:      pod.Name,
-				Reason:    "PodFailed",
-				Message:   pod.Status.Message,
-				Age:       age,
-				PodPhase:  podPhase,
-				OwnerKind: ownerKind,
-				OwnerName: ownerName,
-				NodeName:  nodeName,
-			})
-			continue
+	return issues
+}
+
+// getClientsetForMonitoring returns a kubernetes clientset for monitoring
+func (a *App) getClientsetForMonitoring() (kubernetes.Interface, error) {
+	if a.testClientset != nil {
+		return a.testClientset.(kubernetes.Interface), nil
+	}
+	return a.createKubernetesClient()
+}
+
+// checkSinglePodIssues checks all issues for a single pod
+func (a *App) checkSinglePodIssues(pod v1.Pod, namespace string) []MonitorIssue {
+	var issues []MonitorIssue
+	
+	age := formatAge(pod.CreationTimestamp.Time)
+	ownerKind, ownerName := getOwnerInfo(&pod)
+	podPhase := string(pod.Status.Phase)
+	nodeName := pod.Spec.NodeName
+
+	// Check overall pod phase
+	if pod.Status.Phase == v1.PodFailed {
+		issues = append(issues, createPodIssue("error", namespace, pod.Name, "PodFailed", pod.Status.Message, "", 0, age, podPhase, ownerKind, ownerName, nodeName))
+		return issues
+	}
+
+	// Check container statuses
+	issues = append(issues, a.checkContainerIssues(pod.Status.ContainerStatuses, namespace, pod.Name, age, podPhase, ownerKind, ownerName, nodeName)...)
+
+	// Check init container statuses
+	issues = append(issues, a.checkInitContainerIssues(pod.Status.InitContainerStatuses, namespace, pod.Name, age, podPhase, ownerKind, ownerName, nodeName)...)
+
+	// Check pod conditions
+	issues = append(issues, a.checkPodConditions(pod.Status.Conditions, namespace, pod.Name, age, podPhase, ownerKind, ownerName, nodeName)...)
+
+	return issues
+}
+
+// checkContainerIssues checks issues in regular containers
+func (a *App) checkContainerIssues(statuses []v1.ContainerStatus, namespace, podName, age, podPhase, ownerKind, ownerName, nodeName string) []MonitorIssue {
+	var issues []MonitorIssue
+
+	for _, cs := range statuses {
+		// Check waiting state
+		if cs.State.Waiting != nil {
+			issueType := classifyWaitingReason(cs.State.Waiting.Reason)
+			issues = append(issues, createContainerIssue(issueType, namespace, podName, cs.State.Waiting.Reason, cs.State.Waiting.Message, cs.Name, cs.RestartCount, age, podPhase, ownerKind, ownerName, nodeName))
 		}
 
-		// Check container statuses for waiting states
-		for _, cs := range pod.Status.ContainerStatuses {
-			if cs.State.Waiting != nil {
-				reason := cs.State.Waiting.Reason
-				message := cs.State.Waiting.Message
-				issueType := "warning"
-
-				// Classify certain waiting reasons as errors
-				if reason == "CrashLoopBackOff" || reason == "ImagePullBackOff" ||
-					reason == "ErrImagePull" || reason == "CreateContainerError" {
-					issueType = "error"
-				}
-
-				issues = append(issues, MonitorIssue{
-					Type:          issueType,
-					Resource:      "Pod",
-					Namespace:     namespace,
-					Name:          pod.Name,
-					Reason:        reason,
-					Message:       message,
-					ContainerName: cs.Name,
-					RestartCount:  cs.RestartCount,
-					Age:           age,
-					PodPhase:      podPhase,
-					OwnerKind:     ownerKind,
-					OwnerName:     ownerName,
-					NodeName:      nodeName,
-				})
-			}
-
-			// Check for terminated containers with non-zero exit codes
-			if cs.State.Terminated != nil && cs.State.Terminated.ExitCode != 0 {
-				issues = append(issues, MonitorIssue{
-					Type:          "error",
-					Resource:      "Pod",
-					Namespace:     namespace,
-					Name:          pod.Name,
-					Reason:        cs.State.Terminated.Reason,
-					Message:       cs.State.Terminated.Message,
-					ContainerName: cs.Name,
-					RestartCount:  cs.RestartCount,
-					Age:           age,
-					PodPhase:      podPhase,
-					OwnerKind:     ownerKind,
-					OwnerName:     ownerName,
-					NodeName:      nodeName,
-				})
-			}
-
-			// Check last terminated state for restart issues
-			if cs.LastTerminationState.Terminated != nil && cs.RestartCount > 0 {
-				// Only report if restarts are recent (within last 5 minutes)
-				if time.Since(cs.LastTerminationState.Terminated.FinishedAt.Time) < 5*time.Minute {
-					issues = append(issues, MonitorIssue{
-						Type:          "warning",
-						Resource:      "Pod",
-						Namespace:     namespace,
-						Name:          pod.Name,
-						Reason:        "HighRestarts",
-						Message:       cs.LastTerminationState.Terminated.Message,
-						ContainerName: cs.Name,
-						RestartCount:  cs.RestartCount,
-						Age:           age,
-						PodPhase:      podPhase,
-						OwnerKind:     ownerKind,
-						OwnerName:     ownerName,
-						NodeName:      nodeName,
-					})
-				}
-			}
+		// Check terminated state with non-zero exit code
+		if cs.State.Terminated != nil && cs.State.Terminated.ExitCode != 0 {
+			issues = append(issues, createContainerIssue("error", namespace, podName, cs.State.Terminated.Reason, cs.State.Terminated.Message, cs.Name, cs.RestartCount, age, podPhase, ownerKind, ownerName, nodeName))
 		}
 
-		// Check init container statuses
-		for _, cs := range pod.Status.InitContainerStatuses {
-			if cs.State.Waiting != nil {
-				reason := cs.State.Waiting.Reason
-				message := cs.State.Waiting.Message
-				issueType := "warning"
-
-				if reason == "ImagePullBackOff" || reason == "ErrImagePull" ||
-					reason == "CreateContainerError" {
-					issueType = "error"
-				}
-
-				issues = append(issues, MonitorIssue{
-					Type:          issueType,
-					Resource:      "Pod",
-					Namespace:     namespace,
-					Name:          pod.Name,
-					Reason:        reason,
-					Message:       message,
-					ContainerName: cs.Name + " (init)",
-					RestartCount:  cs.RestartCount,
-					Age:           age,
-					PodPhase:      podPhase,
-					OwnerKind:     ownerKind,
-					OwnerName:     ownerName,
-					NodeName:      nodeName,
-				})
-			}
-		}
-
-		// Check pod conditions
-		for _, cond := range pod.Status.Conditions {
-			if cond.Status == v1.ConditionFalse {
-				// Report certain failed conditions as warnings
-				if cond.Type == v1.PodReady || cond.Type == v1.PodInitialized {
-					issues = append(issues, MonitorIssue{
-						Type:      "warning",
-						Resource:  "Pod",
-						Namespace: namespace,
-						Name:      pod.Name,
-						Reason:    string(cond.Type) + "False",
-						Message:   cond.Message,
-						Age:       age,
-						PodPhase:  podPhase,
-						OwnerKind: ownerKind,
-						OwnerName: ownerName,
-						NodeName:  nodeName,
-					})
-				}
+		// Check last terminated state for recent restarts
+		if cs.LastTerminationState.Terminated != nil && cs.RestartCount > 0 {
+			if time.Since(cs.LastTerminationState.Terminated.FinishedAt.Time) < 5*time.Minute {
+				issues = append(issues, createContainerIssue("warning", namespace, podName, "HighRestarts", cs.LastTerminationState.Terminated.Message, cs.Name, cs.RestartCount, age, podPhase, ownerKind, ownerName, nodeName))
 			}
 		}
 	}
 
 	return issues
+}
+
+// checkInitContainerIssues checks issues in init containers
+func (a *App) checkInitContainerIssues(statuses []v1.ContainerStatus, namespace, podName, age, podPhase, ownerKind, ownerName, nodeName string) []MonitorIssue {
+	var issues []MonitorIssue
+
+	for _, cs := range statuses {
+		if cs.State.Waiting != nil {
+			issueType := classifyInitContainerWaitingReason(cs.State.Waiting.Reason)
+			containerName := cs.Name + " (init)"
+			issues = append(issues, createContainerIssue(issueType, namespace, podName, cs.State.Waiting.Reason, cs.State.Waiting.Message, containerName, cs.RestartCount, age, podPhase, ownerKind, ownerName, nodeName))
+		}
+	}
+
+	return issues
+}
+
+// checkPodConditions checks pod conditions for issues
+func (a *App) checkPodConditions(conditions []v1.PodCondition, namespace, podName, age, podPhase, ownerKind, ownerName, nodeName string) []MonitorIssue {
+	var issues []MonitorIssue
+
+	for _, cond := range conditions {
+		if cond.Status == v1.ConditionFalse {
+			if cond.Type == v1.PodReady || cond.Type == v1.PodInitialized {
+				issues = append(issues, createPodIssue("warning", namespace, podName, string(cond.Type)+"False", cond.Message, "", 0, age, podPhase, ownerKind, ownerName, nodeName))
+			}
+		}
+	}
+
+	return issues
+}
+
+// classifyWaitingReason determines issue type based on waiting reason
+func classifyWaitingReason(reason string) string {
+	if reason == "CrashLoopBackOff" || reason == "ImagePullBackOff" ||
+		reason == "ErrImagePull" || reason == "CreateContainerError" {
+		return "error"
+	}
+	return "warning"
+}
+
+// classifyInitContainerWaitingReason determines issue type for init container waiting reason
+func classifyInitContainerWaitingReason(reason string) string {
+	if reason == "ImagePullBackOff" || reason == "ErrImagePull" ||
+		reason == "CreateContainerError" {
+		return "error"
+	}
+	return "warning"
+}
+
+// createPodIssue creates a monitor issue for a pod
+func createPodIssue(issueType, namespace, name, reason, message, containerName string, restartCount int32, age, podPhase, ownerKind, ownerName, nodeName string) MonitorIssue {
+	return MonitorIssue{
+		Type:          issueType,
+		Resource:      "Pod",
+		Namespace:     namespace,
+		Name:          name,
+		Reason:        reason,
+		Message:       message,
+		ContainerName: containerName,
+		RestartCount:  restartCount,
+		Age:           age,
+		PodPhase:      podPhase,
+		OwnerKind:     ownerKind,
+		OwnerName:     ownerName,
+		NodeName:      nodeName,
+	}
+}
+
+// createContainerIssue creates a monitor issue for a container
+func createContainerIssue(issueType, namespace, podName, reason, message, containerName string, restartCount int32, age, podPhase, ownerKind, ownerName, nodeName string) MonitorIssue {
+	return MonitorIssue{
+		Type:          issueType,
+		Resource:      "Pod",
+		Namespace:     namespace,
+		Name:          podName,
+		Reason:        reason,
+		Message:       message,
+		ContainerName: containerName,
+		RestartCount:  restartCount,
+		Age:           age,
+		PodPhase:      podPhase,
+		OwnerKind:     ownerKind,
+		OwnerName:     ownerName,
+		NodeName:      nodeName,
+	}
 }
 
 // checkEventIssues examines k8s events for warnings in the namespace
