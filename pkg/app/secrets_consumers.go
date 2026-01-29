@@ -16,44 +16,70 @@ type SecretConsumer struct {
 }
 
 func podSpecUsesSecret(spec corev1.PodSpec, secretName string) (bool, string) {
-	for _, v := range spec.Volumes {
+	// Check volumes
+	if used, refType := checkSecretInVolumes(spec.Volumes, secretName); used {
+		return true, refType
+	}
+
+	// Check init containers
+	for _, c := range spec.InitContainers {
+		if used, refType := checkSecretInContainer(c, secretName); used {
+			return true, "init:" + refType
+		}
+	}
+
+	// Check containers
+	for _, c := range spec.Containers {
+		if used, refType := checkSecretInContainer(c, secretName); used {
+			return true, refType
+		}
+	}
+
+	// Check image pull secrets
+	if checkImagePullSecrets(spec.ImagePullSecrets, secretName) {
+		return true, "imagePullSecret"
+	}
+
+	return false, ""
+}
+
+// checkSecretInVolumes checks if a secret is referenced in volumes
+func checkSecretInVolumes(volumes []corev1.Volume, secretName string) (bool, string) {
+	for _, v := range volumes {
 		if v.Secret != nil && v.Secret.SecretName == secretName {
 			return true, fmt.Sprintf("volume:%s", v.Name)
 		}
 	}
+	return false, ""
+}
 
-	checkContainer := func(c corev1.Container) (bool, string) {
-		for _, from := range c.EnvFrom {
-			if from.SecretRef != nil && from.SecretRef.Name == secretName {
-				return true, fmt.Sprintf("envFrom:%s", c.Name)
-			}
-		}
-		for _, e := range c.Env {
-			if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil && e.ValueFrom.SecretKeyRef.Name == secretName {
-				return true, fmt.Sprintf("env:%s", c.Name)
-			}
-		}
-		return false, ""
-	}
-
-	for _, c := range spec.InitContainers {
-		if ok, why := checkContainer(c); ok {
-			return true, "init:" + why
-		}
-	}
-	for _, c := range spec.Containers {
-		if ok, why := checkContainer(c); ok {
-			return true, why
+// checkSecretInContainer checks if a secret is referenced in a container
+func checkSecretInContainer(c corev1.Container, secretName string) (bool, string) {
+	// Check envFrom
+	for _, from := range c.EnvFrom {
+		if from.SecretRef != nil && from.SecretRef.Name == secretName {
+			return true, fmt.Sprintf("envFrom:%s", c.Name)
 		}
 	}
 
-	for _, ips := range spec.ImagePullSecrets {
-		if ips.Name == secretName {
-			return true, "imagePullSecret"
+	// Check env
+	for _, e := range c.Env {
+		if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil && e.ValueFrom.SecretKeyRef.Name == secretName {
+			return true, fmt.Sprintf("env:%s", c.Name)
 		}
 	}
 
 	return false, ""
+}
+
+// checkImagePullSecrets checks if a secret is used as an image pull secret
+func checkImagePullSecrets(imagePullSecrets []corev1.LocalObjectReference, secretName string) bool {
+	for _, ips := range imagePullSecrets {
+		if ips.Name == secretName {
+			return true
+		}
+	}
+	return false
 }
 
 // GetSecretConsumers returns pods and deployments in the namespace that reference the given Secret.

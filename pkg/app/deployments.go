@@ -4,73 +4,93 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 // GetDeployments returns all deployments in a namespace
 func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
+	clientset, err := a.getClientsetForResource()
+	if err != nil {
+		return nil, err
 	}
+
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
+
 	var result []DeploymentInfo
 	now := time.Now()
 
 	for _, deployment := range deployments.Items {
-		age := "-"
-		if deployment.CreationTimestamp.Time != (time.Time{}) {
-			age = formatDuration(now.Sub(deployment.CreationTimestamp.Time))
-		}
-
-		// Get the first container image from the deployment spec
-		image := ""
-		if len(deployment.Spec.Template.Spec.Containers) > 0 {
-			image = deployment.Spec.Template.Spec.Containers[0].Image
-		}
-
-		replicas := int32(0)
-		if deployment.Spec.Replicas != nil {
-			replicas = *deployment.Spec.Replicas
-		}
-
-		deploymentInfo := DeploymentInfo{
-			Name:      deployment.Name,
-			Namespace: deployment.Namespace,
-			Replicas:  replicas,
-			Ready:     deployment.Status.ReadyReplicas,
-			Available: deployment.Status.AvailableReplicas,
-			Age:       age,
-			Image:     image,
-			Labels:    map[string]string{},
-		}
-		// Merge labels: deployment metadata first, then template labels (without overwriting existing)
-		if len(deployment.Labels) > 0 {
-			for k, v := range deployment.Labels {
-				deploymentInfo.Labels[k] = v
-			}
-		}
-		if tpl := deployment.Spec.Template; tpl.Labels != nil {
-			for k, v := range tpl.Labels {
-				if _, exists := deploymentInfo.Labels[k]; !exists { // keep deployment-level value precedence
-					deploymentInfo.Labels[k] = v
-				}
-			}
-		}
+		deploymentInfo := a.buildDeploymentInfo(deployment, now)
 		result = append(result, deploymentInfo)
 	}
 
 	return result, nil
+}
+
+// getClientsetForResource returns a kubernetes clientset for resource queries
+func (a *App) getClientsetForResource() (kubernetes.Interface, error) {
+	if a.testClientset != nil {
+		return a.testClientset.(kubernetes.Interface), nil
+	}
+	return a.getKubernetesClient()
+}
+
+// buildDeploymentInfo builds DeploymentInfo from a deployment resource
+func (a *App) buildDeploymentInfo(deployment appsv1.Deployment, now time.Time) DeploymentInfo {
+	age := "-"
+	if deployment.CreationTimestamp.Time != (time.Time{}) {
+		age = formatDuration(now.Sub(deployment.CreationTimestamp.Time))
+	}
+
+	// Get the first container image from the deployment spec
+	image := ""
+	if len(deployment.Spec.Template.Spec.Containers) > 0 {
+		image = deployment.Spec.Template.Spec.Containers[0].Image
+	}
+
+	replicas := int32(0)
+	if deployment.Spec.Replicas != nil {
+		replicas = *deployment.Spec.Replicas
+	}
+
+	deploymentInfo := DeploymentInfo{
+		Name:      deployment.Name,
+		Namespace: deployment.Namespace,
+		Replicas:  replicas,
+		Ready:     deployment.Status.ReadyReplicas,
+		Available: deployment.Status.AvailableReplicas,
+		Age:       age,
+		Image:     image,
+		Labels:    mergeDeploymentLabels(deployment),
+	}
+
+	return deploymentInfo
+}
+
+// mergeDeploymentLabels merges deployment and template labels
+func mergeDeploymentLabels(deployment appsv1.Deployment) map[string]string {
+	labels := map[string]string{}
+
+	// Add deployment labels first
+	for k, v := range deployment.Labels {
+		labels[k] = v
+	}
+
+	// Add template labels (without overwriting existing)
+	if deployment.Spec.Template.Labels != nil {
+		for k, v := range deployment.Spec.Template.Labels {
+			if _, exists := labels[k]; !exists {
+				labels[k] = v
+			}
+		}
+	}
+
+	return labels
 }
 
 // formatDuration formats a duration into a human-readable string
