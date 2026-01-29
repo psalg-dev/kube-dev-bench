@@ -264,77 +264,94 @@ func createContainerIssue(issueType, namespace, podName, reason, message, contai
 func (a *App) checkEventIssues(namespace string) []MonitorIssue {
 	var issues []MonitorIssue
 
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.createKubernetesClient()
-		if err != nil {
-			return issues
-		}
+	clientset, err := a.getClientsetForMonitoring()
+	if err != nil {
+		return issues
 	}
 
-	// Get events from the last 10 minutes
 	tenMinutesAgo := time.Now().Add(-10 * time.Minute)
 
 	// Core/v1 Events
-	if list, err := clientset.CoreV1().Events(namespace).List(a.ctx, metav1.ListOptions{}); err == nil {
-		for _, e := range list.Items {
-			// Only include Warning events
-			if e.Type != "Warning" {
-				continue
-			}
-
-			// Skip old events
-			lastTime := e.LastTimestamp.Time
-			if lastTime.IsZero() && !e.EventTime.Time.IsZero() {
-				lastTime = e.EventTime.Time
-			}
-			if lastTime.Before(tenMinutesAgo) {
-				continue
-			}
-
-			issues = append(issues, MonitorIssue{
-				Type:      "warning",
-				Resource:  e.InvolvedObject.Kind,
-				Namespace: namespace,
-				Name:      e.InvolvedObject.Name,
-				Reason:    e.Reason,
-				Message:   e.Message,
-				Age:       formatAge(lastTime),
-			})
-		}
-	}
+	coreIssues := a.extractCoreV1EventIssues(clientset, namespace, tenMinutesAgo)
+	issues = append(issues, coreIssues...)
 
 	// events.k8s.io/v1 Events
-	if list, err := clientset.EventsV1().Events(namespace).List(a.ctx, metav1.ListOptions{}); err == nil {
-		for _, e := range list.Items {
-			// Only include Warning events
-			if e.Type != "Warning" {
-				continue
-			}
+	v1Issues := a.extractEventsV1Issues(clientset, namespace, tenMinutesAgo)
+	issues = append(issues, v1Issues...)
 
-			// Skip old events
-			lastTime := e.EventTime.Time
-			if lastTime.IsZero() && !e.DeprecatedLastTimestamp.Time.IsZero() {
-				lastTime = e.DeprecatedLastTimestamp.Time
-			}
-			if lastTime.Before(tenMinutesAgo) {
-				continue
-			}
+	return issues
+}
 
-			issues = append(issues, MonitorIssue{
-				Type:      "warning",
-				Resource:  e.Regarding.Kind,
-				Namespace: namespace,
-				Name:      e.Regarding.Name,
-				Reason:    e.Reason,
-				Message:   e.Note,
-				Age:       formatAge(lastTime),
-			})
+// extractCoreV1EventIssues extracts warning issues from Core/v1 events
+func (a *App) extractCoreV1EventIssues(clientset kubernetes.Interface, namespace string, cutoffTime time.Time) []MonitorIssue {
+	var issues []MonitorIssue
+
+	list, err := clientset.CoreV1().Events(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return issues
+	}
+
+	for _, e := range list.Items {
+		if e.Type != "Warning" {
+			continue
 		}
+
+		lastTime := getEventLastTime(e.LastTimestamp.Time, e.EventTime.Time)
+		if lastTime.Before(cutoffTime) {
+			continue
+		}
+
+		issues = append(issues, MonitorIssue{
+			Type:      "warning",
+			Resource:  e.InvolvedObject.Kind,
+			Namespace: namespace,
+			Name:      e.InvolvedObject.Name,
+			Reason:    e.Reason,
+			Message:   e.Message,
+			Age:       formatAge(lastTime),
+		})
 	}
 
 	return issues
+}
+
+// extractEventsV1Issues extracts warning issues from events.k8s.io/v1 events
+func (a *App) extractEventsV1Issues(clientset kubernetes.Interface, namespace string, cutoffTime time.Time) []MonitorIssue {
+	var issues []MonitorIssue
+
+	list, err := clientset.EventsV1().Events(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return issues
+	}
+
+	for _, e := range list.Items {
+		if e.Type != "Warning" {
+			continue
+		}
+
+		lastTime := getEventLastTime(e.EventTime.Time, e.DeprecatedLastTimestamp.Time)
+		if lastTime.Before(cutoffTime) {
+			continue
+		}
+
+		issues = append(issues, MonitorIssue{
+			Type:      "warning",
+			Resource:  e.Regarding.Kind,
+			Namespace: namespace,
+			Name:      e.Regarding.Name,
+			Reason:    e.Reason,
+			Message:   e.Note,
+			Age:       formatAge(lastTime),
+		})
+	}
+
+	return issues
+}
+
+// getEventLastTime returns the most recent time from two timestamps
+func getEventLastTime(lastTime, altTime time.Time) time.Time {
+	if lastTime.IsZero() && !altTime.IsZero() {
+		return altTime
+	}
+	return lastTime
 }
