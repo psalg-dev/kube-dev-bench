@@ -15,6 +15,7 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 const monitorIssuesFileName = "monitor_issues.json"
@@ -177,103 +178,207 @@ func (a *App) ScanClusterHealth() (MonitorInfo, error) {
 	var warnings []MonitorIssue
 	var errors []MonitorIssue
 
+	// Check namespace-scoped resources
 	for _, ns := range nsList.Items {
-		nsName := ns.Name
-		podIssues := a.checkPodIssues(nsName)
-		for _, issue := range podIssues {
-			if issue.Type == "error" {
-				errors = append(errors, issue)
-			} else {
-				warnings = append(warnings, issue)
-			}
-		}
+		nsWarnings, nsErrors := a.checkNamespaceHealth(clientset, ctx, ns.Name)
+		warnings = append(warnings, nsWarnings...)
+		errors = append(errors, nsErrors...)
+	}
 
-		eventIssues := a.checkEventIssues(nsName)
-		for _, issue := range eventIssues {
-			if issue.Type == "error" {
-				errors = append(errors, issue)
-			} else {
-				warnings = append(warnings, issue)
-			}
-		}
+	// Check cluster-scoped resources
+	clusterWarnings, clusterErrors := a.checkClusterScopedHealth(clientset, ctx)
+	warnings = append(warnings, clusterWarnings...)
+	errors = append(errors, clusterErrors...)
 
-		deployments, _ := clientset.AppsV1().Deployments(nsName).List(ctx, metav1.ListOptions{})
-		for _, deploy := range deployments.Items {
-			desired := int32(1)
-			if deploy.Spec.Replicas != nil {
-				desired = *deploy.Spec.Replicas
-			}
-			if deploy.Status.ReadyReplicas < desired {
-				issues := MonitorIssue{
-					Type:      "warning",
-					Resource:  "Deployment",
-					Namespace: nsName,
-					Name:      deploy.Name,
-					Reason:    "UnavailableReplicas",
-					Message:   fmt.Sprintf("Ready replicas %d/%d", deploy.Status.ReadyReplicas, desired),
-					Age:       formatAge(deploy.CreationTimestamp.Time),
-				}
-				warnings = append(warnings, issues)
-			}
-		}
+	info := MonitorInfo{
+		WarningCount: len(warnings),
+		ErrorCount:   len(errors),
+		Warnings:     warnings,
+		Errors:       errors,
+	}
+	return a.enrichMonitorInfo(info), nil
+}
 
-		statefulSets, _ := clientset.AppsV1().StatefulSets(nsName).List(ctx, metav1.ListOptions{})
-		for _, sts := range statefulSets.Items {
-			desired := int32(1)
-			if sts.Spec.Replicas != nil {
-				desired = *sts.Spec.Replicas
+// checkNamespaceHealth checks health of all resources in a namespace
+func (a *App) checkNamespaceHealth(clientset kubernetes.Interface, ctx context.Context, nsName string) ([]MonitorIssue, []MonitorIssue) {
+	var warnings []MonitorIssue
+	var errors []MonitorIssue
+
+	// Check pods
+	podIssues := a.checkPodIssues(nsName)
+	for _, issue := range podIssues {
+		if issue.Type == "error" {
+			errors = append(errors, issue)
+		} else {
+			warnings = append(warnings, issue)
+		}
+	}
+
+	// Check events
+	eventIssues := a.checkEventIssues(nsName)
+	for _, issue := range eventIssues {
+		if issue.Type == "error" {
+			errors = append(errors, issue)
+		} else {
+			warnings = append(warnings, issue)
+		}
+	}
+
+	// Check workload resources
+	warnings = append(warnings, a.checkDeploymentHealth(clientset, ctx, nsName)...)
+	warnings = append(warnings, a.checkStatefulSetHealth(clientset, ctx, nsName)...)
+	warnings = append(warnings, a.checkDaemonSetHealth(clientset, ctx, nsName)...)
+
+	// Check resource quotas
+	warnings = append(warnings, a.checkResourceQuotaHealth(clientset, ctx, nsName)...)
+
+	return warnings, errors
+}
+
+// checkClusterScopedHealth checks health of cluster-scoped resources
+func (a *App) checkClusterScopedHealth(clientset kubernetes.Interface, ctx context.Context) ([]MonitorIssue, []MonitorIssue) {
+	var warnings []MonitorIssue
+	var errors []MonitorIssue
+
+	nodeWarnings, nodeErrors := a.checkNodeHealth(clientset, ctx)
+	warnings = append(warnings, nodeWarnings...)
+	errors = append(errors, nodeErrors...)
+
+	pvWarnings, pvErrors := a.checkPersistentVolumeHealth(clientset, ctx)
+	warnings = append(warnings, pvWarnings...)
+	errors = append(errors, pvErrors...)
+
+	return warnings, errors
+}
+
+// checkDeploymentHealth checks deployment health in a namespace
+func (a *App) checkDeploymentHealth(clientset kubernetes.Interface, ctx context.Context, nsName string) []MonitorIssue {
+	var warnings []MonitorIssue
+
+	deployments, err := clientset.AppsV1().Deployments(nsName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return warnings
+	}
+
+	for _, deploy := range deployments.Items {
+		desired := int32(1)
+		if deploy.Spec.Replicas != nil {
+			desired = *deploy.Spec.Replicas
+		}
+		if deploy.Status.ReadyReplicas < desired {
+			warnings = append(warnings, MonitorIssue{
+				Type:      "warning",
+				Resource:  "Deployment",
+				Namespace: nsName,
+				Name:      deploy.Name,
+				Reason:    "UnavailableReplicas",
+				Message:   fmt.Sprintf("Ready replicas %d/%d", deploy.Status.ReadyReplicas, desired),
+				Age:       formatAge(deploy.CreationTimestamp.Time),
+			})
+		}
+	}
+
+	return warnings
+}
+
+// checkStatefulSetHealth checks statefulset health in a namespace
+func (a *App) checkStatefulSetHealth(clientset kubernetes.Interface, ctx context.Context, nsName string) []MonitorIssue {
+	var warnings []MonitorIssue
+
+	statefulSets, err := clientset.AppsV1().StatefulSets(nsName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return warnings
+	}
+
+	for _, sts := range statefulSets.Items {
+		desired := int32(1)
+		if sts.Spec.Replicas != nil {
+			desired = *sts.Spec.Replicas
+		}
+		if sts.Status.ReadyReplicas < desired {
+			warnings = append(warnings, MonitorIssue{
+				Type:      "warning",
+				Resource:  "StatefulSet",
+				Namespace: nsName,
+				Name:      sts.Name,
+				Reason:    "UnavailableReplicas",
+				Message:   fmt.Sprintf("Ready replicas %d/%d", sts.Status.ReadyReplicas, desired),
+				Age:       formatAge(sts.CreationTimestamp.Time),
+			})
+		}
+	}
+
+	return warnings
+}
+
+// checkDaemonSetHealth checks daemonset health in a namespace
+func (a *App) checkDaemonSetHealth(clientset kubernetes.Interface, ctx context.Context, nsName string) []MonitorIssue {
+	var warnings []MonitorIssue
+
+	daemonSets, err := clientset.AppsV1().DaemonSets(nsName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return warnings
+	}
+
+	for _, ds := range daemonSets.Items {
+		if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
+			warnings = append(warnings, MonitorIssue{
+				Type:      "warning",
+				Resource:  "DaemonSet",
+				Namespace: nsName,
+				Name:      ds.Name,
+				Reason:    "UnavailablePods",
+				Message:   fmt.Sprintf("Ready %d/%d", ds.Status.NumberReady, ds.Status.DesiredNumberScheduled),
+				Age:       formatAge(ds.CreationTimestamp.Time),
+			})
+		}
+	}
+
+	return warnings
+}
+
+// checkResourceQuotaHealth checks resource quota usage in a namespace
+func (a *App) checkResourceQuotaHealth(clientset kubernetes.Interface, ctx context.Context, nsName string) []MonitorIssue {
+	var warnings []MonitorIssue
+
+	quotas, err := clientset.CoreV1().ResourceQuotas(nsName).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return warnings
+	}
+
+	for _, quota := range quotas.Items {
+		for resourceName, hard := range quota.Status.Hard {
+			used, ok := quota.Status.Used[resourceName]
+			if !ok {
+				continue
 			}
-			if sts.Status.ReadyReplicas < desired {
+			if used.Cmp(hard) >= 0 {
 				warnings = append(warnings, MonitorIssue{
 					Type:      "warning",
-					Resource:  "StatefulSet",
+					Resource:  "ResourceQuota",
 					Namespace: nsName,
-					Name:      sts.Name,
-					Reason:    "UnavailableReplicas",
-					Message:   fmt.Sprintf("Ready replicas %d/%d", sts.Status.ReadyReplicas, desired),
-					Age:       formatAge(sts.CreationTimestamp.Time),
+					Name:      quota.Name,
+					Reason:    "QuotaExceeded",
+					Message:   fmt.Sprintf("%s usage %s/%s", resourceName, used.String(), hard.String()),
+					Age:       formatAge(quota.CreationTimestamp.Time),
 				})
-			}
-		}
-
-		daemonSets, _ := clientset.AppsV1().DaemonSets(nsName).List(ctx, metav1.ListOptions{})
-		for _, ds := range daemonSets.Items {
-			if ds.Status.NumberReady < ds.Status.DesiredNumberScheduled {
-				warnings = append(warnings, MonitorIssue{
-					Type:      "warning",
-					Resource:  "DaemonSet",
-					Namespace: nsName,
-					Name:      ds.Name,
-					Reason:    "UnavailablePods",
-					Message:   fmt.Sprintf("Ready %d/%d", ds.Status.NumberReady, ds.Status.DesiredNumberScheduled),
-					Age:       formatAge(ds.CreationTimestamp.Time),
-				})
-			}
-		}
-
-		quotas, _ := clientset.CoreV1().ResourceQuotas(nsName).List(ctx, metav1.ListOptions{})
-		for _, quota := range quotas.Items {
-			for resourceName, hard := range quota.Status.Hard {
-				used, ok := quota.Status.Used[resourceName]
-				if !ok {
-					continue
-				}
-				if used.Cmp(hard) >= 0 {
-					warnings = append(warnings, MonitorIssue{
-						Type:      "warning",
-						Resource:  "ResourceQuota",
-						Namespace: nsName,
-						Name:      quota.Name,
-						Reason:    "QuotaExceeded",
-						Message:   fmt.Sprintf("%s usage %s/%s", resourceName, used.String(), hard.String()),
-						Age:       formatAge(quota.CreationTimestamp.Time),
-					})
-				}
 			}
 		}
 	}
 
-	nodes, _ := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	return warnings
+}
+
+// checkNodeHealth checks node health
+func (a *App) checkNodeHealth(clientset kubernetes.Interface, ctx context.Context) ([]MonitorIssue, []MonitorIssue) {
+	var warnings []MonitorIssue
+	var errors []MonitorIssue
+
+	nodes, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return warnings, errors
+	}
+
 	for _, node := range nodes.Items {
 		age := formatAge(node.CreationTimestamp.Time)
 		for _, cond := range node.Status.Conditions {
@@ -303,7 +408,19 @@ func (a *App) ScanClusterHealth() (MonitorInfo, error) {
 		}
 	}
 
-	pvs, _ := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
+	return warnings, errors
+}
+
+// checkPersistentVolumeHealth checks persistent volume health
+func (a *App) checkPersistentVolumeHealth(clientset kubernetes.Interface, ctx context.Context) ([]MonitorIssue, []MonitorIssue) {
+	var warnings []MonitorIssue
+	var errors []MonitorIssue
+
+	pvs, err := clientset.CoreV1().PersistentVolumes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return warnings, errors
+	}
+
 	for _, pv := range pvs.Items {
 		age := formatAge(pv.CreationTimestamp.Time)
 		switch pv.Status.Phase {
@@ -328,13 +445,7 @@ func (a *App) ScanClusterHealth() (MonitorInfo, error) {
 		}
 	}
 
-	info := MonitorInfo{
-		WarningCount: len(warnings),
-		ErrorCount:   len(errors),
-		Warnings:     warnings,
-		Errors:       errors,
-	}
-	return a.enrichMonitorInfo(info), nil
+	return warnings, errors
 }
 
 func (a *App) AnalyzeMonitorIssue(issueID string) (*MonitorIssue, error) {
