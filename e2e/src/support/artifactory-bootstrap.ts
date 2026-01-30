@@ -278,7 +278,8 @@ export function getArtifactoryConfig(): ArtifactoryConfig {
     // Default admin password for the JCR compose setup.
     // Override via E2E_ARTIFACTORY_PASSWORD if you changed it.
     password: getEnv('E2E_ARTIFACTORY_PASSWORD') ?? 'password',
-    readyTimeoutMs: Number(getEnv('E2E_ARTIFACTORY_READY_TIMEOUT_MS') ?? '') || 60_000,
+    // Increased from 60s to 240s to match docker-compose healthcheck start_period (180s) plus buffer
+    readyTimeoutMs: Number(getEnv('E2E_ARTIFACTORY_READY_TIMEOUT_MS') ?? '') || 240_000,
   };
 }
 
