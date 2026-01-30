@@ -19,6 +19,7 @@ coverage.out
 *.pid
 /todos
 *.exe
+gowails
 e2e-test-results*/
 e2e-test-results*.zip
 /.tmp
