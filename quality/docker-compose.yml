@@ -66,7 +66,7 @@ services:
 
   # Report Aggregator
   report-aggregator:
-    image: node:20-alpine
+    image: node:24-alpine
     volumes:
       - ./reports:/reports
       - ./scripts:/scripts:ro
