@@ -46,7 +46,8 @@ async function applyUiWorkarounds(page: Page): Promise<void> {
         '.pounding-heart-container{display:none !important; pointer-events:none !important;}',
         // JCR 7.71.x onboarding overlay that blocks all interactions
         '.onboarding-wrapper.main-wrapper{display:none !important; pointer-events:none !important; z-index:-1 !important;}',
-        // Also hide the el-main overlay that sometimes appears
+        // Also hide the el-main overlay that sometimes appears (multiple selectors for different Vue builds)
+        'main.el-main{pointer-events:none !important;}',
         'main.el-main[data-v-5eecd319]{pointer-events:none !important;}',
       ].join('\n'),
     })
@@ -57,7 +58,7 @@ async function applyUiWorkarounds(page: Page): Promise<void> {
   
   // JCR 7.71.x specific: click "Get Started" button in welcome overlay to dismiss it
   await page.getByRole('button', { name: /^get\s*started$/i }).first().click({ timeout: 2_000, force: true }).catch(() => undefined);
-  await page.waitForTimeout(500).catch(() => undefined);
+  await page.waitForTimeout(500);
 }
 
 async function hasUnsignedEulaNotice(page: Page): Promise<boolean> {
@@ -100,30 +101,20 @@ async function tryAcceptEulaOnCurrentPage(page: Page, timeoutMs: number): Promis
     // In some JCR builds, signing/activation is only reachable after clicking the main
     // onboarding CTA ("Create a Repository"). Best-effort: click it and let the generic
     // EULA handler below pick up any dedicated EULA route or dialog.
-    const createRepoClicked = await clickFirstEnabledVisible(
+    await clickFirstEnabledVisible(
       page,
       [
         page.getByRole('button', { name: /create\s+a\s+repository/i }),
         page.locator('button:visible').filter({ hasText: /create\s+a\s+repository/i }),
       ],
       Math.min(10_000, timeoutMs)
-    ).catch(() => false);
-    
-    // If button wasn't clickable (overlay blocking), try JavaScript approach
-    if (!createRepoClicked) {
-      await page.evaluate(() => {
-        const btn = Array.from(document.querySelectorAll('button'))
-          .find(b => /create\s+a\s+repository/i.test(b.textContent || ''));
-        if (btn) btn.click();
-      }).catch(() => undefined);
-    }
+    ).catch(() => undefined);
     await page.waitForTimeout(750);
 
     // Some JCR builds don't present an explicit EULA CTA here; completing/skipping onboarding
     // is required before repository creation becomes available.
     // Best-effort: try the visible "Skip" action.
     if (/\/ui\/admin\/onboarding-page\/?/i.test(page.url())) {
-      // Try multiple approaches to click Skip button (overlay may block it)
       await clickFirstEnabledVisible(
         page,
         [
@@ -133,16 +124,6 @@ async function tryAcceptEulaOnCurrentPage(page: Page, timeoutMs: number): Promis
         ],
         Math.min(10_000, timeoutMs)
       ).catch(() => undefined);
-      
-      // If still on onboarding page, try force clicking with JavaScript
-      await page.waitForTimeout(500);
-      if (/\/ui\/admin\/onboarding-page\/?/i.test(page.url())) {
-        await page.evaluate(() => {
-          const skipBtn = Array.from(document.querySelectorAll('button'))
-            .find(btn => /^\s*skip\s*$/i.test(btn.textContent || ''));
-          if (skipBtn) skipBtn.click();
-        }).catch(() => undefined);
-      }
       await page.waitForTimeout(1_000);
     }
 
