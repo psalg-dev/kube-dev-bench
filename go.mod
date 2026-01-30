@@ -5,7 +5,7 @@ go 1.24.0
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/creack/pty v1.1.24
-	github.com/docker/docker v25.0.6+incompatible
+	github.com/docker/docker v25.0.14+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wailsapp/wails/v2 v2.11.0
