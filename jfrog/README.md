@@ -256,7 +256,7 @@ docker login localhost:8081
 
 ## Notes
 
-- This setup uses **JFrog Container Registry (JCR) 7.71.10** - FREE forever
+- This setup uses **JFrog Container Registry (JCR) 7.133.3** - FREE forever
 - Includes full Docker Registry v2 API support
 - Full authentication and user management included
 - Default embedded Derby database (sufficient for testing)

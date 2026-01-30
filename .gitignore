@@ -24,4 +24,4 @@ e2e-test-results*.zip
 /.tmp
 /coverage*
 /docker-hub-test-token
-/jfrog-token
+/jfrog-token# JFrog security keys are committed for deterministic E2E tests
