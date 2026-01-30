@@ -7,6 +7,37 @@ applyTo: '**/*.go,**/go.mod,**/go.sum'
 
 Follow idiomatic Go practices and community standards when writing Go code. These instructions are based on [Effective Go](https://go.dev/doc/effective_go), [Go Code Review Comments](https://go.dev/wiki/CodeReviewComments), and [Google's Go Style Guide](https://google.github.io/styleguide/go/).
 
+## Project Context: kube-dev-bench
+
+This is the Go backend for **kube-dev-bench**, a desktop Kubernetes client application built with Wails.
+
+### Key Dependencies
+- **Go 1.25+** (module: `gowails`)
+- **Wails v2.11** (`github.com/wailsapp/wails/v2`): Desktop app framework
+- **Kubernetes client-go v0.35.x**: Kubernetes API interactions
+- **Helm v3** (`helm.sh/helm/v3`): Helm chart operations
+- **Docker API** (`github.com/docker/docker`): Container operations
+
+### Code Organization
+- `main.go`: Application entry point and Wails initialization
+- `pkg/app/`: All Kubernetes resource handlers and business logic
+  - Each resource type has its own file (e.g., `pods.go`, `deployments.go`, `secrets.go`)
+  - Corresponding test files with `_test.go` suffix
+  - Functions exposed to frontend via Wails bindings
+
+### Wails Integration Guidelines
+- Functions intended for frontend access must be methods on the `App` struct
+- Return types must be serializable to JSON for frontend consumption
+- Use `context.Context` from Wails runtime for cancellation
+- Error messages should be user-friendly (displayed in UI notifications)
+- When changing function signatures, rebuild Wails bindings
+
+### Kubernetes Client Patterns
+- Use informers/watchers for real-time updates where appropriate
+- Handle kubeconfig switching gracefully
+- Support multiple namespace selection
+- Proper error handling with context (cluster unreachable, permission denied, etc.)
+
 ## General Instructions
 
 - Write simple, clear, and idiomatic Go code

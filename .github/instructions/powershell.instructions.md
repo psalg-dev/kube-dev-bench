@@ -4,7 +4,30 @@ description: 'PowerShell cmdlet and scripting best practices based on Microsoft 
 ---
 
 # PowerShell Cmdlet Development Guidelines
+## Project Context: kube-dev-bench
 
+PowerShell scripts in this project are used for:
+
+### Script Locations
+- **`jfrog/*.ps1`**: JFrog Artifactory container management
+  - `start-jcr.ps1` - Start JFrog Container Registry
+  - `bootstrap-jcr.ps1` - Bootstrap JFrog configuration
+  - `setup-docker-repo.ps1` - Configure Docker repository
+  - `setup-jcr-docker.ps1` - Set up JCR Docker integration
+- **`e2e/scripts/*.ps1`**: E2E test hook scripts
+  - `hook-fail.ps1` - Hook failure handling
+
+### Common Use Cases
+- Docker/container orchestration commands
+- E2E test setup and teardown
+- Development environment configuration
+- Kubernetes cluster management (KinD)
+
+### Project-Specific Guidelines
+- Use bash-compatible commands when possible (IntelliJ uses git bash)
+- Scripts should be idempotent for repeated runs
+- Include proper error handling for Docker operations
+- Support both Windows and WSL environments where applicable
 This guide provides PowerShell-specific instructions to help GitHub Copilot generate idiomatic,
 safe, and maintainable scripts. It aligns with Microsoft’s PowerShell cmdlet development guidelines.
 
