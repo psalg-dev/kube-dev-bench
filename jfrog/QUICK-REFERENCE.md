@@ -133,7 +133,7 @@ docker compose up -d
 ```
 
 ### Bootstrap fails
-- Wait longer (JCR needs ~30-60 seconds to start)
+- Wait longer (JCR needs ~2-3 minutes to fully initialize)
 - Check logs: `docker compose logs jfrog-jcr`
 - Complete setup manually at http://localhost:8081
 

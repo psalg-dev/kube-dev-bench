@@ -55,7 +55,7 @@ You're ready to use it immediately!
    docker compose up -d
    ```
 
-2. Wait for startup (~30-60 seconds):
+2. Wait for startup (~2-3 minutes):
    ```bash
    docker compose logs -f jfrog-jcr
    # Wait until you see "Artifactory successfully started"
