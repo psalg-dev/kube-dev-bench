@@ -112,12 +112,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: 1
+          - name: e2e-shard-1
+            shard: 1
             base_port: 34200
-          - shard: 2
+            registry: false
+          - name: e2e-shard-2
+            shard: 2
             base_port: 34300
-          - shard: 3
+            registry: false
+          - name: e2e-shard-3
+            shard: 3
             base_port: 34400
+            registry: false
+          - name: e2e-registry
+            base_port: 34500
+            registry: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -228,6 +237,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run e2e tests (shard ${{ matrix.shard }}/3)
+        if: matrix.registry != true
         working-directory: e2e
         run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
         env:
@@ -236,11 +246,23 @@ jobs:
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 
+      - name: Run registry e2e tests
+        if: matrix.registry == true
+        working-directory: e2e
+        run: xvfb-run -a npm run test:registry
+        env:
+          CI: true
+          PW_WORKERS: '3'
+          KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+          E2E_REGISTRY_SUITE: '1'
+          E2E_SKIP_KIND: '1'
+
       - name: Upload e2e test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: e2e-test-results-shard-${{ matrix.shard }}
+          name: e2e-test-results-${{ matrix.name }}
           path: |
             e2e/test-results
             e2e/playwright-report
