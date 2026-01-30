@@ -24,7 +24,7 @@ type swarmSecretEditClient interface {
 	swarmSecretsClient
 	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
 	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 }
 
 // GetSwarmSecrets returns all Swarm secrets (metadata only, not the actual secret data)

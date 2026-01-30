@@ -17,7 +17,7 @@ type swarmVolumesClient interface {
 	VolumeInspect(context.Context, string) (volume.Volume, error)
 	VolumeCreate(context.Context, volume.CreateOptions) (volume.Volume, error)
 	VolumeRemove(context.Context, string, bool) error
-	VolumesPrune(context.Context, filters.Args) (types.VolumesPruneReport, error)
+	VolumesPrune(context.Context, filters.Args) (volume.PruneReport, error)
 }
 
 type swarmVolumeUsageClient interface {

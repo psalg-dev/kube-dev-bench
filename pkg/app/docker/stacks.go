@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -11,7 +12,7 @@ import (
 type swarmStacksClient interface {
 	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
 	ServiceRemove(context.Context, string) error
-	NetworkList(context.Context, types.NetworkListOptions) ([]types.NetworkResource, error)
+	NetworkList(context.Context, network.ListOptions) ([]network.Summary, error)
 	NetworkRemove(context.Context, string) error
 	ConfigList(context.Context, types.ConfigListOptions) ([]swarm.Config, error)
 	ConfigRemove(context.Context, string) error
@@ -93,7 +94,7 @@ func removeSwarmStack(ctx context.Context, cli swarmStacksClient, stackName stri
 	}
 
 	// Also remove networks created for this stack
-	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	networks, err := cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
 		return nil // Don't fail if we can't list networks
 	}

@@ -5,7 +5,6 @@ import (
 	"io"
 	"testing"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -55,7 +54,7 @@ func Test_getServiceLogs_callsServiceLogs(t *testing.T) {
 	ctx := context.Background()
 
 	called := false
-	cli := &fakeDockerClient{ServiceLogsFn: func(_ context.Context, serviceID string, opts types.ContainerLogsOptions) (io.ReadCloser, error) {
+	cli := &fakeDockerClient{ServiceLogsFn: func(_ context.Context, serviceID string, opts container.LogsOptions) (io.ReadCloser, error) {
 		called = true
 		if serviceID != "svc-1" {
 			t.Fatalf("expected svc-1")
