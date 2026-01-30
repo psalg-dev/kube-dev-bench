@@ -44,12 +44,21 @@ async function applyUiWorkarounds(page: Page): Promise<void> {
       content: [
         '.welcome-sidebar{display:none !important; pointer-events:none !important;}',
         '.pounding-heart-container{display:none !important; pointer-events:none !important;}',
+        // JCR 7.71.x onboarding overlay that blocks all interactions
+        '.onboarding-wrapper.main-wrapper{display:none !important; pointer-events:none !important; z-index:-1 !important;}',
+        // Also hide the el-main overlay that sometimes appears (multiple selectors for different Vue builds)
+        'main.el-main{pointer-events:none !important;}',
+        'main.el-main[data-v-5eecd319]{pointer-events:none !important;}',
       ].join('\n'),
     })
     .catch(() => undefined);
 
   // Some overlays can be dismissed with Escape.
   await page.keyboard.press('Escape').catch(() => undefined);
+  
+  // JCR 7.71.x specific: click "Get Started" button in welcome overlay to dismiss it
+  await page.getByRole('button', { name: /^get\s*started$/i }).first().click({ timeout: 2_000, force: true }).catch(() => undefined);
+  await page.waitForTimeout(500);
 }
 
 async function hasUnsignedEulaNotice(page: Page): Promise<boolean> {
