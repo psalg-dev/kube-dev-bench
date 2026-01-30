@@ -3,22 +3,21 @@ package docker
 import (
 	"context"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
 )
 
 type swarmNetworksClient interface {
-	NetworkList(context.Context, types.NetworkListOptions) ([]types.NetworkResource, error)
-	NetworkInspect(context.Context, string, types.NetworkInspectOptions) (types.NetworkResource, error)
-	NetworkCreate(context.Context, string, types.NetworkCreate) (types.NetworkCreateResponse, error)
+	NetworkList(context.Context, network.ListOptions) ([]network.Summary, error)
+	NetworkInspect(context.Context, string, network.InspectOptions) (network.Inspect, error)
+	NetworkCreate(context.Context, string, network.CreateOptions) (network.CreateResponse, error)
 	NetworkRemove(context.Context, string) error
-	NetworksPrune(context.Context, filters.Args) (types.NetworksPruneReport, error)
+	NetworksPrune(context.Context, filters.Args) (network.PruneReport, error)
 }
 
-func buildNetworkCreateOptions(driver string, opts CreateNetworkOptions) types.NetworkCreate {
-	createOpts := types.NetworkCreate{
+func buildNetworkCreateOptions(driver string, opts CreateNetworkOptions) network.CreateOptions {
+	createOpts := network.CreateOptions{
 		Driver:     driver,
 		Scope:      opts.Scope,
 		Attachable: opts.Attachable,
@@ -59,7 +58,7 @@ func GetSwarmNetworks(ctx context.Context, cli *client.Client) ([]SwarmNetworkIn
 }
 
 func getSwarmNetworks(ctx context.Context, cli swarmNetworksClient) ([]SwarmNetworkInfo, error) {
-	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	networks, err := cli.NetworkList(ctx, network.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +78,7 @@ func GetSwarmNetwork(ctx context.Context, cli *client.Client, networkID string) 
 }
 
 func getSwarmNetwork(ctx context.Context, cli swarmNetworksClient, networkID string) (*SwarmNetworkInfo, error) {
-	net, err := cli.NetworkInspect(ctx, networkID, types.NetworkInspectOptions{})
+	net, err := cli.NetworkInspect(ctx, networkID, network.InspectOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -88,13 +87,13 @@ func getSwarmNetwork(ctx context.Context, cli swarmNetworksClient, networkID str
 	return &info, nil
 }
 
-// networkToInfo converts a types.NetworkResource to SwarmNetworkInfo (from list)
-func networkToInfo(net types.NetworkResource) SwarmNetworkInfo {
+// networkToInfo converts a network.Summary to SwarmNetworkInfo (from list)
+func networkToInfo(net network.Summary) SwarmNetworkInfo {
 	return networkResourceToInfo(net)
 }
 
-// networkResourceToInfo converts a types.NetworkResource to SwarmNetworkInfo
-func networkResourceToInfo(net types.NetworkResource) SwarmNetworkInfo {
+// networkResourceToInfo converts a network.Inspect to SwarmNetworkInfo
+func networkResourceToInfo(net network.Inspect) SwarmNetworkInfo {
 	info := SwarmNetworkInfo{
 		ID:         net.ID,
 		Name:       net.Name,

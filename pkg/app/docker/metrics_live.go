@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -144,7 +145,7 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		if err != nil {
 			continue
 		}
-		var sj types.StatsJSON
+		var sj container.StatsResponse
 		err = json.NewDecoder(statsResp.Body).Decode(&sj)
 		_ = statsResp.Body.Close()
 		if err != nil {
@@ -216,7 +217,7 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 	return point, breakdown, nil
 }
 
-func cpuPercent(s *types.StatsJSON) float64 {
+func cpuPercent(s *container.StatsResponse) float64 {
 	if s == nil {
 		return 0
 	}
@@ -236,7 +237,7 @@ func cpuPercent(s *types.StatsJSON) float64 {
 	return (cpuDelta / sysDelta) * online * 100.0
 }
 
-func memoryUsage(s *types.StatsJSON) (used int64, limit int64) {
+func memoryUsage(s *container.StatsResponse) (used int64, limit int64) {
 	if s == nil {
 		return 0, 0
 	}
@@ -257,7 +258,7 @@ func memoryUsage(s *types.StatsJSON) (used int64, limit int64) {
 	return usage, limit
 }
 
-func networkTotals(s *types.StatsJSON) (rx int64, tx int64) {
+func networkTotals(s *container.StatsResponse) (rx int64, tx int64) {
 	if s == nil {
 		return 0, 0
 	}

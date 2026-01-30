@@ -10,6 +10,7 @@ import (
 	"gowails/pkg/app/holmesgpt"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -218,7 +219,7 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	// Get service logs (last 50 lines)
 	a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Collecting recent logs", "running", "")
 	logCtx, logCancel := context.WithTimeout(ctx, 10*time.Second)
-	logs, err := dockerClient.ServiceLogs(logCtx, serviceID, types.ContainerLogsOptions{
+	logs, err := dockerClient.ServiceLogs(logCtx, serviceID, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Tail:       "50",
@@ -302,7 +303,7 @@ func (a *App) getSwarmTaskContext(taskID string) (string, error) {
 	if task.Status.ContainerStatus != nil {
 		a.emitHolmesContextProgress("Swarm Task", "swarm", taskID, "Collecting recent logs", "running", "")
 		logCtx, logCancel := context.WithTimeout(ctx, 10*time.Second)
-		logs, err := dockerClient.ContainerLogs(logCtx, task.Status.ContainerStatus.ContainerID, types.ContainerLogsOptions{
+		logs, err := dockerClient.ContainerLogs(logCtx, task.Status.ContainerStatus.ContainerID, container.LogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Tail:       "50",

@@ -7,6 +7,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/system"
 )
 
 func Test_getSwarmNodes_listsAndConverts(t *testing.T) {
@@ -170,7 +171,7 @@ func Test_formatNodeAge_formatsNonZero(t *testing.T) {
 type fakeSwarmJoinTokensClient struct {
 	swarmInfo swarm.Swarm
 	swarmErr  error
-	info      types.Info
+	info      system.Info
 	infoErr   error
 }
 
@@ -181,9 +182,9 @@ func (f *fakeSwarmJoinTokensClient) SwarmInspect(context.Context) (swarm.Swarm, 
 	return f.swarmInfo, nil
 }
 
-func (f *fakeSwarmJoinTokensClient) Info(context.Context) (types.Info, error) {
+func (f *fakeSwarmJoinTokensClient) Info(context.Context) (system.Info, error) {
 	if f.infoErr != nil {
-		return types.Info{}, f.infoErr
+		return system.Info{}, f.infoErr
 	}
 	return f.info, nil
 }
@@ -198,7 +199,7 @@ func Test_getSwarmJoinTokens_returnsTokensAndCommands(t *testing.T) {
 				Manager: "SWMTKN-manager-token",
 			},
 		},
-		info: types.Info{
+		info: system.Info{
 			Swarm: swarm.Info{
 				RemoteManagers: []swarm.Peer{
 					{Addr: "192.168.1.1:2377"},
@@ -239,7 +240,7 @@ func Test_getSwarmJoinTokens_handlesNoRemoteManagers(t *testing.T) {
 				Manager: "SWMTKN-manager-token",
 			},
 		},
-		info: types.Info{
+		info: system.Info{
 			Swarm: swarm.Info{
 				RemoteManagers: []swarm.Peer{}, // empty
 			},

@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -14,7 +15,7 @@ type swarmNetworkConnectionsClient interface {
 	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
 	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
 	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
-	NetworkInspect(context.Context, string, types.NetworkInspectOptions) (types.NetworkResource, error)
+	NetworkInspect(context.Context, string, network.InspectOptions) (network.Inspect, error)
 }
 
 // GetSwarmNetworkServices returns services that attach to the given network.
@@ -24,7 +25,7 @@ func GetSwarmNetworkServices(ctx context.Context, cli *client.Client, networkID 
 
 func getSwarmNetworkServices(ctx context.Context, cli swarmNetworkConnectionsClient, networkID string) ([]SwarmServiceRef, error) {
 	networkName := networkID
-	if netInfo, err := cli.NetworkInspect(ctx, networkID, types.NetworkInspectOptions{}); err == nil {
+	if netInfo, err := cli.NetworkInspect(ctx, networkID, network.InspectOptions{}); err == nil {
 		if netInfo.Name != "" {
 			networkName = netInfo.Name
 		}
@@ -112,7 +113,7 @@ func GetSwarmNetworkInspectJSON(ctx context.Context, cli *client.Client, network
 }
 
 func getSwarmNetworkInspectJSON(ctx context.Context, cli swarmNetworkConnectionsClient, networkID string) (string, error) {
-	net, err := cli.NetworkInspect(ctx, networkID, types.NetworkInspectOptions{})
+	net, err := cli.NetworkInspect(ctx, networkID, network.InspectOptions{})
 	if err != nil {
 		return "", err
 	}

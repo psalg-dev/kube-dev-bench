@@ -99,9 +99,9 @@ func Test_scaleSwarmService_replicatedUpdatesReplicas(t *testing.T) {
 		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			updatedReplicas = spec.Mode.Replicated.Replicas
-			return types.ServiceUpdateResponse{}, nil
+			return swarm.ServiceUpdateResponse{}, nil
 		},
 	}
 
@@ -153,10 +153,10 @@ func Test_updateSwarmServiceImage_updatesImageAndForceUpdate(t *testing.T) {
 		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			updatedImage = spec.TaskTemplate.ContainerSpec.Image
 			updatedForce = spec.TaskTemplate.ForceUpdate
-			return types.ServiceUpdateResponse{}, nil
+			return swarm.ServiceUpdateResponse{}, nil
 		},
 	}
 
@@ -187,9 +187,9 @@ func Test_restartSwarmService_incrementsForceUpdate(t *testing.T) {
 		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			updatedForce = spec.TaskTemplate.ForceUpdate
-			return types.ServiceUpdateResponse{}, nil
+			return swarm.ServiceUpdateResponse{}, nil
 		},
 	}
 

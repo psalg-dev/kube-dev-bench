@@ -4,11 +4,11 @@ import (
 	"math"
 	"testing"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 )
 
 func TestMetrics_CPUPercent(t *testing.T) {
-	s := &types.StatsJSON{}
+	s := &container.StatsResponse{}
 	s.PreCPUStats.CPUUsage.TotalUsage = 1_000_000_000
 	s.CPUStats.CPUUsage.TotalUsage = 2_000_000_000
 	s.PreCPUStats.SystemUsage = 10_000_000_000
@@ -23,7 +23,7 @@ func TestMetrics_CPUPercent(t *testing.T) {
 }
 
 func TestMetrics_MemoryUsage_SubtractsCache(t *testing.T) {
-	s := &types.StatsJSON{}
+	s := &container.StatsResponse{}
 	s.MemoryStats.Usage = 1000
 	s.MemoryStats.Limit = 2000
 	s.MemoryStats.Stats = map[string]uint64{"cache": 200}
@@ -38,8 +38,8 @@ func TestMetrics_MemoryUsage_SubtractsCache(t *testing.T) {
 }
 
 func TestMetrics_NetworkTotals_SumsInterfaces(t *testing.T) {
-	s := &types.StatsJSON{}
-	s.Networks = map[string]types.NetworkStats{
+	s := &container.StatsResponse{}
+	s.Networks = map[string]container.NetworkStats{
 		"eth0": {RxBytes: 10, TxBytes: 7},
 		"eth1": {RxBytes: 3, TxBytes: 5},
 	}

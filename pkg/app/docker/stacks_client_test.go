@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 )
 
@@ -49,8 +50,8 @@ func Test_removeSwarmStack_removesServicesNetworksConfigsSecrets(t *testing.T) {
 			}
 			return nil
 		},
-		NetworkListFn: func(context.Context, types.NetworkListOptions) ([]types.NetworkResource, error) {
-			return []types.NetworkResource{{ID: "net-1", Labels: map[string]string{"com.docker.stack.namespace": "stack-a"}}}, nil
+		NetworkListFn: func(context.Context, network.ListOptions) ([]network.Summary, error) {
+			return []network.Summary{{ID: "net-1", Labels: map[string]string{"com.docker.stack.namespace": "stack-a"}}}, nil
 		},
 		NetworkRemoveFn: func(_ context.Context, id string) error {
 			if id == "net-1" {

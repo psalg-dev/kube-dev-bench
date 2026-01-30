@@ -176,7 +176,7 @@ jobs:
           docker info --format '{{.Swarm.LocalNodeState}}'
 
       - name: Cache KinD node image
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: kind-image-cache
         with:
           path: /tmp/kind-node-image.tar
@@ -216,7 +216,7 @@ jobs:
         run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright

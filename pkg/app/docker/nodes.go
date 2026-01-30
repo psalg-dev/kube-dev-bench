@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
 )
 
@@ -243,7 +244,7 @@ type SwarmJoinTokens struct {
 
 type swarmJoinTokensClient interface {
 	SwarmInspect(context.Context) (swarm.Swarm, error)
-	Info(context.Context) (types.Info, error)
+	Info(context.Context) (system.Info, error)
 }
 
 // GetSwarmJoinTokens returns the swarm join tokens and commands

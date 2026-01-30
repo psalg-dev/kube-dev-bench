@@ -19,6 +19,7 @@ import (
 	"gowails/pkg/app/docker/topology"
 
 	"github.com/docker/docker/api/types"
+	imagetypes "github.com/docker/docker/api/types/image"
 	registrytypes "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/client"
 )
@@ -223,7 +224,7 @@ func (a *App) PullDockerImageLatest(image string, registryName string) error {
 
 	pullCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	r, err := cli.ImagePull(pullCtx, image, types.ImagePullOptions{RegistryAuth: registryAuth})
+	r, err := cli.ImagePull(pullCtx, image, imagetypes.PullOptions{RegistryAuth: registryAuth})
 	if err != nil {
 		return err
 	}

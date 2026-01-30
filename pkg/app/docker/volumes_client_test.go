@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/volume"
 )
@@ -79,8 +78,8 @@ func Test_pruneSwarmVolumes_returnsReport(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		VolumesPruneFn: func(context.Context, filters.Args) (types.VolumesPruneReport, error) {
-			return types.VolumesPruneReport{VolumesDeleted: []string{"v1"}, SpaceReclaimed: 123}, nil
+		VolumesPruneFn: func(context.Context, filters.Args) (volume.PruneReport, error) {
+			return volume.PruneReport{VolumesDeleted: []string{"v1"}, SpaceReclaimed: 123}, nil
 		},
 	}
 
