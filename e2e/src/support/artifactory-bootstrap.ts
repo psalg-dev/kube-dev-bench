@@ -142,50 +142,95 @@ async function dockerLocalExists(baseUrl: string, username: string, password: st
   }
 }
 
+/**
+ * Try to create docker-local using internal JCR UI APIs.
+ * These endpoints are undocumented but may work on JCR free edition
+ * where the official REST API is gated behind Pro licensing.
+ */
+async function tryCreateDockerLocalViaInternalApi(baseUrl: string, username: string, password: string): Promise<boolean> {
+  const dockerLocalConfig = {
+    key: 'docker-local',
+    rclass: 'local',
+    packageType: 'docker',
+    type: 'localRepoConfig',
+    typeSpecific: {
+      repoType: 'Docker',
+      dockerApiVersion: 'V2',
+      maxUniqueTags: 0,
+      blockPushingSchema1: false,
+    },
+    basic: {
+      layout: 'simple-default',
+    },
+    advanced: {
+      cache: {},
+    },
+    description: 'Local Docker registry for e2e testing',
+  };
+
+  // Internal UI endpoints that JCR might expose for repository creation
+  // These are based on patterns observed in JFrog's UI and similar to the EULA endpoint
+  const endpoints = [
+    // JCR-specific onboarding endpoint (similar pattern to EULA)
+    { url: `${baseUrl}/artifactory/ui/jcr/onboarding/createrepo`, method: 'POST' },
+    // Admin UI endpoint for repository CRUD
+    { url: `${baseUrl}/artifactory/ui/admin/repositories/crud/local`, method: 'POST' },
+    // Alternative admin endpoint
+    { url: `${baseUrl}/artifactory/ui/admin/repositories/createlocal`, method: 'POST' },
+    // Treebrowser endpoint
+    { url: `${baseUrl}/artifactory/ui/treebrowser/repo/create`, method: 'POST' },
+  ];
+
+  for (const { url, method } of endpoints) {
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          Authorization: toBasicAuthHeader(username, password),
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dockerLocalConfig),
+      });
+
+      // Success responses
+      if (res.status >= 200 && res.status < 300) {
+        return true;
+      }
+
+      // If 400 with "already exists", that's also success
+      if (res.status === 400) {
+        const snippet = (await safeReadBodySnippet(res)).toLowerCase();
+        if (snippet.includes('already exists') || snippet.includes('repository already exists')) {
+          return true;
+        }
+      }
+      // 404/405 means endpoint doesn't exist, try next
+      // Other errors, try next endpoint
+    } catch {
+      // Network error or endpoint doesn't exist, try next
+    }
+  }
+
+  return false;
+}
+
 async function ensureArtifactoryBootstrapped(merged: ArtifactoryConfig): Promise<void> {
   if (getEnv('E2E_ARTIFACTORY_UI_BOOTSTRAP') === '0') return;
 
-  const baseUrl = 'http://localhost:8081';
   const uiBaseUrl = 'http://localhost:8082/ui/';
   const { username, password } = merged;
+  // Timeout for UI bootstrap - JCR 7.x can be slow on first load
+  const uiTimeoutMs = Number(getEnv('E2E_ARTIFACTORY_UI_TIMEOUT_MS') ?? '') || 30_000;
 
-  // Ensure we can authenticate. If this fails, UI bootstrap can't proceed.
-  if (!(await canAuthRepositories(baseUrl, username, password))) {
-    throw new Error(
-      `[artifactory] Unable to authenticate as ${username}. ` +
-        `Set E2E_ARTIFACTORY_PASSWORD to the actual admin password for your JCR instance.`
-    );
-  }
-
-  // Prefer deterministic API bootstrap when possible.
-  // 1) Accept EULA via backend endpoint (required before repo creation is allowed).
-  // 2) Check if docker-local already exists.
-  // 3) Try to create docker-local via REST (Pro-only, will fail on JCR).
-  // If REST creation is gated, fall back to UI automation.
-  await tryAcceptEulaViaApi(baseUrl, username, password);
-
-  // Short-circuit if docker-local already exists (e.g., from a previous run).
-  if (await dockerLocalExists(baseUrl, username, password)) {
-    return;
-  }
-
-  try {
-    const ok = await tryCreateDockerLocalViaApi(baseUrl, username, password);
-    if (ok) return;
-  } catch {
-    // Fall back to UI
-  }
-
-  // Ensure docker-local exists via the web UI (repo REST creation is gated in this edition).
-  // We keep this best-effort but deterministic: if the repo still doesn't exist after UI automation,
-  // the subsequent /v2/ probe will fail with a clear message.
+  // JCR free edition doesn't have useful APIs for repository creation.
+  // Use 100% UI-driven bootstrap via Playwright.
   const ui = await ensureArtifactoryDockerRepoViaUi({
     baseUiUrl: uiBaseUrl,
     username,
     password,
-    fallbackPassword: undefined,
+    fallbackPassword: 'password', // Default JCR password before setup
     repoKey: 'docker-local',
-    timeoutMs: merged.readyTimeoutMs,
+    timeoutMs: Math.min(merged.readyTimeoutMs, uiTimeoutMs),
     runId: process.env.E2E_RUN_ID,
   });
 
@@ -219,7 +264,7 @@ async function waitForOk(
 export function getArtifactoryConfig(): ArtifactoryConfig {
   const registryBaseUrl =
     getEnv('E2E_ARTIFACTORY_REGISTRY_BASE_URL') ??
-    'http://localhost:8081/artifactory/api/docker/docker-local';
+    'http://localhost:8082/artifactory/api/docker/docker-local';
 
   const registryV2Url =
     getEnv('E2E_ARTIFACTORY_REGISTRY_V2_URL') ??

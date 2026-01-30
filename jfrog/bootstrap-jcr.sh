@@ -74,13 +74,21 @@ curl -s -u "$DEFAULT_USER:$ADMIN_PASSWORD" \
 echo ""
 echo "3. Accepting EULA..."
 
+# Try JCR 7.x EULA endpoint first
 curl -s -u "$DEFAULT_USER:$ADMIN_PASSWORD" \
-    -X POST "http://localhost:8081/artifactory/ui/onboarding/eula" > /dev/null 2>&1 && \
-    echo "✓ EULA accepted" || \
-    echo "⚠ EULA already accepted"
+    -X POST "http://localhost:8082/artifactory/ui/jcr/eula/accept" \
+    -H "Content-Type: application/json" \
+    -d '{}' > /dev/null 2>&1 && \
+    echo "✓ EULA accepted (JCR endpoint)" || \
+    # Fallback to legacy endpoint
+    curl -s -u "$DEFAULT_USER:$ADMIN_PASSWORD" \
+        -X POST "http://localhost:8081/artifactory/ui/onboarding/eula" > /dev/null 2>&1 && \
+        echo "✓ EULA accepted" || \
+        echo "⚠ EULA already accepted or not required"
 
 echo ""
 echo "4. Creating docker-local repository..."
+echo "   Note: REST API may be gated in JCR free edition - UI automation may be needed"
 
 DOCKER_RESPONSE=$(curl -s -w "\n%{http_code}" -u "$DEFAULT_USER:$ADMIN_PASSWORD" \
     -X PUT "http://localhost:8081/artifactory/api/repositories/docker-local" \
