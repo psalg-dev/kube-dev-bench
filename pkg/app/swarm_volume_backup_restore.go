@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
@@ -193,7 +192,7 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 
 	norm, _ := normalizeTarStream(r)
 
-	if err := cli.CopyToContainer(a.ctx, containerID, "/mnt", norm, types.CopyToContainerOptions{
+	if err := cli.CopyToContainer(a.ctx, containerID, "/mnt", norm, container.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
 	}); err != nil {
 		return "", err
@@ -262,7 +261,7 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 		return "", err
 	}
 
-	if err := cli.ContainerStart(a.ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := cli.ContainerStart(a.ctx, resp.ID, container.StartOptions{}); err != nil {
 		return "", err
 	}
 
@@ -270,7 +269,7 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 	select {
 	case st := <-statusCh:
 		if st.StatusCode != 0 {
-			logs, _ := cli.ContainerLogs(a.ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Tail: "200"})
+			logs, _ := cli.ContainerLogs(a.ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true, Tail: "200"})
 			if logs != nil {
 				defer logs.Close()
 				b, _ := io.ReadAll(logs)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -13,7 +12,7 @@ import (
 type swarmLogsClient interface {
 	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
 	ContainerLogs(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
-	ServiceLogs(context.Context, string, types.ContainerLogsOptions) (io.ReadCloser, error)
+	ServiceLogs(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
 }
 
 // GetTaskLogs streams logs from a task's container
@@ -54,7 +53,7 @@ func GetServiceLogs(ctx context.Context, cli *client.Client, serviceID string, t
 }
 
 func getServiceLogs(ctx context.Context, cli swarmLogsClient, serviceID string, tail string, follow bool) (io.ReadCloser, error) {
-	options := types.ContainerLogsOptions{
+	options := container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     follow,

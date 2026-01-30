@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 )
 
 // WriteSwarmVolumeFile writes content to a file within the volume.
@@ -89,7 +89,7 @@ func (a *App) WriteSwarmVolumeFile(volumeName string, filePath string, content s
 		}
 	}()
 
-	return cli.CopyToContainer(a.ctx, containerID, "/mnt"+dir, pr, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	return cli.CopyToContainer(a.ctx, containerID, "/mnt"+dir, pr, container.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 }
 
 // DeleteSwarmVolumeFile deletes a path within the volume.

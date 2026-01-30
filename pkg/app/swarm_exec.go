@@ -12,15 +12,16 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
 type swarmExecClient interface {
 	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
-	ContainerExecCreate(context.Context, string, types.ExecConfig) (types.IDResponse, error)
-	ContainerExecAttach(context.Context, string, types.ExecStartCheck) (types.HijackedResponse, error)
-	ContainerExecResize(context.Context, string, types.ResizeOptions) error
+	ContainerExecCreate(context.Context, string, container.ExecOptions) (container.ExecCreateResponse, error)
+	ContainerExecAttach(context.Context, string, container.ExecAttachOptions) (types.HijackedResponse, error)
+	ContainerExecResize(context.Context, string, container.ResizeOptions) error
 }
 
 // StartSwarmTaskExecSession starts an interactive shell in the container backing a Swarm task.
@@ -106,7 +107,7 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 			if cols <= 0 || rows <= 0 {
 				return nil
 			}
-			return cli.ContainerExecResize(sessCtx, execID, types.ResizeOptions{Width: uint(cols), Height: uint(rows)})
+			return cli.ContainerExecResize(sessCtx, execID, container.ResizeOptions{Width: uint(cols), Height: uint(rows)})
 		},
 	}
 	shellSessions.Store(sessionID, sess)
@@ -150,7 +151,7 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 }
 
 func swarmExecAttachTTY(ctx context.Context, cli swarmExecClient, containerID, shell string) (types.HijackedResponse, string, error) {
-	createResp, err := cli.ContainerExecCreate(ctx, containerID, types.ExecConfig{
+	createResp, err := cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
@@ -160,7 +161,7 @@ func swarmExecAttachTTY(ctx context.Context, cli swarmExecClient, containerID, s
 	if err != nil {
 		return types.HijackedResponse{}, "", err
 	}
-	attach, err := cli.ContainerExecAttach(ctx, createResp.ID, types.ExecStartCheck{Tty: true})
+	attach, err := cli.ContainerExecAttach(ctx, createResp.ID, container.ExecAttachOptions{Tty: true})
 	if err != nil {
 		return types.HijackedResponse{}, "", err
 	}

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -253,7 +253,7 @@ func (a *App) UploadToSwarmVolume(volumeName string, destPath string) (string, e
 		}
 	}()
 
-	if err := cli.CopyToContainer(a.ctx, containerID, "/mnt"+finalDir, pr, types.CopyToContainerOptions{
+	if err := cli.CopyToContainer(a.ctx, containerID, "/mnt"+finalDir, pr, container.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
 	}); err != nil {
 		return "", err
