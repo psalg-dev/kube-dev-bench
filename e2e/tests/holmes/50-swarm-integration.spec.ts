@@ -2,6 +2,7 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
 
 const fixtureStackName = 'kdb-e2e-fixtures';
 const replicatedServiceName = `${fixtureStackName}_a-replicated`;
@@ -11,6 +12,7 @@ test.describe('Holmes Swarm Integration', () => {
     test.setTimeout(150_000);
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
+    await configureHolmesMock({ page });
   });
 
   test('analyzes Swarm service and task', async ({ page }) => {
@@ -32,31 +34,15 @@ test.describe('Holmes Swarm Integration', () => {
       await expect(panel.root).toBeVisible({ timeout: 5_000 });
     }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
     
-    // Check if Holmes tab exists - it may not if Holmes is not configured
     const holmesTab = panel.root.getByRole('button', { name: 'Holmes', exact: true });
-    const hasHolmesTab = await holmesTab.isVisible().catch(() => false);
-    
-    if (!hasHolmesTab) {
-      // Holmes tab not available - verify basic panel functionality instead
-      await panel.expectTabs(['Summary', 'Tasks', 'Logs']);
-      test.skip(true, 'Holmes tab not available - Holmes AI not configured');
-      return;
-    }
-    
+    await expect(holmesTab).toBeVisible({ timeout: 10_000 });
     await panel.clickTab('Holmes');
 
     const analyzeBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
-    const hasAnalyzeBtn = await analyzeBtn.isVisible().catch(() => false);
-    
-    if (!hasAnalyzeBtn) {
-      // Holmes not configured - skip remaining test
-      test.skip(true, 'Holmes AI not configured');
-      return;
-    }
-    
+    await expect(analyzeBtn).toBeVisible({ timeout: 10_000 });
     await analyzeBtn.click();
 
-    await expect(panel.root).toContainText(/Holmes Analysis|Analyzing|No analysis yet|not configured|Analysis failed/i);
+    await expect(panel.root).toContainText(/Swarm Service Analysis|Holmes Analysis|Analyzing/i);
 
     await panel.closeByClickingOutside();
 
@@ -74,14 +60,12 @@ test.describe('Holmes Swarm Integration', () => {
     }).toPass({ timeout: 30_000, intervals: [1000, 2000, 3000] });
     
     const taskHolmesTab = panel.root.getByRole('button', { name: 'Holmes', exact: true });
-    if (await taskHolmesTab.isVisible().catch(() => false)) {
-      await panel.clickTab('Holmes');
+    await expect(taskHolmesTab).toBeVisible({ timeout: 10_000 });
+    await panel.clickTab('Holmes');
 
-      const taskAnalyzeBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
-      if (await taskAnalyzeBtn.isVisible().catch(() => false)) {
-        await taskAnalyzeBtn.click();
-        await expect(panel.root).toContainText(/Holmes Analysis|Analyzing|No analysis yet|not configured|Analysis failed/i);
-      }
-    }
+    const taskAnalyzeBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
+    await expect(taskAnalyzeBtn).toBeVisible({ timeout: 10_000 });
+    await taskAnalyzeBtn.click();
+    await expect(panel.root).toContainText(/Swarm Service Analysis|Holmes Analysis|Analyzing/i);
   });
 });

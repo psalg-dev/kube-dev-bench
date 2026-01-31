@@ -3,6 +3,7 @@ import { bootstrapApp } from '../../src/support/bootstrap.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { BottomPanel } from '../../src/pages/BottomPanel.js';
+import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -13,6 +14,7 @@ test('analyzes pod logs with Holmes', async ({ page, contextName, namespace }) =
   test.setTimeout(180_000);
 
   const { sidebar } = await bootstrapApp({ page, contextName, namespace });
+  await configureHolmesMock({ page });
   const overlay = new CreateOverlay(page);
   const notifications = new Notifications(page);
   const panel = new BottomPanel(page);
@@ -37,22 +39,21 @@ test('analyzes pod logs with Holmes', async ({ page, contextName, namespace }) =
   await panel.clickTab('Logs');
 
   const explainBtn = panel.root.getByRole('button', { name: /explain logs/i });
-  
-  // The Explain Logs button may not be visible if Holmes is not configured
-  const hasExplainBtn = await explainBtn.isVisible().catch(() => false);
-  if (!hasExplainBtn) {
-    // Holmes AI not configured - verify logs tab works and skip AI analysis
-    const logsContent = panel.root.locator('.cm-editor, pre, .logs-container');
-    await expect(logsContent.first().or(panel.root.getByText(/no logs|loading/i))).toBeVisible({ timeout: 15_000 });
-    test.skip(true, 'Holmes AI not configured - skipping log analysis test');
-    return;
-  }
-  
-  await explainBtn.click();
+  const hasExplain = await explainBtn.isVisible().catch(() => false);
 
-  // Wait for analysis or error state
-  const analysis = panel.root.locator('[data-testid="holmes-log-analysis"]');
-  const errorState = panel.root.getByText(/Holmes AI is not configured|error|failed/i);
-  
-  await expect(analysis.or(errorState)).toBeVisible({ timeout: 60_000 });
+  if (hasExplain) {
+    await explainBtn.click();
+
+    // Wait for analysis
+    const analysis = panel.root.locator('[data-testid="holmes-log-analysis"]');
+    await expect(analysis).toBeVisible({ timeout: 60_000 });
+    await expect(analysis).toContainText(/Log analysis completed|Log Analysis/i);
+  } else {
+    // Fallback to Holmes panel if the logs button is not available
+    await panel.clickTab('Holmes');
+    const askBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
+    await expect(askBtn).toBeVisible({ timeout: 10_000 });
+    await askBtn.click();
+    await expect(panel.root).toContainText(/Log analysis completed|Holmes Analysis|Analyzing/i);
+  }
 });
