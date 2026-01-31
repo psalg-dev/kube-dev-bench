@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import IngressYamlTab from './IngressYamlTab';
@@ -7,13 +6,13 @@ import IngressRulesTab from './IngressRulesTab';
 import IngressTLSTab from './IngressTLSTab';
 import IngressBackendServicesTab from './IngressBackendServicesTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeIngressStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -167,65 +166,27 @@ function panelHeader(row) {
 }
 
 export default function IngressesOverviewTable({ namespaces }) {
-  const [ingresses, setIngresses] = useState([]);
-  const [loading, setLoading] = useState(true);
   const { state: holmesState, analyze: analyzeIngress, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'Ingress',
     analyzeFn: AnalyzeIngressStream,
   });
 
-  const normalize = (arr) => (arr || []).filter(Boolean).map((i) => ({
-    name: i.name ?? i.Name,
-    namespace: i.namespace ?? i.Namespace,
-    class: i.class ?? i.Class ?? '-',
-    hosts: i.hosts ?? i.Hosts ?? [],
-    tls: i.tls ?? i.Tls ?? i.TLS ?? [],
-    address: i.address ?? i.Address ?? '-',
-    ports: i.ports ?? i.Ports ?? '-',
-    age: i.age ?? i.Age ?? '-',
-    labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {}
-  }));
-
-  const fetchAllIngresses = async () => {
-    if (!Array.isArray(namespaces) || namespaces.length === 0) {
-      setIngresses([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const results = await Promise.all(
-        namespaces.map(ns => AppAPI.GetIngresses(ns).catch(() => []))
-      );
-      setIngresses(normalize([].concat(...results).filter(Boolean)));
-    } catch (error) {
-      console.error('Failed to fetch ingresses:', error);
-      setIngresses([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllIngresses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespaces]);
-
-  // Subscribe to backend updates to refresh automatically
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const filtered = namespaces ? arr.filter(i => namespaces.includes(i?.namespace || i?.Namespace)) : arr;
-        setIngresses(normalize(filtered));
-      } catch (_e) {
-        // ignore malformed payloads
-      }
-    };
-    EventsOn('ingresses:update', onUpdate);
-    return () => {
-      EventsOff('ingresses:update', onUpdate);
-    };
-  }, [namespaces]);
+  const { data: ingresses, loading } = useResourceData({
+    fetchFn: AppAPI.GetIngresses,
+    eventName: 'ingresses:update',
+    namespaces,
+    normalize: (i) => ({
+      name: i.name ?? i.Name,
+      namespace: i.namespace ?? i.Namespace,
+      class: i.class ?? i.Class ?? '-',
+      hosts: i.hosts ?? i.Hosts ?? [],
+      tls: i.tls ?? i.Tls ?? i.TLS ?? [],
+      address: i.address ?? i.Address ?? '-',
+      ports: i.ports ?? i.Ports ?? '-',
+      age: i.age ?? i.Age ?? '-',
+      labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {}
+    }),
+  });
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;

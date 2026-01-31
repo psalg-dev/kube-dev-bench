@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import SecretYamlTab from './SecretYamlTab';
@@ -6,13 +5,13 @@ import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import SecretDataTab from './SecretDataTab';
 import SecretConsumersTab from './SecretConsumersTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeSecretStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -122,60 +121,25 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
 }
 
 export default function SecretsOverviewTable({ namespaces, _onSecretCreate }) {
-  const [data, setData] = useState([]);
-  const [_loading, setLoading] = useState(false);
-  const [_error, setError] = useState(null);
   const { state: holmesState, analyze: analyzeSecret, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'Secret',
     analyzeFn: AnalyzeSecretStream,
   });
 
-  const normalize = (arr) => (arr || []).filter(Boolean).map((s) => ({
-    name: s.name ?? s.Name,
-    namespace: s.namespace ?? s.Namespace,
-    type: s.type ?? s.Type ?? '-',
-    keys: s.keys ?? s.Keys ?? '-',
-    size: s.size ?? s.Size ?? '-',
-    age: s.age ?? s.Age ?? '-',
-    labels: s.labels ?? s.Labels ?? s.metadata?.labels ?? {}
-  }));
-
-  const fetchAllSecrets = async () => {
-    if (!Array.isArray(namespaces) || namespaces.length === 0) {
-      setData([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const results = await Promise.all(
-        namespaces.map(ns => AppAPI.GetSecrets(ns).catch(() => []))
-      );
-      setData(normalize([].concat(...results).filter(Boolean)));
-    } catch (err) {
-      console.error('Error fetching secrets:', err);
-      setError(err.message || 'Failed to fetch secrets');
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllSecrets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespaces]);
-
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        setData(normalize(arr));
-      } catch { /* ignore */ }
-    };
-    EventsOn('secrets:update', onUpdate);
-    return () => { try { EventsOff('secrets:update'); } catch (_) {} };
-  }, [namespaces]);
+  const { data } = useResourceData({
+    fetchFn: AppAPI.GetSecrets,
+    eventName: 'secrets:update',
+    namespaces,
+    normalize: (s) => ({
+      name: s.name ?? s.Name,
+      namespace: s.namespace ?? s.Namespace,
+      type: s.type ?? s.Type ?? '-',
+      keys: s.keys ?? s.Keys ?? '-',
+      size: s.size ?? s.Size ?? '-',
+      age: s.age ?? s.Age ?? '-',
+      labels: s.labels ?? s.Labels ?? s.metadata?.labels ?? {}
+    }),
+  });
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import JobYamlTab from './JobYamlTab';
@@ -6,7 +5,6 @@ import JobPodsTab from './JobPodsTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
@@ -14,6 +12,7 @@ import { StartJob } from '../kubeApi';
 import { AnalyzeJobStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -145,73 +144,29 @@ function panelHeader(row) {
 }
 
 export default function JobsOverviewTable({ namespaces, namespace }) {
-  const [jobs, setJobs] = useState([]);
-  const [loading, setLoading] = useState(false);
   const { state: holmesState, analyze: analyzeJob, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'Job',
     analyzeFn: AnalyzeJobStream,
   });
 
-  const normalize = (arr) => (arr || []).filter(Boolean).map(j => ({
-    name: j.name ?? j.Name,
-    namespace: j.namespace ?? j.Namespace,
-    completions: j.completions ?? j.Completions ?? 0,
-    succeeded: j.succeeded ?? j.Succeeded ?? 0,
-    active: j.active ?? j.Active ?? 0,
-    failed: j.failed ?? j.Failed ?? 0,
-    age: j.age ?? j.Age ?? '-',
-    duration: j.duration ?? j.Duration ?? '-',
-    image: j.image ?? j.Image ?? '',
-    labels: j.labels ?? j.Labels ?? j.metadata?.labels ?? {}
-  }));
-
-  // Fetch jobs data
-  const fetchJobs = async () => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-
-    setLoading(true);
-    try {
-      const lists = await Promise.all(nsArr.map(ns => AppAPI.GetJobs(ns).catch(() => [])));
-      setJobs(normalize(lists.flat()));
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-      setJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initial fetch when namespace changes
-  /* eslint-disable react-hooks/exhaustive-deps */
-  useEffect(() => {
-    fetchJobs();
-  }, [namespaces, namespace]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-
-  // Subscribe to jobs updates if available
-
-  useEffect(() => {
-    const handler = (jobsData) => {
-      try { setJobs(normalize(Array.isArray(jobsData) ? jobsData : [])); } catch { setJobs([]); }
-    };
-    EventsOn('jobs:update', handler);
-    return () => { try { EventsOff('jobs:update'); } catch (_) {} };
-  }, []);
-
-  // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
-  useEffect(() => {
-    const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-      if (eventData?.resource === 'job' && nsArr.includes(eventData?.namespace)) {
-        fetchJobs();
-      }
-    });
-    return () => {
-      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(namespaces), namespace]);
+  const { data: jobs, loading, refresh: fetchJobs } = useResourceData({
+    fetchFn: AppAPI.GetJobs,
+    eventName: 'jobs:update',
+    namespaces,
+    namespace,
+    normalize: (j) => ({
+      name: j.name ?? j.Name,
+      namespace: j.namespace ?? j.Namespace,
+      completions: j.completions ?? j.Completions ?? 0,
+      succeeded: j.succeeded ?? j.Succeeded ?? 0,
+      active: j.active ?? j.Active ?? 0,
+      failed: j.failed ?? j.Failed ?? 0,
+      age: j.age ?? j.Age ?? '-',
+      duration: j.duration ?? j.Duration ?? '-',
+      image: j.image ?? j.Image ?? '',
+      labels: j.labels ?? j.Labels ?? j.metadata?.labels ?? {}
+    }),
+  });
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;

@@ -1,4 +1,3 @@
-import { useState, useEffect, useRef } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
@@ -14,6 +13,7 @@ import { showSuccess, showError } from '../../../notification';
 import { AnalyzePersistentVolumeStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -138,93 +138,38 @@ function _getStatusColor(status) {
 }
 
 export default function PersistentVolumesOverviewTable({ namespaces }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const intervalRef = useRef(null);
   const { state: holmesState, analyze: analyzePersistentVolume, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'PersistentVolume',
     analyzeFn: AnalyzePersistentVolumeStream,
   });
 
-  // Normalize PV data
-  const normalize = (arr) => (arr || []).filter(Boolean).map((i) => {
-    // Try to extract namespace from claim (format: namespace/name)
-    let ns = '-';
-    if (i.claim) {
-      const parts = i.claim.split('/');
-      if (parts.length === 2) ns = parts[0];
-    }
-    return {
-      name: i.name ?? i.Name,
-      namespace: i.namespace ?? i.Namespace ?? ns,
-      capacity: i.capacity ?? i.Capacity ?? '-',
-      accessModes: Array.isArray(i.accessModes ?? i.AccessModes) ? (i.accessModes ?? i.AccessModes).join(', ') : '-',
-      reclaimPolicy: i.reclaimPolicy ?? i.ReclaimPolicy ?? '-',
-      status: i.status ?? i.Status ?? '-',
-      claim: i.claim ?? i.Claim ?? '-',
-      storageClass: i.storageClass ?? i.StorageClass ?? '-',
-      volumeType: i.volumeType ?? i.VolumeType ?? '-',
-      age: i.age ?? i.Age ?? '-',
-      labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {},
-      annotations: i.annotations ?? i.Annotations ?? i.metadata?.annotations ?? {}
-    };
+  const { data, loading, refresh: fetchAllPVs } = useResourceData({
+    fetchFn: AppAPI.GetPersistentVolumes,
+    eventName: 'pv:update',
+    clusterScoped: true,
+    normalize: (i) => {
+      // Try to extract namespace from claim (format: namespace/name)
+      let ns = '-';
+      if (i.claim) {
+        const parts = i.claim.split('/');
+        if (parts.length === 2) ns = parts[0];
+      }
+      return {
+        name: i.name ?? i.Name,
+        namespace: i.namespace ?? i.Namespace ?? ns,
+        capacity: i.capacity ?? i.Capacity ?? '-',
+        accessModes: Array.isArray(i.accessModes ?? i.AccessModes) ? (i.accessModes ?? i.AccessModes).join(', ') : '-',
+        reclaimPolicy: i.reclaimPolicy ?? i.ReclaimPolicy ?? '-',
+        status: i.status ?? i.Status ?? '-',
+        claim: i.claim ?? i.Claim ?? '-',
+        storageClass: i.storageClass ?? i.StorageClass ?? '-',
+        volumeType: i.volumeType ?? i.VolumeType ?? '-',
+        age: i.age ?? i.Age ?? '-',
+        labels: i.labels ?? i.Labels ?? i.metadata?.labels ?? {},
+        annotations: i.annotations ?? i.Annotations ?? i.metadata?.annotations ?? {}
+      };
+    },
   });
-
-  // Fetch all PVs (cluster-wide)
-  const fetchAllPVs = async (isInitialLoad = false) => {
-    if (isInitialLoad) {
-      setLoading(true);
-    }
-    setError(null);
-    try {
-      const result = await AppAPI.GetPersistentVolumes();
-      setData(normalize(result));
-    } catch (err) {
-      console.error('Error fetching persistent volumes:', err);
-      setError(err.toString());
-      if (isInitialLoad) {
-        setData([]);
-      }
-    } finally {
-      if (isInitialLoad) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchAllPVs(true); // Initial load
-    intervalRef.current = setInterval(() => fetchAllPVs(false), 5000); // Subsequent refreshes
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (error) {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-        Error loading persistent volumes: {error}
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '200px',
-        color: 'var(--gh-text-muted)'
-      }}>
-        Loading Persistent Volumes...
-      </div>
-    );
-  }
 
   const getRowActions = (row, api) => {
     const key = row.name; // PVs are cluster-scoped, no namespace

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import CronJobYamlTab from './CronJobYamlTab';
@@ -7,7 +6,6 @@ import CronJobActionsTab from './CronJobActionsTab';
 import CronJobNextRunsTab from './CronJobNextRunsTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
@@ -15,6 +13,7 @@ import { StartJobFromCronJob, SuspendCronJob, ResumeCronJob } from '../kubeApi';
 import { AnalyzeCronJobStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -129,77 +128,26 @@ function panelHeader(row) {
 }
 
 export default function CronJobsOverviewTable({ namespaces }) {
-  const [cronJobs, setCronJobs] = useState([]);
-  const [_loading, setLoading] = useState(false);
   const { state: holmesState, analyze: analyzeCronJob, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'CronJob',
     analyzeFn: AnalyzeCronJobStream,
   });
 
-  const normalize = (arr) => (arr || []).filter(Boolean).map((d) => ({
-    name: d.name ?? d.Name,
-    namespace: d.namespace ?? d.Namespace,
-    schedule: d.schedule ?? d.Schedule ?? '-',
-    suspend: d.suspend ?? d.Suspend ?? false,
-    nextRun: d.nextRun ?? d.NextRun ?? '-',
-    age: d.age ?? d.Age ?? '-',
-    image: d.image ?? d.Image ?? '',
-    labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
-  }));
-
-  const fetchAllCronJobs = async () => {
-    if (!Array.isArray(namespaces) || namespaces.length === 0) {
-      setCronJobs([]);
-      return;
-    }
-    setLoading(true);
-    try {
-      const results = await Promise.all(
-        namespaces.map(ns => AppAPI.GetCronJobs(ns).catch(() => []))
-      );
-      // Flatten and normalize, filter out any nulls
-      setCronJobs(normalize([].concat(...results).filter(Boolean)));
-    } catch (e) {
-      console.error('Error fetching cronjobs:', e);
-      setCronJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAllCronJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespaces]);
-
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const filtered = namespaces ? arr.filter((d) => namespaces.includes(d?.namespace || d?.Namespace)) : arr;
-        setCronJobs(normalize(filtered));
-      } catch (_) {
-        setCronJobs([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('cronjobs:update', onUpdate);
-    return () => { try { EventsOff('cronjobs:update'); } catch (_) {} };
-  }, [namespaces]);
-
-  // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
-  useEffect(() => {
-    const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      if (eventData?.resource === 'cronjob' && Array.isArray(namespaces) && namespaces.includes(eventData?.namespace)) {
-        fetchAllCronJobs();
-      }
-    });
-    return () => {
-      try { EventsOff('resource-updated', unsubscribe); } catch (_) {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespaces]);
+  const { data: cronJobs } = useResourceData({
+    fetchFn: AppAPI.GetCronJobs,
+    eventName: 'cronjobs:update',
+    namespaces,
+    normalize: (d) => ({
+      name: d.name ?? d.Name,
+      namespace: d.namespace ?? d.Namespace,
+      schedule: d.schedule ?? d.Schedule ?? '-',
+      suspend: d.suspend ?? d.Suspend ?? false,
+      nextRun: d.nextRun ?? d.NextRun ?? '-',
+      age: d.age ?? d.Age ?? '-',
+      image: d.image ?? d.Image ?? '',
+      labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
+    }),
+  });
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;
