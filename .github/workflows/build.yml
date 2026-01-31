@@ -116,17 +116,25 @@ jobs:
             shard: 1
             base_port: 34200
             registry: false
+            holmes_deploy: false
           - name: e2e-shard-2
             shard: 2
             base_port: 34300
             registry: false
+            holmes_deploy: false
           - name: e2e-shard-3
             shard: 3
             base_port: 34400
             registry: false
+            holmes_deploy: false
+          - name: e2e-holmes-deploy
+            base_port: 34600
+            registry: false
+            holmes_deploy: true
           - name: e2e-registry
             base_port: 34500
             registry: true
+            holmes_deploy: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -237,7 +245,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run e2e tests (shard ${{ matrix.shard }}/3)
-        if: matrix.registry != true
+        if: matrix.registry != true && matrix.holmes_deploy != true
         working-directory: e2e
         run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
         env:
@@ -245,6 +253,17 @@ jobs:
           PW_WORKERS: '2'
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+
+      - name: Run Holmes deployment e2e tests
+        if: matrix.holmes_deploy == true
+        working-directory: e2e
+        run: xvfb-run -a npx playwright test tests/holmes/60-holmes-onboarding-deploy.spec.ts
+        env:
+          CI: true
+          PW_WORKERS: '1'
+          KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+          E2E_HOLMES_DEPLOY: '1'
 
       - name: Run registry e2e tests
         if: matrix.registry == true
