@@ -11,29 +11,18 @@ import ResourceActions from '../../../components/ResourceActions.jsx';
 import PVCBoundPVTab from './PVCBoundPVTab.jsx';
 import PVCConsumersTab from './PVCConsumersTab.jsx';
 import { showSuccess, showError } from '../../../notification';
-import { AnalyzePersistentVolumeClaimStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import { AnalyzePersistentVolumeClaimStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
 
 export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCCreate }) {
   const [pvcs, setPVCs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [holmesState, setHolmesState] = useState({
-    loading: false,
-    response: null,
-    error: null,
-    key: null,
-    streamId: null,
-    streamingText: '',
-    reasoningText: '',
-    queryTimestamp: null,
-    contextSteps: [],
-    toolEvents: [],
+  const { state: holmesState, analyze: analyzePersistentVolumeClaim, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
+    kind: 'PersistentVolumeClaim',
+    analyzeFn: AnalyzePersistentVolumeClaimStream,
   });
-  const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
 
   const fastTimerRef = useRef(null);
   const slowTimerRef = useRef(null);
@@ -139,132 +128,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaces]);
-
-  // Subscribe to Holmes chat stream events
-  useEffect(() => {
-    const unsubscribe = onHolmesChatStream((payload) => {
-      if (!payload) return;
-      const current = holmesStateRef.current;
-      const { streamId } = current;
-      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
-        return;
-      }
-      if (payload.error) {
-        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
-          setHolmesState((prev) => ({ ...prev, loading: false }));
-          return;
-        }
-        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
-        return;
-      }
-
-      const eventType = payload.event;
-      if (!payload.data) {
-        return;
-      }
-
-      let streamData;
-      try {
-        streamData = JSON.parse(payload.data);
-      } catch {
-        streamData = null;
-      }
-
-      if (eventType === 'ai_message' && streamData) {
-        let handled = false;
-        if (streamData.reasoning) {
-          setHolmesState((prev) => ({
-            ...prev,
-            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + streamData.reasoning,
-          }));
-          handled = true;
-        }
-        if (streamData.content) {
-          setHolmesState((prev) => {
-            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + streamData.content;
-            return { ...prev, streamingText: nextText, response: { response: nextText } };
-          });
-          handled = true;
-        }
-        if (handled) return;
-      }
-
-      if (eventType === 'start_tool_calling' && streamData && streamData.id) {
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: [...(prev.toolEvents || []), {
-            id: streamData.id,
-            name: streamData.tool_name || 'tool',
-            status: 'running',
-            description: streamData.description,
-          }],
-        }));
-        return;
-      }
-
-      if (eventType === 'tool_calling_result' && streamData && streamData.tool_call_id) {
-        const status = streamData.result?.status || streamData.status || 'done';
-        setHolmesState((prev) => ({
-          ...prev,
-          toolEvents: (prev.toolEvents || []).map((item) =>
-            item.id === streamData.tool_call_id
-              ? { ...item, status, description: streamData.description || item.description }
-              : item
-          ),
-        }));
-        return;
-      }
-
-      if (eventType === 'ai_answer_end' && streamData && streamData.analysis) {
-        setHolmesState((prev) => ({
-          ...prev,
-          loading: false,
-          response: { response: streamData.analysis },
-          streamingText: streamData.analysis,
-        }));
-        return;
-      }
-
-      if (eventType === 'stream_end') {
-        setHolmesState((prev) => {
-          if (prev.streamingText) {
-            return { ...prev, loading: false, response: { response: prev.streamingText } };
-          }
-          return { ...prev, loading: false };
-        });
-      }
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onHolmesContextProgress((event) => {
-      if (!event?.key) return;
-      setHolmesState((prev) => {
-        if (prev.key !== event.key) return prev;
-        const id = event.step || 'step';
-        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
-        const idx = nextSteps.findIndex((item) => item.id === id);
-        const entry = {
-          id,
-          step: event.step,
-          status: event.status || 'running',
-          detail: event.detail || '',
-        };
-        if (idx >= 0) {
-          nextSteps[idx] = { ...nextSteps[idx], ...entry };
-        } else {
-          nextSteps.push(entry);
-        }
-        return { ...prev, contextSteps: nextSteps };
-      });
-    });
-    return () => {
-      try { unsubscribe?.(); } catch (_) {}
-    };
-  }, []);
 
   const columns = [
     { key: 'name', label: 'Name' },
@@ -398,41 +261,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
       </div>
     );
   }
-
-  const analyzePersistentVolumeClaim = async (row) => {
-    const key = `${row.namespace}/${row.name}`;
-    const streamId = `pvc-${Date.now()}`;
-    setHolmesState({
-      loading: true,
-      response: null,
-      error: null,
-      key,
-      streamId,
-      streamingText: '',
-      reasoningText: '',
-      queryTimestamp: new Date().toISOString(),
-      contextSteps: [],
-      toolEvents: [],
-    });
-    try {
-      await AnalyzePersistentVolumeClaimStream(row.namespace, row.name, streamId);
-    } catch (err) {
-      const message = err?.message || String(err);
-      setHolmesState((prev) => ({ ...prev, loading: false, response: null, error: message, key }));
-      showError(`Holmes analysis failed: ${message}`);
-    }
-  };
-
-  const cancelHolmesAnalysis = async () => {
-    const currentStreamId = holmesState.streamId;
-    if (!currentStreamId) return;
-    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
-    try {
-      await CancelHolmesStream(currentStreamId);
-    } catch (err) {
-      console.error('Failed to cancel Holmes stream:', err);
-    }
-  };
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;
