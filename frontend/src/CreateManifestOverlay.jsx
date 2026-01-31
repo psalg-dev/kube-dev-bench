@@ -20,56 +20,7 @@ import {
   yamlToNodeForm,
   nodeFormToYaml,
 } from './utils/swarmYamlUtils';
-
-function normalizeSwarmKind(kind) {
-  const k = (kind || '').toString().trim().toLowerCase();
-  // allow both singular and plural forms from callers
-  if (k.endsWith('s')) {
-    const singular = k.slice(0, -1);
-    if (['service', 'task', 'node', 'network', 'config', 'secret', 'stack', 'volume'].includes(singular)) return singular;
-  }
-  return k;
-}
-
-function getDefaultSwarmPayload(kind) {
-  switch (normalizeSwarmKind(kind)) {
-    case 'config':
-      return {
-        name: 'my-config',
-        data: '# Example Swarm config\nKEY=value\n',
-        labels: {},
-        editorMode: 'text',
-      };
-    case 'secret':
-      return {
-        name: 'my-secret',
-        data: 'supersecret',
-        labels: {},
-        editorMode: 'text',
-      };
-    case 'service':
-      return {
-        name: 'my-service',
-        data: 'name: my-service\nimage: nginx:latest\nmode: replicated\nreplicas: 1\nports:\n  # - protocol: tcp\n  #   targetPort: 80\n  #   publishedPort: 8080\n  #   publishMode: ingress\nenv:\n  # KEY: value\nlabels:\n  # com.example.label: value\n',
-        labels: {},
-        editorMode: 'yaml',
-      };
-    case 'stack':
-      return {
-        name: 'my-stack',
-        data: 'version: "3.8"\nservices:\n  web:\n    image: nginx:latest\n    deploy:\n      replicas: 1\n    # Avoid publishing fixed host ports by default (they can conflict locally).\n    # ports:\n    #   - "8080:80"\n',
-        labels: {},
-        editorMode: 'yaml',
-      };
-    default:
-      return {
-        name: '',
-        data: '',
-        labels: {},
-        editorMode: 'text',
-      };
-  }
-}
+import { getDefaultManifest, getDefaultSwarmPayload, normalizeSwarmKind } from './config/manifestTemplates';
 
 function _parseKeyValueLabels(input) {
   const out = {};
@@ -166,37 +117,6 @@ function KeyValueEditor({
       </div>
     </div>
   );
-}
-
-function getDefaultManifest(kind, namespace) {
-  const ns = namespace || 'default';
-  switch ((kind || '').toLowerCase()) {
-    case 'deployment':
-      return `apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: my-deployment\n  namespace: ${ns}\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: my-app\n  template:\n    metadata:\n      labels:\n        app: my-app\n    spec:\n      containers:\n      - name: app\n        image: nginx:latest\n        ports:\n        - containerPort: 80\n`;
-    case 'job':
-      return `apiVersion: batch/v1\nkind: Job\nmetadata:\n  name: my-job\n  namespace: ${ns}\nspec:\n  template:\n    spec:\n      restartPolicy: Never\n      containers:\n      - name: job\n        image: busybox\n        command: ["sh", "-c", "echo hello; sleep 30"]\n  backoffLimit: 2\n`;
-    case 'cronjob':
-      return `apiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: my-cronjob\n  namespace: ${ns}\nspec:\n  schedule: "*/5 * * * *"\n  jobTemplate:\n    spec:\n      template:\n        spec:\n          restartPolicy: OnFailure\n          containers:\n          - name: cron\n            image: busybox\n            command: ["sh", "-c", "date; echo Hello from the Kubernetes cluster"]\n`;
-    case 'daemonset':
-      return `apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: my-daemonset\n  namespace: ${ns}\nspec:\n  selector:\n    matchLabels:\n      app: my-daemon\n  template:\n    metadata:\n      labels:\n        app: my-daemon\n    spec:\n      containers:\n      - name: daemon\n        image: nginx:latest\n`;
-    case 'statefulset':
-      return `apiVersion: apps/v1\nkind: StatefulSet\nmetadata:\n  name: my-statefulset\n  namespace: ${ns}\nspec:\n  serviceName: "stateful-service"\n  replicas: 1\n  selector:\n    matchLabels:\n      app: my-stateful\n  template:\n    metadata:\n      labels:\n        app: my-stateful\n    spec:\n      containers:\n      - name: app\n        image: nginx:latest\n`;
-    case 'replicaset':
-      return `apiVersion: apps/v1\nkind: ReplicaSet\nmetadata:\n  name: my-replicaset\n  namespace: ${ns}\nspec:\n  replicas: 2\n  selector:\n    matchLabels:\n      app: my-app\n  template:\n    metadata:\n      labels:\n        app: my-app\n    spec:\n      containers:\n      - name: app\n        image: nginx:latest\n`;
-    case 'configmap':
-      return `apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-config\n  namespace: ${ns}\ndata:\n  # Add your configuration key-value pairs below\n  # Example file-based config:\n  # app.properties: |\n  #   key1=value1\n  #   key2=value2\n  # Example YAML config:\n  # config.yaml: |\n  #   setting:\n  #     enabled: true\n  # Simple key-value:\n  my-key: my-value\n`;
-    case 'secret':
-      return `apiVersion: v1\nkind: Secret\nmetadata:\n  name: my-secret\n  namespace: ${ns}\ntype: Opaque\nstringData:\n  # plain text values; will be base64-encoded by the API server\n  username: user\n  password: pass\n`;
-    case 'ingress':
-      return `apiVersion: networking.k8s.io/v1\nkind: Ingress\nmetadata:\n  name: my-ingress\n  namespace: ${ns}\n  annotations:\n    kubernetes.io/ingress.class: nginx\nspec:\n  rules:\n  - host: example.com\n    http:\n      paths:\n      - path: /\n        pathType: Prefix\n        backend:\n          service:\n            name: example-service\n            port:\n              number: 80\n  # tls:\n  # - hosts:\n  #   - example.com\n  #   secretName: example-tls\n`;
-    case 'persistentvolumeclaim':
-      return `apiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: my-pvc\n  namespace: ${ns}\nspec:\n  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage: 1Gi\n  # Optional: specify storage class\n  # storageClassName: fast-ssd\n  # Optional: selector for existing PV\n  # selector:\n  #   matchLabels:\n  #     type: local\n`;
-    case 'persistentvolume':
-      // PersistentVolume is cluster-scoped; no namespace field
-      return 'apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\n  labels:\n    type: local\nspec:\n  storageClassName: manual\n  capacity:\n    storage: 10Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: "/mnt/data"\n  # Alternative volume sources:\n  # nfs:\n  #   server: nfs-server.example.com\n  #   path: /path/to/nfs/share\n  # awsElasticBlockStore:\n  #   volumeID: vol-12345678\n  #   fsType: ext4\n  # gcePersistentDisk:\n  #   pdName: my-data-disk\n  #   fsType: ext4\n';
-    default:
-      return `# Unknown kind: ${kind || 'Resource'}\n# Edit as needed\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example\n  namespace: ${ns}\ndata:\n  key: value\n`;
-  }
 }
 
 export default function CreateManifestOverlay({ open, kind, namespace, onClose, platform = 'k8s', createHint }) {

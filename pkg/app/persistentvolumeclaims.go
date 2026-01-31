@@ -6,7 +6,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 // getPVCVolumeName returns the volume name or default
@@ -80,15 +79,9 @@ func buildPVCListInfo(pvc *corev1.PersistentVolumeClaim, now time.Time) Persiste
 
 // GetPersistentVolumeClaims returns all persistent volume claims in a namespace
 func (a *App) GetPersistentVolumeClaims(namespace string) ([]PersistentVolumeClaimInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return nil, err
 	}
 
 	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(a.ctx, metav1.ListOptions{})

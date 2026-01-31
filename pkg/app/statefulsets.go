@@ -5,7 +5,6 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 // getStatefulSetImage returns the first container image from the statefulset spec
@@ -60,15 +59,9 @@ func buildStatefulSetInfo(ss *appsv1.StatefulSet, now time.Time) StatefulSetInfo
 
 // GetStatefulSets returns all statefulsets in a namespace
 func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return nil, err
 	}
 
 	list, err := clientset.AppsV1().StatefulSets(namespace).List(a.ctx, metav1.ListOptions{})

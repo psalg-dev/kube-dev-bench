@@ -7,7 +7,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 // formatPVAccessModes formats access modes for display
@@ -136,15 +135,9 @@ func buildPVInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo
 
 // GetPersistentVolumes returns all persistent volumes in the cluster
 func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return nil, err
 	}
 
 	pvs, err := clientset.CoreV1().PersistentVolumes().List(a.ctx, metav1.ListOptions{})

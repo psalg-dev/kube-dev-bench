@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-import { EventsOn } from '../../../../wailsjs/runtime';
+import { useState } from 'react';
 import { useSwarmState } from '../../SwarmStateContext.jsx';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
@@ -8,6 +7,7 @@ import SwarmResourceActions from '../SwarmResourceActions.jsx';
 import VolumeUsedBySection from './VolumeUsedBySection.jsx';
 import VolumeFilesTab from './VolumeFilesTab.jsx';
 import VolumeInspectTab from './VolumeInspectTab.jsx';
+import { useResourceData } from '../../../hooks/useResourceData';
 import { BackupSwarmVolume, CloneSwarmVolume, GetSwarmVolumes, GetSwarmVolumeUsage, RemoveSwarmVolume, RestoreSwarmVolume } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
@@ -211,60 +211,18 @@ function renderPanelContent(row, tab, onRefresh) {
 export default function SwarmVolumesOverviewTable() {
   const swarm = useSwarmState();
   const connected = swarm?.connected;
-  const [volumes, setVolumes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const refresh = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
+  const { data: volumes, loading, refresh } = useResourceData({
+    fetchFn: GetSwarmVolumes,
+    eventName: 'swarm:volumes:update',
+    clusterScoped: true,
+    enabled: connected,
+  });
 
   const defaultCloneName = (base) => {
     const iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
     return `${base}@${iso}`;
   };
-
-  useEffect(() => {
-    if (!connected) {
-      setVolumes([]);
-      setLoading(false);
-      return;
-    }
-
-    let active = true;
-
-    const loadVolumes = async () => {
-      try {
-        const data = await GetSwarmVolumes();
-        if (active) {
-          setVolumes(Array.isArray(data) ? data : []);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load volumes:', err);
-        if (active) {
-          setVolumes([]);
-          setLoading(false);
-        }
-      }
-    };
-
-    loadVolumes();
-
-    const off = EventsOn('swarm:volumes:update', (data) => {
-      if (!active) return;
-      if (Array.isArray(data)) {
-        setVolumes(data);
-      } else {
-        refresh();
-      }
-    });
-
-    return () => {
-      active = false;
-      if (typeof off === 'function') off();
-    };
-  }, [connected, refreshKey, refresh]);
 
   if (!connected) {
     return (
