@@ -5,13 +5,35 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // GetConfigMaps returns all configmaps in a namespace
 func (a *App) GetConfigMaps(namespace string) ([]ConfigMapInfo, error) {
-	clientset, err := a.getClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		configPath := a.getKubeConfigPath()
+		config, err := clientcmd.LoadFromFile(configPath)
+		if err != nil {
+			return nil, err
+		}
+		if a.currentKubeContext == "" {
+			return nil, fmt.Errorf("Kein Kontext gewählt")
+		}
+		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+		restConfig, err := clientConfig.ClientConfig()
+		if err != nil {
+			return nil, err
+		}
+		clientset, err = kubernetes.NewForConfig(restConfig)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	configMaps, err := clientset.CoreV1().ConfigMaps(namespace).List(a.ctx, metav1.ListOptions{})

@@ -13,7 +13,7 @@ export default async function globalTeardown() {
 
     // Best-effort: kill any servers we started.
     const poolPids = (state.wailsInstances ?? []).map((w) => w.pid).filter((p): p is number => typeof p === 'number');
-    const pids = [state.frontendPid, state.sharedWailsPid, state.proxyPid, ...poolPids].filter(
+    const pids = [state.frontendPid, state.sharedWailsPid, state.proxyPid, state.holmesMockPid, ...poolPids].filter(
       (p): p is number => typeof p === 'number'
     );
 

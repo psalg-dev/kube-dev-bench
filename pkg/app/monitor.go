@@ -221,9 +221,15 @@ func checkSinglePod(namespace string, pod v1.Pod) []MonitorIssue {
 func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 	var issues []MonitorIssue
 
-	clientset, err := a.getClient()
-	if err != nil {
-		return issues
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.createKubernetesClient()
+		if err != nil {
+			return issues
+		}
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
@@ -302,9 +308,15 @@ func processEventsV1Events(clientset kubernetes.Interface, ctx context.Context, 
 
 // checkEventIssues examines k8s events for warnings in the namespace
 func (a *App) checkEventIssues(namespace string) []MonitorIssue {
-	clientset, err := a.getClient()
-	if err != nil {
-		return nil
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.createKubernetesClient()
+		if err != nil {
+			return nil
+		}
 	}
 
 	// Get events from the last 10 minutes
