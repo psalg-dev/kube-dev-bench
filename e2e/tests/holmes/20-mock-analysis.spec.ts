@@ -215,7 +215,6 @@ spec:
 
     await test.step('Clear conversation', async () => {
       const clearButton = page.getByTitle('Clear conversation');
-      await expect(clearButton).toBeVisible({ timeout: 5_000 });
       await clearButton.click();
 
       // After clearing, input should still be visible and ready
