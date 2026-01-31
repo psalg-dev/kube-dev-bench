@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -7,13 +6,13 @@ import DeploymentPodsTab from './DeploymentPodsTab';
 import DeploymentRolloutTab from './DeploymentRolloutTab';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeDeploymentStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -163,20 +162,13 @@ spec:
 }
 
 export default function DeploymentsOverviewTable({ namespaces, namespace }) {
-  const [deployments, setDeployments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  
-  // Use the Holmes analysis hook
-  const { state: holmesState, analyze: analyzeDeployment, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
-    kind: 'Deployment',
-    analyzeFn: AnalyzeDeploymentStream,
-  });
-
-  useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-
-    const normalize = (arr) => (arr || []).filter(Boolean).map(d => ({
+  // Use the consolidated resource data hook
+  const { data: deployments, loading } = useResourceData({
+    fetchFn: AppAPI.GetDeployments,
+    eventName: 'deployments:update',
+    namespaces,
+    namespace,
+    normalize: (d) => ({
       name: d.name ?? d.Name,
       namespace: d.namespace ?? d.Namespace,
       replicas: d.replicas ?? d.Replicas ?? 0,
@@ -185,52 +177,14 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }) {
       age: d.age ?? d.Age ?? '-',
       image: d.image ?? d.Image ?? '',
       labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
-    }));
-
-    const fetchDeployments = async () => {
-      try {
-        setLoading(true);
-        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDeployments(ns).catch(() => [])));
-        const flat = lists.flat();
-        setDeployments(normalize(flat));
-      } catch (error) {
-        console.error('Failed to fetch deployments:', error);
-        setDeployments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDeployments();
-  }, [namespaces, namespace]);
-
-  // Subscribe to live deployment updates from backend (already aggregated)
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const norm = arr.map(d => ({
-          name: d.name ?? d.Name,
-          namespace: d.namespace ?? d.Namespace,
-            replicas: d.replicas ?? d.Replicas ?? 0,
-            ready: d.ready ?? d.Ready ?? 0,
-            available: d.available ?? d.Available ?? 0,
-            age: d.age ?? d.Age ?? '-',
-            image: d.image ?? d.Image ?? '',
-            labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
-        }));
-        setDeployments(norm);
-      } catch (_e) {
-        setDeployments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('deployments:update', onUpdate);
-    return () => {
-      try { EventsOff('deployments:update'); } catch (_) {}
-    };
-  }, []);
+    }),
+  });
+  
+  // Use the Holmes analysis hook
+  const { state: holmesState, analyze: analyzeDeployment, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
+    kind: 'Deployment',
+    analyzeFn: AnalyzeDeploymentStream,
+  });
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;

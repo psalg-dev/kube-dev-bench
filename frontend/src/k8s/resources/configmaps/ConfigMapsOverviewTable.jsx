@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import ConfigMapYamlTab from './ConfigMapYamlTab';
@@ -6,13 +5,13 @@ import ConfigMapDataTab from './ConfigMapDataTab';
 import ConfigMapConsumersTab from './ConfigMapConsumersTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeConfigMapStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -109,131 +108,30 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
   return null;
 }
 
-// Add helper normalization for configmaps to ensure labels property exists
-const normalizeConfigMaps = (arr) => (arr || []).filter(Boolean).map(cm => ({
-  ...cm,
+// Normalize function for configmaps
+const normalizeConfigMap = (cm) => ({
   name: cm.name ?? cm.Name,
   namespace: cm.namespace ?? cm.Namespace,
   keys: cm.keys ?? cm.Keys ?? '-',
   size: cm.size ?? cm.Size ?? '-',
   age: cm.age ?? cm.Age ?? '-',
   labels: cm.labels ?? cm.Labels ?? cm.metadata?.labels ?? {}
-}));
+});
 
 export default function ConfigMapsOverviewTable({ namespaces = [], namespace, onConfigMapCreate }) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // Use the consolidated resource data hook
+  const { data, loading } = useResourceData({
+    fetchFn: AppAPI.GetConfigMaps,
+    eventName: 'configmaps:update',
+    namespaces,
+    namespace,
+    normalize: normalizeConfigMap,
+  });
+
   const { state: holmesState, analyze: analyzeConfigMap, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'ConfigMap',
     analyzeFn: AnalyzeConfigMapStream,
   });
-
-  // Timers and guards as refs so we can restart fast polling on new creates
-  const inFlightRef = useRef(false);
-  const fastTimerRef = useRef(null);
-  const slowTimerRef = useRef(null);
-
-  const clearTimers = () => {
-    if (fastTimerRef.current) {
-      clearInterval(fastTimerRef.current);
-      fastTimerRef.current = null;
-    }
-    if (slowTimerRef.current) {
-      clearInterval(slowTimerRef.current);
-      slowTimerRef.current = null;
-    }
-  };
-
-  // Fetch configmaps for all selected namespaces
-  const fetchConfigMaps = async () => {
-    const nsList = namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsList.length === 0) return;
-    setLoading(true);
-    setError(null);
-    try {
-      let allConfigMaps = [];
-      for (const ns of nsList) {
-        const configmaps = await AppAPI.GetConfigMaps(ns);
-        allConfigMaps = allConfigMaps.concat(normalizeConfigMaps(configmaps || []));
-      }
-      setData(allConfigMaps);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch configmaps');
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fast polling for all selected namespaces
-  const periodicFetch = async () => {
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      await fetchConfigMaps();
-    } catch (_) {
-      // ignore periodic errors
-    } finally {
-      inFlightRef.current = false;
-    }
-  };
-
-  const startFastPollingWindow = () => {
-    clearTimers();
-    let elapsed = 0;
-    fastTimerRef.current = setInterval(async () => {
-      await periodicFetch();
-      elapsed += 1;
-      if (elapsed >= 60) {
-        if (fastTimerRef.current) {
-          clearInterval(fastTimerRef.current);
-          fastTimerRef.current = null;
-        }
-        slowTimerRef.current = setInterval(() => periodicFetch(), 60000);
-      }
-    }, 1000);
-  };
-
-  useEffect(() => {
-    fetchConfigMaps();
-    startFastPollingWindow();
-    return () => clearTimers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(namespaces), namespace]);
-
-  // Generic resource-updated fallback
-  useEffect(() => {
-    const unsubscribe = EventsOn('resource-updated', (eventData) => {
-      if (eventData?.resource === 'configmap' && (namespaces.includes(eventData?.namespace) || eventData?.namespace === namespace)) {
-        fetchConfigMaps();
-        startFastPollingWindow();
-      }
-    });
-    return () => {
-      EventsOff('resource-updated', unsubscribe);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(namespaces), namespace]);
-
-  // Direct snapshot updates from backend (emitted after creates)
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const filtered = arr.filter(cm => namespaces.includes(cm?.namespace || cm?.Namespace) || (cm?.namespace || cm?.Namespace) === namespace);
-        setData(normalizeConfigMaps(filtered));
-        startFastPollingWindow();
-      } catch (_) {
-        // ignore malformed payloads
-      }
-    };
-    EventsOn('configmaps:update', onUpdate);
-    return () => {
-      EventsOff('configmaps:update', onUpdate);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(namespaces), namespace]);
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;
@@ -270,7 +168,6 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
       data={data}
       columns={columns}
       loading={loading}
-      error={error}
       tabs={bottomTabs}
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeConfigMap, cancelHolmesAnalysis)}
       resourceKind="configmap"

@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -7,13 +6,13 @@ import ResourcePodsTab from '../../../components/ResourcePodsTab';
 import StatefulSetPVCsTab from './StatefulSetPVCsTab';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeStatefulSetStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -173,67 +172,27 @@ function panelHeader(row) {
 }
 
 export default function StatefulSetsOverviewTable({ namespaces, namespace }) {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Use the consolidated resource data hook
+  const { data: items, loading } = useResourceData({
+    fetchFn: AppAPI.GetStatefulSets,
+    eventName: 'statefulsets:update',
+    namespaces,
+    namespace,
+    normalize: (x) => ({
+      name: x.name ?? x.Name,
+      namespace: x.namespace ?? x.Namespace,
+      replicas: x.replicas ?? x.Replicas ?? 0,
+      ready: x.ready ?? x.Ready ?? 0,
+      age: x.age ?? x.Age ?? '-',
+      image: x.image ?? x.Image ?? '',
+      labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
+    }),
+  });
+
   const { state: holmesState, analyze: analyzeStatefulSet, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'StatefulSet',
     analyzeFn: AnalyzeStatefulSetStream,
   });
-
-  // Aggregate fetch by namespaces
-  useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-    let cancelled = false;
-    const run = async () => {
-      try {
-        setLoading(true);
-        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetStatefulSets(ns).catch(() => [])));
-        if (cancelled) return;
-        const flat = lists.flat().map(x => ({
-          name: x.name ?? x.Name,
-          namespace: x.namespace ?? x.Namespace,
-          replicas: x.replicas ?? x.Replicas ?? 0,
-          ready: x.ready ?? x.Ready ?? 0,
-          age: x.age ?? x.Age ?? '-',
-          image: x.image ?? x.Image ?? '',
-          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
-        }));
-        setItems(flat);
-      } catch (_e) {
-        if (!cancelled) setItems([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    run();
-    return () => { cancelled = true; };
-  }, [namespaces, namespace]);
-
-  // Live updates (already aggregated by backend polling)
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const norm = arr.map(x => ({
-          name: x.name ?? x.Name,
-          namespace: x.namespace ?? x.Namespace,
-          replicas: x.replicas ?? x.Replicas ?? 0,
-          ready: x.ready ?? x.Ready ?? 0,
-          age: x.age ?? x.Age ?? '-',
-          image: x.image ?? x.Image ?? '',
-          labels: x.labels ?? x.Labels ?? x.metadata?.labels ?? {}
-        }));
-        setItems(norm);
-      } catch (_) {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('statefulsets:update', onUpdate);
-    return () => { try { EventsOff('statefulsets:update'); } catch (_) {} };
-  }, []);
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;

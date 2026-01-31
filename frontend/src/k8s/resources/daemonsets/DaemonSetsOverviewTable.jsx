@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -7,13 +6,13 @@ import ResourcePodsTab from '../../../components/ResourcePodsTab';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import DaemonSetNodeCoverageTab from './DaemonSetNodeCoverageTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeDaemonSetStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -166,58 +165,27 @@ function panelHeader(row) {
 }
 
 export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
-  const [daemonSets, setDaemonSets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Use the consolidated resource data hook
+  const { data: daemonSets, loading } = useResourceData({
+    fetchFn: AppAPI.GetDaemonSets,
+    eventName: 'daemonsets:update',
+    namespaces,
+    namespace,
+    normalize: (d) => ({
+      name: d.name ?? d.Name,
+      namespace: d.namespace ?? d.Namespace,
+      desired: d.desired ?? d.Desired ?? 0,
+      current: d.current ?? d.Current ?? 0,
+      age: d.age ?? d.Age ?? '-',
+      image: d.image ?? d.Image ?? '',
+      labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
+    }),
+  });
+
   const { state: holmesState, analyze: analyzeDaemonSet, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'DaemonSet',
     analyzeFn: AnalyzeDaemonSetStream,
   });
-
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const norm = arr.map(d => ({
-          name: d.name ?? d.Name,
-          namespace: d.namespace ?? d.Namespace,
-          desired: d.desired ?? d.Desired ?? 0,
-          current: d.current ?? d.Current ?? 0,
-          age: d.age ?? d.Age ?? '-',
-          image: d.image ?? d.Image ?? '',
-          labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
-        }));
-        setDaemonSets(norm);
-      } catch (_) {
-        setDaemonSets([]);
-      } finally { setLoading(false); }
-    };
-    EventsOn('daemonsets:update', onUpdate);
-    return () => { try { EventsOff('daemonsets:update'); } catch (_) {} };
-  }, []);
-
-  useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-    const fetchDaemonSets = async () => {
-      try {
-        setLoading(true);
-        const lists = await Promise.all(nsArr.map(ns => AppAPI.GetDaemonSets(ns).catch(() => [])));
-        const flat = lists.flat().map(d => ({
-          name: d.name ?? d.Name,
-          namespace: d.namespace ?? d.Namespace,
-          desired: d.desired ?? d.Desired ?? 0,
-          current: d.current ?? d.Current ?? 0,
-          age: d.age ?? d.Age ?? '-',
-          image: d.image ?? d.Image ?? '',
-          labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
-        }));
-        setDaemonSets(flat);
-      } catch (_error) {
-        setDaemonSets([]);
-      } finally { setLoading(false); }
-    };
-    fetchDaemonSets();
-  }, [namespaces, namespace]);
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;

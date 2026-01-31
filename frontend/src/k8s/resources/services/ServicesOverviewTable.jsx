@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import ServiceYamlTab from './ServiceYamlTab';
@@ -7,11 +6,11 @@ import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
 import { showSuccess, showError } from '../../../notification';
 import { AnalyzeServiceStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../../hooks/useResourceData';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -121,82 +120,27 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
 }
 
 export default function ServicesOverviewTable({ namespaces, namespace }) {
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // Use the consolidated resource data hook
+  const { data: services, loading } = useResourceData({
+    fetchFn: AppAPI.GetServices,
+    eventName: 'services:update',
+    namespaces,
+    namespace,
+    normalize: (svc) => ({
+      name: svc.name ?? svc.Name,
+      namespace: svc.namespace ?? svc.Namespace,
+      type: svc.type ?? svc.Type ?? '-',
+      clusterIP: svc.clusterIP ?? svc.ClusterIP ?? '-',
+      ports: svc.ports ?? svc.Ports ?? '-',
+      age: svc.age ?? svc.Age ?? '-',
+      labels: svc.labels ?? svc.Labels ?? svc.metadata?.labels ?? {},
+    }),
+  });
+
   const { state: holmesState, analyze: analyzeService, cancel: cancelHolmesAnalysis } = useHolmesAnalysis({
     kind: 'Service',
     analyzeFn: AnalyzeServiceStream,
   });
-
-  const refreshServices = async () => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-    try {
-      setLoading(true);
-      const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetServices(ns).catch(() => [])));
-      const flat = lists.flat().map((svc) => ({
-        name: svc.name ?? svc.Name,
-        namespace: svc.namespace ?? svc.Namespace,
-        type: svc.type ?? svc.Type ?? '-',
-        clusterIP: svc.clusterIP ?? svc.ClusterIP ?? '-',
-        ports: svc.ports ?? svc.Ports ?? '-',
-        age: svc.age ?? svc.Age ?? '-',
-        labels: svc.labels ?? svc.Labels ?? svc.metadata?.labels ?? {},
-      }));
-      setServices(flat);
-    } catch (_) {
-      setServices([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  /* eslint-disable react-hooks/exhaustive-deps */
-  useEffect(() => {
-    refreshServices();
-  }, [namespaces, namespace]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-
-  /* eslint-disable react-hooks/exhaustive-deps */
-  useEffect(() => {
-    const onUpdate = (eventData) => {
-      const res = (eventData?.resource || '').toString().toLowerCase();
-      if (res !== 'service' && res !== 'services') return;
-      const ns = (eventData?.namespace || '').toString();
-      const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
-      if (ns && !selected.includes(ns)) return;
-      refreshServices();
-    };
-
-    const unsubscribe = EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated', unsubscribe); } catch (_) {} };
-  }, [namespaces, namespace]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-
-  useEffect(() => {
-    const onUpdate = (list) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const norm = arr.map((svc) => ({
-          name: svc.name ?? svc.Name,
-          namespace: svc.namespace ?? svc.Namespace,
-          type: svc.type ?? svc.Type ?? '-',
-          clusterIP: svc.clusterIP ?? svc.ClusterIP ?? '-',
-          ports: svc.ports ?? svc.Ports ?? '-',
-          age: svc.age ?? svc.Age ?? '-',
-          labels: svc.labels ?? svc.Labels ?? svc.metadata?.labels ?? {},
-        }));
-        setServices(norm);
-      } catch (_) {
-        setServices([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    EventsOn('services:update', onUpdate);
-    return () => { try { EventsOff('services:update'); } catch (_) {} };
-  }, []);
 
   const getRowActions = (row, api) => {
     const key = `${row.namespace}/${row.name}`;
