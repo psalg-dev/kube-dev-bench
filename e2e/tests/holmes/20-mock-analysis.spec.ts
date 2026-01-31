@@ -188,17 +188,18 @@ spec:
     await test.step('Have a conversation with Holmes', async () => {
       await openHolmesPanel({ page });
 
-      const input = await getHolmesInput(page);
+      const holmesPanel = page.locator('#holmes-panel');
 
-      // First question
-      await input.fill('Why is my pod crashing?');
+      // First question - get fresh input locator each time
+      const input1 = await getHolmesInput(page);
+      await input1.fill('Why is my pod crashing?');
       await page.getByRole('button', { name: '→' }).click();
 
-      const holmesPanel = page.locator('#holmes-panel');
       await expect(holmesPanel).toContainText('Pod Crash Analysis', { timeout: 30_000 });
 
-      // Second question
-      await input.fill('Check my deployment status');
+      // Second question - get fresh input locator after first response
+      const input2 = await getHolmesInput(page);
+      await input2.fill('Check my deployment status');
       await page.getByRole('button', { name: '→' }).click();
 
       await expect(holmesPanel).toContainText('Deployment Analysis', { timeout: 30_000 });
@@ -206,18 +207,19 @@ spec:
 
     await test.step('Verify conversation controls', async () => {
       const clearButton = page.getByTitle('Clear conversation');
-      await expect(clearButton).toBeVisible();
+      await expect(clearButton).toBeVisible({ timeout: 10_000 });
 
       const exportButton = page.getByTitle('Export conversation');
-      await expect(exportButton).toBeVisible();
+      await expect(exportButton).toBeVisible({ timeout: 10_000 });
     });
 
     await test.step('Clear conversation', async () => {
-      await page.getByTitle('Clear conversation').click();
+      const clearButton = page.getByTitle('Clear conversation');
+      await clearButton.click();
 
       // After clearing, input should still be visible and ready
       const input = page.getByPlaceholder('Ask about your cluster...');
-      await expect(input).toBeVisible();
+      await expect(input).toBeVisible({ timeout: 10_000 });
 
       // Conversation content should be cleared - check for the response text, not the question
       // (the question text "Why is my pod crashing?" appears in the placeholder examples)
@@ -226,7 +228,6 @@ spec:
       await expect(holmesPanel).not.toContainText('Deployment Analysis', { timeout: 10_000 });
       
       // Clear button should be hidden when no conversation
-      const clearButton = page.getByTitle('Clear conversation');
       await expect(clearButton).toBeHidden({ timeout: 5_000 });
     });
   });

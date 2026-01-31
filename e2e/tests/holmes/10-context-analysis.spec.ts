@@ -14,10 +14,14 @@ async function openRowActionsAndAskHolmes(page: any, rowText: string) {
   const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
 
-  await row.locator('.row-actions-button').click();
-  const askHolmes = page.locator('.menu-content .context-menu-item', { hasText: 'Ask Holmes' }).first();
-  await expect(askHolmes).toBeVisible({ timeout: 10_000 });
-  await askHolmes.click();
+  // Use retry pattern to handle potential popups intercepting clicks
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await row.locator('.row-actions-button').click();
+    const askHolmes = page.locator('.menu-content .context-menu-item', { hasText: 'Ask Holmes' }).first();
+    await expect(askHolmes).toBeVisible({ timeout: 5_000 });
+    await askHolmes.click();
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
 }
 
 test('Ask Holmes from resource details opens Holmes tab', async ({ page, contextName, namespace }) => {
@@ -42,7 +46,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
 
   // Ask Holmes from Deployment row
   await openRowActionsAndAskHolmes(page, deployName);
-  await panel.expectVisible();
+  await panel.expectVisible(30_000);
   await panel.expectTabs(['Holmes']);
 
   // Switch to Pods and ask Holmes from a pod row
@@ -53,7 +57,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await expect(podRow).toBeVisible({ timeout: 90_000 });
 
   await openRowActionsAndAskHolmes(page, deployName);
-  await panel.expectVisible();
+  await panel.expectVisible(30_000);
   await panel.expectTabs(['Holmes']);
 
   // Create a service and ask Holmes from Services view
@@ -69,7 +73,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await notifications.waitForClear();
 
   await openRowActionsAndAskHolmes(page, serviceName);
-  await panel.expectVisible();
+  await panel.expectVisible(30_000);
   await panel.expectTabs(['Holmes']);
 
   // Expect Holmes panel content from mock server

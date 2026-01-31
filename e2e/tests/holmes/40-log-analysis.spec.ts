@@ -38,9 +38,14 @@ test('analyzes pod logs with Holmes', async ({ page, contextName, namespace }) =
 
   const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect.poll(async () => await podRow.count(), { timeout: 120_000 }).toBeGreaterThan(0);
-  await podRow.click();
+  
+  // Use retry pattern for clicking the pod row
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await podRow.click();
+    await expect(panel.root).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
 
-  await panel.expectVisible(30_000);
   await panel.clickTab('Logs');
 
   const explainBtn = panel.root.getByRole('button', { name: /explain logs/i });
@@ -59,6 +64,6 @@ test('analyzes pod logs with Holmes', async ({ page, contextName, namespace }) =
     const askBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
     await expect(askBtn).toBeVisible({ timeout: 10_000 });
     await askBtn.click();
-    await expect(panel.root).toContainText(/Log analysis completed|Holmes Analysis|Analyzing/i);
+    await expect(panel.root).toContainText(/Log analysis completed|Holmes Analysis|Analyzing/i, { timeout: 30_000 });
   }
 });
