@@ -133,7 +133,7 @@ func (a *App) BulkRestartResources(items []BulkOperationItem) BulkOperationRespo
 		return response
 	}
 
-	restartPatch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
+	restartPatch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench.restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
 
 	for _, item := range items {
 		var restartErr error

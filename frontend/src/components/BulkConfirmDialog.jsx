@@ -95,12 +95,15 @@ export default function BulkConfirmDialog({
         <div className="bulk-confirm-items-container">
           <p className="bulk-confirm-subtitle">The following resources will be affected:</p>
           <ul className="bulk-confirm-items-list" data-testid="bulk-confirm-items">
-            {items.slice(0, 10).map((item, idx) => (
-              <li key={item.key || `${item.namespace || ''}/${item.name}` || idx} className="bulk-confirm-item">
+            {items.slice(0, 10).map((item, idx) => {
+              const itemKey = item.key || (item.namespace ? `${item.namespace}/${item.name}` : item.name) || idx;
+              return (
+              <li key={itemKey} className="bulk-confirm-item">
                 {item.namespace && <span className="bulk-confirm-namespace">{item.namespace}/</span>}
                 <span className="bulk-confirm-name">{item.name}</span>
               </li>
-            ))}
+              );
+            })}
             {items.length > 10 && (
               <li className="bulk-confirm-item bulk-confirm-more">
                 ... and {items.length - 10} more
