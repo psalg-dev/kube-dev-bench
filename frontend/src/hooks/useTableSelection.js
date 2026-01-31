@@ -50,7 +50,7 @@ export function useTableSelection(data, getRowKey) {
     return data.every((row, idx) => selectedKeys.has(getRowKey(row, idx)));
   }, [data, selectedKeys, getRowKey]);
 
-  const isIndeterminate = useMemo(() => {
+  const isPartiallySelected = useMemo(() => {
     if (!data || data.length === 0) return false;
     const someSelected = data.some((row, idx) => selectedKeys.has(getRowKey(row, idx)));
     return someSelected && !isAllSelected;
@@ -132,7 +132,7 @@ export function useTableSelection(data, getRowKey) {
     selectedKeys,
     isSelected,
     isAllSelected,
-    isIndeterminate,
+    isPartiallySelected,
     toggleRow,
     toggleAll,
     clearSelection,
