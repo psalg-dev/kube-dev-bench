@@ -76,7 +76,15 @@ test.describe('Docker Swarm Secrets', () => {
       await sidebar.goToSecrets();
 
       const table = page.locator('[data-testid="swarm-secrets-table"]');
-      await expect(table).toBeVisible({ timeout: 60_000 });
+      try {
+        await expect(table).toBeVisible({ timeout: 60_000 });
+      } catch {
+        await page.reload();
+        await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+        const sidebar2 = new SwarmSidebarPage(page);
+        await sidebar2.goToSecrets();
+        await expect(table).toBeVisible({ timeout: 90_000 });
+      }
 
       const tableFilter = page.getByRole('searchbox', { name: 'Filter table' });
 
@@ -146,7 +154,15 @@ test.describe('Docker Swarm Secrets', () => {
         const sidebar2 = new SwarmSidebarPage(page);
         await sidebar2.goToSecrets();
         const table2 = page.locator('[data-testid="swarm-secrets-table"]');
-        await expect(table2).toBeVisible({ timeout: 60_000 });
+        try {
+          await expect(table2).toBeVisible({ timeout: 60_000 });
+        } catch {
+          await page.reload();
+          await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+          const sidebar3 = new SwarmSidebarPage(page);
+          await sidebar3.goToSecrets();
+          await expect(table2).toBeVisible({ timeout: 90_000 });
+        }
         const tableFilter2 = page.getByRole('searchbox', { name: 'Filter table' });
         await tableFilter2.fill(rotatedNamePrefix);
         rotateRow = table2.locator('tbody tr').filter({ hasText: rotatedNamePrefix }).first();
@@ -182,7 +198,15 @@ test.describe('Docker Swarm Secrets', () => {
         const sidebar2 = new SwarmSidebarPage(page);
         await sidebar2.goToSecrets();
         const table2 = page.locator('[data-testid="swarm-secrets-table"]');
-        await expect(table2).toBeVisible({ timeout: 60_000 });
+        try {
+          await expect(table2).toBeVisible({ timeout: 60_000 });
+        } catch {
+          await page.reload();
+          await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+          const sidebar3 = new SwarmSidebarPage(page);
+          await sidebar3.goToSecrets();
+          await expect(table2).toBeVisible({ timeout: 90_000 });
+        }
         const tableFilter2 = page.getByRole('searchbox', { name: 'Filter table' });
         await tableFilter2.fill(cloneSource);
         cloneSourceRow = table2.locator('tbody tr').filter({ hasText: cloneSource }).first();

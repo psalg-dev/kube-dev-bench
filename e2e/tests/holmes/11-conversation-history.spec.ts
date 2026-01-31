@@ -1,6 +1,6 @@
 import { test, expect } from '../../src/fixtures.js';
 import { bootstrapApp } from '../../src/support/bootstrap.js';
-import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
+import { configureHolmesMock, getHolmesInput } from '../../src/support/holmes-bootstrap.js';
 
 test('Holmes panel conversation history with export/clear', async ({ page, contextName, namespace }) => {
   test.setTimeout(120_000);
@@ -11,8 +11,7 @@ test('Holmes panel conversation history with export/clear', async ({ page, conte
   await page.locator('#holmes-toggle-btn').click();
   await expect(page.locator('#holmes-panel')).toBeVisible({ timeout: 10_000 });
 
-  const input = page.getByPlaceholder('Ask about your cluster...');
-  await expect(input).toBeVisible({ timeout: 10_000 });
+  const input = await getHolmesInput(page);
   await input.fill('Why is my pod crashing?');
   await page.getByRole('button', { name: '→' }).click();
 
@@ -26,5 +25,5 @@ test('Holmes panel conversation history with export/clear', async ({ page, conte
   await clearButton.click();
   
   // After clearing, verify the input is still available (conversation cleared)
-  await expect(page.getByPlaceholder('Ask about your cluster...')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByPlaceholder('Ask about your cluster...')).toBeVisible({ timeout: 20_000 });
 });

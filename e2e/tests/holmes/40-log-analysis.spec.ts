@@ -31,8 +31,13 @@ test('analyzes pod logs with Holmes', async ({ page, contextName, namespace }) =
 
   await sidebar.goToSection('pods');
 
-  const podRow = page.getByRole('row', { name: new RegExp(deployName) }).first();
-  await expect(podRow).toBeVisible({ timeout: 90_000 });
+  const filterBox = page.getByRole('searchbox', { name: 'Filter table' });
+  if (await filterBox.isVisible().catch(() => false)) {
+    await filterBox.fill(deployName);
+  }
+
+  const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
+  await expect.poll(async () => await podRow.count(), { timeout: 120_000 }).toBeGreaterThan(0);
   await podRow.click();
 
   await panel.expectVisible(30_000);

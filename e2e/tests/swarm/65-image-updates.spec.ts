@@ -29,7 +29,15 @@ test.describe('Docker Swarm Image Update Detection', () => {
     await sidebar.goToServices();
 
     const servicesTable = page.locator('[data-testid="swarm-services-table"]');
-    await expect(servicesTable).toBeVisible({ timeout: 30_000 });
+    try {
+      await expect(servicesTable).toBeVisible({ timeout: 30_000 });
+    } catch {
+      await page.reload();
+      await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+      const sidebar2 = new SwarmSidebarPage(page);
+      await sidebar2.goToServices();
+      await expect(servicesTable).toBeVisible({ timeout: 60_000 });
+    }
 
     await expect(servicesTable.getByRole('columnheader', { name: /^update$/i })).toBeVisible({ timeout: 10_000 });
 

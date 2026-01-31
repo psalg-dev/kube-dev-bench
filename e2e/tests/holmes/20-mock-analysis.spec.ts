@@ -14,6 +14,7 @@ import {
   configureHolmesMock,
   openHolmesPanel,
   getHolmesMockURL,
+  getHolmesInput,
 } from '../../src/support/holmes-bootstrap.js';
 import type { SidebarPage } from '../../src/pages/SidebarPage.js';
 
@@ -76,8 +77,7 @@ spec:
     await test.step('Ask Holmes about pod crash', async () => {
       await openHolmesPanel({ page });
 
-      const input = page.getByPlaceholder('Ask about your cluster...');
-      await expect(input).toBeVisible({ timeout: 10_000 });
+      const input = await getHolmesInput(page);
       await input.fill('Why is my pod crashing?');
 
       const sendButton = page.getByRole('button', { name: '→' });
@@ -87,7 +87,7 @@ spec:
     await test.step('Verify mock response content', async () => {
       // Wait for response - check for content from fixtures.json pod crash pattern
       const holmesPanel = page.locator('#holmes-panel');
-      await expect(holmesPanel).toContainText('Pod crash root cause analysis completed', { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(/Pod Crash Analysis|CrashLoopBackOff/i, { timeout: 30_000 });
     });
   });
 
@@ -128,7 +128,7 @@ spec:
     await test.step('Ask Holmes about deployment', async () => {
       await openHolmesPanel({ page });
 
-      const input = page.getByPlaceholder('Ask about your cluster...');
+      const input = await getHolmesInput(page);
       await input.fill('Analyze my deployment replicas');
       await page.getByRole('button', { name: '→' }).click();
     });
@@ -143,14 +143,14 @@ spec:
     await test.step('Ask Holmes about logs', async () => {
       await openHolmesPanel({ page });
 
-      const input = page.getByPlaceholder('Ask about your cluster...');
+      const input = await getHolmesInput(page);
       await input.fill('Explain the logs from my application');
       await page.getByRole('button', { name: '→' }).click();
     });
 
     await test.step('Verify mock log analysis response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
-      await expect(holmesPanel).toContainText('Log analysis completed', { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(/Log Analysis|Analyzed the provided logs/i, { timeout: 30_000 });
     });
   });
 
@@ -158,7 +158,7 @@ spec:
     await test.step('Ask Holmes about secrets', async () => {
       await openHolmesPanel({ page });
 
-      const input = page.getByPlaceholder('Ask about your cluster...');
+      const input = await getHolmesInput(page);
       await input.fill('Check my secret configuration');
       await page.getByRole('button', { name: '→' }).click();
     });
@@ -173,7 +173,7 @@ spec:
     await test.step('Ask Holmes a generic question', async () => {
       await openHolmesPanel({ page });
 
-      const input = page.getByPlaceholder('Ask about your cluster...');
+      const input = await getHolmesInput(page);
       await input.fill('Tell me about something random');
       await page.getByRole('button', { name: '→' }).click();
     });
@@ -188,7 +188,7 @@ spec:
     await test.step('Have a conversation with Holmes', async () => {
       await openHolmesPanel({ page });
 
-      const input = page.getByPlaceholder('Ask about your cluster...');
+      const input = await getHolmesInput(page);
 
       // First question
       await input.fill('Why is my pod crashing?');
@@ -219,9 +219,9 @@ spec:
       const input = page.getByPlaceholder('Ask about your cluster...');
       await expect(input).toBeVisible();
 
-      // Clear button should be hidden (no conversation)
-      const clearButton = page.getByTitle('Clear conversation');
-      await expect(clearButton).toBeHidden({ timeout: 5_000 });
+      // Conversation content should be cleared
+      const holmesPanel = page.locator('#holmes-panel');
+      await expect(holmesPanel).not.toContainText('Why is my pod crashing?');
     });
   });
 

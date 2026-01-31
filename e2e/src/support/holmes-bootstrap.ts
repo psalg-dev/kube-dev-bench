@@ -142,6 +142,54 @@ export async function openHolmesPanel(opts: { page: Page }): Promise<void> {
 }
 
 /**
+ * Get the Holmes input element after ensuring the panel is open.
+ *
+ * @param page - Playwright page instance
+ * @returns Locator for the Holmes input
+ */
+export async function getHolmesInput(page: Page) {
+  await openHolmesPanel({ page });
+
+  const holmesPanel = page.locator('#holmes-panel');
+  await expect(holmesPanel).toBeVisible({ timeout: 15_000 });
+
+  const unconfigured = page.getByText('Holmes AI is not configured');
+  if (await unconfigured.isVisible().catch(() => false)) {
+    const state = await readRunState();
+    const endpoint = state.holmesMockBaseURL;
+    if (!endpoint) {
+      throw new Error('Holmes mock server URL not found in run state. Did global-setup start it?');
+    }
+    await page.getByRole('button', { name: /Manual Configuration/i }).click();
+    await expect(page.locator('#holmes-config-modal')).toBeVisible({ timeout: 10_000 });
+    await page.getByLabel('Enable Holmes AI').check();
+    await page.locator('#holmes-endpoint').fill(endpoint);
+    await page.getByRole('button', { name: /^save$/i }).click();
+    await expect(page.locator('#holmes-config-modal')).toBeHidden({ timeout: 10_000 });
+  }
+
+  const input = holmesPanel
+    .locator('textarea, [contenteditable="true"], [placeholder="Ask about your cluster..."]')
+    .first();
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await input.isVisible().catch(() => false)) {
+      return input;
+    }
+    const toggle = page.locator('#holmes-toggle-btn');
+    if (await toggle.isVisible().catch(() => false)) {
+      await toggle.click();
+      await page.waitForTimeout(200);
+      await toggle.click();
+    }
+    await page.waitForTimeout(500);
+  }
+
+  await expect(input).toBeVisible({ timeout: 20_000 });
+  return input;
+}
+
+/**
  * Ask Holmes a question and wait for response.
  *
  * @param opts.page - Playwright page instance
@@ -155,10 +203,7 @@ export async function askHolmes(opts: {
 }): Promise<void> {
   const { page, question, timeout = 60_000 } = opts;
 
-  await openHolmesPanel({ page });
-
-  const input = page.getByPlaceholder('Ask about your cluster...');
-  await expect(input).toBeVisible({ timeout: 10_000 });
+  const input = await getHolmesInput(page);
   await input.fill(question);
 
   const sendButton = page.getByRole('button', { name: '→' });
