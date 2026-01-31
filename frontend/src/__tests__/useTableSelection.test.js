@@ -16,7 +16,7 @@ describe('useTableSelection', () => {
 
       expect(result.current.selectedCount).toBe(0);
       expect(result.current.isAllSelected).toBe(false);
-      expect(result.current.isIndeterminate).toBe(false);
+      expect(result.current.isPartiallySelected).toBe(false);
       expect(result.current.getSelectedRows()).toEqual([]);
     });
 
@@ -25,7 +25,7 @@ describe('useTableSelection', () => {
 
       expect(result.current.selectedCount).toBe(0);
       expect(result.current.isAllSelected).toBe(false);
-      expect(result.current.isIndeterminate).toBe(false);
+      expect(result.current.isPartiallySelected).toBe(false);
     });
 
     it('handles null/undefined data', () => {
@@ -143,13 +143,13 @@ describe('useTableSelection', () => {
       act(() => {
         result.current.toggleRow(data[0], 0);
       });
-      expect(result.current.isIndeterminate).toBe(true);
+      expect(result.current.isPartiallySelected).toBe(true);
 
       act(() => {
         result.current.toggleAll();
       });
       expect(result.current.isAllSelected).toBe(true);
-      expect(result.current.isIndeterminate).toBe(false);
+      expect(result.current.isPartiallySelected).toBe(false);
     });
   });
 
@@ -209,12 +209,12 @@ describe('useTableSelection', () => {
     });
   });
 
-  describe('isIndeterminate', () => {
+  describe('isPartiallySelected', () => {
     it('is false when no rows selected', () => {
       const data = createData(3);
       const { result } = renderHook(() => useTableSelection(data, getRowKey));
 
-      expect(result.current.isIndeterminate).toBe(false);
+      expect(result.current.isPartiallySelected).toBe(false);
     });
 
     it('is true when some but not all rows selected', () => {
@@ -225,7 +225,7 @@ describe('useTableSelection', () => {
         result.current.toggleRow(data[0], 0);
       });
 
-      expect(result.current.isIndeterminate).toBe(true);
+      expect(result.current.isPartiallySelected).toBe(true);
     });
 
     it('is false when all rows selected', () => {
@@ -236,7 +236,7 @@ describe('useTableSelection', () => {
         result.current.toggleAll();
       });
 
-      expect(result.current.isIndeterminate).toBe(false);
+      expect(result.current.isPartiallySelected).toBe(false);
     });
   });
 });

@@ -172,7 +172,7 @@ test.describe('Bulk Operations', () => {
       });
 
       await test.step('Clear selection', async () => {
-        await page.locator('.bulk-action-bar-clear').click();
+        await page.locator('.bulk-action-clear').click();
         await expect(page.locator('.bulk-action-bar')).not.toBeVisible();
       });
 
