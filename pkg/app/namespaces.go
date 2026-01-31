@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes" // used for createKubernetesClient return type
 )
 
 // Helper function retained for backward compatibility – now delegates to central helper
