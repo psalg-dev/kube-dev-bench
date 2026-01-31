@@ -56,6 +56,9 @@ export function useResourceData({
 
   // Use ref for refresh function to avoid circular dependencies in event handler
   const refreshRef = useRef(null);
+  
+  // Track loading state in ref to avoid race conditions in event handler
+  const loadingRef = useRef(false);
 
   // Serialize namespaces for stable dependency
   const namespacesKey = Array.isArray(namespaces) ? namespaces.join(',') : '';
@@ -75,18 +78,26 @@ export function useResourceData({
     if (!enabled) {
       setData([]);
       setLoading(false);
+      loadingRef.current = false;
+      return;
+    }
+
+    // Skip if already loading to prevent race conditions
+    if (loadingRef.current) {
       return;
     }
 
     if (clusterScoped) {
       // Cluster-scoped resources (e.g., PersistentVolumes)
       try {
+        loadingRef.current = true;
         setLoading(true);
         const result = await fetchFn().catch(() => []);
         setData(applyNormalize(result));
       } catch (_error) {
         setData([]);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
       }
       return;
@@ -99,10 +110,12 @@ export function useResourceData({
     
     if (nsArr.length === 0) {
       setLoading(false);
+      loadingRef.current = false;
       return;
     }
 
     try {
+      loadingRef.current = true;
       setLoading(true);
       const lists = await Promise.all(
         nsArr.map(ns => fetchFn(ns).catch(() => []))
@@ -112,6 +125,7 @@ export function useResourceData({
     } catch (_error) {
       setData([]);
     } finally {
+      loadingRef.current = false;
       setLoading(false);
     }
   }, [fetchFn, namespacesKey, namespace, clusterScoped, applyNormalize, enabled]);

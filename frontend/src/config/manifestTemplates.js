@@ -244,6 +244,9 @@ export const swarmDefaultPayloads = {
     labels: {},
     editorMode: 'text',
   },
+  // Note: 'name' field is used in the form input, while 'data' YAML contains the same 
+  // default name for the editor preview. Both are intentionally duplicated as they 
+  // serve different UI purposes (form field vs. YAML editor content).
   service: {
     name: 'my-service',
     data: `name: my-service
