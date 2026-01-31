@@ -86,6 +86,24 @@ export function AutoConnectDocker():Promise<docker.DockerConnectionStatus>;
 
 export function BackupSwarmVolume(arg1:string):Promise<string>;
 
+export function BulkDeleteResources(arg1:Array<app.BulkOperationItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkRemoveSwarmResources(arg1:Array<app.SwarmBulkItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkRestartResources(arg1:Array<app.BulkOperationItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkRestartSwarmServices(arg1:Array<app.SwarmBulkItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkResumeCronJobs(arg1:Array<app.BulkOperationItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkScaleResources(arg1:Array<app.BulkOperationItem>,arg2:number):Promise<app.BulkOperationResponse>;
+
+export function BulkScaleSwarmServices(arg1:Array<app.SwarmBulkItem>,arg2:number):Promise<app.BulkOperationResponse>;
+
+export function BulkSuspendCronJobs(arg1:Array<app.BulkOperationItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkUpdateSwarmNodeAvailability(arg1:Array<app.SwarmBulkItem>,arg2:string):Promise<app.BulkOperationResponse>;
+
 export function CancelHolmesStream(arg1:string):Promise<void>;
 
 export function CheckHolmesDeployment():Promise<holmesgpt.HolmesDeploymentStatus>;

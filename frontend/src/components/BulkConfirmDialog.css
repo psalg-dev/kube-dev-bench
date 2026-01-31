@@ -1,0 +1,200 @@
+/* Bulk Confirm Dialog Styles */
+
+.bulk-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: bulk-overlay-fade-in 0.15s ease-out;
+}
+
+@keyframes bulk-overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bulk-confirm-dialog {
+  background: var(--gh-bg, #0d1117);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: bulk-dialog-slide-in 0.2s ease-out;
+}
+
+@keyframes bulk-dialog-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.bulk-confirm-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gh-text, #c9d1d9);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulk-confirm-danger-icon {
+  font-size: 20px;
+}
+
+.bulk-confirm-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+  background: rgba(227, 179, 65, 0.15);
+  border: 1px solid rgba(227, 179, 65, 0.4);
+  border-radius: 6px;
+  color: #e3b341;
+  font-size: 13px;
+}
+
+.bulk-confirm-warning-icon {
+  flex-shrink: 0;
+}
+
+.bulk-confirm-subtitle {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.bulk-confirm-items-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.bulk-confirm-items-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  background: var(--gh-bg-secondary, #161b22);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+}
+
+.bulk-confirm-item {
+  padding: 4px 8px;
+  font-size: 13px;
+  color: var(--gh-text, #c9d1d9);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.bulk-confirm-namespace {
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.bulk-confirm-name {
+  color: var(--gh-text, #c9d1d9);
+}
+
+.bulk-confirm-more {
+  color: var(--gh-text-muted, #8b949e);
+  font-style: italic;
+}
+
+.bulk-confirm-typed {
+  margin-bottom: 16px;
+}
+
+.bulk-confirm-typed label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--gh-text, #c9d1d9);
+}
+
+.bulk-confirm-typed strong {
+  color: var(--gh-accent, #58a6ff);
+}
+
+.bulk-confirm-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  background: var(--gh-bg-secondary, #161b22);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+  color: var(--gh-text, #c9d1d9);
+}
+
+.bulk-confirm-input:focus {
+  outline: none;
+  border-color: var(--gh-accent, #58a6ff);
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+}
+
+.bulk-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.bulk-confirm-cancel {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background: transparent;
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.bulk-confirm-cancel:hover {
+  background: var(--gh-bg-tertiary, #30363d);
+  border-color: var(--gh-border-hover, #484f58);
+}
+
+.bulk-confirm-submit {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--gh-accent, #238636);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bulk-confirm-submit:hover:not(:disabled) {
+  background: var(--gh-accent-hover, #2ea043);
+}
+
+.bulk-confirm-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bulk-confirm-submit-danger {
+  background: #da3633;
+}
+
+.bulk-confirm-submit-danger:hover:not(:disabled) {
+  background: #f85149;
+}

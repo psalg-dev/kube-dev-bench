@@ -55,7 +55,10 @@ const appFunctionNames = [
   // Monitor enhancements
   'ScanClusterHealth','AnalyzeMonitorIssue','AnalyzeMonitorIssueStream','AnalyzeAllMonitorIssues','DismissMonitorIssue','SaveMonitorIssueAnalysis','GetDismissedIssues',
   // Prometheus alerts
-  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory'
+  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory',
+  // Bulk operations
+  'BulkDeleteResources','BulkRestartResources','BulkScaleResources','BulkSuspendCronJobs','BulkResumeCronJobs',
+  'BulkRemoveSwarmResources','BulkScaleSwarmServices','BulkRestartSwarmServices','BulkSetNodeAvailability'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {

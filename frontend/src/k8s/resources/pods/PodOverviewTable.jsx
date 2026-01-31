@@ -20,13 +20,20 @@ import PortForwardDialog from './PortForwardDialog';
 import PodMountsTab from './PodMountsTab';
 import PodFilesTab from './PodFilesTab';
 import '../../../layout/overview/OverviewTableWithPanel.css';
+import '../../../layout/overview/BulkSelection.css';
 import { showResourceOverlay } from '../../../resource-overlay.js';
 import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHolmesStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import StatusBadge from '../../../components/StatusBadge.jsx';
+import { useTableSelection } from '../../../hooks/useTableSelection';
+import BulkActionBar from '../../../components/BulkActionBar';
+import BulkConfirmDialog from '../../../components/BulkConfirmDialog';
+import BulkProgressDialog from '../../../components/BulkProgressDialog';
+import { executeBulkAction } from '../../../api/bulkOperations';
 
 // Resource types matching sidebar and templates in resource-overlay.js
 const createOptions = [
+  { key: 'pod', label: 'Pod' },
   { key: 'deployment', label: 'Deployment' },
   { key: 'job', label: 'Job' },
   { key: 'cronjob', label: 'CronJob' },
@@ -74,6 +81,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
+
+  // Bulk operation dialog state
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [progressDialog, setProgressDialog] = useState(null);
 
   // Subscribe to Holmes chat stream events
   useEffect(() => {
@@ -505,6 +516,135 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     manualSorting: false,
   });
 
+  // Bulk selection hook
+  const getRowKey = useCallback((row, idx) => {
+    const ns = row?.namespace || row?.Namespace || '';
+    const name = row?.name || row?.Name || idx;
+    return ns ? `${ns}/${name}` : String(name);
+  }, []);
+
+  const {
+    selectedCount,
+    isAllSelected,
+    isPartiallySelected,
+    toggleAll,
+    toggleRow,
+    clearSelection,
+    isSelected,
+    getSelectedRows
+  } = useTableSelection(tableData, getRowKey);
+
+  // Get selected items formatted for the API
+  const selectedItems = useMemo(() => {
+    const rows = getSelectedRows();
+    return rows.map((row) => ({
+      name: row?.name || row?.Name || '',
+      namespace: row?.namespace || row?.Namespace || '',
+      kind: 'pod',
+      displayName: getRowKey(row, 0)
+    }));
+  }, [getSelectedRows, getRowKey]);
+
+  // Handle action selection from BulkActionBar
+  const handleBulkActionSelect = useCallback((action, options) => {
+    setConfirmDialog({
+      action,
+      items: selectedItems,
+      options,
+      title: `${action.label} ${selectedItems.length} pod${selectedItems.length > 1 ? 's' : ''}?`,
+      destructive: action.destructive
+    });
+  }, [selectedItems]);
+
+  // Handle bulk operation confirmation
+  const handleBulkConfirm = useCallback(async () => {
+    const { action, items, options } = confirmDialog;
+    setConfirmDialog(null);
+
+    const progressItems = items.map(item => ({
+      id: item.displayName,
+      name: item.displayName,
+      namespace: item.namespace,
+      status: 'pending',
+      error: null
+    }));
+
+    setProgressDialog({
+      title: `${action.label} in progress...`,
+      items: progressItems,
+      isComplete: false,
+      successCount: 0,
+      errorCount: 0
+    });
+
+    try {
+      const result = await executeBulkAction('k8s', action.id, items, {
+        ...options,
+        resourceKind: 'pod'
+      });
+
+      const updatedItems = progressItems.map((item, idx) => {
+        const resultItem = result.results?.[idx];
+        return {
+          ...item,
+          status: resultItem?.success ? 'success' : 'error',
+          error: resultItem?.error || null
+        };
+      });
+
+      setProgressDialog({
+        title: `${action.label} complete`,
+        items: updatedItems,
+        isComplete: true,
+        successCount: result.successCount || 0,
+        errorCount: result.errorCount || 0
+      });
+
+      if (result.errorCount === 0) {
+        clearSelection();
+      }
+    } catch (error) {
+      const failedItems = progressItems.map(item => ({
+        ...item,
+        status: 'error',
+        error: error.message || 'Operation failed'
+      }));
+
+      setProgressDialog({
+        title: `${action.label} failed`,
+        items: failedItems,
+        isComplete: true,
+        successCount: 0,
+        errorCount: progressItems.length
+      });
+    }
+  }, [confirmDialog, clearSelection]);
+
+  const handleProgressClose = useCallback(() => {
+    setProgressDialog(null);
+  }, []);
+
+  const handleRetryFailed = useCallback(() => {
+    if (progressDialog && confirmDialog) {
+      const failedItems = progressDialog.items
+        .filter(item => item.status === 'error')
+        .map(item => ({
+          name: item.name.includes('/') ? item.name.split('/').pop() : item.name,
+          namespace: item.namespace,
+          kind: 'pod',
+          displayName: item.name
+        }));
+
+      if (failedItems.length > 0) {
+        setProgressDialog(null);
+        setConfirmDialog({
+          ...confirmDialog,
+          items: failedItems
+        });
+      }
+    }
+  }, [progressDialog, confirmDialog]);
+
   const handleMenuClickRow = (index) => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
   };
@@ -834,7 +974,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
 
   return (
     <>
-      <div style={{
+      <div className="bulk-operations-wrapper" style={{
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -915,6 +1055,16 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                 ))}
               </div>
             )}
+            {selectedCount > 0 && (
+              <BulkActionBar
+                selectedCount={selectedCount}
+                resourceKind="pod"
+                platform="k8s"
+                onActionSelect={handleBulkActionSelect}
+                onClearSelection={clearSelection}
+                variant="compact"
+              />
+            )}
           </div>
           <h2 className="overview-title">Pods</h2>
           <div className="overview-actions">
@@ -928,9 +1078,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         </div>
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
-        {/* Column widths: Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
+        {/* Column widths: Checkbox(40px), Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
         <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
           <colgroup>
+            <col style={{ width: '40px' }} />
             <col style={{ width: '25%' }} />
             {multiNs && <col style={{ width: '12%' }} />}
             <col style={{ width: '15%' }} />
@@ -942,6 +1093,24 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
           <thead>
           {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
+                {/* Bulk selection checkbox header */}
+                <th className="bulk-select-header" style={{
+                  background: 'var(--gh-bg)',
+                  width: 40,
+                  textAlign: 'center',
+                  borderBottom: '2px solid #353a42',
+                }}>
+                  <input
+                    type="checkbox"
+                    className="bulk-checkbox bulk-checkbox-all"
+                    checked={isAllSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = isPartiallySelected;
+                    }}
+                    onChange={toggleAll}
+                    aria-label="Select all pods"
+                  />
+                </th>
                 {headerGroup.headers.map(header => (
                     <th
                         key={header.id}
@@ -984,6 +1153,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <colgroup>
+              <col style={{ width: '40px' }} />
               <col style={{ width: '25%' }} />
               {multiNs && <col style={{ width: '12%' }} />}
               <col style={{ width: '15%' }} />
@@ -995,19 +1165,44 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             <tbody>
             {topPadHeight > 0 && (
                 <tr style={{height: topPadHeight}}>
-                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                  <td colSpan={baseColumns.length + 2} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
-            {visibleRows.map((row, i) => (
+            {visibleRows.map((row, i) => {
+                const rowSelected = isSelected(row.original, visibleRowStart + i);
+                return (
                 <tr
                     key={row.id}
                     onClick={() => openDetails(row.original.name, row.original.namespace)}
+                    className={rowSelected ? 'bulk-selected' : ''}
                     style={{
                       borderBottom: '1px solid #353a42',
                       transition: 'background 0.2s',
                       height: ROW_HEIGHT
                     }}
                 >
+                  {/* Bulk selection checkbox cell */}
+                  <td 
+                    className="bulk-select-cell" 
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ 
+                      width: 40, 
+                      textAlign: 'center',
+                      borderBottom: '1px solid #353a42'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      className="bulk-checkbox"
+                      checked={rowSelected}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleRow(row.original, visibleRowStart + i, e.shiftKey);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Select ${row.original.name}`}
+                    />
+                  </td>
                   {row.getVisibleCells().map(cell => (
                       <td
                           key={cell.id}
@@ -1176,10 +1371,10 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                     )}
                   </td>
                 </tr>
-              ))}
+              );})}
             {bottomPadHeight > 0 && (
                 <tr style={{height: bottomPadHeight}}>
-                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                  <td colSpan={baseColumns.length + 2} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
             </tbody>
@@ -1213,6 +1408,31 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
           onConfirm={confirmPortForward}
         />
       </div>
+
+      {/* Bulk operation confirmation dialog */}
+      {confirmDialog && (
+        <BulkConfirmDialog
+          open={true}
+          actionLabel={confirmDialog.action?.label || 'Delete'}
+          items={confirmDialog.items}
+          danger={confirmDialog.destructive}
+          onConfirm={handleBulkConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {/* Bulk operation progress dialog */}
+      {progressDialog && (
+        <BulkProgressDialog
+          open={true}
+          title={progressDialog.title}
+          items={progressDialog.items}
+          completed={progressDialog.successCount + progressDialog.errorCount}
+          total={progressDialog.items?.length || 0}
+          onClose={handleProgressClose}
+          onRetryFailed={handleRetryFailed}
+        />
+      )}
     </>
   );
 }

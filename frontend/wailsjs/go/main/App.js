@@ -158,6 +158,42 @@ export function BackupSwarmVolume(arg1) {
   return window['go']['main']['App']['BackupSwarmVolume'](arg1);
 }
 
+export function BulkDeleteResources(arg1) {
+  return window['go']['main']['App']['BulkDeleteResources'](arg1);
+}
+
+export function BulkRemoveSwarmResources(arg1) {
+  return window['go']['main']['App']['BulkRemoveSwarmResources'](arg1);
+}
+
+export function BulkRestartResources(arg1) {
+  return window['go']['main']['App']['BulkRestartResources'](arg1);
+}
+
+export function BulkRestartSwarmServices(arg1) {
+  return window['go']['main']['App']['BulkRestartSwarmServices'](arg1);
+}
+
+export function BulkResumeCronJobs(arg1) {
+  return window['go']['main']['App']['BulkResumeCronJobs'](arg1);
+}
+
+export function BulkScaleResources(arg1, arg2) {
+  return window['go']['main']['App']['BulkScaleResources'](arg1, arg2);
+}
+
+export function BulkScaleSwarmServices(arg1, arg2) {
+  return window['go']['main']['App']['BulkScaleSwarmServices'](arg1, arg2);
+}
+
+export function BulkSuspendCronJobs(arg1) {
+  return window['go']['main']['App']['BulkSuspendCronJobs'](arg1);
+}
+
+export function BulkUpdateSwarmNodeAvailability(arg1, arg2) {
+  return window['go']['main']['App']['BulkUpdateSwarmNodeAvailability'](arg1, arg2);
+}
+
 export function CancelHolmesStream(arg1) {
   return window['go']['main']['App']['CancelHolmesStream'](arg1);
 }

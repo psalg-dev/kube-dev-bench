@@ -1,11 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import BottomPanel from '../bottompanel/BottomPanel';
 import './OverviewTableWithPanel.css';
+import './BulkSelection.css';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
 import { showNotification } from '../../notification.js';
 import { fetchTabCounts } from '../../api/tabCounts';
 import StatusBadge from '../../components/StatusBadge.jsx';
 import { getColumnKey, pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
+import { useTableSelection } from '../../hooks/useTableSelection';
+import BulkActionBar from '../../components/BulkActionBar';
+import BulkConfirmDialog from '../../components/BulkConfirmDialog';
+import BulkProgressDialog from '../../components/BulkProgressDialog';
+import { executeBulkAction } from '../../api/bulkOperations';
 
 const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
 
@@ -31,8 +37,10 @@ const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
  *   The api includes: { openDetails(tabKey?:string), setActiveTab(tabKey:string) }.
  * @param {function(row): (Promise<Object>|Object)} [tabCountsFetcher] - Optional async function to fetch tab counts for a row.
  * @param {boolean} [enableTabCounts=true] - Whether to fetch and display tab counts.
+ * @param {boolean} [enableBulkSelection=true] - Whether to enable bulk selection checkboxes.
+ * @param {function(result): void} [onBulkOperationComplete] - Optional callback when bulk operation completes.
  */
-export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId, headerActions, getRowActions, tabCountsFetcher, enableTabCounts = true }) {
+export default function OverviewTableWithPanel({ columns, data, tabs, renderPanelContent, panelHeader, title, resourceKind, namespace, createPlatform = 'k8s', createKind, createButtonTitle, createNotice, createHint, tableTestId, headerActions, getRowActions, tabCountsFetcher, enableTabCounts = true, enableBulkSelection = true, onBulkOperationComplete }) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
@@ -46,6 +54,10 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   // Tab counts state
   const [tabCounts, setTabCounts] = useState({});
   const [tabCountsLoading, setTabCountsLoading] = useState(false);
+  
+  // Bulk operation dialog state
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [progressDialog, setProgressDialog] = useState(null);
 
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
   const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
@@ -256,6 +268,138 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     return ns ? `${ns}/${name}` : String(name);
   };
 
+  // Bulk selection hook
+  const {
+    selectedCount,
+    isAllSelected,
+    isPartiallySelected,
+    toggleAll,
+    toggleRow,
+    clearSelection,
+    isSelected,
+    getSelectedRows
+  } = useTableSelection(enableBulkSelection ? sortedData : [], getRowKey);
+
+  // Get selected items formatted for the API
+  // Use createKind as fallback for Swarm tables which use createKind instead of resourceKind
+  const effectiveKind = createKind || resourceKind || 'unknown';
+  const selectedItems = useMemo(() => {
+    if (!enableBulkSelection) return [];
+    const rows = getSelectedRows();
+    return rows.map((row) => ({
+      name: row?.name || row?.Name || '',
+      namespace: row?.namespace || row?.Namespace || '',
+      id: row?.id || row?.ID || row?.Id || '',
+      kind: effectiveKind,
+      displayName: getRowKey(row, 0)
+    }));
+  }, [getSelectedRows, effectiveKind, enableBulkSelection, getRowKey]);
+
+  // Handle action selection from BulkActionBar
+  const handleBulkActionSelect = useCallback((action, options) => {
+    setConfirmDialog({
+      action,
+      items: selectedItems,
+      options,
+      title: `${action.label} ${selectedItems.length} ${effectiveKind || 'item'}${selectedItems.length > 1 ? 's' : ''}?`,
+      destructive: action.destructive
+    });
+  }, [selectedItems, effectiveKind]);
+
+  // Handle bulk operation confirmation
+  const handleBulkConfirm = useCallback(async () => {
+    const { action, items, options } = confirmDialog;
+    setConfirmDialog(null);
+
+    // Initialize progress dialog
+    const progressItems = items.map(item => ({
+      id: item.displayName,
+      name: item.displayName,
+      namespace: item.namespace,
+      status: 'pending',
+      error: null
+    }));
+
+    setProgressDialog({
+      title: `${action.label} in progress...`,
+      items: progressItems,
+      isComplete: false,
+      successCount: 0,
+      errorCount: 0
+    });
+
+    try {
+      const result = await executeBulkAction(createPlatform, action.id, items, {
+        ...options,
+        resourceKind: effectiveKind
+      });
+
+      const updatedItems = progressItems.map((item, idx) => {
+        const resultItem = result.results?.[idx];
+        return {
+          ...item,
+          status: resultItem?.success ? 'success' : 'error',
+          error: resultItem?.error || null
+        };
+      });
+
+      setProgressDialog({
+        title: `${action.label} complete`,
+        items: updatedItems,
+        isComplete: true,
+        successCount: result.successCount || 0,
+        errorCount: result.errorCount || 0
+      });
+
+      if (result.errorCount === 0) {
+        clearSelection();
+      }
+
+      if (onBulkOperationComplete) {
+        onBulkOperationComplete(result);
+      }
+    } catch (error) {
+      const failedItems = progressItems.map(item => ({
+        ...item,
+        status: 'error',
+        error: error.message || 'Operation failed'
+      }));
+
+      setProgressDialog({
+        title: `${action.label} failed`,
+        items: failedItems,
+        isComplete: true,
+        successCount: 0,
+        errorCount: progressItems.length
+      });
+    }
+  }, [confirmDialog, createPlatform, effectiveKind, clearSelection, onBulkOperationComplete]);
+
+  const handleProgressClose = useCallback(() => {
+    setProgressDialog(null);
+  }, []);
+
+  const handleRetryFailed = useCallback(() => {
+    if (progressDialog && confirmDialog) {
+      const failedItems = progressDialog.items
+        .filter(item => item.status === 'error')
+        .map(item => ({
+          name: item.name.includes('/') ? item.name.split('/').pop() : item.name,
+          namespace: item.namespace,
+          kind: effectiveKind,
+          displayName: item.name
+        }));
+
+      if (failedItems.length > 0) {
+        setProgressDialog(null);
+        setConfirmDialog({
+          ...confirmDialog,
+          items: failedItems
+        });
+      }
+    }
+  }, [progressDialog, confirmDialog, effectiveKind]);
+
   const buildMenuActions = (row) => {
     const api = {
       openDetails: (tabKey) => openBottomPanelAtTab(row, tabKey),
@@ -271,7 +415,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   };
 
   return (
-    <div>
+    <div className={enableBulkSelection ? 'bulk-operations-wrapper' : ''}>
       <div className="overview-header">
         {/* Left: create button */}
         <div className="overview-left">
@@ -283,6 +427,16 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
           >
             +
           </button>
+          {enableBulkSelection && selectedCount > 0 && (
+            <BulkActionBar
+              selectedCount={selectedCount}
+              resourceKind={effectiveKind}
+              platform={createPlatform}
+              onActionSelect={handleBulkActionSelect}
+              onClearSelection={clearSelection}
+              variant="compact"
+            />
+          )}
         </div>
         <h2 className="overview-title">{title}</h2>
         <div className="overview-actions">
@@ -299,6 +453,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
 
       <table className="gh-table" data-testid={tableTestId} style={{ width: '100%', tableLayout: 'fixed' }}>
         <colgroup>
+          {enableBulkSelection && <col style={{ width: '40px' }} />}
           {columns.map((col, idx) => (
             <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
           ))}
@@ -306,6 +461,20 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         </colgroup>
         <thead>
           <tr>
+            {enableBulkSelection && (
+              <th className="bulk-select-header">
+                <input
+                  type="checkbox"
+                  className="bulk-checkbox bulk-checkbox-all"
+                  checked={isAllSelected}
+                  ref={(el) => {
+                    if (el) el.indeterminate = isPartiallySelected;
+                  }}
+                  onChange={toggleAll}
+                  aria-label="Select all rows"
+                />
+              </th>
+            )}
             {columns.map((col) => {
               const key = col.accessorKey || col.key;
               const isActive = key && sortState?.key === key;
@@ -331,7 +500,27 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         <tbody>
           {sortedData.map((row, idx) => (
             !row ? null : (
-              <tr key={getRowKey(row, idx)} style={{ cursor: 'pointer' }} onClick={() => openBottomPanel(row)}>
+              <tr 
+                key={getRowKey(row, idx)} 
+                style={{ cursor: 'pointer' }} 
+                onClick={() => openBottomPanel(row)}
+                className={enableBulkSelection && isSelected(row, idx) ? 'bulk-selected' : ''}
+              >
+                {enableBulkSelection && (
+                  <td className="bulk-select-cell" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="bulk-checkbox"
+                      checked={isSelected(row, idx)}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleRow(row, idx, e.shiftKey);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      aria-label={`Select ${row?.name || row?.Name || 'item'}`}
+                    />
+                  </td>
+                )}
                 {columns.map((col, colIdx) => (
                   <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
                     {(() => {
@@ -451,6 +640,31 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         createHint={createHint}
         onClose={() => setShowCreate(false)}
       />
+
+      {/* Bulk operation confirmation dialog */}
+      {confirmDialog && (
+        <BulkConfirmDialog
+          open={true}
+          actionLabel={confirmDialog.action?.label || 'Delete'}
+          items={confirmDialog.items}
+          danger={confirmDialog.destructive}
+          onConfirm={handleBulkConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
+
+      {/* Bulk operation progress dialog */}
+      {progressDialog && (
+        <BulkProgressDialog
+          open={true}
+          title={progressDialog.title}
+          items={progressDialog.items}
+          completed={progressDialog.successCount + progressDialog.errorCount}
+          total={progressDialog.items?.length || 0}
+          onClose={handleProgressClose}
+          onRetryFailed={handleRetryFailed}
+        />
+      )}
     </div>
   );
 }
