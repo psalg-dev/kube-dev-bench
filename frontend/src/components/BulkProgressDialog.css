@@ -1,0 +1,209 @@
+/* Bulk Progress Dialog Styles */
+
+.bulk-progress-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.bulk-progress-dialog {
+  background: var(--gh-bg, #0d1117);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 520px;
+  width: 90%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.bulk-progress-title {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gh-text, #c9d1d9);
+}
+
+.bulk-progress-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.bulk-progress-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--gh-bg-tertiary, #21262d);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bulk-progress-bar-fill {
+  height: 100%;
+  background: var(--gh-accent, #238636);
+  border-radius: 4px;
+  transition: width 0.3s ease-out;
+}
+
+.bulk-progress-bar-errors {
+  background: linear-gradient(90deg, #238636 0%, #da3633 100%);
+}
+
+.bulk-progress-bar-text {
+  font-size: 13px;
+  color: var(--gh-text-muted, #8b949e);
+  white-space: nowrap;
+}
+
+.bulk-progress-items-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.bulk-progress-items-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: var(--gh-bg-secondary, #161b22);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+}
+
+.bulk-progress-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.bulk-progress-item-running {
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.bulk-progress-item-error {
+  background: rgba(248, 81, 73, 0.1);
+}
+
+.bulk-progress-item-icon {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.bulk-progress-icon {
+  display: inline-block;
+  font-size: 14px;
+}
+
+.bulk-progress-success {
+  color: #3fb950;
+}
+
+.bulk-progress-error {
+  color: #f85149;
+}
+
+.bulk-progress-running {
+  color: #58a6ff;
+  animation: bulk-progress-spin 1s linear infinite;
+}
+
+@keyframes bulk-progress-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.bulk-progress-pending {
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.bulk-progress-item-name {
+  flex: 1;
+  color: var(--gh-text, #c9d1d9);
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  word-break: break-all;
+}
+
+.bulk-progress-namespace {
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.bulk-progress-item-error {
+  color: #f85149;
+  font-size: 12px;
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.bulk-progress-summary {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.bulk-progress-summary-success {
+  color: #3fb950;
+}
+
+.bulk-progress-summary-error {
+  color: #f85149;
+}
+
+.bulk-progress-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.bulk-progress-retry {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--gh-bg-secondary, #21262d);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.bulk-progress-retry:hover {
+  background: var(--gh-bg-tertiary, #30363d);
+  border-color: var(--gh-border-hover, #484f58);
+}
+
+.bulk-progress-close {
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--gh-accent, #238636);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bulk-progress-close:hover:not(:disabled) {
+  background: var(--gh-accent-hover, #2ea043);
+}
+
+.bulk-progress-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
