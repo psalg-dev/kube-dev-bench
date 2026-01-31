@@ -100,9 +100,9 @@ export function BulkScaleResources(arg1:Array<app.BulkOperationItem>,arg2:number
 
 export function BulkScaleSwarmServices(arg1:Array<app.SwarmBulkItem>,arg2:number):Promise<app.BulkOperationResponse>;
 
-export function BulkSetNodeAvailability(arg1:Array<app.SwarmBulkItem>,arg2:string):Promise<app.BulkOperationResponse>;
-
 export function BulkSuspendCronJobs(arg1:Array<app.BulkOperationItem>):Promise<app.BulkOperationResponse>;
+
+export function BulkUpdateSwarmNodeAvailability(arg1:Array<app.SwarmBulkItem>,arg2:string):Promise<app.BulkOperationResponse>;
 
 export function CancelHolmesStream(arg1:string):Promise<void>;
 

@@ -171,6 +171,8 @@ function KeyValueEditor({
 function getDefaultManifest(kind, namespace) {
   const ns = namespace || 'default';
   switch ((kind || '').toLowerCase()) {
+    case 'pod':
+      return `apiVersion: v1\nkind: Pod\nmetadata:\n  name: my-pod\n  namespace: ${ns}\nspec:\n  containers:\n  - name: main\n    image: nginx:alpine\n    ports:\n    - containerPort: 80\n`;
     case 'deployment':
       return `apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: my-deployment\n  namespace: ${ns}\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: my-app\n  template:\n    metadata:\n      labels:\n        app: my-app\n    spec:\n      containers:\n      - name: app\n        image: nginx:latest\n        ports:\n        - containerPort: 80\n`;
     case 'job':

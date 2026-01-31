@@ -264,25 +264,23 @@ export default function BulkOperationsTableWrapper({
       {/* Confirmation dialog */}
       {confirmDialog && (
         <BulkConfirmDialog
-          isOpen={true}
-          title={confirmDialog.title}
+          open={true}
+          actionLabel={confirmDialog.action?.label || 'Delete'}
           items={confirmDialog.items}
-          action={confirmDialog.action}
+          danger={confirmDialog.destructive}
           onConfirm={handleConfirm}
           onCancel={() => setConfirmDialog(null)}
-          destructive={confirmDialog.destructive}
         />
       )}
 
       {/* Progress dialog */}
       {progressDialog && (
         <BulkProgressDialog
-          isOpen={true}
+          open={true}
           title={progressDialog.title}
           items={progressDialog.items}
-          isComplete={progressDialog.isComplete}
-          successCount={progressDialog.successCount}
-          errorCount={progressDialog.errorCount}
+          completed={progressDialog.successCount + progressDialog.errorCount}
+          total={progressDialog.items?.length || 0}
           onClose={handleProgressClose}
           onRetryFailed={handleRetryFailed}
         />

@@ -511,7 +511,7 @@ function renderPanelContent(row, tab, onRefresh, holmesState, onAnalyze, onCance
 export default function SwarmNodesOverviewTable() {
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const isMountedRef = useRef(true);
   const [holmesState, setHolmesState] = useState({
     loading: false,
     response: null,
@@ -529,9 +529,30 @@ export default function SwarmNodesOverviewTable() {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
-  const refresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
+
+  const loadNodes = useCallback(async () => {
+    try {
+      const data = await GetSwarmNodes();
+      if (!isMountedRef.current) return;
+      setNodes(data || []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load Swarm nodes:', err);
+      if (!isMountedRef.current) return;
+      setNodes([]);
+      setLoading(false);
+    }
+  }, []);
+
+  const refresh = useCallback(() => {
+    loadNodes();
+  }, [loadNodes]);
 
   const fetchTabCountsForRow = useCallback(async (row) => {
     if (!row?.id) return {};
@@ -542,28 +563,10 @@ export default function SwarmNodesOverviewTable() {
   }, []);
 
   useEffect(() => {
-    let active = true;
-
-    const loadNodes = async () => {
-      try {
-        const data = await GetSwarmNodes();
-        if (active) {
-          setNodes(data || []);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load Swarm nodes:', err);
-        if (active) {
-          setNodes([]);
-          setLoading(false);
-        }
-      }
-    };
-
     loadNodes();
 
     const off = EventsOn('swarm:nodes:update', (data) => {
-      if (!active) return;
+      if (!isMountedRef.current) return;
       if (Array.isArray(data)) {
         setNodes(data);
       } else {
@@ -572,11 +575,9 @@ export default function SwarmNodesOverviewTable() {
     });
 
     return () => {
-      active = false;
       if (typeof off === 'function') off();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshKey]);
+  }, [loadNodes, refresh]);
 
   // Holmes streaming handler
   useEffect(() => {

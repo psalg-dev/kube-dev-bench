@@ -1,5 +1,5 @@
 import {renderPodOverviewTable} from './k8s/resources/pods/PodOverviewEntry';
-import {showResourceOverlay} from './resource-overlay';
+import {showResourceOverlay} from './resource-overlay.js';
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
 import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
 import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';

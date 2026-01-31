@@ -416,17 +416,6 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
 
   return (
     <div className={enableBulkSelection ? 'bulk-operations-wrapper' : ''}>
-      {/* Bulk action bar - shown when items are selected */}
-      {enableBulkSelection && selectedCount > 0 && (
-        <BulkActionBar
-          selectedCount={selectedCount}
-          resourceKind={effectiveKind}
-          platform={createPlatform}
-          onActionSelect={handleBulkActionSelect}
-          onClearSelection={clearSelection}
-        />
-      )}
-
       <div className="overview-header">
         {/* Left: create button */}
         <div className="overview-left">
@@ -438,6 +427,16 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
           >
             +
           </button>
+          {enableBulkSelection && selectedCount > 0 && (
+            <BulkActionBar
+              selectedCount={selectedCount}
+              resourceKind={effectiveKind}
+              platform={createPlatform}
+              onActionSelect={handleBulkActionSelect}
+              onClearSelection={clearSelection}
+              variant="compact"
+            />
+          )}
         </div>
         <h2 className="overview-title">{title}</h2>
         <div className="overview-actions">
@@ -645,25 +644,23 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       {/* Bulk operation confirmation dialog */}
       {confirmDialog && (
         <BulkConfirmDialog
-          isOpen={true}
-          title={confirmDialog.title}
+          open={true}
+          actionLabel={confirmDialog.action?.label || 'Delete'}
           items={confirmDialog.items}
-          action={confirmDialog.action}
+          danger={confirmDialog.destructive}
           onConfirm={handleBulkConfirm}
           onCancel={() => setConfirmDialog(null)}
-          destructive={confirmDialog.destructive}
         />
       )}
 
       {/* Bulk operation progress dialog */}
       {progressDialog && (
         <BulkProgressDialog
-          isOpen={true}
+          open={true}
           title={progressDialog.title}
           items={progressDialog.items}
-          isComplete={progressDialog.isComplete}
-          successCount={progressDialog.successCount}
-          errorCount={progressDialog.errorCount}
+          completed={progressDialog.successCount + progressDialog.errorCount}
+          total={progressDialog.items?.length || 0}
           onClose={handleProgressClose}
           onRetryFailed={handleRetryFailed}
         />

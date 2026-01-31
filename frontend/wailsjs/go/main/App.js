@@ -186,12 +186,12 @@ export function BulkScaleSwarmServices(arg1, arg2) {
   return window['go']['main']['App']['BulkScaleSwarmServices'](arg1, arg2);
 }
 
-export function BulkSetNodeAvailability(arg1, arg2) {
-  return window['go']['main']['App']['BulkSetNodeAvailability'](arg1, arg2);
-}
-
 export function BulkSuspendCronJobs(arg1) {
   return window['go']['main']['App']['BulkSuspendCronJobs'](arg1);
+}
+
+export function BulkUpdateSwarmNodeAvailability(arg1, arg2) {
+  return window['go']['main']['App']['BulkUpdateSwarmNodeAvailability'](arg1, arg2);
 }
 
 export function CancelHolmesStream(arg1) {
