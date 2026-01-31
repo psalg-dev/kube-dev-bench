@@ -6,6 +6,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // getDeploymentImage returns the first container image from the deployment spec
@@ -61,9 +62,15 @@ func buildDeploymentInfo(d *appsv1.Deployment, now time.Time) DeploymentInfo {
 
 // GetDeployments returns all deployments in a namespace
 func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
-	clientset, err := a.getClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.getKubernetesClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 	deployments, err := clientset.AppsV1().Deployments(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {

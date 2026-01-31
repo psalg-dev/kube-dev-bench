@@ -3,6 +3,7 @@ import { bootstrapApp } from '../../src/support/bootstrap.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { BottomPanel } from '../../src/pages/BottomPanel.js';
+import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -23,6 +24,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   test.setTimeout(180_000);
 
   const { sidebar } = await bootstrapApp({ page, contextName, namespace });
+  await configureHolmesMock({ page });
   const overlay = new CreateOverlay(page);
   const notifications = new Notifications(page);
   const panel = new BottomPanel(page);
@@ -70,6 +72,6 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await panel.expectVisible();
   await panel.expectTabs(['Holmes']);
 
-  // Expect some Holmes panel content (either placeholder or error depending on configuration)
-  await expect(panel.root).toContainText(/Holmes analysis|Analyze with Holmes|Analysis failed/i);
+  // Expect Holmes panel content from mock server
+  await expect(panel.root).toContainText(/Resource Analysis|Holmes analysis|Deployment Analysis|Pod Crash Analysis|Service and networking analysis completed/i);
 });

@@ -9,6 +9,7 @@ import (
 	eventsv1 "k8s.io/api/events/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // eventMatcher defines a function that checks if an event matches filtering criteria
@@ -79,7 +80,23 @@ func sortEventsByTime(events []EventInfo) {
 
 // getEventsClientset returns a kubernetes clientset for events queries
 func (a *App) getEventsClientset() (kubernetes.Interface, error) {
-	return a.getClient()
+	if a.testClientset != nil {
+		return a.testClientset.(kubernetes.Interface), nil
+	}
+	configPath := a.getKubeConfigPath()
+	config, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		return nil, err
+	}
+	if a.currentKubeContext == "" {
+		return nil, fmt.Errorf("no kube context selected")
+	}
+	clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(restConfig)
 }
 
 // resolveEventsNamespace returns the namespace to use for events, defaulting to current namespace

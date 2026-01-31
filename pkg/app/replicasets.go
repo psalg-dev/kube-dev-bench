@@ -5,6 +5,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // getReplicaSetImage returns the first container image from the replicaset spec
@@ -59,9 +60,15 @@ func buildReplicaSetInfo(rs *appsv1.ReplicaSet, now time.Time) ReplicaSetInfo {
 
 // GetReplicaSets returns all replicasets in a namespace
 func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
-	clientset, err := a.getClient()
-	if err != nil {
-		return nil, err
+	var clientset kubernetes.Interface
+	var err error
+	if a.testClientset != nil {
+		clientset = a.testClientset.(kubernetes.Interface)
+	} else {
+		clientset, err = a.getKubernetesClient()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	list, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{})

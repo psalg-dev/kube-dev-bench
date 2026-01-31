@@ -20,6 +20,9 @@ export type RunState = {
   proxyBaseURL?: string;
   proxyPid?: number;
   jfrogLogPath?: string;
+  // Holmes mock server for deterministic AI testing
+  holmesMockBaseURL?: string;
+  holmesMockPid?: number;
 };
 
 const stateDir = path.join(e2eRoot, '.run');
