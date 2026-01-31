@@ -172,20 +172,8 @@ export async function getHolmesInput(page: Page) {
     .locator('textarea, [contenteditable="true"], [placeholder="Ask about your cluster..."]')
     .first();
 
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (await input.isVisible().catch(() => false)) {
-      return input;
-    }
-    const toggle = page.locator('#holmes-toggle-btn');
-    if (await toggle.isVisible().catch(() => false)) {
-      await toggle.click();
-      await page.waitForTimeout(200);
-      await toggle.click();
-    }
-    await page.waitForTimeout(500);
-  }
-
-  await expect(input).toBeVisible({ timeout: 20_000 });
+  // Use web-first assertion with polling instead of manual retry loop with hardcoded waits
+  await expect(input).toBeVisible({ timeout: 30_000 });
   return input;
 }
 

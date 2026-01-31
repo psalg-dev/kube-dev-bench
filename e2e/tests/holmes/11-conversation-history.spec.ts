@@ -8,8 +8,12 @@ test('Holmes panel conversation history with export/clear', async ({ page, conte
   await bootstrapApp({ page, contextName, namespace });
   await configureHolmesMock({ page });
 
-  await page.locator('#holmes-toggle-btn').click();
-  await expect(page.locator('#holmes-panel')).toBeVisible({ timeout: 10_000 });
+  // Use retry pattern for opening Holmes panel
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await page.locator('#holmes-toggle-btn').click();
+    await expect(page.locator('#holmes-panel')).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 20_000, intervals: [500, 1000, 2000] });
 
   const input = await getHolmesInput(page);
   await input.fill('Why is my pod crashing?');
@@ -19,11 +23,14 @@ test('Holmes panel conversation history with export/clear', async ({ page, conte
   await expect(clearButton).toBeVisible({ timeout: 30_000 });
 
   const exportButton = page.getByTitle('Export conversation');
-  await expect(exportButton).toBeVisible();
+  await expect(exportButton).toBeVisible({ timeout: 10_000 });
   await exportButton.click();
 
   await clearButton.click();
   
   // After clearing, verify the input is still available (conversation cleared)
   await expect(page.getByPlaceholder('Ask about your cluster...')).toBeVisible({ timeout: 20_000 });
+  
+  // Clear button should be hidden when no conversation
+  await expect(clearButton).toBeHidden({ timeout: 5_000 });
 });

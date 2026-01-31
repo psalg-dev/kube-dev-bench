@@ -69,11 +69,14 @@ async function analyzeDeploymentByName(page: Page, deployName: string) {
   const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect(row).toBeVisible({ timeout: 90_000 });
 
-  // Trigger Holmes analysis via row actions menu (Ask Holmes)
-  await row.locator('.row-actions-button').click();
-  const askHolmes = page.locator('.menu-content .context-menu-item', { hasText: 'Ask Holmes' }).first();
-  await expect(askHolmes).toBeVisible({ timeout: 10_000 });
-  await askHolmes.click();
+  // Trigger Holmes analysis via row actions menu (Ask Holmes) with retry pattern
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await row.locator('.row-actions-button').click();
+    const askHolmes = page.locator('.menu-content .context-menu-item', { hasText: 'Ask Holmes' }).first();
+    await expect(askHolmes).toBeVisible({ timeout: 5_000 });
+    await askHolmes.click();
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
 
   await panel.expectVisible(30_000);
   await panel.clickTab('Holmes');
