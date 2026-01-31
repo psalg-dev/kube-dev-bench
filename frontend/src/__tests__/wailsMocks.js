@@ -58,7 +58,7 @@ const appFunctionNames = [
   'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory',
   // Bulk operations
   'BulkDeleteResources','BulkRestartResources','BulkScaleResources','BulkSuspendCronJobs','BulkResumeCronJobs',
-  'BulkRemoveSwarmResources','BulkScaleSwarmServices','BulkRestartSwarmServices','BulkUpdateSwarmNodeAvailability'
+  'BulkRemoveSwarmResources','BulkScaleSwarmServices','BulkRestartSwarmServices','BulkSetNodeAvailability'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {
