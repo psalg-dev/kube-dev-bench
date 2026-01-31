@@ -11,7 +11,7 @@ const mockBulkResumeCronJobs = vi.fn();
 const mockBulkRemoveSwarmResources = vi.fn();
 const mockBulkScaleSwarmServices = vi.fn();
 const mockBulkRestartSwarmServices = vi.fn();
-const mockBulkUpdateSwarmNodeAvailability = vi.fn();
+const mockBulkSetNodeAvailability = vi.fn();
 
 // Mock the App API
 vi.mock('../../wailsjs/go/main/App', () => ({
@@ -23,7 +23,7 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   BulkRemoveSwarmResources: (...args) => mockBulkRemoveSwarmResources(...args),
   BulkScaleSwarmServices: (...args) => mockBulkScaleSwarmServices(...args),
   BulkRestartSwarmServices: (...args) => mockBulkRestartSwarmServices(...args),
-  BulkUpdateSwarmNodeAvailability: (...args) => mockBulkUpdateSwarmNodeAvailability(...args),
+  BulkSetNodeAvailability: (...args) => mockBulkSetNodeAvailability(...args),
 }));
 
 describe('bulkOperations', () => {
@@ -137,31 +137,31 @@ describe('bulkOperations', () => {
         expect(mockBulkScaleSwarmServices).toHaveBeenCalledWith(expect.any(Array), 3);
       });
 
-      it('calls BulkUpdateSwarmNodeAvailability for drain action', async () => {
-        mockBulkUpdateSwarmNodeAvailability.mockResolvedValue({ results: [], successCount: 1, errorCount: 0 });
+      it('calls BulkSetNodeAvailability for drain action', async () => {
+        mockBulkSetNodeAvailability.mockResolvedValue({ results: [], successCount: 1, errorCount: 0 });
         
         const nodeRows = [{ id: 'node-1', name: 'node-1' }];
         await executeBulkAction('swarm', 'drain', nodeRows, { resourceKind: 'node' });
         
-        expect(mockBulkUpdateSwarmNodeAvailability).toHaveBeenCalledWith(expect.any(Array), 'drain');
+        expect(mockBulkSetNodeAvailability).toHaveBeenCalledWith(expect.any(Array), 'drain');
       });
 
-      it('calls BulkUpdateSwarmNodeAvailability for pause action', async () => {
-        mockBulkUpdateSwarmNodeAvailability.mockResolvedValue({ results: [], successCount: 1, errorCount: 0 });
+      it('calls BulkSetNodeAvailability for pause action', async () => {
+        mockBulkSetNodeAvailability.mockResolvedValue({ results: [], successCount: 1, errorCount: 0 });
         
         const nodeRows = [{ id: 'node-1', name: 'node-1' }];
         await executeBulkAction('swarm', 'pause', nodeRows, { resourceKind: 'node' });
         
-        expect(mockBulkUpdateSwarmNodeAvailability).toHaveBeenCalledWith(expect.any(Array), 'pause');
+        expect(mockBulkSetNodeAvailability).toHaveBeenCalledWith(expect.any(Array), 'pause');
       });
 
-      it('calls BulkUpdateSwarmNodeAvailability for activate action', async () => {
-        mockBulkUpdateSwarmNodeAvailability.mockResolvedValue({ results: [], successCount: 1, errorCount: 0 });
+      it('calls BulkSetNodeAvailability for activate action', async () => {
+        mockBulkSetNodeAvailability.mockResolvedValue({ results: [], successCount: 1, errorCount: 0 });
         
         const nodeRows = [{ id: 'node-1', name: 'node-1' }];
         await executeBulkAction('swarm', 'activate', nodeRows, { resourceKind: 'node' });
         
-        expect(mockBulkUpdateSwarmNodeAvailability).toHaveBeenCalledWith(expect.any(Array), 'active');
+        expect(mockBulkSetNodeAvailability).toHaveBeenCalledWith(expect.any(Array), 'active');
       });
     });
   });

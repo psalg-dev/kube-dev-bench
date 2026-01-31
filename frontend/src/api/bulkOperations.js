@@ -78,11 +78,11 @@ async function executeSwarmBulkAction(actionKey, selectedRows, options = {}) {
       }
       return AppAPI.BulkScaleSwarmServices(items, replicas);
     case 'drain':
-      return AppAPI.BulkUpdateSwarmNodeAvailability(items, 'drain');
+      return AppAPI.BulkSetNodeAvailability(items, 'drain');
     case 'pause':
-      return AppAPI.BulkUpdateSwarmNodeAvailability(items, 'pause');
+      return AppAPI.BulkSetNodeAvailability(items, 'pause');
     case 'activate':
-      return AppAPI.BulkUpdateSwarmNodeAvailability(items, 'active');
+      return AppAPI.BulkSetNodeAvailability(items, 'active');
     default:
       throw new Error(`Unknown Swarm action: ${actionKey}`);
   }
