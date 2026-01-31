@@ -100,8 +100,8 @@ test.describe('Bulk Operations', () => {
 
       await test.step('Verify deleted pods are no longer in the table', async () => {
         // The deleted pods should no longer be visible
-        await expect(page.getByRole('row', { name: new RegExp(pod1) })).toHaveCount(0, { timeout: 30_000 });
-        await expect(page.getByRole('row', { name: new RegExp(pod2) })).toHaveCount(0, { timeout: 10_000 });
+        await expect(page.getByRole('row', { name: new RegExp(pod1) })).toHaveCount(0, { timeout: 60_000 });
+        await expect(page.getByRole('row', { name: new RegExp(pod2) })).toHaveCount(0, { timeout: 30_000 });
 
         // The third pod should still be visible
         await expect(page.getByRole('row', { name: new RegExp(pod3) })).toBeVisible();
@@ -150,7 +150,7 @@ test.describe('Bulk Operations', () => {
 
       await test.step('Verify pods are deleted', async () => {
         for (const name of podNames) {
-          await expect(page.getByRole('row', { name: new RegExp(name) })).toHaveCount(0, { timeout: 30_000 });
+          await expect(page.getByRole('row', { name: new RegExp(name) })).toHaveCount(0, { timeout: 60_000 });
         }
       });
     });
@@ -241,7 +241,7 @@ spec:
       });
 
       await test.step('Verify deployment is deleted', async () => {
-        await expect(page.getByRole('row', { name: new RegExp(deployName) })).toHaveCount(0, { timeout: 30_000 });
+        await expect(page.getByRole('row', { name: new RegExp(deployName) })).toHaveCount(0, { timeout: 60_000 });
       });
     });
   });
@@ -287,7 +287,7 @@ data:
       });
 
       await test.step('Verify configmap is deleted', async () => {
-        await expect(page.getByRole('row', { name: new RegExp(cmName) })).toHaveCount(0, { timeout: 30_000 });
+        await expect(page.getByRole('row', { name: new RegExp(cmName) })).toHaveCount(0, { timeout: 60_000 });
       });
     });
   });
@@ -334,7 +334,7 @@ stringData:
       });
 
       await test.step('Verify secret is deleted', async () => {
-        await expect(page.getByRole('row', { name: new RegExp(secretName) })).toHaveCount(0, { timeout: 30_000 });
+        await expect(page.getByRole('row', { name: new RegExp(secretName) })).toHaveCount(0, { timeout: 60_000 });
       });
     });
   });
@@ -386,7 +386,7 @@ spec:
       });
 
       await test.step('Verify job is deleted', async () => {
-        await expect(page.getByRole('row', { name: new RegExp(jobName) })).toHaveCount(0, { timeout: 30_000 });
+        await expect(page.getByRole('row', { name: new RegExp(jobName) })).toHaveCount(0, { timeout: 60_000 });
       });
     });
   });

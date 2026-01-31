@@ -135,7 +135,8 @@ spec:
 
     await test.step('Verify mock deployment response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
-      await expect(holmesPanel).toContainText('Deployment health check completed', { timeout: 30_000 });
+      // Check for content from the streamed ai_message events in fixtures.json
+      await expect(holmesPanel).toContainText(/Deployment Analysis|deployment is healthy/i, { timeout: 30_000 });
     });
   });
 
@@ -180,7 +181,8 @@ spec:
 
     await test.step('Verify default response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
-      await expect(holmesPanel).toContainText('General resource analysis completed', { timeout: 30_000 });
+      // Check for content from the streamed ai_message events in fixtures.json
+      await expect(holmesPanel).toContainText(/Resource Analysis|resource appears to be in a healthy state/i, { timeout: 30_000 });
     });
   });
 

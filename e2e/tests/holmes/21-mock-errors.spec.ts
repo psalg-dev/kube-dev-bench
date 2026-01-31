@@ -12,6 +12,7 @@ import { bootstrapApp } from '../../src/support/bootstrap.js';
 import {
   configureHolmesMock,
   disableHolmes,
+  getHolmesMockURL,
 } from '../../src/support/holmes-bootstrap.js';
 import { startHolmesMockServer, type HolmesMockInstance } from '../../src/support/holmes-mock.js';
 import { withinRepo } from '../../src/support/paths.js';
@@ -235,56 +236,44 @@ test.describe('Holmes Error Handling', () => {
   });
 
   test('recovers after error and shows new responses', async ({ page, namespace }) => {
-    let errorMockServer: HolmesMockInstance | null = null;
     let deployName = '';
 
-    try {
-      deployName = await createDeployment(page, namespace);
+    deployName = await createDeployment(page, namespace);
 
-      await test.step('First: use failing endpoint', async () => {
-        await configureHolmesMock({
-          page,
-          endpoint: 'http://127.0.0.1:19999', // Unreachable
-        });
-
-        const panel = await analyzeDeploymentByName(page, deployName);
-
-        const holmesPanel = panel.root;
-        await expect(
-          holmesPanel.getByText(/failed to send request|error|connect/i).first()
-        ).toBeVisible({ timeout: 60_000 });
-
-        await panel.closeByClickingOutside();
+    await test.step('First: use failing endpoint', async () => {
+      await configureHolmesMock({
+        page,
+        endpoint: 'http://127.0.0.1:19999', // Unreachable
       });
 
-      await test.step('Start working mock server', async () => {
-        errorMockServer = await startHolmesMockServer({
-          repoRoot: withinRepo(),
-          port: 34120,
-          readyTimeoutMs: 30_000,
-        });
-      });
+      const panel = await analyzeDeploymentByName(page, deployName);
 
-      await test.step('Reconfigure to working endpoint', async () => {
-        await configureHolmesMock({
-          page,
-          endpoint: errorMockServer!.baseURL,
-        });
-      });
+      const holmesPanel = panel.root;
+      await expect(
+        holmesPanel.getByText(/failed to send request|error|connect/i).first()
+      ).toBeVisible({ timeout: 60_000 });
 
-      await test.step('Ask again and verify success', async () => {
-        await analyzeDeploymentByName(page, deployName);
+      await panel.closeByClickingOutside();
+    });
 
-        const panel = new BottomPanel(page);
-        const holmesPanel = panel.root;
-        await expect(holmesPanel).toContainText('Deployment health check completed', {
-          timeout: 30_000,
-        });
+    await test.step('Reconfigure to working endpoint (global mock server)', async () => {
+      // Use the global mock server that was started in global-setup
+      const globalMockURL = await getHolmesMockURL();
+      await configureHolmesMock({
+        page,
+        endpoint: globalMockURL,
       });
-    } finally {
-      if (errorMockServer?.process) {
-        errorMockServer.process.kill('SIGTERM');
-      }
-    }
+    });
+
+    await test.step('Ask again and verify success', async () => {
+      await analyzeDeploymentByName(page, deployName);
+
+      const panel = new BottomPanel(page);
+      const holmesPanel = panel.root;
+      // Check for content from the streamed ai_message events in fixtures.json
+      await expect(holmesPanel).toContainText(/Deployment Analysis|deployment is healthy/i, {
+        timeout: 30_000,
+      });
+    });
   });
 });
