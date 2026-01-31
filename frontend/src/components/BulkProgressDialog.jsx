@@ -103,9 +103,11 @@ export default function BulkProgressDialog({
 
         <div className="bulk-progress-items-container" ref={listRef}>
           <ul className="bulk-progress-items-list" data-testid="bulk-progress-items">
-            {items.map((item, idx) => (
+            {items.map((item, idx) => {
+              const itemKey = item.key || (item.namespace ? `${item.namespace}/${item.name}` : item.name) || idx;
+              return (
               <li
-                key={item.key || `${item.namespace || ''}/${item.name}` || idx}
+                key={itemKey}
                 className={`bulk-progress-item bulk-progress-item-${item.status}`}
               >
                 <span className="bulk-progress-item-icon">
@@ -121,7 +123,8 @@ export default function BulkProgressDialog({
                   </span>
                 )}
               </li>
-            ))}
+              );
+            })}
           </ul>
         </div>
 
