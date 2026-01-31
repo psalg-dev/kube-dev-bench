@@ -281,16 +281,19 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
   } = useTableSelection(enableBulkSelection ? sortedData : [], getRowKey);
 
   // Get selected items formatted for the API
+  // Use createKind as fallback for Swarm tables which use createKind instead of resourceKind
+  const effectiveKind = createKind || resourceKind || 'unknown';
   const selectedItems = useMemo(() => {
     if (!enableBulkSelection) return [];
     const rows = getSelectedRows();
     return rows.map((row) => ({
       name: row?.name || row?.Name || '',
       namespace: row?.namespace || row?.Namespace || '',
-      kind: resourceKind || 'unknown',
+      id: row?.id || row?.ID || row?.Id || '',
+      kind: effectiveKind,
       displayName: getRowKey(row, 0)
     }));
-  }, [getSelectedRows, resourceKind, enableBulkSelection]);
+  }, [getSelectedRows, effectiveKind, enableBulkSelection, getRowKey]);
 
   // Handle action selection from BulkActionBar
   const handleBulkActionSelect = useCallback((action, options) => {
@@ -298,10 +301,10 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       action,
       items: selectedItems,
       options,
-      title: `${action.label} ${selectedItems.length} ${resourceKind || 'item'}${selectedItems.length > 1 ? 's' : ''}?`,
+      title: `${action.label} ${selectedItems.length} ${effectiveKind || 'item'}${selectedItems.length > 1 ? 's' : ''}?`,
       destructive: action.destructive
     });
-  }, [selectedItems, resourceKind]);
+  }, [selectedItems, effectiveKind]);
 
   // Handle bulk operation confirmation
   const handleBulkConfirm = useCallback(async () => {
@@ -328,7 +331,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
     try {
       const result = await executeBulkAction(createPlatform, action.id, items, {
         ...options,
-        resourceKind
+        resourceKind: effectiveKind
       });
 
       const updatedItems = progressItems.map((item, idx) => {
@@ -370,7 +373,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         errorCount: progressItems.length
       });
     }
-  }, [confirmDialog, createPlatform, resourceKind, clearSelection, onBulkOperationComplete]);
+  }, [confirmDialog, createPlatform, effectiveKind, clearSelection, onBulkOperationComplete]);
 
   const handleProgressClose = useCallback(() => {
     setProgressDialog(null);
@@ -383,7 +386,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         .map(item => ({
           name: item.name.includes('/') ? item.name.split('/').pop() : item.name,
           namespace: item.namespace,
-          kind: resourceKind,
+          kind: effectiveKind,
           displayName: item.name
         }));
 
@@ -395,7 +398,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
         });
       }
     }
-  }, [progressDialog, confirmDialog, resourceKind]);
+  }, [progressDialog, confirmDialog, effectiveKind]);
 
   const buildMenuActions = (row) => {
     const api = {
@@ -417,7 +420,7 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
       {enableBulkSelection && selectedCount > 0 && (
         <BulkActionBar
           selectedCount={selectedCount}
-          resourceKind={resourceKind}
+          resourceKind={effectiveKind}
           platform={createPlatform}
           onActionSelect={handleBulkActionSelect}
           onClearSelection={clearSelection}
