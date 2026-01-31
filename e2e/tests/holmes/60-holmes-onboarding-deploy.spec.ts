@@ -68,7 +68,7 @@ test.describe('HolmesGPT onboarding', () => {
             return HOLMES_POD_PREFIXES.some((prefix) => name.startsWith(prefix)) && phase === 'Running';
           });
       }, {
-        timeout: 5 * 60_000, // Increase to 5 minutes for CI
+        timeout: 5 * 60_000, // Increased to 5 minutes for CI
         intervals: [2000, 5000, 10000],
       }).toBe(true);
     });
