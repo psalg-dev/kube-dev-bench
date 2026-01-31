@@ -5,10 +5,74 @@ import (
 	"strings"
 	"time"
 
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+// getIngressClass extracts the ingress class from spec or annotations
+func getIngressClass(ingress *networkingv1.Ingress) string {
+	if ingress.Spec.IngressClassName != nil {
+		return *ingress.Spec.IngressClassName
+	}
+	if classAnnotation, exists := ingress.Annotations["kubernetes.io/ingress.class"]; exists {
+		return classAnnotation
+	}
+	return ""
+}
+
+// collectIngressHosts extracts all hosts from ingress rules
+func collectIngressHosts(ingress *networkingv1.Ingress) []string {
+	var hosts []string
+	for _, rule := range ingress.Spec.Rules {
+		if rule.Host != "" {
+			hosts = append(hosts, rule.Host)
+		}
+	}
+	return hosts
+}
+
+// getIngressAddress extracts load balancer addresses
+func getIngressAddress(ingress *networkingv1.Ingress) string {
+	var addresses []string
+	for _, lbIngress := range ingress.Status.LoadBalancer.Ingress {
+		if lbIngress.IP != "" {
+			addresses = append(addresses, lbIngress.IP)
+		}
+		if lbIngress.Hostname != "" {
+			addresses = append(addresses, lbIngress.Hostname)
+		}
+	}
+	if len(addresses) == 0 {
+		return "-"
+	}
+	return strings.Join(addresses, ",")
+}
+
+// buildIngressInfo creates an IngressInfo from an ingress resource
+func buildIngressInfo(ingress networkingv1.Ingress, now time.Time) IngressInfo {
+	age := "-"
+	if ingress.CreationTimestamp.Time != (time.Time{}) {
+		age = formatDuration(now.Sub(ingress.CreationTimestamp.Time))
+	}
+
+	ports := "80"
+	if len(ingress.Spec.TLS) > 0 {
+		ports = "80,443"
+	}
+
+	return IngressInfo{
+		Name:      ingress.Name,
+		Namespace: ingress.Namespace,
+		Class:     getIngressClass(&ingress),
+		Hosts:     collectIngressHosts(&ingress),
+		Address:   getIngressAddress(&ingress),
+		Ports:     ports,
+		Age:       age,
+		Labels:    ingress.Labels,
+	}
+}
 
 // GetIngresses returns all ingresses in a namespace
 func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
@@ -42,64 +106,10 @@ func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
 		return nil, err
 	}
 
-	var result []IngressInfo
 	now := time.Now()
-
+	result := make([]IngressInfo, 0, len(ingresses.Items))
 	for _, ingress := range ingresses.Items {
-		age := "-"
-		if ingress.CreationTimestamp.Time != (time.Time{}) {
-			dur := now.Sub(ingress.CreationTimestamp.Time)
-			age = formatDuration(dur)
-		}
-
-		// Get ingress class
-		ingressClass := ""
-		if ingress.Spec.IngressClassName != nil {
-			ingressClass = *ingress.Spec.IngressClassName
-		} else if classAnnotation, exists := ingress.Annotations["kubernetes.io/ingress.class"]; exists {
-			ingressClass = classAnnotation
-		}
-
-		// Collect hosts
-		var hosts []string
-		for _, rule := range ingress.Spec.Rules {
-			if rule.Host != "" {
-				hosts = append(hosts, rule.Host)
-			}
-		}
-
-		// Get load balancer addresses
-		var addresses []string
-		for _, lbIngress := range ingress.Status.LoadBalancer.Ingress {
-			if lbIngress.IP != "" {
-				addresses = append(addresses, lbIngress.IP)
-			}
-			if lbIngress.Hostname != "" {
-				addresses = append(addresses, lbIngress.Hostname)
-			}
-		}
-		address := strings.Join(addresses, ",")
-		if address == "" {
-			address = "-"
-		}
-
-		// Determine ports from rules
-		ports := "80"
-		hasTLS := len(ingress.Spec.TLS) > 0
-		if hasTLS {
-			ports = "80,443"
-		}
-
-		result = append(result, IngressInfo{
-			Name:      ingress.Name,
-			Namespace: ingress.Namespace,
-			Class:     ingressClass,
-			Hosts:     hosts,
-			Address:   address,
-			Ports:     ports,
-			Age:       age,
-			Labels:    ingress.Labels,
-		})
+		result = append(result, buildIngressInfo(ingress, now))
 	}
 
 	return result, nil

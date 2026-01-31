@@ -15,12 +15,59 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
+	"github.com/docker/docker/client"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 func isGzipPath(p string) bool {
 	low := strings.ToLower(p)
 	return strings.HasSuffix(low, ".tgz") || strings.HasSuffix(low, ".tar.gz")
+}
+
+// processTarEntry normalizes and writes a single tar entry.
+// Returns false if entry should be skipped.
+func processTarEntry(h *tar.Header, tr *tar.Reader, tw *tar.Writer) error {
+	if h == nil {
+		return nil
+	}
+
+	name := h.Name
+	name = strings.TrimPrefix(name, "./")
+	name = strings.TrimPrefix(name, "mnt/")
+	name = strings.TrimPrefix(name, "/")
+	if name == "" || name == "." {
+		// Skip empty root entries.
+		return nil
+	}
+
+	h.Name = name
+	if err := tw.WriteHeader(h); err != nil {
+		return err
+	}
+	if h.Typeflag == tar.TypeReg || h.Typeflag == tar.TypeRegA {
+		if _, err := io.Copy(tw, tr); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// copyNormalizedTar reads from tr and writes to tw with normalized paths.
+func copyNormalizedTar(tr *tar.Reader, tw *tar.Writer, pw *io.PipeWriter) {
+	for {
+		h, err := tr.Next()
+		if err == io.EOF {
+			return
+		}
+		if err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
+		if err := processTarEntry(h, tr, tw); err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
+	}
 }
 
 func normalizeTarStream(r io.Reader) (io.Reader, error) {
@@ -40,40 +87,7 @@ func normalizeTarStream(r io.Reader) (io.Reader, error) {
 			_ = tw.Close()
 		}()
 
-		for {
-			h, err := tr.Next()
-			if err == io.EOF {
-				return
-			}
-			if err != nil {
-				_ = pw.CloseWithError(err)
-				return
-			}
-			if h == nil {
-				continue
-			}
-
-			name := h.Name
-			name = strings.TrimPrefix(name, "./")
-			name = strings.TrimPrefix(name, "mnt/")
-			name = strings.TrimPrefix(name, "/")
-			if name == "" || name == "." {
-				// Skip empty root entries.
-				continue
-			}
-
-			h.Name = name
-			if err := tw.WriteHeader(h); err != nil {
-				_ = pw.CloseWithError(err)
-				return
-			}
-			if h.Typeflag == tar.TypeReg || h.Typeflag == tar.TypeRegA {
-				if _, err := io.Copy(tw, tr); err != nil {
-					_ = pw.CloseWithError(err)
-					return
-				}
-			}
-		}
+		copyNormalizedTar(tr, tw, pw)
 	}()
 
 	return pr, nil
@@ -201,6 +215,36 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 	return archivePath, nil
 }
 
+// waitForCloneContainer waits for the clone container to finish and returns an error if it fails.
+func (a *App) waitForCloneContainer(cli *client.Client, containerID string) error {
+	statusCh, errCh := cli.ContainerWait(a.ctx, containerID, container.WaitConditionNotRunning)
+	select {
+	case st := <-statusCh:
+		if st.StatusCode != 0 {
+			return a.getContainerExitError(cli, containerID, st.StatusCode)
+		}
+	case err := <-errCh:
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getContainerExitError retrieves the error message from container logs.
+func (a *App) getContainerExitError(cli *client.Client, containerID string, exitCode int64) error {
+	logs, _ := cli.ContainerLogs(a.ctx, containerID, container.LogsOptions{ShowStdout: true, ShowStderr: true, Tail: "200"})
+	if logs != nil {
+		defer logs.Close()
+		b, _ := io.ReadAll(logs)
+		msg := strings.TrimSpace(string(b))
+		if msg != "" {
+			return fmt.Errorf("clone failed: %s", msg)
+		}
+	}
+	return fmt.Errorf("clone failed (exit code %d)", exitCode)
+}
+
 // CloneSwarmVolume creates a new volume and copies all content from source into it.
 func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (string, error) {
 	sourceVolumeName = strings.TrimSpace(sourceVolumeName)
@@ -227,16 +271,14 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 		return "", fmt.Errorf("target volume already exists")
 	}
 
-	created, err := cli.VolumeCreate(a.ctx, volume.CreateOptions{
+	if _, err := cli.VolumeCreate(a.ctx, volume.CreateOptions{
 		Name:       newVolumeName,
 		Driver:     src.Driver,
 		Labels:     src.Labels,
 		DriverOpts: src.Options,
-	})
-	if err != nil {
+	}); err != nil {
 		return "", err
 	}
-	_ = created
 
 	// Ensure helper image exists.
 	pullCtx, cancel := context.WithTimeout(a.ctx, 60*time.Second)
@@ -265,25 +307,8 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 		return "", err
 	}
 
-	statusCh, errCh := cli.ContainerWait(a.ctx, resp.ID, container.WaitConditionNotRunning)
-	select {
-	case st := <-statusCh:
-		if st.StatusCode != 0 {
-			logs, _ := cli.ContainerLogs(a.ctx, resp.ID, container.LogsOptions{ShowStdout: true, ShowStderr: true, Tail: "200"})
-			if logs != nil {
-				defer logs.Close()
-				b, _ := io.ReadAll(logs)
-				msg := strings.TrimSpace(string(b))
-				if msg != "" {
-					return "", fmt.Errorf("clone failed: %s", msg)
-				}
-			}
-			return "", fmt.Errorf("clone failed (exit code %d)", st.StatusCode)
-		}
-	case err := <-errCh:
-		if err != nil {
-			return "", err
-		}
+	if err := a.waitForCloneContainer(cli, resp.ID); err != nil {
+		return "", err
 	}
 
 	return newVolumeName, nil

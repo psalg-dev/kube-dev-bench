@@ -228,6 +228,45 @@ func (a *App) GetStatefulSetPVCsCount(namespace, statefulSetName string) (int, e
 	return count, nil
 }
 
+// getWorkloadPodCount gets pod count for workload resources
+func (a *App) getWorkloadPodCount(namespace, kind, name string) int {
+	if podsCount, err := a.GetPodsCountForResource(namespace, kind, name); err == nil {
+		return podsCount
+	}
+	return 0
+}
+
+// getStatefulSetCounts gets counts specific to StatefulSet
+func (a *App) getStatefulSetCounts(namespace, name string) (pods, pvcs int) {
+	pods = a.getWorkloadPodCount(namespace, "StatefulSet", name)
+	if pvcsCount, err := a.GetStatefulSetPVCsCount(namespace, name); err == nil {
+		pvcs = pvcsCount
+	}
+	return
+}
+
+// getConfigMapCounts gets counts specific to ConfigMap
+func (a *App) getConfigMapCounts(namespace, name string) (consumers, data int) {
+	if c, err := a.GetConfigMapConsumersCount(namespace, name); err == nil {
+		consumers = c
+	}
+	if d, err := a.GetConfigMapDataCount(namespace, name); err == nil {
+		data = d
+	}
+	return
+}
+
+// getSecretCounts gets counts specific to Secret
+func (a *App) getSecretCounts(namespace, name string) (consumers, data int) {
+	if c, err := a.GetSecretConsumersCount(namespace, name); err == nil {
+		consumers = c
+	}
+	if d, err := a.GetSecretDataCount(namespace, name); err == nil {
+		data = d
+	}
+	return
+}
+
 // GetAllTabCounts returns all relevant tab counts for a resource in a single call
 func (a *App) GetAllTabCounts(namespace, kind, name string) (TabCounts, error) {
 	counts := TabCounts{}
@@ -240,17 +279,10 @@ func (a *App) GetAllTabCounts(namespace, kind, name string) (TabCounts, error) {
 	// Resource-specific counts
 	switch kind {
 	case "Deployment", "DaemonSet", "ReplicaSet", "Job":
-		if podsCount, err := a.GetPodsCountForResource(namespace, kind, name); err == nil {
-			counts.Pods = podsCount
-		}
+		counts.Pods = a.getWorkloadPodCount(namespace, kind, name)
 
 	case "StatefulSet":
-		if podsCount, err := a.GetPodsCountForResource(namespace, kind, name); err == nil {
-			counts.Pods = podsCount
-		}
-		if pvcsCount, err := a.GetStatefulSetPVCsCount(namespace, name); err == nil {
-			counts.PVCs = pvcsCount
-		}
+		counts.Pods, counts.PVCs = a.getStatefulSetCounts(namespace, name)
 
 	case "CronJob":
 		if historyCount, err := a.GetCronJobHistoryCount(namespace, name); err == nil {
@@ -258,20 +290,10 @@ func (a *App) GetAllTabCounts(namespace, kind, name string) (TabCounts, error) {
 		}
 
 	case "ConfigMap":
-		if consumersCount, err := a.GetConfigMapConsumersCount(namespace, name); err == nil {
-			counts.Consumers = consumersCount
-		}
-		if dataCount, err := a.GetConfigMapDataCount(namespace, name); err == nil {
-			counts.Data = dataCount
-		}
+		counts.Consumers, counts.Data = a.getConfigMapCounts(namespace, name)
 
 	case "Secret":
-		if consumersCount, err := a.GetSecretConsumersCount(namespace, name); err == nil {
-			counts.Consumers = consumersCount
-		}
-		if dataCount, err := a.GetSecretDataCount(namespace, name); err == nil {
-			counts.Data = dataCount
-		}
+		counts.Consumers, counts.Data = a.getSecretCounts(namespace, name)
 
 	case "PersistentVolumeClaim":
 		if consumersCount, err := a.GetPVCConsumersCount(namespace, name); err == nil {

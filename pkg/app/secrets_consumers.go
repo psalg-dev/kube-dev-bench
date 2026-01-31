@@ -6,6 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 type SecretConsumer struct {
@@ -15,36 +16,53 @@ type SecretConsumer struct {
 	RefType   string `json:"refType,omitempty"`
 }
 
-func podSpecUsesSecret(spec corev1.PodSpec, secretName string) (bool, string) {
-	for _, v := range spec.Volumes {
+// checkContainerSecretRef checks if a container references a secret
+func checkContainerSecretRef(c corev1.Container, secretName string) (bool, string) {
+	for _, from := range c.EnvFrom {
+		if from.SecretRef != nil && from.SecretRef.Name == secretName {
+			return true, fmt.Sprintf("envFrom:%s", c.Name)
+		}
+	}
+	for _, e := range c.Env {
+		if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil && e.ValueFrom.SecretKeyRef.Name == secretName {
+			return true, fmt.Sprintf("env:%s", c.Name)
+		}
+	}
+	return false, ""
+}
+
+// checkVolumeSecretRef checks if any volume references a secret
+func checkVolumeSecretRef(volumes []corev1.Volume, secretName string) (bool, string) {
+	for _, v := range volumes {
 		if v.Secret != nil && v.Secret.SecretName == secretName {
 			return true, fmt.Sprintf("volume:%s", v.Name)
 		}
 	}
+	return false, ""
+}
 
-	checkContainer := func(c corev1.Container) (bool, string) {
-		for _, from := range c.EnvFrom {
-			if from.SecretRef != nil && from.SecretRef.Name == secretName {
-				return true, fmt.Sprintf("envFrom:%s", c.Name)
-			}
-		}
-		for _, e := range c.Env {
-			if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil && e.ValueFrom.SecretKeyRef.Name == secretName {
-				return true, fmt.Sprintf("env:%s", c.Name)
-			}
-		}
-		return false, ""
-	}
-
+// checkContainersSecretRef checks init and regular containers for secret references
+func checkContainersSecretRef(spec corev1.PodSpec, secretName string) (bool, string) {
 	for _, c := range spec.InitContainers {
-		if ok, why := checkContainer(c); ok {
+		if ok, why := checkContainerSecretRef(c, secretName); ok {
 			return true, "init:" + why
 		}
 	}
 	for _, c := range spec.Containers {
-		if ok, why := checkContainer(c); ok {
+		if ok, why := checkContainerSecretRef(c, secretName); ok {
 			return true, why
 		}
+	}
+	return false, ""
+}
+
+func podSpecUsesSecret(spec corev1.PodSpec, secretName string) (bool, string) {
+	if ok, why := checkVolumeSecretRef(spec.Volumes, secretName); ok {
+		return true, why
+	}
+
+	if ok, why := checkContainersSecretRef(spec, secretName); ok {
+		return true, why
 	}
 
 	for _, ips := range spec.ImagePullSecrets {
@@ -70,7 +88,16 @@ func (a *App) GetSecretConsumers(namespace, secretName string) ([]SecretConsumer
 		return nil, err
 	}
 
-	consumers := []SecretConsumer{}
+	consumers, err := a.collectSecretConsumers(clientset, namespace, secretName)
+	if err != nil {
+		return nil, err
+	}
+
+	return sortedSecretConsumers(dedupSecretConsumers(consumers)), nil
+}
+
+func (a *App) collectSecretConsumers(clientset kubernetes.Interface, namespace, secretName string) ([]SecretConsumer, error) {
+	var consumers []SecretConsumer
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {
@@ -92,29 +119,33 @@ func (a *App) GetSecretConsumers(namespace, secretName string) ([]SecretConsumer
 		}
 	}
 
-	// De-dup
+	return consumers, nil
+}
+
+func dedupSecretConsumers(consumers []SecretConsumer) []SecretConsumer {
 	seen := map[string]bool{}
 	out := make([]SecretConsumer, 0, len(consumers))
 	for _, c := range consumers {
 		k := c.Kind + "/" + c.Namespace + "/" + c.Name
-		if seen[k] {
-			continue
+		if !seen[k] {
+			seen[k] = true
+			out = append(out, c)
 		}
-		seen[k] = true
-		out = append(out, c)
 	}
+	return out
+}
 
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Kind != out[j].Kind {
-			return out[i].Kind < out[j].Kind
+func sortedSecretConsumers(consumers []SecretConsumer) []SecretConsumer {
+	sort.Slice(consumers, func(i, j int) bool {
+		if consumers[i].Kind != consumers[j].Kind {
+			return consumers[i].Kind < consumers[j].Kind
 		}
-		if out[i].Namespace != out[j].Namespace {
-			return out[i].Namespace < out[j].Namespace
+		if consumers[i].Namespace != consumers[j].Namespace {
+			return consumers[i].Namespace < consumers[j].Namespace
 		}
-		return out[i].Name < out[j].Name
+		return consumers[i].Name < consumers[j].Name
 	})
-
-	return out, nil
+	return consumers
 }
 
 // UpdateSecretDataKey updates (or creates) a single key in a Secret's data.

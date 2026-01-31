@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"context"
+
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -49,6 +50,70 @@ type JobInfo struct {
 	Labels      map[string]string `json:"labels"`
 }
 
+// getJobImage returns the first container image from the job spec
+func getJobImage(job *batchv1.Job) string {
+	if len(job.Spec.Template.Spec.Containers) > 0 {
+		return job.Spec.Template.Spec.Containers[0].Image
+	}
+	return ""
+}
+
+// getJobCompletions returns the target number of completions
+func getJobCompletions(job *batchv1.Job) int32 {
+	if job.Spec.Completions != nil {
+		return *job.Spec.Completions
+	}
+	return 1
+}
+
+// getJobDuration calculates the job duration string
+func getJobDuration(job *batchv1.Job, now time.Time) string {
+	if job.Status.StartTime == nil {
+		return "-"
+	}
+	if job.Status.CompletionTime != nil {
+		return formatDuration(job.Status.CompletionTime.Sub(job.Status.StartTime.Time))
+	}
+	return formatDuration(now.Sub(job.Status.StartTime.Time)) + " (running)"
+}
+
+// mergeJobLabels merges job and template labels
+func mergeJobLabels(job *batchv1.Job) map[string]string {
+	labels := make(map[string]string)
+	for k, v := range job.Labels {
+		labels[k] = v
+	}
+	if job.Spec.Template.Labels != nil {
+		for k, v := range job.Spec.Template.Labels {
+			if _, exists := labels[k]; !exists {
+				labels[k] = v
+			}
+		}
+	}
+	return labels
+}
+
+// buildJobInfo constructs a JobInfo from a Job
+func buildJobInfo(job *batchv1.Job, now time.Time) JobInfo {
+	age := "-"
+	if !job.CreationTimestamp.Time.IsZero() {
+		age = formatDuration(now.Sub(job.CreationTimestamp.Time))
+	}
+
+	return JobInfo{
+		Name:        job.Name,
+		Namespace:   job.Namespace,
+		Completions: getJobCompletions(job),
+		Succeeded:   job.Status.Succeeded,
+		Active:      job.Status.Active,
+		Failed:      job.Status.Failed,
+		Age:         age,
+		Image:       getJobImage(job),
+		Duration:    getJobDuration(job, now),
+		Labels:      mergeJobLabels(job),
+	}
+}
+
 // GetJobs returns all jobs in a namespace using the provided ResourceClient
 func GetJobs(client ResourceClient, namespace string) ([]JobInfo, error) {
 	jobsList, err := client.BatchV1().Jobs(namespace).List(context.Background(), metav1.ListOptions{})
@@ -56,62 +121,10 @@ func GetJobs(client ResourceClient, namespace string) ([]JobInfo, error) {
 		return nil, err
 	}
 
-	var result []JobInfo
 	now := time.Now()
-
+	result := make([]JobInfo, 0, len(jobsList.Items))
 	for _, job := range jobsList.Items {
-		age := "-"
-		if job.CreationTimestamp.Time != (time.Time{}) {
-			age = formatDuration(now.Sub(job.CreationTimestamp.Time))
-		}
-
-		image := ""
-		if len(job.Spec.Template.Spec.Containers) > 0 {
-			image = job.Spec.Template.Spec.Containers[0].Image
-		}
-
-		completions := int32(1)
-		if job.Spec.Completions != nil {
-			completions = *job.Spec.Completions
-		}
-
-		duration := "-"
-		if job.Status.StartTime != nil {
-			if job.Status.CompletionTime != nil {
-				// Job completed
-				duration = formatDuration(job.Status.CompletionTime.Sub(job.Status.StartTime.Time))
-			} else {
-				// Job still running
-				duration = formatDuration(now.Sub(job.Status.StartTime.Time)) + " (running)"
-			}
-		}
-
-		labels := map[string]string{}
-		for k, v := range job.Labels {
-			labels[k] = v
-		}
-		if job.Spec.Template.Labels != nil {
-			for k, v := range job.Spec.Template.Labels {
-				if _, exists := labels[k]; !exists {
-					labels[k] = v
-				}
-			}
-		}
-
-		jobInfo := JobInfo{
-			Name:        job.Name,
-			Namespace:   job.Namespace,
-			Completions: completions,
-			Succeeded:   job.Status.Succeeded,
-			Active:      job.Status.Active,
-			Failed:      job.Status.Failed,
-			Age:         age,
-			Image:       image,
-			Duration:    duration,
-			Labels:      labels,
-		}
-
-		result = append(result, jobInfo)
+		result = append(result, buildJobInfo(&job, now))
 	}
 
 	return result, nil

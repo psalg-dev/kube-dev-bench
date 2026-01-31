@@ -58,6 +58,90 @@ func NewDockerHubClient(cfg RegistryConfig) (RegistryClient, error) {
 	}, nil
 }
 
+// dockerHubRepoPage represents a page of repository results from Docker Hub
+type dockerHubRepoPage struct {
+	Next    *string `json:"next"`
+	Results []struct {
+		Name      string `json:"name"`
+		Namespace string `json:"namespace"`
+	} `json:"results"`
+}
+
+// setListReposAuth sets authorization header for repository listing
+func (c *dockerHubClient) setListReposAuth(req *http.Request, jwt string) {
+	if jwt != "" {
+		req.Header.Set("Authorization", "JWT "+jwt)
+	} else if c.password != "" {
+		cred := c.username + ":" + c.password
+		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(cred)))
+	}
+}
+
+// buildListReposURL builds the URL for listing repositories
+func (c *dockerHubClient) buildListReposURL(base *url.URL, next string) (*url.URL, error) {
+	u, err := base.Parse(next)
+	if err != nil {
+		return nil, fmt.Errorf("build docker hub url: %w", err)
+	}
+	q := u.Query()
+	if q.Get("page_size") == "" {
+		q.Set("page_size", "100")
+		u.RawQuery = q.Encode()
+	}
+	return u, nil
+}
+
+// fetchReposPage fetches a single page of repositories
+func (c *dockerHubClient) fetchReposPage(ctx context.Context, u *url.URL, jwt string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	c.setListReposAuth(req, jwt)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	b, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		msg := strings.TrimSpace(string(b))
+		if msg == "" {
+			msg = resp.Status
+		}
+		return nil, fmt.Errorf("docker hub repositories request failed: %s", msg)
+	}
+	return b, nil
+}
+
+// parseReposPage parses repository page and appends to results
+func (c *dockerHubClient) parseReposPage(b []byte, repos *[]string) (string, error) {
+	var page dockerHubRepoPage
+	if err := json.Unmarshal(b, &page); err != nil {
+		return "", fmt.Errorf("decode docker hub repositories response: %w", err)
+	}
+
+	for _, r := range page.Results {
+		ns := strings.TrimSpace(r.Namespace)
+		name := strings.TrimSpace(r.Name)
+		if name == "" {
+			continue
+		}
+		if ns == "" {
+			ns = c.username
+		}
+		*repos = append(*repos, ns+"/"+name)
+	}
+
+	if page.Next == nil || strings.TrimSpace(*page.Next) == "" {
+		return "", nil
+	}
+	return *page.Next, nil
+}
+
 func (c *dockerHubClient) ListRepositories(ctx context.Context) ([]string, error) {
 	if c.username == "" {
 		return nil, fmt.Errorf("docker hub username is required to list repositories")
@@ -65,8 +149,6 @@ func (c *dockerHubClient) ListRepositories(ctx context.Context) ([]string, error
 
 	jwt := ""
 	if c.password != "" {
-		// Prefer JWT (officially supported by Docker Hub API). If it fails,
-		// fall back to Basic on listing requests as a best-effort.
 		jwt, _ = c.loginJWT(ctx)
 	}
 
@@ -79,71 +161,23 @@ func (c *dockerHubClient) ListRepositories(ctx context.Context) ([]string, error
 	repos := make([]string, 0, 64)
 
 	for {
-		u, err := base.Parse(next)
-		if err != nil {
-			return nil, fmt.Errorf("build docker hub url: %w", err)
-		}
-		q := u.Query()
-		if q.Get("page_size") == "" {
-			q.Set("page_size", "100")
-			u.RawQuery = q.Encode()
-		}
-
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+		u, err := c.buildListReposURL(base, next)
 		if err != nil {
 			return nil, err
 		}
-		req.Header.Set("Accept", "application/json")
-		if jwt != "" {
-			// Docker Hub expects a JWT token from /v2/users/login/ for API requests.
-			req.Header.Set("Authorization", "JWT "+jwt)
-		} else if c.password != "" {
-			cred := c.username + ":" + c.password
-			req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(cred)))
-		}
 
-		resp, err := c.httpClient.Do(req)
+		b, err := c.fetchReposPage(ctx, u, jwt)
 		if err != nil {
 			return nil, err
 		}
-		b, _ := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
 
-		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-			msg := strings.TrimSpace(string(b))
-			if msg == "" {
-				msg = resp.Status
-			}
-			return nil, fmt.Errorf("docker hub repositories request failed: %s", msg)
+		next, err = c.parseReposPage(b, &repos)
+		if err != nil {
+			return nil, err
 		}
-
-		var page struct {
-			Next    *string `json:"next"`
-			Results []struct {
-				Name      string `json:"name"`
-				Namespace string `json:"namespace"`
-			} `json:"results"`
-		}
-		if err := json.Unmarshal(b, &page); err != nil {
-			return nil, fmt.Errorf("decode docker hub repositories response: %w", err)
-		}
-
-		for _, r := range page.Results {
-			ns := strings.TrimSpace(r.Namespace)
-			name := strings.TrimSpace(r.Name)
-			if name == "" {
-				continue
-			}
-			if ns == "" {
-				ns = c.username
-			}
-			repos = append(repos, ns+"/"+name)
-		}
-
-		if page.Next == nil || strings.TrimSpace(*page.Next) == "" {
+		if next == "" {
 			break
 		}
-		next = *page.Next
 	}
 
 	return repos, nil

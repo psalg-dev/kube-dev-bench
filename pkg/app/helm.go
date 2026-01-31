@@ -573,22 +573,20 @@ func (a *App) StartHelmReleasePolling() {
 			if a.ctx == nil {
 				continue
 			}
-			nsList := a.preferredNamespaces
-			if len(nsList) == 0 && a.currentNamespace != "" {
-				nsList = []string{a.currentNamespace}
+			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
+				all := a.collectHelmReleases(nsList)
+				emitEvent(a.ctx, "helmreleases:update", all)
 			}
-			if len(nsList) == 0 {
-				continue
-			}
-			var all []HelmReleaseInfo
-			for _, ns := range nsList {
-				releases, err := a.GetHelmReleases(ns)
-				if err != nil {
-					continue
-				}
-				all = append(all, releases...)
-			}
-			emitEvent(a.ctx, "helmreleases:update", all)
 		}
 	}()
+}
+
+func (a *App) collectHelmReleases(nsList []string) []HelmReleaseInfo {
+	var all []HelmReleaseInfo
+	for _, ns := range nsList {
+		if releases, err := a.GetHelmReleases(ns); err == nil {
+			all = append(all, releases...)
+		}
+	}
+	return all
 }

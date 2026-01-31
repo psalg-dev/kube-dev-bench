@@ -42,7 +42,8 @@ func (a *App) StartSwarmTaskExecSession(sessionID, taskID, shell string) error {
 	return a.startSwarmTaskExecSessionWithClient(ctx, cli, sessionID, taskID, shell)
 }
 
-func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli swarmExecClient, sessionID, taskID, shell string) error {
+// validateSwarmExecParams checks required parameters for exec session
+func validateSwarmExecParams(cli swarmExecClient, sessionID, taskID string) error {
 	if sessionID == "" {
 		return fmt.Errorf("sessionID is required")
 	}
@@ -55,55 +56,49 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 	if v := reflect.ValueOf(cli); v.Kind() == reflect.Ptr && v.IsNil() {
 		return fmt.Errorf("docker client is nil")
 	}
+	return nil
+}
 
-	var shellCandidates []string
+// getShellCandidates returns shell candidates to try
+func getShellCandidates(shell string) []string {
 	if shell == "" || shell == "auto" {
-		// Prefer /bin/sh for maximum compatibility (alpine, busybox, etc), then try bash.
-		shellCandidates = []string{"/bin/sh", "sh", "/bin/bash", "bash"}
-	} else {
-		shellCandidates = []string{shell}
+		return []string{"/bin/sh", "sh", "/bin/bash", "bash"}
 	}
+	return []string{shell}
+}
 
-	// Long-lived session context; StopShellSession will cancel.
-	sessCtx, cancel := context.WithCancel(context.Background())
-
-	task, _, err := cli.TaskInspectWithRaw(parentCtx, taskID)
+// getTaskContainerID extracts container ID from a task
+func getTaskContainerID(ctx context.Context, cli swarmExecClient, taskID string) (string, error) {
+	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
 	if err != nil {
-		cancel()
-		return err
+		return "", err
 	}
-	containerID := ""
-	if task.Status.ContainerStatus != nil {
-		containerID = task.Status.ContainerStatus.ContainerID
+	if task.Status.ContainerStatus == nil || task.Status.ContainerStatus.ContainerID == "" {
+		return "", fmt.Errorf("task has no container yet")
 	}
-	if containerID == "" {
-		cancel()
-		return fmt.Errorf("task has no container yet")
-	}
+	return task.Status.ContainerStatus.ContainerID, nil
+}
 
-	var attach types.HijackedResponse
-	var execID string
-	var initial []byte
-	for i, candidate := range shellCandidates {
+// tryAttachShell attempts to attach to container with shell candidates
+func (a *App) tryAttachShell(sessCtx context.Context, cli swarmExecClient, containerID, sessionID, shell string, candidates []string) (attach types.HijackedResponse, execID string, initial []byte, err error) {
+	for i, candidate := range candidates {
 		attach, execID, initial, err = swarmExecAttachTTYWithProbe(sessCtx, cli, containerID, candidate)
 		if err == nil {
 			if (shell == "" || shell == "auto") && i > 0 {
 				emitEvent(a.ctx, termOutputEvent(sessionID), fmt.Sprintf("[fallback to %s]\r\n", candidate))
 			}
-			break
+			return attach, execID, initial, nil
 		}
 	}
-	if err != nil {
-		cancel()
-		return err
-	}
+	return types.HijackedResponse{}, "", nil, err
+}
 
-	// Register the session so the frontend can start sending input immediately.
+// createSwarmShellSession creates and registers a shell session
+func (a *App) createSwarmShellSession(sessCtx context.Context, cancel context.CancelFunc, cli swarmExecClient, attach types.HijackedResponse, execID, sessionID string, initial []byte) {
 	sess := &ShellSession{
 		Cancel: cancel,
 		PTY:    attach.Conn,
 		ResizeFn: func(cols, rows int) error {
-			// Docker expects rows/cols (height/width)
 			if cols <= 0 || rows <= 0 {
 				return nil
 			}
@@ -117,36 +112,53 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 		reader = io.MultiReader(bytes.NewReader(initial), attach.Reader)
 	}
 
-	// Stream output.
-	go func() {
-		defer func() {
-			emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
-		}()
-		defer func() {
-			// Best-effort cleanup (StopShellSession should also do this).
-			attach.Close()
-		}()
+	go a.streamSwarmExecOutput(sessCtx, reader, attach, sessionID)
+}
 
-		buf := make([]byte, 4096)
-		for {
-			n, rerr := reader.Read(buf)
-			if n > 0 {
-				emitEvent(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
-			}
-			if rerr != nil {
-				if rerr == io.EOF {
-					return
-				}
-				return
-			}
-			select {
-			case <-sessCtx.Done():
-				return
-			default:
-			}
-		}
+// streamSwarmExecOutput reads and emits output from the exec session
+func (a *App) streamSwarmExecOutput(sessCtx context.Context, reader io.Reader, attach types.HijackedResponse, sessionID string) {
+	defer func() {
+		emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
 	}()
+	defer attach.Close()
 
+	buf := make([]byte, 4096)
+	for {
+		n, rerr := reader.Read(buf)
+		if n > 0 {
+			emitEvent(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
+		}
+		if rerr != nil {
+			return
+		}
+		select {
+		case <-sessCtx.Done():
+			return
+		default:
+		}
+	}
+}
+
+func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli swarmExecClient, sessionID, taskID, shell string) error {
+	if err := validateSwarmExecParams(cli, sessionID, taskID); err != nil {
+		return err
+	}
+
+	containerID, err := getTaskContainerID(parentCtx, cli, taskID)
+	if err != nil {
+		return err
+	}
+
+	sessCtx, cancel := context.WithCancel(context.Background())
+
+	candidates := getShellCandidates(shell)
+	attach, execID, initial, err := a.tryAttachShell(sessCtx, cli, containerID, sessionID, shell, candidates)
+	if err != nil {
+		cancel()
+		return err
+	}
+
+	a.createSwarmShellSession(sessCtx, cancel, cli, attach, execID, sessionID, initial)
 	return nil
 }
 

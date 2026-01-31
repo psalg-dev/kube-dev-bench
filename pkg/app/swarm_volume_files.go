@@ -38,6 +38,58 @@ func sanitizePosixPath(p string) (string, error) {
 	return clean, nil
 }
 
+// swarmVolumeLsRegex parses ls -alp output lines
+var swarmVolumeLsRegex = regexp.MustCompile(`^([\-ldcbps])([rwxstST\-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\s+(.+)$`)
+
+// parseSwarmVolumeLsLine parses a single line of ls -alp output
+func parseSwarmVolumeLsLine(line, basePath string) (*PodFileEntry, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" || strings.HasPrefix(line, "total ") {
+		return nil, false
+	}
+
+	m := swarmVolumeLsRegex.FindStringSubmatch(line)
+	if len(m) != 6 {
+		return nil, false
+	}
+
+	fType := m[1]
+	nameField := m[5]
+
+	name := nameField
+	linkTarget := ""
+	isSymlink := fType == "l"
+	if isSymlink {
+		parts := strings.SplitN(nameField, " -> ", 2)
+		name = parts[0]
+		if len(parts) == 2 {
+			linkTarget = parts[1]
+		}
+	}
+	if name == "." || name == ".." {
+		return nil, false
+	}
+
+	size := int64(0)
+	_, _ = fmt.Sscan(m[3], &size)
+
+	entryPath := strings.TrimSuffix(basePath, "/") + "/" + name
+	if basePath == "/" {
+		entryPath = "/" + name
+	}
+
+	return &PodFileEntry{
+		Name:       name,
+		Path:       entryPath,
+		IsDir:      fType == "d",
+		Size:       size,
+		Mode:       fType + m[2],
+		Modified:   m[4],
+		IsSymlink:  isSymlink,
+		LinkTarget: linkTarget,
+	}, true
+}
+
 // ListSwarmVolumeFiles lists directory entries inside a Docker volume.
 // path is a POSIX-style absolute path relative to the volume root ("/" means root).
 // This Phase-1 implementation mounts the volume read-only into a short-lived helper container.
@@ -73,58 +125,11 @@ func (a *App) ListSwarmVolumeFiles(volumeName string, p string) ([]PodFileEntry,
 	}
 
 	lines := strings.Split(strings.TrimSpace(out), "\n")
-	re := regexp.MustCompile(`^([\-ldcbps])([rwxstST\-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\s+(.+)$`)
-
 	var entries []PodFileEntry
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+		if entry, ok := parseSwarmVolumeLsLine(line, clean); ok {
+			entries = append(entries, *entry)
 		}
-		if strings.HasPrefix(line, "total ") {
-			continue
-		}
-		m := re.FindStringSubmatch(line)
-		if len(m) != 6 {
-			continue
-		}
-		fType := m[1]
-		sizeStr := m[3]
-		ts := m[4]
-		nameField := m[5]
-
-		name := nameField
-		linkTarget := ""
-		isSymlink := false
-		if fType == "l" {
-			parts := strings.SplitN(nameField, " -> ", 2)
-			name = parts[0]
-			if len(parts) == 2 {
-				linkTarget = parts[1]
-			}
-			isSymlink = true
-		}
-		if name == "." || name == ".." {
-			continue
-		}
-
-		size := int64(0)
-		_, _ = fmt.Sscan(sizeStr, &size)
-
-		entryPath := strings.TrimSuffix(clean, "/") + "/" + name
-		if clean == "/" {
-			entryPath = "/" + name
-		}
-		entries = append(entries, PodFileEntry{
-			Name:       name,
-			Path:       entryPath,
-			IsDir:      fType == "d",
-			Size:       size,
-			Mode:       fType + m[2],
-			Modified:   ts,
-			IsSymlink:  isSymlink,
-			LinkTarget: linkTarget,
-		})
 	}
 
 	sort.Slice(entries, func(i, j int) bool {

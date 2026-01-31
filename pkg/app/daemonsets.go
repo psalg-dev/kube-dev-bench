@@ -4,10 +4,53 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
+
+// getDaemonSetImage returns the first container image from the daemonset spec
+func getDaemonSetImage(ds *appsv1.DaemonSet) string {
+	if len(ds.Spec.Template.Spec.Containers) > 0 {
+		return ds.Spec.Template.Spec.Containers[0].Image
+	}
+	return ""
+}
+
+// mergeDaemonSetLabels merges daemonset and template labels
+func mergeDaemonSetLabels(ds *appsv1.DaemonSet) map[string]string {
+	labels := make(map[string]string)
+	for k, v := range ds.Labels {
+		labels[k] = v
+	}
+	if ds.Spec.Template.Labels != nil {
+		for k, v := range ds.Spec.Template.Labels {
+			if _, exists := labels[k]; !exists {
+				labels[k] = v
+			}
+		}
+	}
+	return labels
+}
+
+// buildDaemonSetInfo constructs a DaemonSetInfo from a DaemonSet
+func buildDaemonSetInfo(ds *appsv1.DaemonSet, now time.Time) DaemonSetInfo {
+	age := "-"
+	if !ds.CreationTimestamp.Time.IsZero() {
+		age = formatDuration(now.Sub(ds.CreationTimestamp.Time))
+	}
+
+	return DaemonSetInfo{
+		Name:      ds.Name,
+		Namespace: ds.Namespace,
+		Desired:   ds.Status.DesiredNumberScheduled,
+		Current:   ds.Status.NumberReady,
+		Age:       age,
+		Image:     getDaemonSetImage(ds),
+		Labels:    mergeDaemonSetLabels(ds),
+	}
+}
 
 // GetDaemonSets returns all daemonsets in a namespace
 func (a *App) GetDaemonSets(namespace string) ([]DaemonSetInfo, error) {
@@ -41,44 +84,10 @@ func (a *App) GetDaemonSets(namespace string) ([]DaemonSetInfo, error) {
 		return nil, err
 	}
 
-	var result []DaemonSetInfo
 	now := time.Now()
-
+	result := make([]DaemonSetInfo, 0, len(list.Items))
 	for _, ds := range list.Items {
-		age := "-"
-		if ds.CreationTimestamp.Time != (time.Time{}) {
-			dur := now.Sub(ds.CreationTimestamp.Time)
-			age = formatDuration(dur)
-		}
-
-		image := ""
-		if len(ds.Spec.Template.Spec.Containers) > 0 {
-			image = ds.Spec.Template.Spec.Containers[0].Image
-		}
-
-		desired := ds.Status.DesiredNumberScheduled
-		current := ds.Status.NumberReady // show ready pods as current to reflect health
-
-		labels := map[string]string{}
-		for k, v := range ds.Labels {
-			labels[k] = v
-		}
-		if ds.Spec.Template.Labels != nil {
-			for k, v := range ds.Spec.Template.Labels {
-				if _, exists := labels[k]; !exists {
-					labels[k] = v
-				}
-			}
-		}
-		result = append(result, DaemonSetInfo{
-			Name:      ds.Name,
-			Namespace: ds.Namespace,
-			Desired:   desired,
-			Current:   current,
-			Age:       age,
-			Image:     image,
-			Labels:    labels,
-		})
+		result = append(result, buildDaemonSetInfo(&ds, now))
 	}
 
 	return result, nil
@@ -92,22 +101,20 @@ func (a *App) StartDaemonSetPolling() {
 			if a.ctx == nil {
 				continue
 			}
-			nsList := a.preferredNamespaces
-			if len(nsList) == 0 && a.currentNamespace != "" {
-				nsList = []string{a.currentNamespace}
+			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
+				all := a.collectDaemonSets(nsList)
+				emitEvent(a.ctx, "daemonsets:update", all)
 			}
-			if len(nsList) == 0 {
-				continue
-			}
-			var all []DaemonSetInfo
-			for _, ns := range nsList {
-				list, err := a.GetDaemonSets(ns)
-				if err != nil {
-					continue
-				}
-				all = append(all, list...)
-			}
-			emitEvent(a.ctx, "daemonsets:update", all)
 		}
 	}()
+}
+
+func (a *App) collectDaemonSets(nsList []string) []DaemonSetInfo {
+	var all []DaemonSetInfo
+	for _, ns := range nsList {
+		if list, err := a.GetDaemonSets(ns); err == nil {
+			all = append(all, list...)
+		}
+	}
+	return all
 }
