@@ -1,4 +1,5 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { getBulkActions } from '../constants/bulkActions';
 import './BulkActionBar.css';
 
 /**
@@ -7,8 +8,21 @@ import './BulkActionBar.css';
  * @param {Array} actions - Array of action definitions: { key, label, icon?, danger?, onClick }
  * @param {function} onClearSelection - Callback to clear selection
  * @param {boolean} disabled - Whether actions are disabled (e.g., during execution)
+ * @param {'default'|'compact'} variant - Visual variant for layout
+ * @param {string} resourceKind - Resource kind for auto-generated actions
+ * @param {'k8s'|'swarm'} platform - Platform for auto-generated actions
+ * @param {function} onActionSelect - Callback for auto-generated actions
  */
-export default function BulkActionBar({ selectedCount, actions = [], onClearSelection, disabled = false }) {
+export default function BulkActionBar({
+  selectedCount,
+  actions = [],
+  onClearSelection,
+  disabled = false,
+  variant = 'default',
+  resourceKind,
+  platform = 'k8s',
+  onActionSelect
+}) {
   const handleClear = useCallback((e) => {
     e.preventDefault();
     if (typeof onClearSelection === 'function') {
@@ -16,16 +30,40 @@ export default function BulkActionBar({ selectedCount, actions = [], onClearSele
     }
   }, [onClearSelection]);
 
+  const resolvedActions = useMemo(() => {
+    if (Array.isArray(actions) && actions.length > 0) return actions;
+    if (!resourceKind || typeof onActionSelect !== 'function') return [];
+    return getBulkActions(platform, resourceKind).map((action) => ({
+      ...action,
+      id: action.key,
+      onClick: () => {
+        if (action.promptReplicas) {
+          const input = window.prompt('Enter desired replicas', '1');
+          if (input === null) return;
+          const replicas = Number.parseInt(input, 10);
+          if (Number.isNaN(replicas)) return;
+          onActionSelect({ ...action, id: action.key }, { replicas });
+          return;
+        }
+        onActionSelect({ ...action, id: action.key });
+      }
+    }));
+  }, [actions, platform, resourceKind, onActionSelect]);
+
   if (selectedCount === 0) return null;
 
   return (
-    <div className="bulk-action-bar" role="toolbar" aria-label="Bulk actions">
+    <div
+      className={`bulk-action-bar${variant === 'compact' ? ' bulk-action-bar--compact' : ''}`}
+      role="toolbar"
+      aria-label="Bulk actions"
+    >
       <span className="bulk-action-count" data-testid="bulk-action-count">
         {selectedCount} selected
       </span>
       
       <div className="bulk-action-buttons">
-        {actions.map((action) => (
+        {resolvedActions.map((action) => (
           <button
             key={action.key}
             type="button"

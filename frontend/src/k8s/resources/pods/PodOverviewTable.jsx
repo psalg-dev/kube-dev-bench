@@ -33,6 +33,7 @@ import { executeBulkAction } from '../../../api/bulkOperations';
 
 // Resource types matching sidebar and templates in resource-overlay.js
 const createOptions = [
+  { key: 'pod', label: 'Pod' },
   { key: 'deployment', label: 'Deployment' },
   { key: 'job', label: 'Job' },
   { key: 'cronjob', label: 'CronJob' },
@@ -979,16 +980,6 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         flexDirection: 'column',
         minHeight: 0
       }}>
-        {/* Bulk action bar - shown when items are selected */}
-        {selectedCount > 0 && (
-          <BulkActionBar
-            selectedCount={selectedCount}
-            resourceKind="pod"
-            platform="k8s"
-            onActionSelect={handleBulkActionSelect}
-            onClearSelection={clearSelection}
-          />
-        )}
         {notification.message && (
           <div style={{
             position: 'absolute',
@@ -1063,6 +1054,16 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                   >{opt.label}</div>
                 ))}
               </div>
+            )}
+            {selectedCount > 0 && (
+              <BulkActionBar
+                selectedCount={selectedCount}
+                resourceKind="pod"
+                platform="k8s"
+                onActionSelect={handleBulkActionSelect}
+                onClearSelection={clearSelection}
+                variant="compact"
+              />
             )}
           </div>
           <h2 className="overview-title">Pods</h2>
@@ -1411,25 +1412,23 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
       {/* Bulk operation confirmation dialog */}
       {confirmDialog && (
         <BulkConfirmDialog
-          isOpen={true}
-          title={confirmDialog.title}
+          open={true}
+          actionLabel={confirmDialog.action?.label || 'Delete'}
           items={confirmDialog.items}
-          action={confirmDialog.action}
+          danger={confirmDialog.destructive}
           onConfirm={handleBulkConfirm}
           onCancel={() => setConfirmDialog(null)}
-          destructive={confirmDialog.destructive}
         />
       )}
 
       {/* Bulk operation progress dialog */}
       {progressDialog && (
         <BulkProgressDialog
-          isOpen={true}
+          open={true}
           title={progressDialog.title}
           items={progressDialog.items}
-          isComplete={progressDialog.isComplete}
-          successCount={progressDialog.successCount}
-          errorCount={progressDialog.errorCount}
+          completed={progressDialog.successCount + progressDialog.errorCount}
+          total={progressDialog.items?.length || 0}
           onClose={handleProgressClose}
           onRetryFailed={handleRetryFailed}
         />

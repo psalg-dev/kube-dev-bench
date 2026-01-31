@@ -12,6 +12,36 @@
   animation: bulk-bar-slide-in 0.15s ease-out;
 }
 
+.bulk-action-bar--compact {
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  gap: 8px;
+  animation: none;
+}
+
+.bulk-action-bar--compact .bulk-action-count {
+  font-size: 12px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.bulk-action-bar--compact .bulk-action-buttons {
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.bulk-action-bar--compact .bulk-action-button {
+  padding: 4px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+
+.bulk-action-bar--compact .bulk-action-clear {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 @keyframes bulk-bar-slide-in {
   from {
     opacity: 0;

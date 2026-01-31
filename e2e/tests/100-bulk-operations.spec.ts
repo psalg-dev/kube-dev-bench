@@ -23,7 +23,7 @@ spec:
       image: nginx:alpine
 `;
   const overlay = new CreateOverlay(page);
-  await overlay.openFromOverviewHeader();
+  await overlay.openFromOverviewHeader('Pod');
   await overlay.fillYaml(yaml);
   await overlay.create();
   

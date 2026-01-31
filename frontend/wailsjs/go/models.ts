@@ -103,6 +103,75 @@ export namespace app {
 	        this.size = source["size"];
 	    }
 	}
+	export class BulkOperationItem {
+	    kind: string;
+	    name: string;
+	    namespace: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new BulkOperationItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	    }
+	}
+	export class BulkOperationResult {
+	    name: string;
+	    namespace: string;
+	    success: boolean;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new BulkOperationResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.success = source["success"];
+	        this.error = source["error"];
+	    }
+	}
+	export class BulkOperationResponse {
+	    results: BulkOperationResult[];
+	    successCount: number;
+	    errorCount: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new BulkOperationResponse(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.results = this.convertValues(source["results"], BulkOperationResult);
+	        this.successCount = source["successCount"];
+	        this.errorCount = source["errorCount"];
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
+	}
+	
 	export class ConfigMapConsumer {
 	    kind: string;
 	    name: string;
@@ -1805,6 +1874,22 @@ export namespace app {
 	    }
 	}
 	
+	export class SwarmBulkItem {
+	    id: string;
+	    name: string;
+	    kind: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SwarmBulkItem(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.kind = source["kind"];
+	    }
+	}
 	export class TabCounts {
 	    events: number;
 	    pods: number;

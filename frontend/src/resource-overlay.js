@@ -40,7 +40,7 @@ export function showResourceOverlay(resourceType, options = {}) {
     <div class="overlay-content">
       <div class="overlay-header">
         <div class="overlay-title">New ${title} Resource</div>
-        <button class="overlay-close">×</button>
+        <button class="overlay-close" aria-label="Close" title="Close">×</button>
       </div>
       <div id="resourceEditor" class="editor-wrapper"></div>
       <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
@@ -115,6 +115,17 @@ export function showResourceOverlay(resourceType, options = {}) {
 
 // Resource templates
 const resourceTemplates = {
+    pod: `apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+spec:
+  containers:
+  - name: main
+    image: nginx:alpine
+    ports:
+    - containerPort: 80`,
+
     deployment: `apiVersion: apps/v1
 kind: Deployment
 metadata:

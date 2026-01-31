@@ -17,7 +17,8 @@ async function openRowDetailsByName(page: any, name: string) {
   await expect(table).toBeVisible({ timeout: 60_000 });
   const row = table.locator('tbody tr').filter({ hasText: name }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
-  const nameCell = row.locator('td').first();
+  // Use second td (first is checkbox cell when bulk selection is enabled)
+  const nameCell = row.locator('td').nth(1);
   const detailsPanel = page
     .locator('.bottom-panel')
     .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });

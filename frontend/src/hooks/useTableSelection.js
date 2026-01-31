@@ -9,27 +9,52 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 export function useTableSelection(data, getRowKey) {
   const [selectedKeys, setSelectedKeys] = useState(new Set());
   const lastClickedIndex = useRef(null);
-  const dataRef = useRef(null);
-  const isInitialMount = useRef(true);
-
-  // Auto-clear selection when data array identity changes (but not on initial mount)
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      dataRef.current = data;
-      return;
-    }
-    if (dataRef.current !== data) {
-      dataRef.current = data;
-      setSelectedKeys(new Set());
-      lastClickedIndex.current = null;
-    }
-  }, [data]);
+  const previousDataRef = useRef(data);
 
   const dataKeys = useMemo(() => {
     if (!Array.isArray(data)) return new Set();
     return new Set(data.map((row, idx) => getRowKey(row, idx)));
   }, [data, getRowKey]);
+
+  // Reset selection when data array identity changes; otherwise prune missing keys.
+  useEffect(() => {
+    const dataChanged = previousDataRef.current !== data;
+    previousDataRef.current = data;
+
+    if (dataChanged) {
+      if (selectedKeys.size > 0) {
+        setSelectedKeys(new Set());
+        lastClickedIndex.current = null;
+      }
+      return;
+    }
+
+    if (!Array.isArray(data) || data.length === 0) {
+      if (selectedKeys.size > 0) {
+        setSelectedKeys(new Set());
+        lastClickedIndex.current = null;
+      }
+      return;
+    }
+
+    setSelectedKeys(prev => {
+      if (prev.size === 0) return prev;
+      let changed = false;
+      const next = new Set();
+      prev.forEach(key => {
+        if (dataKeys.has(key)) {
+          next.add(key);
+        } else {
+          changed = true;
+        }
+      });
+      if (!changed) return prev;
+      if (next.size === 0) {
+        lastClickedIndex.current = null;
+      }
+      return next;
+    });
+  }, [data, dataKeys, selectedKeys.size]);
 
   const isSelected = useCallback((row, idx) => {
     const key = getRowKey(row, idx);
