@@ -6,7 +6,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 // GetSecretData fetches a Secret by name in the current namespace and returns its data as base64 strings
@@ -19,15 +18,9 @@ func (a *App) GetSecretData(secretName string) (map[string]string, error) {
 	if a.currentNamespace == "" {
 		return out, fmt.Errorf("no namespace selected")
 	}
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return out, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return out, err
 	}
 	s, err := clientset.CoreV1().Secrets(a.currentNamespace).Get(a.ctx, secretName, metav1.GetOptions{})
 	if err != nil {
@@ -50,15 +43,9 @@ func (a *App) GetSecretData(secretName string) (map[string]string, error) {
 func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 	var secrets []map[string]interface{}
 
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return secrets, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return secrets, err
 	}
 
 	ns := namespace

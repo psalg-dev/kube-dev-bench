@@ -1,14 +1,11 @@
 package app
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // getIngressClass extracts the ingress class from spec or annotations
@@ -76,29 +73,9 @@ func buildIngressInfo(ingress networkingv1.Ingress, now time.Time) IngressInfo {
 
 // GetIngresses returns all ingresses in a namespace
 func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		configPath := a.getKubeConfigPath()
-		config, err := clientcmd.LoadFromFile(configPath)
-		if err != nil {
-			return nil, err
-		}
-		if a.currentKubeContext == "" {
-			return nil, fmt.Errorf("Kein Kontext gewählt")
-		}
-		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-		restConfig, err := clientConfig.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		clientset, err = kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			return nil, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return nil, err
 	}
 
 	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(a.ctx, metav1.ListOptions{})
