@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -9,7 +9,7 @@ import ConfigEditModal from './ConfigEditModal.jsx';
 import ConfigInspectTab from './ConfigInspectTab.jsx';
 import ConfigCompareModal from './ConfigCompareModal.jsx';
 import ConfigUsedBySection from './ConfigUsedBySection.jsx';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import { useResourceData } from '../../../hooks/useResourceData';
 import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
@@ -213,55 +213,17 @@ function renderPanelContent(row, tab, onRefresh, allConfigs, onEdit) {
 }
 
 export default function SwarmConfigsOverviewTable() {
-  const [configs, setConfigs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
+  const { data: configs, loading, refresh } = useResourceData({
+    fetchFn: GetSwarmConfigs,
+    eventName: 'swarm:configs:update',
+    clusterScoped: true,
+  });
   const [editConfig, setEditConfig] = useState({ open: false, id: null, name: '' });
-
-  const refresh = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
 
   const makeDefaultCloneName = (base) => {
     const iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
     return `${base}@${iso}`;
   };
-
-  useEffect(() => {
-    let active = true;
-
-    const loadConfigs = async () => {
-      try {
-        const data = await GetSwarmConfigs();
-        if (active) {
-          setConfigs(data || []);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load configs:', err);
-        if (active) {
-          setConfigs([]);
-          setLoading(false);
-        }
-      }
-    };
-
-    loadConfigs();
-
-    const off = EventsOn('swarm:configs:update', (data) => {
-      if (!active) return;
-      if (Array.isArray(data)) {
-        setConfigs(data);
-      } else {
-        refresh();
-      }
-    });
-
-    return () => {
-      active = false;
-      if (typeof off === 'function') off();
-    };
-  }, [refreshKey, refresh]);
 
   if (loading) {
     return <div className="main-panel-loading">Loading Swarm configs...</div>;

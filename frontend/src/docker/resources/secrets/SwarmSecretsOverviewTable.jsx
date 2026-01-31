@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-import { EventsOn } from '../../../../wailsjs/runtime';
+import { useState } from 'react';
 import { useSwarmState } from '../../SwarmStateContext.jsx';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
@@ -10,6 +9,7 @@ import SecretCloneModal from './SecretCloneModal.jsx';
 import SecretUsedBySection from './SecretUsedBySection.jsx';
 import SecretDataSection from './SecretDataSection.jsx';
 import SecretInspectTab from './SecretInspectTab.jsx';
+import { useResourceData } from '../../../hooks/useResourceData';
 import { GetSwarmSecrets, RemoveSwarmSecret } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
@@ -176,55 +176,13 @@ function renderPanelContent(row, tab, onRefresh) {
 export default function SwarmSecretsOverviewTable() {
   const swarm = useSwarmState();
   const connected = swarm?.connected;
-  const [secrets, setSecrets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
 
-  const refresh = useCallback(() => {
-    setRefreshKey((k) => k + 1);
-  }, []);
-
-  useEffect(() => {
-    if (!connected) {
-      setSecrets([]);
-      setLoading(false);
-      return;
-    }
-
-    let active = true;
-
-    const loadSecrets = async () => {
-      try {
-        const data = await GetSwarmSecrets();
-        if (active) {
-          setSecrets(Array.isArray(data) ? data : []);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load secrets:', err);
-        if (active) {
-          setSecrets([]);
-          setLoading(false);
-        }
-      }
-    };
-
-    loadSecrets();
-
-    const off = EventsOn('swarm:secrets:update', (data) => {
-      if (!active) return;
-      if (Array.isArray(data)) {
-        setSecrets(data);
-      } else {
-        refresh();
-      }
-    });
-
-    return () => {
-      active = false;
-      if (typeof off === 'function') off();
-    };
-  }, [connected, refreshKey, refresh]);
+  const { data: secrets, loading, refresh } = useResourceData({
+    fetchFn: GetSwarmSecrets,
+    eventName: 'swarm:secrets:update',
+    clusterScoped: true,
+    enabled: connected,
+  });
 
   if (!connected) {
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -7,7 +7,7 @@ import NetworkConnectedServicesTable from './NetworkConnectedServicesTable.jsx';
 import NetworkConnectedContainersTable from './NetworkConnectedContainersTable.jsx';
 import NetworkInspectTab from './NetworkInspectTab.jsx';
 import { NetworkIPAMSection, NetworkOptionsSection } from './NetworkDetailsSections.jsx';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import { useResourceData } from '../../../hooks/useResourceData';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
   GetSwarmNetworks,
@@ -126,13 +126,11 @@ function renderPanelContent(row, tab, onRefresh) {
 }
 
 export default function SwarmNetworksOverviewTable() {
-  const [networks, setNetworks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  const refresh = useCallback(() => {
-    setRefreshKey(k => k + 1);
-  }, []);
+  const { data: networks, loading, refresh } = useResourceData({
+    fetchFn: GetSwarmNetworks,
+    eventName: 'swarm:networks:update',
+    clusterScoped: true,
+  });
 
   const fetchTabCountsForRow = useCallback(async (row) => {
     if (!row?.id) return {};
@@ -145,42 +143,6 @@ export default function SwarmNetworksOverviewTable() {
       containers: Array.isArray(containers) ? containers.length : 0,
     };
   }, []);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadNetworks = async () => {
-      try {
-        const data = await GetSwarmNetworks();
-        if (active) {
-          setNetworks(data || []);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error('Failed to load networks:', err);
-        if (active) {
-          setNetworks([]);
-          setLoading(false);
-        }
-      }
-    };
-
-    loadNetworks();
-
-    const off = EventsOn('swarm:networks:update', (data) => {
-      if (!active) return;
-      if (Array.isArray(data)) {
-        setNetworks(data);
-      } else {
-        refresh();
-      }
-    });
-
-    return () => {
-      active = false;
-      if (typeof off === 'function') off();
-    };
-  }, [refreshKey, refresh]);
 
   if (loading) {
     return <div className="main-panel-loading">Loading networks...</div>;

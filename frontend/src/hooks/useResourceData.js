@@ -35,6 +35,7 @@ import { EventsOn, EventsOff } from '../../wailsjs/runtime';
  * @param {string} [options.namespace] - Single namespace (used if namespaces not provided)
  * @param {Function} [options.normalize] - Function to normalize each data item
  * @param {boolean} [options.clusterScoped=false] - If true, fetches without namespace parameter
+ * @param {boolean} [options.enabled=true] - If false, skips fetching and event subscription
  * @returns {Object} - { data, loading, refresh }
  */
 export function useResourceData({
@@ -44,6 +45,7 @@ export function useResourceData({
   namespace,
   normalize,
   clusterScoped = false,
+  enabled = true,
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -51,6 +53,9 @@ export function useResourceData({
   // Use ref to store normalize function to avoid dependency changes
   const normalizeRef = useRef(normalize);
   normalizeRef.current = normalize;
+
+  // Use ref for refresh function to avoid circular dependencies in event handler
+  const refreshRef = useRef(null);
 
   // Serialize namespaces for stable dependency
   const namespacesKey = Array.isArray(namespaces) ? namespaces.join(',') : '';
@@ -66,6 +71,13 @@ export function useResourceData({
 
   // Fetch data from API
   const refresh = useCallback(async () => {
+    // Skip fetching if disabled
+    if (!enabled) {
+      setData([]);
+      setLoading(false);
+      return;
+    }
+
     if (clusterScoped) {
       // Cluster-scoped resources (e.g., PersistentVolumes)
       try {
@@ -102,7 +114,10 @@ export function useResourceData({
     } finally {
       setLoading(false);
     }
-  }, [fetchFn, namespacesKey, namespace, clusterScoped, applyNormalize]);
+  }, [fetchFn, namespacesKey, namespace, clusterScoped, applyNormalize, enabled]);
+
+  // Keep refreshRef in sync with refresh
+  refreshRef.current = refresh;
 
   // Initial fetch on mount and when dependencies change
   useEffect(() => {
@@ -111,15 +126,19 @@ export function useResourceData({
 
   // Subscribe to live updates from backend
   useEffect(() => {
-    if (!eventName) return;
+    if (!eventName || !enabled) return;
 
     const onUpdate = (list) => {
       try {
-        const arr = Array.isArray(list) ? list : [];
-        setData(applyNormalize(arr));
+        if (Array.isArray(list)) {
+          setData(applyNormalize(list));
+          setLoading(false);
+        } else {
+          // Non-array data triggers a refresh (e.g., { reason: 'unknown' })
+          refreshRef.current?.();
+        }
       } catch (_e) {
         setData([]);
-      } finally {
         setLoading(false);
       }
     };
@@ -128,7 +147,7 @@ export function useResourceData({
     return () => {
       try { EventsOff(eventName); } catch (_) { /* ignore cleanup errors */ }
     };
-  }, [eventName, applyNormalize]);
+  }, [eventName, applyNormalize, enabled]);
 
   return { data, loading, refresh };
 }
