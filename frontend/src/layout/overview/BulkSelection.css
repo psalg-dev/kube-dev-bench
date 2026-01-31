@@ -1,0 +1,57 @@
+/* Bulk selection styles for overview tables */
+
+/* Checkbox column */
+.bulk-checkbox-col {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+}
+
+.bulk-checkbox-cell {
+  width: 40px;
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 8px;
+}
+
+.bulk-checkbox-cell input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gh-accent, #58a6ff);
+}
+
+/* Selected row highlight */
+.gh-table tbody tr.bulk-selected {
+  background-color: rgba(14, 99, 156, 0.15);
+}
+
+.gh-table tbody tr.bulk-selected:hover {
+  background-color: rgba(14, 99, 156, 0.25);
+}
+
+/* Header checkbox styling */
+.bulk-checkbox-header {
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 8px;
+}
+
+.bulk-checkbox-header input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gh-accent, #58a6ff);
+}
+
+/* Indeterminate state styling */
+.bulk-checkbox-header input[type="checkbox"]:indeterminate {
+  opacity: 0.7;
+}
+
+/* Keyboard focus styling */
+.bulk-checkbox-cell input[type="checkbox"]:focus-visible,
+.bulk-checkbox-header input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--gh-accent, #58a6ff);
+  outline-offset: 2px;
+}
