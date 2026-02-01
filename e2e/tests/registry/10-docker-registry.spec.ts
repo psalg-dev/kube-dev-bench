@@ -34,8 +34,8 @@ test.describe('Docker Registry v2 Integration', () => {
 
     const name = uniqueSwarmName('kdb-e2e-registry-');
 
-    // For Docker Registry v2, use 'docker' type (standard Docker registry)
-    await page.locator('#registry-type').selectOption({ value: 'docker' });
+    // For Docker Registry v2, use 'generic_v2' type (standard Docker registry v2)
+    await page.locator('#registry-type').selectOption({ value: 'generic_v2' });
     await page.locator('#registry-name').fill(name);
     await page.locator('#registry-url').fill(cfg.registryBaseUrl);
 
@@ -83,7 +83,7 @@ test.describe('Docker Registry v2 Integration', () => {
 
     const name = uniqueSwarmName('kdb-e2e-registry-bad-auth-');
 
-    await page.locator('#registry-type').selectOption({ value: 'docker' });
+    await page.locator('#registry-type').selectOption({ value: 'generic_v2' });
     await page.locator('#registry-name').fill(name);
     await page.locator('#registry-url').fill(cfg.registryBaseUrl);
 
@@ -116,7 +116,7 @@ test.describe('Docker Registry v2 Integration', () => {
 
     const name = uniqueSwarmName('kdb-e2e-registry-push-');
 
-    await page.locator('#registry-type').selectOption({ value: 'docker' });
+    await page.locator('#registry-type').selectOption({ value: 'generic_v2' });
     await page.locator('#registry-name').fill(name);
     await page.locator('#registry-url').fill(cfg.registryBaseUrl);
 
