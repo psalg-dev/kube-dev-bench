@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -171,6 +172,190 @@ func (a *App) GetPersistentVolumeClaimYAML(namespace, name string) (string, erro
 	data, err := yaml.Marshal(pvc)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal persistent volume claim: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetDeploymentYAML retrieves the YAML manifest for a Deployment
+func (a *App) GetDeploymentYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	deployment, err := clientset.AppsV1().Deployments(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get deployment: %w", err)
+	}
+	deployment.ManagedFields = nil
+	data, err := yaml.Marshal(deployment)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal deployment: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetStatefulSetYAML retrieves the YAML manifest for a StatefulSet
+func (a *App) GetStatefulSetYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	ss, err := clientset.AppsV1().StatefulSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get statefulset: %w", err)
+	}
+	ss.ManagedFields = nil
+	data, err := yaml.Marshal(ss)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal statefulset: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetDaemonSetYAML retrieves the YAML manifest for a DaemonSet
+func (a *App) GetDaemonSetYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	ds, err := clientset.AppsV1().DaemonSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get daemonset: %w", err)
+	}
+	ds.ManagedFields = nil
+	data, err := yaml.Marshal(ds)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal daemonset: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetReplicaSetYAML retrieves the YAML manifest for a ReplicaSet
+func (a *App) GetReplicaSetYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	rs, err := clientset.AppsV1().ReplicaSets(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get replicaset: %w", err)
+	}
+	rs.ManagedFields = nil
+	data, err := yaml.Marshal(rs)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal replicaset: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetNodeYAML retrieves the YAML manifest for a Node (cluster-scoped)
+func (a *App) GetNodeYAML(name string) (string, error) {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	node, err := clientset.CoreV1().Nodes().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get node: %w", err)
+	}
+	node.ManagedFields = nil
+	data, err := yaml.Marshal(node)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal node: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetResourceYAML is a generic method that delegates to specific Get*YAML methods based on kind
+func (a *App) GetResourceYAML(kind, namespace, name string) (string, error) {
+	if kind == "" {
+		return "", fmt.Errorf("missing required parameter: kind")
+	}
+	if name == "" {
+		return "", fmt.Errorf("missing required parameter: name")
+	}
+
+	// Normalize kind to lowercase for comparison
+	kindLower := strings.ToLower(kind)
+
+	// Cluster-scoped resources (no namespace required)
+	switch kindLower {
+	case "node", "nodes":
+		return a.GetNodeYAML(name)
+	case "persistentvolume", "persistentvolumes", "pv":
+		return a.GetPersistentVolumeYAML(name)
+	}
+
+	// Namespaced resources require namespace
+	// If namespace is empty, use current namespace for GetPodYAML which expects it
+	if namespace == "" {
+		namespace = a.currentNamespace
+		if namespace == "" {
+			return "", fmt.Errorf("missing required parameter: namespace")
+		}
+	}
+
+	switch kindLower {
+	case "pod", "pods":
+		// GetPodYAML in pod_details.go uses internal namespace, so we need to temporarily set it
+		// Or we can create a wrapper that accepts namespace
+		return a.getPodYAMLWithNamespace(namespace, name)
+	case "deployment", "deployments":
+		return a.GetDeploymentYAML(namespace, name)
+	case "statefulset", "statefulsets":
+		return a.GetStatefulSetYAML(namespace, name)
+	case "daemonset", "daemonsets":
+		return a.GetDaemonSetYAML(namespace, name)
+	case "replicaset", "replicasets":
+		return a.GetReplicaSetYAML(namespace, name)
+	case "service", "services", "svc":
+		return a.GetServiceYAML(namespace, name)
+	case "ingress", "ingresses":
+		return a.GetIngressYAML(namespace, name)
+	case "job", "jobs":
+		return a.GetJobYAML(namespace, name)
+	case "cronjob", "cronjobs":
+		return a.GetCronJobYAML(namespace, name)
+	case "configmap", "configmaps", "cm":
+		return a.GetConfigMapYAML(namespace, name)
+	case "secret", "secrets":
+		return a.GetSecretYAML(namespace, name)
+	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc":
+		return a.GetPersistentVolumeClaimYAML(namespace, name)
+	default:
+		return "", fmt.Errorf("unsupported resource kind: %s", kind)
+	}
+}
+
+// getPodYAMLWithNamespace is a helper that gets pod YAML for a specific namespace
+func (a *App) getPodYAMLWithNamespace(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	pod, err := clientset.CoreV1().Pods(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get pod: %w", err)
+	}
+	pod.ManagedFields = nil
+	data, err := yaml.Marshal(pod)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal pod: %w", err)
 	}
 	return string(data), nil
 }
