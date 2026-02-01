@@ -381,18 +381,24 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 
 // waitForHolmesReady polls until Holmes is ready or times out
 func (a *App) waitForHolmesReady(namespace, releaseName string) (string, error) {
-	// Since Helm install with Wait=true already waits for readiness,
-	// we just verify the release is in deployed state
-	maxAttempts := 30
+	// Wait for the release to be deployed AND for pods to be running
+	// Even though Helm install with Wait=true waits for readiness probes,
+	// there can be a brief delay before pods are fully running and port-forward succeeds
+	maxAttempts := 60 // Increased from 30 to give more time for pods to start
+	var lastError error
+
 	for i := 0; i < maxAttempts; i++ {
 		releases, err := a.GetHelmReleases(namespace)
 		if err == nil {
 			for _, rel := range releases {
 				if rel.Name == releaseName && rel.Status == "deployed" {
 					// Start port-forward to access Holmes from outside the cluster
+					// Retry this operation as pods might still be coming up
 					endpoint, err := a.StartHolmesPortForward(namespace)
 					if err != nil {
-						return "", fmt.Errorf("failed to start port-forward: %w", err)
+						lastError = err
+						// Don't return immediately - retry as pods might still be starting
+						break
 					}
 					return endpoint, nil
 				}
@@ -401,6 +407,9 @@ func (a *App) waitForHolmesReady(namespace, releaseName string) (string, error) 
 		time.Sleep(2 * time.Second)
 	}
 
+	if lastError != nil {
+		return "", fmt.Errorf("timed out waiting for Holmes pods to be ready: %w", lastError)
+	}
 	return "", fmt.Errorf("timed out waiting for Holmes to be ready")
 }
 
