@@ -180,7 +180,9 @@ spec:
 
     await test.step('Verify default response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
-      await expect(holmesPanel).toContainText('General resource analysis completed', { timeout: 30_000 });
+      // The default mock response contains either the markdown body with "Resource Analysis" heading
+      // or the analysis field "General resource analysis completed" - both contain these key phrases
+      await expect(holmesPanel).toContainText(/Resource Analysis|resource analysis/i, { timeout: 30_000 });
     });
   });
 

@@ -9,6 +9,7 @@ import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import http from 'node:http';
+import net from 'node:net';
 import path from 'node:path';
 
 export type HolmesMockInstance = {
@@ -34,6 +35,29 @@ async function isHttpOk(url: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Check if a port is in use by attempting a TCP connection
+ */
+async function isPortInUse(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    socket.setTimeout(1000);
+    socket.once('connect', () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once('error', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.once('timeout', () => {
+      socket.destroy();
+      resolve(false);
+    });
+    socket.connect(port, host);
+  });
 }
 
 async function waitForReady(baseURL: string, timeoutMs: number) {
@@ -75,7 +99,14 @@ export async function startHolmesMockServer(opts: {
     return { port, baseURL, process: null };
   }
 
-  console.log(`[e2e][holmes-mock] ${new Date().toISOString()} starting Holmes mock on ${baseURL}`);
+  // Check if something else is using this port (but not our healthz endpoint)
+  if (await isPortInUse('127.0.0.1', port)) {
+    console.warn(`[e2e][holmes-mock] ${new Date().toISOString()} WARNING: port ${port} is in use but /healthz not responding`);
+  }
+
+  console.log(`[e2e][holmes-mock] ${new Date().toISOString()} starting Holmes mock on ${baseURL}` +
+    (opts.errorMode ? ` errorMode=${opts.errorMode}` : '') +
+    (opts.delayMs ? ` delayMs=${opts.delayMs}` : ''));
 
   const logDir = path.join(repoRoot, 'e2e', 'test-results', 'holmes-mock-logs');
   await fsp.mkdir(logDir, { recursive: true });
@@ -104,16 +135,66 @@ export async function startHolmesMockServer(opts: {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
 
-  child.stdout?.on('data', (d: Buffer) => logStream.write(d));
-  child.stderr?.on('data', (d: Buffer) => logStream.write(d));
+  // Collect stdout and stderr for diagnostic messages
+  let stdoutOutput = '';
+  let stderrOutput = '';
+  child.stdout?.on('data', (d: Buffer) => {
+    logStream.write(d);
+    stdoutOutput += d.toString();
+  });
+  child.stderr?.on('data', (d: Buffer) => {
+    logStream.write(d);
+    stderrOutput += d.toString();
+  });
+
+  // Track early exit - if the process dies before becoming ready, we should fail fast
+  let earlyExitCode: number | null = null;
+  let earlyExitSignal: string | null = null;
+  child.once('exit', (code, signal) => {
+    earlyExitCode = code;
+    earlyExitSignal = signal as string | null;
+  });
+
   child.once('close', () => {
     try {
       logStream.write(`\n=== holmes-mock exited (port=${port}) ===\n`);
     } catch {}
   });
 
+  // Give the process a moment to start before polling
+  await new Promise((r) => setTimeout(r, 100));
+
+  // Wait for ready with early exit detection
+  const waitForReadyWithEarlyExit = async (): Promise<void> => {
+    const start = Date.now();
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      // Check if process exited early
+      if (earlyExitCode !== null || earlyExitSignal !== null) {
+        const exitInfo = earlyExitSignal ? `signal=${earlyExitSignal}` : `code=${earlyExitCode}`;
+        throw new Error(
+          `Holmes mock server on port ${port} exited unexpectedly (${exitInfo}) before becoming ready.\n` +
+          `stdout: ${stdoutOutput.slice(-300) || '(no output)'}\n` +
+          `stderr: ${stderrOutput.slice(-300) || '(no output)'}`
+        );
+      }
+      if (await isHttpOk(`${baseURL}/healthz`)) return;
+      if (Date.now() - start > readyTimeoutMs) {
+        const diagInfo = `pid=${child.pid ?? 'unknown'}, ` +
+          `killed=${child.killed}, ` +
+          `stdout: ${stdoutOutput.slice(-200) || '(empty)'}, ` +
+          `stderr: ${stderrOutput.slice(-200) || '(empty)'}`;
+        throw new Error(
+          `Timed out waiting for Holmes mock server at ${baseURL} after ${readyTimeoutMs}ms.\n` +
+          `Diagnostics: ${diagInfo}`
+        );
+      }
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  };
+
   try {
-    await waitForReady(baseURL, readyTimeoutMs);
+    await waitForReadyWithEarlyExit();
   } catch (err) {
     killProcessTreeBestEffort(child);
     try {
