@@ -3,6 +3,8 @@ package app
 import (
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -26,6 +28,35 @@ const (
 	holmesOpenAISecretName   = "holmes-openai"
 	holmesOpenAISecretKey    = "openai-api-key"
 )
+
+// isE2ETestMode returns true if running in E2E test mode where lightweight deployment is preferred
+func isE2ETestMode() bool {
+	return os.Getenv("E2E_HOLMES_DEPLOY") == "1"
+}
+
+// getHolmesChartReference returns the chart reference to use (local path for E2E, remote chart otherwise)
+func getHolmesChartReference() string {
+	if isE2ETestMode() {
+		// Use local lightweight chart for E2E tests
+		// Chart is located at e2e/charts/holmes-mock relative to project root
+		cwd, err := os.Getwd()
+		if err == nil {
+			// Try to find the e2e/charts directory from current working directory
+			chartPath := filepath.Join(cwd, "e2e", "charts", "holmes-mock")
+			if _, err := os.Stat(chartPath); err == nil {
+				return chartPath
+			}
+			// If not found from cwd, try parent directory (common when running from subdirectories)
+			chartPath = filepath.Join(filepath.Dir(cwd), "e2e", "charts", "holmes-mock")
+			if _, err := os.Stat(chartPath); err == nil {
+				return chartPath
+			}
+		}
+		// Fallback: use relative path and hope helm can find it
+		return "./e2e/charts/holmes-mock"
+	}
+	return holmesChartName
+}
 
 // CheckHolmesDeployment checks if HolmesGPT is deployed in the cluster
 // Returns deployment status including detected endpoint if deployed
@@ -126,27 +157,38 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 	// Emit initial status
 	a.emitHolmesDeploymentStatus(status)
 
-	// Step 1: Add/update the Robusta Helm repository (10%)
-	status.Message = "Adding Robusta Helm repository..."
-	status.Progress = 10
-	a.emitHolmesDeploymentStatus(status)
+	// Determine which chart to use
+	chartRef := getHolmesChartReference()
+	useLocalChart := isE2ETestMode()
 
-	if err := a.AddHelmRepository(holmesHelmRepoName, holmesHelmRepoURL); err != nil {
-		status.Phase = holmesgpt.DeploymentPhaseFailed
-		status.Message = "Failed to add Helm repository"
-		status.Error = err.Error()
+	// Step 1: Add/update the Robusta Helm repository (10%) - skip for local chart
+	if !useLocalChart {
+		status.Message = "Adding Robusta Helm repository..."
+		status.Progress = 10
 		a.emitHolmesDeploymentStatus(status)
-		return status, fmt.Errorf("failed to add Robusta repo: %w", err)
-	}
 
-	// Step 2: Update Helm repositories (25%)
-	status.Message = "Updating Helm repositories..."
-	status.Progress = 25
-	a.emitHolmesDeploymentStatus(status)
+		if err := a.AddHelmRepository(holmesHelmRepoName, holmesHelmRepoURL); err != nil {
+			status.Phase = holmesgpt.DeploymentPhaseFailed
+			status.Message = "Failed to add Helm repository"
+			status.Error = err.Error()
+			a.emitHolmesDeploymentStatus(status)
+			return status, fmt.Errorf("failed to add Robusta repo: %w", err)
+		}
 
-	if err := a.UpdateHelmRepositories(); err != nil {
-		// Non-fatal, continue with cached index
-		fmt.Printf("Warning: failed to update helm repos: %v\n", err)
+		// Step 2: Update Helm repositories (25%)
+		status.Message = "Updating Helm repositories..."
+		status.Progress = 25
+		a.emitHolmesDeploymentStatus(status)
+
+		if err := a.UpdateHelmRepositories(); err != nil {
+			// Non-fatal, continue with cached index
+			fmt.Printf("Warning: failed to update helm repos: %v\n", err)
+		}
+	} else {
+		fmt.Printf("Using lightweight local chart for E2E testing: %s\n", chartRef)
+		status.Message = "Using lightweight chart for testing..."
+		status.Progress = 25
+		a.emitHolmesDeploymentStatus(status)
 	}
 
 	// Step 3: Prepare Helm values (40%)
@@ -168,25 +210,39 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 	}
 
 	// Load default Helm values from embedded YAML file
-	// See pkg/app/holmesgpt/default-values.yaml for the configuration
-	values, err := holmesgpt.GetDefaultHelmValues()
-	if err != nil {
-		status.Phase = holmesgpt.DeploymentPhaseFailed
-		status.Message = "Failed to load default Helm values"
-		status.Error = err.Error()
-		a.emitHolmesDeploymentStatus(status)
-		return status, fmt.Errorf("failed to load default Helm values: %w", err)
+	// For lightweight chart, use minimal values
+	var values map[string]interface{}
+	if useLocalChart {
+		// Minimal values for lightweight chart
+		values = map[string]interface{}{
+			"replicaCount": 1,
+		}
+	} else {
+		// See pkg/app/holmesgpt/default-values.yaml for the configuration
+		var err error
+		values, err = holmesgpt.GetDefaultHelmValues()
+		if err != nil {
+			status.Phase = holmesgpt.DeploymentPhaseFailed
+			status.Message = "Failed to load default Helm values"
+			status.Error = err.Error()
+			a.emitHolmesDeploymentStatus(status)
+			return status, fmt.Errorf("failed to load default Helm values: %w", err)
+		}
 	}
 
 	// Step 4: Install the Helm chart (60%)
-	status.Message = "Installing HolmesGPT chart..."
+	if useLocalChart {
+		status.Message = "Installing lightweight test chart..."
+	} else {
+		status.Message = "Installing HolmesGPT chart..."
+	}
 	status.Progress = 60
 	a.emitHolmesDeploymentStatus(status)
 
 	installReq := HelmInstallRequest{
 		ReleaseName: releaseName,
 		Namespace:   namespace,
-		ChartRef:    holmesChartName,
+		ChartRef:    chartRef,
 		Values:      values,
 		CreateNs:    true,
 	}
