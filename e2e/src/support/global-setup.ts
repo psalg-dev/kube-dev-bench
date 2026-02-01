@@ -516,8 +516,9 @@ export default async function globalSetup(config: FullConfig) {
           port,
           homeDir,
           assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
-          // Parallel startup; allow more time here.
-          readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
+          // Parallel startup; allow more time here. Increased to 420s (7min) for CI to handle
+          // resource contention when multiple Wails instances start in parallel.
+          readyTimeoutMs: process.env.CI ? 420_000 : 240_000,
         })
       );
 
