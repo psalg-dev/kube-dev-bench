@@ -247,6 +247,255 @@ func (s *MCPServer) registerTools() {
 		Handler: s.handleListSecrets,
 	}
 
+	// =====================
+	// Phase 1 Networking Resources
+	// =====================
+
+	// k8s_list_services
+	s.tools["k8s_list_services"] = &ToolDefinition{
+		Name:        "k8s_list_services",
+		Description: "List Services in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list Services from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListServices,
+	}
+
+	// k8s_list_endpoints
+	s.tools["k8s_list_endpoints"] = &ToolDefinition{
+		Name:        "k8s_list_endpoints",
+		Description: "List Endpoints in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list Endpoints from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListEndpoints,
+	}
+
+	// k8s_list_ingresses
+	s.tools["k8s_list_ingresses"] = &ToolDefinition{
+		Name:        "k8s_list_ingresses",
+		Description: "List Ingresses in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list Ingresses from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListIngresses,
+	}
+
+	// k8s_list_network_policies
+	s.tools["k8s_list_network_policies"] = &ToolDefinition{
+		Name:        "k8s_list_network_policies",
+		Description: "List NetworkPolicies in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list NetworkPolicies from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListNetworkPolicies,
+	}
+
+	// =====================
+	// Phase 1 Workload Resources
+	// =====================
+
+	// k8s_list_replicasets
+	s.tools["k8s_list_replicasets"] = &ToolDefinition{
+		Name:        "k8s_list_replicasets",
+		Description: "List ReplicaSets in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list ReplicaSets from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListReplicaSets,
+	}
+
+	// =====================
+	// Phase 1 Storage Resources
+	// =====================
+
+	// k8s_list_persistent_volumes
+	s.tools["k8s_list_persistent_volumes"] = &ToolDefinition{
+		Name:        "k8s_list_persistent_volumes",
+		Description: "List PersistentVolumes (cluster-scoped resource).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleListPersistentVolumes,
+	}
+
+	// k8s_list_persistent_volume_claims
+	s.tools["k8s_list_persistent_volume_claims"] = &ToolDefinition{
+		Name:        "k8s_list_persistent_volume_claims",
+		Description: "List PersistentVolumeClaims in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list PersistentVolumeClaims from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListPersistentVolumeClaims,
+	}
+
+	// k8s_list_storage_classes
+	s.tools["k8s_list_storage_classes"] = &ToolDefinition{
+		Name:        "k8s_list_storage_classes",
+		Description: "List StorageClasses (cluster-scoped resource).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleListStorageClasses,
+	}
+
+	// =====================
+	// Phase 1 Cluster Resources
+	// =====================
+
+	// k8s_list_nodes
+	s.tools["k8s_list_nodes"] = &ToolDefinition{
+		Name:        "k8s_list_nodes",
+		Description: "List Nodes (cluster-scoped resource).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleListNodes,
+	}
+
+	// =====================
+	// Phase 1 RBAC Resources
+	// =====================
+
+	// k8s_list_service_accounts
+	s.tools["k8s_list_service_accounts"] = &ToolDefinition{
+		Name:        "k8s_list_service_accounts",
+		Description: "List ServiceAccounts in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list ServiceAccounts from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListServiceAccounts,
+	}
+
+	// k8s_list_roles
+	s.tools["k8s_list_roles"] = &ToolDefinition{
+		Name:        "k8s_list_roles",
+		Description: "List Roles in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list Roles from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListRoles,
+	}
+
+	// k8s_list_role_bindings
+	s.tools["k8s_list_role_bindings"] = &ToolDefinition{
+		Name:        "k8s_list_role_bindings",
+		Description: "List RoleBindings in a namespace.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to list RoleBindings from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleListRoleBindings,
+	}
+
+	// k8s_list_cluster_roles
+	s.tools["k8s_list_cluster_roles"] = &ToolDefinition{
+		Name:        "k8s_list_cluster_roles",
+		Description: "List ClusterRoles (cluster-scoped resource).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleListClusterRoles,
+	}
+
+	// k8s_list_cluster_role_bindings
+	s.tools["k8s_list_cluster_role_bindings"] = &ToolDefinition{
+		Name:        "k8s_list_cluster_role_bindings",
+		Description: "List ClusterRoleBindings (cluster-scoped resource).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleListClusterRoleBindings,
+	}
+
+	// =====================
+	// Phase 1 CRD Resources
+	// =====================
+
+	// k8s_list_crds
+	s.tools["k8s_list_crds"] = &ToolDefinition{
+		Name:        "k8s_list_crds",
+		Description: "List CustomResourceDefinitions (cluster-scoped resource).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleListCRDs,
+	}
+
 	// k8s_get_resource_counts - Get resource counts
 	s.tools["k8s_get_resource_counts"] = &ToolDefinition{
 		Name:        "k8s_get_resource_counts",
@@ -520,6 +769,99 @@ func (s *MCPServer) handleListSecrets(ctx context.Context, input map[string]inte
 
 func (s *MCPServer) handleGetResourceCounts(ctx context.Context, input map[string]interface{}) (any, error) {
 	return s.app.GetResourceCounts(), nil
+}
+
+// =====================
+// Phase 1 Resource Handlers - Networking
+// =====================
+
+func (s *MCPServer) handleListServices(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetServices(namespace)
+}
+
+func (s *MCPServer) handleListEndpoints(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetEndpoints(namespace)
+}
+
+func (s *MCPServer) handleListIngresses(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetIngresses(namespace)
+}
+
+func (s *MCPServer) handleListNetworkPolicies(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetNetworkPolicies(namespace)
+}
+
+// =====================
+// Phase 1 Resource Handlers - Workload
+// =====================
+
+func (s *MCPServer) handleListReplicaSets(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetReplicaSets(namespace)
+}
+
+// =====================
+// Phase 1 Resource Handlers - Storage
+// =====================
+
+func (s *MCPServer) handleListPersistentVolumes(ctx context.Context, input map[string]interface{}) (any, error) {
+	return s.app.GetPersistentVolumes()
+}
+
+func (s *MCPServer) handleListPersistentVolumeClaims(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetPersistentVolumeClaims(namespace)
+}
+
+func (s *MCPServer) handleListStorageClasses(ctx context.Context, input map[string]interface{}) (any, error) {
+	return s.app.GetStorageClasses()
+}
+
+// =====================
+// Phase 1 Resource Handlers - Cluster
+// =====================
+
+func (s *MCPServer) handleListNodes(ctx context.Context, input map[string]interface{}) (any, error) {
+	return s.app.GetNodes()
+}
+
+// =====================
+// Phase 1 Resource Handlers - RBAC
+// =====================
+
+func (s *MCPServer) handleListServiceAccounts(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetServiceAccounts(namespace)
+}
+
+func (s *MCPServer) handleListRoles(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetRoles(namespace)
+}
+
+func (s *MCPServer) handleListRoleBindings(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	return s.app.GetRoleBindings(namespace)
+}
+
+func (s *MCPServer) handleListClusterRoles(ctx context.Context, input map[string]interface{}) (any, error) {
+	return s.app.GetClusterRoles()
+}
+
+func (s *MCPServer) handleListClusterRoleBindings(ctx context.Context, input map[string]interface{}) (any, error) {
+	return s.app.GetClusterRoleBindings()
+}
+
+// =====================
+// Phase 1 Resource Handlers - CRDs
+// =====================
+
+func (s *MCPServer) handleListCRDs(ctx context.Context, input map[string]interface{}) (any, error) {
+	return s.app.GetCustomResourceDefinitions()
 }
 
 func (s *MCPServer) handleScaleDeployment(ctx context.Context, input map[string]interface{}) (any, error) {

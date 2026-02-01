@@ -34,6 +34,23 @@ type ServerInterface interface {
 	GetResourceEvents(namespace, kind, name string) (interface{}, error)
 	GetResourceCounts() interface{}
 
+	// Phase 1 resources
+	GetServices(namespace string) (interface{}, error)
+	GetIngresses(namespace string) (interface{}, error)
+	GetReplicaSets(namespace string) (interface{}, error)
+	GetNodes() (interface{}, error)
+	GetPersistentVolumes() (interface{}, error)
+	GetPersistentVolumeClaims(namespace string) (interface{}, error)
+	GetStorageClasses() (interface{}, error)
+	GetServiceAccounts(namespace string) (interface{}, error)
+	GetRoles(namespace string) (interface{}, error)
+	GetClusterRoles() (interface{}, error)
+	GetRoleBindings(namespace string) (interface{}, error)
+	GetClusterRoleBindings() (interface{}, error)
+	GetNetworkPolicies(namespace string) (interface{}, error)
+	GetCustomResourceDefinitions() (interface{}, error)
+	GetEndpoints(namespace string) (interface{}, error)
+
 	// Detail methods
 	GetPodDetail(namespace, name string) (interface{}, error)
 	GetDeploymentDetail(namespace, name string) (interface{}, error)
