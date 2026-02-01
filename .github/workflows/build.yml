@@ -254,6 +254,14 @@ jobs:
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 
+      - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
+        if: matrix.holmes_deploy == true
+        run: |
+          echo "Pulling node:20-alpine image..."
+          docker pull node:20-alpine
+          echo "Loading node:20-alpine into kind cluster..."
+          kind load docker-image node:20-alpine --name kdb-e2e
+
       - name: Run Holmes deployment e2e tests
         if: matrix.holmes_deploy == true
         working-directory: e2e

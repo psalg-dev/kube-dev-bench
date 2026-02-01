@@ -31,15 +31,23 @@ spec:
           containerPort: 5050
           protocol: TCP
         livenessProbe:
-          httpGet:
-            path: /healthz
-            port: http
+          exec:
+            command:
+            - wget
+            - -q
+            - -O-
+            - -T2
+            - http://127.0.0.1:5050/healthz
           initialDelaySeconds: 5
           periodSeconds: 10
         readinessProbe:
-          httpGet:
-            path: /healthz
-            port: http
+          exec:
+            command:
+            - wget
+            - -q
+            - -O-
+            - -T2
+            - http://127.0.0.1:5050/healthz
           initialDelaySeconds: 3
           periodSeconds: 5
         resources:
