@@ -87,6 +87,8 @@ spec:
     await test.step('Verify mock response content', async () => {
       // Wait for response - check for content from fixtures.json pod crash pattern
       const holmesPanel = page.locator('#holmes-panel');
+      // Ensure the panel is visible before checking content
+      await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
       await expect(holmesPanel).toContainText(/Pod Crash Analysis|CrashLoopBackOff/i, { timeout: 30_000 });
     });
   });
@@ -135,6 +137,8 @@ spec:
 
     await test.step('Verify mock deployment response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
+      // Ensure the panel is visible before checking content
+      await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
       await expect(holmesPanel).toContainText('Deployment health check completed', { timeout: 30_000 });
     });
   });
@@ -150,6 +154,7 @@ spec:
 
     await test.step('Verify mock log analysis response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
+      await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
       await expect(holmesPanel).toContainText(/Log Analysis|Analyzed the provided logs/i, { timeout: 30_000 });
     });
   });
@@ -165,6 +170,7 @@ spec:
 
     await test.step('Verify mock configuration response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
+      await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
       await expect(holmesPanel).toContainText('Configuration resource analysis completed', { timeout: 30_000 });
     });
   });
@@ -182,6 +188,7 @@ spec:
       const holmesPanel = page.locator('#holmes-panel');
       // The default mock response contains either the markdown body with "Resource Analysis" heading
       // or the analysis field "General resource analysis completed" - both contain these key phrases
+      await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
       await expect(holmesPanel).toContainText(/Resource Analysis|resource analysis/i, { timeout: 30_000 });
     });
   });

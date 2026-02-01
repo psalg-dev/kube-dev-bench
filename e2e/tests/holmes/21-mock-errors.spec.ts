@@ -20,6 +20,29 @@ import { SidebarPage } from '../../src/pages/SidebarPage.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 
+/**
+ * Robustly kill a Holmes mock server process.
+ * Uses both SIGTERM and SIGKILL to ensure process termination.
+ */
+function killMockServer(instance: HolmesMockInstance | null): void {
+  if (!instance?.process) return;
+  try {
+    instance.process.kill('SIGTERM');
+  } catch {
+    // ignore
+  }
+  // Give SIGTERM a moment to work, then force-kill
+  setTimeout(() => {
+    try {
+      if (!instance.process?.killed) {
+        instance.process?.kill('SIGKILL');
+      }
+    } catch {
+      // ignore
+    }
+  }, 500);
+}
+
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
@@ -134,10 +157,8 @@ test.describe('Holmes Error Handling', () => {
         ).toBeVisible({ timeout: 30_000 });
       });
     } finally {
-      // Clean up the error mock server
-      if (errorMockServer?.process) {
-        errorMockServer.process.kill('SIGTERM');
-      }
+      // Clean up the error mock server using robust kill
+      killMockServer(errorMockServer);
     }
   });
 
@@ -236,9 +257,7 @@ test.describe('Holmes Error Handling', () => {
         });
       });
     } finally {
-      if (slowMockServer?.process) {
-        slowMockServer.process.kill('SIGTERM');
-      }
+      killMockServer(slowMockServer);
     }
   });
 
@@ -290,9 +309,7 @@ test.describe('Holmes Error Handling', () => {
         });
       });
     } finally {
-      if (errorMockServer?.process) {
-        errorMockServer.process.kill('SIGTERM');
-      }
+      killMockServer(errorMockServer);
     }
   });
 });

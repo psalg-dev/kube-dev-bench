@@ -5,7 +5,7 @@
  * following the same pattern as proxy.ts.
  */
 
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, execSync, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import http from 'node:http';
@@ -60,6 +60,62 @@ async function isPortInUse(host: string, port: number): Promise<boolean> {
   });
 }
 
+/**
+ * Kill any process listening on the specified port.
+ * This is needed to clean up stale processes from previous test runs.
+ */
+async function killListenerOnPort(port: number): Promise<void> {
+  const isWin = process.platform === 'win32';
+
+  try {
+    if (isWin) {
+      // On Windows, use netstat to find PIDs listening on the port
+      const result = execSync('netstat -ano -p tcp', { encoding: 'utf-8', timeout: 10_000 });
+      const pids = new Set<string>();
+      for (const line of result.split(/\r?\n/)) {
+        if (!line.includes(`:${port}`)) continue;
+        if (!/\bLISTENING\b/i.test(line)) continue;
+        const parts = line.trim().split(/\s+/);
+        const pid = parts.at(-1);
+        if (pid && /^\d+$/.test(pid) && pid !== '0') pids.add(pid);
+      }
+      for (const pid of pids) {
+        try {
+          execSync(`taskkill /PID ${pid} /F /T`, { timeout: 10_000 });
+          console.log(`[e2e][holmes-mock] ${new Date().toISOString()} killed stale process ${pid} on port ${port}`);
+        } catch {
+          // ignore - process may have already exited
+        }
+      }
+    } else {
+      // On Unix, use lsof or fuser
+      try {
+        const result = execSync(`lsof -t -i:${port} 2>/dev/null || true`, { encoding: 'utf-8', timeout: 10_000 });
+        const pids = result.trim().split(/\s+/).filter((p) => /^\d+$/.test(p));
+        for (const pid of pids) {
+          try {
+            execSync(`kill -9 ${pid}`, { timeout: 5_000 });
+            console.log(`[e2e][holmes-mock] ${new Date().toISOString()} killed stale process ${pid} on port ${port}`);
+          } catch {
+            // ignore
+          }
+        }
+      } catch {
+        // lsof not available, try fuser
+        try {
+          execSync(`fuser -k ${port}/tcp 2>/dev/null || true`, { timeout: 10_000 });
+        } catch {
+          // ignore
+        }
+      }
+    }
+    // Give the OS a moment to release the port
+    await new Promise((r) => setTimeout(r, 500));
+  } catch (err) {
+    console.warn(`[e2e][holmes-mock] ${new Date().toISOString()} failed to kill listener on port ${port}: ${err}`);
+  }
+}
+
 async function waitForReady(baseURL: string, timeoutMs: number) {
   const start = Date.now();
   // eslint-disable-next-line no-constant-condition
@@ -100,8 +156,21 @@ export async function startHolmesMockServer(opts: {
   }
 
   // Check if something else is using this port (but not our healthz endpoint)
+  // If so, kill the stale process before attempting to start
   if (await isPortInUse('127.0.0.1', port)) {
-    console.warn(`[e2e][holmes-mock] ${new Date().toISOString()} WARNING: port ${port} is in use but /healthz not responding`);
+    console.warn(`[e2e][holmes-mock] ${new Date().toISOString()} port ${port} is in use but /healthz not responding - killing stale process`);
+    await killListenerOnPort(port);
+    
+    // Wait a moment and check if port is now free
+    await new Promise((r) => setTimeout(r, 500));
+    if (await isPortInUse('127.0.0.1', port)) {
+      // One more attempt to check if healthz is now responding (maybe we killed something unrelated)
+      if (await isHttpOk(`${baseURL}/healthz`)) {
+        console.log(`[e2e][holmes-mock] ${new Date().toISOString()} reusing existing Holmes mock at ${baseURL} (after cleanup)`);
+        return { port, baseURL, process: null };
+      }
+      console.warn(`[e2e][holmes-mock] ${new Date().toISOString()} WARNING: port ${port} still in use after cleanup attempt`);
+    }
   }
 
   console.log(`[e2e][holmes-mock] ${new Date().toISOString()} starting Holmes mock on ${baseURL}` +
