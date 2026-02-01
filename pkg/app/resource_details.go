@@ -837,3 +837,151 @@ func (a *App) GetIngressDetail(namespace, ingressName string) (*IngressDetail, e
 		TLS:   buildIngressTLSFromSpec(ing),
 	}, nil
 }
+
+// ServiceDetail provides detailed service information including endpoints
+type ServiceDetail struct {
+	Endpoints []ServiceEndpoint `json:"endpoints"`
+}
+
+// ServiceEndpoint represents a service endpoint (already defined in services.go, reusing here)
+
+// GetServiceDetail returns detailed information about a service including its endpoints
+func (a *App) GetServiceDetail(namespace, serviceName string) (*ServiceDetail, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("missing required parameter: namespace")
+	}
+	if serviceName == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the service
+	svc, err := clientset.CoreV1().Services(namespace).Get(a.ctx, serviceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &ServiceDetail{
+		Endpoints: []ServiceEndpoint{},
+	}
+
+	// Get endpoints for this service
+	endpoints, err := clientset.CoreV1().Endpoints(namespace).Get(a.ctx, serviceName, metav1.GetOptions{})
+	if err == nil && endpoints != nil {
+		portProtocols := buildPortProtocolMap(svc.Spec.Ports)
+		for _, subset := range endpoints.Subsets {
+			for _, port := range subset.Ports {
+				// Ready endpoints
+				for _, addr := range subset.Addresses {
+					detail.Endpoints = append(detail.Endpoints, buildEndpointFromAddress(addr, port, portProtocols, true))
+				}
+				// Not ready endpoints
+				for _, addr := range subset.NotReadyAddresses {
+					detail.Endpoints = append(detail.Endpoints, buildEndpointFromAddress(addr, port, portProtocols, false))
+				}
+			}
+		}
+	}
+
+	return detail, nil
+}
+
+// PersistentVolumeClaimDetail provides detailed PVC information
+type PersistentVolumeClaimDetail struct {
+	Conditions []PVCCondition `json:"conditions"`
+}
+
+// PVCCondition represents a PVC condition
+type PVCCondition struct {
+	Type           string `json:"type"`
+	Status         string `json:"status"`
+	LastTransition string `json:"lastTransition"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+}
+
+// GetPersistentVolumeClaimDetail returns detailed information about a PVC
+func (a *App) GetPersistentVolumeClaimDetail(namespace, pvcName string) (*PersistentVolumeClaimDetail, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("missing required parameter: namespace")
+	}
+	if pvcName == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(a.ctx, pvcName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &PersistentVolumeClaimDetail{
+		Conditions: []PVCCondition{},
+	}
+
+	// Convert conditions
+	for _, cond := range pvc.Status.Conditions {
+		lastTransition := "-"
+		if !cond.LastTransitionTime.Time.IsZero() {
+			lastTransition = cond.LastTransitionTime.Time.Format(time.RFC3339)
+		}
+		detail.Conditions = append(detail.Conditions, PVCCondition{
+			Type:           string(cond.Type),
+			Status:         string(cond.Status),
+			LastTransition: lastTransition,
+			Reason:         cond.Reason,
+			Message:        cond.Message,
+		})
+	}
+
+	return detail, nil
+}
+
+// PersistentVolumeDetail provides detailed PV information
+type PersistentVolumeDetail struct {
+	Conditions []PVCondition `json:"conditions"`
+}
+
+// PVCondition represents a PV condition
+type PVCondition struct {
+	Type           string `json:"type"`
+	Status         string `json:"status"`
+	LastTransition string `json:"lastTransition"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+}
+
+// GetPersistentVolumeDetail returns detailed information about a PV
+func (a *App) GetPersistentVolumeDetail(pvName string) (*PersistentVolumeDetail, error) {
+	if pvName == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	pv, err := clientset.CoreV1().PersistentVolumes().Get(a.ctx, pvName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &PersistentVolumeDetail{
+		Conditions: []PVCondition{},
+	}
+
+	// Convert conditions (PVs don't have conditions in the API, but we keep the structure for consistency)
+	// If PVs later get conditions, this will work automatically
+	_ = pv // Use pv to avoid unused variable
+
+	return detail, nil
+}

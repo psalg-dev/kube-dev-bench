@@ -54,6 +54,19 @@ type ServerInterface interface {
 	// Detail methods
 	GetPodDetail(namespace, name string) (interface{}, error)
 	GetDeploymentDetail(namespace, name string) (interface{}, error)
+	GetServiceDetail(namespace, name string) (interface{}, error)
+	GetIngressDetail(namespace, name string) (interface{}, error)
+	GetNodeDetail(name string) (interface{}, error)
+	GetPersistentVolumeClaimDetail(namespace, name string) (interface{}, error)
+	GetPersistentVolumeDetail(name string) (interface{}, error)
+	GetStatefulSetDetail(namespace, name string) (interface{}, error)
+	GetDaemonSetDetail(namespace, name string) (interface{}, error)
+	GetReplicaSetDetail(namespace, name string) (interface{}, error)
+	GetJobDetail(namespace, name string) (interface{}, error)
+	GetCronJobDetail(namespace, name string) (interface{}, error)
+
+	// YAML methods
+	GetResourceYAML(kind, namespace, name string) (string, error)
 
 	// Log methods
 	GetPodLogs(namespace, podName, container string, lines int) (string, error)

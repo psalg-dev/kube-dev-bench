@@ -509,6 +509,252 @@ func (s *MCPServer) registerTools() {
 	}
 
 	// =====================
+	// Phase 2 Describe Tools (K8s resources)
+	// =====================
+
+	// k8s_describe_service
+	s.tools["k8s_describe_service"] = &ToolDefinition{
+		Name:        "k8s_describe_service",
+		Description: "Get detailed information about a specific Kubernetes service including endpoints.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the service. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the service.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeService,
+	}
+
+	// k8s_describe_ingress
+	s.tools["k8s_describe_ingress"] = &ToolDefinition{
+		Name:        "k8s_describe_ingress",
+		Description: "Get detailed information about a specific Kubernetes ingress including rules and TLS configuration.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the ingress. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the ingress.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeIngress,
+	}
+
+	// k8s_describe_node
+	s.tools["k8s_describe_node"] = &ToolDefinition{
+		Name:        "k8s_describe_node",
+		Description: "Get detailed information about a specific Kubernetes node (cluster-scoped).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the node.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeNode,
+	}
+
+	// k8s_describe_pvc
+	s.tools["k8s_describe_pvc"] = &ToolDefinition{
+		Name:        "k8s_describe_pvc",
+		Description: "Get detailed information about a specific PersistentVolumeClaim.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the PVC. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the PVC.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribePVC,
+	}
+
+	// k8s_describe_pv
+	s.tools["k8s_describe_pv"] = &ToolDefinition{
+		Name:        "k8s_describe_pv",
+		Description: "Get detailed information about a specific PersistentVolume (cluster-scoped).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the PV.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribePV,
+	}
+
+	// k8s_describe_statefulset
+	s.tools["k8s_describe_statefulset"] = &ToolDefinition{
+		Name:        "k8s_describe_statefulset",
+		Description: "Get detailed information about a specific StatefulSet including pods and PVCs.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the StatefulSet. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the StatefulSet.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeStatefulSet,
+	}
+
+	// k8s_describe_daemonset
+	s.tools["k8s_describe_daemonset"] = &ToolDefinition{
+		Name:        "k8s_describe_daemonset",
+		Description: "Get detailed information about a specific DaemonSet including pods.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the DaemonSet. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the DaemonSet.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeDaemonSet,
+	}
+
+	// k8s_describe_replicaset
+	s.tools["k8s_describe_replicaset"] = &ToolDefinition{
+		Name:        "k8s_describe_replicaset",
+		Description: "Get detailed information about a specific ReplicaSet including pods and owner information.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the ReplicaSet. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the ReplicaSet.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeReplicaSet,
+	}
+
+	// k8s_describe_job
+	s.tools["k8s_describe_job"] = &ToolDefinition{
+		Name:        "k8s_describe_job",
+		Description: "Get detailed information about a specific Job including pods and conditions.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the Job. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the Job.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeJob,
+	}
+
+	// k8s_describe_cronjob
+	s.tools["k8s_describe_cronjob"] = &ToolDefinition{
+		Name:        "k8s_describe_cronjob",
+		Description: "Get detailed information about a specific CronJob including job history and next run times.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the CronJob. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the CronJob.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleDescribeCronJob,
+	}
+
+	// =====================
+	// Phase 2 Manifest Tool (K8s YAML retrieval)
+	// =====================
+
+	// k8s_get_resource_yaml
+	s.tools["k8s_get_resource_yaml"] = &ToolDefinition{
+		Name:        "k8s_get_resource_yaml",
+		Description: "Get the YAML manifest for any Kubernetes resource. Supports pods, deployments, services, and more.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "Resource kind (e.g., Pod, Deployment, Service, Node, PV, PVC, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, ConfigMap, Secret, Ingress).",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the resource (omit for cluster-scoped resources like Node, PV). Omit for namespaced resources to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the resource.",
+				},
+			},
+			"required": []string{"kind", "name"},
+		},
+		Handler: s.handleGetResourceYAML,
+	}
+
+	// =====================
 	// Kubernetes Mutation Tools
 	// =====================
 
@@ -988,6 +1234,128 @@ func (s *MCPServer) handleSwarmScaleService(ctx context.Context, input map[strin
 		"message":  fmt.Sprintf("Service %s scaled to %d replicas", service, replicas),
 		"service":  service,
 		"replicas": replicas,
+	}, nil
+}
+
+// =====================
+// Phase 2 Describe Handlers
+// =====================
+
+func (s *MCPServer) handleDescribeService(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetServiceDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribeIngress(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetIngressDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribeNode(ctx context.Context, input map[string]interface{}) (any, error) {
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetNodeDetail(name)
+}
+
+func (s *MCPServer) handleDescribePVC(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetPersistentVolumeClaimDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribePV(ctx context.Context, input map[string]interface{}) (any, error) {
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetPersistentVolumeDetail(name)
+}
+
+func (s *MCPServer) handleDescribeStatefulSet(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetStatefulSetDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribeDaemonSet(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetDaemonSetDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribeReplicaSet(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetReplicaSetDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribeJob(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetJobDetail(namespace, name)
+}
+
+func (s *MCPServer) handleDescribeCronJob(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	return s.app.GetCronJobDetail(namespace, name)
+}
+
+// =====================
+// Phase 2 YAML Handler
+// =====================
+
+func (s *MCPServer) handleGetResourceYAML(ctx context.Context, input map[string]interface{}) (any, error) {
+	kind, _ := input["kind"].(string)
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
+	name, _ := input["name"].(string)
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	namespace := s.getNamespaceParam(input)
+
+	yaml, err := s.app.GetResourceYAML(kind, namespace, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"kind":      kind,
+		"name":      name,
+		"namespace": namespace,
+		"yaml":      yaml,
 	}, nil
 }
 

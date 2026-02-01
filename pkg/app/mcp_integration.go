@@ -85,6 +85,68 @@ func (m *MCPServerAdapter) GetResourceCounts() interface{} {
 	return m.app.GetResourceCounts()
 }
 
+// Phase 1 resource getters
+
+func (m *MCPServerAdapter) GetServices(namespace string) (interface{}, error) {
+	return m.app.GetServices(namespace)
+}
+
+func (m *MCPServerAdapter) GetIngresses(namespace string) (interface{}, error) {
+	return m.app.GetIngresses(namespace)
+}
+
+func (m *MCPServerAdapter) GetReplicaSets(namespace string) (interface{}, error) {
+	return m.app.GetReplicaSets(namespace)
+}
+
+func (m *MCPServerAdapter) GetNodes() (interface{}, error) {
+	return m.app.GetNodes()
+}
+
+func (m *MCPServerAdapter) GetPersistentVolumes() (interface{}, error) {
+	return m.app.GetPersistentVolumes()
+}
+
+func (m *MCPServerAdapter) GetPersistentVolumeClaims(namespace string) (interface{}, error) {
+	return m.app.GetPersistentVolumeClaims(namespace)
+}
+
+func (m *MCPServerAdapter) GetStorageClasses() (interface{}, error) {
+	return m.app.GetStorageClasses()
+}
+
+func (m *MCPServerAdapter) GetServiceAccounts(namespace string) (interface{}, error) {
+	return m.app.GetServiceAccounts(namespace)
+}
+
+func (m *MCPServerAdapter) GetRoles(namespace string) (interface{}, error) {
+	return m.app.GetRoles(namespace)
+}
+
+func (m *MCPServerAdapter) GetClusterRoles() (interface{}, error) {
+	return m.app.GetClusterRoles()
+}
+
+func (m *MCPServerAdapter) GetRoleBindings(namespace string) (interface{}, error) {
+	return m.app.GetRoleBindings(namespace)
+}
+
+func (m *MCPServerAdapter) GetClusterRoleBindings() (interface{}, error) {
+	return m.app.GetClusterRoleBindings()
+}
+
+func (m *MCPServerAdapter) GetNetworkPolicies(namespace string) (interface{}, error) {
+	return m.app.GetNetworkPolicies(namespace)
+}
+
+func (m *MCPServerAdapter) GetCustomResourceDefinitions() (interface{}, error) {
+	return m.app.GetCustomResourceDefinitions()
+}
+
+func (m *MCPServerAdapter) GetEndpoints(namespace string) (interface{}, error) {
+	return m.app.GetEndpoints(namespace)
+}
+
 // Detail methods
 
 func (m *MCPServerAdapter) GetPodDetail(namespace, name string) (interface{}, error) {
@@ -95,6 +157,52 @@ func (m *MCPServerAdapter) GetPodDetail(namespace, name string) (interface{}, er
 
 func (m *MCPServerAdapter) GetDeploymentDetail(namespace, name string) (interface{}, error) {
 	return m.app.GetDeploymentDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetServiceDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetServiceDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetIngressDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetIngressDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetNodeDetail(name string) (interface{}, error) {
+	return m.app.GetNodeDetail(name)
+}
+
+func (m *MCPServerAdapter) GetPersistentVolumeClaimDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetPersistentVolumeClaimDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetPersistentVolumeDetail(name string) (interface{}, error) {
+	return m.app.GetPersistentVolumeDetail(name)
+}
+
+func (m *MCPServerAdapter) GetStatefulSetDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetStatefulSetDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetDaemonSetDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetDaemonSetDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetReplicaSetDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetReplicaSetDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetJobDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetJobDetail(namespace, name)
+}
+
+func (m *MCPServerAdapter) GetCronJobDetail(namespace, name string) (interface{}, error) {
+	return m.app.GetCronJobDetail(namespace, name)
+}
+
+// YAML method
+
+func (m *MCPServerAdapter) GetResourceYAML(kind, namespace, name string) (string, error) {
+	return m.app.GetResourceYAML(kind, namespace, name)
 }
 
 // Log methods
