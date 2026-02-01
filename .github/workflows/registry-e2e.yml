@@ -74,12 +74,6 @@ jobs:
         run: |
           curl -f -u admin:password http://localhost:5000/v2/_catalog
           echo "✅ Docker Registry is accessible"
-          fi
-          docker info --format '{{.Swarm.LocalNodeState}}'
-
-      - name: Create KinD cluster
-        run: |
-          kind create cluster --name kdb-e2e --wait 120s
 
       - name: Cache apt packages
         uses: actions/cache@v5
