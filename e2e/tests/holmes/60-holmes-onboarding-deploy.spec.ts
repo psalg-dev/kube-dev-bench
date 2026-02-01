@@ -14,7 +14,8 @@ test.describe('HolmesGPT onboarding', () => {
   test.skip(SHOULD_SKIP_TEST, 'Requires E2E_HOLMES_DEPLOY=1 (runs in dedicated e2e-holmes-deploy shard)');
 
   test('deploys HolmesGPT via helm and verifies it responds', async ({ page, contextName, namespace, kubeconfigPath }) => {
-    test.setTimeout(12 * 60_000);
+    // Increased to 15 minutes to accommodate extended timeouts for deployment and verification
+    test.setTimeout(15 * 60_000);
 
     await bootstrapApp({ page, contextName, namespace });
 
@@ -53,7 +54,8 @@ test.describe('HolmesGPT onboarding', () => {
         await wizard.getByRole('button', { name: /Deploy Holmes/i }).click();
       }
 
-      await expect(wizard).toContainText(/Holmes is Ready!/i, { timeout: 8 * 60_000 });
+      // Increased timeout to 10 minutes for CI environments where pod startup may be slower
+      await expect(wizard).toContainText(/Holmes is Ready!/i, { timeout: 10 * 60_000 });
       await wizard.getByRole('button', { name: /Start Using Holmes/i }).click();
       await expect(wizard).toBeHidden({ timeout: 10_000 });
     });
@@ -75,7 +77,8 @@ test.describe('HolmesGPT onboarding', () => {
             return HOLMES_POD_PREFIXES.some((prefix) => name.startsWith(prefix)) && phase === 'Running';
           });
       }, {
-        timeout: 5 * 60_000, // Increased to 5 minutes for CI
+        // Increased to 8 minutes for CI to handle slower pod startup and image pulls
+        timeout: 8 * 60_000,
         intervals: [2000, 5000, 10000],
       }).toBe(true);
     });
