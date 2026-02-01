@@ -326,6 +326,22 @@ export function GetAllTabCounts(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetAllTabCounts'](arg1, arg2, arg3);
 }
 
+export function GetClusterRoleBindingDetail(arg1) {
+  return window['go']['main']['App']['GetClusterRoleBindingDetail'](arg1);
+}
+
+export function GetClusterRoleBindings() {
+  return window['go']['main']['App']['GetClusterRoleBindings']();
+}
+
+export function GetClusterRoleDetail(arg1) {
+  return window['go']['main']['App']['GetClusterRoleDetail'](arg1);
+}
+
+export function GetClusterRoles() {
+  return window['go']['main']['App']['GetClusterRoles']();
+}
+
 export function GetClusterTopology() {
   return window['go']['main']['App']['GetClusterTopology']();
 }
@@ -378,6 +394,14 @@ export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
 
+export function GetCustomResourceDefinitionDetail(arg1) {
+  return window['go']['main']['App']['GetCustomResourceDefinitionDetail'](arg1);
+}
+
+export function GetCustomResourceDefinitions() {
+  return window['go']['main']['App']['GetCustomResourceDefinitions']();
+}
+
 export function GetDaemonSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetDaemonSetDetail'](arg1, arg2);
 }
@@ -388,6 +412,10 @@ export function GetDaemonSetLogs(arg1, arg2) {
 
 export function GetDaemonSetNodeCoverage(arg1, arg2) {
   return window['go']['main']['App']['GetDaemonSetNodeCoverage'](arg1, arg2);
+}
+
+export function GetDaemonSetYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetDaemonSetYAML'](arg1, arg2);
 }
 
 export function GetDaemonSets(arg1) {
@@ -404,6 +432,10 @@ export function GetDeploymentDetail(arg1, arg2) {
 
 export function GetDeploymentLogs(arg1, arg2) {
   return window['go']['main']['App']['GetDeploymentLogs'](arg1, arg2);
+}
+
+export function GetDeploymentYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetDeploymentYAML'](arg1, arg2);
 }
 
 export function GetDeployments(arg1) {
@@ -424,6 +456,14 @@ export function GetDockerConnectionStatus() {
 
 export function GetDockerHubRepositoryDetails(arg1) {
   return window['go']['main']['App']['GetDockerHubRepositoryDetails'](arg1);
+}
+
+export function GetEndpointDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetEndpointDetail'](arg1, arg2);
+}
+
+export function GetEndpoints(arg1) {
+  return window['go']['main']['App']['GetEndpoints'](arg1);
 }
 
 export function GetHelmChartVersions(arg1, arg2) {
@@ -522,8 +562,36 @@ export function GetKubeContextsFromFile(arg1) {
   return window['go']['main']['App']['GetKubeContextsFromFile'](arg1);
 }
 
+export function GetMCPConfig() {
+  return window['go']['main']['App']['GetMCPConfig']();
+}
+
+export function GetMCPStatus() {
+  return window['go']['main']['App']['GetMCPStatus']();
+}
+
 export function GetNamespaces() {
   return window['go']['main']['App']['GetNamespaces']();
+}
+
+export function GetNetworkPolicies(arg1) {
+  return window['go']['main']['App']['GetNetworkPolicies'](arg1);
+}
+
+export function GetNetworkPolicyDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetNetworkPolicyDetail'](arg1, arg2);
+}
+
+export function GetNodeDetail(arg1) {
+  return window['go']['main']['App']['GetNodeDetail'](arg1);
+}
+
+export function GetNodeYAML(arg1) {
+  return window['go']['main']['App']['GetNodeYAML'](arg1);
+}
+
+export function GetNodes() {
+  return window['go']['main']['App']['GetNodes']();
 }
 
 export function GetOverview(arg1) {
@@ -542,12 +610,20 @@ export function GetPVCFileContent(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPVCFileContent'](arg1, arg2, arg3, arg4);
 }
 
+export function GetPersistentVolumeClaimDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetPersistentVolumeClaimDetail'](arg1, arg2);
+}
+
 export function GetPersistentVolumeClaimYAML(arg1, arg2) {
   return window['go']['main']['App']['GetPersistentVolumeClaimYAML'](arg1, arg2);
 }
 
 export function GetPersistentVolumeClaims(arg1) {
   return window['go']['main']['App']['GetPersistentVolumeClaims'](arg1);
+}
+
+export function GetPersistentVolumeDetail(arg1) {
+  return window['go']['main']['App']['GetPersistentVolumeDetail'](arg1);
 }
 
 export function GetPersistentVolumeYAML(arg1) {
@@ -592,6 +668,10 @@ export function GetPodFiles(arg1, arg2, arg3) {
 
 export function GetPodLog(arg1) {
   return window['go']['main']['App']['GetPodLog'](arg1);
+}
+
+export function GetPodLogsPrevious(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetPodLogsPrevious'](arg1, arg2, arg3, arg4);
 }
 
 export function GetPodMounts(arg1) {
@@ -650,6 +730,10 @@ export function GetReplicaSetLogs(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetLogs'](arg1, arg2);
 }
 
+export function GetReplicaSetYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetReplicaSetYAML'](arg1, arg2);
+}
+
 export function GetReplicaSets(arg1) {
   return window['go']['main']['App']['GetReplicaSets'](arg1);
 }
@@ -664,6 +748,34 @@ export function GetResourceEvents(arg1, arg2, arg3) {
 
 export function GetResourceEventsCount(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceEventsCount'](arg1, arg2, arg3);
+}
+
+export function GetResourceYAML(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetResourceYAML'](arg1, arg2, arg3);
+}
+
+export function GetRoleBindingDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleBindingDetail'](arg1, arg2);
+}
+
+export function GetRoleBindings(arg1) {
+  return window['go']['main']['App']['GetRoleBindings'](arg1);
+}
+
+export function GetRoleDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleDetail'](arg1, arg2);
+}
+
+export function GetRoles(arg1) {
+  return window['go']['main']['App']['GetRoles'](arg1);
+}
+
+export function GetRolloutHistory(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetRolloutHistory'](arg1, arg2, arg3);
+}
+
+export function GetRolloutStatus(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetRolloutStatus'](arg1, arg2, arg3);
 }
 
 export function GetRunningPods(arg1) {
@@ -698,6 +810,18 @@ export function GetSecrets(arg1) {
   return window['go']['main']['App']['GetSecrets'](arg1);
 }
 
+export function GetServiceAccountDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceAccountDetail'](arg1, arg2);
+}
+
+export function GetServiceAccounts(arg1) {
+  return window['go']['main']['App']['GetServiceAccounts'](arg1);
+}
+
+export function GetServiceDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceDetail'](arg1, arg2);
+}
+
 export function GetServiceEndpoints(arg1, arg2) {
   return window['go']['main']['App']['GetServiceEndpoints'](arg1, arg2);
 }
@@ -730,8 +854,20 @@ export function GetStatefulSetPVCsCount(arg1, arg2) {
   return window['go']['main']['App']['GetStatefulSetPVCsCount'](arg1, arg2);
 }
 
+export function GetStatefulSetYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetStatefulSetYAML'](arg1, arg2);
+}
+
 export function GetStatefulSets(arg1) {
   return window['go']['main']['App']['GetStatefulSets'](arg1);
+}
+
+export function GetStorageClassDetail(arg1) {
+  return window['go']['main']['App']['GetStorageClassDetail'](arg1);
+}
+
+export function GetStorageClasses() {
+  return window['go']['main']['App']['GetStorageClasses']();
 }
 
 export function GetSwarmConfig(arg1) {
@@ -1118,6 +1254,10 @@ export function SetKubeConfigPath(arg1) {
   return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
 
+export function SetMCPConfig(arg1) {
+  return window['go']['main']['App']['SetMCPConfig'](arg1);
+}
+
 export function SetPreferredNamespaces(arg1) {
   return window['go']['main']['App']['SetPreferredNamespaces'](arg1);
 }
@@ -1168,6 +1308,10 @@ export function StartJob(arg1, arg2) {
 
 export function StartJobFromCronJob(arg1, arg2) {
   return window['go']['main']['App']['StartJobFromCronJob'](arg1, arg2);
+}
+
+export function StartMCPServer() {
+  return window['go']['main']['App']['StartMCPServer']();
 }
 
 export function StartMonitorPolling() {
@@ -1230,6 +1374,10 @@ export function StopHolmesPortForward(arg1) {
   return window['go']['main']['App']['StopHolmesPortForward'](arg1);
 }
 
+export function StopMCPServer() {
+  return window['go']['main']['App']['StopMCPServer']();
+}
+
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
 }
@@ -1276,6 +1424,14 @@ export function TestHook(arg1) {
 
 export function TestRegistryConnection(arg1) {
   return window['go']['main']['App']['TestRegistryConnection'](arg1);
+}
+
+export function TopNodes() {
+  return window['go']['main']['App']['TopNodes']();
+}
+
+export function TopPods(arg1) {
+  return window['go']['main']['App']['TopPods'](arg1);
 }
 
 export function UndeployHolmesGPT(arg1, arg2) {

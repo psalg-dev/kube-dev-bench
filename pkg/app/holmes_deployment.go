@@ -345,19 +345,103 @@ func (a *App) ensureHolmesOpenAISecret(namespace, apiKey string) error {
 
 // installHolmesChart is a helper to install the Holmes chart with proper settings
 func (a *App) installHolmesChart(req HelmInstallRequest) error {
-	actionConfig, err := a.getHelmActionConfig(req.Namespace)
-	if err != nil {
-		return err
+	// Set namespace on settings BEFORE creating actionConfig
+	// This ensures the RESTClientGetter uses the correct namespace
+	settings := a.getHelmSettings()
+	settings.SetNamespace(req.Namespace)
+	fmt.Printf("[Holmes] Helm settings: KubeConfig=%s, KubeContext=%s\n", settings.KubeConfig, settings.KubeContext)
+	fmt.Printf("[Holmes] Helm namespace from settings: %s\n", settings.Namespace())
+
+	// Create action config with the properly namespaced settings
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(
+		settings.RESTClientGetter(),
+		req.Namespace,
+		os.Getenv("HELM_DRIVER"),
+		func(format string, v ...interface{}) {
+			fmt.Printf("[Helm] "+format+"\n", v...)
+		},
+	); err != nil {
+		return fmt.Errorf("failed to initialize helm action config: %w", err)
 	}
 
-	settings := a.getHelmSettings()
+	// Verify Helm SDK can reach the cluster
+	kubeClientSet, err := actionConfig.KubernetesClientSet()
+	if err != nil {
+		fmt.Printf("[Holmes] ERROR: Failed to get Kubernetes clientset from Helm: %v\n", err)
+	} else {
+		// Try to list namespaces to verify connection
+		nsList, listErr := kubeClientSet.CoreV1().Namespaces().List(a.ctx, metav1.ListOptions{Limit: 5})
+		if listErr != nil {
+			fmt.Printf("[Holmes] ERROR: Helm K8s client cannot list namespaces: %v\n", listErr)
+		} else {
+			fmt.Printf("[Holmes] Helm K8s client connected, found %d namespaces\n", len(nsList.Items))
+			for _, ns := range nsList.Items {
+				fmt.Printf("[Holmes]   - %s\n", ns.Name)
+			}
+		}
+	}
 
+	// Check if release already exists and uninstall it first
+	listAction := action.NewList(actionConfig)
+	listAction.Deployed = true
+	listAction.Failed = true
+	listAction.Pending = true
+	listAction.Superseded = true
+	listAction.Uninstalling = true
+	releases, err := listAction.Run()
+	fmt.Printf("[Holmes] List releases found %d releases\n", len(releases))
+	if err == nil {
+		for _, rel := range releases {
+			fmt.Printf("[Holmes]   - Release: %s (status: %s)\n", rel.Name, rel.Info.Status.String())
+			if rel.Name == req.ReleaseName {
+				fmt.Printf("[Holmes] Release %s already exists (status: %s), uninstalling first\n", rel.Name, rel.Info.Status.String())
+				uninstallAction := action.NewUninstall(actionConfig)
+				uninstallAction.Wait = true
+				uninstallAction.Timeout = 60 * time.Second
+				_, uninstallErr := uninstallAction.Run(rel.Name)
+				if uninstallErr != nil {
+					fmt.Printf("[Holmes] Uninstall error (continuing anyway): %v\n", uninstallErr)
+				}
+				// Wait a moment for resources to be cleaned up
+				time.Sleep(2 * time.Second)
+				break
+			}
+		}
+	} else {
+		fmt.Printf("[Holmes] List releases error: %v\n", err)
+	}
+
+	// Ensure namespace exists before upgrade (since Upgrade doesn't have CreateNamespace)
+	if req.CreateNs {
+		nsClient, nsErr := actionConfig.KubernetesClientSet()
+		if nsErr == nil && nsClient != nil {
+			_, err := nsClient.CoreV1().Namespaces().Get(a.ctx, req.Namespace, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					fmt.Printf("[Holmes] Creating namespace %s\n", req.Namespace)
+					ns := &corev1.Namespace{
+						ObjectMeta: metav1.ObjectMeta{Name: req.Namespace},
+					}
+					_, createErr := nsClient.CoreV1().Namespaces().Create(a.ctx, ns, metav1.CreateOptions{})
+					if createErr != nil {
+						fmt.Printf("[Holmes] Warning: failed to create namespace: %v\n", createErr)
+					}
+				}
+			}
+		}
+	}
+
+	// Use Install action with Replace=true to handle existing releases
 	installAction := action.NewInstall(actionConfig)
 	installAction.ReleaseName = req.ReleaseName
 	installAction.Namespace = req.Namespace
 	installAction.CreateNamespace = req.CreateNs
 	installAction.Wait = true
 	installAction.Timeout = 5 * time.Minute
+	installAction.Replace = true       // Replace existing release with same name
+	installAction.TakeOwnership = true // Take ownership of existing resources
+	installAction.Force = true         // Force resource update
 
 	// Locate and load the chart
 	chartPath, err := installAction.ChartPathOptions.LocateChart(req.ChartRef, settings)
@@ -371,9 +455,45 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 	}
 
 	// Run the install
-	_, err = installAction.Run(chart, req.Values)
+	fmt.Printf("[Holmes] Installing chart %s in namespace %s\n", chartPath, req.Namespace)
+	fmt.Printf("[Holmes] Chart has %d templates, Name=%s, Version=%s\n", len(chart.Templates), chart.Metadata.Name, chart.Metadata.Version)
+	fmt.Printf("[Holmes] Install settings: Wait=%v, Timeout=%v, CreateNamespace=%v, Replace=%v, TakeOwnership=%v, Force=%v\n",
+		installAction.Wait, installAction.Timeout, installAction.CreateNamespace, installAction.Replace, installAction.TakeOwnership, installAction.Force)
+	fmt.Printf("[Holmes] KubeConfig=%s, KubeContext=%s\n", settings.KubeConfig, settings.KubeContext)
+
+	// Debug: Check if resources already exist BEFORE install
+	clientset, preErr := a.getKubernetesInterface()
+	if preErr == nil {
+		fmt.Printf("[Holmes] PRE-INSTALL CHECK: Checking if resources exist in namespace %s\n", req.Namespace)
+		deploysPreCheck, _ := clientset.AppsV1().Deployments(req.Namespace).List(a.ctx, metav1.ListOptions{})
+		fmt.Printf("[Holmes] PRE-INSTALL: Deployments found: %d\n", len(deploysPreCheck.Items))
+		svcsPreCheck, _ := clientset.CoreV1().Services(req.Namespace).List(a.ctx, metav1.ListOptions{})
+		fmt.Printf("[Holmes] PRE-INSTALL: Services found: %d\n", len(svcsPreCheck.Items))
+		cmsPreCheck, _ := clientset.CoreV1().ConfigMaps(req.Namespace).List(a.ctx, metav1.ListOptions{})
+		fmt.Printf("[Holmes] PRE-INSTALL: ConfigMaps found: %d\n", len(cmsPreCheck.Items))
+	}
+
+	release, err := installAction.Run(chart, req.Values)
 	if err != nil {
 		return fmt.Errorf("failed to install chart: %w", err)
+	}
+
+	fmt.Printf("[Holmes] Chart installation complete\n")
+	fmt.Printf("[Holmes] Release: Name=%s, Namespace=%s, Status=%s\n", release.Name, release.Namespace, release.Info.Status.String())
+	fmt.Printf("[Holmes] Release Description: %s\n", release.Info.Description)
+	fmt.Printf("[Holmes] Manifest length: %d bytes\n", len(release.Manifest))
+	if len(release.Manifest) > 0 {
+		fmt.Printf("[Holmes] Manifest preview (first 500 chars):\n%s\n", release.Manifest[:min(500, len(release.Manifest))])
+	}
+
+	// Debug: verify resources were created
+	clientset, postErr := a.getKubernetesInterface()
+	if postErr == nil {
+		deploys, _ := clientset.AppsV1().Deployments(req.Namespace).List(a.ctx, metav1.ListOptions{})
+		fmt.Printf("[Holmes] Deployments in %s after install: %d\n", req.Namespace, len(deploys.Items))
+		for _, d := range deploys.Items {
+			fmt.Printf("[Holmes]   - %s (replicas=%d, ready=%d)\n", d.Name, *d.Spec.Replicas, d.Status.ReadyReplicas)
+		}
 	}
 
 	return nil

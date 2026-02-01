@@ -45,7 +45,7 @@ func (a *App) getHelmActionConfig(namespace string) (*action.Configuration, erro
 		namespace,
 		os.Getenv("HELM_DRIVER"),
 		func(format string, v ...interface{}) {
-			// Helm log messages (suppressed for now)
+			fmt.Printf("[Helm] "+format+"\n", v...)
 		},
 	); err != nil {
 		return nil, fmt.Errorf("failed to initialize helm action config: %w", err)
