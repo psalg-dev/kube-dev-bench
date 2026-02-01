@@ -141,11 +141,17 @@ func (a *App) Startup(ctx context.Context) {
 
 	// Initialize Holmes AI client if configured
 	a.initHolmes()
+
+	// Initialize MCP server if configured
+	a.initMCP()
 }
 
 // Shutdown is called by Wails when the app is closing.
 // Best-effort cleanup only; errors are logged and ignored.
 func (a *App) Shutdown(ctx context.Context) {
+	// Stop MCP server if running
+	a.shutdownMCP()
+
 	// Cancel any active log streams.
 	a.logMu.Lock()
 	for k, cancel := range a.logCancels {

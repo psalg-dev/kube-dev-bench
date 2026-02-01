@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"gowails/pkg/app/holmesgpt"
+	"gowails/pkg/app/mcp"
 )
 
 // AppConfig represents the persistent configuration
@@ -24,6 +25,8 @@ type AppConfig struct {
 	ProxyPassword string `json:"proxyPassword"`
 	// Holmes AI configuration
 	HolmesConfig holmesgpt.HolmesConfigData `json:"holmesConfig,omitempty"`
+	// MCP Server configuration
+	MCPConfig mcp.MCPConfigData `json:"mcpConfig,omitempty"`
 }
 
 // loadConfig loads the saved configuration from disk
@@ -53,6 +56,8 @@ func (a *App) loadConfig() error {
 	a.proxyPassword = config.ProxyPassword
 	// Load Holmes configuration
 	holmesConfig = config.HolmesConfig
+	// Load MCP configuration
+	mcpConfig = config.MCPConfig
 	return nil
 }
 
@@ -72,6 +77,8 @@ func (a *App) saveConfig() error {
 		ProxyPassword: a.proxyPassword,
 		// Holmes AI configuration
 		HolmesConfig: holmesConfig,
+		// MCP Server configuration
+		MCPConfig: mcpConfig,
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

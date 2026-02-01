@@ -13,6 +13,9 @@ import { HolmesProvider, useHolmes } from '../holmes/HolmesContext.jsx';
 import { HolmesPanel } from '../holmes/HolmesPanel.jsx';
 import { HolmesConfigModal } from '../holmes/HolmesConfigModal.jsx';
 import { HolmesOnboardingWizard } from '../holmes/HolmesOnboardingWizard.jsx';
+// MCP Server provider and components
+import { MCPProvider, useMCP } from '../mcp/MCPContext.jsx';
+import { MCPConfigModal } from '../mcp/MCPConfigModal.jsx';
 
 function MainContentBinder({ selectedSection, setConnectionWizardInitialSection }) {
   const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
@@ -90,6 +93,10 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
   } = useClusterState();
   const swarmState = useSwarmState();
   const holmes = useHolmes();
+  const mcpContext = useMCP();
+  
+  console.log('LayoutOrWizard mcpContext:', mcpContext);
+  console.log('LayoutOrWizard mcpContext.showConfigModal:', mcpContext?.showConfigModal);
 
   // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs detected),
   // ensure we land on a Swarm view so the main content isn't blank.
@@ -139,6 +146,7 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
         }}
         onToggleHolmes={holmes.togglePanel}
         holmesPanelVisible={holmes.state.showPanel}
+        onOpenMCPConfig={mcpContext.showConfigModal}
         contextSelectEl={<ContextSelect
           value={selectedContext}
           options={contexts}
@@ -163,6 +171,8 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, setSelectedSection,
       <HolmesPanel />
       <HolmesConfigModal />
       <HolmesOnboardingWizard />
+      {/* MCP Server Config Modal */}
+      <MCPConfigModal />
     </>
   );
 }
@@ -265,14 +275,16 @@ export default function AppContainer() {
         <SwarmStateProvider>
           <SwarmResourceCountsProvider>
             <HolmesProvider>
-              <LayoutOrWizard
-                onWizardComplete={handleWizardComplete}
-                selectedSection={selectedSection}
-                setSelectedSection={setSelectedSection}
-                connectionWizardInitialSection={connectionWizardInitialSection}
-                setConnectionWizardInitialSection={setConnectionWizardInitialSection}
-              />
-              <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
+              <MCPProvider>
+                <LayoutOrWizard
+                  onWizardComplete={handleWizardComplete}
+                  selectedSection={selectedSection}
+                  setSelectedSection={setSelectedSection}
+                  connectionWizardInitialSection={connectionWizardInitialSection}
+                  setConnectionWizardInitialSection={setConnectionWizardInitialSection}
+                />
+                <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
+              </MCPProvider>
             </HolmesProvider>
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>

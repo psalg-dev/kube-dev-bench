@@ -6,6 +6,7 @@ import {app} from '../models';
 import {docker} from '../models';
 import {topology} from '../models';
 import {jobs} from '../models';
+import {mcp} from '../models';
 import {context} from '../models';
 
 export function AddHelmRepository(arg1:string,arg2:string):Promise<void>;
@@ -267,6 +268,10 @@ export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;
 export function GetKubeContexts():Promise<Array<string>>;
 
 export function GetKubeContextsFromFile(arg1:string):Promise<Array<string>>;
+
+export function GetMCPConfig():Promise<mcp.MCPConfigData>;
+
+export function GetMCPStatus():Promise<mcp.MCPStatus>;
 
 export function GetNamespaces():Promise<Array<string>>;
 
@@ -566,6 +571,8 @@ export function SetImageUpdateSettings(arg1:docker.ImageUpdateSettings):Promise<
 
 export function SetKubeConfigPath(arg1:string):Promise<void>;
 
+export function SetMCPConfig(arg1:mcp.MCPConfigData):Promise<void>;
+
 export function SetPreferredNamespaces(arg1:Array<string>):Promise<void>;
 
 export function SetProxyConfig(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
@@ -591,6 +598,8 @@ export function StartHolmesPortForward(arg1:string):Promise<string>;
 export function StartJob(arg1:string,arg2:string):Promise<void>;
 
 export function StartJobFromCronJob(arg1:string,arg2:string):Promise<void>;
+
+export function StartMCPServer():Promise<void>;
 
 export function StartMonitorPolling():Promise<void>;
 
@@ -621,6 +630,8 @@ export function StartSwarmTaskPolling():Promise<void>;
 export function Startup(arg1:context.Context):Promise<void>;
 
 export function StopHolmesPortForward(arg1:string):Promise<void>;
+
+export function StopMCPServer():Promise<void>;
 
 export function StopPodLogs(arg1:string):Promise<void>;
 

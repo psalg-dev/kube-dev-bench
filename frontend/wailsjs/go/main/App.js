@@ -522,6 +522,14 @@ export function GetKubeContextsFromFile(arg1) {
   return window['go']['main']['App']['GetKubeContextsFromFile'](arg1);
 }
 
+export function GetMCPConfig() {
+  return window['go']['main']['App']['GetMCPConfig']();
+}
+
+export function GetMCPStatus() {
+  return window['go']['main']['App']['GetMCPStatus']();
+}
+
 export function GetNamespaces() {
   return window['go']['main']['App']['GetNamespaces']();
 }
@@ -1118,6 +1126,10 @@ export function SetKubeConfigPath(arg1) {
   return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
 
+export function SetMCPConfig(arg1) {
+  return window['go']['main']['App']['SetMCPConfig'](arg1);
+}
+
 export function SetPreferredNamespaces(arg1) {
   return window['go']['main']['App']['SetPreferredNamespaces'](arg1);
 }
@@ -1168,6 +1180,10 @@ export function StartJob(arg1, arg2) {
 
 export function StartJobFromCronJob(arg1, arg2) {
   return window['go']['main']['App']['StartJobFromCronJob'](arg1, arg2);
+}
+
+export function StartMCPServer() {
+  return window['go']['main']['App']['StartMCPServer']();
 }
 
 export function StartMonitorPolling() {
@@ -1228,6 +1244,10 @@ export function Startup(arg1) {
 
 export function StopHolmesPortForward(arg1) {
   return window['go']['main']['App']['StopHolmesPortForward'](arg1);
+}
+
+export function StopMCPServer() {
+  return window['go']['main']['App']['StopMCPServer']();
 }
 
 export function StopPodLogs(arg1) {

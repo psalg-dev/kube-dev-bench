@@ -57,7 +57,7 @@ function DockerSwarmSidebar({ selectedSection, onSelectSection, onOpenConnection
  * that queries by id (#kubecontext-root, #namespace-root, #sidebar-sections, etc.) continues to work.
  * Future phases will replace these id-based mutations with declarative React state.
  */
-export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard, onToggleHolmes, holmesPanelVisible }) {
+export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard, onToggleHolmes, holmesPanelVisible, onOpenMCPConfig }) {
   const hideKubernetesSelectors = kubernetesAvailable === false;
   const swarmContext = useContext(SwarmStateContext);
   const swarmConnected = Boolean(swarmContext?.connected);
@@ -84,6 +84,30 @@ export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelec
               }}
             >
               🔍
+            </button>
+            <button
+              id="mcp-config-btn"
+              onClick={() => {
+                console.log('MCP button clicked, onOpenMCPConfig:', onOpenMCPConfig);
+                if (onOpenMCPConfig) {
+                  console.log('Calling onOpenMCPConfig...');
+                  onOpenMCPConfig();
+                } else {
+                  console.error('onOpenMCPConfig is undefined!');
+                }
+              }}
+              title="MCP Server Settings"
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--gh-border, #444)',
+                color: 'var(--gh-text-secondary, #ccc)',
+                padding: '4px 8px',
+                borderRadius: 0,
+                cursor: 'pointer',
+                fontSize: 12,
+              }}
+            >
+              🤖
             </button>
             <button id="show-wizard-btn" onClick={onOpenConnectionsWizard} style={{background:'transparent', border:'1px solid var(--gh-border, #444)', color:'var(--gh-text-secondary, #ccc)', padding:'4px 8px', borderRadius:0, cursor:'pointer', fontSize:12}} title="Show Connection Wizard">⚙️</button>
           </div>

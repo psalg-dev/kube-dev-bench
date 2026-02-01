@@ -47,6 +47,7 @@ export namespace app {
 	    proxyUsername: string;
 	    proxyPassword: string;
 	    holmesConfig?: holmesgpt.HolmesConfigData;
+	    mcpConfig?: mcp.MCPConfigData;
 	
 	    static createFrom(source: any = {}) {
 	        return new AppConfig(source);
@@ -65,6 +66,7 @@ export namespace app {
 	        this.proxyUsername = source["proxyUsername"];
 	        this.proxyPassword = source["proxyPassword"];
 	        this.holmesConfig = this.convertValues(source["holmesConfig"], holmesgpt.HolmesConfigData);
+	        this.mcpConfig = this.convertValues(source["mcpConfig"], mcp.MCPConfigData);
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -2890,6 +2892,51 @@ export namespace jobs {
 	        this.image = source["image"];
 	        this.duration = source["duration"];
 	        this.labels = source["labels"];
+	    }
+	}
+
+}
+
+export namespace mcp {
+	
+	export class MCPConfigData {
+	    enabled: boolean;
+	    host: string;
+	    port: number;
+	    allowDestructive: boolean;
+	    requireConfirm: boolean;
+	    maxLogLines: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new MCPConfigData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.allowDestructive = source["allowDestructive"];
+	        this.requireConfirm = source["requireConfirm"];
+	        this.maxLogLines = source["maxLogLines"];
+	    }
+	}
+	export class MCPStatus {
+	    running: boolean;
+	    enabled: boolean;
+	    transport: string;
+	    error?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MCPStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.running = source["running"];
+	        this.enabled = source["enabled"];
+	        this.transport = source["transport"];
+	        this.error = source["error"];
 	    }
 	}
 
