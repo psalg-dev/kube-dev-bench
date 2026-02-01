@@ -7,7 +7,7 @@ on:
 
 jobs:
   frontend:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -57,7 +57,7 @@ jobs:
           retention-days: 1
 
   backend:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: frontend
     steps:
       - name: Checkout code
@@ -106,7 +106,7 @@ jobs:
         run: go build -v .
 
   e2e:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: backend
     strategy:
       fail-fast: false
