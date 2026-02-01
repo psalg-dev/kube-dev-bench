@@ -11,7 +11,9 @@ E2E tests for **kube-dev-bench** are located in `e2e/tests/` and test the deskto
 - Tests run against the Wails dev server (Vite frontend + Go backend)
 - KinD (Kubernetes in Docker) manager in `kind/` creates test clusters
 - Kubeconfig output at `kind/output/kubeconfig`
-- JFrog Artifactory container for registry tests (`jfrog/` directory)
+- Docker Registry v2 container for registry tests (`registry/` directory)
+  - Replaced JFrog Artifactory with standard Docker Registry v2 (36x faster, 60x smaller)
+  - See `docs/replace-jfrog-with-docker-registry.md` for details
 
 ### Key Selectors (stable DOM IDs)
 - `#show-wizard-btn` - Opens connection wizard

@@ -65,6 +65,16 @@ jobs:
         run: |
           kind create cluster --name kdb-e2e --wait 120s
 
+      - name: Start Docker Registry v2
+        run: |
+          cd registry
+          bash start-registry.sh "password"
+          
+      - name: Verify Docker Registry
+        run: |
+          curl -f -u admin:password http://localhost:5000/v2/_catalog
+          echo "✅ Docker Registry is accessible"
+
       - name: Cache apt packages
         uses: actions/cache@v5
         id: apt-cache

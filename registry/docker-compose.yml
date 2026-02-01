@@ -1,0 +1,28 @@
+services:
+  registry:
+    image: registry:2
+    container_name: kdb-docker-registry
+    restart: unless-stopped
+    ports:
+      - "5000:5000"  # Docker Registry v2 API
+    environment:
+      REGISTRY_AUTH: htpasswd
+      REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      REGISTRY_HTTP_ADDR: 0.0.0.0:5000
+      REGISTRY_STORAGE_DELETE_ENABLED: "true"
+      # Allow HTTP for local testing
+      REGISTRY_HTTP_TLS_CERTIFICATE: ""
+    volumes:
+      - registry-data:/var/lib/registry
+      - ./auth:/auth:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:5000/v2/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  registry-data:
+    driver: local
