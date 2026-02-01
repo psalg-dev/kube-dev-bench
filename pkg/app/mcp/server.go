@@ -70,6 +70,13 @@ type ServerInterface interface {
 
 	// Log methods
 	GetPodLogs(namespace, podName, container string, lines int) (string, error)
+	GetPodLogsPrevious(namespace, podName, container string, lines int) (string, error)
+
+	// Phase 3: K8s Diagnostics methods
+	TopPods(namespace string) (interface{}, error)
+	TopNodes() (interface{}, error)
+	GetRolloutStatus(kind, namespace, name string) (interface{}, error)
+	GetRolloutHistory(kind, namespace, name string) (interface{}, error)
 
 	// Mutation methods
 	ScaleResource(kind, namespace, name string, replicas int) error
@@ -82,6 +89,16 @@ type ServerInterface interface {
 	GetSwarmServiceLogs(serviceID string, tail int) (string, error)
 	ScaleSwarmService(serviceID string, replicas int) error
 	IsSwarmConnected() bool
+
+	// Phase 4: Docker Swarm detail methods
+	GetSwarmService(serviceID string) (interface{}, error)
+	GetSwarmTask(taskID string) (interface{}, error)
+	GetSwarmNode(nodeID string) (interface{}, error)
+	GetSwarmStacks() (interface{}, error)
+	GetSwarmNetworks() (interface{}, error)
+	GetSwarmVolumes() (interface{}, error)
+	GetSwarmSecrets() (interface{}, error)
+	GetSwarmConfigs() (interface{}, error)
 }
 
 // MCPServer is the MCP server implementation using HTTP transport

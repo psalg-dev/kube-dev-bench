@@ -811,6 +811,123 @@ func (s *MCPServer) registerTools() {
 	}
 
 	// =====================
+	// Phase 3: Kubernetes Diagnostics Tools
+	// =====================
+
+	// k8s_get_pod_logs_previous - Get logs from previous container instance
+	s.tools["k8s_get_pod_logs_previous"] = &ToolDefinition{
+		Name:        "k8s_get_pod_logs_previous",
+		Description: "Retrieve logs from a pod's previous container instance (after crash/restart). Useful for debugging crashed containers.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the pod. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the pod.",
+				},
+				"container": map[string]interface{}{
+					"type":        "string",
+					"description": "Container name (optional, for multi-container pods).",
+				},
+				"tailLines": map[string]interface{}{
+					"type":        "integer",
+					"description": "Number of lines to retrieve from the end of the log. Default: 100.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleGetPodLogsPrevious,
+	}
+
+	// k8s_top_pods - Get pod metrics (CPU/memory)
+	s.tools["k8s_top_pods"] = &ToolDefinition{
+		Name:        "k8s_top_pods",
+		Description: "Get CPU and memory usage metrics for pods in a namespace. Requires metrics-server to be installed in the cluster.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace to get metrics from. Omit to use current namespace.",
+				},
+			},
+		},
+		Handler: s.handleTopPods,
+	}
+
+	// k8s_top_nodes - Get node metrics (CPU/memory)
+	s.tools["k8s_top_nodes"] = &ToolDefinition{
+		Name:        "k8s_top_nodes",
+		Description: "Get CPU and memory usage metrics for all nodes in the cluster. Requires metrics-server to be installed.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleTopNodes,
+	}
+
+	// k8s_get_rollout_status - Get rollout status
+	s.tools["k8s_get_rollout_status"] = &ToolDefinition{
+		Name:        "k8s_get_rollout_status",
+		Description: "Get the rollout status of a Deployment, StatefulSet, or DaemonSet. Shows if rollout is in progress, complete, or failed.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "Resource kind: Deployment, StatefulSet, or DaemonSet.",
+					"enum":        []string{"Deployment", "StatefulSet", "DaemonSet"},
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the resource. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the resource.",
+				},
+			},
+			"required": []string{"kind", "name"},
+		},
+		Handler: s.handleGetRolloutStatus,
+	}
+
+	// k8s_get_rollout_history - Get rollout history
+	s.tools["k8s_get_rollout_history"] = &ToolDefinition{
+		Name:        "k8s_get_rollout_history",
+		Description: "Get the rollout history (revisions) of a Deployment, StatefulSet, or DaemonSet. Shows past revisions with timestamps.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "Resource kind: Deployment, StatefulSet, or DaemonSet.",
+					"enum":        []string{"Deployment", "StatefulSet", "DaemonSet"},
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the resource. Omit to use current namespace.",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the resource.",
+				},
+			},
+			"required": []string{"kind", "name"},
+		},
+		Handler: s.handleGetRolloutHistory,
+	}
+
+	// =====================
 	// Docker Swarm Read-Only Tools
 	// =====================
 
@@ -905,6 +1022,124 @@ func (s *MCPServer) registerTools() {
 			"required": []string{"service", "replicas"},
 		},
 		Handler: s.handleSwarmScaleService,
+	}
+
+	// =====================
+	// Phase 4: Docker Swarm Detail/Inspect Tools
+	// =====================
+
+	// swarm_list_stacks - List Docker Stacks
+	s.tools["swarm_list_stacks"] = &ToolDefinition{
+		Name:        "swarm_list_stacks",
+		Description: "List all Docker Stacks deployed in the Swarm cluster.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleSwarmListStacks,
+	}
+
+	// swarm_list_networks - List Swarm networks
+	s.tools["swarm_list_networks"] = &ToolDefinition{
+		Name:        "swarm_list_networks",
+		Description: "List all Docker networks in the Swarm cluster.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleSwarmListNetworks,
+	}
+
+	// swarm_list_volumes - List Swarm volumes
+	s.tools["swarm_list_volumes"] = &ToolDefinition{
+		Name:        "swarm_list_volumes",
+		Description: "List all Docker volumes in the Swarm cluster.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleSwarmListVolumes,
+	}
+
+	// swarm_list_secrets - List Swarm secrets
+	s.tools["swarm_list_secrets"] = &ToolDefinition{
+		Name:        "swarm_list_secrets",
+		Description: "List all Docker Swarm secrets (metadata only, secret values are not exposed).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleSwarmListSecrets,
+	}
+
+	// swarm_list_configs - List Swarm configs
+	s.tools["swarm_list_configs"] = &ToolDefinition{
+		Name:        "swarm_list_configs",
+		Description: "List all Docker Swarm configs.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type":       "object",
+			"properties": map[string]interface{}{},
+		},
+		Handler: s.handleSwarmListConfigs,
+	}
+
+	// swarm_inspect_service - Inspect service details
+	s.tools["swarm_inspect_service"] = &ToolDefinition{
+		Name:        "swarm_inspect_service",
+		Description: "Get detailed information about a specific Docker Swarm service.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"id": map[string]interface{}{
+					"type":        "string",
+					"description": "Service ID or name.",
+				},
+			},
+			"required": []string{"id"},
+		},
+		Handler: s.handleSwarmInspectService,
+	}
+
+	// swarm_inspect_task - Inspect task details
+	s.tools["swarm_inspect_task"] = &ToolDefinition{
+		Name:        "swarm_inspect_task",
+		Description: "Get detailed information about a specific Docker Swarm task (container).",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"id": map[string]interface{}{
+					"type":        "string",
+					"description": "Task ID.",
+				},
+			},
+			"required": []string{"id"},
+		},
+		Handler: s.handleSwarmInspectTask,
+	}
+
+	// swarm_inspect_node - Inspect node details
+	s.tools["swarm_inspect_node"] = &ToolDefinition{
+		Name:        "swarm_inspect_node",
+		Description: "Get detailed information about a specific Docker Swarm node.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"id": map[string]interface{}{
+					"type":        "string",
+					"description": "Node ID or hostname.",
+				},
+			},
+			"required": []string{"id"},
+		},
+		Handler: s.handleSwarmInspectNode,
 	}
 }
 
@@ -1378,4 +1613,157 @@ func (s *MCPServer) truncateLogs(logs string) string {
 		return fmt.Sprintf("... (truncated to last %d lines)\n%s", s.config.MaxLogLines, strings.Join(lines, "\n"))
 	}
 	return logs
+}
+
+// =====================
+// Phase 3: K8s Diagnostics Handlers
+// =====================
+
+func (s *MCPServer) handleGetPodLogsPrevious(ctx context.Context, input map[string]interface{}) (any, error) {
+namespace := s.getNamespaceParam(input)
+name, _ := input["name"].(string)
+if name == "" {
+return nil, fmt.Errorf("missing required parameter: name")
+}
+
+container, _ := input["container"].(string)
+tailLines := 100
+if tl, ok := input["tailLines"].(float64); ok {
+tailLines = int(tl)
+}
+
+if tailLines > s.config.MaxLogLines {
+tailLines = s.config.MaxLogLines
+}
+
+logs, err := s.app.GetPodLogsPrevious(namespace, name, container, tailLines)
+if err != nil {
+return nil, err
+}
+
+return map[string]interface{}{
+"namespace": namespace,
+"pod":       name,
+"container": container,
+"lines":     tailLines,
+"previous":  true,
+"logs":      s.truncateLogs(logs),
+}, nil
+}
+
+func (s *MCPServer) handleTopPods(ctx context.Context, input map[string]interface{}) (any, error) {
+namespace := s.getNamespaceParam(input)
+return s.app.TopPods(namespace)
+}
+
+func (s *MCPServer) handleTopNodes(ctx context.Context, input map[string]interface{}) (any, error) {
+return s.app.TopNodes()
+}
+
+func (s *MCPServer) handleGetRolloutStatus(ctx context.Context, input map[string]interface{}) (any, error) {
+kind, _ := input["kind"].(string)
+if kind == "" {
+return nil, fmt.Errorf("missing required parameter: kind")
+}
+
+namespace := s.getNamespaceParam(input)
+name, _ := input["name"].(string)
+if name == "" {
+return nil, fmt.Errorf("missing required parameter: name")
+}
+
+return s.app.GetRolloutStatus(kind, namespace, name)
+}
+
+func (s *MCPServer) handleGetRolloutHistory(ctx context.Context, input map[string]interface{}) (any, error) {
+kind, _ := input["kind"].(string)
+if kind == "" {
+return nil, fmt.Errorf("missing required parameter: kind")
+}
+
+namespace := s.getNamespaceParam(input)
+name, _ := input["name"].(string)
+if name == "" {
+return nil, fmt.Errorf("missing required parameter: name")
+}
+
+return s.app.GetRolloutHistory(kind, namespace, name)
+}
+
+// =====================
+// Phase 4: Swarm Detail Handlers
+// =====================
+
+func (s *MCPServer) handleSwarmListStacks(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+return s.app.GetSwarmStacks()
+}
+
+func (s *MCPServer) handleSwarmListNetworks(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+return s.app.GetSwarmNetworks()
+}
+
+func (s *MCPServer) handleSwarmListVolumes(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+return s.app.GetSwarmVolumes()
+}
+
+func (s *MCPServer) handleSwarmListSecrets(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+return s.app.GetSwarmSecrets()
+}
+
+func (s *MCPServer) handleSwarmListConfigs(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+return s.app.GetSwarmConfigs()
+}
+
+func (s *MCPServer) handleSwarmInspectService(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+
+id, _ := input["id"].(string)
+if id == "" {
+return nil, fmt.Errorf("missing required parameter: id")
+}
+
+return s.app.GetSwarmService(id)
+}
+
+func (s *MCPServer) handleSwarmInspectTask(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+
+id, _ := input["id"].(string)
+if id == "" {
+return nil, fmt.Errorf("missing required parameter: id")
+}
+
+return s.app.GetSwarmTask(id)
+}
+
+func (s *MCPServer) handleSwarmInspectNode(ctx context.Context, input map[string]interface{}) (any, error) {
+if !s.app.IsSwarmConnected() {
+return nil, fmt.Errorf("Docker Swarm is not connected")
+}
+
+id, _ := input["id"].(string)
+if id == "" {
+return nil, fmt.Errorf("missing required parameter: id")
+}
+
+return s.app.GetSwarmNode(id)
 }
