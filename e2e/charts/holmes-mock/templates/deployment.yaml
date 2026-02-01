@@ -31,25 +31,22 @@ spec:
           containerPort: 5050
           protocol: TCP
         livenessProbe:
-          exec:
-            command:
-            - wget
-            - -q
-            - -O-
-            - -T2
-            - http://127.0.0.1:5050/healthz
+          httpGet:
+            path: /healthz
+            port: 5050
           initialDelaySeconds: 5
           periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
-          exec:
-            command:
-            - wget
-            - -q
-            - -O-
-            - -T2
-            - http://127.0.0.1:5050/healthz
-          initialDelaySeconds: 3
-          periodSeconds: 5
+          httpGet:
+            path: /healthz
+            port: 5050
+          initialDelaySeconds: 2
+          periodSeconds: 3
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         volumeMounts:

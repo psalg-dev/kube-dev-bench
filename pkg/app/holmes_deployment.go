@@ -384,27 +384,73 @@ func (a *App) waitForHolmesReady(namespace, releaseName string) (string, error) 
 	// Wait for the release to be deployed AND for pods to be running
 	// Even though Helm install with Wait=true waits for readiness probes,
 	// there can be a brief delay before pods are fully running and port-forward succeeds
-	maxAttempts := 60 // Increased from 30 to give more time for pods to start
+	maxAttempts := 90 // 3 minutes total (90 * 2s) to handle slow CI environments
 	var lastError error
+	releaseFound := false
 
 	for i := 0; i < maxAttempts; i++ {
-		releases, err := a.GetHelmReleases(namespace)
-		if err == nil {
-			for _, rel := range releases {
-				if rel.Name == releaseName && rel.Status == "deployed" {
-					// Start port-forward to access Holmes from outside the cluster
-					// Retry this operation as pods might still be coming up
-					endpoint, err := a.StartHolmesPortForward(namespace)
-					if err != nil {
-						lastError = err
-						// Don't return immediately - retry as pods might still be starting
+		// Step 1: Check if release is deployed
+		if !releaseFound {
+			releases, err := a.GetHelmReleases(namespace)
+			if err == nil {
+				for _, rel := range releases {
+					if rel.Name == releaseName && rel.Status == "deployed" {
+						releaseFound = true
+						fmt.Printf("[Holmes] Release %s found with status: deployed\n", releaseName)
 						break
 					}
-					return endpoint, nil
 				}
 			}
+			if !releaseFound {
+				time.Sleep(2 * time.Second)
+				continue
+			}
 		}
-		time.Sleep(2 * time.Second)
+
+		// Step 2: Wait for a Running Holmes pod before attempting port-forward
+		pods, err := a.GetRunningPods(namespace)
+		if err != nil {
+			fmt.Printf("[Holmes] Failed to get pods in namespace %s: %v\n", namespace, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		var runningPod string
+		for _, pod := range pods {
+			if (strings.HasPrefix(pod.Name, "holmesgpt") || strings.HasPrefix(pod.Name, "holmes")) && pod.Status == "Running" {
+				runningPod = pod.Name
+				break
+			}
+		}
+
+		if runningPod == "" {
+			// Log pod states for debugging
+			var podStates []string
+			for _, pod := range pods {
+				if strings.HasPrefix(pod.Name, "holmesgpt") || strings.HasPrefix(pod.Name, "holmes") {
+					podStates = append(podStates, fmt.Sprintf("%s:%s", pod.Name, pod.Status))
+				}
+			}
+			if len(podStates) > 0 {
+				fmt.Printf("[Holmes] Waiting for Running pod, current states: %v\n", podStates)
+			} else {
+				fmt.Printf("[Holmes] No Holmes pods found in namespace %s (attempt %d/%d)\n", namespace, i+1, maxAttempts)
+			}
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		fmt.Printf("[Holmes] Found running pod: %s, attempting port-forward\n", runningPod)
+
+		// Step 3: Start port-forward to access Holmes from outside the cluster
+		endpoint, err := a.StartHolmesPortForward(namespace)
+		if err != nil {
+			lastError = err
+			fmt.Printf("[Holmes] Port-forward failed: %v (will retry)\n", err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		return endpoint, nil
 	}
 
 	if lastError != nil {
