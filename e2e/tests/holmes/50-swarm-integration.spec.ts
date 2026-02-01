@@ -66,6 +66,6 @@ test.describe('Holmes Swarm Integration', () => {
     const taskAnalyzeBtn = panel.root.getByRole('button', { name: /analyze with holmes/i });
     await expect(taskAnalyzeBtn).toBeVisible({ timeout: 10_000 });
     await taskAnalyzeBtn.click();
-    await expect(panel.root).toContainText(/Swarm Service Analysis|Holmes Analysis|Analyzing/i);
+    await expect(panel.root).toContainText(/Swarm Task Analysis|Holmes Analysis|Analyzing/i);
   });
 });
