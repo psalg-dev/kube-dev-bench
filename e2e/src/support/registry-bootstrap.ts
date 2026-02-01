@@ -1,6 +1,7 @@
 import { execSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export interface RegistryConfig {
   healthUrl: string;
@@ -59,10 +60,13 @@ async function waitForOk(
 
 function getRegistryDir(): string {
   // Find registry directory relative to this file
+  // In ES modules, we need to use import.meta.url instead of __dirname
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  
   const possiblePaths = [
     join(process.cwd(), 'registry'),
     join(process.cwd(), '..', 'registry'),
-    join(__dirname, '..', '..', '..', 'registry'),
+    join(currentDir, '..', '..', '..', 'registry'),
   ];
   
   for (const path of possiblePaths) {
