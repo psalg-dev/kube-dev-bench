@@ -19,28 +19,71 @@ import { BottomPanel } from '../../src/pages/BottomPanel.js';
 import { SidebarPage } from '../../src/pages/SidebarPage.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
+import net from 'node:net';
+
+/**
+ * Find a free port by binding to port 0 and reading the assigned port.
+ * Returns a port in the ephemeral range.
+ */
+async function findFreePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const addr = server.address();
+      if (addr && typeof addr === 'object') {
+        const port = addr.port;
+        server.close(() => resolve(port));
+      } else {
+        server.close(() => reject(new Error('Failed to get port')));
+      }
+    });
+  });
+}
 
 /**
  * Robustly kill a Holmes mock server process.
  * Uses both SIGTERM and SIGKILL to ensure process termination.
+ * Returns a promise that resolves when the process is dead.
  */
-function killMockServer(instance: HolmesMockInstance | null): void {
+async function killMockServer(instance: HolmesMockInstance | null): Promise<void> {
   if (!instance?.process) return;
-  try {
-    instance.process.kill('SIGTERM');
-  } catch {
-    // ignore
-  }
-  // Give SIGTERM a moment to work, then force-kill
-  setTimeout(() => {
+  
+  const proc = instance.process;
+  if (proc.killed) return;
+  
+  return new Promise((resolve) => {
+    // Set up exit handler
+    const onExit = () => {
+      clearTimeout(forceKillTimer);
+      resolve();
+    };
+    proc.once('exit', onExit);
+    proc.once('close', onExit);
+    
+    // Try SIGTERM first
     try {
-      if (!instance.process?.killed) {
-        instance.process?.kill('SIGKILL');
-      }
+      proc.kill('SIGTERM');
     } catch {
-      // ignore
+      // Process may already be dead
+      resolve();
+      return;
     }
-  }, 500);
+    
+    // Force-kill after 1 second if still alive
+    const forceKillTimer = setTimeout(() => {
+      try {
+        if (!proc.killed) {
+          proc.kill('SIGKILL');
+        }
+      } catch {
+        // ignore
+      }
+      // Resolve after SIGKILL regardless
+      setTimeout(resolve, 200);
+    }, 1000);
+  });
 }
 
 function uniqueName(prefix: string) {
@@ -126,10 +169,11 @@ test.describe('Holmes Error Handling', () => {
 
     try {
       await test.step('Start mock server with 500 error mode', async () => {
-        // Start a separate mock server on a different port with error simulation
+        // Use dynamic port to avoid conflicts across retries and workers
+        const port = await findFreePort();
         errorMockServer = await startHolmesMockServer({
           repoRoot: withinRepo(),
-          port: 34118,
+          port,
           errorMode: '500',
           readyTimeoutMs: 30_000,
         });
@@ -157,8 +201,8 @@ test.describe('Holmes Error Handling', () => {
         ).toBeVisible({ timeout: 30_000 });
       });
     } finally {
-      // Clean up the error mock server using robust kill
-      killMockServer(errorMockServer);
+      // Clean up the error mock server using robust kill (properly awaited)
+      await killMockServer(errorMockServer);
     }
   });
 
@@ -219,10 +263,11 @@ test.describe('Holmes Error Handling', () => {
 
     try {
       await test.step('Start mock server with delay', async () => {
-        // Start a mock server with a 3-second delay
+        // Use dynamic port to avoid conflicts across retries and workers
+        const port = await findFreePort();
         slowMockServer = await startHolmesMockServer({
           repoRoot: withinRepo(),
-          port: 34119,
+          port,
           delayMs: 3000,
           readyTimeoutMs: 30_000,
         });
@@ -257,7 +302,7 @@ test.describe('Holmes Error Handling', () => {
         });
       });
     } finally {
-      killMockServer(slowMockServer);
+      await killMockServer(slowMockServer);
     }
   });
 
@@ -285,9 +330,11 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Start working mock server', async () => {
+        // Use dynamic port to avoid conflicts across retries and workers
+        const port = await findFreePort();
         errorMockServer = await startHolmesMockServer({
           repoRoot: withinRepo(),
-          port: 34120,
+          port,
           readyTimeoutMs: 30_000,
         });
       });
@@ -309,7 +356,7 @@ test.describe('Holmes Error Handling', () => {
         });
       });
     } finally {
-      killMockServer(errorMockServer);
+      await killMockServer(errorMockServer);
     }
   });
 });

@@ -80,7 +80,9 @@ spec:
       const input = await getHolmesInput(page);
       await input.fill('Why is my pod crashing?');
 
+      // Wait for input to be stable before clicking send
       const sendButton = page.getByRole('button', { name: '→' });
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
       await sendButton.click();
     });
 
@@ -132,7 +134,11 @@ spec:
 
       const input = await getHolmesInput(page);
       await input.fill('Analyze my deployment replicas');
-      await page.getByRole('button', { name: '→' }).click();
+      
+      // Wait for input to be stable before clicking send
+      const sendButton = page.getByRole('button', { name: '→' });
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+      await sendButton.click();
     });
 
     await test.step('Verify mock deployment response', async () => {
@@ -149,7 +155,11 @@ spec:
 
       const input = await getHolmesInput(page);
       await input.fill('Explain the logs from my application');
-      await page.getByRole('button', { name: '→' }).click();
+      
+      // Wait for input to be stable before clicking send
+      const sendButton = page.getByRole('button', { name: '→' });
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+      await sendButton.click();
     });
 
     await test.step('Verify mock log analysis response', async () => {
@@ -165,7 +175,11 @@ spec:
 
       const input = await getHolmesInput(page);
       await input.fill('Check my secret configuration');
-      await page.getByRole('button', { name: '→' }).click();
+      
+      // Wait for input to be stable before clicking send
+      const sendButton = page.getByRole('button', { name: '→' });
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+      await sendButton.click();
     });
 
     await test.step('Verify mock configuration response', async () => {
@@ -181,7 +195,11 @@ spec:
 
       const input = await getHolmesInput(page);
       await input.fill('Tell me about something random');
-      await page.getByRole('button', { name: '→' }).click();
+      
+      // Wait for input to be stable before clicking send
+      const sendButton = page.getByRole('button', { name: '→' });
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+      await sendButton.click();
     });
 
     await test.step('Verify default response', async () => {
@@ -194,22 +212,50 @@ spec:
   });
 
   test('Conversation history with export and clear', async ({ page }) => {
-    await test.step('Have a conversation with Holmes', async () => {
+    await test.step('Clear any existing conversation first', async () => {
       await openHolmesPanel({ page });
+      
+      // Wait for Holmes panel to be fully visible and interactive
+      const holmesPanel = page.locator('#holmes-panel');
+      await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
+      
+      // Try to clear any existing conversation from previous tests using retry pattern
+      const clearButton = page.getByTitle('Clear conversation');
+      const wasVisible = await clearButton.isVisible({ timeout: 2_000 }).catch(() => false);
+      if (wasVisible) {
+        await expect(async () => {
+          if (await clearButton.isVisible()) {
+            await clearButton.click();
+            await page.waitForTimeout(200);
+          }
+          await expect(clearButton).toBeHidden({ timeout: 2_000 });
+        }).toPass({ timeout: 10_000, intervals: [500, 1000, 2000] });
+      }
+    });
 
+    await test.step('Have a conversation with Holmes', async () => {
       const holmesPanel = page.locator('#holmes-panel');
 
       // First question - get fresh input locator each time
       const input1 = await getHolmesInput(page);
       await input1.fill('Why is my pod crashing?');
-      await page.getByRole('button', { name: '→' }).click();
+      
+      // Wait for input to be stable before clicking send
+      const sendButton = page.getByRole('button', { name: '→' });
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+      await sendButton.click();
 
       await expect(holmesPanel).toContainText('Pod Crash Analysis', { timeout: 30_000 });
+
+      // Wait for the UI to settle after first response before sending second question
+      // This prevents race conditions where the input isn't ready yet
+      await page.waitForTimeout(500);
 
       // Second question - get fresh input locator after first response
       const input2 = await getHolmesInput(page);
       await input2.fill('Check my deployment status');
-      await page.getByRole('button', { name: '→' }).click();
+      await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+      await sendButton.click();
 
       await expect(holmesPanel).toContainText('Deployment Analysis', { timeout: 30_000 });
     });
@@ -224,7 +270,18 @@ spec:
 
     await test.step('Clear conversation', async () => {
       const clearButton = page.getByTitle('Clear conversation');
-      await clearButton.click();
+      
+      // Use retry pattern for clearing conversation - sometimes React state updates need time
+      await expect(async () => {
+        // Click clear if visible
+        if (await clearButton.isVisible()) {
+          await clearButton.click();
+          // Wait a moment for React state to update
+          await page.waitForTimeout(200);
+        }
+        // Verify the button is now hidden
+        await expect(clearButton).toBeHidden({ timeout: 2_000 });
+      }).toPass({ timeout: 15_000, intervals: [500, 1000, 2000] });
 
       // After clearing, input should still be visible and ready
       const input = page.getByPlaceholder('Ask about your cluster...');
