@@ -19,7 +19,15 @@ data:
       },
       {
         pattern: /deployment|replica/i,
-        response: "## Deployment Analysis\n\nThe deployment is healthy.\n\n### Status\n- All replicas running\n- No issues detected"
+        response: "## Deployment Analysis\n\nDeployment health check completed.\n\n### Status\n- All replicas running\n- No issues detected"
+      },
+      {
+        pattern: /log|logs/i,
+        response: "## Log Analysis\n\nAnalyzed the provided logs.\n\n### Summary\n- No critical errors found\n- Application running normally"
+      },
+      {
+        pattern: /secret|configmap|configuration/i,
+        response: "## Configuration Analysis\n\nConfiguration resource analysis completed.\n\n### Summary\n- Configuration values validated\n- No issues detected"
       }
     ];
     
