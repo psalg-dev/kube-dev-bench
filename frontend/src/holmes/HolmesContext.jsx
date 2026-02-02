@@ -110,7 +110,7 @@ function holmesReducer(state, action) {
 
 export function HolmesProvider({ children }) {
   const [state, dispatch] = useReducer(holmesReducer, initialState);
-  const streamRef = useRef({ streamId: null, text: '', reasoningText: '', canceledStreamId: null });
+  const streamRef = useRef({ streamId: null, text: '', reasoningText: '', canceledStreamId: null, streamCompleted: false });
 
   const loadConfig = useCallback(async () => {
     try {
@@ -126,7 +126,7 @@ export function HolmesProvider({ children }) {
   }, [loadConfig]);
 
   useEffect(() => {
-    streamRef.current = { streamId: state.streamId, text: state.streamingText, reasoningText: state.reasoningText, canceledStreamId: state.canceledStreamId };
+    streamRef.current = { streamId: state.streamId, text: state.streamingText, reasoningText: state.reasoningText, canceledStreamId: state.canceledStreamId, streamCompleted: streamRef.current.streamCompleted };
   }, [state.streamId, state.streamingText, state.reasoningText, state.canceledStreamId]);
 
   // Subscribe to deployment status events
@@ -148,7 +148,7 @@ export function HolmesProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
-      const { streamId, text, reasoningText, canceledStreamId } = streamRef.current;
+      const { streamId, text, reasoningText, canceledStreamId, streamCompleted } = streamRef.current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
@@ -168,6 +168,11 @@ export function HolmesProvider({ children }) {
       const eventType = payload.event;
 
       if (eventType === 'stream_end') {
+        // If stream was already completed by ai_answer_end, just stop loading
+        if (streamCompleted) {
+          dispatch({ type: 'SET_LOADING', loading: false });
+          return;
+        }
         if (text) {
           dispatch({ type: 'STREAM_DONE', text, timestamp: new Date().toISOString() });
         } else {
@@ -279,6 +284,7 @@ export function HolmesProvider({ children }) {
       }
 
       if (eventType === 'ai_answer_end' && data && data.analysis) {
+        streamRef.current.streamCompleted = true;
         dispatch({ type: 'STREAM_DONE', text: data.analysis, timestamp: new Date().toISOString() });
         return;
       }
@@ -292,6 +298,7 @@ export function HolmesProvider({ children }) {
       return;
     }
     const streamId = `${Date.now()}`;
+    streamRef.current.streamCompleted = false;
     dispatch({ type: 'START_STREAM', streamId });
     dispatch({ type: 'SET_QUERY', query: question, timestamp: new Date().toISOString() });
 
