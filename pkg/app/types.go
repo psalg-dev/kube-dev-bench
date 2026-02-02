@@ -394,6 +394,9 @@ type HelmInstallRequest struct {
 	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
 	CreateNs    bool                   `json:"createNamespace"`
+	// Helm v4 options
+	WaitStrategy string `json:"waitStrategy"` // "none", "legacy", "watcher" - defaults to "legacy"
+	Timeout      int    `json:"timeout"`      // Wait timeout in seconds, defaults to 300
 }
 
 // HelmUpgradeRequest contains parameters for upgrading a Helm release
@@ -404,4 +407,7 @@ type HelmUpgradeRequest struct {
 	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
 	ReuseValues bool                   `json:"reuseValues"`
+	// Helm v4 options
+	WaitStrategy string `json:"waitStrategy"` // "none", "legacy", "watcher" - defaults to "legacy"
+	Timeout      int    `json:"timeout"`      // Wait timeout in seconds, defaults to 300
 }

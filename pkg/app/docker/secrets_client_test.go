@@ -78,7 +78,7 @@ func Test_getSwarmSecret_returnsItem(t *testing.T) {
 	}
 }
 
-// Note: The public wrapper functions (GetSwarmSecrets, GetSwarmSecret, CreateSwarmSecret, etc.) 
+// Note: The public wrapper functions (GetSwarmSecrets, GetSwarmSecret, CreateSwarmSecret, etc.)
 // that accept *client.Client cannot be easily unit tested since they require a real Docker client.
 // These wrappers are thin delegates to the internal functions (getSwarmSecrets, getSwarmSecret, etc.)
 // which are already comprehensively tested above.

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,11 +10,14 @@ import (
 	"time"
 
 	"gopkg.in/yaml.v3"
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
-	"helm.sh/helm/v3/pkg/cli"
-	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/repo"
+	"helm.sh/helm/v4/pkg/action"
+	"helm.sh/helm/v4/pkg/chart"
+	"helm.sh/helm/v4/pkg/chart/loader"
+	"helm.sh/helm/v4/pkg/cli"
+	"helm.sh/helm/v4/pkg/getter"
+	"helm.sh/helm/v4/pkg/kube"
+	"helm.sh/helm/v4/pkg/release"
+	repo "helm.sh/helm/v4/pkg/repo/v1"
 )
 
 // getHelmSettings returns Helm CLI settings configured for the current kubeconfig
@@ -40,13 +44,11 @@ func (a *App) getHelmActionConfig(namespace string) (*action.Configuration, erro
 	actionConfig := new(action.Configuration)
 
 	// Initialize using the CLI settings RESTClientGetter
+	// In Helm v4, the Init signature has changed - log handler is configured separately
 	if err := actionConfig.Init(
 		settings.RESTClientGetter(),
 		namespace,
 		os.Getenv("HELM_DRIVER"),
-		func(format string, v ...interface{}) {
-			fmt.Printf("[Helm] "+format+"\n", v...)
-		},
 	); err != nil {
 		return nil, fmt.Errorf("failed to initialize helm action config: %w", err)
 	}
@@ -87,27 +89,49 @@ func (a *App) GetHelmReleases(namespace string) ([]HelmReleaseInfo, error) {
 	now := time.Now()
 
 	for _, rel := range releases {
-		age := "-"
-		updated := "-"
-		if !rel.Info.LastDeployed.IsZero() {
-			age = formatDuration(now.Sub(rel.Info.LastDeployed.Time))
-			updated = rel.Info.LastDeployed.Format("2006-01-02 15:04:05")
+		// Use Accessor interface in Helm v4 to access release fields
+		accessor, err := release.NewAccessor(rel)
+		if err != nil {
+			continue // Skip releases we can't access
 		}
 
-		chartName := rel.Chart.Metadata.Name
-		chartVersion := rel.Chart.Metadata.Version
+		age := "-"
+		updated := "-"
+		deployedAt := accessor.DeployedAt()
+		if !deployedAt.IsZero() {
+			age = formatDuration(now.Sub(deployedAt))
+			updated = deployedAt.Format("2006-01-02 15:04:05")
+		}
+
+		chartName := ""
+		chartVersion := ""
+		appVersion := ""
+		if chrt := accessor.Chart(); chrt != nil {
+			if chartAccessor, err := chart.NewAccessor(chrt); err == nil {
+				chartName = chartAccessor.Name()
+				// Get version and appVersion from MetadataAsMap
+				if meta := chartAccessor.MetadataAsMap(); meta != nil {
+					if v, ok := meta["version"].(string); ok {
+						chartVersion = v
+					}
+					if v, ok := meta["appVersion"].(string); ok {
+						appVersion = v
+					}
+				}
+			}
+		}
 
 		releaseInfo := HelmReleaseInfo{
-			Name:         rel.Name,
-			Namespace:    rel.Namespace,
-			Revision:     rel.Version,
+			Name:         accessor.Name(),
+			Namespace:    accessor.Namespace(),
+			Revision:     accessor.Version(),
 			Chart:        chartName,
 			ChartVersion: chartVersion,
-			AppVersion:   rel.Chart.Metadata.AppVersion,
-			Status:       string(rel.Info.Status),
+			AppVersion:   appVersion,
+			Status:       accessor.Status(),
 			Age:          age,
 			Updated:      updated,
-			Labels:       rel.Labels,
+			Labels:       accessor.Labels(),
 		}
 		if releaseInfo.Labels == nil {
 			releaseInfo.Labels = map[string]string{}
@@ -355,6 +379,25 @@ func (a *App) InstallHelmChart(req HelmInstallRequest) error {
 		installAction.Version = req.Version
 	}
 
+	// Helm v4: Configure wait strategy using kube.WaitStrategy type
+	// Valid values: kube.StatusWatcherStrategy, kube.LegacyStrategy, kube.HookOnlyStrategy
+	switch req.WaitStrategy {
+	case "watcher":
+		installAction.WaitStrategy = kube.StatusWatcherStrategy
+	case "hookOnly":
+		installAction.WaitStrategy = kube.HookOnlyStrategy
+	default:
+		// Default to legacy for backward compatibility
+		installAction.WaitStrategy = kube.LegacyStrategy
+	}
+
+	// Set timeout
+	timeout := req.Timeout
+	if timeout <= 0 {
+		timeout = 300 // Default 5 minutes
+	}
+	installAction.Timeout = time.Duration(timeout) * time.Second
+
 	// Locate and load the chart
 	chartPath, err := installAction.ChartPathOptions.LocateChart(req.ChartRef, settings)
 	if err != nil {
@@ -366,8 +409,12 @@ func (a *App) InstallHelmChart(req HelmInstallRequest) error {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
-	// Run the install
-	_, err = installAction.Run(chart, req.Values)
+	// Run the install with context for better control
+	ctx := context.Background()
+	if a.ctx != nil {
+		ctx = a.ctx
+	}
+	_, err = installAction.RunWithContext(ctx, chart, req.Values)
 	if err != nil {
 		return fmt.Errorf("failed to install chart: %w", err)
 	}
@@ -394,6 +441,24 @@ func (a *App) UpgradeHelmRelease(req HelmUpgradeRequest) error {
 		upgradeAction.Version = req.Version
 	}
 
+	// Helm v4: Configure wait strategy using kube.WaitStrategy type
+	switch req.WaitStrategy {
+	case "watcher":
+		upgradeAction.WaitStrategy = kube.StatusWatcherStrategy
+	case "hookOnly":
+		upgradeAction.WaitStrategy = kube.HookOnlyStrategy
+	default:
+		// Default to legacy for backward compatibility
+		upgradeAction.WaitStrategy = kube.LegacyStrategy
+	}
+
+	// Set timeout
+	timeout := req.Timeout
+	if timeout <= 0 {
+		timeout = 300 // Default 5 minutes
+	}
+	upgradeAction.Timeout = time.Duration(timeout) * time.Second
+
 	// Locate and load the chart
 	chartPath, err := upgradeAction.ChartPathOptions.LocateChart(req.ChartRef, settings)
 	if err != nil {
@@ -405,8 +470,12 @@ func (a *App) UpgradeHelmRelease(req HelmUpgradeRequest) error {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
-	// Run the upgrade
-	_, err = upgradeAction.Run(req.ReleaseName, chart, req.Values)
+	// Run the upgrade with context
+	ctx := context.Background()
+	if a.ctx != nil {
+		ctx = a.ctx
+	}
+	_, err = upgradeAction.RunWithContext(ctx, req.ReleaseName, chart, req.Values)
 	if err != nil {
 		return fmt.Errorf("failed to upgrade release: %w", err)
 	}
@@ -426,6 +495,11 @@ func (a *App) UninstallHelmRelease(namespace, releaseName string) error {
 
 	uninstallAction := action.NewUninstall(actionConfig)
 
+	// Helm v4: Configure deletion propagation and wait strategy
+	uninstallAction.DeletionPropagation = "foreground"
+	uninstallAction.WaitStrategy = kube.StatusWatcherStrategy
+
+	// Run the uninstall
 	_, err = uninstallAction.Run(releaseName)
 	if err != nil {
 		return fmt.Errorf("failed to uninstall release: %w", err)
@@ -475,18 +549,43 @@ func (a *App) GetHelmReleaseHistory(namespace, releaseName string) ([]HelmHistor
 
 	var result []HelmHistoryInfo
 	for _, rel := range releases {
+		// Use Accessor interface in Helm v4 to access release fields
+		accessor, err := release.NewAccessor(rel)
+		if err != nil {
+			continue // Skip releases we can't access
+		}
+
 		updated := "-"
-		if !rel.Info.LastDeployed.IsZero() {
-			updated = rel.Info.LastDeployed.Format("2006-01-02 15:04:05")
+		deployedAt := accessor.DeployedAt()
+		if !deployedAt.IsZero() {
+			updated = deployedAt.Format("2006-01-02 15:04:05")
+		}
+
+		chartStr := ""
+		appVersion := ""
+		if chrt := accessor.Chart(); chrt != nil {
+			if chartAccessor, err := chart.NewAccessor(chrt); err == nil {
+				chartName := chartAccessor.Name()
+				chartVersion := ""
+				if meta := chartAccessor.MetadataAsMap(); meta != nil {
+					if v, ok := meta["version"].(string); ok {
+						chartVersion = v
+					}
+					if v, ok := meta["appVersion"].(string); ok {
+						appVersion = v
+					}
+				}
+				chartStr = fmt.Sprintf("%s-%s", chartName, chartVersion)
+			}
 		}
 
 		result = append(result, HelmHistoryInfo{
-			Revision:    rel.Version,
+			Revision:    accessor.Version(),
 			Updated:     updated,
-			Status:      string(rel.Info.Status),
-			Chart:       fmt.Sprintf("%s-%s", rel.Chart.Metadata.Name, rel.Chart.Metadata.Version),
-			AppVersion:  rel.Chart.Metadata.AppVersion,
-			Description: rel.Info.Description,
+			Status:      accessor.Status(),
+			Chart:       chartStr,
+			AppVersion:  appVersion,
+			Description: accessor.Notes(), // Notes replaced Description in v4
 		})
 	}
 
@@ -536,7 +635,13 @@ func (a *App) GetHelmReleaseManifest(namespace, releaseName string) (string, err
 		return "", fmt.Errorf("failed to get release: %w", err)
 	}
 
-	return rel.Manifest, nil
+	// Use Accessor interface in Helm v4 to access release fields
+	accessor, err := release.NewAccessor(rel)
+	if err != nil {
+		return "", fmt.Errorf("failed to access release: %w", err)
+	}
+
+	return accessor.Manifest(), nil
 }
 
 // GetHelmReleaseNotes returns the notes for a Helm release
@@ -553,7 +658,13 @@ func (a *App) GetHelmReleaseNotes(namespace, releaseName string) (string, error)
 		return "", fmt.Errorf("failed to get release: %w", err)
 	}
 
-	return rel.Info.Notes, nil
+	// Use Accessor interface in Helm v4 to access release fields
+	accessor, err := release.NewAccessor(rel)
+	if err != nil {
+		return "", fmt.Errorf("failed to access release: %w", err)
+	}
+
+	return accessor.Notes(), nil
 }
 
 // triggerCountsRefresh signals the counts aggregator to refresh
