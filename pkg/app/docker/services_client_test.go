@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
 )
 
@@ -252,3 +253,118 @@ func Test_removeSwarmService_callsRemove(t *testing.T) {
 }
 
 func uint64Ptr(v uint64) *uint64 { return &v }
+
+func Test_rollbackSwarmService_setsRollback(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+			return swarm.Service{ID: "s1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ServiceSpec{}}, nil, nil
+		},
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, _ swarm.ServiceSpec, opts types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {
+			if opts.Rollback != "previous" {
+				t.Fatalf("expected rollback='previous', got %q", opts.Rollback)
+			}
+			return types.ServiceUpdateResponse{}, nil
+		},
+	}
+
+	if err := rollbackSwarmService(ctx, cli, "s1"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func Test_createSwarmService_withPorts(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (types.ServiceCreateResponse, error) {
+			if len(spec.EndpointSpec.Ports) != 1 {
+				t.Fatalf("expected 1 port, got %d", len(spec.EndpointSpec.Ports))
+			}
+			if spec.EndpointSpec.Ports[0].TargetPort != 80 {
+				t.Fatalf("expected target port 80, got %d", spec.EndpointSpec.Ports[0].TargetPort)
+			}
+			return types.ServiceCreateResponse{ID: "svc-id"}, nil
+		},
+	}
+
+	opts := CreateServiceOptions{
+		Name:  "test",
+		Image: "nginx",
+		Ports: []SwarmPortInfo{{TargetPort: 80, PublishedPort: 8080, Protocol: "tcp"}},
+	}
+	id, err := createSwarmService(ctx, cli, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if id != "svc-id" {
+		t.Fatalf("expected svc-id, got %q", id)
+	}
+}
+
+func Test_createSwarmService_globalMode(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (types.ServiceCreateResponse, error) {
+			if spec.Mode.Global == nil {
+				t.Fatalf("expected global mode")
+			}
+			return types.ServiceCreateResponse{ID: "svc-id"}, nil
+		},
+	}
+
+	opts := CreateServiceOptions{Name: "test", Image: "nginx", Mode: "global"}
+	_, err := createSwarmService(ctx, cli, opts)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func Test_createSwarmService_errorOnMissingName(t *testing.T) {
+	ctx := context.Background()
+	cli := &fakeDockerClient{}
+
+	opts := CreateServiceOptions{Image: "nginx"}
+	_, err := createSwarmService(ctx, cli, opts)
+	if err != ErrInvalidServiceName {
+		t.Fatalf("expected ErrInvalidServiceName, got %v", err)
+	}
+}
+
+func Test_createSwarmService_errorOnMissingImage(t *testing.T) {
+	ctx := context.Background()
+	cli := &fakeDockerClient{}
+
+	opts := CreateServiceOptions{Name: "test"}
+	_, err := createSwarmService(ctx, cli, opts)
+	if err != ErrInvalidServiceImage {
+		t.Fatalf("expected ErrInvalidServiceImage, got %v", err)
+	}
+}
+
+func Test_mountsToInfo_convertsMounts(t *testing.T) {
+	mounts := []mount.Mount{
+		{Type: mount.TypeBind, Source: "/src", Target: "/dst", ReadOnly: true},
+		{Type: mount.TypeVolume, Source: "vol", Target: "/data"},
+	}
+
+	result := mountsToInfo(mounts)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 mounts, got %d", len(result))
+	}
+	if result[0].Type != "bind" || result[0].ReadOnly != true {
+		t.Fatalf("unexpected first mount: %+v", result[0])
+	}
+	if result[1].Type != "volume" || result[1].Source != "vol" {
+		t.Fatalf("unexpected second mount: %+v", result[1])
+	}
+}
+
+func Test_mountsToInfo_returnsNilForEmpty(t *testing.T) {
+	result := mountsToInfo([]mount.Mount{})
+	if result != nil {
+		t.Fatalf("expected nil for empty mounts, got %+v", result)
+	}
+}
