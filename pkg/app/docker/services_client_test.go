@@ -261,11 +261,11 @@ func Test_rollbackSwarmService_setsRollback(t *testing.T) {
 		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return swarm.Service{ID: "s1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ServiceSpec{}}, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, _ swarm.ServiceSpec, opts types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, _ swarm.ServiceSpec, opts types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			if opts.Rollback != "previous" {
 				t.Fatalf("expected rollback='previous', got %q", opts.Rollback)
 			}
-			return types.ServiceUpdateResponse{}, nil
+			return swarm.ServiceUpdateResponse{}, nil
 		},
 	}
 
@@ -278,14 +278,14 @@ func Test_createSwarmService_withPorts(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (types.ServiceCreateResponse, error) {
+		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
 			if len(spec.EndpointSpec.Ports) != 1 {
 				t.Fatalf("expected 1 port, got %d", len(spec.EndpointSpec.Ports))
 			}
 			if spec.EndpointSpec.Ports[0].TargetPort != 80 {
 				t.Fatalf("expected target port 80, got %d", spec.EndpointSpec.Ports[0].TargetPort)
 			}
-			return types.ServiceCreateResponse{ID: "svc-id"}, nil
+			return swarm.ServiceCreateResponse{ID: "svc-id"}, nil
 		},
 	}
 
@@ -307,11 +307,11 @@ func Test_createSwarmService_globalMode(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (types.ServiceCreateResponse, error) {
+		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
 			if spec.Mode.Global == nil {
 				t.Fatalf("expected global mode")
 			}
-			return types.ServiceCreateResponse{ID: "svc-id"}, nil
+			return swarm.ServiceCreateResponse{ID: "svc-id"}, nil
 		},
 	}
 

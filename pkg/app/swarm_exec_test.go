@@ -12,15 +12,16 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 )
 
 // mockSwarmExecClient implements swarmExecClient for testing
 type mockSwarmExecClient struct {
 	taskInspectFunc         func(context.Context, string) (swarm.Task, []byte, error)
-	containerExecCreateFunc func(context.Context, string, types.ExecConfig) (types.IDResponse, error)
-	containerExecAttachFunc func(context.Context, string, types.ExecStartCheck) (types.HijackedResponse, error)
-	containerExecResizeFunc func(context.Context, string, types.ResizeOptions) error
+	containerExecCreateFunc func(context.Context, string, container.ExecOptions) (container.ExecCreateResponse, error)
+	containerExecAttachFunc func(context.Context, string, container.ExecAttachOptions) (types.HijackedResponse, error)
+	containerExecResizeFunc func(context.Context, string, container.ResizeOptions) error
 }
 
 func (m *mockSwarmExecClient) TaskInspectWithRaw(ctx context.Context, taskID string) (swarm.Task, []byte, error) {
@@ -30,21 +31,21 @@ func (m *mockSwarmExecClient) TaskInspectWithRaw(ctx context.Context, taskID str
 	return swarm.Task{}, nil, nil
 }
 
-func (m *mockSwarmExecClient) ContainerExecCreate(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
+func (m *mockSwarmExecClient) ContainerExecCreate(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
 	if m.containerExecCreateFunc != nil {
 		return m.containerExecCreateFunc(ctx, containerID, config)
 	}
-	return types.IDResponse{ID: "exec-123"}, nil
+	return container.ExecCreateResponse{ID: "exec-123"}, nil
 }
 
-func (m *mockSwarmExecClient) ContainerExecAttach(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+func (m *mockSwarmExecClient) ContainerExecAttach(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 	if m.containerExecAttachFunc != nil {
 		return m.containerExecAttachFunc(ctx, execID, config)
 	}
 	return types.HijackedResponse{}, nil
 }
 
-func (m *mockSwarmExecClient) ContainerExecResize(ctx context.Context, execID string, options types.ResizeOptions) error {
+func (m *mockSwarmExecClient) ContainerExecResize(ctx context.Context, execID string, options container.ResizeOptions) error {
 	if m.containerExecResizeFunc != nil {
 		return m.containerExecResizeFunc(ctx, execID, options)
 	}
@@ -179,14 +180,14 @@ func TestStartSwarmTaskExecSession_Success(t *testing.T) {
 				},
 			}, nil, nil
 		},
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
 			execCreateCalled = true
 			if containerID != "container-123" {
 				t.Errorf("unexpected containerID: %s", containerID)
 			}
-			return types.IDResponse{ID: "exec-123"}, nil
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			execAttachCalled = true
 			mockConn := &mockConn{}
 			mockReader := &mockReader{data: []byte{}}
@@ -199,7 +200,7 @@ func TestStartSwarmTaskExecSession_Success(t *testing.T) {
 				Reader: bufio.NewReader(mockReader),
 			}, nil
 		},
-		containerExecResizeFunc: func(ctx context.Context, execID string, options types.ResizeOptions) error {
+		containerExecResizeFunc: func(ctx context.Context, execID string, options container.ResizeOptions) error {
 			return nil
 		},
 	}
@@ -238,16 +239,16 @@ func (e *timeoutError) Temporary() bool { return true }
 
 func TestSwarmExecAttachTTY_Success(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
 			if !config.Tty {
 				t.Error("Tty should be true")
 			}
 			if !config.AttachStdin || !config.AttachStdout || !config.AttachStderr {
 				t.Error("All attach flags should be true")
 			}
-			return types.IDResponse{ID: "exec-123"}, nil
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			if !config.Tty {
 				t.Error("Tty should be true")
 			}
@@ -269,8 +270,8 @@ func TestSwarmExecAttachTTY_Success(t *testing.T) {
 
 func TestSwarmExecAttachTTY_CreateError(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{}, errors.New("create failed")
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{}, errors.New("create failed")
 		},
 	}
 
@@ -285,10 +286,10 @@ func TestSwarmExecAttachTTY_CreateError(t *testing.T) {
 
 func TestSwarmExecAttachTTY_AttachError(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{ID: "exec-123"}, nil
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			return types.HijackedResponse{}, errors.New("attach failed")
 		},
 	}
@@ -304,10 +305,10 @@ func TestSwarmExecAttachTTY_AttachError(t *testing.T) {
 
 func TestSwarmExecAttachTTYWithProbe_Timeout(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{ID: "exec-123"}, nil
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
 			mockReader := &mockReader{err: &timeoutError{}}
 			return types.HijackedResponse{
@@ -334,10 +335,10 @@ func TestSwarmExecAttachTTYWithProbe_Timeout(t *testing.T) {
 
 func TestSwarmExecAttachTTYWithProbe_OCIRuntimeError(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{ID: "exec-123"}, nil
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
 			mockReader := &mockReader{
 				data: []byte("OCI runtime exec failed: exec failed"),
@@ -361,10 +362,10 @@ func TestSwarmExecAttachTTYWithProbe_OCIRuntimeError(t *testing.T) {
 
 func TestSwarmExecAttachTTYWithProbe_NoSuchFile(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{ID: "exec-123"}, nil
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
 			mockReader := &mockReader{
 				data: []byte("no such file or directory"),
@@ -388,10 +389,10 @@ func TestSwarmExecAttachTTYWithProbe_NoSuchFile(t *testing.T) {
 
 func TestSwarmExecAttachTTYWithProbe_ImmediateClose(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{ID: "exec-123"}, nil
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
 			mockReader := &mockReader{err: io.EOF}
 			return types.HijackedResponse{
@@ -412,10 +413,10 @@ func TestSwarmExecAttachTTYWithProbe_ImmediateClose(t *testing.T) {
 
 func TestSwarmExecAttachTTYWithProbe_SuccessWithInitialData(t *testing.T) {
 	cli := &mockSwarmExecClient{
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
-			return types.IDResponse{ID: "exec-123"}, nil
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
+			return container.ExecCreateResponse{ID: "exec-123"}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
 			mockReader := &mockReader{
 				data: []byte("$ "), // Shell prompt
@@ -458,13 +459,13 @@ func TestStartSwarmTaskExecSession_AutoShellFallback(t *testing.T) {
 				},
 			}, nil, nil
 		},
-		containerExecCreateFunc: func(ctx context.Context, containerID string, config types.ExecConfig) (types.IDResponse, error) {
+		containerExecCreateFunc: func(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error) {
 			if len(config.Cmd) > 0 {
 				attempts = append(attempts, config.Cmd[0])
 			}
-			return types.IDResponse{ID: fmt.Sprintf("exec-%d", len(attempts))}, nil
+			return container.ExecCreateResponse{ID: fmt.Sprintf("exec-%d", len(attempts))}, nil
 		},
-		containerExecAttachFunc: func(ctx context.Context, execID string, config types.ExecStartCheck) (types.HijackedResponse, error) {
+		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
 			
 			// First attempt fails, second succeeds

@@ -128,11 +128,11 @@ func Test_updateSwarmSecretDataImmutable_createsNewSecretAndMigrates(t *testing.
 		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return swarm.Service{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Secrets: []*swarm.SecretReference{{SecretID: "sec-old", SecretName: "mysecret"}}}}}}, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			if spec.TaskTemplate.ContainerSpec.Secrets[0].SecretID != "sec-new" {
 				t.Fatalf("expected new secret ID")
 			}
-			return types.ServiceUpdateResponse{}, nil
+			return swarm.ServiceUpdateResponse{}, nil
 		},
 		SecretRemoveFn: func(context.Context, string) error {
 			return nil
