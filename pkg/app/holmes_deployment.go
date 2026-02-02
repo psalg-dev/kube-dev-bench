@@ -10,8 +10,11 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
-	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v4/pkg/action"
+	"helm.sh/helm/v4/pkg/chart"
+	"helm.sh/helm/v4/pkg/chart/loader"
+	"helm.sh/helm/v4/pkg/kube"
+	"helm.sh/helm/v4/pkg/release"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -358,9 +361,6 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 		settings.RESTClientGetter(),
 		req.Namespace,
 		os.Getenv("HELM_DRIVER"),
-		func(format string, v ...interface{}) {
-			fmt.Printf("[Helm] "+format+"\n", v...)
-		},
 	); err != nil {
 		return fmt.Errorf("failed to initialize helm action config: %w", err)
 	}
@@ -393,13 +393,17 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 	fmt.Printf("[Holmes] List releases found %d releases\n", len(releases))
 	if err == nil {
 		for _, rel := range releases {
-			fmt.Printf("[Holmes]   - Release: %s (status: %s)\n", rel.Name, rel.Info.Status.String())
-			if rel.Name == req.ReleaseName {
-				fmt.Printf("[Holmes] Release %s already exists (status: %s), uninstalling first\n", rel.Name, rel.Info.Status.String())
+			accessor, accErr := release.NewAccessor(rel)
+			if accErr != nil {
+				continue
+			}
+			fmt.Printf("[Holmes]   - Release: %s (status: %s)\n", accessor.Name(), accessor.Status())
+			if accessor.Name() == req.ReleaseName {
+				fmt.Printf("[Holmes] Release %s already exists (status: %s), uninstalling first\n", accessor.Name(), accessor.Status())
 				uninstallAction := action.NewUninstall(actionConfig)
-				uninstallAction.Wait = true
+				uninstallAction.WaitStrategy = kube.StatusWatcherStrategy
 				uninstallAction.Timeout = 60 * time.Second
-				_, uninstallErr := uninstallAction.Run(rel.Name)
+				_, uninstallErr := uninstallAction.Run(accessor.Name())
 				if uninstallErr != nil {
 					fmt.Printf("[Holmes] Uninstall error (continuing anyway): %v\n", uninstallErr)
 				}
@@ -437,11 +441,10 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 	installAction.ReleaseName = req.ReleaseName
 	installAction.Namespace = req.Namespace
 	installAction.CreateNamespace = req.CreateNs
-	installAction.Wait = true
+	installAction.WaitStrategy = kube.StatusWatcherStrategy
 	installAction.Timeout = 5 * time.Minute
 	installAction.Replace = true       // Replace existing release with same name
 	installAction.TakeOwnership = true // Take ownership of existing resources
-	installAction.Force = true         // Force resource update
 
 	// Locate and load the chart
 	chartPath, err := installAction.ChartPathOptions.LocateChart(req.ChartRef, settings)
@@ -449,16 +452,27 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 		return fmt.Errorf("failed to locate chart: %w", err)
 	}
 
-	chart, err := loader.Load(chartPath)
+	chrt, err := loader.Load(chartPath)
 	if err != nil {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
 	// Run the install
 	fmt.Printf("[Holmes] Installing chart %s in namespace %s\n", chartPath, req.Namespace)
-	fmt.Printf("[Holmes] Chart has %d templates, Name=%s, Version=%s\n", len(chart.Templates), chart.Metadata.Name, chart.Metadata.Version)
-	fmt.Printf("[Holmes] Install settings: Wait=%v, Timeout=%v, CreateNamespace=%v, Replace=%v, TakeOwnership=%v, Force=%v\n",
-		installAction.Wait, installAction.Timeout, installAction.CreateNamespace, installAction.Replace, installAction.TakeOwnership, installAction.Force)
+	// Get chart info using accessor pattern
+	chartAccessor, chartAccErr := chart.NewAccessor(chrt)
+	if chartAccErr == nil {
+		chartName := chartAccessor.Name()
+		chartVersion := ""
+		if meta := chartAccessor.MetadataAsMap(); meta != nil {
+			if v, ok := meta["version"].(string); ok {
+				chartVersion = v
+			}
+		}
+		fmt.Printf("[Holmes] Chart has %d templates, Name=%s, Version=%s\n", len(chartAccessor.Templates()), chartName, chartVersion)
+	}
+	fmt.Printf("[Holmes] Install settings: WaitStrategy=%s, Timeout=%v, CreateNamespace=%v, Replace=%v, TakeOwnership=%v\n",
+		installAction.WaitStrategy, installAction.Timeout, installAction.CreateNamespace, installAction.Replace, installAction.TakeOwnership)
 	fmt.Printf("[Holmes] KubeConfig=%s, KubeContext=%s\n", settings.KubeConfig, settings.KubeContext)
 
 	// Debug: Check if resources already exist BEFORE install
@@ -473,17 +487,22 @@ func (a *App) installHolmesChart(req HelmInstallRequest) error {
 		fmt.Printf("[Holmes] PRE-INSTALL: ConfigMaps found: %d\n", len(cmsPreCheck.Items))
 	}
 
-	release, err := installAction.Run(chart, req.Values)
+	rel, err := installAction.Run(chrt, req.Values)
 	if err != nil {
 		return fmt.Errorf("failed to install chart: %w", err)
 	}
 
 	fmt.Printf("[Holmes] Chart installation complete\n")
-	fmt.Printf("[Holmes] Release: Name=%s, Namespace=%s, Status=%s\n", release.Name, release.Namespace, release.Info.Status.String())
-	fmt.Printf("[Holmes] Release Description: %s\n", release.Info.Description)
-	fmt.Printf("[Holmes] Manifest length: %d bytes\n", len(release.Manifest))
-	if len(release.Manifest) > 0 {
-		fmt.Printf("[Holmes] Manifest preview (first 500 chars):\n%s\n", release.Manifest[:min(500, len(release.Manifest))])
+	// Use accessor for release info
+	relAccessor, relAccErr := release.NewAccessor(rel)
+	if relAccErr == nil {
+		fmt.Printf("[Holmes] Release: Name=%s, Namespace=%s, Status=%s\n", relAccessor.Name(), relAccessor.Namespace(), relAccessor.Status())
+		fmt.Printf("[Holmes] Release Notes: %s\n", relAccessor.Notes())
+		manifest := relAccessor.Manifest()
+		fmt.Printf("[Holmes] Manifest length: %d bytes\n", len(manifest))
+		if len(manifest) > 0 {
+			fmt.Printf("[Holmes] Manifest preview (first 500 chars):\n%s\n", manifest[:min(500, len(manifest))])
+		}
 	}
 
 	// Debug: verify resources were created

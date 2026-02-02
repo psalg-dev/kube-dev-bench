@@ -236,6 +236,9 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
   const [reuseValues, setReuseValues] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
   const [error, setError] = useState(null);
+  // Helm v4 options
+  const [waitStrategy, setWaitStrategy] = useState('legacy');
+  const [timeout, setTimeout] = useState(300);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -279,6 +282,8 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
         version: version.trim() || '',
         values,
         reuseValues,
+        waitStrategy,
+        timeout: parseInt(timeout, 10) || 300,
       });
       onSuccess();
     } catch (err) {
@@ -369,6 +374,61 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
               />
               Reuse existing values
             </label>
+          </div>
+
+          {/* Helm v4 Advanced Options */}
+          <div style={{ marginBottom: 16, padding: 12, background: 'rgba(88, 166, 255, 0.1)', border: '1px solid rgba(88, 166, 255, 0.3)', borderRadius: 6 }}>
+            <div style={{ marginBottom: 12, color: 'var(--gh-text, #c9d1d9)', fontSize: 13, fontWeight: 500 }}>
+              Advanced Options (Helm v4)
+            </div>
+            
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 200px' }}>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
+                  Wait Strategy
+                </label>
+                <select
+                  value={waitStrategy}
+                  onChange={(e) => setWaitStrategy(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: 'var(--gh-canvas-default, #0d1117)',
+                    border: '1px solid var(--gh-border, #30363d)',
+                    borderRadius: 6,
+                    color: 'var(--gh-text, #c9d1d9)',
+                    fontSize: 13,
+                  }}
+                >
+                  <option value="none">No Wait</option>
+                  <option value="legacy">Legacy (Poll-based)</option>
+                  <option value="watcher">Watcher (Real-time)</option>
+                </select>
+              </div>
+
+              <div style={{ flex: '1 1 120px' }}>
+                <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>
+                  Timeout (seconds)
+                </label>
+                <input
+                  type="number"
+                  value={timeout}
+                  onChange={(e) => setTimeout(e.target.value)}
+                  min="0"
+                  max="3600"
+                  disabled={waitStrategy === 'none'}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    background: waitStrategy === 'none' ? 'var(--gh-canvas-subtle, #161b22)' : 'var(--gh-canvas-default, #0d1117)',
+                    border: '1px solid var(--gh-border, #30363d)',
+                    borderRadius: 6,
+                    color: waitStrategy === 'none' ? 'var(--gh-text-muted, #8b949e)' : 'var(--gh-text, #c9d1d9)',
+                    fontSize: 13,
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           <div style={{ marginBottom: 16 }}>

@@ -127,7 +127,7 @@ func Test_formatVolumeAge_formatsRFC3339(t *testing.T) {
 	}
 }
 
-// Note: The public wrapper functions (GetSwarmVolumes, GetSwarmVolume, CreateSwarmVolume, etc.) 
+// Note: The public wrapper functions (GetSwarmVolumes, GetSwarmVolume, CreateSwarmVolume, etc.)
 // that accept *client.Client cannot be easily unit tested since they require a real Docker client.
 // These wrappers are thin delegates to the internal functions (getSwarmVolumes, getSwarmVolume, etc.)
 // which are already comprehensively tested above.

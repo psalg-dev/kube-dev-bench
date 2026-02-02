@@ -127,7 +127,7 @@ func Test_removeSwarmConfig_callsRemove(t *testing.T) {
 	}
 }
 
-// Note: The public wrapper functions (GetSwarmConfigs, GetSwarmConfig, CreateSwarmConfig, etc.) 
+// Note: The public wrapper functions (GetSwarmConfigs, GetSwarmConfig, CreateSwarmConfig, etc.)
 // that accept *client.Client cannot be easily unit tested since they require a real Docker client.
 // These wrappers are thin delegates to the internal functions (getSwarmConfigs, getSwarmConfig, etc.)
 // which are already comprehensively tested above. The wrappers exist to provide a clean public API

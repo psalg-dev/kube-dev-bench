@@ -165,10 +165,10 @@ func TestStartSwarmTaskExecSession_NoContainer(t *testing.T) {
 
 func TestStartSwarmTaskExecSession_Success(t *testing.T) {
 	app := &App{ctx: context.Background()}
-	
+
 	execCreateCalled := false
 	execAttachCalled := false
-	
+
 	cli := &mockSwarmExecClient{
 		taskInspectFunc: func(ctx context.Context, taskID string) (swarm.Task, []byte, error) {
 			return swarm.Task{
@@ -191,10 +191,10 @@ func TestStartSwarmTaskExecSession_Success(t *testing.T) {
 			execAttachCalled = true
 			mockConn := &mockConn{}
 			mockReader := &mockReader{data: []byte{}}
-			
+
 			// Simulate timeout on first read to indicate success
 			mockReader.err = &net.OpError{Op: "read", Err: &timeoutError{}}
-			
+
 			return types.HijackedResponse{
 				Conn:   mockConn,
 				Reader: bufio.NewReader(mockReader),
@@ -209,14 +209,14 @@ func TestStartSwarmTaskExecSession_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	
+
 	if !execCreateCalled {
 		t.Error("ContainerExecCreate was not called")
 	}
 	if !execAttachCalled {
 		t.Error("ContainerExecAttach was not called")
 	}
-	
+
 	// Verify session was registered
 	val, ok := shellSessions.Load("session-123")
 	if !ok {
@@ -225,7 +225,7 @@ func TestStartSwarmTaskExecSession_Success(t *testing.T) {
 	if val == nil {
 		t.Error("registered session is nil")
 	}
-	
+
 	// Cleanup
 	shellSessions.Delete("session-123")
 }
@@ -445,9 +445,9 @@ func TestSwarmExecAttachTTYWithProbe_SuccessWithInitialData(t *testing.T) {
 
 func TestStartSwarmTaskExecSession_AutoShellFallback(t *testing.T) {
 	app := &App{ctx: context.Background()}
-	
+
 	attempts := []string{}
-	
+
 	cli := &mockSwarmExecClient{
 		taskInspectFunc: func(ctx context.Context, taskID string) (swarm.Task, []byte, error) {
 			return swarm.Task{
@@ -467,7 +467,7 @@ func TestStartSwarmTaskExecSession_AutoShellFallback(t *testing.T) {
 		},
 		containerExecAttachFunc: func(ctx context.Context, execID string, config container.ExecAttachOptions) (types.HijackedResponse, error) {
 			mockConn := &mockConn{}
-			
+
 			// First attempt fails, second succeeds
 			if len(attempts) == 1 {
 				mockReader := &mockReader{
@@ -479,7 +479,7 @@ func TestStartSwarmTaskExecSession_AutoShellFallback(t *testing.T) {
 					Reader: bufio.NewReader(mockReader),
 				}, nil
 			}
-			
+
 			// Success on second attempt
 			mockReader := &mockReader{err: &timeoutError{}}
 			return types.HijackedResponse{
@@ -493,11 +493,11 @@ func TestStartSwarmTaskExecSession_AutoShellFallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	
+
 	if len(attempts) < 2 {
 		t.Errorf("expected at least 2 shell attempts, got %d", len(attempts))
 	}
-	
+
 	// Cleanup
 	shellSessions.Delete("session-fallback")
 }

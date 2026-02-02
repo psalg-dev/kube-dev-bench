@@ -5,9 +5,9 @@
 [x] full coverage reporting
 [x] swarm support
 [x] helm support
-[] helm v4 support
-[] mcp server
-[] bulk actions
+[x] helm v4 support
+[x] mcp server
+[x] bulk actions
 [] Node updates?
 [] volume cloning?
 [] linux support 
