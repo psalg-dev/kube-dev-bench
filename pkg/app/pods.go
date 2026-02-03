@@ -641,28 +641,10 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 
 // StartPodPolling emits pods:update events every second with the current pod list
 func (a *App) StartPodPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectPods(nsList)
-				emitEvent(a.ctx, "pods:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectPods(nsList []string) []PodInfo {
-	var all []PodInfo
-	for _, ns := range nsList {
-		if pods, err := a.GetRunningPods(ns); err == nil {
-			all = append(all, pods...)
-		}
-	}
-	return all
+	startResourcePolling(a, ResourcePollingConfig[PodInfo]{
+		EventName: "pods:update",
+		FetchFn:   a.GetRunningPods,
+	})
 }
 
 // RestartPod restarts a pod by deleting it (Kubernetes will recreate it if part of a deployment)

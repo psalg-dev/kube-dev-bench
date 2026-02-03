@@ -8,38 +8,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// getReplicaSetImage returns the first container image from the replicaset spec
-func getReplicaSetImage(rs *appsv1.ReplicaSet) string {
-	if len(rs.Spec.Template.Spec.Containers) > 0 {
-		return rs.Spec.Template.Spec.Containers[0].Image
-	}
-	return ""
-}
-
-// getReplicaSetReplicas returns the desired replica count
-func getReplicaSetReplicas(rs *appsv1.ReplicaSet) int32 {
-	if rs.Spec.Replicas != nil {
-		return *rs.Spec.Replicas
-	}
-	return 0
-}
-
-// mergeReplicaSetLabels merges replicaset and template labels
-func mergeReplicaSetLabels(rs *appsv1.ReplicaSet) map[string]string {
-	labels := make(map[string]string)
-	for k, v := range rs.Labels {
-		labels[k] = v
-	}
-	if rs.Spec.Template.Labels != nil {
-		for k, v := range rs.Spec.Template.Labels {
-			if _, exists := labels[k]; !exists {
-				labels[k] = v
-			}
-		}
-	}
-	return labels
-}
-
 // buildReplicaSetInfo constructs a ReplicaSetInfo from a ReplicaSet
 func buildReplicaSetInfo(rs *appsv1.ReplicaSet, now time.Time) ReplicaSetInfo {
 	age := "-"
@@ -50,11 +18,11 @@ func buildReplicaSetInfo(rs *appsv1.ReplicaSet, now time.Time) ReplicaSetInfo {
 	return ReplicaSetInfo{
 		Name:      rs.Name,
 		Namespace: rs.Namespace,
-		Replicas:  getReplicaSetReplicas(rs),
+		Replicas:  SafeReplicaCount(rs.Spec.Replicas),
 		Ready:     rs.Status.ReadyReplicas,
 		Age:       age,
-		Image:     getReplicaSetImage(rs),
-		Labels:    mergeReplicaSetLabels(rs),
+		Image:     ExtractFirstContainerImage(rs.Spec.Template.Spec),
+		Labels:    MergeLabels(SafeLabels(rs.Labels), SafeLabels(rs.Spec.Template.Labels)),
 	}
 }
 
@@ -87,26 +55,8 @@ func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
 
 // StartReplicaSetPolling emits replicasets:update events periodically with the current replicaset list
 func (a *App) StartReplicaSetPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectReplicaSets(nsList)
-				emitEvent(a.ctx, "replicasets:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectReplicaSets(nsList []string) []ReplicaSetInfo {
-	var all []ReplicaSetInfo
-	for _, ns := range nsList {
-		if list, err := a.GetReplicaSets(ns); err == nil {
-			all = append(all, list...)
-		}
-	}
-	return all
+	startResourcePolling(a, ResourcePollingConfig[ReplicaSetInfo]{
+		EventName: "replicasets:update",
+		FetchFn:   a.GetReplicaSets,
+	})
 }

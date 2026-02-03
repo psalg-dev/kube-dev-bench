@@ -44,7 +44,7 @@ describe('UpdateStackModal', () => {
       expect(screen.getByText(/production-stack/)).toBeInTheDocument();
     });
 
-    it('displays Close button', () => {
+    it('displays Cancel button', () => {
       render(
         <UpdateStackModal
           open={true}
@@ -53,7 +53,7 @@ describe('UpdateStackModal', () => {
         />
       );
       
-      expect(screen.getByText('Close')).toBeInTheDocument();
+      expect(screen.getByText('Cancel')).toBeInTheDocument();
     });
 
     it('displays redeploy description', () => {
@@ -101,7 +101,7 @@ describe('UpdateStackModal', () => {
   });
 
   describe('button interactions', () => {
-    it('calls onClose when Close button clicked', () => {
+    it('calls onClose when Cancel button clicked', () => {
       const onClose = vi.fn();
       render(
         <UpdateStackModal
@@ -112,7 +112,7 @@ describe('UpdateStackModal', () => {
         />
       );
       
-      fireEvent.click(screen.getByText('Close'));
+      fireEvent.click(screen.getByText('Cancel'));
       
       expect(onClose).toHaveBeenCalled();
     });

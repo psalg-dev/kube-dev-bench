@@ -9,38 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// getDeploymentImage returns the first container image from the deployment spec
-func getDeploymentImage(d *appsv1.Deployment) string {
-	if len(d.Spec.Template.Spec.Containers) > 0 {
-		return d.Spec.Template.Spec.Containers[0].Image
-	}
-	return ""
-}
-
-// getDeploymentReplicas returns the desired replica count
-func getDeploymentReplicas(d *appsv1.Deployment) int32 {
-	if d.Spec.Replicas != nil {
-		return *d.Spec.Replicas
-	}
-	return 0
-}
-
-// mergeDeploymentLabels merges deployment and template labels, with deployment labels taking precedence
-func mergeDeploymentLabels(d *appsv1.Deployment) map[string]string {
-	labels := make(map[string]string)
-	for k, v := range d.Labels {
-		labels[k] = v
-	}
-	if tpl := d.Spec.Template; tpl.Labels != nil {
-		for k, v := range tpl.Labels {
-			if _, exists := labels[k]; !exists {
-				labels[k] = v
-			}
-		}
-	}
-	return labels
-}
-
 // buildDeploymentInfo constructs a DeploymentInfo from a Deployment
 func buildDeploymentInfo(d *appsv1.Deployment, now time.Time) DeploymentInfo {
 	age := "-"
@@ -51,12 +19,12 @@ func buildDeploymentInfo(d *appsv1.Deployment, now time.Time) DeploymentInfo {
 	return DeploymentInfo{
 		Name:      d.Name,
 		Namespace: d.Namespace,
-		Replicas:  getDeploymentReplicas(d),
+		Replicas:  SafeReplicaCount(d.Spec.Replicas),
 		Ready:     d.Status.ReadyReplicas,
 		Available: d.Status.AvailableReplicas,
 		Age:       age,
-		Image:     getDeploymentImage(d),
-		Labels:    mergeDeploymentLabels(d),
+		Image:     ExtractFirstContainerImage(d.Spec.Template.Spec),
+		Labels:    MergeLabels(SafeLabels(d.Labels), SafeLabels(d.Spec.Template.Labels)),
 	}
 }
 
@@ -110,26 +78,8 @@ func formatDuration(d time.Duration) string {
 
 // StartDeploymentPolling emits deployments:update events every second with the current deployment list
 func (a *App) StartDeploymentPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectDeployments(nsList)
-				emitEvent(a.ctx, "deployments:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectDeployments(nsList []string) []DeploymentInfo {
-	var all []DeploymentInfo
-	for _, ns := range nsList {
-		if deploys, err := a.GetDeployments(ns); err == nil {
-			all = append(all, deploys...)
-		}
-	}
-	return all
+	startResourcePolling(a, ResourcePollingConfig[DeploymentInfo]{
+		EventName: "deployments:update",
+		FetchFn:   a.GetDeployments,
+	})
 }

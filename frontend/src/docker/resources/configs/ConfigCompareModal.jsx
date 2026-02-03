@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import * as Diff from 'diff';
 import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import { GetSwarmConfigData } from '../../swarmApi.js';
+import { BaseModal, ModalButton } from '../../../components/BaseModal';
 
 function buildUnifiedDiffText(aText, bText) {
   const parts = Diff.diffLines(aText || '', bText || '');
@@ -98,43 +99,7 @@ export default function ConfigCompareModal({
     return buildUnifiedDiffText(baseText || '', otherText || '');
   }, [open, otherId, baseText, otherText]);
 
-  if (!open) return null;
-
-  const overlayStyle = {
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1200,
-  };
-
-  const modalStyle = {
-    backgroundColor: 'var(--gh-bg, #0d1117)',
-    borderRadius: 8,
-    padding: 20,
-    width: 920,
-    maxWidth: 'calc(100vw - 48px)',
-    height: 720,
-    maxHeight: 'calc(100vh - 48px)',
-    overflow: 'hidden',
-    border: '1px solid var(--gh-border, #30363d)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-  };
-
-  const buttonStyle = {
-    padding: '6px 12px',
-    borderRadius: 4,
-    border: '1px solid var(--gh-border, #30363d)',
-    backgroundColor: 'var(--gh-button-bg, #21262d)',
-    color: 'var(--gh-text, #c9d1d9)',
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 500,
-  };
+  const otherName = otherOptions.find((c) => c.id === otherId)?.name || '';
 
   const selectStyle = {
     backgroundColor: 'var(--gh-input-bg, #0d1117)',
@@ -146,20 +111,16 @@ export default function ConfigCompareModal({
     outline: 'none',
   };
 
-  const otherName = otherOptions.find((c) => c.id === otherId)?.name || '';
-
   return (
-    <div style={overlayStyle} onClick={() => onClose?.()}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
-            Compare configs: {baseConfigName}
-          </div>
-          <button style={buttonStyle} onClick={() => onClose?.()}>
-            Close
-          </button>
-        </div>
-
+    <BaseModal
+      isOpen={open}
+      onClose={onClose}
+      title={`Compare configs: ${baseConfigName}`}
+      width={920}
+      maxHeight="calc(100vh - 48px)"
+      footer={<ModalButton onClick={() => onClose?.()}>Close</ModalButton>}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: 600 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12 }}>
             Compare against:
@@ -193,6 +154,6 @@ export default function ConfigCompareModal({
           />
         </div>
       </div>
-    </div>
+    </BaseModal>
   );
 }

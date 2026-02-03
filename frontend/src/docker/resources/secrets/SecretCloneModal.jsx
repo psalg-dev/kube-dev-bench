@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
 import { CloneSwarmSecret } from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';
+import { BaseModal, ModalButton, ModalPrimaryButton } from '../../../components/BaseModal';
 
 export default function SecretCloneModal({ open, sourceId, sourceName, onClose, onCreated }) {
   const [name, setName] = useState('');
@@ -45,130 +46,88 @@ export default function SecretCloneModal({ open, sourceId, sourceName, onClose, 
 
   if (!open) return null;
 
-  const overlayStyle = {
-    position: 'fixed',
-    inset: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1200,
-  };
-
-  const modalStyle = {
-    backgroundColor: 'var(--gh-bg, #0d1117)',
-    borderRadius: 8,
-    padding: 20,
-    width: 720,
-    maxWidth: 'calc(100vw - 48px)',
-    maxHeight: 'calc(100vh - 48px)',
-    overflow: 'hidden',
-    border: '1px solid var(--gh-border, #30363d)',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 12,
-  };
-
-  const buttonStyle = {
-    padding: '6px 12px',
-    borderRadius: 4,
-    border: '1px solid var(--gh-border, #30363d)',
-    backgroundColor: 'var(--gh-button-bg, #21262d)',
-    color: 'var(--gh-text, #c9d1d9)',
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 500,
-  };
-
   return (
-    <div style={overlayStyle} onClick={handleClose}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
-            Clone Swarm secret: {sourceName}
-          </div>
-          <button id="swarm-secret-clone-close-btn" style={buttonStyle} onClick={handleClose} disabled={saving}>
-            Close
-          </button>
-        </div>
+    <BaseModal
+      isOpen={open}
+      onClose={handleClose}
+      title={`Clone Swarm secret: ${sourceName}`}
+      width={720}
+    >
+      <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12, lineHeight: 1.4 }}>
+        Secret values cannot be read back from Swarm. Enter the value you want for the cloned secret.
+      </div>
 
-        <div style={{ color: 'var(--gh-text-secondary, #8b949e)', fontSize: 12, lineHeight: 1.4 }}>
-          Secret values cannot be read back from Swarm. Enter the value you want for the cloned secret.
-        </div>
+      {error ? <div style={{ color: '#f85149', fontSize: 12 }}>{error}</div> : null}
 
-        {error ? <div style={{ color: '#f85149', fontSize: 12 }}>{error}</div> : null}
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-secondary)', fontSize: 12 }}>
-              New secret name
-            </label>
-            <input
-              id="swarm-secret-clone-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="secret-name@..."
-              disabled={saving}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                backgroundColor: 'var(--gh-input-bg, #0d1117)',
-                border: '1px solid var(--gh-border, #30363d)',
-                borderRadius: 6,
-                color: 'var(--gh-text)',
-                fontSize: 14,
-                boxSizing: 'border-box',
-              }}
-            />
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ color: 'var(--gh-text, #c9d1d9)', fontSize: 12, fontWeight: 600 }}>
-              Value
-            </div>
-            <button id="swarm-secret-clone-toggle-mask" style={buttonStyle} onClick={() => setMasked(m => !m)} disabled={saving}>
-              {masked ? 'Show' : 'Hide'}
-            </button>
-          </div>
-
-          <textarea
-            id="swarm-secret-clone-value"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            spellCheck={false}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-secondary)', fontSize: 12 }}>
+            New secret name
+          </label>
+          <input
+            id="swarm-secret-clone-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="secret-name@..."
             disabled={saving}
-            placeholder="Enter secret value…"
             style={{
               width: '100%',
-              minHeight: 220,
-              resize: 'none',
-              padding: 12,
+              padding: '8px 12px',
               backgroundColor: 'var(--gh-input-bg, #0d1117)',
               border: '1px solid var(--gh-border, #30363d)',
               borderRadius: 6,
-              color: 'var(--gh-text, #c9d1d9)',
-              fontSize: 13,
-              fontFamily: 'monospace',
-              outline: 'none',
-              WebkitTextSecurity: masked ? 'disc' : 'none',
+              color: 'var(--gh-text)',
+              fontSize: 14,
+              boxSizing: 'border-box',
             }}
           />
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button id="swarm-secret-clone-cancel-btn" style={buttonStyle} onClick={handleClose} disabled={saving}>
-            Cancel
-          </button>
-          <button
-            id="swarm-secret-clone-create-btn"
-            style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff', borderColor: '#238636' }}
-            onClick={handleCreate}
-            disabled={saving || !canSave}
-          >
-            {saving ? 'Creating…' : 'Create'}
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ color: 'var(--gh-text, #c9d1d9)', fontSize: 12, fontWeight: 600 }}>
+            Value
+          </div>
+          <ModalButton id="swarm-secret-clone-toggle-mask" onClick={() => setMasked(m => !m)} disabled={saving}>
+            {masked ? 'Show' : 'Hide'}
+          </ModalButton>
         </div>
+
+        <textarea
+          id="swarm-secret-clone-value"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          spellCheck={false}
+          disabled={saving}
+          placeholder="Enter secret value…"
+          style={{
+            width: '100%',
+            minHeight: 220,
+            resize: 'none',
+            padding: 12,
+            backgroundColor: 'var(--gh-input-bg, #0d1117)',
+            border: '1px solid var(--gh-border, #30363d)',
+            borderRadius: 6,
+            color: 'var(--gh-text, #c9d1d9)',
+            fontSize: 13,
+            fontFamily: 'monospace',
+            outline: 'none',
+            WebkitTextSecurity: masked ? 'disc' : 'none',
+          }}
+        />
       </div>
-    </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+        <ModalButton id="swarm-secret-clone-cancel-btn" onClick={handleClose} disabled={saving}>
+          Cancel
+        </ModalButton>
+        <ModalPrimaryButton
+          id="swarm-secret-clone-create-btn"
+          onClick={handleCreate}
+          disabled={saving || !canSave}
+        >
+          {saving ? 'Creating…' : 'Create'}
+        </ModalPrimaryButton>
+      </div>
+    </BaseModal>
   );
 }

@@ -11,15 +11,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-// getCronJobImage extracts the first container image from a cronjob
-func getCronJobImage(cj *batchv1.CronJob) string {
-	containers := cj.Spec.JobTemplate.Spec.Template.Spec.Containers
-	if len(containers) > 0 {
-		return containers[0].Image
-	}
-	return ""
-}
-
 // getCronJobNextRun calculates the next run time string
 func getCronJobNextRun(cj *batchv1.CronJob, now time.Time) string {
 	suspend := cj.Spec.Suspend != nil && *cj.Spec.Suspend
@@ -30,22 +21,6 @@ func getCronJobNextRun(cj *batchv1.CronJob, now time.Time) string {
 		return computeNextRunString(cj.Spec.Schedule, now)
 	}
 	return "-"
-}
-
-// mergeCronJobLabels merges cronjob and template labels
-func mergeCronJobLabels(cj *batchv1.CronJob) map[string]string {
-	labels := make(map[string]string)
-	for k, v := range cj.Labels {
-		labels[k] = v
-	}
-	if tmpl := cj.Spec.JobTemplate.Spec.Template; tmpl.Labels != nil {
-		for k, v := range tmpl.Labels {
-			if _, exists := labels[k]; !exists {
-				labels[k] = v
-			}
-		}
-	}
-	return labels
 }
 
 // buildCronJobInfo creates a CronJobInfo from a cronjob resource
@@ -63,9 +38,9 @@ func buildCronJobInfo(cj batchv1.CronJob, now time.Time) CronJobInfo {
 		Schedule:  cj.Spec.Schedule,
 		Suspend:   suspend,
 		Age:       age,
-		Image:     getCronJobImage(&cj),
+		Image:     ExtractFirstContainerImage(cj.Spec.JobTemplate.Spec.Template.Spec),
 		NextRun:   getCronJobNextRun(&cj, now),
-		Labels:    mergeCronJobLabels(&cj),
+		Labels:    MergeLabels(SafeLabels(cj.Labels), SafeLabels(cj.Spec.JobTemplate.Spec.Template.Labels)),
 	}
 }
 
@@ -144,26 +119,8 @@ func computeNextRuns(schedule string, base time.Time, count int) []string {
 
 // StartCronJobPolling emits cronjobs:update events periodically with the current cronjob list
 func (a *App) StartCronJobPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectCronJobs(nsList)
-				emitEvent(a.ctx, "cronjobs:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectCronJobs(nsList []string) []CronJobInfo {
-	var all []CronJobInfo
-	for _, ns := range nsList {
-		if cjs, err := a.GetCronJobs(ns); err == nil {
-			all = append(all, cjs...)
-		}
-	}
-	return all
+	startResourcePolling(a, ResourcePollingConfig[CronJobInfo]{
+		EventName: "cronjobs:update",
+		FetchFn:   a.GetCronJobs,
+	})
 }
