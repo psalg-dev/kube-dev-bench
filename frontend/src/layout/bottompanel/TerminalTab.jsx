@@ -4,7 +4,6 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { EventsOn } from '../../../wailsjs/runtime';
 import * as AppAPI from '../../../wailsjs/go/main/App';
-import { v4 as uuidv4 } from 'uuid';
 
 export default function TerminalTab({ command, podExec, namespace, podName, swarmExec, swarmTaskId, shell }) {
   const termRef = useRef(null);
@@ -57,7 +56,7 @@ export default function TerminalTab({ command, podExec, namespace, podName, swar
     };
     window.addEventListener('resize', handleResize);
 
-    const sessionID = uuidv4();
+    const sessionID = crypto.randomUUID();
     sessionIDRef.current = sessionID;
 
     const outputEvent = `terminal:${sessionID}:output`;
