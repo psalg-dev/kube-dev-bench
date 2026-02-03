@@ -39,9 +39,10 @@ const initialHolmesState = {
  * @param {Object} options - Configuration options
  * @param {string} options.kind - The resource kind (e.g., 'Deployment', 'Pod', 'Service')
  * @param {Function} options.analyzeFn - The streaming analysis function to call (e.g., AnalyzeDeploymentStream)
+ * @param {string} [options.keyPrefix] - Optional prefix for the state key (e.g., 'swarm' for Swarm resources)
  * @returns {Object} - { state, analyze, cancel, reset }
  */
-export function useHolmesAnalysis({ kind, analyzeFn }) {
+export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
   const [state, setState] = useState(initialHolmesState);
   const stateRef = useRef(state);
 
@@ -228,13 +229,15 @@ export function useHolmesAnalysis({ kind, analyzeFn }) {
       throw new Error('Invalid arguments to analyze function');
     }
 
+    // Apply key prefix if provided (e.g., 'swarm' for Swarm resources)
+    const finalKey = keyPrefix ? `${keyPrefix}/${key}` : key;
     const streamId = `${kind.toLowerCase()}-${Date.now()}`;
     
     setState({
       loading: true,
       response: null,
       error: null,
-      key,
+      key: finalKey,
       streamId,
       streamingText: '',
       reasoningText: '',
@@ -250,7 +253,7 @@ export function useHolmesAnalysis({ kind, analyzeFn }) {
       const message = err?.message || String(err);
       setState((prev) => ({ ...prev, loading: false, response: null, error: message }));
     }
-  }, [kind, analyzeFn]);
+  }, [kind, keyPrefix, analyzeFn]);
 
   /**
    * Cancel the current Holmes analysis
