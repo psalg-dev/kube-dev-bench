@@ -282,7 +282,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
       const panel = page.locator('.bottom-panel').first();
       await expect(panel).toBeVisible({ timeout: 60_000 });
-      await expect(panel.getByText(stackName, { exact: true })).toBeVisible({ timeout: 60_000 });
+      await expect(panel.getByText(stackName, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
 
       // Prefer the stable id-based selector.
       // The button can briefly show "Loading..." and be disabled while compose is fetched.

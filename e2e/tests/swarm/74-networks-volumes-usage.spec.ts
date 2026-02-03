@@ -126,7 +126,7 @@ test.describe('Docker Swarm Networks + Volumes Usage', () => {
     // Click Summary tab to ensure we're on the right tab
     await panelRoot.getByRole('button', { name: 'Summary', exact: true }).click();
     // Verify the network name appears in the Quick Info section
-    await expect(panelRoot.getByText(fixtureNetworkName)).toBeVisible({ timeout: 60_000 });
+    await expect(panelRoot.getByText(fixtureNetworkName, { exact: true }).first()).toBeVisible({ timeout: 60_000 });
     await expect(panelRoot.getByText('IPAM', { exact: true })).toBeVisible({ timeout: 60_000 });
     await expect(panelRoot.getByText('Options', { exact: true })).toBeVisible({ timeout: 60_000 });
 

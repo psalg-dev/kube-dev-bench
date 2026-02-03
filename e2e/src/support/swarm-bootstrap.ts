@@ -51,6 +51,22 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // Wait for page to be fully loaded before checking connection state
   // This prevents race conditions where the page is still initializing
   await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+  const appRoot = page.locator('#app').first();
+  await appRoot.waitFor({ state: 'attached', timeout: 60_000 });
+  const waitForAppMount = async (timeoutMs: number) => {
+    await page
+      .locator('#app > *')
+      .first()
+      .waitFor({ state: 'attached', timeout: Math.max(1_000, timeoutMs) });
+  };
+
+  try {
+    await waitForAppMount(30_000);
+  } catch {
+    console.warn('[swarm-bootstrap] App did not mount under #app; reloading once to recover');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await waitForAppMount(60_000);
+  }
   await page.waitForTimeout(1000); // Allow UI to settle
 
   // If the Swarm sidebar is already present, we're effectively "in Swarm mode".

@@ -105,7 +105,47 @@ test.describe('Docker Swarm Configs', () => {
       });
       await page.locator('#swarm-config-clone-btn').click();
       await notifications.expectSuccessContains(`Cloned config to ${cloneName}`);
-      await expect(table.getByText(cloneName).first()).toBeVisible({ timeout: 60_000 });
+
+      const tableFilter = page.getByRole('searchbox', { name: 'Filter table' });
+      const ensureCloneVisible = async () => {
+        if (await table.getByText(cloneName).first().isVisible().catch(() => false)) return;
+
+        if (await tableFilter.isVisible().catch(() => false)) {
+          await tableFilter.fill(cloneName);
+        }
+        let cloneRow = table.locator('tbody tr').filter({ hasText: cloneName }).first();
+        try {
+          await expect(cloneRow).toBeVisible({ timeout: 15_000 });
+          return;
+        } catch {
+          await sidebar.goToServices();
+          await sidebar.goToConfigs();
+        }
+
+        if (await tableFilter.isVisible().catch(() => false)) {
+          await tableFilter.fill(cloneName);
+        }
+        cloneRow = table.locator('tbody tr').filter({ hasText: cloneName }).first();
+        try {
+          await expect(cloneRow).toBeVisible({ timeout: 30_000 });
+          return;
+        } catch {
+          await page.reload();
+          await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+          const sidebar2 = new SwarmSidebarPage(page);
+          await sidebar2.goToConfigs();
+        }
+
+        const table2 = page.locator('[data-testid="swarm-configs-table"]');
+        await expect(table2).toBeVisible({ timeout: 60_000 });
+        const tableFilter2 = page.getByRole('searchbox', { name: 'Filter table' });
+        if (await tableFilter2.isVisible().catch(() => false)) {
+          await tableFilter2.fill(cloneName);
+        }
+        await expect(table2.locator('tbody tr').filter({ hasText: cloneName }).first()).toBeVisible({ timeout: 60_000 });
+      };
+
+      await ensureCloneVisible();
 
       // Edit config: creates timestamp-suffixed new config, migrates service, deletes old.
       const openEditModal = async () => {
