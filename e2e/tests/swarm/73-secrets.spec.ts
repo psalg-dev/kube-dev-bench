@@ -74,15 +74,20 @@ test.describe('Docker Swarm Secrets', () => {
       const notifications = new Notifications(page);
 
       await sidebar.goToSecrets();
+      
+      // Wait for backend to stabilize after secret creation
+      await page.waitForTimeout(2000);
 
       const table = page.locator('[data-testid="swarm-secrets-table"]');
       try {
         await expect(table).toBeVisible({ timeout: 60_000 });
       } catch {
         await page.reload();
+        await page.waitForTimeout(2000);
         await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
         const sidebar2 = new SwarmSidebarPage(page);
         await sidebar2.goToSecrets();
+        await page.waitForTimeout(1000);
         await expect(table).toBeVisible({ timeout: 90_000 });
       }
 

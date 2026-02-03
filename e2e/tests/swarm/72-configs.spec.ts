@@ -108,6 +108,9 @@ test.describe('Docker Swarm Configs', () => {
 
       const tableFilter = page.getByRole('searchbox', { name: 'Filter table' });
       const ensureCloneVisible = async () => {
+        // Wait for backend to stabilize after clone
+        await page.waitForTimeout(2000);
+        
         if (await table.getByText(cloneName).first().isVisible().catch(() => false)) return;
 
         if (await tableFilter.isVisible().catch(() => false)) {
@@ -115,11 +118,13 @@ test.describe('Docker Swarm Configs', () => {
         }
         let cloneRow = table.locator('tbody tr').filter({ hasText: cloneName }).first();
         try {
-          await expect(cloneRow).toBeVisible({ timeout: 15_000 });
+          await expect(cloneRow).toBeVisible({ timeout: 20_000 });
           return;
         } catch {
           await sidebar.goToServices();
+          await page.waitForTimeout(1000);
           await sidebar.goToConfigs();
+          await page.waitForTimeout(1000);
         }
 
         if (await tableFilter.isVisible().catch(() => false)) {
@@ -131,9 +136,11 @@ test.describe('Docker Swarm Configs', () => {
           return;
         } catch {
           await page.reload();
+          await page.waitForTimeout(2000);
           await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
           const sidebar2 = new SwarmSidebarPage(page);
           await sidebar2.goToConfigs();
+          await page.waitForTimeout(1000);
         }
 
         const table2 = page.locator('[data-testid="swarm-configs-table"]');

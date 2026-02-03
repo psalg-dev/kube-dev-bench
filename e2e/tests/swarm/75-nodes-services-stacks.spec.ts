@@ -88,15 +88,22 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
     await page.locator('#swarm-node-labels-save-btn').click();
     await notifications.expectSuccessContains('Node labels updated');
+    await notifications.waitForClear();
 
     // Close and reopen details to ensure persisted.
     await page.locator('#maincontent').click();
     await expect(panelRoot).toBeHidden({ timeout: 30_000 });
+    
+    // Wait for backend to stabilize
+    await page.waitForTimeout(2000);
 
     await firstRow.click();
     const panel2 = page.locator('.bottom-panel').filter({ hasText: nodeName }).first();
     await expect(panel2).toBeVisible({ timeout: 30_000 });
     await panel2.getByRole('button', { name: 'Labels', exact: true }).click();
+    
+    // Wait for labels tab to load
+    await page.waitForTimeout(1000);
 
     await expect.poll(async () => {
       const values = await page.locator('input[aria-label="Label key"]').evaluateAll((els) =>
@@ -115,12 +122,20 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
     await removeButtons.nth(idx).click();
     await page.locator('#swarm-node-labels-save-btn').click();
     await notifications.expectSuccessContains('Node labels updated');
+    await notifications.waitForClear();
 
     // Reopen to verify removed.
     await page.locator('#maincontent').click();
+    
+    // Wait for backend to stabilize
+    await page.waitForTimeout(2000);
+    
     await firstRow.click();
     const panel3 = page.locator('.bottom-panel').filter({ hasText: nodeName }).first();
     await panel3.getByRole('button', { name: 'Labels', exact: true }).click();
+    
+    // Wait for labels tab to load
+    await page.waitForTimeout(1000);
     await expect.poll(async () => {
       const values = await page.locator('input[aria-label="Label key"]').evaluateAll((els) =>
         els.map((e) => (e instanceof HTMLInputElement ? e.value : ''))

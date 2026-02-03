@@ -17,6 +17,7 @@ import {
   getHolmesInput,
 } from '../../src/support/holmes-bootstrap.js';
 import type { SidebarPage } from '../../src/pages/SidebarPage.js';
+import { waitForTableRow, waitForResourceStatus } from '../../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -72,6 +73,7 @@ spec:
       await overlay.fillYaml(deployYaml);
       await overlay.create();
       await notifications.waitForClear();
+      await waitForTableRow(page, new RegExp(deployName));
     });
 
     await test.step('Ask Holmes about pod crash', async () => {
@@ -127,6 +129,7 @@ spec:
       await overlay.fillYaml(deployYaml);
       await overlay.create();
       await notifications.waitForClear();
+      await waitForTableRow(page, new RegExp(deployName));
     });
 
     await test.step('Ask Holmes about deployment', async () => {
