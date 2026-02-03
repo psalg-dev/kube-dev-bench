@@ -28,30 +28,24 @@ export function useAsyncData(fetchFn, deps = []) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Track if component is mounted to prevent state updates after unmount.
+  // This is a ref so it persists across renders and can be checked in async callbacks.
   const mountedRef = useRef(true);
 
-  const executeRequest = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await fetchFn();
-      if (mountedRef.current) {
-        setData(result);
-      }
-    } catch (e) {
-      if (mountedRef.current) {
-        setError(e?.message || String(e));
-      }
-    } finally {
-      if (mountedRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [fetchFn]);
-
+  // Set mountedRef to false on unmount (runs once)
   useEffect(() => {
     mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  // Fetch data when dependencies change
+  useEffect(() => {
+    // Local active flag for this specific effect invocation.
+    // This handles the case where dependencies change before an async call completes,
+    // preventing stale data from overwriting newer data.
     let active = true;
 
     (async () => {
@@ -59,6 +53,7 @@ export function useAsyncData(fetchFn, deps = []) {
       setError(null);
       try {
         const result = await fetchFn();
+        // Only update state if this effect is still active AND component is still mounted
         if (active && mountedRef.current) {
           setData(result);
         }
@@ -79,15 +74,26 @@ export function useAsyncData(fetchFn, deps = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // Refetch function that can be called manually
+  const refetch = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  const refetch = useCallback(() => {
-    executeRequest();
-  }, [executeRequest]);
+    try {
+      const result = await fetchFn();
+      if (mountedRef.current) {
+        setData(result);
+      }
+    } catch (e) {
+      if (mountedRef.current) {
+        setError(e?.message || String(e));
+      }
+    } finally {
+      if (mountedRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [fetchFn]);
 
   return { data, loading, error, refetch };
 }
