@@ -25,6 +25,9 @@ test('navigates all resource sections', async ({ page, contextName, namespace })
     await sidebar.goToSection(sec.key);
     // overview title is h2.overview-title for most views (multiple headings may exist but only one is visible)
     await expect(page.locator('h2.overview-title:visible')).toHaveText(sec.title, { timeout: 60_000 });
+    
+    // Add a stabilization wait to ensure the view has fully rendered
+    await page.waitForTimeout(1000);
 
     // plus button exists (pods uses aria-label Create, others Create new)
     if (sec.createLabel) {

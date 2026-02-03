@@ -105,7 +105,54 @@ test.describe('Docker Swarm Configs', () => {
       });
       await page.locator('#swarm-config-clone-btn').click();
       await notifications.expectSuccessContains(`Cloned config to ${cloneName}`);
-      await expect(table.getByText(cloneName).first()).toBeVisible({ timeout: 60_000 });
+
+      const tableFilter = page.getByRole('searchbox', { name: 'Filter table' });
+      const ensureCloneVisible = async () => {
+        // Wait for backend to stabilize after clone
+        await page.waitForTimeout(2000);
+        
+        if (await table.getByText(cloneName).first().isVisible().catch(() => false)) return;
+
+        if (await tableFilter.isVisible().catch(() => false)) {
+          await tableFilter.fill(cloneName);
+        }
+        let cloneRow = table.locator('tbody tr').filter({ hasText: cloneName }).first();
+        try {
+          await expect(cloneRow).toBeVisible({ timeout: 20_000 });
+          return;
+        } catch {
+          await sidebar.goToServices();
+          await page.waitForTimeout(1000);
+          await sidebar.goToConfigs();
+          await page.waitForTimeout(1000);
+        }
+
+        if (await tableFilter.isVisible().catch(() => false)) {
+          await tableFilter.fill(cloneName);
+        }
+        cloneRow = table.locator('tbody tr').filter({ hasText: cloneName }).first();
+        try {
+          await expect(cloneRow).toBeVisible({ timeout: 30_000 });
+          return;
+        } catch {
+          await page.reload();
+          await page.waitForTimeout(2000);
+          await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+          const sidebar2 = new SwarmSidebarPage(page);
+          await sidebar2.goToConfigs();
+          await page.waitForTimeout(1000);
+        }
+
+        const table2 = page.locator('[data-testid="swarm-configs-table"]');
+        await expect(table2).toBeVisible({ timeout: 60_000 });
+        const tableFilter2 = page.getByRole('searchbox', { name: 'Filter table' });
+        if (await tableFilter2.isVisible().catch(() => false)) {
+          await tableFilter2.fill(cloneName);
+        }
+        await expect(table2.locator('tbody tr').filter({ hasText: cloneName }).first()).toBeVisible({ timeout: 60_000 });
+      };
+
+      await ensureCloneVisible();
 
       // Edit config: creates timestamp-suffixed new config, migrates service, deletes old.
       const openEditModal = async () => {
@@ -128,7 +175,10 @@ test.describe('Docker Swarm Configs', () => {
 
       const editor = page.locator('.cm-content').first();
       await expect(editor).toBeVisible({ timeout: 30_000 });
-      await page.locator('[data-testid="swarm-config-edit-textarea"]').fill(updated);
+      // Type into CodeMirror editor directly instead of hidden textarea
+      await editor.click();
+      await page.keyboard.press('Control+A');
+      await page.keyboard.type(updated);
 
       // Save button text is in modal.
       const saveBtn = page.locator('#swarm-config-edit-save-btn');

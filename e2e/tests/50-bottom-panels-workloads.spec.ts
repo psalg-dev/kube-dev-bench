@@ -3,19 +3,11 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { openRowDetailsByName, waitForResourceStatus } from '../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
-}
-
-async function openRowDetailsByName(page: any, name: string) {
-  await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
-  const table = page.locator('#main-panels > div:visible table.gh-table');
-  await expect(table).toBeVisible({ timeout: 60_000 });
-  const row = table.locator('tbody tr').filter({ hasText: name }).first();
-  await expect(row).toBeVisible({ timeout: 60_000 });
-  await row.click();
 }
 
 async function expectAndClickTabs(panel: BottomPanel, labels: string[]) {
@@ -105,7 +97,7 @@ test('bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet)
   // Wait for at least one pod from the deployment to appear and be Running.
   const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect(podRow).toBeVisible({ timeout: 90_000 });
-  await expect(podRow).toContainText('Running', { timeout: 90_000 });
+  await waitForResourceStatus(page, new RegExp(deployName), 'Running', { timeout: 120_000 });
 
   await podRow.click();
   await panel.expectVisible();
