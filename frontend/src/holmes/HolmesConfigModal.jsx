@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useHolmes } from './HolmesContext';
 import { BaseModal, ModalButton, ModalDangerButton, ModalPrimaryButton } from '../components/BaseModal';
 import './HolmesConfigModal.css';
@@ -19,6 +19,7 @@ export function HolmesConfigModal() {
   const [saving, setSaving] = useState(false);
   const [clearing, setClearing] = useState(false);
 
+  // Initialize form data when config modal opens
   useEffect(() => {
     if (state.showConfig) {
       setFormData({
@@ -31,26 +32,37 @@ export function HolmesConfigModal() {
     }
   }, [state.showConfig, state.enabled, state.endpoint, state.modelKey, state.responseFormat]);
 
-  if (!state.showConfig) return null;
+  // Handle Escape key to close modal - must be called before any early returns
+  useEffect(() => {
+    if (!state.showConfig) return;
+    
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        hideConfigModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.showConfig, hideConfigModal]);
 
-  const handleChange = (e) => {
+  const handleChange = useCallback((e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
-  };
+  }, []);
 
-  const handleTest = async () => {
+  const handleTest = useCallback(async () => {
     setTesting(true);
     try {
       await testConnection();
     } finally {
       setTesting(false);
     }
-  };
+  }, [testConnection]);
 
-  const handleClear = async () => {
+  const handleClear = useCallback(async () => {
     setClearing(true);
     try {
       await clearConfig();
@@ -65,9 +77,9 @@ export function HolmesConfigModal() {
     } finally {
       setClearing(false);
     }
-  };
+  }, [clearConfig]);
 
-  const handleSave = async (e) => {
+  const handleSave = useCallback(async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
@@ -77,17 +89,9 @@ export function HolmesConfigModal() {
     } finally {
       setSaving(false);
     }
-  };
+  }, [formData, saveConfig]);
 
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        hideConfigModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [hideConfigModal]);
+  if (!state.showConfig) return null;
 
   return (
     <BaseModal

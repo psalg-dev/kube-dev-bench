@@ -160,9 +160,10 @@ export default function ConfigSummaryPanel({ row, allConfigs = [], panelApi }) {
 
       <ConfigEditModal
         open={showEdit}
+        configId={row.id}
+        configName={row.name}
         onClose={() => setShowEdit(false)}
-        config={row}
-        onSave={() => {
+        onSaved={() => {
           setShowEdit(false);
           panelApi?.refresh?.();
         }}

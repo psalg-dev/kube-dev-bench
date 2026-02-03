@@ -120,10 +120,11 @@ export default function SecretSummaryPanel({ row, panelApi }) {
 
       <SecretEditModal
         open={showEdit}
+        secretId={row.id}
+        secretName={row.name}
+        titleVerb="Edit"
         onClose={() => setShowEdit(false)}
-        secret={row}
-        mode="edit"
-        onSave={() => {
+        onSaved={() => {
           setShowEdit(false);
           panelApi?.refresh?.();
         }}
@@ -131,10 +132,11 @@ export default function SecretSummaryPanel({ row, panelApi }) {
 
       <SecretEditModal
         open={showRotate}
+        secretId={row.id}
+        secretName={row.name}
+        titleVerb="Rotate"
         onClose={() => setShowRotate(false)}
-        secret={row}
-        mode="rotate"
-        onSave={() => {
+        onSaved={() => {
           setShowRotate(false);
           panelApi?.refresh?.();
         }}
