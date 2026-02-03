@@ -1,52 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
-
-const overlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '600px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle = {
-  padding: '24px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1,
-};
-
-const footerStyle = {
-  padding: '16px 24px',
-  borderTop: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 12,
-};
+import { BaseModal, ModalButton, ModalPrimaryButton } from '../../components/BaseModal';
 
 const inputStyle = {
   width: '100%',
@@ -85,27 +39,6 @@ const radioGroupStyle = {
   marginBottom: 8,
 };
 
-const buttonStyle = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const primaryButtonStyle = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
-};
 
 function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
   const { actions } = useConnectionsState();
@@ -182,42 +115,36 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
     onSuccess(connection);
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   return (
-    <div
-      style={overlayStyle}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      onKeyDown={handleKeyDown}
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      title="🐳 Add Docker Connection"
+      width={600}
       className="add-swarm-overlay"
+      footer={
+        <>
+          <ModalButton onClick={onClose}>Cancel</ModalButton>
+          <ModalButton onClick={handleTest} disabled={testing}>
+            {testing ? 'Testing...' : 'Test Connection'}
+          </ModalButton>
+          <ModalPrimaryButton onClick={handleSave} disabled={!name.trim()}>
+            Save
+          </ModalPrimaryButton>
+        </>
+      }
     >
-      <div style={dialogStyle}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
-            🐳 Add Docker Connection
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* Content */}
-        <div style={contentStyle}>
+      <div style={{ padding: 8, overflowY: 'auto' }}>
           {/* Error display */}
           {error && (
             <div
@@ -397,37 +324,8 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }) {
                 : `✗ ${testResult.error || 'Connection failed'}`}
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose}>
-            Cancel
-          </button>
-          <button
-            style={{
-              ...secondaryButtonStyle,
-              opacity: testing ? 0.5 : 1,
-            }}
-            onClick={handleTest}
-            disabled={testing}
-          >
-            {testing ? 'Testing...' : 'Test Connection'}
-          </button>
-          <button
-            style={{
-              ...primaryButtonStyle,
-              opacity: !name.trim() ? 0.5 : 1,
-              cursor: !name.trim() ? 'not-allowed' : 'pointer',
-            }}
-            onClick={handleSave}
-            disabled={!name.trim()}
-          >
-            Save
-          </button>
-        </div>
       </div>
-    </div>
+    </BaseModal>
   );
 }
 

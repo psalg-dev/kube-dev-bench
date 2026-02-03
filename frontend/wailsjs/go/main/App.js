@@ -1282,6 +1282,10 @@ export function Shutdown(arg1) {
   return window['go']['main']['App']['Shutdown'](arg1);
 }
 
+export function StartConfigMapPolling() {
+  return window['go']['main']['App']['StartConfigMapPolling']();
+}
+
 export function StartCronJobPolling() {
   return window['go']['main']['App']['StartCronJobPolling']();
 }
@@ -1302,6 +1306,10 @@ export function StartHolmesPortForward(arg1) {
   return window['go']['main']['App']['StartHolmesPortForward'](arg1);
 }
 
+export function StartIngressPolling() {
+  return window['go']['main']['App']['StartIngressPolling']();
+}
+
 export function StartJob(arg1, arg2) {
   return window['go']['main']['App']['StartJob'](arg1, arg2);
 }
@@ -1310,12 +1318,24 @@ export function StartJobFromCronJob(arg1, arg2) {
   return window['go']['main']['App']['StartJobFromCronJob'](arg1, arg2);
 }
 
+export function StartJobPolling() {
+  return window['go']['main']['App']['StartJobPolling']();
+}
+
 export function StartMCPServer() {
   return window['go']['main']['App']['StartMCPServer']();
 }
 
 export function StartMonitorPolling() {
   return window['go']['main']['App']['StartMonitorPolling']();
+}
+
+export function StartPersistentVolumeClaimPolling() {
+  return window['go']['main']['App']['StartPersistentVolumeClaimPolling']();
+}
+
+export function StartPersistentVolumePolling() {
+  return window['go']['main']['App']['StartPersistentVolumePolling']();
 }
 
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {
@@ -1328,6 +1348,14 @@ export function StartPodPolling() {
 
 export function StartReplicaSetPolling() {
   return window['go']['main']['App']['StartReplicaSetPolling']();
+}
+
+export function StartSecretPolling() {
+  return window['go']['main']['App']['StartSecretPolling']();
+}
+
+export function StartServicePolling() {
+  return window['go']['main']['App']['StartServicePolling']();
 }
 
 export function StartShellSession(arg1, arg2) {

@@ -98,3 +98,11 @@ func formatBytes(bytes int) string {
 	sizes := []string{"B", "KB", "MB", "GB", "TB"}
 	return fmt.Sprintf("%.1f %s", float64(bytes)/float64(div), sizes[exp])
 }
+
+// StartConfigMapPolling emits configmaps:update events periodically with the current configmap list
+func (a *App) StartConfigMapPolling() {
+	startResourcePolling(a, ResourcePollingConfig[ConfigMapInfo]{
+		EventName: "configmaps:update",
+		FetchFn:   a.GetConfigMaps,
+	})
+}

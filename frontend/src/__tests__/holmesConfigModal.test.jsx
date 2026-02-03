@@ -233,7 +233,7 @@ describe('HolmesConfigModal', () => {
       </HolmesContext.Provider>
     );
 
-    const closeButton = screen.getByTitle('Close');
+    const closeButton = screen.getByRole('button', { name: /close modal/i });
     fireEvent.click(closeButton);
 
     expect(mockHideConfigModal).toHaveBeenCalled();

@@ -117,6 +117,7 @@ export async function startWailsDev(opts: {
   const appDataDir = path.join(homeDir, 'AppData', 'Roaming');
   const localAppDataDir = path.join(homeDir, 'AppData', 'Local');
   const tmpDir = path.join(homeDir, 'tmp');
+  const goCacheDir = path.join(repoRoot, 'e2e', '.run', `go-build-${port}`);
   const e2eDialogDir = path.join(tmpDir, 'kdb-e2e-dialogs');
   const kubeDir = path.join(homeDir, '.kube');
   const kubeConfigPath = path.join(kubeDir, 'config');
@@ -125,6 +126,7 @@ export async function startWailsDev(opts: {
     fsp.mkdir(appDataDir, { recursive: true }),
     fsp.mkdir(localAppDataDir, { recursive: true }),
     fsp.mkdir(tmpDir, { recursive: true }),
+    fsp.mkdir(goCacheDir, { recursive: true }),
     fsp.mkdir(viteCacheDir, { recursive: true }),
     fsp.mkdir(e2eDialogDir, { recursive: true }),
     fsp.mkdir(kubeDir, { recursive: true }),
@@ -214,6 +216,7 @@ export async function startWailsDev(opts: {
       LOCALAPPDATA: localAppDataDir,
       TEMP: tmpDir,
       TMP: tmpDir,
+      GOCACHE: goCacheDir,
       XDG_CONFIG_HOME: path.join(homeDir, '.config'),
       XDG_DATA_HOME: path.join(homeDir, '.local', 'share'),
       VITE_CACHE_DIR: viteCacheDir,

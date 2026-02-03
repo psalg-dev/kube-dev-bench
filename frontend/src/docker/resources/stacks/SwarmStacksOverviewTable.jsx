@@ -18,6 +18,8 @@ import StatusBadge from '../../../components/StatusBadge.jsx';
 import './StackServicesTab.css';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
+export { default } from './SwarmStacksOverviewTableGeneric.jsx';
+
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'services', label: 'Services' },
@@ -467,7 +469,7 @@ function renderPanelContent(row, tab, onRefresh, holmesState, onAnalyze, onCance
   return null;
 }
 
-export default function SwarmStacksOverviewTable() {
+function SwarmStacksOverviewTableLegacy() {
   const swarm = useSwarmState();
   const connected = swarm?.connected;
   const [stacks, setStacks] = useState([]);

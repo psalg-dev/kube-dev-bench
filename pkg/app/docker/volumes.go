@@ -44,13 +44,9 @@ func getSwarmVolumes(ctx context.Context, cli swarmVolumesClient) ([]SwarmVolume
 		return nil, err
 	}
 
-	result := make([]SwarmVolumeInfo, 0, len(resp.Volumes))
-	for _, vol := range resp.Volumes {
-		info := volumeToInfo(vol)
-		result = append(result, info)
-	}
-
-	return result, nil
+	return listAndConvert(ctx, func(context.Context) ([]*volume.Volume, error) {
+		return resp.Volumes, nil
+	}, volumeToInfo)
 }
 
 // GetSwarmVolume returns a specific volume by name

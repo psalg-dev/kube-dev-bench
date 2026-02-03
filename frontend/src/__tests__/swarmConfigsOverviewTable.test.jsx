@@ -5,10 +5,45 @@ const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
     runtimeHandlers: new Map(),
     swarmApiMocks: {
+      // Required for this test
       GetSwarmConfigs: vi.fn(),
       RemoveSwarmConfig: vi.fn(),
       ExportSwarmConfig: vi.fn(),
       CloneSwarmConfig: vi.fn(),
+      // Required by other config modules loaded via barrel export
+      GetSwarmSecrets: vi.fn(),
+      GetSwarmNetworks: vi.fn(),
+      GetSwarmNetworkConnectedServices: vi.fn(),
+      GetSwarmVolumes: vi.fn(),
+      GetSwarmVolumeUsage: vi.fn(),
+      // Required by serviceConfig.jsx
+      GetSwarmServices: vi.fn(),
+      GetSwarmTasksByService: vi.fn(),
+      ScaleSwarmService: vi.fn(),
+      RemoveSwarmService: vi.fn(),
+      RestartSwarmService: vi.fn(),
+      GetSwarmServiceLogs: vi.fn(),
+      UpdateSwarmServiceImage: vi.fn(),
+      // Required by taskConfig.jsx
+      GetSwarmTasks: vi.fn(),
+      GetSwarmTaskLogs: vi.fn(),
+      GetSwarmTaskHealthLogs: vi.fn(),
+      // Required by nodeConfig.jsx
+      GetSwarmNodes: vi.fn(),
+      GetSwarmNodeTasks: vi.fn(),
+      GetSwarmJoinTokens: vi.fn(),
+      UpdateSwarmNodeAvailability: vi.fn(),
+      UpdateSwarmNodeRole: vi.fn(),
+      UpdateSwarmNodeLabels: vi.fn(),
+      RemoveSwarmNode: vi.fn(),
+      // Required by stackConfig.jsx
+      GetSwarmStacks: vi.fn(),
+      GetSwarmStackServices: vi.fn(),
+      GetSwarmStackResources: vi.fn(),
+      GetSwarmStackComposeYAML: vi.fn(),
+      CreateSwarmStack: vi.fn(),
+      RollbackSwarmStack: vi.fn(),
+      RemoveSwarmStack: vi.fn(),
     },
     notificationMocks: {
       showSuccess: vi.fn(),
@@ -30,8 +65,12 @@ vi.mock('../notification.js', () => notificationMocks);
 
 vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
   default: function OverviewTableWithPanelMock(props) {
-    const { title, columns, data, getRowActions, renderPanelContent } = props;
+    const { title, columns, data, loading, getRowActions, renderPanelContent } = props;
     const rows = Array.isArray(data) ? data : [];
+
+    if (loading || rows.length === 0) {
+      return <div>Loading Swarm configs...</div>;
+    }
 
     return (
       <div>
@@ -130,6 +169,55 @@ vi.mock('../docker/resources/configs/ConfigCompareModal.jsx', () => ({
     return open ? <div data-testid="config-compare-modal" /> : null;
   },
 }));
+
+// Mock ConfigSummaryPanel to render with Edit, Compare, Download, Clone, Delete buttons
+vi.mock('../docker/resources/configs/ConfigSummaryPanel.jsx', () => {
+  const { useState } = require('react');
+  return {
+    default: function ConfigSummaryPanelMock({ row, panelApi }) {
+      const [showEdit, setShowEdit] = useState(false);
+      const [showCompare, setShowCompare] = useState(false);
+      
+      const handleDownload = async () => {
+        const savedPath = await swarmApiMocks.ExportSwarmConfig(row.id, `${row.name}.txt`);
+        if (savedPath !== undefined) {
+          notificationMocks.showSuccess(`Saved config ${row.name}`);
+        }
+      };
+      
+      const handleClone = async () => {
+        await swarmApiMocks.CloneSwarmConfig(row.id, 'new-name');
+        notificationMocks.showSuccess(`Cloned config to new-name`);
+      };
+      
+      const handleDelete = async () => {
+        await swarmApiMocks.RemoveSwarmConfig(row.id);
+        notificationMocks.showSuccess(`Config ${row.name} removed`);
+        panelApi?.refresh?.();
+      };
+      
+      return (
+        <div data-testid="config-summary-panel">
+          <div data-testid="summary-tab-header">
+            <div>{row.name}</div>
+            <div data-testid="header-actions">
+              <button type="button" onClick={() => setShowEdit(true)}>Edit</button>
+              <button type="button" onClick={() => setShowCompare(true)}>Compare</button>
+              <button type="button" onClick={handleDownload}>Download</button>
+              <button type="button" onClick={handleClone}>Clone</button>
+              <button type="button" onClick={handleDelete}>Delete</button>
+            </div>
+          </div>
+          <div data-testid="quick-info" />
+          <div data-testid="config-data" />
+          <div data-testid="config-used-by" />
+          {showEdit && <div data-testid="config-edit-modal" />}
+          {showCompare && <div data-testid="config-compare-modal" />}
+        </div>
+      );
+    },
+  };
+});
 
 import SwarmConfigsOverviewTable from '../docker/resources/configs/SwarmConfigsOverviewTable.jsx';
 

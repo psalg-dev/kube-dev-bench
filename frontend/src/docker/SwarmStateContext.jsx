@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
+import { useEffect, useReducer, useCallback, useRef } from 'react';
+import { createResourceContext } from '../state/createResourceContext.jsx';
 import {
   GetDockerConnectionStatus,
   ConnectToDocker,
@@ -17,8 +18,6 @@ import {
 } from './swarmApi.js';
 import { showError, showSuccess } from '../notification';
 import { EventsOn } from '../../wailsjs/runtime';
-
-const SwarmStateContext = createContext(null);
 
 const initialState = {
   connected: false,
@@ -43,6 +42,11 @@ const initialState = {
 };
 
 export { initialState };
+
+const { Context: SwarmStateContext, useContext: useSwarmStateInternal } = createResourceContext({
+  name: 'SwarmState',
+  initialState,
+});
 
 function reducer(state, action) {
   switch (action.type) {
@@ -419,13 +423,13 @@ export function SwarmStateProvider({ children }) {
 }
 
 export function useSwarmState() {
-  const context = useContext(SwarmStateContext);
-  // Return null instead of throwing when used outside provider
-  // This allows components to gracefully handle missing context with optional chaining
-  if (!context) {
+  try {
+    return useSwarmStateInternal();
+  } catch (_) {
+    // Return null instead of throwing when used outside provider
+    // This allows components to gracefully handle missing context with optional chaining
     return null;
   }
-  return context;
 }
 
 export default SwarmStateContext;

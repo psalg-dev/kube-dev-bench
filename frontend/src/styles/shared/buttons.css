@@ -1,0 +1,123 @@
+/**
+ * Shared Button Styles
+ * 
+ * Consolidated button styles used across multiple components.
+ * Import this file instead of duplicating button styles.
+ */
+
+/* Base button styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--gh-accent, #0969da);
+  outline-offset: 2px;
+}
+
+/* Default/secondary button */
+.btn-default,
+.btn-secondary {
+  background: var(--gh-button-secondary-bg, #2d323b);
+  color: var(--gh-text, #c9d1d9);
+  border-color: var(--gh-border, #30363d);
+}
+
+.btn-default:hover:not(:disabled),
+.btn-secondary:hover:not(:disabled) {
+  background: var(--gh-button-secondary-hover-bg, #353a42);
+}
+
+/* Primary button (accent color) */
+.btn-primary {
+  background: var(--gh-accent, #238636);
+  color: #fff;
+  border-color: var(--gh-accent, #238636);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--gh-accent-emphasis, #2ea043);
+}
+
+/* Danger button */
+.btn-danger {
+  background: var(--gh-danger-bg, #da3633);
+  color: #fff;
+  border-color: var(--gh-danger-bg, #da3633);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--gh-danger-emphasis, #b62324);
+}
+
+/* Ghost/transparent button */
+.btn-ghost {
+  background: transparent;
+  color: var(--gh-text, #c9d1d9);
+  border-color: transparent;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--gh-button-secondary-bg, #2d323b);
+}
+
+/* Icon button (compact, square) */
+.btn-icon {
+  padding: 6px;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+/* Small button variant */
+.btn-sm {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+/* Large button variant */
+.btn-lg {
+  padding: 12px 24px;
+  font-size: 16px;
+}
+
+/* Create/Add button (green with plus icon) */
+.btn-create {
+  background: var(--gh-accent, #238636);
+  color: #fff;
+  border-color: var(--gh-accent, #238636);
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
+.btn-create:hover:not(:disabled) {
+  background: var(--gh-accent-emphasis, #2ea043);
+}
+
+/* Action button (used in tables and panels) */
+.btn-action {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: var(--gh-button-secondary-bg, #2d323b);
+  color: var(--gh-text, #c9d1d9);
+  border-color: var(--gh-border, #353a42);
+  border-radius: 4px;
+}
+
+.btn-action:hover:not(:disabled) {
+  background: var(--gh-button-secondary-hover-bg, #353a42);
+}

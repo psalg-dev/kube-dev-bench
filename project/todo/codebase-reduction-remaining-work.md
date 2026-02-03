@@ -1,28 +1,32 @@
 # Codebase Reduction - Remaining Work Implementation Plan
 
 **Date Created**: 2026-02-03  
-**Status**: In Progress  
+**Last Updated**: 2026-02-03  
+**Status**: ✅ Complete  
 **Parent Plan**: [codebase-reduction-implementation-plan.md](codebase-reduction-implementation-plan.md)
 
 ---
 
 ## Executive Summary
 
-This document tracks remaining implementation work from the codebase reduction plan. Significant foundational work has been completed, with ~70% of infrastructure in place. The remaining work focuses on **migration tasks** (applying the new patterns to existing components) and **CSS consolidation**.
+This document tracks remaining implementation work from the codebase reduction plan. Significant progress has been made with **K8s OverviewTable migrations complete** (~5,450 lines removed), **Swarm simple + complex resources complete**, **Pods migration complete**, **CSS consolidation complete**, and **optional Go backend consolidation** complete. All items in this plan are now finished.
 
 ### Progress Overview
 
 | Category | Status | Remaining Work |
 |----------|--------|----------------|
 | React Hooks (Foundation) | ✅ Complete | N/A |
-| GenericResourceTable | ✅ Foundation Complete | Migrate 21 OverviewTable components |
+| GenericResourceTable | ✅ Foundation Complete | N/A |
+| K8s OverviewTable Migration | ✅ **COMPLETE** (~5,450 lines saved) | N/A |
 | GenericInspectTab | ✅ Complete | N/A (all 4 migrated) |
-| BaseModal Component | ✅ Foundation Complete | Migrate 9 more modal components |
+| BaseModal Component | ✅ Complete | N/A |
 | Go Polling & Utilities | ✅ Complete | N/A |
 | Vite Bundle Optimization | ✅ Complete | N/A |
-| CSS Consolidation | ❌ Not Started | Create shared CSS modules |
-| State Context Refactoring | ❌ Not Started | Create context factory |
-| CodeMirror Lazy Wrapper | ❌ Not Started | Create lazy loading wrapper |
+| Swarm Simple Resources | ✅ **COMPLETE** (~1,100 lines saved) | N/A |
+| Swarm Complex Resources | ✅ Complete | N/A |
+| CSS Consolidation | ✅ Complete | N/A |
+| State Context Refactoring | ✅ Complete | N/A |
+| CodeMirror Lazy Wrapper | ✅ Complete | N/A |
 
 ---
 
@@ -46,7 +50,7 @@ This document tracks remaining implementation work from the codebase reduction p
 - [x] `NetworkInspectTab.jsx` → Uses GenericInspectTab
 - [x] `VolumeInspectTab.jsx` → Uses GenericInspectTab
 
-### BaseModal Migrations (8 Complete)
+### BaseModal Migrations (14 Complete)
 
 - [x] `ConfigCompareModal.jsx` → Uses BaseModal
 - [x] `ConfigEditModal.jsx` → Uses BaseModal
@@ -56,11 +60,46 @@ This document tracks remaining implementation work from the codebase reduction p
 - [x] `UpdateServiceImageModal.jsx` → Uses BaseModal
 - [x] `ImageUpdateModal.jsx` → Uses BaseModal
 - [x] `ImageUpdateSettingsModal.jsx` → Uses BaseModal
+- [x] `AddKubeConfigOverlay.jsx` → Uses BaseModal
+- [x] `AddSwarmConnectionOverlay.jsx` → Uses BaseModal
+- [x] `ConnectionProxySettings.jsx` → Uses BaseModal
+- [x] `HolmesConfigModal.jsx` → Uses BaseModal
+- [x] `CreateManifestOverlay.jsx` → Uses BaseModal
+- [x] `PortForwardDialog.jsx` → Uses BaseModal
 
-### Resource Configs (2 Complete)
+### Resource Configs (All K8s Complete)
 
-- [x] `deploymentConfig.js` - Deployment table configuration
-- [x] `statefulsetConfig.js` - StatefulSet table configuration
+- [x] `deploymentConfig.jsx` - Deployment table configuration
+- [x] `statefulsetConfig.jsx` - StatefulSet table configuration
+- [x] `daemonsetConfig.jsx` - DaemonSet table configuration
+- [x] `replicasetConfig.jsx` - ReplicaSet table configuration
+- [x] `jobConfig.jsx` - Job table configuration
+- [x] `cronjobConfig.jsx` - CronJob table configuration
+- [x] `configmapConfig.jsx` - ConfigMap table configuration
+- [x] `secretConfig.jsx` - Secret table configuration
+- [x] `serviceConfig.jsx` - Service table configuration
+- [x] `ingressConfig.jsx` - Ingress table configuration
+- [x] `pvConfig.jsx` - PersistentVolume table configuration
+- [x] `pvcConfig.jsx` - PersistentVolumeClaim table configuration
+- [x] `podConfig.jsx` - Pod table configuration
+
+### K8s OverviewTable Migration (All Migrated - 2026-02-03)
+
+The following K8s OverviewTable components have been migrated to use GenericResourceTable:
+- [x] DeploymentsOverviewTable (~600 lines → ~20 lines)
+- [x] StatefulSetsOverviewTable (~475 lines → ~20 lines)
+- [x] DaemonSetsOverviewTable (~500 lines → ~20 lines)
+- [x] ReplicaSetsOverviewTable (~270 lines → ~20 lines)
+- [x] JobsOverviewTable (~450 lines → ~20 lines)
+- [x] CronJobsOverviewTable (~510 lines → ~20 lines)
+- [x] ServicesOverviewTable (~420 lines → ~20 lines)
+- [x] ConfigMapsOverviewTable (~455 lines → ~20 lines)
+- [x] SecretsOverviewTable (~400 lines → ~20 lines)
+- [x] IngressesOverviewTable (~468 lines → ~20 lines)
+- [x] PersistentVolumesOverviewTable (~460 lines → ~20 lines)
+- [x] PersistentVolumeClaimsOverviewTable (~488 lines → ~20 lines)
+
+**Total K8s Migration: ~5,450 lines removed**
 
 ### Backend (Go)
 
@@ -85,59 +124,24 @@ This document tracks remaining implementation work from the codebase reduction p
 
 **Priority**: CRITICAL  
 **Estimated Savings**: 2,000-3,000 lines  
-**Effort**: 3-4 days
+**Actual Savings**: ~5,450 lines (K8s complete)  
+**Status**: ✅ K8s + Swarm + Pods complete
 
-Create resource configs and migrate OverviewTable components to use GenericResourceTable.
+#### 1.1 Create Resource Configurations - ✅ COMPLETE
 
-#### 1.1 Create Resource Configurations
+All K8s resource configs have been created. Files renamed from `.js` to `.jsx` to properly support JSX syntax.
 
-Each config file follows the pattern in `deploymentConfig.js` and `statefulsetConfig.js`.
-
-- [ ] **1.1.1** Create `frontend/src/config/resourceConfigs/podConfig.js`
-  - Description: Pod resource configuration
-  - Dependencies: GetPods, AnalyzePodStream, Pod-specific panel content renderer
-  - Complexity: High (port forwarding, shell, files tabs)
-  
-- [ ] **1.1.2** Create `frontend/src/config/resourceConfigs/daemonsetConfig.js`
-  - Description: DaemonSet resource configuration
-  - Dependencies: GetDaemonSets, AnalyzeDaemonSetStream
-  
-- [ ] **1.1.3** Create `frontend/src/config/resourceConfigs/replicasetConfig.js`
-  - Description: ReplicaSet resource configuration
-  - Dependencies: GetReplicaSets
-  
-- [ ] **1.1.4** Create `frontend/src/config/resourceConfigs/jobConfig.js`
-  - Description: Job resource configuration  
-  - Dependencies: GetJobs, AnalyzeJobStream
-  
-- [ ] **1.1.5** Create `frontend/src/config/resourceConfigs/cronjobConfig.js`
-  - Description: CronJob resource configuration
-  - Dependencies: GetCronJobs, AnalyzeCronJobStream
-  
-- [ ] **1.1.6** Create `frontend/src/config/resourceConfigs/serviceConfig.js`
-  - Description: K8s Service resource configuration
-  - Dependencies: GetServices, AnalyzeServiceStream
-  
-- [ ] **1.1.7** Create `frontend/src/config/resourceConfigs/configmapConfig.js`
-  - Description: ConfigMap resource configuration
-  - Dependencies: GetConfigMaps
-  
-- [ ] **1.1.8** Create `frontend/src/config/resourceConfigs/secretConfig.js`
-  - Description: Secret resource configuration
-  - Dependencies: GetSecrets
-  
-- [ ] **1.1.9** Create `frontend/src/config/resourceConfigs/ingressConfig.js`
-  - Description: Ingress resource configuration
-  - Dependencies: GetIngresses
-  
-- [ ] **1.1.10** Create `frontend/src/config/resourceConfigs/pvConfig.js`
-  - Description: PersistentVolume resource configuration
-  - Dependencies: GetPersistentVolumes
-  - Note: Cluster-scoped resource
-  
-- [ ] **1.1.11** Create `frontend/src/config/resourceConfigs/pvcConfig.js`
-  - Description: PersistentVolumeClaim resource configuration
-  - Dependencies: GetPersistentVolumeClaims
+- [x] **1.1.1** Pod config - Created (port forwarding, shell, files tabs supported)
+- [x] **1.1.2** `daemonsetConfig.jsx` - DaemonSet resource configuration
+- [x] **1.1.3** `replicasetConfig.jsx` - ReplicaSet resource configuration
+- [x] **1.1.4** `jobConfig.jsx` - Job resource configuration
+- [x] **1.1.5** `cronjobConfig.jsx` - CronJob resource configuration
+- [x] **1.1.6** `serviceConfig.jsx` - K8s Service resource configuration
+- [x] **1.1.7** `configmapConfig.jsx` - ConfigMap resource configuration
+- [x] **1.1.8** `secretConfig.jsx` - Secret resource configuration
+- [x] **1.1.9** `ingressConfig.jsx` - Ingress resource configuration
+- [x] **1.1.10** `pvConfig.jsx` - PersistentVolume resource configuration
+- [x] **1.1.11** `pvcConfig.jsx` - PersistentVolumeClaim resource configuration
 
 #### 1.2 Create Swarm Resource Configurations
 
@@ -153,19 +157,19 @@ Each config file follows the pattern in `deploymentConfig.js` and `statefulsetCo
   - Description: Swarm Node resource configuration
   - Dependencies: GetSwarmNodes
 
-- [ ] **1.2.4** Create `frontend/src/config/resourceConfigs/swarm/networkConfig.js`
+- [x] **1.2.4** Create `frontend/src/config/resourceConfigs/swarm/networkConfig.jsx` ✅
   - Description: Swarm Network resource configuration
   - Dependencies: GetSwarmNetworks
 
-- [ ] **1.2.5** Create `frontend/src/config/resourceConfigs/swarm/configConfig.js`
+- [x] **1.2.5** Create `frontend/src/config/resourceConfigs/swarm/configConfig.jsx` ✅
   - Description: Swarm Config resource configuration
   - Dependencies: GetSwarmConfigs
 
-- [ ] **1.2.6** Create `frontend/src/config/resourceConfigs/swarm/secretConfig.js`
+- [x] **1.2.6** Create `frontend/src/config/resourceConfigs/swarm/secretConfig.jsx` ✅
   - Description: Swarm Secret resource configuration
   - Dependencies: GetSwarmSecrets
 
-- [ ] **1.2.7** Create `frontend/src/config/resourceConfigs/swarm/volumeConfig.js`
+- [x] **1.2.7** Create `frontend/src/config/resourceConfigs/swarm/volumeConfig.jsx` ✅
   - Description: Swarm Volume resource configuration
   - Dependencies: GetSwarmVolumes
 
@@ -173,100 +177,74 @@ Each config file follows the pattern in `deploymentConfig.js` and `statefulsetCo
   - Description: Swarm Stack resource configuration
   - Dependencies: GetSwarmStacks
 
-- [ ] **1.2.9** Update `frontend/src/config/resourceConfigs/index.js`
+- [x] **1.2.9** Update `frontend/src/config/resourceConfigs/swarm/index.js` ✅
   - Description: Add barrel exports for all new configs
 
-#### 1.3 Migrate K8s OverviewTable Components
+#### 1.3 Migrate K8s OverviewTable Components - ✅ COMPLETE
 
-Migrate each component to use GenericResourceTable with corresponding config.
-Each migration reduces ~400-500 lines to ~20-50 lines.
+All K8s OverviewTable components (except Pods) have been migrated to use GenericResourceTable.
+Old files deleted, Generic files renamed to standard names.
 
-- [ ] **1.3.1** Migrate `PodOverviewTable.jsx` (1,218 lines → ~100 lines)
+- [x] **1.3.1** Migrate `PodOverviewTable.jsx` (1,218 lines → ~100 lines)
   - Location: `frontend/src/k8s/resources/pods/`
   - Complexity: HIGH - port forwarding, shell access, files tab
-  - Create: `PodPanelContent.jsx`, `PodRowActions.jsx`
+  - Create: `podConfig.jsx`, `PodPanelContent.jsx`, `PodRowActions.jsx`
+  - **Status**: Complete
 
-- [ ] **1.3.2** Migrate `ServicesOverviewTable.jsx` (418 lines → ~50 lines)
-  - Location: `frontend/src/k8s/resources/services/`
-  - Complexity: MEDIUM - endpoints, external access
-
-- [ ] **1.3.3** Migrate `DaemonSetsOverviewTable.jsx` (~400 lines → ~30 lines)
-  - Location: `frontend/src/k8s/resources/daemonsets/`
-  - Complexity: LOW
-
-- [ ] **1.3.4** Migrate `ReplicaSetsOverviewTable.jsx` (~350 lines → ~30 lines)
-  - Location: `frontend/src/k8s/resources/replicasets/`
-  - Complexity: LOW
-
-- [ ] **1.3.5** Migrate `JobsOverviewTable.jsx` (~400 lines → ~30 lines)
-  - Location: `frontend/src/k8s/resources/jobs/`
-  - Complexity: LOW
-
-- [ ] **1.3.6** Migrate `CronJobsOverviewTable.jsx` (~450 lines → ~40 lines)
-  - Location: `frontend/src/k8s/resources/cronjobs/`
-  - Complexity: MEDIUM - create job action
-
-- [ ] **1.3.7** Migrate `ConfigMapsOverviewTable.jsx` (~300 lines → ~25 lines)
-  - Location: `frontend/src/k8s/resources/configmaps/`
-  - Complexity: LOW
-
-- [ ] **1.3.8** Migrate `SecretsOverviewTable.jsx` (~300 lines → ~25 lines)
-  - Location: `frontend/src/k8s/resources/secrets/`
-  - Complexity: LOW
-
-- [ ] **1.3.9** Migrate `IngressesOverviewTable.jsx` (~300 lines → ~25 lines)
-  - Location: `frontend/src/k8s/resources/ingresses/`
-  - Complexity: LOW
-
-- [ ] **1.3.10** Migrate `PersistentVolumesOverviewTable.jsx` (~300 lines → ~25 lines)
-  - Location: `frontend/src/k8s/resources/persistentvolumes/`
-  - Complexity: LOW - cluster-scoped
-
-- [ ] **1.3.11** Migrate `PersistentVolumeClaimsOverviewTable.jsx` (~300 lines → ~25 lines)
-  - Location: `frontend/src/k8s/resources/persistentvolumeclaims/`
-  - Complexity: LOW
-
-- [ ] **1.3.12** Replace `DeploymentsOverviewTable.jsx` with `DeploymentsOverviewTableGeneric.jsx`
-  - Location: `frontend/src/k8s/resources/deployments/`
-  - Note: Generic version already exists, just rename and remove old version
-
-- [ ] **1.3.13** Migrate `StatefulSetsOverviewTable.jsx`
-  - Location: `frontend/src/k8s/resources/statefulsets/`
-  - Note: Config exists, need to create generic version
+- [x] **1.3.2** ServicesOverviewTable (~420 lines → ~20 lines) ✅
+- [x] **1.3.3** DaemonSetsOverviewTable (~500 lines → ~20 lines) ✅
+- [x] **1.3.4** ReplicaSetsOverviewTable (~270 lines → ~20 lines) ✅
+- [x] **1.3.5** JobsOverviewTable (~450 lines → ~20 lines) ✅
+- [x] **1.3.6** CronJobsOverviewTable (~510 lines → ~20 lines) ✅
+- [x] **1.3.7** ConfigMapsOverviewTable (~455 lines → ~20 lines) ✅
+- [x] **1.3.8** SecretsOverviewTable (~400 lines → ~20 lines) ✅
+- [x] **1.3.9** IngressesOverviewTable (~468 lines → ~20 lines) ✅
+- [x] **1.3.10** PersistentVolumesOverviewTable (~460 lines → ~20 lines) ✅
+- [x] **1.3.11** PersistentVolumeClaimsOverviewTable (~488 lines → ~20 lines) ✅
+- [x] **1.3.12** DeploymentsOverviewTable (~600 lines → ~20 lines) ✅
+- [x] **1.3.13** StatefulSetsOverviewTable (~475 lines → ~20 lines) ✅
 
 #### 1.4 Migrate Swarm OverviewTable Components
 
-- [ ] **1.4.1** Migrate `SwarmServicesOverviewTable.jsx` (866 lines → ~60 lines)
-  - Location: `frontend/src/docker/resources/services/`
-  - Complexity: HIGH - image updates, scaling
+##### Simple Resources (Completed 2026-02-03)
 
-- [ ] **1.4.2** Migrate `SwarmTasksOverviewTable.jsx` (817 lines → ~40 lines)
-  - Location: `frontend/src/docker/resources/tasks/`
-  - Complexity: MEDIUM
-
-- [ ] **1.4.3** Migrate `SwarmNodesOverviewTable.jsx` (855 lines → ~40 lines)
-  - Location: `frontend/src/docker/resources/nodes/`
-  - Complexity: MEDIUM
-
-- [ ] **1.4.4** Migrate `SwarmStacksOverviewTable.jsx` (764 lines → ~50 lines)
-  - Location: `frontend/src/docker/resources/stacks/`
-  - Complexity: HIGH - update stack, compose files
-
-- [ ] **1.4.5** Migrate `SwarmNetworksOverviewTable.jsx` (~400 lines → ~30 lines)
+- [x] **1.4.5** Migrate `SwarmNetworksOverviewTable.jsx` (~225 lines → ~20 lines) ✅
   - Location: `frontend/src/docker/resources/networks/`
   - Complexity: LOW
 
-- [ ] **1.4.6** Migrate `SwarmConfigsOverviewTable.jsx` (~400 lines → ~30 lines)
+- [x] **1.4.6** Migrate `SwarmConfigsOverviewTable.jsx` (~337 lines → ~20 lines) ✅
   - Location: `frontend/src/docker/resources/configs/`
   - Complexity: LOW
+  - Created: `ConfigSummaryPanel.jsx` for panel with Edit/Compare/Clone/Download/Delete actions
 
-- [ ] **1.4.7** Migrate `SwarmSecretsOverviewTable.jsx` (~400 lines → ~30 lines)
+- [x] **1.4.7** Migrate `SwarmSecretsOverviewTable.jsx` (~271 lines → ~20 lines) ✅
   - Location: `frontend/src/docker/resources/secrets/`
   - Complexity: LOW
+  - Created: `SecretSummaryPanel.jsx` for panel with Edit/Rotate/Clone/Delete actions
 
-- [ ] **1.4.8** Migrate `SwarmVolumesOverviewTable.jsx` (~400 lines → ~30 lines)
+- [x] **1.4.8** Migrate `SwarmVolumesOverviewTable.jsx` (~353 lines → ~20 lines) ✅
   - Location: `frontend/src/docker/resources/volumes/`
   - Complexity: LOW
+
+**Total Swarm Simple Resources: ~1,100 lines removed**
+
+##### Complex Resources (Completed 2026-02-03)
+
+- [x] **1.4.1** Migrate `SwarmServicesOverviewTable.jsx` (866 lines → ~60 lines)
+  - Location: `frontend/src/docker/resources/services/`
+  - Complexity: HIGH - image updates, scaling
+
+- [x] **1.4.2** Migrate `SwarmTasksOverviewTable.jsx` (817 lines → ~40 lines)
+  - Location: `frontend/src/docker/resources/tasks/`
+  - Complexity: MEDIUM
+
+- [x] **1.4.3** Migrate `SwarmNodesOverviewTable.jsx` (855 lines → ~40 lines)
+  - Location: `frontend/src/docker/resources/nodes/`
+  - Complexity: MEDIUM
+
+- [x] **1.4.4** Migrate `SwarmStacksOverviewTable.jsx` (764 lines → ~50 lines)
+  - Location: `frontend/src/docker/resources/stacks/`
+  - Complexity: HIGH - update stack, compose files
 
 ---
 
@@ -278,50 +256,50 @@ Each migration reduces ~400-500 lines to ~20-50 lines.
 
 Migrate remaining modals to use BaseModal component.
 
-- [ ] **2.1** Migrate `CreateManifestOverlay.jsx`
+- [x] **2.1** Migrate `CreateManifestOverlay.jsx`
   - Location: `frontend/src/CreateManifestOverlay.jsx`
   - Current: Uses inline styles for overlay
   - Target: Use BaseModal with custom width
 
-- [ ] **2.2** Migrate `AddKubeConfigOverlay.jsx`
+- [x] **2.2** Migrate `AddKubeConfigOverlay.jsx`
   - Location: `frontend/src/layout/connection/AddKubeConfigOverlay.jsx`
   - Current: Uses inline styles
   - Target: Use BaseModal
 
-- [ ] **2.3** Migrate `AddSwarmConnectionOverlay.jsx`
+- [x] **2.3** Migrate `AddSwarmConnectionOverlay.jsx`
   - Location: `frontend/src/layout/connection/AddSwarmConnectionOverlay.jsx`
   - Current: Uses inline styles
   - Target: Use BaseModal
 
-- [ ] **2.4** Migrate `ConnectionProxySettings.jsx`
+- [x] **2.4** Migrate `ConnectionProxySettings.jsx`
   - Location: `frontend/src/layout/connection/ConnectionProxySettings.jsx`
   - Current: Uses inline styles
   - Target: Use BaseModal
 
-- [ ] **2.5** Migrate `HolmesConfigModal.jsx`
+- [x] **2.5** Migrate `HolmesConfigModal.jsx`
   - Location: `frontend/src/holmes/HolmesConfigModal.jsx`
   - Current: Uses inline styles
   - Target: Use BaseModal
 
-- [ ] **2.6** Migrate `CreateJobModal.jsx`
-  - Location: `frontend/src/k8s/resources/cronjobs/CreateJobModal.jsx`
+- [x] **2.6** Migrate `CreateJobModal.jsx` (N/A)
+  - Location: `frontend/src/k8s/resources/cronjobs/CreateJobModal.jsx` (file removed)
+  - Current: Not present in codebase
+  - Target: N/A
+
+- [x] **2.7** Migrate `PortForwardDialog.jsx`
+  - Location: `frontend/src/k8s/resources/pods/PortForwardDialog.jsx`
   - Current: Uses inline styles
   - Target: Use BaseModal
 
-- [ ] **2.7** Migrate `PortForwardModal.jsx`
-  - Location: `frontend/src/k8s/resources/pods/PortForwardModal.jsx`
-  - Current: Uses inline styles
-  - Target: Use BaseModal
+- [x] **2.8** Migrate K8s `DeleteConfirmModal.jsx` (N/A)
+  - Location: `frontend/src/k8s/DeleteConfirmModal.jsx` (file removed)
+  - Current: Not present in codebase
+  - Target: N/A
 
-- [ ] **2.8** Migrate K8s `DeleteConfirmModal.jsx`
-  - Location: `frontend/src/k8s/DeleteConfirmModal.jsx`
-  - Current: Uses inline styles
-  - Target: Use BaseModal with danger variant
-
-- [ ] **2.9** Migrate Docker `DeleteConfirmModal.jsx`
-  - Location: `frontend/src/docker/DeleteConfirmModal.jsx`
-  - Current: Uses inline styles
-  - Target: Use BaseModal with danger variant
+- [x] **2.9** Migrate Docker `DeleteConfirmModal.jsx` (N/A)
+  - Location: `frontend/src/docker/DeleteConfirmModal.jsx` (file removed)
+  - Current: Not present in codebase
+  - Target: N/A
 
 ---
 
@@ -333,35 +311,39 @@ Migrate remaining modals to use BaseModal component.
 
 Create shared CSS modules to eliminate duplicated styles.
 
-- [ ] **3.1** Create shared CSS directory structure
+- [x] **3.1** Create shared CSS directory structure
   - Create: `frontend/src/styles/shared/`
   
-- [ ] **3.2** Create `frontend/src/styles/shared/buttons.css`
+- [x] **3.2** Create `frontend/src/styles/shared/buttons.css`
   - Description: Consolidate `.create-button`, `.action-button`, `.danger-button` variants
   - Extract from: Multiple component CSS files
 
-- [ ] **3.3** Create `frontend/src/styles/shared/panels.css`
+- [x] **3.3** Create `frontend/src/styles/shared/panels.css`
   - Description: Consolidate `.bottom-panel`, `.panel-header`, `.panel-content` styles
   - Extract from: OverviewTable CSS files
 
-- [ ] **3.4** Create `frontend/src/styles/shared/menus.css`
+- [x] **3.4** Create `frontend/src/styles/shared/menus.css`
   - Description: Consolidate context menu styles (~30 lines repeated in 20+ components)
   - Extract from: OverviewTable components with inline context menu styles
 
-- [ ] **3.5** Create `frontend/src/styles/shared/messages.css`
+- [x] **3.5** Create `frontend/src/styles/shared/messages.css`
   - Description: Consolidate `.error-message`, `.warning-message`, `.info-message` styles
   - Extract from: Multiple CSS files with duplicated message styles
 
-- [ ] **3.6** Create `frontend/src/styles/shared/tables.css`
+- [x] **3.6** Create `frontend/src/styles/shared/tables.css`
   - Description: Consolidate `.panel-table`, `.table-header`, `.table-row` styles
   - Extract from: Panel and table CSS files
 
-- [ ] **3.7** Create `frontend/src/styles/shared/index.css`
+- [x] **3.7** Create `frontend/src/styles/shared/index.css`
   - Description: Barrel import for all shared modules
   - Import in: `frontend/src/App.css` or `frontend/src/index.css`
 
-- [ ] **3.8** Update component CSS files to import shared modules
+- [x] **3.8** Update component CSS files to import shared modules
   - Description: Replace duplicated styles with imports
+  - Progress: Panel table styles centralized from `frontend/src/app.css`
+  - Progress: Dropdown/context menus updated to shared styles in `OverviewTableWithPanel.jsx` and `PodOverviewTable.jsx`
+  - Progress: Removed legacy message/button styles from `frontend/src/app.css` and `frontend/src/style.css`
+  - Progress: Removed unused create/resource menu styles from `frontend/src/app.css`
   - Files: All component CSS files using the consolidated patterns
 
 ---
@@ -374,7 +356,7 @@ Create shared CSS modules to eliminate duplicated styles.
 
 Create context factory to reduce duplication between ClusterStateContext and SwarmStateContext.
 
-- [ ] **4.1** Create `frontend/src/state/createResourceContext.js`
+- [x] **4.1** Create `frontend/src/state/createResourceContext.js`
   - Description: Factory function for creating resource contexts
   - Features:
     - Shared reducer pattern (`SET_LOADING`, `SET_CONNECTION_STATUS`, etc.)
@@ -382,17 +364,17 @@ Create context factory to reduce duplication between ClusterStateContext and Swa
     - Configurable refresh functions
     - Error handling patterns
 
-- [ ] **4.2** Refactor `ClusterStateContext.jsx`
+- [x] **4.2** Refactor `ClusterStateContext.jsx`
   - Location: `frontend/src/state/ClusterStateContext.jsx`
   - Current: 464 lines
   - Target: ~150-200 lines using context factory
 
-- [ ] **4.3** Refactor `SwarmStateContext.jsx`
+- [x] **4.3** Refactor `SwarmStateContext.jsx`
   - Location: `frontend/src/state/SwarmStateContext.jsx`
   - Current: 638 lines
   - Target: ~200-250 lines using context factory
 
-- [ ] **4.4** Add tests for context factory
+- [x] **4.4** Add tests for context factory
   - Create: `frontend/src/__tests__/createResourceContext.test.js`
 
 ---
@@ -405,22 +387,22 @@ Create context factory to reduce duplication between ClusterStateContext and Swa
 
 Create lazy loading wrapper for CodeMirror to reduce initial bundle size.
 
-- [ ] **5.1** Create `frontend/src/components/CodeMirrorEditor/index.jsx`
+- [x] **5.1** Create `frontend/src/components/CodeMirrorEditor/index.jsx`
   - Description: Lazy wrapper using React.lazy and Suspense
   - Features:
     - Loading fallback component
     - Dynamic import of CodeMirror core
 
-- [ ] **5.2** Create `frontend/src/components/CodeMirrorEditor/CodeMirrorCore.jsx`
+- [x] **5.2** Create `frontend/src/components/CodeMirrorEditor/CodeMirrorCore.jsx`
   - Description: Actual CodeMirror implementation
   - Contains: All @codemirror/* imports
   - Note: This file only loads when editor is needed
 
-- [ ] **5.3** Create `frontend/src/components/CodeMirrorEditor/EditorLoading.jsx`
+- [x] **5.3** Create `frontend/src/components/CodeMirrorEditor/EditorLoading.jsx`
   - Description: Loading placeholder component
   - Features: Skeleton or spinner matching editor dimensions
 
-- [ ] **5.4** Update components to use lazy CodeMirror wrapper
+- [x] **5.4** Update components to use lazy CodeMirror wrapper
   - Files to modify:
     - `frontend/src/layout/bottompanel/LogViewerTab.jsx`
     - `frontend/src/layout/bottompanel/TextEditorTab.jsx`
@@ -430,7 +412,7 @@ Create lazy loading wrapper for CodeMirror to reduce initial bundle size.
     - `frontend/src/k8s/resources/pods/PodFilesTab.jsx`
     - `frontend/src/CreateManifestOverlay.jsx`
 
-- [ ] **5.5** Add tests for lazy CodeMirror wrapper
+- [x] **5.5** Add tests for lazy CodeMirror wrapper
   - Create: `frontend/src/__tests__/CodeMirrorEditor.test.jsx`
 
 ---
@@ -443,17 +425,17 @@ Create lazy loading wrapper for CodeMirror to reduce initial bundle size.
 
 These items provide additional consolidation but are lower priority.
 
-- [ ] **6.1** Create Docker handler factory
+- [x] **6.1** Create Docker handler factory
   - Create: `pkg/app/docker/resource_handler.go`
   - Description: Generic `ListAndConvert[T, InfoT]` function
   - Apply to: configs.go, secrets.go, volumes.go, services.go, tasks.go, nodes.go, networks.go
 
-- [ ] **6.2** Consolidate Holmes context builders
+- [x] **6.2** Consolidate Holmes context builders
   - Create: `pkg/app/holmes_context_builder.go`
   - Description: Generic context builder with resource-specific adapters
   - Apply to: `pkg/app/holmes_context.go` functions
 
-- [ ] **6.3** Migrate remaining Go files to use polling.go
+- [x] **6.3** Migrate remaining Go files to use polling.go
   - Files: deployments.go, statefulsets.go, pods.go, jobs.go, services.go, etc.
   - Note: Only if not already using startResourcePolling
 
@@ -529,7 +511,7 @@ These items provide additional consolidation but are lower priority.
 ## Notes
 
 - **GenericResourceTable** pattern already proven with `DeploymentsOverviewTableGeneric.jsx`
-- **BaseModal** pattern proven with 8 successful migrations
+- **BaseModal** pattern proven with 14 successful migrations
 - **GenericInspectTab** 100% complete (all 4 InspectTabs migrated)
 - Consider creating E2E tests for each migrated component before migration
 - Use feature flags if needed for gradual rollout of migrated components

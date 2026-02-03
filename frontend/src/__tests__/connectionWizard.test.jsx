@@ -394,7 +394,7 @@ describe('ConnectionWizard', () => {
         expect(screen.getByText(/Create Your First Kubeconfig/i)).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByRole('button', { name: /✕/i }));
+      fireEvent.click(screen.getByRole('button', { name: /close modal/i }));
 
       await waitFor(() => {
         expect(screen.queryByText(/Create Your First Kubeconfig/i)).not.toBeInTheDocument();

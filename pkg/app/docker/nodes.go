@@ -27,18 +27,9 @@ func GetSwarmNodes(ctx context.Context, cli *client.Client) ([]SwarmNodeInfo, er
 }
 
 func getSwarmNodes(ctx context.Context, cli swarmNodesClient) ([]SwarmNodeInfo, error) {
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]SwarmNodeInfo, 0, len(nodes))
-	for _, node := range nodes {
-		info := nodeToInfo(node)
-		result = append(result, info)
-	}
-
-	return result, nil
+	return listAndConvert(ctx, func(ctx context.Context) ([]swarm.Node, error) {
+		return cli.NodeList(ctx, types.NodeListOptions{})
+	}, nodeToInfo)
 }
 
 // GetSwarmNode returns a specific Swarm node by ID

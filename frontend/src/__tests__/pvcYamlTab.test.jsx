@@ -26,7 +26,7 @@ describe('PersistentVolumeClaimYamlTab', () => {
       
       render(<PersistentVolumeClaimYamlTab namespace="default" name="my-pvc" />);
       
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      expect(screen.getByText(/loading yaml/i)).toBeInTheDocument();
     });
   });
 
@@ -86,7 +86,7 @@ describe('PersistentVolumeClaimYamlTab', () => {
       render(<PersistentVolumeClaimYamlTab namespace="default" name="my-pvc" />);
       
       await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading yaml/i)).not.toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Copy'));

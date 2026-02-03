@@ -5,8 +5,43 @@ const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
     runtimeHandlers: new Map(),
     swarmApiMocks: {
+      // Required for this test
       GetSwarmNetworks: vi.fn(),
       RemoveSwarmNetwork: vi.fn(),
+      GetSwarmNetworkConnectedServices: vi.fn(),
+      // Required by other config modules loaded via barrel export
+      GetSwarmConfigs: vi.fn(),
+      GetSwarmSecrets: vi.fn(),
+      GetSwarmVolumes: vi.fn(),
+      GetSwarmVolumeUsage: vi.fn(),
+      // Required by serviceConfig.jsx
+      GetSwarmServices: vi.fn(),
+      GetSwarmTasksByService: vi.fn(),
+      ScaleSwarmService: vi.fn(),
+      RemoveSwarmService: vi.fn(),
+      RestartSwarmService: vi.fn(),
+      GetSwarmServiceLogs: vi.fn(),
+      UpdateSwarmServiceImage: vi.fn(),
+      // Required by taskConfig.jsx
+      GetSwarmTasks: vi.fn(),
+      GetSwarmTaskLogs: vi.fn(),
+      GetSwarmTaskHealthLogs: vi.fn(),
+      // Required by nodeConfig.jsx
+      GetSwarmNodes: vi.fn(),
+      GetSwarmNodeTasks: vi.fn(),
+      GetSwarmJoinTokens: vi.fn(),
+      UpdateSwarmNodeAvailability: vi.fn(),
+      UpdateSwarmNodeRole: vi.fn(),
+      UpdateSwarmNodeLabels: vi.fn(),
+      RemoveSwarmNode: vi.fn(),
+      // Required by stackConfig.jsx
+      GetSwarmStacks: vi.fn(),
+      GetSwarmStackServices: vi.fn(),
+      GetSwarmStackResources: vi.fn(),
+      GetSwarmStackComposeYAML: vi.fn(),
+      CreateSwarmStack: vi.fn(),
+      RollbackSwarmStack: vi.fn(),
+      RemoveSwarmStack: vi.fn(),
     },
     notificationMocks: {
       showSuccess: vi.fn(),
@@ -28,8 +63,12 @@ vi.mock('../notification.js', () => notificationMocks);
 
 vi.mock('../layout/overview/OverviewTableWithPanel.jsx', () => ({
   default: function OverviewTableWithPanelMock(props) {
-    const { title, columns, data, getRowActions, renderPanelContent } = props;
+    const { title, columns, data, loading, getRowActions, renderPanelContent } = props;
     const rows = Array.isArray(data) ? data : [];
+
+    if (loading || rows.length === 0) {
+      return <div>Loading networks...</div>;
+    }
 
     return (
       <div>

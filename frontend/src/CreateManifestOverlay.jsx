@@ -1,15 +1,12 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { yaml as yamlLang } from '@codemirror/lang-yaml';
-import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle, indentOnInput, indentUnit } from '@codemirror/language';
-import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import CodeMirrorEditor from './components/CodeMirrorEditor';
 import * as AppAPI from '../wailsjs/go/main/App';
 import { EventsEmit } from '../wailsjs/runtime';
 import { showSuccess, showError } from './notification';
 import ViewToggle from './components/forms/ViewToggle';
 import ServiceForm from './components/forms/ServiceForm';
 import useSwarmServiceForm, { getDefaultServiceForm } from './hooks/useSwarmServiceForm';
+import { BaseModal, ModalPrimaryButton } from './components/BaseModal';
 import {
   validateServiceForm,
   yamlToServiceForm,
@@ -200,8 +197,6 @@ function getDefaultManifest(kind, namespace) {
 }
 
 export default function CreateManifestOverlay({ open, kind, namespace, onClose, platform = 'k8s', createHint }) {
-  const editorParentRef = useRef(null);
-  const viewRef = useRef(null);
   const swarmStackFileInputRef = useRef(null);
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -236,36 +231,6 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
     }
     return getDefaultManifest(kind, namespace);
   }, [kind, namespace, platform]);
-
-  const cmTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#181818', color: '#d4d4d4' },
-    '&.cm-editor': { height: '100%', width: '100%' },
-    '.cm-content': { caretColor: '#fff', textAlign: 'left', whiteSpace: 'pre' },
-    '.cm-line': { textAlign: 'left', whiteSpace: 'pre' },
-    '.cm-scroller': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', lineHeight: '1.45' },
-    '.cm-gutters': { background: '#181818', color: '#858585', borderRight: '1px solid #3c3c3c' },
-    '.cm-gutterElement': { padding: '0 8px' },
-  }, { dark: true }), []);
-
-  const cmExtensions = useMemo(() => [
-    cmTheme,
-    // For swarm we still use YAML highlighting for compose-like payloads.
-    yamlLang(),
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    foldGutter(),
-    indentOnInput(),
-    indentUnit.of('  '),
-    EditorState.tabSize.of(2),
-    history(),
-    keymap.of([
-      ...defaultKeymap,
-      ...historyKeymap,
-      indentWithTab,
-      ...foldKeymap,
-    ]),
-    syntaxHighlighting(defaultHighlightStyle),
-  ], [cmTheme]);
 
   useEffect(() => {
     if (!open) return;
@@ -329,49 +294,10 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
 
   useEffect(() => {
     if (!open) return;
-    if (!showSwarmEditor && viewRef.current) {
-      try { viewRef.current.destroy(); } catch {}
-      viewRef.current = null;
-    }
-  }, [open, showSwarmEditor]);
-
-  useEffect(() => {
-    if (!open) return;
     const onKey = (e) => { if (e.key === 'Escape') onClose?.(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [open, onClose]);
-
-  useEffect(() => {
-    if (!open) return;
-    if (!showSwarmEditor) return;
-    // mount or update editor
-    try {
-      if (!viewRef.current && editorParentRef.current) {
-        const state = EditorState.create({ doc: text || '', extensions: cmExtensions });
-        viewRef.current = new EditorView({ state, parent: editorParentRef.current });
-      } else if (viewRef.current) {
-        const cur = viewRef.current.state.doc.toString();
-        if (cur !== (text || '')) {
-          viewRef.current.dispatch({ changes: { from: 0, to: viewRef.current.state.doc.length, insert: text || '' } });
-        }
-      }
-    } catch (e) {
-
-      console.error('Failed to mount manifest editor:', e);
-    }
-  }, [open, showSwarmEditor, text, cmExtensions]);
-
-  // NEW: destroy the view when overlay closes so it mounts fresh next time
-  useEffect(() => {
-    if (open) return;
-    if (viewRef.current) {
-      try { viewRef.current.destroy(); } catch {}
-      viewRef.current = null;
-    }
-  }, [open]);
-
-  useEffect(() => () => { try { viewRef.current?.destroy(); } catch {} viewRef.current = null; }, []);
 
   if (!open) return null;
 
@@ -384,7 +310,7 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
     return kind ? `New ${kind} manifest` : 'New manifest';
   })();
 
-  const getCurrentText = () => (viewRef.current ? viewRef.current.state.doc.toString() : text || '');
+  const getCurrentText = () => (text || '');
 
   async function readTextFile(file) {
     if (!file) return '';
@@ -731,13 +657,36 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   }
 
   return (
-    <div id={isSwarm ? 'swarm-create-overlay' : undefined} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
-      <div style={{ width: '70%', maxWidth: 900, height: '75vh', background: 'var(--gh-table-header-bg, #2d323b)', border: '1px solid #353a42', boxShadow: '0 8px 20px rgba(0,0,0,0.35)', color: '#fff', display: 'grid', gridTemplateRows: 'auto 1fr auto', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #353a42', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span>{title}</span>
-          <button onClick={onClose} aria-label="Close" title="Close" style={{ background: 'transparent', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}>×</button>
+    <BaseModal
+      isOpen={open}
+      onClose={onClose}
+      title={title}
+      width={900}
+      overlayId={isSwarm ? 'swarm-create-overlay' : undefined}
+      className="create-manifest-modal"
+      footer={
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%' }}>
+          <div style={{ color: '#858585', fontSize: 12 }}>
+            {isSwarm ? (
+              <span>Target: <strong style={{ color: '#fff' }}>Docker Swarm</strong></span>
+            ) : (
+              <span>Namespace: <strong style={{ color: '#fff' }}>{namespace || 'default'}</strong></span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <ModalPrimaryButton
+              id={isSwarm ? 'swarm-create-btn' : undefined}
+              onClick={handleCreate}
+              disabled={submitting}
+              style={{ opacity: submitting ? 0.7 : 1 }}
+            >
+              Create
+            </ModalPrimaryButton>
+          </div>
         </div>
-        <div style={{ padding: 0, position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      }
+    >
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', minHeight: 0, height: '70vh' }}>
           {isSwarm && swarmKind === 'service' && (
             <div style={{ padding: 16, borderBottom: '1px solid #353a42', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {createHint ? (
@@ -1007,27 +956,21 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
             </div>
           )}
           {showSwarmEditor && (
-            <div id={isSwarm && swarmKind === 'stack' ? 'swarm-compose-editor' : undefined} ref={editorParentRef} style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }} />
+            <div id={isSwarm && swarmKind === 'stack' ? 'swarm-compose-editor' : undefined} style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }}>
+              <CodeMirrorEditor
+                value={text}
+                onChange={setText}
+                language="yaml"
+                height="100%"
+              />
+            </div>
           )}
           {error && (
             <div style={{ position: 'absolute', top: 8, left: 10, color: '#f85149', background: 'rgba(248,81,73,0.1)', padding: '4px 8px', borderRadius: 0, border: '1px solid rgba(248,81,73,0.4)' }}>
               {error}
             </div>
           )}
-        </div>
-        <div style={{ padding: 12, borderTop: '1px solid #353a42', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ color: '#858585', fontSize: 12 }}>
-            {isSwarm ? (
-              <span>Target: <strong style={{ color: '#fff' }}>Docker Swarm</strong></span>
-            ) : (
-              <span>Namespace: <strong style={{ color: '#fff' }}>{namespace || 'default'}</strong></span>
-            )}
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button id={isSwarm ? 'swarm-create-btn' : undefined} onClick={handleCreate} disabled={submitting} style={{ padding: '8px 12px', background: submitting ? '#2ea44f' : '#2ea44f', opacity: submitting ? 0.7 : 1, color: '#fff', border: '1px solid #2ea44f', borderRadius: 0, cursor: submitting ? 'not-allowed' : 'pointer' }}>Create</button>
-          </div>
-        </div>
       </div>
-    </div>
+    </BaseModal>
   );
 }

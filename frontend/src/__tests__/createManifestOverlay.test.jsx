@@ -3,62 +3,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Mocks -------------------------------------------------------------
-vi.mock('@codemirror/view', () => {
-  let ctorCount = 0;
-  let lastInstance = null;
-  const instances = [];
-  class MockEditorView {
-    static theme() { return {}; }
-    static lineWrapping = {}; // used in extensions
-    constructor({ state }) {
-      ctorCount++; this.state = state; this._dispatches = []; lastInstance = this; instances.push(this);
-      this.destroy = vi.fn();
-    }
-    dispatch(tr) {
-      this._dispatches.push(tr);
-      if (tr?.changes?.insert !== undefined) {
-        const newDoc = tr.changes.insert;
-        // mutate doc content helper
-        this.state.doc.__set(newDoc);
-      }
-    }
-  }
+vi.mock('../components/CodeMirrorEditor', () => {
+  let renderCount = 0;
+  let lastProps = null;
+  const MockEditor = ({ value, onChange, ...rest }) => {
+    renderCount += 1;
+    lastProps = { value, onChange, ...rest };
+    return (
+      <textarea
+        data-testid="code-mirror-editor"
+        value={value}
+        onChange={(e) => onChange?.(e.target.value)}
+      />
+    );
+  };
   return {
-    EditorView: MockEditorView,
-    lineNumbers: () => ({}),
-    highlightActiveLineGutter: () => ({}),
-    keymap: { of: () => ({}) },
-    __getCtorCount: () => ctorCount,
-    __getLastInstance: () => lastInstance,
-    __getInstances: () => instances,
+    default: MockEditor,
+    __getRenderCount: () => renderCount,
+    __getLastProps: () => lastProps,
+    EditorLoading: () => null,
   };
 });
-
-vi.mock('@codemirror/state', () => ({
-  EditorState: {
-    create: ({ doc }) => {
-      let content = doc || '';
-      return {
-        doc: {
-          toString: () => content,
-          get length() { return content.length; },
-          __set: (v) => { content = v; }
-        },
-      };
-    },
-    tabSize: { of: () => ({}) },
-  }
-}));
-
-vi.mock('@codemirror/lang-yaml', () => ({ yaml: () => ({}) }));
-vi.mock('@codemirror/language', () => ({
-  foldGutter: () => ({}),
-  foldKeymap: [],
-  syntaxHighlighting: () => ({}),
-  defaultHighlightStyle: {},
-  indentOnInput: () => ({}),
-  indentUnit: { of: () => ({}) },
-}));
 
 // Centralized Wails mocks (no longer mocking notifications globally)
 import { createResourceMock, createSwarmConfigMock, createSwarmSecretMock, createSwarmServiceMock, createSwarmStackMock, updateSwarmNodeAvailabilityMock, updateSwarmNodeRoleMock, updateSwarmNodeLabelsMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
@@ -73,7 +38,6 @@ vi.mock('../notification.js', () => ({
 
 // Import after mocks
 import CreateManifestOverlay from '../CreateManifestOverlay.jsx';
-import { __getCtorCount, __getLastInstance } from '@codemirror/view';
 
 function openOverlay(props = {}) {
   return render(<CreateManifestOverlay open kind="Deployment" namespace="dev" onClose={vi.fn()} {...props} />);
@@ -88,42 +52,33 @@ describe('CreateManifestOverlay', () => {
   });
 
   it('mounts editor with default manifest for kind + namespace', () => {
-    const before = __getCtorCount();
     openOverlay({ kind: 'Deployment', namespace: 'dev' });
-    expect(__getCtorCount()).toBe(before + 1);
-    const inst = __getLastInstance();
-    const doc = inst.state.doc.toString();
-    expect(doc).toMatch(/kind: Deployment/);
-    expect(doc).toMatch(/namespace: dev/);
+    const editor = screen.getByTestId('code-mirror-editor');
+    expect(editor.value).toMatch(/kind: Deployment/);
+    expect(editor.value).toMatch(/namespace: dev/);
   });
 
   it('updates manifest when kind changes while open (dispatch used, no new ctor)', () => {
     const { rerender } = openOverlay({ kind: 'Deployment', namespace: 'dev' });
-    const ctorAfterFirst = __getCtorCount();
     rerender(<CreateManifestOverlay open kind="Job" namespace="dev" onClose={vi.fn()} />);
-    expect(__getCtorCount()).toBe(ctorAfterFirst); // same instance
-    const inst = __getLastInstance();
-    const doc = inst.state.doc.toString();
-    expect(doc).toMatch(/kind: Job/);
+    const editor = screen.getByTestId('code-mirror-editor');
+    expect(editor.value).toMatch(/kind: Job/);
   });
 
   it('destroys editor when closed & recreates on reopen', () => {
     const { rerender } = openOverlay({ kind: 'ConfigMap' });
-    const firstInst = __getLastInstance();
-    expect(firstInst.destroy).not.toHaveBeenCalled();
     rerender(<CreateManifestOverlay open={false} kind="ConfigMap" />);
-    expect(firstInst.destroy).toHaveBeenCalled();
-    const ctorAfterClose = __getCtorCount();
+    expect(screen.queryByTestId('code-mirror-editor')).toBeNull();
     rerender(<CreateManifestOverlay open kind="ConfigMap" namespace="x" />);
-    expect(__getCtorCount()).toBe(ctorAfterClose + 1); // new instance created
+    expect(screen.getByTestId('code-mirror-editor')).toBeInTheDocument();
   });
 
   it('calls CreateResource and emits events + success on Create', async () => {
     createResourceMock.mockResolvedValueOnce({});
     const onClose = vi.fn();
     openOverlay({ kind: 'Deployment', namespace: 'dev', onClose });
-    const inst = __getLastInstance();
-    const manifest = inst.state.doc.toString();
+    const editor = screen.getByTestId('code-mirror-editor');
+    const manifest = editor.value;
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(createResourceMock).toHaveBeenCalled());
     expect(createResourceMock).toHaveBeenCalledWith('dev', manifest);
@@ -160,9 +115,7 @@ describe('CreateManifestOverlay', () => {
   it('does not create resource when manifest doc is empty', async () => {
     const onClose = vi.fn();
     openOverlay({ kind: 'ConfigMap', onClose });
-    // Force empty doc
-    const inst = __getLastInstance();
-    inst.state.doc.__set('');
+    fireEvent.change(screen.getByTestId('code-mirror-editor'), { target: { value: '' } });
     fireEvent.click(screen.getByRole('button', { name: 'Create' }));
     await waitFor(() => expect(screen.getByText(/Manifest is empty/)).toBeInTheDocument());
     expect(createResourceMock).not.toHaveBeenCalled();
@@ -183,19 +136,13 @@ describe('CreateManifestOverlay', () => {
   });
 
   it('swarm: config YAML tab uses CodeMirror and renders YAML wrapper', async () => {
-    const before = __getCtorCount();
     render(<CreateManifestOverlay open platform="swarm" kind="config" onClose={vi.fn()} />);
-
     // starts in Form mode (no CodeMirror)
-    expect(__getCtorCount()).toBe(before);
-
+    expect(screen.queryByTestId('code-mirror-editor')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'YAML' }));
-    await waitFor(() => expect(__getCtorCount()).toBe(before + 1));
-
-    const inst = __getLastInstance();
-    const doc = inst.state.doc.toString();
-    expect(doc).toMatch(/name:/);
-    expect(doc).toMatch(/data:/);
+    const editor = await screen.findByTestId('code-mirror-editor');
+    expect(editor.value).toMatch(/name:/);
+    expect(editor.value).toMatch(/data:/);
   });
 
   it('swarm: creates secret via CreateSwarmSecret (labels parsed)', async () => {
@@ -290,18 +237,13 @@ describe('CreateManifestOverlay', () => {
   });
 
   it('swarm: service YAML view uses CodeMirror editor', async () => {
-    const before = __getCtorCount();
     render(<CreateManifestOverlay open platform="swarm" kind="service" onClose={vi.fn()} />);
-
     // Starts in Form mode (no CodeMirror mounted)
-    expect(__getCtorCount()).toBe(before);
-
+    expect(screen.queryByTestId('code-mirror-editor')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'YAML' }));
-    await waitFor(() => expect(__getCtorCount()).toBe(before + 1));
-
-    const inst = __getLastInstance();
-    expect(inst.state.doc.toString()).toMatch(/name:/);
-    expect(inst.state.doc.toString()).toMatch(/image:/);
+    const editor = await screen.findByTestId('code-mirror-editor');
+    expect(editor.value).toMatch(/name:/);
+    expect(editor.value).toMatch(/image:/);
   });
 
   it('swarm: creates stack via YAML editor (CreateSwarmStack)', async () => {
@@ -332,8 +274,8 @@ describe('CreateManifestOverlay', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     await waitFor(() => {
-      const inst = __getLastInstance();
-      expect(inst.state.doc.toString()).toBe(content);
+      const editor = screen.getByTestId('code-mirror-editor');
+      expect(editor.value).toBe(content);
     });
 
     expect(createSwarmStackMock).not.toHaveBeenCalled();

@@ -31,7 +31,7 @@ describe('PodYamlTab', () => {
       
       render(<PodYamlTab podName="my-pod" />);
       
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      expect(screen.getByText(/loading yaml/i)).toBeInTheDocument();
     });
   });
 
@@ -43,7 +43,7 @@ describe('PodYamlTab', () => {
       render(<PodYamlTab podName="my-pod" />);
       
       await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading yaml/i)).not.toBeInTheDocument();
       });
     });
 
@@ -102,7 +102,7 @@ describe('PodYamlTab', () => {
       render(<PodYamlTab podName="my-pod" />);
       
       await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading yaml/i)).not.toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Copy'));
@@ -116,7 +116,7 @@ describe('PodYamlTab', () => {
       render(<PodYamlTab podName="my-pod" />);
       
       await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading yaml/i)).not.toBeInTheDocument();
       });
 
       const downloadBtn = screen.getByText('Download');

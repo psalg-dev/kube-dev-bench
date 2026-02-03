@@ -1,38 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
-
-const overlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '760px',
-  width: '95%',
-  maxHeight: '86vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle = {
-  padding: '18px 20px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
+import { BaseModal, ModalButton } from '../../components/BaseModal';
 
 const contentStyle = {
   padding: 20,
@@ -246,11 +214,15 @@ function ConnectionHooksSettings({ onClose }) {
     if (p) setForm((prev) => ({ ...prev, scriptPath: p }));
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const hookTypeLabel = (type) => {
     const t = type || 'pre-connect';
@@ -262,35 +234,21 @@ function ConnectionHooksSettings({ onClose }) {
     : 'global';
 
   return (
-    <div
-      id={`connection-hooks-overlay-${connectionIdForDom}`}
-      style={overlayStyle}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      onKeyDown={handleKeyDown}
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      title={title}
+      width={760}
       className="hooks-settings-overlay"
+      footer={
+        <ModalButton onClick={onClose} id="hooks-settings-close-btn">
+          Close
+        </ModalButton>
+      }
     >
-      <div style={dialogStyle}>
-        <div style={headerStyle}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 18 }}>{title}</h2>
-            <div style={{ color: 'var(--gh-text-secondary, #ccc)', fontSize: 12 }}>
-              Pre-connect hooks can block connections when &quot;Abort on failure&quot; is enabled.
-            </div>
-          </div>
-          <button
-            id="hooks-settings-close-btn"
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
-          >
-            ✕
-          </button>
+      <div id={`connection-hooks-overlay-${connectionIdForDom}`} style={{ padding: 12, overflowY: 'auto' }}>
+        <div style={{ color: 'var(--gh-text-secondary, #ccc)', fontSize: 12, marginBottom: 12 }}>
+          Pre-connect hooks can block connections when &quot;Abort on failure&quot; is enabled.
         </div>
 
         {(error || localError) && (
@@ -300,7 +258,7 @@ function ConnectionHooksSettings({ onClose }) {
               border: '1px solid #f85149',
               color: '#f85149',
               padding: '10px 12px',
-              margin: 12,
+              marginBottom: 12,
               fontSize: 13,
             }}
           >
@@ -631,7 +589,7 @@ function ConnectionHooksSettings({ onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </BaseModal>
   );
 }
 

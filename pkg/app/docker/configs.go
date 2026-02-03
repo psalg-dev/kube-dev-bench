@@ -34,18 +34,9 @@ func GetSwarmConfigs(ctx context.Context, cli *client.Client) ([]SwarmConfigInfo
 }
 
 func getSwarmConfigs(ctx context.Context, cli swarmConfigsClient) ([]SwarmConfigInfo, error) {
-	configs, err := cli.ConfigList(ctx, types.ConfigListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]SwarmConfigInfo, 0, len(configs))
-	for _, cfg := range configs {
-		info := configToInfo(cfg)
-		result = append(result, info)
-	}
-
-	return result, nil
+	return listAndConvert(ctx, func(ctx context.Context) ([]swarm.Config, error) {
+		return cli.ConfigList(ctx, types.ConfigListOptions{})
+	}, configToInfo)
 }
 
 // GetSwarmConfig returns a specific Swarm config by ID or name

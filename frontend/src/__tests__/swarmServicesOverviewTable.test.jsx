@@ -11,6 +11,26 @@ const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } = vi
       RestartSwarmService: vi.fn(),
       GetSwarmServiceLogs: vi.fn(),
       UpdateSwarmServiceImage: vi.fn(),
+      // Required by taskConfig.jsx
+      GetSwarmTasks: vi.fn(),
+      GetSwarmTaskLogs: vi.fn(),
+      GetSwarmTaskHealthLogs: vi.fn(),
+      // Required by nodeConfig.jsx
+      GetSwarmNodes: vi.fn(),
+      GetSwarmNodeTasks: vi.fn(),
+      GetSwarmJoinTokens: vi.fn(),
+      UpdateSwarmNodeAvailability: vi.fn(),
+      UpdateSwarmNodeRole: vi.fn(),
+      UpdateSwarmNodeLabels: vi.fn(),
+      RemoveSwarmNode: vi.fn(),
+      // Required by stackConfig.jsx
+      GetSwarmStacks: vi.fn(),
+      GetSwarmStackServices: vi.fn(),
+      GetSwarmStackResources: vi.fn(),
+      GetSwarmStackComposeYAML: vi.fn(),
+      CreateSwarmStack: vi.fn(),
+      RollbackSwarmStack: vi.fn(),
+      RemoveSwarmStack: vi.fn(),
     },
     holmesApiMocks: {
       AnalyzeSwarmServiceStream: vi.fn(),

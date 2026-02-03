@@ -44,6 +44,8 @@ import './BaseModal.css';
  * @param {React.ReactNode} [props.footer] - Footer content (buttons)
  * @param {string} [props.className] - Additional class name for the container
  * @param {string} [props.testId] - Test ID for the modal container
+ * @param {string} [props.overlayId] - Optional id for the overlay element
+ * @param {string} [props.overlayClassName] - Optional class name for the overlay element
  * @returns {JSX.Element|null}
  */
 export function BaseModal({
@@ -56,6 +58,8 @@ export function BaseModal({
   footer,
   className = '',
   testId,
+  overlayId,
+  overlayClassName = '',
 }) {
   if (!isOpen) return null;
 
@@ -66,7 +70,7 @@ export function BaseModal({
   };
 
   return (
-    <div className="base-modal-overlay" onClick={onClose}>
+    <div id={overlayId} className={`base-modal-overlay ${overlayClassName}`.trim()} onClick={onClose}>
       <div
         className={`base-modal-container ${className}`.trim()}
         style={containerStyle}

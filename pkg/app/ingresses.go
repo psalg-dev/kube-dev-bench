@@ -114,3 +114,11 @@ func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
 
 	return result, nil
 }
+
+// StartIngressPolling emits ingresses:update events periodically with the current ingress list
+func (a *App) StartIngressPolling() {
+	startResourcePolling(a, ResourcePollingConfig[IngressInfo]{
+		EventName: "ingresses:update",
+		FetchFn:   a.GetIngresses,
+	})
+}

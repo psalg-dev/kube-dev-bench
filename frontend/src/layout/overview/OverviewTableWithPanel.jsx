@@ -361,19 +361,8 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
 
                   {openMenuKey === getRowKey(row, idx) && (
                     <div
-                      className="menu-content row-actions-menu"
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: '100%',
-                        background: 'var(--gh-table-header-bg, #2d323b)',
-                        border: '1px solid #353a42',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                        zIndex: 1200,
-                        minWidth: 180,
-                        textAlign: 'left',
-                        padding: '4px 0',
-                      }}
+                      className="menu-content dropdown-menu dropdown-menu-right row-actions-menu"
+                      style={{ zIndex: 1200 }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {(() => {
@@ -382,19 +371,11 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                         const disabled = Boolean(a?.disabled);
                         const danger = Boolean(a?.danger);
                         return (
-                          <div
+                          <button
+                            type="button"
                             key={`${a?.label || 'action'}-${i}`}
-                            className="context-menu-item"
-                            style={{
-                              padding: '8px 16px',
-                              cursor: disabled ? 'not-allowed' : 'pointer',
-                              color: danger ? '#f85149' : '#fff',
-                              opacity: disabled ? 0.55 : 1,
-                              fontSize: 15,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                            }}
+                            className={`context-menu-item${danger ? ' context-menu-item-danger' : ''}`}
+                            disabled={disabled}
                             onClick={() => {
                               if (disabled) return;
                               try {
@@ -405,12 +386,12 @@ export default function OverviewTableWithPanel({ columns, data, tabs, renderPane
                             }}
                           >
                             {a?.icon ? (
-                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>{a.icon}</span>
+                              <span className="context-menu-icon" aria-hidden="true">{a.icon}</span>
                             ) : (
-                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block' }} />
+                              <span className="context-menu-icon" aria-hidden="true" />
                             )}
-                            <span>{a?.label}</span>
-                          </div>
+                            <span className="context-menu-label">{a?.label}</span>
+                          </button>
                         );
                         });
                       })()}

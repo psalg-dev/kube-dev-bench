@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
-import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
+import CodeMirrorEditor from '../../components/CodeMirrorEditor';
 import { EventsOn, EventsOff } from '../../../wailsjs/runtime';
 import { StreamPodLogs, StopPodLogs, GetPodLog, StreamPodContainerLogs, GetPodContainerLog } from '../../../wailsjs/go/main/App';
 import { AnalyzePodLogs, AskHolmesStream, CancelHolmesStream, onHolmesChatStream } from '../../holmes/holmesApi';
@@ -16,7 +15,6 @@ const BATCH_SIZE = 100; // Lines to process in batches
 const UPDATE_INTERVAL = 100; // ms between batch updates
 
 export default function LogViewerTab({ podName, namespace, onClose, embedded = false, container = null }) {
-  const editorRef = useRef(null);
   const viewRef = useRef(null);
   const popoutRef = useRef(null);
   const popoutRootRef = useRef(null);
@@ -89,32 +87,7 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
   // keep pausedRef in sync
   useEffect(() => { pausedRef.current = paused; }, [paused]);
 
-  const darkTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#181c20', color: '#e0e0e0' },
-    '.cm-content': { caretColor: '#fff', textAlign: 'left' },
-    '.cm-line': { textAlign: 'left' },
-    '&.cm-editor': { height: '100%' },
-    '.cm-scroller': { fontFamily: 'monospace', lineHeight: '1.35' }
-  }, { dark: true }), []);
-
-  const extensions = useMemo(
-    () => [
-      darkTheme,
-      EditorView.editable.of(false),
-      EditorState.readOnly.of(true),
-      EditorView.lineWrapping,
-      // Enable virtual scrolling for better performance
-      EditorView.theme({
-        '.cm-scroller': {
-          // Optimize scrolling performance
-          'scroll-behavior': 'auto',
-        }
-      }),
-      // Optimize for large documents
-      EditorState.allowMultipleSelections.of(false),
-    ],
-    [darkTheme]
-  );
+  const editorRef = useRef(null);
 
   // Optimized line matching with early exit
   const lineMatches = useCallback((line) => {
@@ -208,6 +181,13 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
     // Start batch processing
     processBatch();
   }, [processBatch]);
+
+  const handleViewReady = useCallback((view) => {
+    viewRef.current = view;
+    flushPending();
+  }, [flushPending]);
+
+  useEffect(() => () => { viewRef.current = null; }, []);
 
   // Subscribe to backend events for the current pod (no stream control here)
   useEffect(() => {
@@ -385,70 +365,13 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
   // Initialize CodeMirror only once
   useEffect(() => {
-    if (!editorRef.current || viewRef.current) return;
-    try {
-      viewRef.current = new EditorView({
-        state: EditorState.create({
-          doc: '',
-          extensions: extensions
-        }),
-        parent: editorRef.current
-      });
-      // After creating editor, flush any buffered lines
-      flushPending();
-    } catch (err) {
-
-      console.error('Error creating EditorView:', err);
-    }
-    return () => {
-      if (viewRef.current) {
-        try { viewRef.current.destroy(); } catch {}
-        viewRef.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [extensions]);
-
-  // Re-attach or recreate editor when switching back to history tab
-  useEffect(() => {
     if (activeTab !== 'history') return;
-    if (!editorRef.current) return;
-
-    const attachView = () => {
-      const view = viewRef.current;
-      if (!view) return;
-      if (view.dom.parentElement !== editorRef.current) {
-        if (typeof view.setParent === 'function') {
-          try { view.setParent(editorRef.current); } catch {}
-        } else {
-          try { editorRef.current.appendChild(view.dom); } catch {}
-        }
-      }
-      requestAnimationFrame(() => {
-        const scroller = editorRef.current?.querySelector('.cm-scroller');
-        if (scroller) scroller.scrollTop = scroller.scrollHeight;
-      });
-    };
-
-    if (!viewRef.current) {
-      try {
-        const filtered = allLinesRef.current.filter(lineMatches);
-        const doc = filtered.length ? filtered.join('\n') + '\n' : '';
-        viewRef.current = new EditorView({
-          state: EditorState.create({
-            doc,
-            extensions: extensions
-          }),
-          parent: editorRef.current
-        });
-      } catch (err) {
-
-        console.error('Error re-creating EditorView:', err);
-      }
-    }
-
-    attachView();
-  }, [activeTab, extensions, lineMatches]);
+    if (!editorRef.current || !viewRef.current) return;
+    requestAnimationFrame(() => {
+      const scroller = editorRef.current?.querySelector('.cm-scroller');
+      if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    });
+  }, [activeTab]);
 
   // Clear button handler with performance optimization
   const handleClear = () => {
@@ -946,7 +869,20 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         {activeTab === 'history' && (
           <>
             {filterInput}
-            <div ref={editorRef} style={{ height: '100%', width: '100%', overflow: 'auto', position: 'relative' }} />
+            <div ref={editorRef} style={{ height: '100%', width: '100%', overflow: 'auto', position: 'relative' }}>
+              <CodeMirrorEditor
+                value=""
+                language="text"
+                readOnly={true}
+                lineNumbers={false}
+                foldGutter={false}
+                lineWrapping={true}
+                highlightActiveLine={false}
+                height="100%"
+                syncValue={false}
+                onViewReady={handleViewReady}
+              />
+            </div>
           </>
         )}
         {activeTab === 'analysis' && analysisPanel}
@@ -994,7 +930,20 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
         <>
           {filterInput}
           <div style={{ flex: 1, position: 'relative' }}>
-            <div ref={editorRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }} />
+            <div ref={editorRef} style={{ flex: 1, minHeight: 0, overflow: 'auto', position: 'relative' }}>
+              <CodeMirrorEditor
+                value=""
+                language="text"
+                readOnly={true}
+                lineNumbers={false}
+                foldGutter={false}
+                lineWrapping={true}
+                highlightActiveLine={false}
+                height="100%"
+                syncValue={false}
+                onViewReady={handleViewReady}
+              />
+            </div>
             {/* Floating controls bottom-right */}
             <div style={{ position: 'absolute', right: 25, bottom: 12, display: 'flex', gap: 10, zIndex: 101 }}>
               <button

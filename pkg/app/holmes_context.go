@@ -31,17 +31,14 @@ func (a *App) emitHolmesContextProgress(kind, namespace, name, step, status, det
 }
 
 func (a *App) getPodContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("Pod", namespace, name, "Fetching pod details", "running", "")
 	podCtx, podCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -78,7 +75,7 @@ func (a *App) getPodContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("Pod", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "Pod")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "Pod")
 	eventsCancel()
 	a.emitHolmesContextProgress("Pod", namespace, name, "Collecting recent events", "done", "")
 
@@ -97,17 +94,14 @@ func (a *App) getPodContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getDeploymentContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("Deployment", namespace, name, "Fetching deployment details", "running", "")
 	deployCtx, deployCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -128,7 +122,7 @@ func (a *App) getDeploymentContext(namespace, name string) (string, error) {
 		desired, deploy.Status.ReadyReplicas, deploy.Status.AvailableReplicas))
 	sb.WriteString(fmt.Sprintf("Strategy: %s\n", deploy.Spec.Strategy.Type))
 
-	writeDeploymentConditions(&sb, deploy.Status.Conditions)
+	writeDeploymentConditions(sb, deploy.Status.Conditions)
 
 	a.emitHolmesContextProgress("Deployment", namespace, name, "Listing related pods", "running", "")
 	podsCtx, podsCancel := context.WithTimeout(ctx, 8*time.Second)
@@ -146,7 +140,7 @@ func (a *App) getDeploymentContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("Deployment", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "Deployment")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "Deployment")
 	eventsCancel()
 	a.emitHolmesContextProgress("Deployment", namespace, name, "Collecting recent events", "done", "")
 
@@ -154,17 +148,14 @@ func (a *App) getDeploymentContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getStatefulSetContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("StatefulSet", namespace, name, "Fetching statefulset details", "running", "")
 	stsCtx, stsCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -185,7 +176,7 @@ func (a *App) getStatefulSetContext(namespace, name string) (string, error) {
 		desired, sts.Status.ReadyReplicas, sts.Status.CurrentReplicas))
 	sb.WriteString(fmt.Sprintf("Service: %s\n", sts.Spec.ServiceName))
 
-	writeStatefulSetConditions(&sb, sts.Status.Conditions)
+	writeStatefulSetConditions(sb, sts.Status.Conditions)
 
 	a.emitHolmesContextProgress("StatefulSet", namespace, name, "Listing related pods", "running", "")
 	podsCtx, podsCancel := context.WithTimeout(ctx, 8*time.Second)
@@ -203,7 +194,7 @@ func (a *App) getStatefulSetContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("StatefulSet", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "StatefulSet")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "StatefulSet")
 	eventsCancel()
 	a.emitHolmesContextProgress("StatefulSet", namespace, name, "Collecting recent events", "done", "")
 
@@ -211,17 +202,14 @@ func (a *App) getStatefulSetContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getDaemonSetContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("DaemonSet", namespace, name, "Fetching daemonset details", "running", "")
 	dsCtx, dsCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -239,7 +227,7 @@ func (a *App) getDaemonSetContext(namespace, name string) (string, error) {
 		sb.WriteString(fmt.Sprintf("Update Strategy: %s\n", ds.Spec.UpdateStrategy.Type))
 	}
 
-	writeDaemonSetConditions(&sb, ds.Status.Conditions)
+	writeDaemonSetConditions(sb, ds.Status.Conditions)
 
 	a.emitHolmesContextProgress("DaemonSet", namespace, name, "Listing related pods", "running", "")
 	podsCtx, podsCancel := context.WithTimeout(ctx, 8*time.Second)
@@ -257,7 +245,7 @@ func (a *App) getDaemonSetContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("DaemonSet", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "DaemonSet")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "DaemonSet")
 	eventsCancel()
 	a.emitHolmesContextProgress("DaemonSet", namespace, name, "Collecting recent events", "done", "")
 
@@ -265,17 +253,14 @@ func (a *App) getDaemonSetContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getServiceContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("Service", namespace, name, "Fetching service details", "running", "")
 	svcCtx, svcCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -316,7 +301,7 @@ func (a *App) getServiceContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("Service", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "Service")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "Service")
 	eventsCancel()
 	a.emitHolmesContextProgress("Service", namespace, name, "Collecting recent events", "done", "")
 
@@ -402,17 +387,14 @@ func appendRecentEvents(ctx context.Context, sb *strings.Builder, eventsClient c
 }
 
 func (a *App) getJobContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("Job", namespace, name, "Fetching job details", "running", "")
 	jobCtx, jobCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -437,7 +419,7 @@ func (a *App) getJobContext(namespace, name string) (string, error) {
 	sb.WriteString(fmt.Sprintf("Active: %d, Succeeded: %d, Failed: %d\n",
 		job.Status.Active, job.Status.Succeeded, job.Status.Failed))
 
-	writeJobConditions(&sb, job.Status.Conditions)
+	writeJobConditions(sb, job.Status.Conditions)
 
 	a.emitHolmesContextProgress("Job", namespace, name, "Listing related pods", "running", "")
 	podsCtx, podsCancel := context.WithTimeout(ctx, 8*time.Second)
@@ -455,7 +437,7 @@ func (a *App) getJobContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("Job", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "Job")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "Job")
 	eventsCancel()
 	a.emitHolmesContextProgress("Job", namespace, name, "Collecting recent events", "done", "")
 
@@ -463,17 +445,14 @@ func (a *App) getJobContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getCronJobContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("CronJob", namespace, name, "Fetching cronjob details", "running", "")
 	cronJobCtx, cronJobCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -501,7 +480,7 @@ func (a *App) getCronJobContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("CronJob", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "CronJob")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "CronJob")
 	eventsCancel()
 	a.emitHolmesContextProgress("CronJob", namespace, name, "Collecting recent events", "done", "")
 
@@ -546,17 +525,14 @@ func writeIngressLoadBalancerContext(sb *strings.Builder, ingresses []networking
 }
 
 func (a *App) getIngressContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("Ingress", namespace, name, "Fetching ingress details", "running", "")
 	ingressCtx, ingressCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -574,22 +550,22 @@ func (a *App) getIngressContext(namespace, name string) (string, error) {
 	}
 
 	// Write TLS configuration
-	writeIngressTLSContext(&sb, ingress.Spec.TLS)
+	writeIngressTLSContext(sb, ingress.Spec.TLS)
 
 	// Write rules
 	if len(ingress.Spec.Rules) > 0 {
 		sb.WriteString("\nRules:\n")
 		for _, rule := range ingress.Spec.Rules {
-			writeIngressRuleContext(&sb, rule)
+			writeIngressRuleContext(sb, rule)
 		}
 	}
 
 	// Write load balancer status
-	writeIngressLoadBalancerContext(&sb, ingress.Status.LoadBalancer.Ingress)
+	writeIngressLoadBalancerContext(sb, ingress.Status.LoadBalancer.Ingress)
 
 	a.emitHolmesContextProgress("Ingress", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "Ingress")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "Ingress")
 	eventsCancel()
 	a.emitHolmesContextProgress("Ingress", namespace, name, "Collecting recent events", "done", "")
 
@@ -597,17 +573,14 @@ func (a *App) getIngressContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getConfigMapContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("ConfigMap", namespace, name, "Fetching configmap details", "running", "")
 	cmCtx, cmCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -638,7 +611,7 @@ func (a *App) getConfigMapContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("ConfigMap", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "ConfigMap")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "ConfigMap")
 	eventsCancel()
 	a.emitHolmesContextProgress("ConfigMap", namespace, name, "Collecting recent events", "done", "")
 
@@ -646,17 +619,14 @@ func (a *App) getConfigMapContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getSecretContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("Secret", namespace, name, "Fetching secret details", "running", "")
 	secretCtx, secretCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -680,7 +650,7 @@ func (a *App) getSecretContext(namespace, name string) (string, error) {
 
 	a.emitHolmesContextProgress("Secret", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "Secret")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "Secret")
 	eventsCancel()
 	a.emitHolmesContextProgress("Secret", namespace, name, "Collecting recent events", "done", "")
 
@@ -688,17 +658,14 @@ func (a *App) getSecretContext(namespace, name string) (string, error) {
 }
 
 func (a *App) getPersistentVolumeContext(name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("PersistentVolume", "", name, "Fetching PV details", "running", "")
 	pvCtx, pvCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -733,17 +700,14 @@ func (a *App) getPersistentVolumeContext(name string) (string, error) {
 }
 
 func (a *App) getPersistentVolumeClaimContext(namespace, name string) (string, error) {
-	clientset, err := a.getKubernetesInterface()
+	builder, err := a.newHolmesContextBuilder()
 	if err != nil {
 		return "", err
 	}
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	var sb strings.Builder
+	clientset := builder.clientset
+	ctx := builder.ctx
+	sb := &builder.sb
 
 	a.emitHolmesContextProgress("PersistentVolumeClaim", namespace, name, "Fetching PVC details", "running", "")
 	pvcCtx, pvcCancel := context.WithTimeout(ctx, 10*time.Second)
@@ -771,7 +735,7 @@ func (a *App) getPersistentVolumeClaimContext(namespace, name string) (string, e
 
 	a.emitHolmesContextProgress("PersistentVolumeClaim", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
-	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "PersistentVolumeClaim")
+	appendRecentEvents(eventsCtx, sb, clientset.CoreV1().Events(namespace), name, "PersistentVolumeClaim")
 	eventsCancel()
 	a.emitHolmesContextProgress("PersistentVolumeClaim", namespace, name, "Collecting recent events", "done", "")
 

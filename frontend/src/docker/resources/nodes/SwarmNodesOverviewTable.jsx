@@ -22,6 +22,8 @@ import {
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import { showSuccess, showError } from '../../../notification.js';
 
+export { default } from './SwarmNodesOverviewTableGeneric.jsx';
+
 const columns = [
   { key: 'hostname', label: 'Hostname' },
   { key: 'role', label: 'Role', cell: ({ getValue }) => {
@@ -508,7 +510,7 @@ function renderPanelContent(row, tab, onRefresh, holmesState, onAnalyze, onCance
   return null;
 }
 
-export default function SwarmNodesOverviewTable() {
+function SwarmNodesOverviewTableLegacy() {
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -525,9 +527,9 @@ export default function SwarmNodesOverviewTable() {
     toolEvents: [],
   });
   const holmesStateRef = useRef(holmesState);
-  useEffect(() => {
-    holmesStateRef.current = holmesState;
-  }, [holmesState]);
+    useEffect(() => {
+      holmesStateRef.current = holmesState;
+    }, [holmesState]);
 
   const refresh = useCallback(() => {
     setRefreshKey(k => k + 1);

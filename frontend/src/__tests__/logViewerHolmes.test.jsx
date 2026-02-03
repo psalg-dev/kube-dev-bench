@@ -15,27 +15,11 @@ const { holmesApiMocks, notificationMocks } = vi.hoisted(() => {
   };
 });
 
-vi.mock('@codemirror/view', () => {
-  class EditorView {
-    constructor() {
-      this.state = { doc: { length: 0 } };
-      this.dispatch = vi.fn();
-      this.destroy = vi.fn();
-      this.dom = document.createElement('div');
-    }
-  }
-  EditorView.theme = () => ({});
-  EditorView.lineWrapping = {};
-  EditorView.editable = { of: () => ({}) };
-  return { EditorView };
-});
-
-vi.mock('@codemirror/state', () => ({
-  EditorState: {
-    create: () => ({ doc: { length: 0 } }),
-    readOnly: { of: () => ({}) },
-    allowMultipleSelections: { of: () => ({}) },
-  },
+vi.mock('../components/CodeMirrorEditor', () => ({
+  default: ({ value }) => (
+    <textarea data-testid="code-mirror-editor" value={value} readOnly />
+  ),
+  EditorLoading: () => null,
 }));
 
 vi.mock('../../wailsjs/runtime', () => ({

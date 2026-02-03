@@ -12,8 +12,9 @@ import SwarmConnectionWizard from './docker/SwarmConnectionWizard.jsx';
 import { HolmesProvider, useHolmes } from './holmes/HolmesContext.jsx';
 import { HolmesPanel } from './holmes/HolmesPanel.jsx';
 import { HolmesConfigModal } from './holmes/HolmesConfigModal.jsx';
-// Resource overview tables
+// Resource overview tables (consolidated using GenericResourceTable pattern)
 import PodOverviewTable from './k8s/resources/pods/PodOverviewTable.jsx';
+// K8s OverviewTable imports
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable.jsx';
 import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable.jsx';
 import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable.jsx';
@@ -29,7 +30,7 @@ import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/Pe
 import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable.jsx';
 import HelmInstallDialog from './k8s/resources/helmreleases/HelmInstallDialog.jsx';
 import HelmRepositoriesDialog from './k8s/resources/helmreleases/HelmRepositoriesDialog.jsx';
-// Docker Swarm resource views
+// Docker Swarm resource views (consolidated using GenericResourceTable pattern)
 import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable.jsx';
 import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable.jsx';
 import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable.jsx';

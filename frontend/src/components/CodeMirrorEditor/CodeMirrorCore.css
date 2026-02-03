@@ -1,0 +1,19 @@
+/**
+ * CodeMirror Core Styles
+ */
+
+.codemirror-core {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.codemirror-core .cm-editor {
+  height: 100%;
+  width: 100%;
+}
+
+/* Ensure scroller fills available space */
+.codemirror-core .cm-scroller {
+  overflow: auto;
+}

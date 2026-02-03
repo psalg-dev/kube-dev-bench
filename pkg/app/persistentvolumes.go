@@ -134,6 +134,21 @@ func buildPVInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo
 	}
 }
 
+// StartPersistentVolumePolling emits persistentvolumes:update events periodically
+// PersistentVolumes are cluster-scoped, so we only fetch once per poll cycle.
+func (a *App) StartPersistentVolumePolling() {
+	startResourcePolling(a, ResourcePollingConfig[PersistentVolumeInfo]{
+		EventName: "persistentvolumes:update",
+		FetchFn: func(namespace string) ([]PersistentVolumeInfo, error) {
+			nsList := a.getPollingNamespaces()
+			if len(nsList) > 0 && namespace != nsList[0] {
+				return nil, nil
+			}
+			return a.GetPersistentVolumes()
+		},
+	})
+}
+
 // GetPersistentVolumes returns all persistent volumes in the cluster
 func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
 	var clientset kubernetes.Interface

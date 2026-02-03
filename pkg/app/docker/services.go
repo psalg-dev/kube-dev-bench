@@ -145,13 +145,11 @@ func getSwarmServices(ctx context.Context, cli swarmServicesClient) ([]SwarmServ
 		}
 	}
 
-	result := make([]SwarmServiceInfo, 0, len(services))
-	for _, svc := range services {
-		info := serviceToInfo(svc, runningTasksMap[svc.ID])
-		result = append(result, info)
-	}
-
-	return result, nil
+	return listAndConvert(ctx, func(context.Context) ([]swarm.Service, error) {
+		return services, nil
+	}, func(svc swarm.Service) SwarmServiceInfo {
+		return serviceToInfo(svc, runningTasksMap[svc.ID])
+	})
 }
 
 // GetSwarmService returns a specific Swarm service by ID or name

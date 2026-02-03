@@ -1,0 +1,100 @@
+/**
+ * Editor Loading Placeholder Styles
+ */
+
+.editor-loading {
+  display: flex;
+  width: 100%;
+  background: var(--gh-bg, #0d1117);
+  font-family: var(--gh-mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.editor-loading-gutter {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  background: var(--gh-bg-alt, #161b22);
+  border-right: 1px solid var(--gh-border, #30363d);
+  color: var(--gh-text-muted, #8b949e);
+  min-width: 40px;
+  text-align: right;
+}
+
+.editor-loading-line-number {
+  padding: 0 8px;
+  line-height: 1.45;
+  opacity: 0.5;
+}
+
+.editor-loading-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 4px 8px;
+  position: relative;
+}
+
+.editor-loading-lines {
+  flex: 1;
+}
+
+.editor-loading-line {
+  height: 1.45em;
+  display: flex;
+  align-items: center;
+}
+
+.editor-loading-skeleton {
+  height: 12px;
+  background: linear-gradient(
+    90deg,
+    var(--gh-border-muted, #21262d) 0%,
+    var(--gh-border, #30363d) 50%,
+    var(--gh-border-muted, #21262d) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: 3px;
+  animation: editor-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes editor-skeleton-pulse {
+  0%, 100% {
+    background-position: 200% 0;
+  }
+  50% {
+    background-position: 0% 0;
+  }
+}
+
+.editor-loading-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gh-text-secondary, #8b949e);
+  font-size: 12px;
+  background: var(--gh-bg, #0d1117);
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--gh-border, #30363d);
+}
+
+.editor-loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--gh-border, #30363d);
+  border-top-color: var(--gh-accent, #0969da);
+  border-radius: 50%;
+  animation: editor-spinner 0.8s linear infinite;
+}
+
+@keyframes editor-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}

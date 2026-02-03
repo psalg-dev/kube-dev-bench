@@ -25,6 +25,8 @@ import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHo
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import StatusBadge from '../../../components/StatusBadge.jsx';
 
+export { default } from './PodOverviewTableGeneric.jsx';
+
 // Resource types matching sidebar and templates in resource-overlay.js
 const createOptions = [
   { key: 'deployment', label: 'Deployment' },
@@ -38,7 +40,7 @@ const createOptions = [
   { key: 'ingress', label: 'Ingress' },
 ];
 
-export default function PodOverviewTable({ namespace, namespaces = [], data = [], loading = false, _onCreateResource }) {
+function PodOverviewTableLegacy({ namespace, namespaces = [], data = [], loading = false, _onCreateResource }) {
   const [now, setNow] = useState(Date.now());
   // Default sorting: uptime ascending (youngest at top)
   const [sorting, setSorting] = useState([{ id: 'uptime', desc: false }]);
@@ -890,28 +892,19 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             </button>
             {showMenu && (
               <div
-                className="menu-content"
-                style={{
-                  position: 'absolute',
-                  top: 40,
-                  left: 0,
-                  background: 'var(--gh-table-header-bg, #2d323b)',
-                  border: '1px solid #353a42',
-                  borderRadius: 0,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                  zIndex: 1200, // raised to sit above notifications & bottom panel
-                  minWidth: 180,
-                  padding: '4px 0',
-                  textAlign: 'left', // <-- ensure left alignment
-                }}
+                className="menu-content dropdown-menu"
+                style={{ top: 40, left: 0, zIndex: 1200 }}
                 onClick={handleMenuClick}
               >
                 {createOptions.map(opt => (
-                  <div
+                  <button
+                    type="button"
                     key={opt.key}
-                    style={{ padding:'8px 18px', cursor:'pointer', color:'#fff', fontSize:15, whiteSpace:'nowrap', textAlign: 'left' }}
+                    className="context-menu-item"
                     onClick={() => { setShowMenu(false); setTimeout(() => { showResourceOverlay(opt.key); }, 0); }}
-                  >{opt.label}</div>
+                  >
+                    <span className="context-menu-label">{opt.label}</span>
+                  </button>
                 ))}
               </div>
             )}
@@ -1037,141 +1030,68 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
                     </button>
                     {openMenuIndex === (visibleRowStart + i) && (
                         <div
-                            className="menu-content"
-                            style={{
-                              position: 'absolute',
-                              right: 0,
-                              top: '100%',
-                              background: 'var(--gh-table-header-bg, #2d323b)',
-                              border: '1px solid #353a42',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                              zIndex: 1200, // raised above other floating UI
-                              minWidth: 180,
-                              textAlign: 'left',
-                            }}
+                            className="menu-content dropdown-menu dropdown-menu-right"
+                            style={{ zIndex: 1200 }}
                             onClick={(e) => e.stopPropagation()}
                         >
-                          <div
+                          <button
+                              type="button"
                               className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
                               onClick={() => handleKubectlLogs(row.original.name, row.original.namespace)}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>📜</span>
-                            <span>Logs</span>
-                          </div>
-                          <div
+                            <span className="context-menu-icon" aria-hidden="true">📜</span>
+                            <span className="context-menu-label">Logs</span>
+                          </button>
+                          <button
+                              type="button"
                               className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
                               onClick={() => handleAnalyzeHolmes(row.original.name, row.original.namespace)}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🧠</span>
-                            <span>Ask Holmes</span>
-                          </div>
-                          <div
+                            <span className="context-menu-icon" aria-hidden="true">🧠</span>
+                            <span className="context-menu-label">Ask Holmes</span>
+                          </button>
+                          <button
+                              type="button"
                               className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
                               onClick={() => handleRestart(row.original.name, row.original.namespace)}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔄</span>
-                            <span>Restart</span>
-                          </div>
-                          <div
+                            <span className="context-menu-icon" aria-hidden="true">🔄</span>
+                            <span className="context-menu-label">Restart</span>
+                          </button>
+                          <button
+                              type="button"
                               className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
                               onClick={() => handleShell(row.original.name, row.original.namespace)}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>💻</span>
-                            <span>Shell</span>
-                          </div>
-                          <div
+                            <span className="context-menu-icon" aria-hidden="true">💻</span>
+                            <span className="context-menu-label">Shell</span>
+                          </button>
+                          <button
+                              type="button"
                               className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
                               onClick={() => handlePortForward(row.original.name, row.original.namespace)}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🔌</span>
-                            <span>Port Forward</span>
-                          </div>
+                            <span className="context-menu-icon" aria-hidden="true">🔌</span>
+                            <span className="context-menu-label">Port Forward</span>
+                          </button>
                           {hasActivePF(row.original.name, row.original.namespace) && (
-                              <div
+                              <button
+                                  type="button"
                                   className="context-menu-item"
-                                  style={{
-                                    padding: '8px 16px',
-                                    cursor: 'pointer',
-                                    color: '#fff',
-                                    fontSize: 15,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8
-                                  }}
                                   onClick={() => handleStopPortForward(row.original.name, row.original.namespace)}
                               >
-                                <span aria-hidden="true"
-                                      style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🛑</span>
-                                <span>Stop Port Forward</span>
-                              </div>
+                                <span className="context-menu-icon" aria-hidden="true">🛑</span>
+                                <span className="context-menu-label">Stop Port Forward</span>
+                              </button>
                           )}
-                          <div
-                              className="context-menu-item"
-                              style={{
-                                padding: '8px 16px',
-                                cursor: 'pointer',
-                                color: '#fff',
-                                fontSize: 15,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 8
-                              }}
+                          <button
+                              type="button"
+                              className="context-menu-item context-menu-item-danger"
                               onClick={() => handleDelete(row.original.name, row.original.namespace)}
                           >
-                            <span aria-hidden="true"
-                                  style={{width: 18, display: 'inline-block', textAlign: 'center'}}>🗑️</span>
-                            <span>Delete</span>
-                          </div>
+                            <span className="context-menu-icon" aria-hidden="true">🗑️</span>
+                            <span className="context-menu-label">Delete</span>
+                          </button>
                         </div>
                     )}
                   </td>

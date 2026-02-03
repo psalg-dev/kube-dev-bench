@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
+import { useEffect, useReducer, useCallback } from 'react';
+import { createResourceContext } from './createResourceContext.jsx';
 import {
   GetKubeConfigs,
   GetKubeContexts,
@@ -10,8 +11,6 @@ import {
   SetPreferredNamespaces,
 } from '../k8s/resources/kubeApi.js'; // fixed path
 import { showError, showSuccess, showWarning } from '../notification';
-
-const ClusterStateContext = createContext(null);
 
 const initialState = {
   contexts: [],
@@ -27,6 +26,11 @@ const initialState = {
   kubernetesAvailable: true,
 };
 export { initialState };
+
+const { Context: ClusterStateContext, useContext: useClusterStateInternal } = createResourceContext({
+  name: 'ClusterState',
+  initialState,
+});
 
 function reducer(state, action) {
   switch(action.type) {
@@ -250,7 +254,5 @@ export function ClusterStateProvider({ children }) {
 }
 
 export function useClusterState() {
-  const ctx = useContext(ClusterStateContext);
-  if (!ctx) throw new Error('useClusterState must be used within ClusterStateProvider');
-  return ctx;
+  return useClusterStateInternal();
 }

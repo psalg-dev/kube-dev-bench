@@ -70,14 +70,13 @@ func getSwarmTasks(ctx context.Context, cli swarmTasksClient) ([]SwarmTaskInfo, 
 		}
 	}
 
-	result := make([]SwarmTaskInfo, 0, len(tasks))
-	for _, task := range tasks {
+	return listAndConvert(ctx, func(context.Context) ([]swarm.Task, error) {
+		return tasks, nil
+	}, func(task swarm.Task) SwarmTaskInfo {
 		info := taskToInfo(task, serviceNames, nodeNames)
 		populateSwarmTaskHealth(ctx, cli, &info)
-		result = append(result, info)
-	}
-
-	return result, nil
+		return info
+	})
 }
 
 // GetSwarmTasksByService returns all tasks for a specific service
@@ -111,14 +110,13 @@ func getSwarmTasksByService(ctx context.Context, cli swarmTasksClient, serviceID
 		}
 	}
 
-	result := make([]SwarmTaskInfo, 0, len(tasks))
-	for _, task := range tasks {
+	return listAndConvert(ctx, func(context.Context) ([]swarm.Task, error) {
+		return tasks, nil
+	}, func(task swarm.Task) SwarmTaskInfo {
 		info := taskToInfo(task, serviceNames, nodeNames)
 		populateSwarmTaskHealth(ctx, cli, &info)
-		result = append(result, info)
-	}
-
-	return result, nil
+		return info
+	})
 }
 
 // GetSwarmTask returns a specific Swarm task by ID

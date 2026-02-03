@@ -736,6 +736,8 @@ export namespace app {
 	    version: string;
 	    values: Record<string, any>;
 	    createNamespace: boolean;
+	    waitStrategy: string;
+	    timeout: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new HelmInstallRequest(source);
@@ -749,6 +751,8 @@ export namespace app {
 	        this.version = source["version"];
 	        this.values = source["values"];
 	        this.createNamespace = source["createNamespace"];
+	        this.waitStrategy = source["waitStrategy"];
+	        this.timeout = source["timeout"];
 	    }
 	}
 	export class HelmReleaseInfo {
@@ -802,6 +806,8 @@ export namespace app {
 	    version: string;
 	    values: Record<string, any>;
 	    reuseValues: boolean;
+	    waitStrategy: string;
+	    timeout: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new HelmUpgradeRequest(source);
@@ -815,6 +821,8 @@ export namespace app {
 	        this.version = source["version"];
 	        this.values = source["values"];
 	        this.reuseValues = source["reuseValues"];
+	        this.waitStrategy = source["waitStrategy"];
+	        this.timeout = source["timeout"];
 	    }
 	}
 	export class HookConfig {

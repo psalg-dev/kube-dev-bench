@@ -1,0 +1,404 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import QuickInfoSection from '../../../QuickInfoSection';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import UpdateStackModal from './UpdateStackModal';
+import SwarmResourceActions from '../SwarmResourceActions';
+import StatusBadge from '../../../components/StatusBadge';
+import { navigateToResource } from '../../../utils/resourceNavigation';
+import {
+  CreateSwarmStack,
+  GetSwarmStackComposeYAML,
+  GetSwarmStackResources,
+  GetSwarmStackServices,
+  RemoveSwarmStack,
+  RollbackSwarmStack,
+} from '../../swarmApi';
+import { showSuccess, showError } from '../../../notification';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
+import './StackServicesTab.css';
+
+export default function StackSummaryPanel({ row, onRefresh }) {
+  const [showUpdate, setShowUpdate] = useState(false);
+  const [compose, setCompose] = useState('');
+  const [loadingCompose, setLoadingCompose] = useState(false);
+  const [health, setHealth] = useState({ healthy: 0, unhealthy: 0, total: 0 });
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+  const [resourceCounts, setResourceCounts] = useState({ networks: 0, volumes: 0, configs: 0, secrets: 0 });
+  const [hoveredService, setHoveredService] = useState(null);
+  const initialLoadDoneRef = useRef(false);
+
+  const summaryColumns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'image', label: 'Image' },
+    { key: 'mode', label: 'Mode' },
+    { key: 'replicas', label: 'Replicas' },
+  ]), []);
+  const defaultSummarySortKey = useMemo(() => pickDefaultSortKey(summaryColumns), [summaryColumns]);
+  const [summarySortState, setSummarySortState] = useState(() => ({ key: defaultSummarySortKey, direction: 'asc' }));
+  const sortedSummaryServices = useMemo(() => {
+    return sortRows(services, summarySortState.key, summarySortState.direction, (svc, key) => {
+      if (key === 'name') return svc?.name?.replace(`${row.name}_`, '') || svc?.name || '';
+      if (key === 'replicas') return Number(svc?.replicas || 0);
+      return svc?.[key];
+    });
+  }, [services, summarySortState, row.name]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
+  const handleServiceClick = (svc) => {
+    if (svc.name) {
+      navigateToResource({ resource: 'SwarmService', name: svc.name });
+    }
+  };
+
+  const buttonStyle = {
+    padding: '6px 12px',
+    borderRadius: 4,
+    border: '1px solid var(--gh-border, #30363d)',
+    backgroundColor: 'var(--gh-button-bg, #21262d)',
+    color: 'var(--gh-text, #c9d1d9)',
+    cursor: 'pointer',
+    fontSize: 12,
+    fontWeight: 500,
+  };
+
+  const downloadTextFile = (filename, content) => {
+    const blob = new Blob([content ?? ''], { type: 'text/yaml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const loadCompose = async () => {
+    setLoadingCompose(true);
+    try {
+      const y = await GetSwarmStackComposeYAML(row.name);
+      setCompose(y || '');
+      return y || '';
+    } finally {
+      setLoadingCompose(false);
+    }
+  };
+
+  useEffect(() => {
+    let active = true;
+    initialLoadDoneRef.current = false;
+    setLoadingServices(true);
+
+    const loadHealth = async () => {
+      try {
+        const svcs = await GetSwarmStackServices(row.name);
+        if (!active) return;
+        const list = Array.isArray(svcs) ? svcs : [];
+        setServices(list);
+        let healthy = 0;
+        let unhealthy = 0;
+        for (const s of list) {
+          if (s.mode === 'replicated') {
+            if (Number(s.runningTasks) === Number(s.replicas)) healthy++; else unhealthy++;
+          } else {
+            if (Number(s.runningTasks) > 0) healthy++; else unhealthy++;
+          }
+        }
+        setHealth({ healthy, unhealthy, total: list.length });
+      } catch {
+        if (active) {
+          setHealth({ healthy: 0, unhealthy: 0, total: 0 });
+          setServices([]);
+        }
+      } finally {
+        if (active && !initialLoadDoneRef.current) {
+          initialLoadDoneRef.current = true;
+          setLoadingServices(false);
+        }
+      }
+    };
+
+    loadHealth();
+    const interval = setInterval(loadHealth, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [row.name]);
+
+  useEffect(() => {
+    let active = true;
+    const loadResourceCounts = async () => {
+      try {
+        const res = await GetSwarmStackResources(row.name);
+        if (!active) return;
+        setResourceCounts({
+          networks: Array.isArray(res?.networks) ? res.networks.length : 0,
+          volumes: Array.isArray(res?.volumes) ? res.volumes.length : 0,
+          configs: Array.isArray(res?.configs) ? res.configs.length : 0,
+          secrets: Array.isArray(res?.secrets) ? res.secrets.length : 0,
+        });
+      } catch {
+        if (active) setResourceCounts({ networks: 0, volumes: 0, configs: 0, secrets: 0 });
+      }
+    };
+
+    loadResourceCounts();
+    return () => {
+      active = false;
+    };
+  }, [row.name]);
+
+  const handleDelete = async () => {
+    try {
+      await RemoveSwarmStack(row.name);
+      showSuccess(`Removed stack "${row.name}"`);
+      onRefresh?.();
+    } catch (err) {
+      showError(`Failed to remove stack: ${err}`);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      const y = compose || (await loadCompose());
+      downloadTextFile(`${row.name}.docker-compose.yml`, y || '');
+      showSuccess(`Exported stack "${row.name}" compose`);
+    } catch (err) {
+      showError(`Failed to export compose: ${err}`);
+    }
+  };
+
+  const handleOpenUpdate = async () => {
+    try {
+      const y = compose || (await loadCompose());
+      setCompose(y || '');
+      setShowUpdate(true);
+    } catch (err) {
+      showError(`Failed to load compose: ${err}`);
+    }
+  };
+
+  const handleRedeploy = async (yaml) => {
+    try {
+      await CreateSwarmStack(row.name, yaml);
+      showSuccess(`Updated stack "${row.name}"`);
+      setShowUpdate(false);
+      onRefresh?.();
+    } catch (err) {
+      showError(`Failed to update stack: ${err}`);
+    }
+  };
+
+  const handleRollback = async () => {
+    if (!window.confirm(`Rollback stack "${row.name}"? This will attempt to rollback each service in the stack.`)) return;
+    try {
+      await RollbackSwarmStack(row.name);
+      showSuccess(`Rollback triggered for stack "${row.name}"`);
+      onRefresh?.();
+    } catch (err) {
+      showError(`Failed to rollback stack: ${err}`);
+    }
+  };
+
+  const quickInfoFields = [
+    { key: 'name', label: 'Stack Name' },
+    {
+      key: 'healthStatus',
+      label: 'Health Status',
+      getValue: () => {
+        if (health.total === 0) return 'No services';
+        if (health.unhealthy === 0) return `All ${health.total} services healthy`;
+        return `${health.healthy}/${health.total} healthy`;
+      },
+      render: (value) => {
+        const isHealthy = health.unhealthy === 0 && health.total > 0;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <StatusBadge status={isHealthy ? 'healthy' : 'unhealthy'} size="small" showDot={false} />
+            <span>{value}</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'services',
+      label: 'Services',
+      layout: 'flex',
+      rightField: { key: 'orchestrator', label: 'Orchestrator' },
+    },
+    {
+      key: 'networks',
+      label: 'Networks',
+      getValue: () => resourceCounts.networks,
+      layout: 'flex',
+      rightField: { key: 'volumes', label: 'Volumes', getValue: () => resourceCounts.volumes },
+    },
+    {
+      key: 'configs',
+      label: 'Configs',
+      getValue: () => resourceCounts.configs,
+      layout: 'flex',
+      rightField: { key: 'secrets', label: 'Secrets', getValue: () => resourceCounts.secrets },
+    },
+  ];
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <SummaryTabHeader
+        name={row.name}
+        actions={(
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              id="swarm-stack-update-btn"
+              style={buttonStyle}
+              onClick={handleOpenUpdate}
+              disabled={loadingCompose}
+            >
+              {loadingCompose ? 'Loading...' : 'Update'}
+            </button>
+            <button
+              id="swarm-stack-export-btn"
+              style={buttonStyle}
+              onClick={handleExport}
+              disabled={loadingCompose}
+            >
+              Export
+            </button>
+            <button
+              id="swarm-stack-rollback-btn"
+              style={buttonStyle}
+              onClick={handleRollback}
+            >
+              Rollback
+            </button>
+            <SwarmResourceActions
+              resourceType="stack"
+              name={row.name}
+              onDelete={handleDelete}
+            />
+          </div>
+        )}
+      />
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+        <QuickInfoSection
+          resourceName={row.name}
+          data={row}
+          loading={false}
+          error={null}
+          fields={quickInfoFields}
+        />
+        <div style={{ flex: 1, minWidth: 0, borderLeft: '1px solid var(--gh-border, #30363d)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div
+            style={{
+              height: 44,
+              padding: '0 12px',
+              fontWeight: 600,
+              color: '#d4d4d4',
+              borderBottom: '1px solid #30363d',
+              background: '#161b22',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            Services Overview
+          </div>
+          <div className="stack-services-container" style={{ position: 'relative', padding: 0 }}>
+            {loadingServices ? (
+              <div className="stack-services-loading">Loading services...</div>
+            ) : services.length === 0 ? (
+              <div className="stack-services-loading">No services in this stack</div>
+            ) : (
+              <table className="stack-services-table">
+                <thead>
+                  <tr>
+                    <th aria-sort={summarySortState.key === 'name' ? (summarySortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                      <button type="button" style={headerButtonStyle} onClick={() => setSummarySortState((cur) => toggleSortState(cur, 'name'))}>
+                        <span>Name</span>
+                        <span aria-hidden="true">{summarySortState.key === 'name' ? (summarySortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      </button>
+                    </th>
+                    <th aria-sort={summarySortState.key === 'image' ? (summarySortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                      <button type="button" style={headerButtonStyle} onClick={() => setSummarySortState((cur) => toggleSortState(cur, 'image'))}>
+                        <span>Image</span>
+                        <span aria-hidden="true">{summarySortState.key === 'image' ? (summarySortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      </button>
+                    </th>
+                    <th aria-sort={summarySortState.key === 'mode' ? (summarySortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                      <button type="button" style={headerButtonStyle} onClick={() => setSummarySortState((cur) => toggleSortState(cur, 'mode'))}>
+                        <span>Mode</span>
+                        <span aria-hidden="true">{summarySortState.key === 'mode' ? (summarySortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      </button>
+                    </th>
+                    <th aria-sort={summarySortState.key === 'replicas' ? (summarySortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                      <button type="button" style={headerButtonStyle} onClick={() => setSummarySortState((cur) => toggleSortState(cur, 'replicas'))}>
+                        <span>Replicas</span>
+                        <span aria-hidden="true">{summarySortState.key === 'replicas' ? (summarySortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                      </button>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedSummaryServices.map((svc) => {
+                    const isHovered = hoveredService === svc.id;
+                    return (
+                      <tr
+                        key={svc.id}
+                        onClick={() => handleServiceClick(svc)}
+                        onMouseEnter={() => setHoveredService(svc.id)}
+                        onMouseLeave={() => setHoveredService(null)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleServiceClick(svc); }}
+                        role="button"
+                        tabIndex={0}
+                        title={`Open service: ${svc.name}`}
+                        style={{
+                          cursor: 'pointer',
+                          background: isHovered ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                        }}
+                      >
+                        <td style={{ color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                          {svc.name?.replace(`${row.name}_`, '') || svc.name}
+                        </td>
+                        <td className="mono">{svc.image}</td>
+                        <td>{svc.mode}</td>
+                        <td>
+                          <span className={Number(svc.runningTasks) === Number(svc.replicas) ? 'replica-ok' : 'replica-warn'}>
+                            {svc.runningTasks}/{svc.replicas}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <UpdateStackModal
+        open={showUpdate}
+        stackName={row.name}
+        initialComposeYAML={compose}
+        onClose={() => setShowUpdate(false)}
+        onConfirm={handleRedeploy}
+      />
+    </div>
+  );
+}

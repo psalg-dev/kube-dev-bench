@@ -262,58 +262,10 @@ body {
   border-top: 1px solid var(--gh-border, #3c3c3c);
 }
 
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 0;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background: var(--gh-accent, #0e639c);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--gh-accent-hover, #1177bb);
-}
-
-.btn-secondary {
-  background: var(--gh-button-secondary-bg, #3c3c3c);
-  color: var(--gh-text, #d4d4d4);
-  border: 1px solid var(--gh-border, #474747);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--gh-button-secondary-hover, #474747);
-}
-
 .loading {
   text-align: center;
   padding: 20px;
   color: var(--gh-text-secondary, #cccccc);
-}
-
-.error-message {
-  background: rgba(241, 76, 76, 0.1);
-  border: 1px solid var(--vsc-error, #f14c4c);
-  color: var(--vsc-error, #f14c4c);
-  padding: 12px;
-  border-radius: 0;
-  margin-bottom: 16px;
-  font-size: 14px;
 }
 
 /* Utility: hide vertical scrollbar (preserve scroll) */

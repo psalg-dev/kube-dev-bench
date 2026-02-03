@@ -1,52 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
-
-const overlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '600px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle = {
-  padding: '24px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1,
-};
-
-const footerStyle = {
-  padding: '16px 24px',
-  borderTop: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 12,
-};
+import { BaseModal, ModalButton, ModalPrimaryButton } from '../../components/BaseModal';
 
 const inputStyle = {
   width: '100%',
@@ -73,27 +27,6 @@ const labelStyle = {
   fontWeight: 500,
 };
 
-const buttonStyle = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const primaryButtonStyle = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
-};
 
 function AddKubeConfigOverlay({ onClose, onSuccess }) {
   const { actions, loading, error, kubeConfigs } = useConnectionsState();
@@ -129,114 +62,110 @@ function AddKubeConfigOverlay({ onClose, onSuccess }) {
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   return (
-    <div
-      style={overlayStyle}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      onKeyDown={handleKeyDown}
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      title={isFirstConfig ? '☸️ Create Your First Kubeconfig' : '☸️ Add Kubeconfig'}
+      width={600}
       className="add-kubeconfig-overlay"
+      footer={
+        <>
+          <ModalButton onClick={onClose} disabled={loading}>
+            Cancel
+          </ModalButton>
+          <ModalPrimaryButton
+            onClick={handleSave}
+            disabled={loading || !configContent.trim()}
+          >
+            {loading ? 'Saving...' : 'Save & Continue'}
+          </ModalPrimaryButton>
+        </>
+      }
     >
-      <div style={dialogStyle}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
-            {isFirstConfig ? '☸️ Create Your First Kubeconfig' : '☸️ Add Kubeconfig'}
-          </h2>
-          <button
-            onClick={onClose}
+      <div style={{ padding: 8, overflowY: 'auto' }}>
+        {/* Error display */}
+        {(error || localError) && (
+          <div
             style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
+              background: 'rgba(248, 81, 73, 0.1)',
+              border: '1px solid #f85149',
+              color: '#f85149',
+              padding: '12px',
+              marginBottom: '16px',
+              fontSize: 14,
             }}
           >
-            ✕
-          </button>
-        </div>
+            {localError || error}
+          </div>
+        )}
 
-        {/* Content */}
-        <div style={contentStyle}>
-          {/* Error display */}
-          {(error || localError) && (
-            <div
-              style={{
-                background: 'rgba(248, 81, 73, 0.1)',
-                border: '1px solid #f85149',
-                color: '#f85149',
-                padding: '12px',
-                marginBottom: '16px',
-                fontSize: 14,
-              }}
-            >
-              {localError || error}
-            </div>
-          )}
-
-          {/* Mode selection - only show if not first config */}
-          {!isFirstConfig && (
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>Configuration Type</label>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="mode"
-                    value="paste"
-                    checked={mode === 'paste'}
-                    onChange={() => setMode('paste')}
-                  />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Save as primary (~/.kube/kubeconfig)</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="mode"
-                    value="named"
-                    checked={mode === 'named'}
-                    onChange={() => setMode('named')}
-                  />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Save with custom name</span>
-                </label>
-              </div>
-            </div>
-          )}
-
-          {/* Name input (for named mode) */}
-          {mode === 'named' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle} htmlFor="configName">
-                Configuration Name
+        {/* Mode selection - only show if not first config */}
+        {!isFirstConfig && (
+          <div style={{ marginBottom: 20 }}>
+            <label style={labelStyle}>Configuration Type</label>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="paste"
+                  checked={mode === 'paste'}
+                  onChange={() => setMode('paste')}
+                />
+                <span style={{ color: 'var(--gh-text, #fff)' }}>Save as primary (~/.kube/kubeconfig)</span>
               </label>
-              <input
-                id="configName"
-                type="text"
-                value={configName}
-                onChange={(e) => setConfigName(e.target.value)}
-                placeholder="e.g., my-cluster"
-                style={inputStyle}
-              />
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="mode"
+                  value="named"
+                  checked={mode === 'named'}
+                  onChange={() => setMode('named')}
+                />
+                <span style={{ color: 'var(--gh-text, #fff)' }}>Save with custom name</span>
+              </label>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Kubeconfig content */}
+        {/* Name input (for named mode) */}
+        {mode === 'named' && (
           <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle} htmlFor="primaryConfigContent">
-              Kubeconfig Content (YAML)
+            <label style={labelStyle} htmlFor="configName">
+              Configuration Name
             </label>
-            <textarea
-              id="primaryConfigContent"
-              value={configContent}
-              onChange={(e) => setConfigContent(e.target.value)}
-              placeholder={`apiVersion: v1
+            <input
+              id="configName"
+              type="text"
+              value={configName}
+              onChange={(e) => setConfigName(e.target.value)}
+              placeholder="e.g., my-cluster"
+              style={inputStyle}
+            />
+          </div>
+        )}
+
+        {/* Kubeconfig content */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle} htmlFor="primaryConfigContent">
+            Kubeconfig Content (YAML)
+          </label>
+          <textarea
+            id="primaryConfigContent"
+            value={configContent}
+            onChange={(e) => setConfigContent(e.target.value)}
+            placeholder={`apiVersion: v1
 kind: Config
 clusters:
 - cluster:
@@ -253,38 +182,19 @@ users:
 - name: my-user
   user:
     token: ...`}
-              style={textareaStyle}
-            />
-          </div>
-
-          <p style={{ margin: 0, color: 'var(--gh-text-tertiary, #999)', fontSize: 12 }}>
-            {isFirstConfig
-              ? 'Paste your kubeconfig YAML content above. This will be saved as your primary kubeconfig.'
-              : mode === 'paste'
-              ? 'This will overwrite your primary kubeconfig at ~/.kube/kubeconfig'
-              : 'This will save a custom kubeconfig that you can select later'}
-          </p>
+            style={textareaStyle}
+          />
         </div>
 
-        {/* Footer */}
-        <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose} disabled={loading}>
-            Cancel
-          </button>
-          <button
-            style={{
-              ...primaryButtonStyle,
-              opacity: loading || !configContent.trim() ? 0.5 : 1,
-              cursor: loading || !configContent.trim() ? 'not-allowed' : 'pointer',
-            }}
-            onClick={handleSave}
-            disabled={loading || !configContent.trim()}
-          >
-            {loading ? 'Saving...' : 'Save & Continue'}
-          </button>
-        </div>
+        <p style={{ margin: 0, color: 'var(--gh-text-tertiary, #999)', fontSize: 12 }}>
+          {isFirstConfig
+            ? 'Paste your kubeconfig YAML content above. This will be saved as your primary kubeconfig.'
+            : mode === 'paste'
+            ? 'This will overwrite your primary kubeconfig at ~/.kube/kubeconfig'
+            : 'This will save a custom kubeconfig that you can select later'}
+        </p>
       </div>
-    </div>
+    </BaseModal>
   );
 }
 

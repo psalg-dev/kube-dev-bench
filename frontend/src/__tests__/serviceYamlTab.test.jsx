@@ -26,7 +26,7 @@ describe('ServiceYamlTab', () => {
       
       render(<ServiceYamlTab namespace="default" name="my-service" />);
       
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      expect(screen.getByText(/loading yaml/i)).toBeInTheDocument();
     });
   });
 
@@ -86,7 +86,7 @@ describe('ServiceYamlTab', () => {
       render(<ServiceYamlTab namespace="default" name="my-service" />);
       
       await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading yaml/i)).not.toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Copy'));

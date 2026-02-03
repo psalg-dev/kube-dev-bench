@@ -104,3 +104,11 @@ func (a *App) GetPersistentVolumeClaims(namespace string) ([]PersistentVolumeCla
 
 	return result, nil
 }
+
+// StartPersistentVolumeClaimPolling emits persistentvolumeclaims:update events periodically
+func (a *App) StartPersistentVolumeClaimPolling() {
+	startResourcePolling(a, ResourcePollingConfig[PersistentVolumeClaimInfo]{
+		EventName: "persistentvolumeclaims:update",
+		FetchFn:   a.GetPersistentVolumeClaims,
+	})
+}

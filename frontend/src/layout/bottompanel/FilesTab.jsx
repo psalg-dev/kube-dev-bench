@@ -1,9 +1,7 @@
-import { Fragment, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useState, useCallback, useMemo } from 'react';
 import * as AppAPI from '../../../wailsjs/go/main/App';
-import { Compartment, EditorState } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter } from '@codemirror/view';
-import { foldGutter, foldKeymap, defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { yaml as yamlLang } from '@codemirror/lang-yaml';
+import CodeMirrorEditor from '../../components/CodeMirrorEditor';
+import { getCodeMirrorLanguageExtensions } from '../../utils/codeMirrorLanguage.js';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
 
 // Minimal file browser for PVCs (Enhanced)
@@ -27,49 +25,10 @@ export default function FilesTab({ namespace, pvcName }) {
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
   const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
 
-  const editorParentRef = useRef(null);
-  const cmViewRef = useRef(null);
-  const languageCompartmentRef = useRef(new Compartment());
-
-  const cmTheme = useMemo(() => EditorView.theme({
-    '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
-    '&.cm-editor': { height: '100%', width: '100%' },
-    '.cm-scroller': {
-      fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-      lineHeight: '1.4'
-    },
-    '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' }
-  }, { dark: true }), []);
-
-  const cmExtensions = useMemo(() => [
-    cmTheme,
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    foldGutter(),
-    keymap.of(foldKeymap),
-    languageCompartmentRef.current.of([]),
-    syntaxHighlighting(defaultHighlightStyle),
-    EditorView.lineWrapping,
-    EditorView.editable.of(false),
-    EditorState.readOnly.of(true)
-  ], [cmTheme]);
-
-  const initOrUpdateEditor = useCallback((text, filePath = '') => {
-    if (!editorParentRef.current) return;
-    const lower = (filePath || '').toLowerCase();
-    const languageExt = (lower.endsWith('.yaml') || lower.endsWith('.yml')) ? [yamlLang()] : [];
-    if (!cmViewRef.current) {
-      const state = EditorState.create({ doc: text || '', extensions: cmExtensions });
-      cmViewRef.current = new EditorView({ state, parent: editorParentRef.current });
-    }
-
-    cmViewRef.current.dispatch({
-      effects: languageCompartmentRef.current.reconfigure(languageExt),
-      changes: { from: 0, to: cmViewRef.current.state.doc.length, insert: text || '' }
-    });
-  }, [cmExtensions]);
-
-  useEffect(() => () => { if (cmViewRef.current) { try { cmViewRef.current.destroy(); } catch(_e) {} cmViewRef.current = null; } }, []);
+  const languageExtensions = useMemo(
+    () => getCodeMirrorLanguageExtensions(fileContent?.path, fileContent?.text),
+    [fileContent?.path, fileContent?.text]
+  );
 
   const iconFor = (e) => {
     if (e.isDir) return '📁';
@@ -140,7 +99,7 @@ export default function FilesTab({ namespace, pvcName }) {
       }
       const fc = { path: res.path, truncated: !!res.truncated, isBinary: !!res.isBinary, size: res.size, text };
       setFileContent(fc);
-      if (!fc.isBinary) initOrUpdateEditor(fc.text, fc.path);
+      // Editor renders via CodeMirrorEditor
     } catch (e) {
       setContentError(e?.message || String(e));
     } finally {
@@ -288,9 +247,19 @@ export default function FilesTab({ namespace, pvcName }) {
           )}
           {contentLoading && (<div style={{ padding: 16, fontSize: 13, color: 'var(--gh-text-muted,#8b949e)' }}>Loading file...</div>)}
           {contentError && (<div style={{ padding: 16, fontSize: 13, color: '#f85149' }}>Error: {contentError}</div>)}
-          {fileContent && fileContent.isBinary && (
-            <div style={{ padding: 16, fontSize: 13, color: 'var(--gh-text-muted,#8b949e)' }}>
-              {fileContent.path} is a binary file ({humanSize(fileContent.size)}). Preview disabled. You can still download the directory or file as an archive.
+          {fileContent && !fileContent.isBinary && (
+            <CodeMirrorEditor
+              value={fileContent.text || ''}
+              language="yaml"
+              languageExtensions={languageExtensions}
+              readOnly={true}
+              lineNumbers={true}
+              foldGutter={true}
+              lineWrapping={true}
+              highlightActiveLine={false}
+              height="100%"
+            />
+          )}
             </div>
           )}
           {fileContent && !fileContent.isBinary && (

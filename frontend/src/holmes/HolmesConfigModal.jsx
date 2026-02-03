@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useHolmes } from './HolmesContext';
+import { BaseModal, ModalButton, ModalDangerButton, ModalPrimaryButton } from '../components/BaseModal';
 import './HolmesConfigModal.css';
 
 /**
@@ -78,38 +79,64 @@ export function HolmesConfigModal() {
     }
   };
 
-  const handleBackdropClick = (e) => {
-    if (e.target === e.currentTarget) {
-      hideConfigModal();
-    }
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      hideConfigModal();
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        hideConfigModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hideConfigModal]);
 
   return (
-    <div
-      className="holmes-config-backdrop"
-      onClick={handleBackdropClick}
-      onKeyDown={handleKeyDown}
-    >
-      <div className="holmes-config-modal" id="holmes-config-modal">
-        <div className="holmes-config-header">
-          <h3>Holmes AI Configuration</h3>
-          <button
-            className="holmes-config-close"
-            onClick={hideConfigModal}
-            title="Close"
+    <BaseModal
+      isOpen={state.showConfig}
+      onClose={hideConfigModal}
+      title="Holmes AI Configuration"
+      width={480}
+      className="holmes-config-modal"
+      footer={
+        <div className="holmes-config-footer">
+          <ModalButton
+            type="button"
+            className="holmes-config-btn"
+            onClick={handleTest}
+            disabled={!formData.enabled || !formData.endpoint || testing}
           >
-            ✕
-          </button>
+            {testing ? 'Testing...' : 'Test Connection'}
+          </ModalButton>
+          <ModalDangerButton
+            type="button"
+            className="holmes-config-btn holmes-config-btn-danger"
+            onClick={handleClear}
+            disabled={clearing}
+            title="Clear saved Holmes configuration (for redeployment)"
+          >
+            {clearing ? 'Clearing...' : 'Clear Config'}
+          </ModalDangerButton>
+          <div className="holmes-config-footer-right">
+            <ModalButton
+              type="button"
+              className="holmes-config-btn"
+              onClick={hideConfigModal}
+            >
+              Cancel
+            </ModalButton>
+            <ModalPrimaryButton
+              type="submit"
+              form="holmes-config-form"
+              className="holmes-config-btn holmes-config-btn-primary"
+              disabled={saving}
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </ModalPrimaryButton>
+          </div>
         </div>
-
-        <form onSubmit={handleSave}>
-          <div className="holmes-config-body">
+      }
+    >
+      <form id="holmes-config-form" onSubmit={handleSave}>
+        <div className="holmes-config-body">
             <div className="holmes-config-field">
               <label className="holmes-config-checkbox">
                 <input
@@ -194,45 +221,8 @@ export function HolmesConfigModal() {
               </p>
             </div>
           </div>
-
-          <div className="holmes-config-footer">
-            <button
-              type="button"
-              className="holmes-config-btn"
-              onClick={handleTest}
-              disabled={!formData.enabled || !formData.endpoint || testing}
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-            <button
-              type="button"
-              className="holmes-config-btn holmes-config-btn-danger"
-              onClick={handleClear}
-              disabled={clearing}
-              title="Clear saved Holmes configuration (for redeployment)"
-            >
-              {clearing ? 'Clearing...' : 'Clear Config'}
-            </button>
-            <div className="holmes-config-footer-right">
-              <button
-                type="button"
-                className="holmes-config-btn"
-                onClick={hideConfigModal}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="holmes-config-btn holmes-config-btn-primary"
-                disabled={saving}
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </BaseModal>
   );
 }
 

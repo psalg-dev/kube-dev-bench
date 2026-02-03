@@ -94,7 +94,7 @@ describe('ConnectionHooksSettings', () => {
     renderWithProvider(<Harness connection={connection} />);
 
     // Overlay appears
-    const closeBtn = await screen.findByRole('button', { name: '✕' });
+    const closeBtn = await screen.findByRole('button', { name: /close modal/i });
     expect(closeBtn).toBeVisible();
 
     // Hooks list contains global + matching connection hook

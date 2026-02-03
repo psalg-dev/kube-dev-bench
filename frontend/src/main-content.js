@@ -1,5 +1,6 @@
 import {renderPodOverviewTable} from './k8s/resources/pods/PodOverviewEntry';
 import {showResourceOverlay} from './resource-overlay';
+// K8s OverviewTable imports (now using consolidated GenericResourceTable pattern)
 import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
 import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
 import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
@@ -13,7 +14,7 @@ import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewT
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
 import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
-// Docker Swarm imports
+// Docker Swarm imports (consolidated using GenericResourceTable pattern)
 import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
 import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
 import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable';

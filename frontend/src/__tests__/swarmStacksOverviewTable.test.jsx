@@ -26,7 +26,42 @@ vi.mock('../docker/swarmApi.js', () => ({
   GetSwarmStacks: vi.fn(() => Promise.resolve([
     { name: 'demo', services: 2, orchestrator: 'Swarm' },
   ])),
+  GetSwarmStackServices: vi.fn(() => Promise.resolve([])),
+  GetSwarmStackResources: vi.fn(() => Promise.resolve({ networks: [], volumes: [], configs: [], secrets: [] })),
+  GetSwarmStackComposeYAML: vi.fn(() => Promise.resolve('')),
+  CreateSwarmStack: vi.fn(() => Promise.resolve()),
+  RollbackSwarmStack: vi.fn(() => Promise.resolve()),
   RemoveSwarmStack: vi.fn(() => Promise.resolve()),
+  // Required by serviceConfig.jsx
+  GetSwarmServices: vi.fn(),
+  GetSwarmTasksByService: vi.fn(),
+  ScaleSwarmService: vi.fn(),
+  RemoveSwarmService: vi.fn(),
+  RestartSwarmService: vi.fn(),
+  GetSwarmServiceLogs: vi.fn(),
+  UpdateSwarmServiceImage: vi.fn(),
+  // Required by taskConfig.jsx
+  GetSwarmTasks: vi.fn(),
+  GetSwarmTaskLogs: vi.fn(),
+  GetSwarmTaskHealthLogs: vi.fn(),
+  // Required by nodeConfig.jsx
+  GetSwarmNodes: vi.fn(),
+  GetSwarmNodeTasks: vi.fn(),
+  GetSwarmJoinTokens: vi.fn(),
+  UpdateSwarmNodeAvailability: vi.fn(),
+  UpdateSwarmNodeRole: vi.fn(),
+  UpdateSwarmNodeLabels: vi.fn(),
+  RemoveSwarmNode: vi.fn(),
+  GetSwarmConfigs: vi.fn(),
+  GetSwarmSecrets: vi.fn(),
+  GetSwarmNetworks: vi.fn(),
+  GetSwarmVolumes: vi.fn(),
+}));
+
+vi.mock('../../wailsjs/runtime', () => ({
+  __esModule: true,
+  EventsOn: vi.fn(() => vi.fn()),
+  EventsOff: vi.fn(),
 }));
 
 // Import component under test AFTER mocks

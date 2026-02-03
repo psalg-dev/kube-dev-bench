@@ -139,3 +139,11 @@ func (a *App) GetServiceEndpoints(namespace, serviceName string) ([]ServiceEndpo
 
 	return result, nil
 }
+
+// StartServicePolling emits services:update events periodically with the current service list
+func (a *App) StartServicePolling() {
+	startResourcePolling(a, ResourcePollingConfig[ServiceInfo]{
+		EventName: "services:update",
+		FetchFn:   a.GetServices,
+	})
+}

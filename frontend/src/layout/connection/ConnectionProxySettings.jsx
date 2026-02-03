@@ -1,52 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
-
-const overlayStyle = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '500px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle = {
-  padding: '24px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1,
-};
-
-const footerStyle = {
-  padding: '16px 24px',
-  borderTop: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 12,
-};
+import { BaseModal, ModalButton, ModalPrimaryButton } from '../../components/BaseModal';
 
 const inputStyle = {
   width: '100%',
@@ -77,27 +31,6 @@ const radioGroupStyle = {
   marginBottom: 8,
 };
 
-const buttonStyle = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const primaryButtonStyle = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
-};
 
 function ConnectionProxySettings({ onClose }) {
   const { proxyConfig, systemProxy, editingConnectionProxy, loading, error, actions } = useConnectionsState();
@@ -134,46 +67,43 @@ function ConnectionProxySettings({ onClose }) {
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  };
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   const title = editingConnectionProxy
     ? `🌐 Proxy Settings - ${editingConnectionProxy.path || editingConnectionProxy.name}`
     : '🌐 Global Proxy Settings';
 
   return (
-    <div
-      style={overlayStyle}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-      onKeyDown={handleKeyDown}
+    <BaseModal
+      isOpen={true}
+      onClose={onClose}
+      title={title}
+      width={500}
       className="proxy-settings-overlay"
-    >
-      <div style={dialogStyle}>
-        {/* Header */}
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
+      footer={
+        <>
+          <ModalButton onClick={onClose} disabled={loading}>
+            Cancel
+          </ModalButton>
+          <ModalPrimaryButton
+            id="save-proxy-btn"
+            onClick={handleSave}
+            disabled={loading || (authType === 'basic' && !url.trim())}
           >
-            ✕
-          </button>
-        </div>
-
-        {/* Content */}
-        <div style={contentStyle}>
+            {loading ? 'Saving...' : 'Save Settings'}
+          </ModalPrimaryButton>
+        </>
+      }
+    >
+      <div style={{ padding: 8, overflowY: 'auto' }}>
           {/* Error display */}
           {(error || localError) && (
             <div
@@ -325,27 +255,8 @@ function ConnectionProxySettings({ onClose }) {
               </div>
             </>
           )}
-        </div>
-
-        {/* Footer */}
-        <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose} disabled={loading}>
-            Cancel
-          </button>
-          <button
-            id="save-proxy-btn"
-            style={{
-              ...primaryButtonStyle,
-              opacity: loading || (authType === 'basic' && !url.trim()) ? 0.5 : 1,
-            }}
-            onClick={handleSave}
-            disabled={loading || (authType === 'basic' && !url.trim())}
-          >
-            {loading ? 'Saving...' : 'Save Settings'}
-          </button>
-        </div>
       </div>
-    </div>
+    </BaseModal>
   );
 }
 

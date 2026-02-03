@@ -126,15 +126,6 @@ table.gh-table tbody td:last-child {
   cursor: pointer;
 }
 
-/* NEW: Context menu item hover style in plus button menu */
-.menu-content > div {
-  transition: background 0.15s;
-}
-.menu-content > div:hover {
-  background: rgba(14, 99, 156, 0.25); /* subtle blue highlight */
-  color: #fff;
-}
-
 /* Inset actions button (ellipsis "..." in actions column) */
 .row-actions-button {
   padding: 4px 10px;

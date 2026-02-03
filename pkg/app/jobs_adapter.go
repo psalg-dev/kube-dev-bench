@@ -28,6 +28,14 @@ func (a *App) GetJobs(namespace string) ([]jobs.JobInfo, error) {
 	return jobs.GetJobs(adapter, namespace)
 }
 
+// StartJobPolling emits jobs:update events periodically with the current job list
+func (a *App) StartJobPolling() {
+	startResourcePolling(a, ResourcePollingConfig[jobs.JobInfo]{
+		EventName: "jobs:update",
+		FetchFn:   a.GetJobs,
+	})
+}
+
 // clientAdapter adapts a kubernetes.Interface to jobs.ResourceClient
 type clientAdapter struct {
 	clientset kubernetes.Interface

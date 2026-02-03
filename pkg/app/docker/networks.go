@@ -58,18 +58,9 @@ func GetSwarmNetworks(ctx context.Context, cli *client.Client) ([]SwarmNetworkIn
 }
 
 func getSwarmNetworks(ctx context.Context, cli swarmNetworksClient) ([]SwarmNetworkInfo, error) {
-	networks, err := cli.NetworkList(ctx, network.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]SwarmNetworkInfo, 0, len(networks))
-	for _, net := range networks {
-		info := networkToInfo(net)
-		result = append(result, info)
-	}
-
-	return result, nil
+	return listAndConvert(ctx, func(ctx context.Context) ([]network.Summary, error) {
+		return cli.NetworkList(ctx, network.ListOptions{})
+	}, networkToInfo)
 }
 
 // GetSwarmNetwork returns a specific network by ID or name

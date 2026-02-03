@@ -100,3 +100,11 @@ func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 
 	return secrets, nil
 }
+
+// StartSecretPolling emits secrets:update events periodically with the current secret list
+func (a *App) StartSecretPolling() {
+	startResourcePolling(a, ResourcePollingConfig[map[string]interface{}]{
+		EventName: "secrets:update",
+		FetchFn:   a.GetSecrets,
+	})
+}

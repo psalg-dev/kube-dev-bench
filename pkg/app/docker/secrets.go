@@ -33,18 +33,9 @@ func GetSwarmSecrets(ctx context.Context, cli *client.Client) ([]SwarmSecretInfo
 }
 
 func getSwarmSecrets(ctx context.Context, cli swarmSecretsClient) ([]SwarmSecretInfo, error) {
-	secrets, err := cli.SecretList(ctx, types.SecretListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]SwarmSecretInfo, 0, len(secrets))
-	for _, secret := range secrets {
-		info := secretToInfo(secret)
-		result = append(result, info)
-	}
-
-	return result, nil
+	return listAndConvert(ctx, func(ctx context.Context) ([]swarm.Secret, error) {
+		return cli.SecretList(ctx, types.SecretListOptions{})
+	}, secretToInfo)
 }
 
 // GetSwarmSecret returns a specific Swarm secret by ID or name (metadata only)

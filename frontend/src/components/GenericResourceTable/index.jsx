@@ -43,6 +43,7 @@ import { showSuccess, showError } from '../../notification';
  * @param {Function} props.fetchFn - Function to fetch resource data
  * @param {string} props.eventName - Wails event name for live updates
  * @param {Function} [props.analyzeFn] - Optional Holmes analysis function
+ * @param {string} [props.holmesKeyPrefix] - Optional prefix for Holmes state key (e.g., 'swarm')
  * @param {Function} props.renderPanelContent - Function to render panel tab content
  * @param {Function} [props.getRowActions] - Optional function to get row-specific actions
  * @param {Function} [props.normalize] - Optional function to normalize data items
@@ -58,6 +59,8 @@ import { showSuccess, showError } from '../../notification';
  * @param {Function} [props.onRestart] - Optional restart handler
  * @param {Function} [props.onDelete] - Optional delete handler
  * @param {Function} [props.onScale] - Optional scale handler
+ * @param {Function} [props.tabCountsFetcher] - Optional function to fetch tab counts for a row
+ * @param {boolean} [props.enableTabCounts=true] - Whether to enable tab counts
  */
 export function GenericResourceTable({
   // Resource identification
@@ -81,6 +84,7 @@ export function GenericResourceTable({
   
   // Holmes integration
   analyzeFn,
+  holmesKeyPrefix,
   
   // Panel rendering
   renderPanelContent,
@@ -97,6 +101,10 @@ export function GenericResourceTable({
   createButtonTitle,
   createNotice,
   createHint,
+  
+  // Tab counts
+  tabCountsFetcher,
+  enableTabCounts = true,
 }) {
   // Fetch and subscribe to resource data
   const { data, loading } = useResourceData({
@@ -113,15 +121,16 @@ export function GenericResourceTable({
   const { state: holmesState, analyze, cancel } = useHolmesAnalysis({
     kind: resourceKind,
     analyzeFn: hasHolmes ? analyzeFn : async () => {},
+    keyPrefix: holmesKeyPrefix,
   });
   
-  // Wrapper for panel content rendering that injects Holmes state
+  // Wrapper for panel content rendering that injects Holmes state and full data
   const renderPanelContentWithHolmes = useCallback((row, tab, panelApi) => {
     if (typeof renderPanelContent !== 'function') {
       return null;
     }
-    return renderPanelContent(row, tab, holmesState, analyze, cancel, panelApi);
-  }, [renderPanelContent, holmesState, analyze, cancel]);
+    return renderPanelContent(row, tab, holmesState, analyze, cancel, panelApi, data);
+  }, [renderPanelContent, holmesState, analyze, cancel, data]);
   
   // Build row actions with Holmes integration
   const getRowActions = useCallback((row, api) => {
@@ -231,6 +240,8 @@ export function GenericResourceTable({
       tableTestId={tableTestId}
       headerActions={headerActions}
       getRowActions={getRowActions}
+      tabCountsFetcher={tabCountsFetcher}
+      enableTabCounts={enableTabCounts}
     />
   );
 }

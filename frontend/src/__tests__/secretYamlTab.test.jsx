@@ -26,7 +26,7 @@ describe('SecretYamlTab', () => {
       
       render(<SecretYamlTab namespace="default" name="my-secret" />);
       
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      expect(screen.getByText(/loading yaml/i)).toBeInTheDocument();
     });
   });
 
@@ -86,7 +86,7 @@ describe('SecretYamlTab', () => {
       render(<SecretYamlTab namespace="default" name="my-secret" />);
       
       await waitFor(() => {
-        expect(screen.queryByText(/loading/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/loading yaml/i)).not.toBeInTheDocument();
       });
 
       fireEvent.click(screen.getByText('Copy'));

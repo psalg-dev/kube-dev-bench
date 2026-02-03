@@ -649,6 +649,8 @@ export function ShellPod(arg1:string,arg2:string):Promise<string>;
 
 export function Shutdown(arg1:context.Context):Promise<void>;
 
+export function StartConfigMapPolling():Promise<void>;
+
 export function StartCronJobPolling():Promise<void>;
 
 export function StartDaemonSetPolling():Promise<void>;
@@ -659,19 +661,31 @@ export function StartHelmReleasePolling():Promise<void>;
 
 export function StartHolmesPortForward(arg1:string):Promise<string>;
 
+export function StartIngressPolling():Promise<void>;
+
 export function StartJob(arg1:string,arg2:string):Promise<void>;
 
 export function StartJobFromCronJob(arg1:string,arg2:string):Promise<void>;
 
+export function StartJobPolling():Promise<void>;
+
 export function StartMCPServer():Promise<void>;
 
 export function StartMonitorPolling():Promise<void>;
+
+export function StartPersistentVolumeClaimPolling():Promise<void>;
+
+export function StartPersistentVolumePolling():Promise<void>;
 
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
 export function StartPodPolling():Promise<void>;
 
 export function StartReplicaSetPolling():Promise<void>;
+
+export function StartSecretPolling():Promise<void>;
+
+export function StartServicePolling():Promise<void>;
 
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
 

@@ -1,8 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import { EditorView, keymap, lineNumbers } from '@codemirror/view';
-import { Compartment, EditorState } from '@codemirror/state';
-import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
-import { yaml as yamlLang } from '@codemirror/lang-yaml';
+import CodeMirrorEditor from '../../../components/CodeMirrorEditor';
+import { getCodeMirrorLanguageExtensions } from '../../../utils/codeMirrorLanguage.js';
 
 /* PodFilesTab
  * Shows directory listing for a pod container.
@@ -37,10 +35,7 @@ export default function PodFilesTab({ podName }) {
   const [copyState, setCopyState] = useState('idle'); // idle | copied | error
   const [copyError, setCopyError] = useState('');
   const rootRef = useRef(null);
-  // Refs for CodeMirror preview
-  const previewEditorParentRef = useRef(null);
-  const previewEditorViewRef = useRef(null);
-  const previewLanguageCompartmentRef = useRef(new Compartment());
+  // Preview editor helpers
   const MIN_PREVIEW_WIDTH = 360;
   const MAX_PREVIEW_WIDTH_RATIO = 0.75; // 75% of available width
   const getDynamicMaxWidth = () => {
@@ -355,86 +350,15 @@ export default function PodFilesTab({ podName }) {
     return () => window.removeEventListener('keydown', handler, { capture: true });
   }, [previewPath, resizing]);
 
-  // CodeMirror theme for file preview (read-only)
-  const previewCMTheme = useMemo(() => {
-    return EditorView.theme({
-      '&': { backgroundColor: '#0d1117', color: '#c9d1d9' },
-      '&.cm-editor': { height: '100%', width: '100%' },
-      '.cm-content': { caretColor: 'transparent', textAlign: 'left' },
-      '.cm-line': { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace', fontSize: '12px', textAlign: 'left' },
-      '.cm-scroller': { lineHeight: '1.42' },
-      '.cm-gutters': { background: '#161b22', color: '#8b949e', borderRight: '1px solid #30363d' },
-      '.cm-gutterElement': { padding: '0 6px' },
-    }, { dark: true });
-  }, []);
+  const previewText = useMemo(() => {
+    if (!previewData || previewData.isBinary) return '';
+    try { return decodeText(previewData.base64 || previewData.Base64 || ''); } catch { return '[decode error]'; }
+  }, [previewData]);
 
-  // Effect to create/update/destroy CodeMirror instance for preview
-  useEffect(() => {
-    // Conditions where we should not have an editor
-    if (!previewPath || !previewData || previewLoading || previewError || previewData.isBinary) {
-      if (previewEditorViewRef.current) {
-        try { previewEditorViewRef.current.destroy(); } catch(_) {}
-        previewEditorViewRef.current = null;
-      }
-      return;
-    }
-    if (!previewEditorParentRef.current) return;
-
-    const text = (() => {
-      try { return decodeText(previewData.base64 || previewData.Base64 || ''); } catch { return '[decode error]'; }
-    })();
-
-    // Create editor if missing
-    if (!previewEditorViewRef.current) {
-      try {
-        const lower = (previewPath || '').toLowerCase();
-        const languageExt = (lower.endsWith('.yaml') || lower.endsWith('.yml')) ? [yamlLang()] : [];
-        const state = EditorState.create({
-          doc: text,
-          extensions: [
-            previewCMTheme,
-            lineNumbers(),
-            foldGutter(),
-            keymap.of(foldKeymap),
-            previewLanguageCompartmentRef.current.of(languageExt),
-            syntaxHighlighting(defaultHighlightStyle),
-            EditorView.lineWrapping,
-            EditorState.readOnly.of(true),
-            EditorView.editable.of(false)
-          ]
-        });
-        previewEditorViewRef.current = new EditorView({ state, parent: previewEditorParentRef.current });
-      } catch (e) {
-        console.error('Failed to init CodeMirror preview:', e);
-      }
-    } else {
-      // Update doc if changed
-      const view = previewEditorViewRef.current;
-      const lower = (previewPath || '').toLowerCase();
-      const languageExt = (lower.endsWith('.yaml') || lower.endsWith('.yml')) ? [yamlLang()] : [];
-      const current = view.state.doc.toString();
-      if (current !== text) {
-        view.dispatch({
-          effects: previewLanguageCompartmentRef.current.reconfigure(languageExt),
-          changes: { from: 0, to: current.length, insert: text }
-        });
-      } else {
-        view.dispatch({ effects: previewLanguageCompartmentRef.current.reconfigure(languageExt) });
-      }
-    }
-
-    return () => {
-      // If previewPath changes to another file while still open, we'll rebuild or update above.
-    };
-  }, [previewPath, previewData, previewLoading, previewError, previewCMTheme]);
-
-  // Cleanup on unmount
-  useEffect(() => () => {
-    if (previewEditorViewRef.current) {
-      try { previewEditorViewRef.current.destroy(); } catch(_) {}
-      previewEditorViewRef.current = null;
-    }
-  }, []);
+  const previewLanguageExtensions = useMemo(
+    () => getCodeMirrorLanguageExtensions(previewPath, previewText),
+    [previewPath, previewText]
+  );
 
   // UI RENDER
   return (
@@ -606,7 +530,19 @@ export default function PodFilesTab({ podName }) {
                     <div style={{ padding:12, color:'#bbb', fontSize:12, overflow:'auto' }}>Binary file preview not shown. Download to view. {previewData.truncated && '(Truncated preview size)'} </div>
                   )}
                   {!previewLoading && !previewError && previewData && !previewData.isBinary && (
-                    <div ref={previewEditorParentRef} style={{ flex:1, overflow:'hidden' }} />
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <CodeMirrorEditor
+                        value={previewText}
+                        language="yaml"
+                        languageExtensions={previewLanguageExtensions}
+                        readOnly={true}
+                        lineNumbers={true}
+                        foldGutter={true}
+                        lineWrapping={true}
+                        highlightActiveLine={false}
+                        height="100%"
+                      />
+                    </div>
                   )}
                   {!previewLoading && !previewError && !previewData && (
                     <div style={{ padding:12, color:'#888', fontSize:12 }}>No data.</div>

@@ -15,7 +15,9 @@ vi.mock('react-dom/client', () => ({
   createRoot: vi.fn(() => ({ render: vi.fn() })),
 }));
 
+// K8s OverviewTable mocks (consolidated using GenericResourceTable)
 vi.mock('../k8s/resources/deployments/DeploymentsOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/services/ServicesOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/jobs/JobsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/cronjobs/CronJobsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/daemonsets/DaemonSetsOverviewTable', () => ({ default: Stub }));

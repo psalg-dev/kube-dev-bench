@@ -1,0 +1,12 @@
+/**
+ * Shared Styles Index
+ * 
+ * Barrel import for all shared CSS modules.
+ * Import this file in your main App.css or index.css.
+ */
+
+@import './buttons.css';
+@import './panels.css';
+@import './menus.css';
+@import './messages.css';
+@import './tables.css';

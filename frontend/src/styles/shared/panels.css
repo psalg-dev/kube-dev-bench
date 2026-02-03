@@ -1,0 +1,171 @@
+/**
+ * Shared Panel Styles
+ * 
+ * Consolidated styles for bottom panels, side panels, and detail views.
+ * Import this file instead of duplicating panel styles.
+ */
+
+/* Base panel container */
+.panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--gh-bg, #0d1117);
+  border: 1px solid var(--gh-border, #30363d);
+}
+
+/* Panel header */
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-header-bg, #161b22);
+  min-height: 48px;
+  flex-shrink: 0;
+}
+
+.panel-header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gh-text, #c9d1d9);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Panel content area */
+.panel-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+  color: var(--gh-text, #c9d1d9);
+}
+
+.panel-content-no-padding {
+  padding: 0;
+}
+
+/* Panel footer */
+.panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-header-bg, #161b22);
+  flex-shrink: 0;
+}
+
+/* Bottom panel (slides up from bottom) */
+.bottom-panel {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--gh-bg, #0d1117);
+  border-top: 1px solid var(--gh-border, #30363d);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+.bottom-panel-resizer {
+  height: 6px;
+  cursor: ns-resize;
+  background: transparent;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.bottom-panel-resizer:hover {
+  background: var(--gh-accent, #0969da);
+}
+
+/* Side panel (slides from right) */
+.side-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  max-width: 90vw;
+  background: var(--gh-bg, #0d1117);
+  border-left: 1px solid var(--gh-border, #30363d);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+}
+
+/* Detail view container (used inside panels) */
+.detail-view {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.detail-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-header-bg, #161b22);
+}
+
+.detail-view-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Quick info section (left sidebar in panels) */
+.quick-info-section {
+  width: 280px;
+  min-width: 240px;
+  max-width: 320px;
+  padding: 16px;
+  border-right: 1px solid var(--gh-border, #30363d);
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.quick-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--gh-border-muted, #21262d);
+}
+
+.quick-info-label {
+  font-size: 12px;
+  color: var(--gh-text-secondary, #8b949e);
+  flex-shrink: 0;
+}
+
+.quick-info-value {
+  font-size: 12px;
+  color: var(--gh-text, #c9d1d9);
+  text-align: right;
+  word-break: break-word;
+}
