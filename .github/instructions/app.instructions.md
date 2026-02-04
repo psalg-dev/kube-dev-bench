@@ -60,6 +60,7 @@ E2E tests depend on these IDs. If you must change them, update all usages and te
 - Frontend: Vitest + React Testing Library.
 - Backend: Go testing with table-driven tests, target ≥70% coverage.
 - E2E: Playwright tests in e2e/tests/, rely on stable selectors.
+- When fixing tests, especially E2E tests, document the approaches tried and whether they were successful so we avoid repeating non-working approaches. Record these notes as Markdown files under project/e2e/fixes.
 
 ## Common Commands
 - Dev: wails dev
