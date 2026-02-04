@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
@@ -13,6 +13,7 @@ import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import { AnalyzeSwarmServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import {
   GetSwarmServices,
+  GetSwarmTasksByService,
   ScaleSwarmService,
   RemoveSwarmService,
   RestartSwarmService,
@@ -75,11 +76,11 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'tasks', label: 'Tasks' },
-  { key: 'placement', label: 'Placement' },
-  { key: 'logs', label: 'Logs' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'tasks', label: 'Tasks', countKey: 'tasks' },
+  { key: 'placement', label: 'Placement', countable: false },
+  { key: 'logs', label: 'Logs', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function formatBytes(bytes) {
@@ -104,7 +105,7 @@ function formatNanoCPUs(nanoCpus) {
   return `${cores.toFixed(fixed)} cores`;
 }
 
-function splitEnvKey(env) {
+function _splitEnvKey(env) {
   const s = String(env || '');
   const idx = s.indexOf('=');
   if (idx === -1) return s;
@@ -502,13 +503,21 @@ export default function SwarmServicesOverviewTable() {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
   const refresh = useCallback(() => {
     setRefreshKey(k => k + 1);
+  }, []);
+
+  const fetchTabCountsForRow = useCallback(async (row) => {
+    if (!row?.id) return {};
+    const tasks = await GetSwarmTasksByService(row.id);
+    return {
+      tasks: Array.isArray(tasks) ? tasks.length : 0,
+    };
   }, []);
 
   const promptReplicas = (current) => {
@@ -559,6 +568,7 @@ export default function SwarmServicesOverviewTable() {
       if (typeof off === 'function') off();
       if (typeof offUpdates === 'function') offUpdates();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
   useEffect(() => {
@@ -754,6 +764,7 @@ export default function SwarmServicesOverviewTable() {
         data={servicesWithHandlers}
         tabs={bottomTabs}
         renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh, holmesState, analyzeWithHolmes, cancelHolmesAnalysis)}
+        tabCountsFetcher={fetchTabCountsForRow}
         tableTestId="swarm-services-table"
         createPlatform="swarm"
         createKind="service"

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import './wailsMocks';
 import { genericAPIMock, resetAllMocks } from './wailsMocks';
 import HolmesContext, { HolmesProvider } from '../holmes/HolmesContext';
@@ -54,7 +53,7 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     expect(screen.getByText('Holmes AI')).toBeInTheDocument();
   });
 
@@ -82,7 +81,7 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     expect(screen.getByText('Holmes AI')).toBeInTheDocument();
     expect(screen.getByText('Holmes AI is not configured')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Deploy Holmes/ })).toBeInTheDocument();
@@ -112,7 +111,7 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     expect(screen.getByPlaceholderText(/Ask about your cluster/)).toBeInTheDocument();
   });
 
@@ -139,7 +138,7 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     // Loading spinner should appear
     expect(screen.getByTestId('holmes-spinner')).toBeInTheDocument();
     expect(screen.getByText('Thinking...')).toBeInTheDocument();
@@ -168,7 +167,7 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     expect(screen.getByText('This is the answer from Holmes AI')).toBeInTheDocument();
   });
 
@@ -195,13 +194,13 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     expect(screen.getAllByText('Connection failed').length).toBeGreaterThan(0);
   });
 
   it('calls askHolmes when form is submitted', async () => {
     const mockAskHolmes = vi.fn().mockResolvedValue({ response: 'answer' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -224,13 +223,13 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     const input = screen.getByPlaceholderText(/Ask about your cluster/);
     fireEvent.change(input, { target: { value: 'What is wrong with my pod?' } });
-    
+
     const form = input.closest('form');
     fireEvent.submit(form);
-    
+
     await waitFor(() => {
       expect(mockAskHolmes).toHaveBeenCalledWith('What is wrong with my pod?');
     });
@@ -238,7 +237,7 @@ describe('HolmesPanel', () => {
 
   it('calls hidePanel when close button is clicked', async () => {
     const mockHidePanel = vi.fn();
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -261,16 +260,16 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     const closeButton = screen.getByTitle('Close panel');
     fireEvent.click(closeButton);
-    
+
     expect(mockHidePanel).toHaveBeenCalled();
   });
 
   it('calls showConfigModal when manual config button is clicked', async () => {
     const mockShowConfigModal = vi.fn();
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -294,16 +293,16 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     const configureButton = screen.getByRole('button', { name: /Manual Configuration/ });
     fireEvent.click(configureButton);
-    
+
     expect(mockShowConfigModal).toHaveBeenCalled();
   });
 
   it('calls showOnboarding when deploy button is clicked', async () => {
     const mockShowOnboarding = vi.fn();
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -327,10 +326,10 @@ describe('HolmesPanel', () => {
         <HolmesPanel />
       </HolmesContext.Provider>
     );
-    
+
     const deployButton = screen.getByRole('button', { name: /Deploy Holmes/ });
     fireEvent.click(deployButton);
-    
+
     expect(mockShowOnboarding).toHaveBeenCalled();
   });
 

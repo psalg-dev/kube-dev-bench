@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { GetResourceCounts } from '../k8s/resources/kubeApi.js';
 import { EventsOn } from '../../wailsjs/runtime';
 

@@ -14,6 +14,14 @@ export function AnalyzeAllMonitorIssues() {
   return window['go']['main']['App']['AnalyzeAllMonitorIssues']();
 }
 
+export function AnalyzeConfigMapStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeConfigMapStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeCronJobStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeCronJobStream'](arg1, arg2, arg3);
+}
+
 export function AnalyzeDaemonSet(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeDaemonSet'](arg1, arg2);
 }
@@ -30,6 +38,14 @@ export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
 }
 
+export function AnalyzeIngressStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeIngressStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzeJobStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeJobStream'](arg1, arg2, arg3);
+}
+
 export function AnalyzeLogs(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['AnalyzeLogs'](arg1, arg2, arg3, arg4);
 }
@@ -40,6 +56,14 @@ export function AnalyzeMonitorIssue(arg1) {
 
 export function AnalyzeMonitorIssueStream(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeMonitorIssueStream'](arg1, arg2);
+}
+
+export function AnalyzePersistentVolumeClaimStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzePersistentVolumeClaimStream'](arg1, arg2, arg3);
+}
+
+export function AnalyzePersistentVolumeStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzePersistentVolumeStream'](arg1, arg2);
 }
 
 export function AnalyzePod(arg1, arg2) {
@@ -62,6 +86,10 @@ export function AnalyzeResourceStream(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['AnalyzeResourceStream'](arg1, arg2, arg3, arg4);
 }
 
+export function AnalyzeSecretStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeSecretStream'](arg1, arg2, arg3);
+}
+
 export function AnalyzeService(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeService'](arg1, arg2);
 }
@@ -78,12 +106,28 @@ export function AnalyzeStatefulSetStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeStatefulSetStream'](arg1, arg2, arg3);
 }
 
+export function AnalyzeSwarmNode(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmNode'](arg1);
+}
+
+export function AnalyzeSwarmNodeStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmNodeStream'](arg1, arg2);
+}
+
 export function AnalyzeSwarmService(arg1) {
   return window['go']['main']['App']['AnalyzeSwarmService'](arg1);
 }
 
 export function AnalyzeSwarmServiceStream(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeSwarmServiceStream'](arg1, arg2);
+}
+
+export function AnalyzeSwarmStack(arg1) {
+  return window['go']['main']['App']['AnalyzeSwarmStack'](arg1);
+}
+
+export function AnalyzeSwarmStackStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeSwarmStackStream'](arg1, arg2);
 }
 
 export function AnalyzeSwarmTask(arg1) {
@@ -278,6 +322,26 @@ export function GetAlertInvestigationHistory() {
   return window['go']['main']['App']['GetAlertInvestigationHistory']();
 }
 
+export function GetAllTabCounts(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetAllTabCounts'](arg1, arg2, arg3);
+}
+
+export function GetClusterRoleBindingDetail(arg1) {
+  return window['go']['main']['App']['GetClusterRoleBindingDetail'](arg1);
+}
+
+export function GetClusterRoleBindings() {
+  return window['go']['main']['App']['GetClusterRoleBindings']();
+}
+
+export function GetClusterRoleDetail(arg1) {
+  return window['go']['main']['App']['GetClusterRoleDetail'](arg1);
+}
+
+export function GetClusterRoles() {
+  return window['go']['main']['App']['GetClusterRoles']();
+}
+
 export function GetClusterTopology() {
   return window['go']['main']['App']['GetClusterTopology']();
 }
@@ -286,8 +350,20 @@ export function GetConfigMapConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapConsumers'](arg1, arg2);
 }
 
+export function GetConfigMapConsumersCount(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapConsumersCount'](arg1, arg2);
+}
+
 export function GetConfigMapDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetConfigMapDataByName'](arg1, arg2);
+}
+
+export function GetConfigMapDataCount(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapDataCount'](arg1, arg2);
+}
+
+export function GetConfigMapYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetConfigMapYAML'](arg1, arg2);
 }
 
 export function GetConfigMaps(arg1) {
@@ -302,12 +378,28 @@ export function GetCronJobDetail(arg1, arg2) {
   return window['go']['main']['App']['GetCronJobDetail'](arg1, arg2);
 }
 
+export function GetCronJobHistoryCount(arg1, arg2) {
+  return window['go']['main']['App']['GetCronJobHistoryCount'](arg1, arg2);
+}
+
+export function GetCronJobYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetCronJobYAML'](arg1, arg2);
+}
+
 export function GetCronJobs(arg1) {
   return window['go']['main']['App']['GetCronJobs'](arg1);
 }
 
 export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
+}
+
+export function GetCustomResourceDefinitionDetail(arg1) {
+  return window['go']['main']['App']['GetCustomResourceDefinitionDetail'](arg1);
+}
+
+export function GetCustomResourceDefinitions() {
+  return window['go']['main']['App']['GetCustomResourceDefinitions']();
 }
 
 export function GetDaemonSetDetail(arg1, arg2) {
@@ -320,6 +412,10 @@ export function GetDaemonSetLogs(arg1, arg2) {
 
 export function GetDaemonSetNodeCoverage(arg1, arg2) {
   return window['go']['main']['App']['GetDaemonSetNodeCoverage'](arg1, arg2);
+}
+
+export function GetDaemonSetYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetDaemonSetYAML'](arg1, arg2);
 }
 
 export function GetDaemonSets(arg1) {
@@ -336,6 +432,10 @@ export function GetDeploymentDetail(arg1, arg2) {
 
 export function GetDeploymentLogs(arg1, arg2) {
   return window['go']['main']['App']['GetDeploymentLogs'](arg1, arg2);
+}
+
+export function GetDeploymentYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetDeploymentYAML'](arg1, arg2);
 }
 
 export function GetDeployments(arg1) {
@@ -356,6 +456,14 @@ export function GetDockerConnectionStatus() {
 
 export function GetDockerHubRepositoryDetails(arg1) {
   return window['go']['main']['App']['GetDockerHubRepositoryDetails'](arg1);
+}
+
+export function GetEndpointDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetEndpointDetail'](arg1, arg2);
+}
+
+export function GetEndpoints(arg1) {
+  return window['go']['main']['App']['GetEndpoints'](arg1);
 }
 
 export function GetHelmChartVersions(arg1, arg2) {
@@ -410,8 +518,16 @@ export function GetIngressDetail(arg1, arg2) {
   return window['go']['main']['App']['GetIngressDetail'](arg1, arg2);
 }
 
+export function GetIngressRulesCount(arg1, arg2) {
+  return window['go']['main']['App']['GetIngressRulesCount'](arg1, arg2);
+}
+
 export function GetIngressTLSSummary(arg1, arg2) {
   return window['go']['main']['App']['GetIngressTLSSummary'](arg1, arg2);
+}
+
+export function GetIngressYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetIngressYAML'](arg1, arg2);
 }
 
 export function GetIngresses(arg1) {
@@ -424,6 +540,10 @@ export function GetJobDetail(arg1, arg2) {
 
 export function GetJobLogs(arg1, arg2) {
   return window['go']['main']['App']['GetJobLogs'](arg1, arg2);
+}
+
+export function GetJobYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetJobYAML'](arg1, arg2);
 }
 
 export function GetJobs(arg1) {
@@ -442,8 +562,36 @@ export function GetKubeContextsFromFile(arg1) {
   return window['go']['main']['App']['GetKubeContextsFromFile'](arg1);
 }
 
+export function GetMCPConfig() {
+  return window['go']['main']['App']['GetMCPConfig']();
+}
+
+export function GetMCPStatus() {
+  return window['go']['main']['App']['GetMCPStatus']();
+}
+
 export function GetNamespaces() {
   return window['go']['main']['App']['GetNamespaces']();
+}
+
+export function GetNetworkPolicies(arg1) {
+  return window['go']['main']['App']['GetNetworkPolicies'](arg1);
+}
+
+export function GetNetworkPolicyDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetNetworkPolicyDetail'](arg1, arg2);
+}
+
+export function GetNodeDetail(arg1) {
+  return window['go']['main']['App']['GetNodeDetail'](arg1);
+}
+
+export function GetNodeYAML(arg1) {
+  return window['go']['main']['App']['GetNodeYAML'](arg1);
+}
+
+export function GetNodes() {
+  return window['go']['main']['App']['GetNodes']();
 }
 
 export function GetOverview(arg1) {
@@ -454,12 +602,32 @@ export function GetPVCConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetPVCConsumers'](arg1, arg2);
 }
 
+export function GetPVCConsumersCount(arg1, arg2) {
+  return window['go']['main']['App']['GetPVCConsumersCount'](arg1, arg2);
+}
+
 export function GetPVCFileContent(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPVCFileContent'](arg1, arg2, arg3, arg4);
 }
 
+export function GetPersistentVolumeClaimDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetPersistentVolumeClaimDetail'](arg1, arg2);
+}
+
+export function GetPersistentVolumeClaimYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetPersistentVolumeClaimYAML'](arg1, arg2);
+}
+
 export function GetPersistentVolumeClaims(arg1) {
   return window['go']['main']['App']['GetPersistentVolumeClaims'](arg1);
+}
+
+export function GetPersistentVolumeDetail(arg1) {
+  return window['go']['main']['App']['GetPersistentVolumeDetail'](arg1);
+}
+
+export function GetPersistentVolumeYAML(arg1) {
+  return window['go']['main']['App']['GetPersistentVolumeYAML'](arg1);
 }
 
 export function GetPersistentVolumes() {
@@ -502,6 +670,10 @@ export function GetPodLog(arg1) {
   return window['go']['main']['App']['GetPodLog'](arg1);
 }
 
+export function GetPodLogsPrevious(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetPodLogsPrevious'](arg1, arg2, arg3, arg4);
+}
+
 export function GetPodMounts(arg1) {
   return window['go']['main']['App']['GetPodMounts'](arg1);
 }
@@ -516,6 +688,10 @@ export function GetPodSummary(arg1) {
 
 export function GetPodYAML(arg1) {
   return window['go']['main']['App']['GetPodYAML'](arg1);
+}
+
+export function GetPodsCountForResource(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetPodsCountForResource'](arg1, arg2, arg3);
 }
 
 export function GetPrometheusAlerts(arg1) {
@@ -550,6 +726,14 @@ export function GetReplicaSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetDetail'](arg1, arg2);
 }
 
+export function GetReplicaSetLogs(arg1, arg2) {
+  return window['go']['main']['App']['GetReplicaSetLogs'](arg1, arg2);
+}
+
+export function GetReplicaSetYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetReplicaSetYAML'](arg1, arg2);
+}
+
 export function GetReplicaSets(arg1) {
   return window['go']['main']['App']['GetReplicaSets'](arg1);
 }
@@ -562,12 +746,48 @@ export function GetResourceEvents(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceEvents'](arg1, arg2, arg3);
 }
 
+export function GetResourceEventsCount(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetResourceEventsCount'](arg1, arg2, arg3);
+}
+
+export function GetResourceYAML(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetResourceYAML'](arg1, arg2, arg3);
+}
+
+export function GetRoleBindingDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleBindingDetail'](arg1, arg2);
+}
+
+export function GetRoleBindings(arg1) {
+  return window['go']['main']['App']['GetRoleBindings'](arg1);
+}
+
+export function GetRoleDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleDetail'](arg1, arg2);
+}
+
+export function GetRoles(arg1) {
+  return window['go']['main']['App']['GetRoles'](arg1);
+}
+
+export function GetRolloutHistory(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetRolloutHistory'](arg1, arg2, arg3);
+}
+
+export function GetRolloutStatus(arg1, arg2, arg3) {
+  return window['go']['main']['App']['GetRolloutStatus'](arg1, arg2, arg3);
+}
+
 export function GetRunningPods(arg1) {
   return window['go']['main']['App']['GetRunningPods'](arg1);
 }
 
 export function GetSecretConsumers(arg1, arg2) {
   return window['go']['main']['App']['GetSecretConsumers'](arg1, arg2);
+}
+
+export function GetSecretConsumersCount(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretConsumersCount'](arg1, arg2);
 }
 
 export function GetSecretData(arg1) {
@@ -578,12 +798,44 @@ export function GetSecretDataByName(arg1, arg2) {
   return window['go']['main']['App']['GetSecretDataByName'](arg1, arg2);
 }
 
+export function GetSecretDataCount(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretDataCount'](arg1, arg2);
+}
+
+export function GetSecretYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetSecretYAML'](arg1, arg2);
+}
+
 export function GetSecrets(arg1) {
   return window['go']['main']['App']['GetSecrets'](arg1);
 }
 
+export function GetServiceAccountDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceAccountDetail'](arg1, arg2);
+}
+
+export function GetServiceAccounts(arg1) {
+  return window['go']['main']['App']['GetServiceAccounts'](arg1);
+}
+
+export function GetServiceDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceDetail'](arg1, arg2);
+}
+
+export function GetServiceEndpoints(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceEndpoints'](arg1, arg2);
+}
+
+export function GetServiceEndpointsCount(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceEndpointsCount'](arg1, arg2);
+}
+
 export function GetServiceSummary(arg1, arg2) {
   return window['go']['main']['App']['GetServiceSummary'](arg1, arg2);
+}
+
+export function GetServiceYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetServiceYAML'](arg1, arg2);
 }
 
 export function GetServices(arg1) {
@@ -598,8 +850,24 @@ export function GetStatefulSetLogs(arg1, arg2) {
   return window['go']['main']['App']['GetStatefulSetLogs'](arg1, arg2);
 }
 
+export function GetStatefulSetPVCsCount(arg1, arg2) {
+  return window['go']['main']['App']['GetStatefulSetPVCsCount'](arg1, arg2);
+}
+
+export function GetStatefulSetYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetStatefulSetYAML'](arg1, arg2);
+}
+
 export function GetStatefulSets(arg1) {
   return window['go']['main']['App']['GetStatefulSets'](arg1);
+}
+
+export function GetStorageClassDetail(arg1) {
+  return window['go']['main']['App']['GetStorageClassDetail'](arg1);
+}
+
+export function GetStorageClasses() {
+  return window['go']['main']['App']['GetStorageClasses']();
 }
 
 export function GetSwarmConfig(arg1) {
@@ -620,6 +888,14 @@ export function GetSwarmConfigUsage(arg1) {
 
 export function GetSwarmConfigs() {
   return window['go']['main']['App']['GetSwarmConfigs']();
+}
+
+export function GetSwarmEvents(arg1) {
+  return window['go']['main']['App']['GetSwarmEvents'](arg1);
+}
+
+export function GetSwarmJoinTokens() {
+  return window['go']['main']['App']['GetSwarmJoinTokens']();
 }
 
 export function GetSwarmMetricsHistory() {
@@ -680,6 +956,10 @@ export function GetSwarmSecrets() {
 
 export function GetSwarmService(arg1) {
   return window['go']['main']['App']['GetSwarmService'](arg1);
+}
+
+export function GetSwarmServiceEvents(arg1, arg2) {
+  return window['go']['main']['App']['GetSwarmServiceEvents'](arg1, arg2);
 }
 
 export function GetSwarmServiceLogs(arg1, arg2) {
@@ -974,6 +1254,10 @@ export function SetKubeConfigPath(arg1) {
   return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
 
+export function SetMCPConfig(arg1) {
+  return window['go']['main']['App']['SetMCPConfig'](arg1);
+}
+
 export function SetPreferredNamespaces(arg1) {
   return window['go']['main']['App']['SetPreferredNamespaces'](arg1);
 }
@@ -1024,6 +1308,10 @@ export function StartJob(arg1, arg2) {
 
 export function StartJobFromCronJob(arg1, arg2) {
   return window['go']['main']['App']['StartJobFromCronJob'](arg1, arg2);
+}
+
+export function StartMCPServer() {
+  return window['go']['main']['App']['StartMCPServer']();
 }
 
 export function StartMonitorPolling() {
@@ -1086,6 +1374,10 @@ export function StopHolmesPortForward(arg1) {
   return window['go']['main']['App']['StopHolmesPortForward'](arg1);
 }
 
+export function StopMCPServer() {
+  return window['go']['main']['App']['StopMCPServer']();
+}
+
 export function StopPodLogs(arg1) {
   return window['go']['main']['App']['StopPodLogs'](arg1);
 }
@@ -1132,6 +1424,14 @@ export function TestHook(arg1) {
 
 export function TestRegistryConnection(arg1) {
   return window['go']['main']['App']['TestRegistryConnection'](arg1);
+}
+
+export function TopNodes() {
+  return window['go']['main']['App']['TopNodes']();
+}
+
+export function TopPods(arg1) {
+  return window['go']['main']['App']['TopPods'](arg1);
 }
 
 export function UndeployHolmesGPT(arg1, arg2) {

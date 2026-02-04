@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './CronJobActionsTab.css';
 
 /**
  * Actions tab for CronJobs: Trigger Now, Suspend/Resume.
- * 
+ *
  * @param {string} namespace - The namespace of the CronJob
  * @param {string} cronJobName - The name of the CronJob
  * @param {boolean} suspend - Current suspend state
@@ -18,7 +18,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
     setLoading('trigger');
     setError(null);
     setMessage(null);
-    
+
     try {
       await AppAPI.StartJobFromCronJob(namespace, cronJobName);
       setMessage(`Job triggered successfully from CronJob "${cronJobName}"`);
@@ -33,7 +33,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
     setLoading('suspend');
     setError(null);
     setMessage(null);
-    
+
     try {
       if (suspend) {
         await AppAPI.ResumeCronJob(namespace, cronJobName);
@@ -54,7 +54,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
       <div className="actions-header">
         <h3>CronJob Actions</h3>
         <p className="actions-description">
-          Manage the CronJob "{cronJobName}" with the actions below.
+          Manage the CronJob &quot;{cronJobName}&quot; with the actions below.
         </p>
       </div>
 
@@ -63,7 +63,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
           ✓ {message}
         </div>
       )}
-      
+
       {error && (
         <div className="actions-message error">
           ✗ {error}
@@ -76,7 +76,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
           <div className="action-content">
             <h4>Trigger Now</h4>
             <p>Manually create a Job from this CronJob immediately, regardless of the schedule.</p>
-            <button 
+            <button
               className="action-btn primary"
               onClick={handleTriggerNow}
               disabled={loading !== null}
@@ -91,24 +91,24 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }) {
           <div className="action-content">
             <h4>{suspend ? 'Resume CronJob' : 'Suspend CronJob'}</h4>
             <p>
-              {suspend 
+              {suspend
                 ? 'Resume scheduled job creation. New jobs will be created according to the schedule.'
                 : 'Suspend scheduled job creation. No new jobs will be created until resumed.'
               }
             </p>
             <div className="action-status">
-              Current status: 
+              Current status:
               <span className={`status-badge ${suspend ? 'suspended' : 'active'}`}>
                 {suspend ? 'Suspended' : 'Active'}
               </span>
             </div>
-            <button 
+            <button
               className={`action-btn ${suspend ? 'success' : 'warning'}`}
               onClick={handleSuspendResume}
               disabled={loading !== null}
             >
-              {loading === 'suspend' 
-                ? (suspend ? 'Resuming...' : 'Suspending...') 
+              {loading === 'suspend'
+                ? (suspend ? 'Resuming...' : 'Suspending...')
                 : (suspend ? 'Resume' : 'Suspend')
               }
             </button>

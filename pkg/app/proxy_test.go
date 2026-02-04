@@ -437,3 +437,5 @@ func containsStringHelper(s, substr string) bool {
 	}
 	return false
 }
+
+// Tests for sanitizeProxyURL function

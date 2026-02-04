@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export default function UpdateServiceImageModal({ open, currentImage, serviceName, onClose, onConfirm }) {
   const [image, setImage] = useState(currentImage || '');

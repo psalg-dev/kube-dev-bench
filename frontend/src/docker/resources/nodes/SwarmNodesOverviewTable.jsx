@@ -1,13 +1,20 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
+import AggregateLogsTab from '../../../components/AggregateLogsTab.jsx';
 import NodeTasksTab from './NodeTasksTab.jsx';
 import NodeLabelsTab from './NodeLabelsTab.jsx';
 import NodeLogsTab from './NodeLogsTab.jsx';
+import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
+import { AnalyzeSwarmNodeStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import {
   GetSwarmNodes,
+  GetSwarmNodeTasks,
+  GetSwarmTaskLogs,
+  GetSwarmJoinTokens,
   UpdateSwarmNodeAvailability,
   UpdateSwarmNodeRole,
   RemoveSwarmNode,
@@ -28,24 +35,11 @@ const columns = [
   }},
   { key: 'availability', label: 'Availability', cell: ({ getValue }) => {
     const avail = getValue();
-    const getColor = (a) => {
-      switch (a?.toLowerCase()) {
-        case 'active': return '#3fb950';
-        case 'pause': return '#e6b800';
-        case 'drain': return '#f85149';
-        default: return '#8b949e';
-      }
-    };
-    return <span style={{ color: getColor(avail) }}>{avail}</span>;
+    return <StatusBadge status={avail || '-'} size="small" />;
   }},
   { key: 'state', label: 'State', cell: ({ getValue }) => {
     const state = getValue();
-    const isReady = state === 'ready';
-    return (
-      <span style={{ color: isReady ? '#3fb950' : '#f85149' }}>
-        {state}
-      </span>
-    );
+    return <StatusBadge status={state || '-'} size="small" />;
   }},
   { key: 'address', label: 'Address' },
   { key: 'engineVersion', label: 'Engine' },
@@ -55,10 +49,11 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'tasks', label: 'Tasks' },
-  { key: 'logs', label: 'Logs' },
-  { key: 'labels', label: 'Labels' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'tasks', label: 'Tasks', countKey: 'tasks' },
+  { key: 'logs', label: 'Logs', countable: false },
+  { key: 'labels', label: 'Labels', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function formatBytes(bytes) {
@@ -83,7 +78,222 @@ function formatNanoCPUs(nanoCpus) {
   return `${cores.toFixed(fixed)} cores`;
 }
 
-function renderPanelContent(row, tab, onRefresh) {
+function pickBestTask(tasks) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const withContainer = list.filter((t) => t?.id && t?.containerId);
+  const running = withContainer.find((t) => String(t.state || '').toLowerCase() === 'running');
+  return running || withContainer[0] || null;
+}
+
+function NodeLogsPreview({ nodeId }) {
+  const [tasks, setTasks] = useState([]);
+  const [loadingTasks, setLoadingTasks] = useState(true);
+  const [tasksError, setTasksError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setLoadingTasks(true);
+    setTasksError('');
+
+    (async () => {
+      try {
+        const data = await GetSwarmNodeTasks(nodeId);
+        if (!active) return;
+        setTasks(Array.isArray(data) ? data : []);
+      } catch (e) {
+        if (!active) return;
+        setTasks([]);
+        setTasksError(e?.message || String(e));
+      } finally {
+        if (active) setLoadingTasks(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [nodeId]);
+
+  const selectedTask = useMemo(() => pickBestTask(tasks), [tasks]);
+
+  if (loadingTasks) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+        Loading node logs...
+      </div>
+    );
+  }
+
+  if (tasksError) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+        Unable to load node logs: {tasksError}
+      </div>
+    );
+  }
+
+  if (!selectedTask) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
+        No tasks with containers running on this node.
+      </div>
+    );
+  }
+
+  const title = `Node Logs (task: ${selectedTask.serviceName || selectedTask.serviceId?.slice(0, 12) || 'service'})`;
+
+  return (
+    <AggregateLogsTab
+      title={title}
+      reloadKey={`${nodeId}:${selectedTask.id}`}
+      loadLogs={() => GetSwarmTaskLogs(selectedTask.id, '100')}
+    />
+  );
+}
+
+function NodeJoinInfoPanel({ role }) {
+  const [joinTokens, setJoinTokens] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+
+    (async () => {
+      try {
+        const data = await GetSwarmJoinTokens();
+        if (!active) return;
+        setJoinTokens(data);
+      } catch (e) {
+        if (!active) return;
+        setError(e?.message || String(e));
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleCopy = async (text, label) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(label);
+      setTimeout(() => setCopied(''), 2000);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
+
+  if (loading) {
+    return null; // Don't show anything while loading
+  }
+
+  if (error || !joinTokens?.addr) {
+    return null; // Hide panel if there's an error or no data
+  }
+
+  const panelStyle = {
+    width: 280,
+    minWidth: 200,
+    borderLeft: '1px solid var(--gh-border, #30363d)',
+    padding: 12,
+    background: 'var(--gh-canvas-subtle, #161b22)',
+    overflow: 'auto',
+  };
+
+  const sectionStyle = {
+    marginBottom: 16,
+  };
+
+  const labelStyle = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--gh-text-secondary, #8b949e)',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  };
+
+  const commandStyle = {
+    background: 'var(--gh-bg, #0d1117)',
+    border: '1px solid var(--gh-border, #30363d)',
+    borderRadius: 4,
+    padding: 8,
+    fontSize: 11,
+    fontFamily: 'monospace',
+    wordBreak: 'break-all',
+    color: 'var(--gh-text, #c9d1d9)',
+    position: 'relative',
+  };
+
+  const copyBtnStyle = {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    padding: '2px 6px',
+    fontSize: 10,
+    background: 'var(--gh-button-bg, #21262d)',
+    border: '1px solid var(--gh-border, #30363d)',
+    borderRadius: 4,
+    color: 'var(--gh-text, #c9d1d9)',
+    cursor: 'pointer',
+  };
+
+  // Only managers can access join tokens; if viewing a worker, show limited info
+  const isManager = role === 'manager';
+
+  return (
+    <div style={panelStyle}>
+      <div style={{ fontWeight: 600, marginBottom: 12, color: 'var(--gh-text, #c9d1d9)' }}>
+        {isManager ? 'Join Commands' : 'Add Nodes'}
+      </div>
+
+      {joinTokens.commands?.worker && (
+        <div style={sectionStyle}>
+          <div style={labelStyle}>Add Worker Node</div>
+          <div style={commandStyle}>
+            <div style={{ paddingRight: 40 }}>{joinTokens.commands.worker}</div>
+            <button
+              style={copyBtnStyle}
+              onClick={() => handleCopy(joinTokens.commands.worker, 'worker')}
+            >
+              {copied === 'worker' ? '✓' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isManager && joinTokens.commands?.manager && (
+        <div style={sectionStyle}>
+          <div style={labelStyle}>Add Manager Node</div>
+          <div style={commandStyle}>
+            <div style={{ paddingRight: 40 }}>{joinTokens.commands.manager}</div>
+            <button
+              style={copyBtnStyle}
+              onClick={() => handleCopy(joinTokens.commands.manager, 'manager')}
+            >
+              {copied === 'manager' ? '✓' : 'Copy'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ fontSize: 11, color: 'var(--gh-text-secondary, #8b949e)', marginTop: 8 }}>
+        {isManager
+          ? 'Run these commands on new nodes to join the swarm.'
+          : 'Run this command on new nodes to add them as workers. Manager join commands are available when viewing a manager node.'}
+      </div>
+    </div>
+  );
+}
+
+function renderPanelContent(row, tab, onRefresh, holmesState, onAnalyze, onCancel) {
   if (tab === 'summary') {
     const quickInfoFields = [
       { key: 'id', label: 'Node ID', type: 'break-word' },
@@ -97,8 +307,9 @@ function renderPanelContent(row, tab, onRefresh) {
       {
         key: 'availability',
         label: 'Availability',
+        type: 'status',
         layout: 'flex',
-        rightField: { key: 'state', label: 'State' }
+        rightField: { key: 'state', label: 'State', type: 'status' }
       },
       { key: 'address', label: 'Address' },
       { key: 'engineVersion', label: 'Docker Version' },
@@ -245,6 +456,12 @@ function renderPanelContent(row, tab, onRefresh) {
             error={null}
             fields={quickInfoFields}
           />
+          <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <NodeLogsPreview nodeId={row.id} />
+            </div>
+          </div>
+          <NodeJoinInfoPanel role={row.role} />
         </div>
       </div>
     );
@@ -268,6 +485,26 @@ function renderPanelContent(row, tab, onRefresh) {
     return <NodeLogsTab nodeId={row.id} nodeName={row.hostname} />;
   }
 
+  if (tab === 'holmes') {
+    const key = `swarm/${row.id}`;
+    return (
+      <HolmesBottomPanel
+        resourceType="Swarm Node"
+        resourceName={row.hostname}
+        onAnalyze={() => onAnalyze?.(row)}
+        onCancel={holmesState.key === key && holmesState.streamId ? onCancel : null}
+        response={holmesState.key === key ? holmesState.response : null}
+        loading={holmesState.key === key && holmesState.loading}
+        error={holmesState.key === key ? holmesState.error : null}
+        streamingText={holmesState.key === key ? holmesState.streamingText : ''}
+        reasoningText={holmesState.key === key ? holmesState.reasoningText : ''}
+        contextSteps={holmesState.key === key ? holmesState.contextSteps : []}
+        toolEvents={holmesState.key === key ? holmesState.toolEvents : []}
+        queryTimestamp={holmesState.key === key ? holmesState.queryTimestamp : null}
+      />
+    );
+  }
+
   return null;
 }
 
@@ -275,9 +512,33 @@ export default function SwarmNodesOverviewTable() {
   const [nodes, setNodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [holmesState, setHolmesState] = useState({
+    loading: false,
+    response: null,
+    error: null,
+    key: null,
+    streamId: null,
+    streamingText: '',
+    reasoningText: '',
+    queryTimestamp: null,
+    contextSteps: [],
+    toolEvents: [],
+  });
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
+    holmesStateRef.current = holmesState;
+  }, [holmesState]);
 
   const refresh = useCallback(() => {
     setRefreshKey(k => k + 1);
+  }, []);
+
+  const fetchTabCountsForRow = useCallback(async (row) => {
+    if (!row?.id) return {};
+    const tasks = await GetSwarmNodeTasks(row.id);
+    return {
+      tasks: Array.isArray(tasks) ? tasks.length : 0,
+    };
   }, []);
 
   useEffect(() => {
@@ -314,11 +575,178 @@ export default function SwarmNodesOverviewTable() {
       active = false;
       if (typeof off === 'function') off();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
+
+  // Holmes streaming handler
+  useEffect(() => {
+    const unsubscribe = onHolmesChatStream((payload) => {
+      if (!payload) return;
+      const current = holmesStateRef.current;
+      const { streamId } = current;
+      if (payload.stream_id && streamId && payload.stream_id !== streamId) {
+        return;
+      }
+      if (payload.error) {
+        if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
+          setHolmesState((prev) => ({ ...prev, loading: false }));
+          return;
+        }
+        setHolmesState((prev) => ({ ...prev, loading: false, error: payload.error }));
+        return;
+      }
+
+      const eventType = payload.event;
+      if (!payload.data) return;
+
+      let data;
+      try {
+        data = JSON.parse(payload.data);
+      } catch {
+        data = null;
+      }
+
+      if (eventType === 'ai_message' && data) {
+        let handled = false;
+        if (data.reasoning) {
+          setHolmesState((prev) => ({
+            ...prev,
+            reasoningText: (prev.reasoningText ? prev.reasoningText + '\n' : '') + data.reasoning,
+          }));
+          handled = true;
+        }
+        if (data.content) {
+          setHolmesState((prev) => {
+            const nextText = (prev.streamingText ? prev.streamingText + '\n' : '') + data.content;
+            return { ...prev, streamingText: nextText, response: { response: nextText } };
+          });
+          handled = true;
+        }
+        if (handled) return;
+      }
+
+      if (eventType === 'start_tool_calling' && data && data.id) {
+        setHolmesState((prev) => ({
+          ...prev,
+          toolEvents: [...(prev.toolEvents || []), {
+            id: data.id,
+            name: data.tool_name || 'tool',
+            status: 'running',
+            description: data.description,
+          }],
+        }));
+        return;
+      }
+
+      if (eventType === 'tool_calling_result' && data && data.tool_call_id) {
+        const status = data.result?.status || data.status || 'done';
+        setHolmesState((prev) => ({
+          ...prev,
+          toolEvents: (prev.toolEvents || []).map((item) =>
+            item.id === data.tool_call_id
+              ? { ...item, status, description: data.description || item.description }
+              : item
+          ),
+        }));
+        return;
+      }
+
+      if (eventType === 'ai_answer_end' && data && data.analysis) {
+        setHolmesState((prev) => ({
+          ...prev,
+          loading: false,
+          response: { response: data.analysis },
+          streamingText: data.analysis,
+        }));
+        return;
+      }
+
+      if (eventType === 'stream_end') {
+        setHolmesState((prev) => {
+          if (prev.streamingText) {
+            return { ...prev, loading: false, response: { response: prev.streamingText } };
+          }
+          return { ...prev, loading: false };
+        });
+      }
+    });
+    return () => {
+      try { unsubscribe?.(); } catch (_) {}
+    };
+  }, []);
+
+  // Holmes context progress handler
+  useEffect(() => {
+    const unsubscribe = onHolmesContextProgress((event) => {
+      if (!event?.key) return;
+      setHolmesState((prev) => {
+        if (prev.key !== event.key) return prev;
+        const id = event.step || 'step';
+        const nextSteps = Array.isArray(prev.contextSteps) ? [...prev.contextSteps] : [];
+        const idx = nextSteps.findIndex((item) => item.id === id);
+        const entry = {
+          id,
+          step: event.step,
+          status: event.status || 'running',
+          detail: event.detail || '',
+        };
+        if (idx >= 0) {
+          nextSteps[idx] = { ...nextSteps[idx], ...entry };
+        } else {
+          nextSteps.push(entry);
+        }
+        return { ...prev, contextSteps: nextSteps };
+      });
+    });
+    return () => {
+      try { unsubscribe?.(); } catch (_) {}
+    };
+  }, []);
 
   if (loading) {
     return <div className="main-panel-loading">Loading Swarm nodes...</div>;
   }
+
+  const analyzeWithHolmes = async (node) => {
+    const key = node?.id;
+    if (!key) return;
+    const streamId = `swarm-node-${Date.now()}`;
+    setHolmesState({
+      loading: true,
+      response: null,
+      error: null,
+      key: `swarm/${key}`,
+      streamId,
+      streamingText: '',
+      reasoningText: '',
+      queryTimestamp: new Date().toISOString(),
+      contextSteps: [],
+      toolEvents: [],
+    });
+    try {
+      await AnalyzeSwarmNodeStream(node.id, streamId);
+    } catch (err) {
+      const message = err?.message || String(err);
+      setHolmesState((prev) => ({
+        ...prev,
+        loading: false,
+        response: null,
+        error: message,
+      }));
+      showError(`Holmes analysis failed: ${message}`);
+    }
+  };
+
+  const cancelHolmesAnalysis = async () => {
+    const currentStreamId = holmesState.streamId;
+    if (!currentStreamId) return;
+    setHolmesState((prev) => ({ ...prev, loading: false, streamId: null }));
+    try {
+      await CancelHolmesStream(currentStreamId);
+    } catch (err) {
+      console.error('Failed to cancel Holmes stream:', err);
+    }
+  };
 
   return (
     <OverviewTableWithPanel
@@ -326,7 +754,8 @@ export default function SwarmNodesOverviewTable() {
       columns={columns}
       data={nodes}
       tabs={bottomTabs}
-      renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
+      renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh, holmesState, analyzeWithHolmes, cancelHolmesAnalysis)}
+      tabCountsFetcher={fetchTabCountsForRow}
       createPlatform="swarm"
       createKind="node"
       tableTestId="swarm-nodes-table"

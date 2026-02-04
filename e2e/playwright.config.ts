@@ -2,6 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['registry/**'],
   outputDir: './test-results',
   // Note: worker-scoped fixtures (like starting Wails) run under the test timeout.
   // Keep this high enough to allow cold-starts when running with multiple workers.
@@ -24,6 +25,13 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'on',
+    colorScheme: 'dark',
+    launchOptions: {
+      args: [
+        '--force-dark-mode',
+        '--enable-features=WebContentsForceDark:inversion_method/cielab_based/image_behavior/none/foreground_lightness_threshold/150/background_lightness_threshold/205',
+      ],
+    },
   },
   globalSetup: './src/support/global-setup.ts',
   globalTeardown: './src/support/global-teardown.ts',

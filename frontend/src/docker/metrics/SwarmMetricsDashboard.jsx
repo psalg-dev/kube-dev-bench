@@ -1,7 +1,8 @@
-import React from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import MetricsChart from './MetricsChart.jsx';
 import { MetricsStateProvider, useClusterMetrics } from './MetricsStateContext.jsx';
 import TimeRangeSelector from './TimeRangeSelector.jsx';
+import { navigateToResource } from '../../utils/resourceNavigation';
 import './SwarmMetricsDashboard.css';
 
 function formatBytes(bytes) {
@@ -52,9 +53,25 @@ function Card({ title, value, sub }) {
 
 function SwarmMetricsDashboardInner() {
   const { history, latest, services, nodes, loading, error, refetch } = useClusterMetrics();
-  const [rangeSeconds, setRangeSeconds] = React.useState(900);
+  const [rangeSeconds, setRangeSeconds] = useState(900);
+  const [hoveredService, setHoveredService] = useState(null);
+  const [hoveredNode, setHoveredNode] = useState(null);
 
-  const filteredHistory = React.useMemo(() => {
+  const handleServiceClick = (svc) => {
+    const name = svc.serviceName || svc.serviceId;
+    if (name) {
+      navigateToResource({ resource: 'SwarmService', name });
+    }
+  };
+
+  const handleNodeClick = (node) => {
+    const name = node.hostname || node.nodeId;
+    if (name) {
+      navigateToResource({ resource: 'SwarmNode', name });
+    }
+  };
+
+  const filteredHistory = useMemo(() => {
     const arr = Array.isArray(history) ? history : [];
     const seconds = Number(rangeSeconds) || 0;
     if (!seconds) return arr;
@@ -65,14 +82,14 @@ function SwarmMetricsDashboardInner() {
     });
   }, [history, rangeSeconds]);
 
-  const percent = React.useCallback((num, den) => {
+  const percent = useCallback((num, den) => {
     const n = Number(num);
     const d = Number(den);
     if (!Number.isFinite(n) || !Number.isFinite(d) || d <= 0) return 0;
     return (n / d) * 100;
   }, []);
 
-  const rateHistory = React.useMemo(() => {
+  const rateHistory = useMemo(() => {
     const arr = Array.isArray(filteredHistory) ? filteredHistory : [];
     if (arr.length < 2) return [];
 
@@ -103,7 +120,7 @@ function SwarmMetricsDashboardInner() {
     return out;
   }, [filteredHistory]);
 
-  const serviceTopCpu = React.useMemo(() => {
+  const serviceTopCpu = useMemo(() => {
     const arr = Array.isArray(services) ? services : [];
     return [...arr]
       .filter((s) => Number(s?.cpuPercent) > 0 || Number(s?.memoryUsedBytes) > 0)
@@ -111,7 +128,7 @@ function SwarmMetricsDashboardInner() {
       .slice(0, 6);
   }, [services]);
 
-  const nodeTopCpu = React.useMemo(() => {
+  const nodeTopCpu = useMemo(() => {
     const arr = Array.isArray(nodes) ? nodes : [];
     return [...arr]
       .filter((n) => Number(n?.cpuPercent) > 0 || Number(n?.memoryUsedBytes) > 0)
@@ -165,13 +182,31 @@ function SwarmMetricsDashboardInner() {
                     </tr>
                   </thead>
                   <tbody>
-                    {serviceTopCpu.map((s) => (
-                      <tr key={s.serviceId}>
-                        <td>{s.serviceName || s.serviceId}</td>
-                        <td>{formatPercent(s.cpuPercent)}</td>
-                        <td>{formatBytes(s.memoryUsedBytes)}</td>
-                      </tr>
-                    ))}
+                    {serviceTopCpu.map((s) => {
+                      const isHovered = hoveredService === s.serviceId;
+                      return (
+                        <tr
+                          key={s.serviceId}
+                          onClick={() => handleServiceClick(s)}
+                          onMouseEnter={() => setHoveredService(s.serviceId)}
+                          onMouseLeave={() => setHoveredService(null)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleServiceClick(s); }}
+                          role="button"
+                          tabIndex={0}
+                          title={`Open service: ${s.serviceName || s.serviceId}`}
+                          style={{
+                            cursor: 'pointer',
+                            background: isHovered ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                          }}
+                        >
+                          <td style={{ color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                            {s.serviceName || s.serviceId}
+                          </td>
+                          <td>{formatPercent(s.cpuPercent)}</td>
+                          <td>{formatBytes(s.memoryUsedBytes)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (
@@ -191,13 +226,31 @@ function SwarmMetricsDashboardInner() {
                     </tr>
                   </thead>
                   <tbody>
-                    {nodeTopCpu.map((n) => (
-                      <tr key={n.nodeId}>
-                        <td>{n.hostname || n.nodeId}</td>
-                        <td>{formatPercent(n.cpuPercent)}</td>
-                        <td>{formatBytes(n.memoryUsedBytes)}</td>
-                      </tr>
-                    ))}
+                    {nodeTopCpu.map((n) => {
+                      const isHovered = hoveredNode === n.nodeId;
+                      return (
+                        <tr
+                          key={n.nodeId}
+                          onClick={() => handleNodeClick(n)}
+                          onMouseEnter={() => setHoveredNode(n.nodeId)}
+                          onMouseLeave={() => setHoveredNode(null)}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleNodeClick(n); }}
+                          role="button"
+                          tabIndex={0}
+                          title={`Open node: ${n.hostname || n.nodeId}`}
+                          style={{
+                            cursor: 'pointer',
+                            background: isHovered ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                          }}
+                        >
+                          <td style={{ color: isHovered ? 'var(--gh-link, #58a6ff)' : undefined }}>
+                            {n.hostname || n.nodeId}
+                          </td>
+                          <td>{formatPercent(n.cpuPercent)}</td>
+                          <td>{formatBytes(n.memoryUsedBytes)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               ) : (

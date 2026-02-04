@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import React from 'react';
+import { render, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
 import './wailsMocks';
 import { genericAPIMock, resetAllMocks, eventsOnMock } from './wailsMocks';
 import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
@@ -8,7 +8,7 @@ import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
 // Test component that exposes context for testing
 function TestConsumer({ onContext }) {
   const context = useHolmes();
-  React.useEffect(() => {
+  useEffect(() => {
     onContext(context);
   }, [context, onContext]);
   return null;
@@ -18,7 +18,7 @@ describe('HolmesContext', () => {
   beforeEach(() => {
     resetAllMocks();
     // Default mock for GetHolmesConfig
-    genericAPIMock.mockImplementation((name, ...args) => {
+    genericAPIMock.mockImplementation((name, ..._args) => {
       if (name === 'GetHolmesConfig') {
         return Promise.resolve({ enabled: false, endpoint: '', apiKey: '', modelKey: '', responseFormat: '' });
       }
@@ -121,7 +121,7 @@ describe('HolmesContext', () => {
       return () => {};
     });
 
-    genericAPIMock.mockImplementation((name, ...args) => {
+    genericAPIMock.mockImplementation((name, ..._args) => {
       if (name === 'GetHolmesConfig') {
         return Promise.resolve({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
       }
@@ -179,7 +179,7 @@ describe('HolmesContext', () => {
 
     try {
       await capturedContext.askHolmes('test question');
-    } catch (e) {
+    } catch (_e) {
       // Expected error
     }
 
@@ -238,14 +238,14 @@ describe('HolmesContext', () => {
   it('throws error when useHolmes is used outside provider', () => {
     // Suppress console.error for this test
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    
+
     function BadComponent() {
       useHolmes();
       return null;
     }
 
     expect(() => render(<BadComponent />)).toThrow('useHolmes must be used within HolmesProvider');
-    
+
     consoleSpy.mockRestore();
   });
 });

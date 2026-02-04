@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GetRegistries, RemoveRegistry } from '../swarmApi.js';
 import { useSwarmResourceCounts } from '../SwarmResourceCountsContext.jsx';
 import { showError, showSuccess } from '../../notification.js';
@@ -7,6 +7,7 @@ import RegistryBrowser from './RegistryBrowser.jsx';
 import BottomPanel from '../../layout/bottompanel/BottomPanel.jsx';
 import './registry.css';
 import '../../layout/overview/OverviewTableWithPanel.css';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
 
 function formatType(type) {
   if (type === 'dockerhub') return 'Docker Hub';
@@ -57,6 +58,15 @@ export default function SwarmRegistriesOverview() {
       };
     });
   }, [registries]);
+
+  const columns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'type', label: 'Type' },
+    { key: 'url', label: 'URL' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction), [rows, sortState]);
 
   const selectedRegistryType = useMemo(() => {
     if (!selectedRegistry) return '';
@@ -138,9 +148,24 @@ export default function SwarmRegistriesOverview() {
       <table className="gh-table registry-table" style={{ width: '100%' }}>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>URL</th>
+            <th aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" className="sortable-header" onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                <span>Name</span>
+                <span className="sortable-indicator" aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'type' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" className="sortable-header" onClick={() => setSortState((cur) => toggleSortState(cur, 'type'))}>
+                <span>Type</span>
+                <span className="sortable-indicator" aria-hidden="true">{sortState.key === 'type' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'url' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" className="sortable-header" onClick={() => setSortState((cur) => toggleSortState(cur, 'url'))}>
+                <span>URL</span>
+                <span className="sortable-indicator" aria-hidden="true">{sortState.key === 'url' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -153,7 +178,7 @@ export default function SwarmRegistriesOverview() {
               <td colSpan={3} className="main-panel-loading">No registries configured.</td>
             </tr>
           ) : (
-            rows.map((r) => (
+            sortedRows.map((r) => (
               <tr
                 key={r.name || r.url}
                 style={{ cursor: 'pointer' }}

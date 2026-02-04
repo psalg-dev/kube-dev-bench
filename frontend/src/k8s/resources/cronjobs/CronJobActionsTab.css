@@ -12,12 +12,12 @@
   margin: 0 0 8px 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--gh-text, #d4d4d4);
 }
 
 .actions-description {
   margin: 0;
-  color: #a0a0a0;
+  color: var(--gh-text-muted, #858585);
   font-size: 0.9rem;
 }
 
@@ -31,13 +31,13 @@
 .actions-message.success {
   background-color: rgba(76, 175, 80, 0.15);
   border: 1px solid rgba(76, 175, 80, 0.3);
-  color: #81c784;
+  color: var(--vsc-success, #89d185);
 }
 
 .actions-message.error {
   background-color: rgba(244, 67, 54, 0.15);
   border: 1px solid rgba(244, 67, 54, 0.3);
-  color: #e57373;
+  color: var(--vsc-error, #f14c4c);
 }
 
 .actions-grid {
@@ -50,14 +50,14 @@
   display: flex;
   gap: 16px;
   padding: 20px;
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--gh-bg-sidebar, #181818);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 8px;
   transition: border-color 0.2s ease;
 }
 
 .action-card:hover {
-  border-color: #4a4a4a;
+  border-color: var(--gh-hover-bg, #474747);
 }
 
 .action-icon {
@@ -73,12 +73,12 @@
   margin: 0 0 8px 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--gh-text, #d4d4d4);
 }
 
 .action-content p {
   margin: 0 0 12px 0;
-  color: #a0a0a0;
+  color: var(--gh-text-muted, #858585);
   font-size: 0.85rem;
   line-height: 1.4;
 }
@@ -86,7 +86,7 @@
 .action-status {
   margin-bottom: 12px;
   font-size: 0.85rem;
-  color: #a0a0a0;
+  color: var(--gh-text-muted, #858585);
 }
 
 .status-badge {
@@ -100,12 +100,12 @@
 
 .status-badge.active {
   background-color: rgba(76, 175, 80, 0.2);
-  color: #81c784;
+  color: var(--vsc-success, #89d185);
 }
 
 .status-badge.suspended {
   background-color: rgba(255, 152, 0, 0.2);
-  color: #ffb74d;
+  color: var(--vsc-warning, #cca700);
 }
 
 .action-btn {
@@ -124,28 +124,28 @@
 }
 
 .action-btn.primary {
-  background-color: #1976d2;
+  background-color: var(--gh-accent, #0e639c);
   color: white;
 }
 
 .action-btn.primary:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: var(--gh-accent-hover, #1177bb);
 }
 
 .action-btn.warning {
-  background-color: #f57c00;
+  background-color: var(--vsc-warning, #cca700);
   color: white;
 }
 
 .action-btn.warning:hover:not(:disabled) {
-  background-color: #ef6c00;
+  background-color: #b89500;
 }
 
 .action-btn.success {
-  background-color: #388e3c;
+  background-color: #4ec9b0;
   color: white;
 }
 
 .action-btn.success:hover:not(:disabled) {
-  background-color: #2e7d32;
+  background-color: #3eb59a;
 }

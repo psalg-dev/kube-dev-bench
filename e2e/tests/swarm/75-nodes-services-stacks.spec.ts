@@ -70,7 +70,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
     const firstRow = table.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 60_000 });
-    const nodeName = (await firstRow.locator('td').first().innerText()).trim();
+    const nodeName = (await firstRow.locator('td').nth(1).innerText()).trim();
 
     await firstRow.click();
 
@@ -161,7 +161,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
       }).toPass({ timeout: 90_000, intervals: [1000, 2000, 5000] });
       
       // Click the Name cell (first td) to avoid clicking the Update badge which opens a different popup
-      const nameCell = row.locator('td').first();
+      const nameCell = row.locator('td').nth(1);
       const panel = new SwarmBottomPanel(page);
       await expect(async () => {
         // Dismiss any open popups first
@@ -222,7 +222,8 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
     await panelRoot.getByRole('button', { name: 'Compose File', exact: true }).click();
     await expect(panelRoot.getByText(/derived from current service specs/i)).toBeVisible({ timeout: 60_000 });
-    await expect(panelRoot.locator('pre').first()).toContainText('services:', { timeout: 60_000 });
+    const composeContent = panelRoot.locator('pre, .cm-content').first();
+    await expect(composeContent).toContainText('services:', { timeout: 60_000 });
 
     // Export button is only rendered in the Summary panel header (actions).
     // Assert via success toast rather than relying on downloads/filesystem.

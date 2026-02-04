@@ -107,7 +107,7 @@ function ensureContainer() {
 function makeDraggable(el) {
   let dragging = false;
   let startX = 0, startY = 0, origX = 0, origY = 0;
-  let wasAbsolute = el.style.position === 'absolute' || el.style.position === 'fixed';
+  const wasAbsolute = el.style.position === 'absolute' || el.style.position === 'fixed';
 
   const onMouseDown = (e) => {
     // Start dragging except when clicking the close button

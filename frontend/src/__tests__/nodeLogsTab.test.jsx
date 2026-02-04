@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
@@ -49,8 +48,8 @@ describe('NodeLogsTab', () => {
 
     render(<NodeLogsTab nodeId="node1" nodeName="worker-1" />);
 
-    expect(await screen.findByText('Node Logs')).toBeInTheDocument();
-    expect(screen.getByText(/No tasks with containers/)).toBeInTheDocument();
+    expect(await screen.findByText('No logs available')).toBeInTheDocument();
+    expect(screen.getByText(/No task logs are available/)).toBeInTheDocument();
   });
 
   it('selects a running task with container and wires AggregateLogsTab loadLogs', async () => {

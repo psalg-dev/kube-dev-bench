@@ -1,11 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // All hooks must be called before any early returns to follow Rules of Hooks
+  const columns = useMemo(() => ([
+    { key: 'index', label: '#' },
+    { key: 'time', label: 'Scheduled Time' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+
+  const runs = Array.isArray(detail?.nextRuns) ? detail.nextRuns : (Array.isArray(detail?.NextRuns) ? detail.NextRuns : []);
+  const rows = useMemo(() => runs.map((t, idx) => ({ index: idx + 1, time: t })), [runs]);
+  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction, (row, key) => row?.[key]), [rows, sortState]);
 
   useEffect(() => {
     if (!namespace || !cronJobName) return;
@@ -36,26 +49,50 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }) 
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>CronJob is suspended.</div>;
   }
 
-  const runs = Array.isArray(detail?.nextRuns) ? detail.nextRuns : (Array.isArray(detail?.NextRuns) ? detail.NextRuns : []);
   if (!runs || runs.length === 0) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No upcoming runs available.</div>;
   }
 
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       <h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>Next Runs (Next 5)</h4>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>#</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Scheduled Time</th>
+          <tr>
+            <th style={{ width: 60 }} aria-sort={sortState.key === 'index' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'index'))}>
+                <span>#</span>
+                <span aria-hidden="true">{sortState.key === 'index' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'time' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'time'))}>
+                <span>Scheduled Time</span>
+                <span aria-hidden="true">{sortState.key === 'time' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {runs.map((t, idx) => (
-            <tr key={`${t}|${idx}`} style={{ borderBottom: '1px solid #21262d' }}>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 60 }}>{idx + 1}</td>
-              <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>{formatTimestampDMYHMS(t)}</td>
+          {sortedRows.map((row) => (
+            <tr key={`${row.time}|${row.index}`}>
+              <td className="text-muted">{row.index}</td>
+              <td>{formatTimestampDMYHMS(row.time)}</td>
             </tr>
           ))}
         </tbody>

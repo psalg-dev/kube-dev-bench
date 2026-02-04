@@ -1,24 +1,67 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { GetSwarmStackResources } from '../../swarmApi.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
+import EmptyTabContent from '../../../components/EmptyTabContent';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import { navigateToResource } from '../../../utils/resourceNavigation';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
-function Empty({ text }) {
+// Mapping from resource type to empty message key
+const resourceMessageMap = {
+  networks: 'swarm-stack-networks',
+  volumes: 'swarm-stack-volumes',
+  configs: 'swarm-stack-configs',
+  secrets: 'swarm-stack-secrets',
+};
+
+function Empty({ resource }) {
+  const messageKey = resourceMessageMap[resource] || 'data';
+  const emptyMsg = getEmptyTabMessage(messageKey);
   return (
-    <div style={{ padding: 24, textAlign: 'center', color: 'var(--gh-text-secondary, #8b949e)' }}>
-      {text}
-    </div>
+    <EmptyTabContent
+      icon={emptyMsg.icon}
+      title={emptyMsg.title}
+      description={emptyMsg.description}
+      tip={emptyMsg.tip}
+    />
   );
 }
 
-function Table({ columns, rows, rowKey }) {
+function Table({ columns, rows, rowKey, onRowClick, resourceType }) {
+  const [hoveredRow, setHoveredRow] = useState(null);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedRows = useMemo(() => sortRows(rows, sortState.key, sortState.direction), [rows, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ position: 'absolute', inset: 0, overflow: 'auto', padding: 16 }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+        <colgroup>
+          {columns.map(c => (
+            <col key={c.key} style={{ width: c.width || 'auto' }} />
+          ))}
+        </colgroup>
         <thead>
           <tr>
             {columns.map(c => (
               <th
                 key={c.key}
+                aria-sort={sortState.key === c.key ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
                 style={{
                   textAlign: 'left',
                   fontWeight: 600,
@@ -26,34 +69,67 @@ function Table({ columns, rows, rowKey }) {
                   color: 'var(--gh-text, #c9d1d9)',
                   borderBottom: '1px solid var(--gh-border, #30363d)',
                   padding: '8px 10px',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                {c.label}
+                <button
+                  type="button"
+                  style={headerButtonStyle}
+                  onClick={() => setSortState((cur) => toggleSortState(cur, c.key))}
+                >
+                  <span>{c.label}</span>
+                  <span aria-hidden="true">{sortState.key === c.key ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {rows.map(r => (
-            <tr key={rowKey(r)}>
-              {columns.map(c => (
-                <td
-                  key={c.key}
-                  style={{
-                    fontSize: 12,
-                    color: 'var(--gh-text, #c9d1d9)',
-                    borderBottom: '1px solid var(--gh-border, #30363d)',
-                    padding: '8px 10px',
-                    verticalAlign: 'top',
-                    wordBreak: c.breakWord ? 'break-word' : 'normal',
-                    fontFamily: c.mono ? 'monospace' : 'inherit',
-                  }}
-                >
-                  {c.render ? c.render(r) : (r?.[c.key] ?? '-')}
-                </td>
-              ))}
-            </tr>
-          ))}
+          {sortedRows.map(r => {
+            const key = rowKey(r);
+            const isHovered = hoveredRow === key;
+            const hasClickHandler = !!onRowClick;
+            return (
+              <tr
+                key={key}
+                onClick={hasClickHandler ? () => onRowClick(r) : undefined}
+                onMouseEnter={() => setHoveredRow(key)}
+                onMouseLeave={() => setHoveredRow(null)}
+                onKeyDown={(e) => { if (hasClickHandler && (e.key === 'Enter' || e.key === ' ')) onRowClick(r); }}
+                role={hasClickHandler ? 'button' : undefined}
+                tabIndex={hasClickHandler ? 0 : undefined}
+                title={hasClickHandler ? `Open ${resourceType}: ${r.name}` : undefined}
+                style={{
+                  cursor: hasClickHandler ? 'pointer' : 'default',
+                  background: isHovered && hasClickHandler ? 'var(--gh-row-hover, rgba(88, 166, 255, 0.1))' : undefined,
+                }}
+              >
+                {columns.map((c, idx) => (
+                  <td
+                    key={c.key}
+                    style={{
+                      textAlign: 'left',
+                      fontSize: 12,
+                      color: idx === 0 && isHovered && hasClickHandler ? 'var(--gh-link, #58a6ff)' : 'var(--gh-text, #c9d1d9)',
+                      borderBottom: '1px solid var(--gh-border, #30363d)',
+                      padding: '8px 10px',
+                      verticalAlign: 'middle',
+                      wordBreak: c.breakWord ? 'break-word' : 'normal',
+                      fontFamily: c.mono ? 'monospace' : 'inherit',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: c.breakWord ? 'normal' : 'nowrap',
+                    }}
+                    title={r?.[c.key] ?? ''}
+                  >
+                    {c.render ? c.render(r) : (r?.[c.key] ?? '-')}
+                  </td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -105,38 +181,38 @@ export default function StackResourcesTab({ stackName, resource }) {
     switch (resource) {
       case 'networks':
         return [
-          { key: 'name', label: 'Name' },
-          { key: 'driver', label: 'Driver' },
-          { key: 'scope', label: 'Scope' },
-          { key: 'attachable', label: 'Attachable', render: (r) => r.attachable ? 'Yes' : 'No' },
-          { key: 'internal', label: 'Internal', render: (r) => r.internal ? 'Yes' : 'No' },
-          { key: 'id', label: 'ID', mono: true, breakWord: true },
+          { key: 'name', label: 'Name', width: '25%' },
+          { key: 'driver', label: 'Driver', width: '12%' },
+          { key: 'scope', label: 'Scope', width: '10%' },
+          { key: 'attachable', label: 'Attachable', width: '10%', render: (r) => r.attachable ? 'Yes' : 'No' },
+          { key: 'internal', label: 'Internal', width: '10%', render: (r) => r.internal ? 'Yes' : 'No' },
+          { key: 'id', label: 'ID', width: '33%', mono: true, maxWidth: 300 },
         ];
       case 'volumes':
         return [
-          { key: 'name', label: 'Name' },
-          { key: 'driver', label: 'Driver' },
-          { key: 'scope', label: 'Scope' },
-          { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
+          { key: 'name', label: 'Name', width: '35%' },
+          { key: 'driver', label: 'Driver', width: '15%' },
+          { key: 'scope', label: 'Scope', width: '15%' },
+          { key: 'createdAt', label: 'Created', width: '35%', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
         ];
       case 'configs':
         return [
-          { key: 'name', label: 'Name' },
-          { key: 'dataSize', label: 'Size', render: (r) => {
+          { key: 'name', label: 'Name', width: '30%' },
+          { key: 'dataSize', label: 'Size', width: '10%', render: (r) => {
             const size = r.dataSize;
             if (size === undefined || size === null) return '-';
             if (size < 1024) return `${size} B`;
             if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
             return `${(size / 1024 / 1024).toFixed(1)} MB`;
           }},
-          { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
-          { key: 'id', label: 'ID', mono: true, breakWord: true },
+          { key: 'createdAt', label: 'Created', width: '25%', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
+          { key: 'id', label: 'ID', width: '35%', mono: true, maxWidth: 300 },
         ];
       case 'secrets':
         return [
-          { key: 'name', label: 'Name' },
-          { key: 'createdAt', label: 'Created', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
-          { key: 'id', label: 'ID', mono: true, breakWord: true },
+          { key: 'name', label: 'Name', width: '30%' },
+          { key: 'createdAt', label: 'Created', width: '30%', render: (r) => r.createdAt ? formatTimestampDMYHMS(r.createdAt) : '-' },
+          { key: 'id', label: 'ID', width: '40%', mono: true, maxWidth: 300 },
         ];
       default:
         return [];
@@ -144,7 +220,11 @@ export default function StackResourcesTab({ stackName, resource }) {
   }, [resource]);
 
   if (loading) {
-    return <Empty text={`Loading ${resource}...`} />;
+    return (
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--gh-text-secondary, #8b949e)' }}>
+        Loading {resource}...
+      </div>
+    );
   }
 
   if (error) {
@@ -156,14 +236,31 @@ export default function StackResourcesTab({ stackName, resource }) {
   }
 
   if (!rows || rows.length === 0) {
-    return <Empty text={`No ${resource} found for this stack.`} />;
+    return <Empty resource={resource} />;
   }
+
+  // Map resource type to navigation resource type
+  const resourceTypeMap = {
+    networks: 'SwarmNetwork',
+    volumes: 'SwarmVolume',
+    configs: 'SwarmConfig',
+    secrets: 'SwarmSecret',
+  };
+  const navResourceType = resourceTypeMap[resource];
+
+  const handleRowClick = (row) => {
+    if (navResourceType && row.name) {
+      navigateToResource({ resource: navResourceType, name: row.name });
+    }
+  };
 
   return (
     <Table
       columns={columns}
       rows={rows}
       rowKey={(r) => r.id || r.name}
+      onRowClick={handleRowClick}
+      resourceType={resource}
     />
   );
 }

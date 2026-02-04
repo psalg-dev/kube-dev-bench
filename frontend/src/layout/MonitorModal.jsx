@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 export function MonitorModal({ monitorInfo, onClose }) {
   const [activeTab, setActiveTab] = useState('errors');

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHolmes } from './HolmesContext';
 import './HolmesConfigModal.css';
 
@@ -71,7 +71,7 @@ export function HolmesConfigModal() {
     setSaving(true);
     try {
       await saveConfig(formData);
-    } catch (err) {
+    } catch (_err) {
       // Error handled in context
     } finally {
       setSaving(false);
@@ -91,16 +91,16 @@ export function HolmesConfigModal() {
   };
 
   return (
-    <div 
-      className="holmes-config-backdrop" 
+    <div
+      className="holmes-config-backdrop"
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
       <div className="holmes-config-modal" id="holmes-config-modal">
         <div className="holmes-config-header">
           <h3>Holmes AI Configuration</h3>
-          <button 
-            className="holmes-config-close" 
+          <button
+            className="holmes-config-close"
             onClick={hideConfigModal}
             title="Close"
           >

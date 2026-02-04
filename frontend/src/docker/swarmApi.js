@@ -11,7 +11,7 @@ import {
   GetDockerConfig,
   AutoConnectDocker,
   GetDefaultDockerHost,
-  
+
   // Services
   GetSwarmServices,
   GetSwarmService,
@@ -24,13 +24,13 @@ import {
   RemoveSwarmService,
   UpdateSwarmServiceImage,
   RestartSwarmService,
-  
+
   // Tasks
   GetSwarmTasks,
   GetSwarmTasksByService,
   GetSwarmTask,
   GetSwarmTaskHealthLogs,
-  
+
   // Nodes
   GetSwarmNodes,
   GetSwarmNode,
@@ -39,7 +39,8 @@ import {
   UpdateSwarmNodeLabels,
   GetSwarmNodeTasks,
   RemoveSwarmNode,
-  
+  GetSwarmJoinTokens,
+
   // Networks
   GetSwarmNetworks,
   GetSwarmNetwork,
@@ -47,7 +48,7 @@ import {
   GetSwarmNetworkContainers,
   GetSwarmNetworkInspectJSON,
   RemoveSwarmNetwork,
-  
+
   // Configs
   GetSwarmConfigs,
   GetSwarmConfig,
@@ -59,7 +60,7 @@ import {
   ExportSwarmConfig,
   UpdateSwarmConfigData,
   RemoveSwarmConfig,
-  
+
   // Secrets
   GetSwarmSecrets,
   GetSwarmSecret,
@@ -69,7 +70,7 @@ import {
   CloneSwarmSecret,
   UpdateSwarmSecretData,
   RemoveSwarmSecret,
-  
+
   // Stacks
   GetSwarmStacks,
   GetSwarmStackServices,
@@ -78,7 +79,7 @@ import {
   RollbackSwarmStack,
   RemoveSwarmStack,
   CreateSwarmStack,
-  
+
   // Volumes
   GetSwarmVolumes,
   GetSwarmVolume,
@@ -97,13 +98,17 @@ import {
   GetSwarmVolumeFileContent,
   IsSwarmVolumeReadOnly,
   RemoveSwarmVolume,
-  
+
   // Logs
   GetSwarmServiceLogs,
   GetSwarmTaskLogs,
-  
+
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Events
+  GetSwarmEvents,
+  GetSwarmServiceEvents,
 
   // Registries
   GetRegistries,
@@ -132,7 +137,7 @@ export {
   GetDockerConfig,
   AutoConnectDocker,
   GetDefaultDockerHost,
-  
+
   // Services
   GetSwarmServices,
   GetSwarmService,
@@ -145,13 +150,13 @@ export {
   RemoveSwarmService,
   UpdateSwarmServiceImage,
   RestartSwarmService,
-  
+
   // Tasks
   GetSwarmTasks,
   GetSwarmTasksByService,
   GetSwarmTask,
   GetSwarmTaskHealthLogs,
-  
+
   // Nodes
   GetSwarmNodes,
   GetSwarmNode,
@@ -160,7 +165,8 @@ export {
   UpdateSwarmNodeLabels,
   GetSwarmNodeTasks,
   RemoveSwarmNode,
-  
+  GetSwarmJoinTokens,
+
   // Networks
   GetSwarmNetworks,
   GetSwarmNetwork,
@@ -168,7 +174,7 @@ export {
   GetSwarmNetworkContainers,
   GetSwarmNetworkInspectJSON,
   RemoveSwarmNetwork,
-  
+
   // Configs
   GetSwarmConfigs,
   GetSwarmConfig,
@@ -180,7 +186,7 @@ export {
   ExportSwarmConfig,
   UpdateSwarmConfigData,
   RemoveSwarmConfig,
-  
+
   // Secrets
   GetSwarmSecrets,
   GetSwarmSecret,
@@ -190,7 +196,7 @@ export {
   CloneSwarmSecret,
   UpdateSwarmSecretData,
   RemoveSwarmSecret,
-  
+
   // Stacks
   GetSwarmStacks,
   GetSwarmStackServices,
@@ -199,7 +205,7 @@ export {
   RollbackSwarmStack,
   RemoveSwarmStack,
   CreateSwarmStack,
-  
+
   // Volumes
   GetSwarmVolumes,
   GetSwarmVolume,
@@ -218,13 +224,17 @@ export {
   GetSwarmVolumeFileContent,
   IsSwarmVolumeReadOnly,
   RemoveSwarmVolume,
-  
+
   // Logs
   GetSwarmServiceLogs,
   GetSwarmTaskLogs,
-  
+
   // Resource counts
   GetSwarmResourceCounts,
+
+  // Events
+  GetSwarmEvents,
+  GetSwarmServiceEvents,
 
   // Registries
   GetRegistries,

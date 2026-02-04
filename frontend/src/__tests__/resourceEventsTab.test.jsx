@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 
@@ -81,7 +80,7 @@ describe('ResourceEventsTab', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/no events/i)).toBeInTheDocument();
+      expect(screen.getByText(/no events yet/i)).toBeInTheDocument();
     });
   });
 
@@ -191,7 +190,7 @@ describe('ResourceEventsTab', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/no events/i)).toBeInTheDocument();
+      expect(screen.getByText(/no events yet/i)).toBeInTheDocument();
     });
   });
 });

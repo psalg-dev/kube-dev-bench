@@ -1,31 +1,63 @@
-import React from 'react';
+import { useMemo, useState } from 'react';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function PVAnnotationsTab({ annotations }) {
   const ann = annotations || {};
-  const entries = Object.entries(ann);
+  const entries = Object.entries(ann).map(([key, value]) => ({ key, value }));
 
   if (!entries.length) {
     return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No annotations.</div>;
   }
 
+  const columns = useMemo(() => ([
+    { key: 'key', label: 'Key' },
+    { key: 'value', label: 'Value' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedEntries = useMemo(() => sortRows(entries, sortState.key, sortState.direction), [entries, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+      <table className="panel-table">
         <thead>
-          <tr style={{ borderBottom: '1px solid #30363d' }}>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)', width: 320 }}>Key</th>
-            <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Value</th>
+          <tr>
+            <th style={{ width: 320 }} aria-sort={sortState.key === 'key' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'key'))}>
+                <span>Key</span>
+                <span aria-hidden="true">{sortState.key === 'key' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
+            <th aria-sort={sortState.key === 'value' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+              <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'value'))}>
+                <span>Value</span>
+                <span aria-hidden="true">{sortState.key === 'value' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+              </button>
+            </th>
           </tr>
         </thead>
         <tbody>
-          {entries
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([k, v]) => (
-              <tr key={k} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', verticalAlign: 'top' }}>{k}</td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', wordBreak: 'break-all' }}>{String(v ?? '') || '-'}</td>
-              </tr>
-            ))}
+          {sortedEntries.map(({ key, value }) => (
+            <tr key={key}>
+              <td style={{ fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all', verticalAlign: 'top' }}>{key}</td>
+              <td style={{ wordBreak: 'break-all' }}>{String(value ?? '') || '-'}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

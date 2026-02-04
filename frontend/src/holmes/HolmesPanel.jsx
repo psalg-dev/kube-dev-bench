@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useHolmes } from './HolmesContext';
 import { HolmesResponseRenderer } from './HolmesResponseRenderer';
 import './HolmesPanel.css';
@@ -33,6 +33,8 @@ export function HolmesPanel() {
   const lastQueryRef = useRef(null);
   const lastResponseRef = useRef(null);
   const lastErrorRef = useRef(null);
+  // Track timestamps that have been cleared to prevent re-adding them
+  const clearedTimestampsRef = useRef(new Set());
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -75,7 +77,7 @@ export function HolmesPanel() {
     try {
       await askHolmes(question);
       setQuestion(''); // Clear input on success
-    } catch (err) {
+    } catch (_err) {
       // Error handled in context
     }
   };
@@ -90,6 +92,8 @@ export function HolmesPanel() {
   useEffect(() => {
     if (!state.query || !state.queryTimestamp) return;
     if (lastQueryRef.current === state.queryTimestamp) return;
+    // Skip if this timestamp was cleared
+    if (clearedTimestampsRef.current.has(state.queryTimestamp)) return;
 
     setConversation((prev) => [
       ...prev,
@@ -101,6 +105,8 @@ export function HolmesPanel() {
   useEffect(() => {
     if (!responseText || !state.responseTimestamp) return;
     if (lastResponseRef.current === state.responseTimestamp) return;
+    // Skip if this timestamp was cleared
+    if (clearedTimestampsRef.current.has(state.responseTimestamp)) return;
 
     setConversation((prev) => [
       ...prev,
@@ -121,6 +127,13 @@ export function HolmesPanel() {
   }, [state.error, state.loading]);
 
   const handleClearConversation = () => {
+    // Mark current timestamps as cleared to prevent re-adding them
+    if (state.queryTimestamp) {
+      clearedTimestampsRef.current.add(state.queryTimestamp);
+    }
+    if (state.responseTimestamp) {
+      clearedTimestampsRef.current.add(state.responseTimestamp);
+    }
     setConversation([]);
     lastQueryRef.current = null;
     lastResponseRef.current = null;
@@ -191,8 +204,8 @@ export function HolmesPanel() {
   if (!state.showPanel) return null;
 
   return (
-    <div 
-      id="holmes-panel" 
+    <div
+      id="holmes-panel"
       className="holmes-panel"
       onKeyDown={handleKeyDown}
       style={{ width: panelWidth }}
@@ -252,16 +265,16 @@ export function HolmesPanel() {
           <div className="holmes-unconfigured-icon">🔍</div>
           <h4>Holmes AI is not configured</h4>
           <p>Set up Holmes to get AI-powered troubleshooting for your cluster.</p>
-          
+
           <div className="holmes-unconfigured-actions">
-            <button 
+            <button
               className="holmes-btn holmes-btn-primary"
               onClick={showOnboarding}
               id="holmes-deploy-btn"
             >
               🚀 Deploy Holmes
             </button>
-            <button 
+            <button
               className="holmes-btn"
               onClick={showConfigModal}
               id="holmes-manual-config-btn"
@@ -269,10 +282,10 @@ export function HolmesPanel() {
               ⚙️ Manual Configuration
             </button>
           </div>
-          
+
           <p className="holmes-unconfigured-hint">
-            Use "Deploy Holmes" to automatically install HolmesGPT in your cluster, 
-            or "Manual Configuration" if you already have Holmes running.
+            Use &quot;Deploy Holmes&quot; to automatically install HolmesGPT in your cluster,
+            or &quot;Manual Configuration&quot; if you already have Holmes running.
           </p>
         </div>
       ) : (
@@ -432,9 +445,9 @@ export function HolmesPanel() {
                     <div className="holmes-message-body holmes-placeholder">
                       <p>Ask Holmes anything about your Kubernetes cluster:</p>
                       <ul>
-                        <li>"Why is my pod crashing?"</li>
-                        <li>"What pods are running in default?"</li>
-                        <li>"Explain the deployment status"</li>
+                        <li>&quot;Why is my pod crashing?&quot;</li>
+                        <li>&quot;What pods are running in default?&quot;</li>
+                        <li>&quot;Explain the deployment status&quot;</li>
                       </ul>
                     </div>
                   </div>

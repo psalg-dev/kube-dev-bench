@@ -7,9 +7,9 @@
 
 .swarmOverviewHeader {
   padding: 14px 16px;
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-bottom: none;
-  background: var(--gh-bg-sidebar, #161b22);
+  background: var(--gh-bg-sidebar, #181818);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -19,13 +19,13 @@
 .swarmOverviewTitle {
   font-weight: 700;
   font-size: 14px;
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
 }
 
 .swarmOverviewMeta {
   margin-top: 2px;
   font-size: 12px;
-  color: var(--gh-text-secondary, #8b949e);
+  color: var(--gh-text-secondary, #858585);
 }
 
 .swarmOverviewTabs {
@@ -35,22 +35,22 @@
 
 .swarmOverviewTabBtn {
   padding: 6px 10px;
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   background: rgba(110, 118, 129, 0.06);
-  color: var(--gh-text, #c9d1d9);
+  color: var(--gh-text, #d4d4d4);
   cursor: pointer;
   font-size: 12px;
 }
 
 .swarmOverviewTabBtn.active {
-  border-bottom: 2px solid var(--gh-accent, #238636);
+  border-bottom: 2px solid var(--gh-accent, #0e639c);
   background: rgba(56, 139, 253, 0.08);
 }
 
 .swarmOverviewContent {
-  border: 1px solid var(--gh-border, #30363d);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-top: none;
-  background: var(--gh-bg, #0d1117);
+  background: var(--gh-bg, #181818);
   flex: 1;
   min-height: 0;
   overflow-y: auto;

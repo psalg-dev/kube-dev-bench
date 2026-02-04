@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 import { useSwarmResourceCounts } from './SwarmResourceCountsContext.jsx';
 
 // Docker Swarm resource sections
@@ -40,11 +40,12 @@ export function SwarmSidebarSections({ selected, onSelect }) {
         const value = sec.countKey === 'registries' ? registriesCount : counts?.[sec.countKey];
         const isNumber = typeof value === 'number';
         return (
-          <div
+          <Link
             key={sec.key}
+            to={`/${sec.key}`}
             id={`section-${sec.key}`}
             className={`sidebar-section${isSel ? ' selected' : ''}`}
-            style={commonStyle}
+            style={{...commonStyle, textDecoration: 'none'}}
             onClick={(e) => { e.stopPropagation(); onSelect(sec.key); }}
           >
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -62,7 +63,7 @@ export function SwarmSidebarSections({ selected, onSelect }) {
             ) : (
               <span style={{ minWidth: '2em' }} />
             )}
-          </div>
+          </Link>
         );
       })}
     </div>

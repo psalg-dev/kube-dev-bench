@@ -1,6 +1,5 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext.jsx';
 
 // ---- Mocks ----
@@ -25,7 +24,7 @@ vi.mock('../k8s/resources/kubeApi.js', () => ({
 
 // Import mocks after they are defined
 import * as kubeApi from '../k8s/resources/kubeApi.js';
-import { showSuccess, showError, showWarning } from '../notification';
+import { showSuccess, showError as _showError, showWarning } from '../notification';
 
 function Probe() {
   const state = useClusterState();
@@ -52,12 +51,25 @@ function parseState() {
 
 async function renderAndWait() {
   await act(async () => { render(<ClusterStateProvider><Probe/></ClusterStateProvider>); });
-  // Wait a tick for async effect chain
+  // Wait for the component to be initialized
+  await waitFor(() => {
+    const st = parseState();
+    expect(st.initialized).toBe(true);
+  }, { timeout: 3000 });
+  // Give one more tick for any final state updates
   await act(async () => {});
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Also reset mock implementations to ensure clean state
+  kubeApi.GetKubeContexts.mockReset();
+  kubeApi.GetNamespaces.mockReset();
+  kubeApi.GetCurrentConfig.mockReset();
+  kubeApi.SetCurrentKubeContext.mockReset();
+  kubeApi.SetCurrentNamespace.mockReset();
+  kubeApi.GetConnectionStatus.mockReset();
+  kubeApi.SetPreferredNamespaces.mockReset();
 });
 
 describe('ClusterStateProvider initialization', () => {
@@ -77,9 +89,13 @@ describe('ClusterStateProvider initialization', () => {
     kubeApi.GetKubeContexts.mockResolvedValueOnce(['ctxA','ctxB']);
     kubeApi.GetNamespaces.mockResolvedValueOnce(['ns1','ns2']);
     await renderAndWait();
+    // Wait for the async initialization to complete and state to be set
+    await waitFor(() => {
+      const st = parseState();
+      expect(st.selectedContext).toBe('ctxA');
+      expect(st.selectedNamespaces).toEqual(['ns2']);
+    }, { timeout: 3000 });
     const st = parseState();
-    expect(st.selectedContext).toBe('ctxA');
-    expect(st.selectedNamespaces).toEqual(['ns2']);
     expect(showSuccess).toHaveBeenCalledWith(expect.stringContaining("Auto-selected context 'ctxA'"));
     expect(kubeApi.SetCurrentKubeContext).toHaveBeenCalledWith('ctxA');
     expect(kubeApi.SetCurrentNamespace).toHaveBeenCalledWith('ns2');
@@ -101,7 +117,10 @@ describe('ClusterStateProvider initialization', () => {
     kubeApi.GetKubeContexts.mockResolvedValueOnce(['ctx1']);
     kubeApi.GetNamespaces.mockResolvedValueOnce([]);
     await renderAndWait();
-    expect(showWarning).toHaveBeenCalledWith('No namespaces found for the selected context.');
+    // Wait for warning to be called
+    await waitFor(() => {
+      expect(showWarning).toHaveBeenCalledWith('No namespaces found for the selected context.');
+    }, { timeout: 3000 });
     const st = parseState();
     expect(st.namespaces).toEqual([]);
     expect(st.selectedNamespaces).toEqual([]);
@@ -123,10 +142,12 @@ describe('ClusterStateProvider actions', () => {
     await act(async () => {
       screen.getByTestId('selectCtxB').click();
     });
-    await act(async () => {});
-    const st = parseState();
-    expect(st.selectedContext).toBe('ctxB');
-    expect(st.selectedNamespaces).toEqual(['nsX']);
+    // Wait for the context switch to complete and state to update
+    await waitFor(() => {
+      const st = parseState();
+      expect(st.selectedContext).toBe('ctxB');
+      expect(st.selectedNamespaces).toEqual(['nsX']);
+    }, { timeout: 3000 });
     expect(showSuccess).toHaveBeenCalledWith("Context switched to 'ctxB'.");
   });
 

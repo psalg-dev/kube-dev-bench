@@ -9,7 +9,7 @@
   justify-content: center;
   align-items: center;
   height: 120px;
-  color: #a0a0a0;
+  color: var(--gh-text-muted, #858585);
 }
 
 .error {
@@ -17,7 +17,7 @@
   background-color: rgba(244, 67, 54, 0.15);
   border: 1px solid rgba(244, 67, 54, 0.3);
   border-radius: 6px;
-  color: #e57373;
+  color: var(--vsc-error, #f14c4c);
 }
 
 .no-rules {
@@ -27,7 +27,7 @@
   justify-content: center;
   height: 200px;
   text-align: center;
-  color: #a0a0a0;
+  color: var(--gh-text-muted, #858585);
 }
 
 .no-rules .icon {
@@ -38,7 +38,7 @@
 .no-rules h3 {
   margin: 0 0 8px 0;
   font-size: 1.2rem;
-  color: #e0e0e0;
+  color: var(--gh-text, #d4d4d4);
 }
 
 .no-rules p {
@@ -54,12 +54,12 @@
   margin: 0 0 4px 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--gh-text, #d4d4d4);
 }
 
 .rules-header p {
   margin: 0;
-  color: #808080;
+  color: var(--gh-text-muted, #858585);
   font-size: 0.85rem;
 }
 
@@ -70,22 +70,22 @@
 }
 
 .rule-card {
-  background-color: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background-color: var(--gh-bg-sidebar, #181818);
+  border: 1px solid var(--gh-border, #3c3c3c);
   border-radius: 8px;
   overflow: hidden;
 }
 
 .rule-header {
   padding: 12px 16px;
-  background-color: #252525;
-  border-bottom: 1px solid #3a3a3a;
+  background-color: var(--gh-bg-sidebar, #181818);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
 }
 
 .host-badge {
   font-size: 0.95rem;
   font-weight: 500;
-  color: #64b5f6;
+  color: var(--vsc-info, #3794ff);
 }
 
 .paths-table {
@@ -98,18 +98,18 @@
   text-align: left;
   font-size: 0.8rem;
   font-weight: 600;
-  color: #808080;
+  color: var(--gh-text-muted, #858585);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background-color: #252525;
-  border-bottom: 1px solid #3a3a3a;
+  background-color: var(--gh-bg-sidebar, #181818);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
 }
 
 .paths-table td {
   padding: 12px 16px;
   font-size: 0.9rem;
-  color: #e0e0e0;
-  border-bottom: 1px solid #333;
+  color: var(--gh-text, #d4d4d4);
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
 }
 
 .paths-table tr:last-child td {
@@ -117,7 +117,7 @@
 }
 
 .path-cell code {
-  background-color: #1e1e1e;
+  background-color: var(--gh-bg, #181818);
   padding: 2px 8px;
   border-radius: 4px;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
@@ -130,8 +130,8 @@
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  background-color: rgba(156, 39, 176, 0.2);
-  color: #ce93d8;
+  background-color: rgba(197, 134, 192, 0.2);
+  color: #c586c0;
 }
 
 .service-cell {
@@ -145,15 +145,15 @@
 
 .no-paths {
   text-align: center;
-  color: #808080;
+  color: var(--gh-text-muted, #858585);
   font-style: italic;
 }
 
 .tls-section {
   margin-top: 20px;
   padding: 16px;
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid rgba(76, 175, 80, 0.2);
+  background-color: rgba(137, 209, 133, 0.15);
+  border: 1px solid rgba(137, 209, 133, 0.25);
   border-radius: 8px;
 }
 
@@ -161,7 +161,7 @@
   margin: 0 0 12px 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #81c784;
+  color: var(--vsc-success, #89d185);
 }
 
 .tls-list {
@@ -178,12 +178,12 @@
 }
 
 .tls-label {
-  color: #808080;
+  color: var(--gh-text-muted, #858585);
   font-size: 0.85rem;
 }
 
 .tls-value {
-  color: #e0e0e0;
+  color: var(--gh-text, #d4d4d4);
   font-size: 0.85rem;
   margin-right: 16px;
 }

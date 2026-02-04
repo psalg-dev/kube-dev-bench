@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
 import { GetSwarmConfigData, UpdateSwarmConfigData } from '../../swarmApi.js';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab.jsx';
@@ -110,7 +110,7 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
 
   return (
     <div style={overlayStyle} onClick={() => onClose?.()}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+      <div style={modalStyle} onClick={(e) => e.stopPropagation()} data-testid="swarm-config-edit-modal">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
             Edit Swarm config: {configName}
@@ -141,6 +141,13 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
             </div>
           </div>
 
+          <textarea
+            data-testid="swarm-config-edit-textarea"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            style={{ position: 'absolute', left: -9999, top: 'auto', width: 1, height: 1, opacity: 0 }}
+          />
+
           <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--gh-border, #30363d)', borderRadius: 6, overflow: 'hidden' }}>
             <TextEditorTab
               content={value}
@@ -159,6 +166,7 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
             Cancel
           </button>
           <button
+            id="swarm-config-edit-save-btn"
             style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff', borderColor: '#238636' }}
             onClick={handleSave}
             disabled={saving || loading || !isDirty || isEmpty}

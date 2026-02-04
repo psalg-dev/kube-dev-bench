@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useClusterState } from '../state/ClusterStateContext.jsx';
 import { EventsOn } from '../../wailsjs/runtime/runtime.js';
 import MonitorPanel from './MonitorPanel.jsx';

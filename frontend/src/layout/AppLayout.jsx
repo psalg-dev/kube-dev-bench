@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import { useContext } from 'react';
 import FooterBar from './FooterBar.jsx';
 import SidebarSections from './SidebarSections.jsx';
 import { SwarmSidebarSections } from '../docker/SwarmSidebarSections.jsx';
@@ -7,7 +7,7 @@ import SwarmStateContext from '../docker/SwarmStateContext.jsx';
 function DockerSwarmSidebar({ selectedSection, onSelectSection, onOpenConnectionsWizard }) {
   // Use context directly to avoid error if not wrapped in provider
   const swarmContext = useContext(SwarmStateContext);
-  
+
   // If no context available, don't render Docker Swarm sidebar
   if (!swarmContext) {
     return null;
@@ -59,6 +59,10 @@ function DockerSwarmSidebar({ selectedSection, onSelectSection, onOpenConnection
  */
 export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelectEl, selectedSection, onSelectSection, mainContentEl, onOpenConnectionsWizard, onOpenSwarmConnectionsWizard, onToggleHolmes, holmesPanelVisible }) {
   const hideKubernetesSelectors = kubernetesAvailable === false;
+  const swarmContext = useContext(SwarmStateContext);
+  const swarmConnected = Boolean(swarmContext?.connected);
+  const activeConnectionCount = (kubernetesAvailable !== false ? 1 : 0) + (swarmConnected ? 1 : 0);
+  const showSidebarSeparators = activeConnectionCount > 1;
   return (
     <div id="layout">
       <aside id="sidebar">
@@ -88,12 +92,12 @@ export function AppLayout({ kubernetesAvailable, contextSelectEl, namespaceSelec
         <div className="input" id="kubecontext-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>{contextSelectEl}</div>
         <label htmlFor="namespace-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>Namespaces:</label>
         <div className="input" id="namespace-root" style={hideKubernetesSelectors ? { display: 'none' } : undefined}>{namespaceSelectEl}</div>
-        <hr className="sidebar-separator" />
+        {showSidebarSeparators && <hr className="sidebar-separator" />}
         <div id="sidebar-sections" style={{flex:1}}>
           {kubernetesAvailable !== false && (
             <>
               <SidebarSections selected={selectedSection} onSelect={onSelectSection} />
-              <hr className="sidebar-separator" />
+              {showSidebarSeparators && <hr className="sidebar-separator" />}
             </>
           )}
           <DockerSwarmSidebar

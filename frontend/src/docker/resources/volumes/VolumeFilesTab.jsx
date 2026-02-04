@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import TextViewerTab from '../../../layout/bottompanel/TextViewerTab.jsx';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab.jsx';
 import { DownloadFromSwarmVolume, GetSwarmVolumeFileContent, IsSwarmVolumeReadOnly, ListSwarmVolumeFiles, UploadToSwarmVolume } from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';
 import { CreateSwarmVolumeDirectory, DeleteSwarmVolumeFile, WriteSwarmVolumeFile } from '../../swarmApi.js';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 const DIR_CACHE_TTL_MS = 2000;
 const DIR_PAGE_SIZE = 200;
@@ -100,6 +101,7 @@ export default function VolumeFilesTab({ volumeName }) {
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [volumeName]);
 
   const refreshDirEntries = useCallback(async () => {
@@ -114,6 +116,7 @@ export default function VolumeFilesTab({ volumeName }) {
       // Keep UI usable even if refresh fails
       setError(e?.message || String(e));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path, volumeName]);
 
   useEffect(() => {
@@ -127,7 +130,7 @@ export default function VolumeFilesTab({ volumeName }) {
       try {
         const ro = await IsSwarmVolumeReadOnly(volumeName);
         if (active) setReadOnly(!!ro);
-      } catch (e) {
+      } catch (_e) {
         if (active) setReadOnly(null);
       }
     };
@@ -268,7 +271,7 @@ export default function VolumeFilesTab({ volumeName }) {
       if (!isBinary) {
         try {
           text = atob(res?.base64 || '');
-        } catch (e) {
+        } catch (_e) {
           text = '[decode error]';
         }
       }
@@ -321,9 +324,36 @@ export default function VolumeFilesTab({ volumeName }) {
     }
   };
 
-  const visibleEntries = useMemo(() => {
-    return entries.slice(0, visibleCount);
-  }, [entries, visibleCount]);
+  const columns = useMemo(() => ([
+    { key: 'name', label: 'Name' },
+    { key: 'mode', label: 'Perms' },
+    { key: 'size', label: 'Size' },
+    { key: 'modified', label: 'Modified' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const sortedEntries = useMemo(() => {
+    return sortRows(entries, sortState.key, sortState.direction, (row, key) => {
+      if (key === 'size') return row?.isDir ? null : row?.size;
+      return row?.[key];
+    });
+  }, [entries, sortState]);
+  const visibleSortedEntries = useMemo(() => sortedEntries.slice(0, visibleCount), [sortedEntries, visibleCount]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
 
   const hasMoreEntries = entries.length > visibleCount;
 
@@ -386,10 +416,10 @@ export default function VolumeFilesTab({ volumeName }) {
         <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(-1)}>root</span>
           {breadcrumbs.map((b, idx) => (
-            <React.Fragment key={idx}>
+            <Fragment key={idx}>
               <span style={{ margin: '0 4px' }}>/</span>
               <span style={{ cursor: 'pointer' }} onClick={() => handleCrumbClick(idx)}>{b}</span>
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
         <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--gh-text-muted, #8b949e)' }}>
@@ -407,27 +437,47 @@ export default function VolumeFilesTab({ volumeName }) {
           )}
 
           <div style={{ overflowY: 'auto', flex: 1 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed' }}>
               <thead style={{ position: 'sticky', top: 0 }}>
                 <tr style={{ background: 'var(--gh-bg-alt, #161b22)' }}>
-                  <th style={thStyle}>Name</th>
-                  <th style={thStyle}>Perms</th>
-                  <th style={{ ...thStyle, textAlign: 'right' }}>Size</th>
-                  <th style={thStyle}>Modified</th>
+                  <th style={{ ...thStyle, textAlign: 'left' }} aria-sort={sortState.key === 'name' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'name'))}>
+                      <span>Name</span>
+                      <span aria-hidden="true">{sortState.key === 'name' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th style={{ ...thStyle, textAlign: 'left' }} aria-sort={sortState.key === 'mode' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'mode'))}>
+                      <span>Perms</span>
+                      <span aria-hidden="true">{sortState.key === 'mode' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th style={{ ...thStyle, textAlign: 'right' }} aria-sort={sortState.key === 'size' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={{ ...headerButtonStyle, justifyContent: 'flex-end' }} onClick={() => setSortState((cur) => toggleSortState(cur, 'size'))}>
+                      <span>Size</span>
+                      <span aria-hidden="true">{sortState.key === 'size' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
+                  <th style={{ ...thStyle, textAlign: 'left' }} aria-sort={sortState.key === 'modified' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                    <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'modified'))}>
+                      <span>Modified</span>
+                      <span aria-hidden="true">{sortState.key === 'modified' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                    </button>
+                  </th>
                   <th style={{ ...thStyle, textAlign: 'right', width: 150 }}> </th>
                 </tr>
               </thead>
               <tbody>
-                {visibleEntries.map((e) => (
+                {visibleSortedEntries.map((e) => (
                   <tr key={e.path} onClick={() => openEntry(e)} style={{ cursor: 'pointer' }}>
-                    <td style={{ padding: '4px 8px', color: e.isDir ? 'var(--gh-accent, #58a6ff)' : 'var(--gh-text, #c9d1d9)' }}>
+                    <td style={{ padding: '4px 8px', textAlign: 'left', color: e.isDir ? 'var(--gh-accent, #58a6ff)' : 'var(--gh-text, #c9d1d9)' }}>
                       {e.isDir ? '📁 ' : '📄 '}
                       {e.name}
                       {e.isSymlink && e.linkTarget ? <span style={{ color: 'var(--gh-text-muted, #8b949e)' }}> ➜ {e.linkTarget}</span> : null}
                     </td>
-                    <td style={{ padding: '4px 8px', color: 'var(--gh-text-muted, #8b949e)', whiteSpace: 'nowrap' }}>{e.mode || ''}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'left', color: 'var(--gh-text-muted, #8b949e)', whiteSpace: 'nowrap' }}>{e.mode || ''}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right', color: 'var(--gh-text-muted, #8b949e)' }}>{e.isDir ? '-' : humanSize(e.size)}</td>
-                    <td style={{ padding: '4px 8px', color: 'var(--gh-text-muted, #8b949e)' }}>{e.modified ? String(e.modified).replace('T', ' ') : ''}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'left', color: 'var(--gh-text-muted, #8b949e)' }}>{e.modified ? String(e.modified).replace('T', ' ') : ''}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>
                       {!e.isDir ? (
                         <button

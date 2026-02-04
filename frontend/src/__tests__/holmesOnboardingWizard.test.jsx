@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import './wailsMocks';
 import { genericAPIMock, resetAllMocks } from './wailsMocks';
 import HolmesContext from '../holmes/HolmesContext';
@@ -14,10 +13,10 @@ describe('HolmesOnboardingWizard', () => {
         return Promise.resolve({ phase: 'not_deployed', message: 'Holmes is not deployed' });
       }
       if (name === 'DeployHolmesGPT') {
-        return Promise.resolve({ 
-          phase: 'deployed', 
+        return Promise.resolve({
+          phase: 'deployed',
           message: 'Holmes deployed!',
-          endpoint: 'http://holmesgpt.holmesgpt.svc.cluster.local:8080' 
+          endpoint: 'http://holmesgpt.holmesgpt.svc.cluster.local:8080'
         });
       }
       return Promise.resolve(undefined);
@@ -44,7 +43,7 @@ describe('HolmesOnboardingWizard', () => {
 
   it('renders welcome step when showOnboarding is true', async () => {
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -67,7 +66,7 @@ describe('HolmesOnboardingWizard', () => {
 
   it('shows API key step when Get Started is clicked', async () => {
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -97,7 +96,7 @@ describe('HolmesOnboardingWizard', () => {
     const mockHideOnboarding = vi.fn();
     const mockShowConfigModal = vi.fn();
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -125,7 +124,7 @@ describe('HolmesOnboardingWizard', () => {
 
   it('shows error when trying to deploy without API key', async () => {
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -146,19 +145,19 @@ describe('HolmesOnboardingWizard', () => {
 
     // Go to step 2
     fireEvent.click(screen.getByText('Get Started'));
-    
+
     // Deploy button should be disabled when no key is entered
     const deployBtn = screen.getByText('Deploy Holmes');
     expect(deployBtn).toBeDisabled();
   });
 
   it('calls deployHolmes when Deploy button is clicked with valid key', async () => {
-    const mockDeployHolmes = vi.fn().mockResolvedValue({ 
-      phase: 'deployed', 
-      endpoint: 'http://test:8080' 
+    const mockDeployHolmes = vi.fn().mockResolvedValue({
+      phase: 'deployed',
+      endpoint: 'http://test:8080'
     });
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -179,11 +178,11 @@ describe('HolmesOnboardingWizard', () => {
 
     // Go to step 2
     fireEvent.click(screen.getByText('Get Started'));
-    
+
     // Enter API key
     const input = screen.getByPlaceholderText('sk-...');
     fireEvent.change(input, { target: { value: 'sk-test-key-12345' } });
-    
+
     // Click deploy
     const deployBtn = screen.getByText('Deploy Holmes');
     expect(deployBtn).not.toBeDisabled();
@@ -197,13 +196,13 @@ describe('HolmesOnboardingWizard', () => {
   });
 
   it('shows success screen after deployment completes', async () => {
-    const mockDeployHolmes = vi.fn().mockResolvedValue({ 
-      phase: 'deployed', 
+    const mockDeployHolmes = vi.fn().mockResolvedValue({
+      phase: 'deployed',
       endpoint: 'http://holmesgpt.holmesgpt.svc.cluster.local:8080',
       message: 'Holmes is now deployed!'
     });
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -224,7 +223,7 @@ describe('HolmesOnboardingWizard', () => {
 
     // Go to step 2
     fireEvent.click(screen.getByText('Get Started'));
-    
+
     // Enter API key and deploy
     const input = screen.getByPlaceholderText('sk-...');
     fireEvent.change(input, { target: { value: 'sk-test-key-12345' } });
@@ -238,7 +237,7 @@ describe('HolmesOnboardingWizard', () => {
 
   it('shows toggle button for showing/hiding API key', async () => {
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -259,15 +258,15 @@ describe('HolmesOnboardingWizard', () => {
 
     // Go to step 2
     fireEvent.click(screen.getByText('Get Started'));
-    
+
     // API key input should be password type by default
     const input = screen.getByPlaceholderText('sk-...');
     expect(input).toHaveAttribute('type', 'password');
-    
+
     // Find and click the show/hide toggle button
     const toggleBtn = screen.getByTitle('Show key');
     fireEvent.click(toggleBtn);
-    
+
     // Now should be text type
     expect(input).toHaveAttribute('type', 'text');
   });
@@ -275,7 +274,7 @@ describe('HolmesOnboardingWizard', () => {
   it('closes when close button is clicked', async () => {
     const mockHideOnboarding = vi.fn();
     const mockCheckDeployment = vi.fn().mockResolvedValue({ phase: 'not_deployed' });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -301,12 +300,12 @@ describe('HolmesOnboardingWizard', () => {
   });
 
   it('skips to success step if Holmes is already deployed', async () => {
-    const mockCheckDeployment = vi.fn().mockResolvedValue({ 
-      phase: 'deployed', 
+    const mockCheckDeployment = vi.fn().mockResolvedValue({
+      phase: 'deployed',
       endpoint: 'http://existing:8080',
       message: 'Holmes is already deployed'
     });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {

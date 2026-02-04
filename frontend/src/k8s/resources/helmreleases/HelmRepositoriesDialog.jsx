@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 export default function HelmRepositoriesDialog({ onClose }) {
@@ -237,24 +237,24 @@ export default function HelmRepositoriesDialog({ onClose }) {
             No repositories configured. Add a repository to start searching for charts.
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table className="panel-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid var(--gh-border, #30363d)', color: 'var(--gh-text-muted, #8b949e)' }}>
-                <th style={{ textAlign: 'left', padding: '8px 12px' }}>Name</th>
-                <th style={{ textAlign: 'left', padding: '8px 12px' }}>URL</th>
-                <th style={{ textAlign: 'center', padding: '8px 12px', width: 80 }}>Action</th>
+              <tr>
+                <th>Name</th>
+                <th>URL</th>
+                <th style={{ textAlign: 'center', width: 80 }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {repos.map((repo) => (
-                <tr key={repo.name} style={{ borderBottom: '1px solid var(--gh-border, #30363d)' }}>
-                  <td style={{ padding: '10px 12px', color: 'var(--gh-text, #c9d1d9)', fontWeight: 500 }}>
+                <tr key={repo.name}>
+                  <td style={{ fontWeight: 500 }}>
                     {repo.name}
                   </td>
-                  <td style={{ padding: '10px 12px', color: 'var(--gh-text-muted, #8b949e)', wordBreak: 'break-all' }}>
+                  <td className="text-muted" style={{ wordBreak: 'break-all' }}>
                     {repo.url}
                   </td>
-                  <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+                  <td style={{ textAlign: 'center' }}>
                     <button
                       onClick={() => handleRemove(repo.name)}
                       disabled={deleting !== null}

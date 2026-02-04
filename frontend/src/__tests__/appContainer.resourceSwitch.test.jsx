@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 
@@ -53,6 +52,7 @@ vi.mock('../main-content', () => ({
 }));
 
 // Import after mocks so the component uses mocked modules
+import { MemoryRouter } from 'react-router-dom';
 import AppContainer from '../layout/AppContainer.jsx';
 
 describe('AppContainer resource switching', () => {
@@ -63,7 +63,11 @@ describe('AppContainer resource switching', () => {
   afterEach(() => cleanup());
 
   it('calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter)', async () => {
-    render(<AppContainer />);
+    render(
+      <MemoryRouter initialEntries={['/pods']}>
+        <AppContainer />
+      </MemoryRouter>
+    );
 
     // Wait for initial pods render (cluster becomes connected)
     await waitFor(() => expect(mockRenderPods).toHaveBeenCalled(), { timeout: 2000 });
@@ -81,7 +85,11 @@ describe('AppContainer resource switching', () => {
   });
 
   it('calls renderResourceMainContent with correct section for multiple switches', async () => {
-    render(<AppContainer />);
+    render(
+      <MemoryRouter initialEntries={['/pods']}>
+        <AppContainer />
+      </MemoryRouter>
+    );
     await waitFor(() => expect(mockRenderPods).toHaveBeenCalled(), { timeout: 2000 });
 
     const deploymentsItem = await screen.findByText('Deployments');

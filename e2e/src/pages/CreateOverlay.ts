@@ -63,18 +63,35 @@ export class CreateOverlay {
   async create() {
     await this.page.getByRole('button', { name: /^create$/i }).click();
 
-    // Overlay closes on success; on failure it shows an inline error (e.g. YAML parse error).
+    // Overlay closes on success; on failure it shows an inline error.
+    // Errors can be: YAML parse errors, REST mapping errors (connectivity), or other API errors.
     const closeBtn = this.page.getByRole('button', { name: 'Close' });
     const parseError = this.page.getByText(/YAML parse error/i).first();
+    // API/connectivity errors often contain "could not find REST mapping" or "dial tcp" or "connectex"
+    const apiError = this.page.getByText(/could not find REST mapping|dial tcp|connectex/i).first();
 
-    await Promise.race([
-      closeBtn.waitFor({ state: 'hidden', timeout: 60_000 }),
-      parseError.waitFor({ state: 'visible', timeout: 60_000 }),
-    ]);
+    const timeoutMs = 60_000;
+    const start = Date.now();
 
-    if (await closeBtn.isVisible()) {
-      const msg = (await parseError.textContent())?.trim() || 'Unknown error';
-      throw new Error(`Create failed: ${msg}`);
+    while (Date.now() - start < timeoutMs) {
+      const closeVisible = await closeBtn.isVisible().catch(() => false);
+      if (!closeVisible) return;
+
+      const parseVisible = await parseError.isVisible().catch(() => false);
+      if (parseVisible) {
+        const msg = (await parseError.textContent())?.trim();
+        throw new Error(`Create failed: ${msg || 'YAML parse error'}`);
+      }
+
+      const apiVisible = await apiError.isVisible().catch(() => false);
+      if (apiVisible) {
+        const msg = (await apiError.textContent())?.trim();
+        throw new Error(`Create failed: ${msg || 'API error'}`);
+      }
+
+      await this.page.waitForTimeout(250);
     }
+
+    throw new Error('Create did not complete within 60s.');
   }
 }

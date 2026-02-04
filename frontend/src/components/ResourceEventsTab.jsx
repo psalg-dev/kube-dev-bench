@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
+import EmptyTabContent from './EmptyTabContent';
+import { getEmptyTabMessage } from '../constants/emptyTabMessages';
 import './ResourceEventsTab.css';
 
 /**
  * Reusable events tab component for any Kubernetes resource type.
- * 
+ *
  * @param {string} namespace - The namespace of the resource
  * @param {string} kind - The Kubernetes resource kind (e.g., "Deployment", "StatefulSet")
  * @param {string} resourceKind - Alias for kind (for compatibility)
@@ -24,10 +26,10 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
 
   const fetchEvents = async (isInitial = false) => {
     if (!actualName || !actualKind) return;
-    
+
     if (isInitial) setLoading(true);
     setError(null);
-    
+
     try {
       const result = await AppAPI.GetResourceEvents(namespace || '', actualKind, actualName);
       const arr = Array.isArray(result) ? result : [];
@@ -55,6 +57,7 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespace, actualKind, actualName, refreshInterval, limit]);
 
   const formatTime = (timestamp) => {
@@ -63,7 +66,7 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
     if (isNaN(date.getTime())) return '-';
     const now = new Date();
     const diff = now - date;
-    
+
     if (diff < 60000) return 'Just now';
     if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
     if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
@@ -98,9 +101,15 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
   }
 
   if (events.length === 0) {
+    const emptyMsg = getEmptyTabMessage('events');
     return (
       <div className="resource-events-tab">
-        <div className="events-empty">No events found for this {actualKind.toLowerCase()}.</div>
+        <EmptyTabContent
+          icon={emptyMsg.icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          tip={emptyMsg.tip}
+        />
       </div>
     );
   }
@@ -128,12 +137,12 @@ export default function ResourceEventsTab({ namespace, kind, resourceKind, name,
               return (
                 <tr key={idx} className="event-row">
                   <td>
-                    <span 
+                    <span
                       className="event-type-badge"
-                      style={{ 
-                        background: typeColor.bg, 
+                      style={{
+                        background: typeColor.bg,
                         color: typeColor.fg,
-                        borderColor: typeColor.border 
+                        borderColor: typeColor.border
                       }}
                     >
                       {event.type || 'Unknown'}

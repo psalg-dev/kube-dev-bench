@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TextViewerTab from '../layout/bottompanel/TextViewerTab';
 
 export default function AggregateLogsTab({ title = 'Logs', loadLogs, reloadKey }) {

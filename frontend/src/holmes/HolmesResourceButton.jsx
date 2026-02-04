@@ -1,4 +1,3 @@
-import React from 'react';
 import './HolmesResourceButton.css';
 
 export default function HolmesResourceButton({ onClick, loading = false, disabled = false, label = 'Ask Holmes', prominent = false }) {

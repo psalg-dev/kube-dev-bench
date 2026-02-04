@@ -14,10 +14,21 @@ import {
   AnalyzeDaemonSetStream as _AnalyzeDaemonSetStream,
   AnalyzeService as _AnalyzeService,
   AnalyzeServiceStream as _AnalyzeServiceStream,
+  AnalyzeJobStream as _AnalyzeJobStream,
+  AnalyzeCronJobStream as _AnalyzeCronJobStream,
+  AnalyzeIngressStream as _AnalyzeIngressStream,
+  AnalyzeConfigMapStream as _AnalyzeConfigMapStream,
+  AnalyzeSecretStream as _AnalyzeSecretStream,
+  AnalyzePersistentVolumeStream as _AnalyzePersistentVolumeStream,
+  AnalyzePersistentVolumeClaimStream as _AnalyzePersistentVolumeClaimStream,
   AnalyzeSwarmService as _AnalyzeSwarmService,
   AnalyzeSwarmServiceStream as _AnalyzeSwarmServiceStream,
   AnalyzeSwarmTask as _AnalyzeSwarmTask,
   AnalyzeSwarmTaskStream as _AnalyzeSwarmTaskStream,
+  AnalyzeSwarmNode as _AnalyzeSwarmNode,
+  AnalyzeSwarmNodeStream as _AnalyzeSwarmNodeStream,
+  AnalyzeSwarmStack as _AnalyzeSwarmStack,
+  AnalyzeSwarmStackStream as _AnalyzeSwarmStackStream,
   AnalyzeResource as _AnalyzeResource,
   AnalyzeResourceStream as _AnalyzeResourceStream,
   GetHolmesConfig as _GetHolmesConfig,
@@ -151,6 +162,42 @@ export async function AnalyzeSwarmTaskStream(taskID, streamId) {
 }
 
 /**
+ * Analyze a Docker Swarm node using HolmesGPT.
+ * @param {string} nodeID
+ */
+export async function AnalyzeSwarmNode(nodeID) {
+  return await _AnalyzeSwarmNode(nodeID);
+}
+
+/**
+ * Analyze a Docker Swarm node using HolmesGPT (streaming).
+ * @param {string} nodeID
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeSwarmNodeStream(nodeID, streamId) {
+  return await _AnalyzeSwarmNodeStream(nodeID, streamId);
+}
+
+/**
+ * Analyze a Docker Swarm stack using HolmesGPT.
+ * @param {string} stackName
+ */
+export async function AnalyzeSwarmStack(stackName) {
+  return await _AnalyzeSwarmStack(stackName);
+}
+
+/**
+ * Analyze a Docker Swarm stack using HolmesGPT (streaming).
+ * @param {string} stackName
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeSwarmStackStream(stackName, streamId) {
+  return await _AnalyzeSwarmStackStream(stackName, streamId);
+}
+
+/**
  * Analyze a resource using HolmesGPT with context.
  * @param {string} kind
  * @param {string} namespace
@@ -213,6 +260,82 @@ export async function AnalyzeDaemonSetStream(namespace, name, streamId) {
  */
 export async function AnalyzeServiceStream(namespace, name, streamId) {
   return await _AnalyzeServiceStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a job using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeJobStream(namespace, name, streamId) {
+  return await _AnalyzeJobStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a cronjob using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeCronJobStream(namespace, name, streamId) {
+  return await _AnalyzeCronJobStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze an ingress using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeIngressStream(namespace, name, streamId) {
+  return await _AnalyzeIngressStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a configmap using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeConfigMapStream(namespace, name, streamId) {
+  return await _AnalyzeConfigMapStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a secret using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzeSecretStream(namespace, name, streamId) {
+  return await _AnalyzeSecretStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a persistent volume using HolmesGPT with context (streaming).
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzePersistentVolumeStream(name, streamId) {
+  return await _AnalyzePersistentVolumeStream(name, streamId);
+}
+
+/**
+ * Analyze a persistent volume claim using HolmesGPT with context (streaming).
+ * @param {string} namespace
+ * @param {string} name
+ * @param {string} streamId - Client-generated stream id
+ * @returns {Promise<void>}
+ */
+export async function AnalyzePersistentVolumeClaimStream(namespace, name, streamId) {
+  return await _AnalyzePersistentVolumeClaimStream(namespace, name, streamId);
 }
 
 /**

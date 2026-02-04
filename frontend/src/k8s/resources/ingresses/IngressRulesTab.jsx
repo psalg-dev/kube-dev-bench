@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import './IngressRulesTab.css';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 /**
  * Rules tab for Ingresses - shows routing rules and backends.
- * 
+ *
  * @param {string} namespace - The namespace of the Ingress
  * @param {string} ingressName - The name of the Ingress
  * @param {string[]} hosts - Array of hosts from the ingress
@@ -18,7 +19,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
     const fetchDetail = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
         // Try to get ingress detail if API exists
         if (typeof AppAPI.GetIngressDetail === 'function') {
@@ -26,7 +27,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
           setDetail(result);
         } else {
           // Fallback: use the hosts prop to build basic rules
-          setDetail({ 
+          setDetail({
             rules: hosts?.map(host => ({
               host,
               paths: [{ path: '/', pathType: 'Prefix', backend: { serviceName: 'unknown', servicePort: 'unknown' } }]
@@ -39,7 +40,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
         setLoading(false);
       }
     };
-    
+
     fetchDetail();
   }, [namespace, ingressName, hosts]);
 
@@ -93,40 +94,8 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
             <div className="rule-header">
               <span className="host-badge">🌐 {rule.host || '*'}</span>
             </div>
-            
-            <table className="paths-table">
-              <thead>
-                <tr>
-                  <th>Path</th>
-                  <th>Path Type</th>
-                  <th>Backend Service</th>
-                  <th>Port</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(rule.paths || []).map((path, pathIdx) => (
-                  <tr key={pathIdx}>
-                    <td className="path-cell">
-                      <code>{path.path || '/'}</code>
-                    </td>
-                    <td>
-                      <span className="path-type-badge">{path.pathType || 'Prefix'}</span>
-                    </td>
-                    <td className="service-cell">
-                      {path.backend?.serviceName || path.backend?.service?.name || '-'}
-                    </td>
-                    <td className="port-cell">
-                      {path.backend?.servicePort || path.backend?.service?.port?.number || path.backend?.service?.port?.name || '-'}
-                    </td>
-                  </tr>
-                ))}
-                {(!rule.paths || rule.paths.length === 0) && (
-                  <tr>
-                    <td colSpan="4" className="no-paths">No paths configured for this host</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+
+            <RulePathsTable paths={rule.paths || []} />
           </div>
         ))}
       </div>
@@ -147,5 +116,94 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }) {
         </div>
       )}
     </div>
+  );
+}
+
+function RulePathsTable({ paths }) {
+  const columns = useMemo(() => ([
+    { key: 'path', label: 'Path' },
+    { key: 'pathType', label: 'Path Type' },
+    { key: 'backendService', label: 'Backend Service' },
+    { key: 'backendPort', label: 'Port' },
+  ]), []);
+  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' }));
+  const normalizedPaths = useMemo(() => (paths || []).map((path) => ({
+    path: path.path || '/',
+    pathType: path.pathType || 'Prefix',
+    backendService: path.backend?.serviceName || path.backend?.service?.name || '-',
+    backendPort: path.backend?.servicePort || path.backend?.service?.port?.number || path.backend?.service?.port?.name || '-',
+  })), [paths]);
+  const sortedPaths = useMemo(() => sortRows(normalizedPaths, sortState.key, sortState.direction), [normalizedPaths, sortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
+  return (
+    <table className="paths-table">
+      <thead>
+        <tr>
+          <th aria-sort={sortState.key === 'path' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'path'))}>
+              <span>Path</span>
+              <span aria-hidden="true">{sortState.key === 'path' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+            </button>
+          </th>
+          <th aria-sort={sortState.key === 'pathType' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'pathType'))}>
+              <span>Path Type</span>
+              <span aria-hidden="true">{sortState.key === 'pathType' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+            </button>
+          </th>
+          <th aria-sort={sortState.key === 'backendService' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'backendService'))}>
+              <span>Backend Service</span>
+              <span aria-hidden="true">{sortState.key === 'backendService' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+            </button>
+          </th>
+          <th aria-sort={sortState.key === 'backendPort' ? (sortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+            <button type="button" style={headerButtonStyle} onClick={() => setSortState((cur) => toggleSortState(cur, 'backendPort'))}>
+              <span>Port</span>
+              <span aria-hidden="true">{sortState.key === 'backendPort' ? (sortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+            </button>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {sortedPaths.map((path, pathIdx) => (
+          <tr key={pathIdx}>
+            <td className="path-cell">
+              <code>{path.path}</code>
+            </td>
+            <td>
+              <span className="path-type-badge">{path.pathType}</span>
+            </td>
+            <td className="service-cell">
+              {path.backendService}
+            </td>
+            <td className="port-cell">
+              {path.backendPort}
+            </td>
+          </tr>
+        ))}
+        {sortedPaths.length === 0 && (
+          <tr>
+            <td colSpan="4" className="no-paths">No paths configured for this host</td>
+          </tr>
+        )}
+      </tbody>
+    </table>
   );
 }

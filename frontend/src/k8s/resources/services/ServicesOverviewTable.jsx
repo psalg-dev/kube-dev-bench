@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
-import YamlTab from '../../../layout/bottompanel/YamlTab';
+import ServiceYamlTab from './ServiceYamlTab';
+import ServiceEndpointsTab from './ServiceEndpointsTab';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
@@ -21,10 +22,11 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'endpoints', label: 'Endpoints', countKey: 'endpoints' },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
@@ -75,6 +77,10 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
     );
   }
 
+  if (tab === 'endpoints') {
+    return <ServiceEndpointsTab namespace={row.namespace} serviceName={row.name} />;
+  }
+
   if (tab === 'events') {
     return (
       <ResourceEventsTab
@@ -86,8 +92,7 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
   }
 
   if (tab === 'yaml') {
-    const yamlContent = `apiVersion: v1\nkind: Service\nmetadata:\n  name: ${row.name}\n  namespace: ${row.namespace}\nspec:\n  type: ${row.type}\n  selector:\n    app: ${row.name}\n  ports:\n  - port: 80\n    targetPort: 80\n`;
-    return <YamlTab content={yamlContent} />;
+    return <ServiceYamlTab namespace={row.namespace} name={row.name} />;
   }
 
   if (tab === 'holmes') {
@@ -129,8 +134,8 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
@@ -139,7 +144,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
       const current = holmesStateRef.current;
-      const { streamId, streamingText } = current;
+      const { streamId, _streamingText } = current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
@@ -283,10 +288,13 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     }
   };
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     refreshServices();
   }, [namespaces, namespace]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
+  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     const onUpdate = (eventData) => {
       const res = (eventData?.resource || '').toString().toLowerCase();
@@ -300,6 +308,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }) {
     const unsubscribe = EventsOn('resource-updated', onUpdate);
     return () => { try { EventsOff('resource-updated', unsubscribe); } catch (_) {} };
   }, [namespaces, namespace]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   useEffect(() => {
     const onUpdate = (list) => {

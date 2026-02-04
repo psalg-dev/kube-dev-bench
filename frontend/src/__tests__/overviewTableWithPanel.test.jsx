@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
@@ -82,7 +81,8 @@ describe('OverviewTableWithPanel', () => {
     setup();
     const alphaRow = screen.getAllByRole('row').find(r => r.textContent.includes('alpha'));
     fireEvent.click(alphaRow);
-    const yamlTabBtn = screen.getByRole('button', { name: 'YAML' });
+    // The button accessible name includes the tab label text (YAML may include count badge text)
+    const yamlTabBtn = screen.getByRole('button', { name: /YAML/i });
     fireEvent.click(yamlTabBtn);
     expect(screen.getByTestId('panel-content').textContent).toBe('alpha-yaml');
   });
@@ -109,7 +109,9 @@ describe('OverviewTableWithPanel', () => {
     setup();
     const alphaRow = screen.getAllByRole('row').find(r => r.textContent.includes('alpha'));
     fireEvent.click(alphaRow);
-    fireEvent.click(screen.getByRole('button', { name: 'YAML' }));
+    // Find the YAML tab button - it might have a count badge, so use partial match
+    const yamlButton = screen.getByRole('button', { name: /YAML/i });
+    fireEvent.click(yamlButton);
     expect(screen.getByTestId('panel-content').textContent).toBe('alpha-yaml');
     // close outside
     fireEvent.mouseDown(document.body);

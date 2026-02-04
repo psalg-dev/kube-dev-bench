@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
 
 const sidebarItemStyle = {
@@ -99,10 +99,10 @@ function ConnectionsSidebar({ onConnect }) {
               const isSelected = selectedSection === `pinned-${conn.type}-${conn.id}`;
               const connKey = `${conn.type}-${conn.id}`;
               const isConnecting = connecting === connKey;
-              
+
               const handlePinnedClick = async () => {
                 if (isConnecting) return; // Prevent double-clicks
-                
+
                 setConnecting(connKey);
                 try {
                   // For pinned connections, directly connect

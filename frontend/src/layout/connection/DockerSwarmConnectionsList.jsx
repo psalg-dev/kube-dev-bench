@@ -1,4 +1,4 @@
-import React from 'react';
+import { useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext.jsx';
 
 const cardStyle = {
@@ -72,9 +72,9 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }) {
     actions,
   } = useConnectionsState();
 
-  const [hoveredIndex, setHoveredIndex] = React.useState(null);
-  const [testing, setTesting] = React.useState(null);
-  const [testResults, setTestResults] = React.useState({});
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [testing, setTesting] = useState(null);
+  const [testResults, setTestResults] = useState({});
 
   const displayConnections = filterConnection
     ? swarmConnections.filter((c) => c.id === filterConnection.id)

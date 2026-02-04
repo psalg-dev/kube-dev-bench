@@ -3,9 +3,60 @@ package app
 import (
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// getStatefulSetImage returns the first container image from the statefulset spec
+func getStatefulSetImage(ss *appsv1.StatefulSet) string {
+	if len(ss.Spec.Template.Spec.Containers) > 0 {
+		return ss.Spec.Template.Spec.Containers[0].Image
+	}
+	return ""
+}
+
+// getStatefulSetReplicas returns the desired replica count
+func getStatefulSetReplicas(ss *appsv1.StatefulSet) int32 {
+	if ss.Spec.Replicas != nil {
+		return *ss.Spec.Replicas
+	}
+	return 0
+}
+
+// mergeStatefulSetLabels merges statefulset and template labels
+func mergeStatefulSetLabels(ss *appsv1.StatefulSet) map[string]string {
+	labels := make(map[string]string)
+	for k, v := range ss.Labels {
+		labels[k] = v
+	}
+	if ss.Spec.Template.Labels != nil {
+		for k, v := range ss.Spec.Template.Labels {
+			if _, exists := labels[k]; !exists {
+				labels[k] = v
+			}
+		}
+	}
+	return labels
+}
+
+// buildStatefulSetInfo constructs a StatefulSetInfo from a StatefulSet
+func buildStatefulSetInfo(ss *appsv1.StatefulSet, now time.Time) StatefulSetInfo {
+	age := "-"
+	if !ss.CreationTimestamp.Time.IsZero() {
+		age = formatDuration(now.Sub(ss.CreationTimestamp.Time))
+	}
+
+	return StatefulSetInfo{
+		Name:      ss.Name,
+		Namespace: ss.Namespace,
+		Replicas:  getStatefulSetReplicas(ss),
+		Ready:     ss.Status.ReadyReplicas,
+		Age:       age,
+		Image:     getStatefulSetImage(ss),
+		Labels:    mergeStatefulSetLabels(ss),
+	}
+}
 
 // GetStatefulSets returns all statefulsets in a namespace
 func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
@@ -25,46 +76,10 @@ func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
 		return nil, err
 	}
 
-	var result []StatefulSetInfo
 	now := time.Now()
-
+	result := make([]StatefulSetInfo, 0, len(list.Items))
 	for _, ss := range list.Items {
-		age := "-"
-		if ss.CreationTimestamp.Time != (time.Time{}) {
-			dur := now.Sub(ss.CreationTimestamp.Time)
-			age = formatDuration(dur)
-		}
-
-		image := ""
-		if len(ss.Spec.Template.Spec.Containers) > 0 {
-			image = ss.Spec.Template.Spec.Containers[0].Image
-		}
-
-		replicas := int32(0)
-		if ss.Spec.Replicas != nil {
-			replicas = *ss.Spec.Replicas
-		}
-
-		labels := map[string]string{}
-		for k, v := range ss.Labels {
-			labels[k] = v
-		}
-		if ss.Spec.Template.Labels != nil {
-			for k, v := range ss.Spec.Template.Labels {
-				if _, e := labels[k]; !e {
-					labels[k] = v
-				}
-			}
-		}
-		result = append(result, StatefulSetInfo{
-			Name:      ss.Name,
-			Namespace: ss.Namespace,
-			Replicas:  replicas,
-			Ready:     ss.Status.ReadyReplicas,
-			Age:       age,
-			Image:     image,
-			Labels:    labels,
-		})
+		result = append(result, buildStatefulSetInfo(&ss, now))
 	}
 
 	return result, nil
@@ -78,22 +93,20 @@ func (a *App) StartStatefulSetPolling() {
 			if a.ctx == nil {
 				continue
 			}
-			nsList := a.preferredNamespaces
-			if len(nsList) == 0 && a.currentNamespace != "" {
-				nsList = []string{a.currentNamespace}
+			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
+				all := a.collectStatefulSets(nsList)
+				emitEvent(a.ctx, "statefulsets:update", all)
 			}
-			if len(nsList) == 0 {
-				continue
-			}
-			var all []StatefulSetInfo
-			for _, ns := range nsList {
-				list, err := a.GetStatefulSets(ns)
-				if err != nil {
-					continue
-				}
-				all = append(all, list...)
-			}
-			emitEvent(a.ctx, "statefulsets:update", all)
 		}
 	}()
+}
+
+func (a *App) collectStatefulSets(nsList []string) []StatefulSetInfo {
+	var all []StatefulSetInfo
+	for _, ns := range nsList {
+		if list, err := a.GetStatefulSets(ns); err == nil {
+			all = append(all, list...)
+		}
+	}
+	return all
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -10,6 +10,9 @@ import HelmValuesTab from './HelmValuesTab.jsx';
 import HelmNotesTab from './HelmNotesTab.jsx';
 import HelmActions from './HelmActions.jsx';
 import HelmResourcesTab from './HelmResourcesTab.jsx';
+import HelmResourcesSummary from './HelmResourcesSummary.jsx';
+import { showSuccess, showError } from '../../../notification.js';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -31,16 +34,6 @@ const bottomTabs = [
   { key: 'manifest', label: 'Manifest' },
 ];
 
-function getStatusColor(status) {
-  const statusLower = (status || '').toLowerCase();
-  if (statusLower === 'deployed') return '#2ea44f';
-  if (statusLower === 'failed') return '#d73a49';
-  if (statusLower === 'pending' || statusLower.includes('pending')) return '#e6b800';
-  if (statusLower === 'uninstalling') return '#e6b800';
-  if (statusLower === 'superseded') return '#9aa0a6';
-  return '#9aa0a6';
-}
-
 function renderPanelContent(row, tab, onRefresh) {
   if (tab === 'summary') {
     const quickInfoFields = [
@@ -52,9 +45,7 @@ function renderPanelContent(row, tab, onRefresh) {
       {
         key: 'status',
         label: 'Status',
-        render: (val) => (
-          <span style={{ color: getStatusColor(val), fontWeight: 600 }}>{val}</span>
-        )
+        type: 'status',
       },
       { key: 'updated', label: 'Last Updated' },
       { key: 'age', label: 'Age', type: 'age' },
@@ -82,15 +73,29 @@ function renderPanelContent(row, tab, onRefresh) {
             error={null}
             fields={quickInfoFields}
           />
-          <div style={{ display: 'flex', flex: 1, minWidth: 0, flexDirection: 'column', padding: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 12 }}>Release Details</div>
-            <div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>
-              <strong>Release Name:</strong> {row.name}<br />
-              <strong>Chart:</strong> {row.chart}-{row.chartVersion}<br />
-              <strong>App Version:</strong> {row.appVersion || '-'}<br />
-              <strong>Status:</strong>{' '}
-              <span style={{ color: getStatusColor(row.status) }}>{row.status}</span><br />
-              <strong>Revision:</strong> {row.revision}
+          {/* Resources + Release Details */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+              <HelmResourcesSummary namespace={row.namespace} releaseName={row.name} />
+            </div>
+            <div style={{ width: 320, minWidth: 280, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+              <div style={{ height: 44, padding: '0 12px', borderBottom: '1px solid var(--gh-border, #30363d)', display: 'flex', alignItems: 'center', fontWeight: 600 }}>
+                Release Details
+              </div>
+              <div style={{ flex: 1, overflow: 'auto', padding: 12 }}>
+                <div style={{ color: 'var(--gh-text-muted, #8b949e)', fontSize: 13, lineHeight: 1.8 }}>
+                  <div><strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>Release Name:</strong> {row.name}</div>
+                  <div><strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>Chart:</strong> {row.chart}-{row.chartVersion}</div>
+                  <div><strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>App Version:</strong> {row.appVersion || '-'}</div>
+                  <div>
+                    <strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>Status:</strong>{' '}
+                    <StatusBadge status={row.status} size="small" showDot={false} />
+                  </div>
+                  <div><strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>Revision:</strong> {row.revision}</div>
+                  <div><strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>Namespace:</strong> {row.namespace}</div>
+                  <div><strong style={{ color: 'var(--gh-text, #c9d1d9)' }}>Last Updated:</strong> {row.updated || '-'}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -193,7 +198,7 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }) {
           labels: r.labels ?? r.Labels ?? {}
         }));
         setReleases(norm);
-      } catch (e) {
+      } catch (_e) {
         setReleases([]);
       } finally {
         setLoading(false);
@@ -204,6 +209,67 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }) {
       try { EventsOff('helmreleases:update'); } catch (_) {}
     };
   }, []);
+
+  const getRowActions = (row, _api) => [
+    {
+      label: 'Rollback',
+      icon: '↩️',
+      onClick: async () => {
+        try {
+          const history = await AppAPI.GetHelmReleaseHistory(row.namespace, row.name);
+          const revisions = (history || []).map((h) => h.revision).filter((r) => Number.isInteger(r));
+          if (revisions.length <= 1) {
+            showError(`No previous revision available for '${row.name}'`);
+            return;
+          }
+
+          const currentRevision = revisions[0];
+          const candidates = revisions.filter((r) => r !== currentRevision);
+          if (candidates.length === 0) {
+            showError(`No previous revision available for '${row.name}'`);
+            return;
+          }
+
+          const promptText = `Enter revision to rollback "${row.name}" (current: ${currentRevision}). Available: ${candidates.join(', ')}`;
+          const input = window.prompt(promptText, String(candidates[0]));
+          if (input === null || input === '') return;
+          const targetRevision = Number(input);
+
+          if (!Number.isInteger(targetRevision) || !candidates.includes(targetRevision)) {
+            showError(`Invalid revision: ${input}`);
+            return;
+          }
+
+          if (!window.confirm(`Rollback "${row.name}" to revision ${targetRevision}?`)) {
+            return;
+          }
+
+          await AppAPI.RollbackHelmRelease(row.namespace, row.name, targetRevision);
+          showSuccess(`Rolled back "${row.name}" to revision ${targetRevision}`);
+          handleRefresh();
+        } catch (err) {
+          showError(`Rollback failed: ${err?.message || err}`);
+        }
+      },
+    },
+    {
+      label: 'Uninstall',
+      icon: '🗑️',
+      danger: true,
+      onClick: async () => {
+        if (!window.confirm(`Are you sure you want to uninstall "${row.name}" from namespace "${row.namespace}"?`)) {
+          return;
+        }
+        try {
+          await AppAPI.UninstallHelmRelease(row.namespace, row.name);
+          showSuccess(`Helm release '${row.name}' uninstalled`);
+          handleRefresh();
+        } catch (err) {
+          showError(`Failed to uninstall Helm release '${row.name}': ${err?.message || err}`);
+        }
+      },
+    },
+  ];
 
   return (
     <OverviewTableWithPanel
@@ -216,6 +282,7 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }) {
       loading={loading}
       resourceKind="HelmRelease"
       namespace={namespace}
+      getRowActions={getRowActions}
     />
   );
 }

@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting.js';
 
 export default function IngressDetailTab({ namespace, ingressName }) {
   const [detail, setDetail] = useState(null);
@@ -31,6 +32,46 @@ export default function IngressDetailTab({ namespace, ingressName }) {
     return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
   }
 
+  const ruleColumns = useMemo(() => ([
+    { key: 'host', label: 'Host' },
+    { key: 'path', label: 'Path' },
+    { key: 'pathType', label: 'Path Type' },
+    { key: 'serviceName', label: 'Service' },
+    { key: 'servicePort', label: 'Port' },
+  ]), []);
+  const defaultRuleSortKey = useMemo(() => pickDefaultSortKey(ruleColumns), [ruleColumns]);
+  const [ruleSortState, setRuleSortState] = useState(() => ({ key: defaultRuleSortKey, direction: 'asc' }));
+  const sortedRules = useMemo(() => sortRows(detail?.rules || [], ruleSortState.key, ruleSortState.direction), [detail?.rules, ruleSortState]);
+
+  const tlsColumns = useMemo(() => ([
+    { key: 'hosts', label: 'Hosts' },
+    { key: 'secretName', label: 'Secret' },
+  ]), []);
+  const defaultTlsSortKey = useMemo(() => pickDefaultSortKey(tlsColumns), [tlsColumns]);
+  const [tlsSortState, setTlsSortState] = useState(() => ({ key: defaultTlsSortKey, direction: 'asc' }));
+  const sortedTls = useMemo(() => {
+    return sortRows(detail?.tls || [], tlsSortState.key, tlsSortState.direction, (row, key) => {
+      if (key === 'hosts') return Array.isArray(row?.hosts) ? row.hosts.join(', ') : row?.hosts;
+      if (key === 'secretName') return row?.secretName;
+      return row?.[key];
+    });
+  }, [detail?.tls, tlsSortState]);
+
+  const headerButtonStyle = {
+    width: '100%',
+    background: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    padding: 0,
+    cursor: 'pointer',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
+    textAlign: 'left',
+  };
+
   return (
     <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
       {/* Routes section */}
@@ -38,20 +79,45 @@ export default function IngressDetailTab({ namespace, ingressName }) {
       {!detail?.rules || detail.rules.length === 0 ? (
         <div style={{ color: 'var(--gh-text-muted, #8b949e)', marginBottom: 20 }}>No routing rules defined.</div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, marginBottom: 24 }}>
+        <table className="panel-table" style={{ marginBottom: 24 }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid #30363d' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Host</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Path</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Path Type</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Service</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Port</th>
+            <tr>
+              <th aria-sort={ruleSortState.key === 'host' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'host'))}>
+                  <span>Host</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'host' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'path' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'path'))}>
+                  <span>Path</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'path' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'pathType' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'pathType'))}>
+                  <span>Path Type</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'pathType' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'serviceName' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'serviceName'))}>
+                  <span>Service</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'serviceName' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={ruleSortState.key === 'servicePort' ? (ruleSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setRuleSortState((cur) => toggleSortState(cur, 'servicePort'))}>
+                  <span>Port</span>
+                  <span aria-hidden="true">{ruleSortState.key === 'servicePort' ? (ruleSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {detail.rules.map((rule, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px' }}>
+            {sortedRules.map((rule, idx) => (
+              <tr key={idx}>
+                <td>
                   {rule.host ? (
                     <a
                       href={`https://${rule.host}${rule.path || ''}`}
@@ -62,13 +128,13 @@ export default function IngressDetailTab({ namespace, ingressName }) {
                       {rule.host}
                     </a>
                   ) : (
-                    <span style={{ color: 'var(--gh-text-muted, #8b949e)' }}>*</span>
+                    <span className="text-muted">*</span>
                   )}
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)', fontFamily: 'monospace' }}>
+                <td style={{ fontFamily: 'monospace' }}>
                   {rule.path || '/'}
                 </td>
-                <td style={{ padding: '8px 12px' }}>
+                <td>
                   <span style={{
                     fontSize: 11,
                     padding: '2px 6px',
@@ -79,10 +145,10 @@ export default function IngressDetailTab({ namespace, ingressName }) {
                     {rule.pathType}
                   </span>
                 </td>
-                <td style={{ padding: '8px 12px', color: '#58a6ff', fontFamily: 'monospace' }}>
+                <td style={{ color: '#58a6ff', fontFamily: 'monospace' }}>
                   {rule.serviceName}
                 </td>
-                <td style={{ padding: '8px 12px', color: 'var(--gh-text, #c9d1d9)' }}>
+                <td>
                   {rule.servicePort}
                 </td>
               </tr>
@@ -109,17 +175,27 @@ export default function IngressDetailTab({ namespace, ingressName }) {
           </span>
         </div>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+        <table className="panel-table">
           <thead>
-            <tr style={{ borderBottom: '1px solid #30363d' }}>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Hosts</th>
-              <th style={{ textAlign: 'left', padding: '8px 12px', color: 'var(--gh-text-muted, #8b949e)' }}>Secret</th>
+            <tr>
+              <th aria-sort={tlsSortState.key === 'hosts' ? (tlsSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setTlsSortState((cur) => toggleSortState(cur, 'hosts'))}>
+                  <span>Hosts</span>
+                  <span aria-hidden="true">{tlsSortState.key === 'hosts' ? (tlsSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
+              <th aria-sort={tlsSortState.key === 'secretName' ? (tlsSortState.direction === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                <button type="button" style={headerButtonStyle} onClick={() => setTlsSortState((cur) => toggleSortState(cur, 'secretName'))}>
+                  <span>Secret</span>
+                  <span aria-hidden="true">{tlsSortState.key === 'secretName' ? (tlsSortState.direction === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
+              </th>
             </tr>
           </thead>
           <tbody>
-            {detail.tls.map((tls, idx) => (
-              <tr key={idx} style={{ borderBottom: '1px solid #21262d' }}>
-                <td style={{ padding: '8px 12px' }}>
+            {sortedTls.map((tls, idx) => (
+              <tr key={idx}>
+                <td>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {tls.hosts && tls.hosts.map((host, hidx) => (
                       <span
@@ -138,7 +214,7 @@ export default function IngressDetailTab({ namespace, ingressName }) {
                     ))}
                   </div>
                 </td>
-                <td style={{ padding: '8px 12px', color: '#58a6ff', fontFamily: 'monospace' }}>
+                <td style={{ color: '#58a6ff', fontFamily: 'monospace' }}>
                   {tls.secretName || '-'}
                 </td>
               </tr>

@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 
@@ -31,7 +30,7 @@ vi.mock('../../layout/bottompanel/LogViewerTab', () => ({
 
 // Mock SummaryTabHeader
 vi.mock('../../layout/bottompanel/SummaryTabHeader.jsx', () => ({
-  default: ({ name, labels, actions }) => (
+  default: ({ name, labels: _labels, actions }) => (
     <div data-testid="summary-header">
       <span data-testid="header-name">{name}</span>
       {actions && <div data-testid="header-actions">{actions}</div>}
@@ -223,7 +222,7 @@ describe('PodSummaryTab', () => {
       await waitFor(() => {
         expect(screen.getByText('test')).toBeInTheDocument(); // namespace
       });
-      
+
       // Events section should not be visible when there are no events
       expect(screen.queryByText('Events')).not.toBeInTheDocument();
     });
@@ -253,7 +252,7 @@ describe('PodSummaryTab', () => {
       await waitFor(() => {
         expect(screen.getByText('test')).toBeInTheDocument(); // namespace
       });
-      
+
       // Events section should not be visible when fetch fails (no events loaded)
       expect(screen.queryByText('Events')).not.toBeInTheDocument();
     });

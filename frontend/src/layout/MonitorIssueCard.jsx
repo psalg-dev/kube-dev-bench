@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import HolmesResponseRenderer from '../holmes/HolmesResponseRenderer.jsx';
 import './MonitorIssueCard.css';
 

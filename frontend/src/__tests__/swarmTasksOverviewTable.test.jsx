@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
 
@@ -301,11 +300,11 @@ describe('SwarmTasksOverviewTable', () => {
     const api = rowApis.get('task1234567890abcdef');
     expect(api.setActiveTab).toHaveBeenCalledWith('exec');
 
-    // task without container shows no-container messages
+    // task without container shows EmptyTabContent messages
     const t2Logs = screen.getByTestId('panel-task2-logs');
-    expect(within(t2Logs).getByText(/No container associated/)).toBeInTheDocument();
+    expect(within(t2Logs).getByText('Logs unavailable')).toBeInTheDocument();
     const t2Exec = screen.getByTestId('panel-task2-exec');
-    expect(within(t2Exec).getByText(/No container associated/)).toBeInTheDocument();
+    expect(within(t2Exec).getByText('Exec unavailable')).toBeInTheDocument();
   });
 
   it('health check section loads recent results only when container exists', async () => {
@@ -315,7 +314,7 @@ describe('SwarmTasksOverviewTable', () => {
     const summaryPanel = screen.getByTestId('panel-task1234567890abcdef-summary');
 
     await waitFor(() => expect(swarmApiMocks.GetSwarmTaskHealthLogs).toHaveBeenCalledWith('task1234567890abcdef'));
-    expect(within(summaryPanel).getByText('Configured')).toBeInTheDocument();
+    expect(within(summaryPanel).getAllByText('Configured').length).toBeGreaterThanOrEqual(1);
     expect(within(summaryPanel).getByText('Exit 0')).toBeInTheDocument();
     expect(within(summaryPanel).getByText('FMT(2026-01-01T00:00:20Z)')).toBeInTheDocument();
     expect(within(summaryPanel).getByText('ok')).toBeInTheDocument();

@@ -1,6 +1,8 @@
 package app
 
 import (
+	"os"
+	"strings"
 	"testing"
 
 	"gowails/pkg/app/holmesgpt"
@@ -192,4 +194,65 @@ func TestHolmesConstants(t *testing.T) {
 	if holmesChartName != "robusta/holmes" {
 		t.Errorf("Expected chart name 'robusta/holmes', got %q", holmesChartName)
 	}
+}
+
+func TestIsE2ETestMode(t *testing.T) {
+// Save original value
+originalValue := os.Getenv("E2E_HOLMES_DEPLOY")
+defer func() {
+if originalValue != "" {
+os.Setenv("E2E_HOLMES_DEPLOY", originalValue)
+} else {
+os.Unsetenv("E2E_HOLMES_DEPLOY")
+}
+}()
+
+// Test when not set
+os.Unsetenv("E2E_HOLMES_DEPLOY")
+if isE2ETestMode() {
+t.Error("Expected isE2ETestMode() to return false when E2E_HOLMES_DEPLOY is not set")
+}
+
+// Test when set to "1"
+os.Setenv("E2E_HOLMES_DEPLOY", "1")
+if !isE2ETestMode() {
+t.Error("Expected isE2ETestMode() to return true when E2E_HOLMES_DEPLOY is '1'")
+}
+
+// Test when set to other value
+os.Setenv("E2E_HOLMES_DEPLOY", "0")
+if isE2ETestMode() {
+t.Error("Expected isE2ETestMode() to return false when E2E_HOLMES_DEPLOY is not '1'")
+}
+}
+
+func TestGetHolmesChartReference(t *testing.T) {
+// Save original value
+originalValue := os.Getenv("E2E_HOLMES_DEPLOY")
+defer func() {
+if originalValue != "" {
+os.Setenv("E2E_HOLMES_DEPLOY", originalValue)
+} else {
+os.Unsetenv("E2E_HOLMES_DEPLOY")
+}
+}()
+
+// Test normal mode (not E2E)
+os.Unsetenv("E2E_HOLMES_DEPLOY")
+chartRef := getHolmesChartReference()
+if chartRef != holmesChartName {
+t.Errorf("Expected chart reference to be %q in normal mode, got %q", holmesChartName, chartRef)
+}
+
+// Test E2E mode
+os.Setenv("E2E_HOLMES_DEPLOY", "1")
+chartRef = getHolmesChartReference()
+// In E2E mode, it should return a path (either absolute or relative)
+if chartRef == holmesChartName {
+t.Error("Expected chart reference to be different from production chart in E2E mode")
+}
+// Should contain "holmes-mock"
+if !strings.Contains(chartRef, "holmes-mock") {
+t.Errorf("Expected chart reference to contain 'holmes-mock' in E2E mode, got %q", chartRef)
+}
 }

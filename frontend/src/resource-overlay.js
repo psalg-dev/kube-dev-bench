@@ -1,34 +1,34 @@
-import {EditorState} from "@codemirror/state";
+import {EditorState} from '@codemirror/state';
 import {
     crosshairCursor,
     drawSelection, dropCursor,
     highlightActiveLine, highlightActiveLineGutter,
     highlightSpecialChars, keymap,
     lineNumbers, rectangularSelection
-} from "@codemirror/view";
-import { EditorView } from "@codemirror/view";
+} from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
 import {
     bracketMatching,
     defaultHighlightStyle,
     foldGutter, foldKeymap,
     indentOnInput,
     syntaxHighlighting
-} from "@codemirror/language";
-import {highlightSelectionMatches, searchKeymap} from "@codemirror/search";
-import {yaml} from "@codemirror/lang-yaml";
-import {closeBracketsKeymap, completionKeymap} from "@codemirror/autocomplete";
-import {defaultKeymap, history, historyKeymap} from "@codemirror/commands";
-import {lintKeymap} from "@codemirror/lint";
-import { CreateResource } from "../wailsjs/go/main/App";
+} from '@codemirror/language';
+import {highlightSelectionMatches, searchKeymap} from '@codemirror/search';
+import {yaml} from '@codemirror/lang-yaml';
+import {closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete';
+import {defaultKeymap, history as _history, historyKeymap} from '@codemirror/commands';
+import {lintKeymap} from '@codemirror/lint';
+import { CreateResource } from '../wailsjs/go/main/App';
 import { showSuccess, showError } from './notification';
 
 export function showResourceOverlay(resourceType, options = {}) {
-    console.log('showResourceOverlay called with:', resourceType);
+    console.warn('showResourceOverlay called with:', resourceType);
     const template = resourceTemplates[resourceType];
-    console.log('Template found:', template ? 'yes' : 'no');
+    console.warn('Template found:', template ? 'yes' : 'no');
     if (!template) {
         console.error('No template found for resource type:', resourceType);
-        console.log('Available templates:', Object.keys(resourceTemplates));
+        console.warn('Available templates:', Object.keys(resourceTemplates));
         return;
     }
 
@@ -54,9 +54,9 @@ export function showResourceOverlay(resourceType, options = {}) {
 
     // Initialize CodeMirror editor
     const customDarkTheme = EditorView.theme({
-        "&": { color: "var(--gh-text)", backgroundColor: "var(--gh-input-bg)", height: "400px", fontSize: "14px" },
-        ".cm-content": { fontFamily: "'Consolas', monospace", color: "var(--gh-text)", padding: "10px" },
-        ".cm-gutters": { backgroundColor: "var(--gh-input-bg)", color: "var(--gh-text-muted)", border: "none" }
+        '&': { color: 'var(--gh-text)', backgroundColor: 'var(--gh-input-bg)', height: '400px', fontSize: '14px' },
+        '.cm-content': { fontFamily: "'Consolas', monospace", color: 'var(--gh-text)', padding: '10px' },
+        '.cm-gutters': { backgroundColor: 'var(--gh-input-bg)', color: 'var(--gh-text-muted)', border: 'none' }
     }, {dark: true});
 
     const state = EditorState.create({
@@ -73,7 +73,7 @@ export function showResourceOverlay(resourceType, options = {}) {
 
     const editor = new EditorView({
         state,
-        parent: document.querySelector("#resourceEditor")
+        parent: document.querySelector('#resourceEditor')
     });
 
     const closeOverlay = () => {

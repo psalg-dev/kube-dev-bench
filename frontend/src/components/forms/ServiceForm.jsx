@@ -1,4 +1,3 @@
-import React from 'react';
 import TextField from './TextField';
 import NumberField from './NumberField';
 import SelectField from './SelectField';
@@ -65,7 +64,7 @@ export default function ServiceForm({ data, onChange, errors }) {
           onChange={(ports) => onChange({ ...d, ports })}
         />
         {e.ports ? (
-          <div style={{ marginTop: 8, fontSize: 12, color: '#f85149' }} role="alert">{e.ports}</div>
+          <div style={{ marginTop: 8, fontSize: 12, color: '#f14c4c' }} role="alert">{e.ports}</div>
         ) : null}
       </CollapsibleSection>
 

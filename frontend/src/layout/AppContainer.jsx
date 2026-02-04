@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext.jsx';
 import { AppLayout } from './AppLayout.jsx';
 import ConnectionWizard from './connection/ConnectionWizard.jsx';
@@ -70,6 +70,7 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
       document.removeEventListener('keydown', keyHandler);
       if (sidebarToggleBtn) sidebarToggleBtn.onclick = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showWizard, actions]);
 
   return null; // side-effect only (no longer needed for counts)
@@ -177,8 +178,9 @@ export default function AppContainer() {
     const handleNavigateToResource = (event) => {
       const { resource, name, namespace } = event.detail;
 
-      // Map resource type to section name
+      // Map resource type to section name (Kubernetes and Swarm)
       const resourceToSection = {
+        // Kubernetes resources
         'Pod': 'pods',
         'Deployment': 'deployments',
         'StatefulSet': 'statefulsets',
@@ -191,6 +193,15 @@ export default function AppContainer() {
         'Ingress': 'ingresses',
         'PersistentVolumeClaim': 'persistentvolumeclaims',
         'PersistentVolume': 'persistentvolumes',
+        // Swarm resources
+        'SwarmService': 'swarm-services',
+        'SwarmTask': 'swarm-tasks',
+        'SwarmNode': 'swarm-nodes',
+        'SwarmNetwork': 'swarm-networks',
+        'SwarmConfig': 'swarm-configs',
+        'SwarmSecret': 'swarm-secrets',
+        'SwarmStack': 'swarm-stacks',
+        'SwarmVolume': 'swarm-volumes',
       };
 
       const section = resourceToSection[resource];

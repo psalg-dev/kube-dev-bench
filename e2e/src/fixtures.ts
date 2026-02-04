@@ -1,6 +1,6 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
-import { test as base, chromium, type Browser, type Page, type WorkerInfo } from '@playwright/test';
+import { test as base, chromium, type Browser, type Page, type WorkerInfo, expect as playwrightExpect } from '@playwright/test';
 import { repoRoot } from './support/paths.js';
 import { readRunState } from './support/run-state.js';
 import { ensureNamespace, deleteNamespace, writeNamedKubeconfigFile } from './support/kind.js';
@@ -18,6 +18,7 @@ type WorkerFixtures = {
 type TestFixtures = {
   page: Page;
   browser: Browser;
+  consoleErrors: string[];
 };
 
 export const test = base.extend<TestFixtures, WorkerFixtures>({
@@ -123,7 +124,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     await browser.close();
   },
 
-  page: async ({ browser }, use: (value: Page) => Promise<void>, workerInfo: WorkerInfo) => {
+  page: async ({ browser, consoleErrors }, use: (value: Page) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
     const baseURL = state.sharedBaseURL
       ? state.sharedBaseURL
@@ -144,8 +145,55 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
     const context = await browser.newContext({ baseURL });
     const page = await context.newPage();
+
+    // Capture browser console errors and page errors globally
+    page.on('console', (msg) => {
+      if (msg.type() === 'error') {
+        consoleErrors.push(`[console.error] ${msg.text()}`);
+      }
+    });
+    page.on('pageerror', (err) => {
+      consoleErrors.push(`[pageerror] ${err.message}\n${err.stack || ''}`);
+    });
+
     await use(page);
     await context.close();
+
+    // Filter out expected/transient errors that occur in dev mode (Vite HMR, WebSocket, etc.)
+    const ignoredPatterns = [
+      /vite.*failed to connect to websocket/i,
+      /websocket.*handshake.*502/i,
+      /websocket.*handshake.*400/i,
+      /websocket.*ERR_CONNECTION_REFUSED/i,
+      /502.*bad gateway/i,
+      /failed to load resource.*502/i,
+      /failed to load resource.*net::ERR_/i,
+      /ERR_ADDRESS_IN_USE/i,
+      /EventsNotify/i,  // Wails IPC transient errors during WebSocket reconnection
+      /EventsOnMultiple/i,  // Wails IPC not ready during app initialization
+      /Cannot read properties of undefined \(reading 'main'\)/i,  // Wails IPC not ready
+      /Cannot read properties of undefined \(reading 'EventsOnMultiple'\)/i,  // Wails IPC not ready
+      /React Router caught the following error during render/i,  // React error boundary recovery
+      /RenderErrorBoundary/i,  // React error boundary recovery messages
+      /Failed to load Holmes config/i,  // Holmes init race condition (non-critical)
+      /ScanClusterHealth failed/i,  // Transient K8s API connectivity during parallel testing
+      /dial tcp.*connectex:/i,  // Windows socket connection errors during parallel testing
+    ];
+    const filteredErrors = consoleErrors.filter((err) => {
+      return !ignoredPatterns.some((pattern) => pattern.test(err));
+    });
+
+    // Fail the test if any non-ignored console errors were captured
+    if (filteredErrors.length > 0) {
+      const errorSummary = filteredErrors.join('\n---\n');
+      playwrightExpect.soft(filteredErrors, `Browser console errors detected:\n${errorSummary}`).toHaveLength(0);
+    }
+  },
+
+  // Shared array to collect console errors during the test
+  consoleErrors: async ({}, use: (value: string[]) => Promise<void>) => {
+    const errors: string[] = [];
+    await use(errors);
   },
 });
 

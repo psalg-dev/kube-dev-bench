@@ -691,3 +691,77 @@ func TestGetResourceEvents_EventsV1API(t *testing.T) {
 		t.Errorf("expected Note message, got %q", result[0].Message)
 	}
 }
+
+// Tests for parseEventTime function
+func TestParseEventTime(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantZero bool
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			wantZero: true,
+		},
+		{
+			name:     "RFC3339Nano format",
+			input:    "2024-01-15T10:30:45.123456789Z",
+			wantZero: false,
+		},
+		{
+			name:     "RFC3339 format",
+			input:    "2024-01-15T10:30:45Z",
+			wantZero: false,
+		},
+		{
+			name:     "invalid format",
+			input:    "not a time",
+			wantZero: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parseEventTime(tt.input)
+			if tt.wantZero {
+				if !result.IsZero() {
+					t.Errorf("expected zero time, got %v", result)
+				}
+			} else {
+				if result.IsZero() {
+					t.Errorf("expected non-zero time, got zero")
+				}
+			}
+		})
+	}
+}
+
+// Tests for formatEventTime function
+func TestFormatEventTime(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    time.Time
+		expected string
+	}{
+		{
+			name:     "zero time",
+			input:    time.Time{},
+			expected: "",
+		},
+		{
+			name:     "valid time",
+			input:    time.Date(2024, 1, 15, 10, 30, 45, 123456789, time.UTC),
+			expected: "2024-01-15T10:30:45.123456789Z",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatEventTime(tt.input)
+			if result != tt.expected {
+				t.Errorf("formatEventTime() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}

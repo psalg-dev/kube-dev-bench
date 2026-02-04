@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 export default function CollapsibleSection({ id, title, count, defaultOpen = false, children }) {
   const [open, setOpen] = useState(!!defaultOpen);
@@ -6,7 +6,7 @@ export default function CollapsibleSection({ id, title, count, defaultOpen = fal
   const headerText = useMemo(() => `${caret} ${title} (${count ?? 0})`, [caret, title, count]);
 
   return (
-    <div id={id} style={{ borderTop: '1px solid #30363d', paddingTop: 10 }}>
+    <div id={id} style={{ borderTop: '1px solid #3c3c3c', paddingTop: 10 }}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}

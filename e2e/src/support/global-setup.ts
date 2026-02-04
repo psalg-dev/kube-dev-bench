@@ -9,6 +9,7 @@ import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
+import { ensureHolmesMockServer } from './holmes-mock.js';
 import { exec } from './exec.js';
 import { ensureJFrogJcrBootstrapped } from './jfrog.js';
 import { ensureArtifactory } from './artifactory-bootstrap.js';
@@ -68,6 +69,17 @@ function fmtMs(ms: number) {
   return `${(ms / 1_000).toFixed(1)}s`;
 }
 
+function shouldAutoSkipKindForSwarmOnly(): boolean {
+  const cliArgs = process.argv.slice(2);
+  const testTargets = cliArgs.filter((arg) => arg !== 'test' && !arg.startsWith('-'));
+  if (testTargets.length === 0) return false;
+
+  return testTargets.every((arg) => {
+    const normalized = arg.replace(/\\/g, '/');
+    return normalized.includes('tests/swarm/');
+  });
+}
+
 async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
   const start = Date.now();
   console.log(`[e2e][setup] ${isoNow()} ▶ ${label}`);
@@ -85,7 +97,10 @@ export default async function globalSetup(config: FullConfig) {
   const setupStart = Date.now();
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
-  const skipKind = process.env.E2E_SKIP_KIND === '1';
+  const skipKindEnv = process.env.E2E_SKIP_KIND === '1';
+  const skipKindAuto = shouldAutoSkipKindForSwarmOnly();
+  const skipKind = skipKindEnv || skipKindAuto;
+  const registrySuite = process.env.E2E_REGISTRY_SUITE === '1';
   const isCI = process.env.CI === 'true' || process.env.CI === '1';
 
   // Some TS environments/types can narrow `process.platform` unexpectedly; treat it as a string.
@@ -96,6 +111,13 @@ export default async function globalSetup(config: FullConfig) {
     `[e2e][setup] ${isoNow()} starting runId=${runId} platform=${platform} ` +
       `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}`
   );
+
+  if (skipKindAuto && !skipKindEnv) {
+    console.log(`[e2e][setup] ${isoNow()} auto-skip KinD for Swarm-only run`);
+  }
+  if (!registrySuite) {
+    console.log(`[e2e][setup] ${isoNow()} registry suite disabled; skipping JFrog bootstrap`);
+  }
 
   if (isCI) {
     await timed('ensure Docker Swarm is active (CI)', async () =>
@@ -185,39 +207,42 @@ export default async function globalSetup(config: FullConfig) {
   // Run it once per test run so registry tests are reliable.
   // Always capture logs for debugging setup vs data issues.
   let jfrogLogPath: string | undefined;
-  try {
-    const jfrog = await timed('ensure JFrog JCR is running + bootstrapped', async () =>
-      ensureJFrogJcrBootstrapped({ runId })
-    );
-    jfrogLogPath = jfrog.logPath;
-
+  if (registrySuite) {
     try {
-      await timed('verify Artifactory Docker /v2/ endpoint', async () => {
-        await ensureArtifactory();
-      });
-    } catch (verifyErr: unknown) {
-      // Stale local volumes can leave Artifactory in a state where the admin password
-      // doesn't match what our bootstrap expects, or the docker-local repo is missing.
-      // One deterministic recovery attempt: reset volume and re-bootstrap.
-      console.log(`[e2e][setup] ${isoNow()} Artifactory verification failed; retrying with JFrog reset`);
-
-      const jfrog2 = await timed('reset JFrog JCR volume and re-bootstrap', async () =>
-        ensureJFrogJcrBootstrapped({ runId, reset: true })
+      const jfrog = await timed('ensure JFrog JCR is running + bootstrapped', async () =>
+        ensureJFrogJcrBootstrapped({ runId })
       );
-      jfrogLogPath = jfrog2.logPath;
+      jfrogLogPath = jfrog.logPath;
 
-      await timed('re-verify Artifactory Docker /v2/ endpoint', async () => {
-        await ensureArtifactory();
-      });
+      try {
+        await timed('verify Artifactory Docker /v2/ endpoint', async () => {
+          await ensureArtifactory();
+        });
+      } catch (verifyErr: unknown) {
+        // Stale local volumes can leave Artifactory in a state where the admin password
+        // doesn't match what our bootstrap expects, or the docker-local repo is missing.
+        // One deterministic recovery attempt: reset volume and re-bootstrap.
+        console.log(`[e2e][setup] ${isoNow()} Artifactory verification failed; retrying with JFrog reset`);
+
+        const jfrog2 = await timed('reset JFrog JCR volume and re-bootstrap', async () =>
+          ensureJFrogJcrBootstrapped({ runId, reset: true })
+        );
+        jfrogLogPath = jfrog2.logPath;
+
+        await timed('re-verify Artifactory Docker /v2/ endpoint', async () => {
+          await ensureArtifactory();
+        });
+      }
+    } catch (err: unknown) {
+      const msg = String((err as { message?: string })?.message ?? err);
+      throw new Error(`${msg}${jfrogLogPath ? `\nJFrog logs: ${jfrogLogPath}` : ''}`);
     }
-  } catch (err: unknown) {
-    const msg = String((err as { message?: string })?.message ?? err);
-    throw new Error(`${msg}${jfrogLogPath ? `\nJFrog logs: ${jfrogLogPath}` : ''}`);
   }
 
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
   let proxy: Awaited<ReturnType<typeof ensureProxyServer>> | null = null;
+  let holmesMock: Awaited<ReturnType<typeof ensureHolmesMockServer>> | null = null;
   const startedWailsPids: number[] = [];
 
   const killPidBestEffort = async (pid: number) => {
@@ -239,6 +264,12 @@ export default async function globalSetup(config: FullConfig) {
       ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 })
     );
     console.log(`[e2e][setup] ${isoNow()} proxy ready at ${proxy.baseURL} pid=${proxy.pid ?? 'reused'}`);
+
+    // Start Holmes mock server for deterministic AI E2E testing
+    holmesMock = await timed('start Holmes mock server', async () =>
+      ensureHolmesMockServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 })
+    );
+    console.log(`[e2e][setup] ${isoNow()} Holmes mock ready at ${holmesMock.baseURL} pid=${holmesMock.pid ?? 'reused'}`);
 
     const assetDir = withinRepo('frontend', 'dist');
 
@@ -286,6 +317,8 @@ export default async function globalSetup(config: FullConfig) {
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
       jfrogLogPath,
+      holmesMockBaseURL: holmesMock?.baseURL,
+      holmesMockPid: holmesMock?.pid,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
       sharedHomeDir: homeDir,
@@ -456,6 +489,9 @@ export default async function globalSetup(config: FullConfig) {
       return repoCopyRoot;
     };
 
+    // Prepare all instances first (clear ports, create directories, resolve repo roots)
+    const preparations: Array<{ index: number; port: number; homeDir: string; repoRoot: string }> = [];
+
     for (let i = 0; i < instanceCount; i++) {
       const port = basePort + i;
       if (isWin32) {
@@ -466,30 +502,41 @@ export default async function globalSetup(config: FullConfig) {
       await fs.mkdir(homeDir, { recursive: true });
 
       const repoRootResolved = await repoRootForWails(i);
-      const instance = await timed(`start wails dev instance #${i} port=${port}`, async () =>
+      preparations.push({ index: i, port, homeDir, repoRoot: repoRootResolved });
+    }
+
+    // Start all wails dev instances in parallel
+    console.log(`[e2e][setup] ${isoNow()} starting ${instanceCount} wails dev instances in parallel...`);
+
+    const startPromises = preparations.map(async ({ index, port, homeDir, repoRoot: repoRootResolved }) => {
+      const instance = await timed(`start wails dev instance #${index} port=${port}`, async () =>
         startWailsDev({
           repoRoot: repoRootResolved,
           logRepoRoot: withinRepo(),
           port,
           homeDir,
           assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
-          // Sequential startup in global setup; allow more time here.
-          readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
+          // Parallel startup; allow more time here. Increased to 420s (7min) for CI to handle
+          // resource contention when multiple Wails instances start in parallel.
+          readyTimeoutMs: process.env.CI ? 420_000 : 240_000,
         })
       );
 
       if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
 
-      console.log(`[e2e][setup] ${isoNow()} wails #${i} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
+      console.log(`[e2e][setup] ${isoNow()} wails #${index} ready baseURL=${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
 
-      wailsInstances.push({
+      return {
         baseURL: instance.baseURL,
         pid: instance.process.pid ?? undefined,
         port,
         homeDir,
         dialogDir: path.join(homeDir, 'tmp', 'kdb-e2e-dialogs'),
-      });
-    }
+      };
+    });
+
+    const results = await Promise.all(startPromises);
+    wailsInstances.push(...results);
 
     await writeRunState({
       runId,
@@ -499,6 +546,8 @@ export default async function globalSetup(config: FullConfig) {
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
       jfrogLogPath,
+      holmesMockBaseURL: holmesMock?.baseURL,
+      holmesMockPid: holmesMock?.pid,
       wailsInstances,
     });
   }
@@ -514,6 +563,9 @@ export default async function globalSetup(config: FullConfig) {
     }
     if (proxy?.pid) {
       await killPidBestEffort(proxy.pid);
+    }
+    if (holmesMock?.pid) {
+      await killPidBestEffort(holmesMock.pid);
     }
     throw err;
   }

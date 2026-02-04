@@ -60,12 +60,27 @@ type EventInfo struct {
 
 // PodSummary returns basic properties for a pod
 type PodSummary struct {
-	Name      string            `json:"name"`
-	Namespace string            `json:"namespace"`
-	Created   string            `json:"created"`
-	Labels    map[string]string `json:"labels"`
-	Status    string            `json:"status"`
-	Ports     []int             `json:"ports"`
+	Name           string              `json:"name"`
+	Namespace      string              `json:"namespace"`
+	Created        string              `json:"created"`
+	Labels         map[string]string   `json:"labels"`
+	Status         string              `json:"status"`
+	Ports          []int               `json:"ports"`
+	InitContainers []InitContainerInfo `json:"initContainers,omitempty"`
+}
+
+// InitContainerInfo provides info about an init container and its status
+type InitContainerInfo struct {
+	Name         string `json:"name"`
+	Image        string `json:"image"`
+	State        string `json:"state"`        // Waiting, Running, Terminated
+	StateReason  string `json:"stateReason"`  // e.g. "PodInitializing", "Completed", "Error"
+	StateMessage string `json:"stateMessage"` // detailed message if any
+	Ready        bool   `json:"ready"`
+	RestartCount int32  `json:"restartCount"`
+	ExitCode     *int32 `json:"exitCode,omitempty"` // for terminated containers
+	StartedAt    string `json:"startedAt,omitempty"`
+	FinishedAt   string `json:"finishedAt,omitempty"`
 }
 
 // PortForwardInfo describes an active port-forward session for UI updates
@@ -379,6 +394,9 @@ type HelmInstallRequest struct {
 	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
 	CreateNs    bool                   `json:"createNamespace"`
+	// Helm v4 options
+	WaitStrategy string `json:"waitStrategy"` // "none", "legacy", "watcher" - defaults to "legacy"
+	Timeout      int    `json:"timeout"`      // Wait timeout in seconds, defaults to 300
 }
 
 // HelmUpgradeRequest contains parameters for upgrading a Helm release
@@ -389,4 +407,7 @@ type HelmUpgradeRequest struct {
 	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
 	ReuseValues bool                   `json:"reuseValues"`
+	// Helm v4 options
+	WaitStrategy string `json:"waitStrategy"` // "none", "legacy", "watcher" - defaults to "legacy"
+	Timeout      int    `json:"timeout"`      // Wait timeout in seconds, defaults to 300
 }

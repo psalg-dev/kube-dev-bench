@@ -1,77 +1,165 @@
 ﻿# KubeDevBench
 
-KubeDevBench is a desktop Kubernetes and Docker Swarm client built with a Go backend (Wails) and a React frontend. It focuses on fast cluster connection setup and consistent "table + bottom panel" workflows for common resources.
+A modern desktop client for managing Kubernetes clusters and Docker Swarm environments. Built with Go (Wails) and React, KubeDevBench provides a unified interface for container orchestration with AI-powered diagnostics.
+
+[![Build](https://github.com/psalg-dev/kube-dev-bench/actions/workflows/build.yml/badge.svg)](https://github.com/psalg-dev/kube-dev-bench/actions/workflows/build.yml)
+[![Release](https://img.shields.io/github/v/release/psalg-dev/kube-dev-bench?include_prereleases)](https://github.com/psalg-dev/kube-dev-bench/releases)
+[![Frontend Coverage](https://codecov.io/gh/psalg-dev/kube-dev-bench/graph/badge.svg?flag=frontend)](https://codecov.io/gh/psalg-dev/kube-dev-bench)
+[![Backend Coverage](https://codecov.io/gh/psalg-dev/kube-dev-bench/graph/badge.svg?flag=backend)](https://codecov.io/gh/psalg-dev/kube-dev-bench)
+[![License](https://img.shields.io/github/license/psalg-dev/kube-dev-bench)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
+[![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+
+## ✨ Highlights
+
+- **Unified Container Management** — Manage both Kubernetes and Docker Swarm from a single application
+- **AI-Powered Diagnostics** — Integrates with CNCF's [HolmesGPT](https://holmesgpt.dev/) for intelligent troubleshooting
+- **Real-Time Monitoring** — Continuous health scanning with Prometheus alert integration
+- **Cross-Platform** — Available for Windows, macOS, and Linux
 
 ## Stack
-- Frontend: React + Vite
-- Backend: Go
-- Desktop framework: Wails (https://wails.io/)
 
-## Key features (current)
+- **Frontend:** React + Vite
+- **Backend:** Go
+- **Desktop Framework:** [Wails](https://wails.io/)
 
-### Kubernetes
-- Connection Wizard for discovering/selecting kubeconfigs, plus a first-run flow to paste kubeconfig YAML.
-- Context and multi-namespace selection.
-- Resource views with consistent UX: filterable table, clickable rows, bottom-panel details, and create via manifest overlay.
-- Resource navigation for: Pods, Deployments, Jobs, CronJobs, DaemonSets, StatefulSets, ReplicaSets, ConfigMaps, Secrets, Ingresses, PV/PVC, Helm Releases.
-- Holmes AI: context-aware analysis tabs for workloads (Pods, Deployments, StatefulSets, DaemonSets) and Services, plus a conversation panel with history, export, and markdown rendering.
-- Holmes log analysis: “Explain Logs” button in the pod log viewer to summarize errors and remediation ideas.
+---
 
-### Docker Swarm
-- Docker Swarm Connection Wizard for local socket, TCP, and TLS connections.
-- Auto-detection of platform-specific Docker socket paths (Windows npipe, Unix socket).
-- Swarm resource views: Services, Tasks, Nodes, Networks, Configs, Secrets, Stacks, Volumes.
-- Service management: scale replicas, restart, view logs.
-- Node management: drain, pause, activate, remove nodes.
-- Stack deployment support with service listing.
-- Holmes Swarm analysis: Holmes tab in Services and Tasks bottom panels for AI-guided diagnostics.
+## 🚀 Key Features
+
+### Kubernetes Management
+
+| Category | Features |
+|----------|----------|
+| **Workloads** | Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs |
+| **Config & Storage** | ConfigMaps, Secrets, Persistent Volumes, PVCs with file browser |
+| **Networking** | Services, Ingresses with TLS certificate expiry tracking |
+| **Helm** | Release management, chart installation, rollback, repository configuration |
+
+**Pod Features:**
+- Container logs with streaming and tail configuration
+- Interactive terminal access (exec/shell)
+- File system browser and content viewer
+- Port forwarding (single and custom ports)
+
+**Deployment Features:**
+- Scale replicas up/down
+- Restart and rollback deployments
+- View rollout history
+
+### Docker Swarm Management
+
+| Category | Features |
+|----------|----------|
+| **Services** | Create, scale, restart, remove; real-time replica monitoring; image update checking |
+| **Nodes** | Drain, pause, activate; label management; task distribution view |
+| **Stacks** | Deploy from Compose files; resource tracking; rollback support |
+| **Storage** | Volume browser, upload/download, backup/restore, cloning |
+
+### 🤖 HolmesGPT Integration
+
+AI-powered diagnostics for intelligent troubleshooting:
+
+- **Resource Analysis** — Analyze pods, deployments, StatefulSets, DaemonSets, services
+- **Log Analysis** — "Explain Logs" with error pattern detection and remediation suggestions
+- **Swarm Diagnostics** — Service and task analysis for Docker Swarm
+- **Free-form Questions** — Ask questions about your cluster state
+- **Streaming Responses** — Real-time AI response rendering with markdown
+
+### 📊 Monitoring & Alerting
+
+- Continuous cluster health scanning
+- Centralized Monitor Panel for errors and warnings
+- Prometheus alert integration
+- Issue dismissal with 24-hour persistence
+- AI-assisted investigation with HolmesGPT
+
+### 🔌 Connection Management
+
+- Multiple kubeconfig file support with context switching
+- Docker socket auto-detection (local, TCP, TLS)
+- Proxy support (manual and system detection)
+- Pinned connections for quick access
+
+---
+
+## 🎯 Quick Start
+
+1. Download and install KubeDevBench for your platform
+2. Launch the application
+3. Click the connection button to open the Connection Wizard
+4. **Kubernetes:** Select or import a kubeconfig file
+5. **Docker Swarm:** Local Docker socket is auto-detected, or configure remote
+6. Start managing your containers!
+
+---
 
 ## Holmes Quick Guide
 
 ### Explain Pod Logs
-1. Open Pods and select a pod.
-2. Switch to the Logs tab.
-3. Click Explain Logs to run Holmes analysis on recent log lines.
+1. Open Pods and select a pod
+2. Switch to the Logs tab
+3. Click **Explain Logs** to run Holmes analysis
 
-### Analyze Swarm Services and Tasks
-1. Connect to Docker Swarm.
-2. Open Services or Tasks, click a row to open the bottom panel.
-3. Select the Holmes tab and click Analyze with Holmes.
+### Analyze Swarm Services
+1. Connect to Docker Swarm
+2. Open Services or Tasks, click a row
+3. Select the Holmes tab and click **Analyze with Holmes**
+
+---
 
 ## Development
 
-Prereqs:
+**Prerequisites:**
 - Go toolchain
 - Wails CLI v2
 - Node 20+
 - Docker (for Swarm features)
 
-Run the app (dev mode):
+**Run the app (dev mode):**
 
 ```bash
 wails dev
 ```
 
-Build a production app:
+**Build a production app:**
 
 ```bash
 wails build
 ```
 
-Frontend-only dev server:
+**Frontend-only dev server:**
 
 ```bash
 cd frontend && npm install && npm run dev
 ```
 
+---
+
 ## Tests
 
-Frontend unit tests (Vitest):
+**Frontend unit tests (Vitest):**
 
 ```bash
 cd frontend && npm test
 ```
 
-E2E tests (Playwright + KinD):
+**E2E tests (Playwright + KinD):**
 
-See E2E.MD for full details.
+See [E2E.MD](E2E.MD) for full details.
+
+---
+
+## System Requirements
+
+- **OS:** Windows 10+, macOS 10.15+, or Linux (Ubuntu 20.04+, Fedora 34+)
+- **Memory:** 4 GB RAM minimum, 8 GB recommended
+- **Disk:** 200 MB for installation
+- **Network:** Access to Kubernetes API server and/or Docker daemon
+
+---
+
+## License
+
+See [LICENSE](LICENSE) for details.

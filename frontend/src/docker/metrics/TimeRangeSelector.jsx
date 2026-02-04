@@ -1,5 +1,3 @@
-import React from 'react';
-
 const OPTIONS = [
   { value: '60', label: 'Last 1 minute' },
   { value: '300', label: 'Last 5 minutes' },

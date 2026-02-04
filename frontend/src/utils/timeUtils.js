@@ -9,18 +9,18 @@
  */
 export function formatAge(timestamp) {
   if (!timestamp) return '-';
-  
+
   const now = new Date();
   const then = new Date(timestamp);
   const diffMs = now - then;
-  
+
   if (isNaN(diffMs)) return '-';
-  
+
   const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
-  
+
   if (diffDays > 0) {
     return `${diffDays}d`;
   } else if (diffHours > 0) {
@@ -39,18 +39,18 @@ export function formatAge(timestamp) {
  */
 export function formatRelativeTime(timestamp) {
   if (!timestamp) return '-';
-  
+
   const now = new Date();
   const then = new Date(timestamp);
   const diffMs = now - then;
-  
+
   if (isNaN(diffMs)) return '-';
-  
+
   const diffSecs = Math.floor(diffMs / 1000);
   const diffMins = Math.floor(diffSecs / 60);
   const diffHours = Math.floor(diffMins / 60);
   const diffDays = Math.floor(diffHours / 24);
-  
+
   if (diffDays > 1) {
     return `${diffDays} days ago`;
   } else if (diffDays === 1) {

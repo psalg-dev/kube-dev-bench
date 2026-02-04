@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useResourceCounts } from '../state/ResourceCountsContext.jsx';
 
 // Resource sections list with id suffix & label
@@ -48,13 +49,14 @@ export function SidebarSections({ selected, onSelect }) {
         const commonStyle = {
           padding: '8px 16px', cursor: 'pointer', color: 'var(--gh-table-header-text, #fff)', fontSize: 15,
           margin: 0, borderRadius: 4, transition: 'background 0.15s', textAlign: 'left', display: 'flex',
-          alignItems: 'center', gap: 8, justifyContent: 'space-between'
+          alignItems: 'center', gap: 8, justifyContent: 'space-between', textDecoration: 'none'
         };
         const value = counts?.[sec.key];
         const isNumber = typeof value === 'number';
         return (
-          <div
+          <Link
             key={sec.key}
+            to={`/${sec.key}`}
             id={`section-${sec.key}`}
             className={`sidebar-section${isSel ? ' selected' : ''}`}
             style={commonStyle}
@@ -68,7 +70,7 @@ export function SidebarSections({ selected, onSelect }) {
                 {isNumber ? value : '-'}
               </span>
             )}
-          </div>
+          </Link>
         );
       })}
     </div>

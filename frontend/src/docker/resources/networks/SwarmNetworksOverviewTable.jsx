@@ -1,16 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel.jsx';
 import QuickInfoSection from '../../../QuickInfoSection.jsx';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import SwarmResourceActions from '../SwarmResourceActions.jsx';
-import NetworkConnectedServicesSection from './NetworkConnectedServicesSection.jsx';
-import NetworkConnectedContainersSection from './NetworkConnectedContainersSection.jsx';
+import NetworkConnectedServicesTable from './NetworkConnectedServicesTable.jsx';
+import NetworkConnectedContainersTable from './NetworkConnectedContainersTable.jsx';
 import NetworkInspectTab from './NetworkInspectTab.jsx';
 import { NetworkIPAMSection, NetworkOptionsSection } from './NetworkDetailsSections.jsx';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils.js';
 import {
   GetSwarmNetworks,
+  GetSwarmNetworkServices,
+  GetSwarmNetworkContainers,
   RemoveSwarmNetwork,
 } from '../../swarmApi.js';
 import { showSuccess, showError } from '../../../notification.js';
@@ -37,10 +39,10 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'services', label: 'Connected Services' },
-  { key: 'containers', label: 'Containers' },
-  { key: 'inspect', label: 'Inspect' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'services', label: 'Connected Services', countKey: 'services' },
+  { key: 'containers', label: 'Containers', countKey: 'containers' },
+  { key: 'inspect', label: 'Inspect', countable: false },
 ];
 
 function renderPanelContent(row, tab, onRefresh) {
@@ -68,55 +70,59 @@ function renderPanelContent(row, tab, onRefresh) {
     }
   };
 
-  let rightContent = null;
   if (tab === 'summary') {
-    rightContent = (
-      <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-        <NetworkOptionsSection options={row.options} />
-        <NetworkIPAMSection ipam={row.ipam} />
-      </div>
-    );
-  } else if (tab === 'services') {
-    rightContent = <NetworkConnectedServicesSection networkId={row.id} />;
-  } else if (tab === 'containers') {
-    rightContent = <NetworkConnectedContainersSection networkId={row.id} />;
-  } else if (tab === 'inspect') {
-    rightContent = (
-      <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-        <NetworkInspectTab networkId={row.id} />
+    return (
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <SummaryTabHeader
+          name={row.name}
+          labels={row.labels}
+          actions={
+            !isBuiltIn && (
+              <SwarmResourceActions
+                resourceType="network"
+                name={row.name}
+                onDelete={handleDelete}
+              />
+            )
+          }
+        />
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
+          <QuickInfoSection
+            resourceName={row.name}
+            data={row}
+            loading={false}
+            error={null}
+            fields={quickInfoFields}
+          />
+          {/* Middle column: Connected Services */}
+          <div style={{ display: 'flex', flex: 1, minWidth: 0, minHeight: 0 }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: 0, position: 'relative' }}>
+              <NetworkConnectedServicesTable networkId={row.id} compact />
+            </div>
+            {/* Right column: Options and IPAM */}
+            <div style={{ width: 420, minWidth: 300, minHeight: 0, borderLeft: '1px solid var(--gh-border, #30363d)', overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <NetworkOptionsSection options={row.options} />
+              <NetworkIPAMSection ipam={row.ipam} />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <SummaryTabHeader
-        name={row.name}
-        labels={row.labels}
-        actions={
-          !isBuiltIn && (
-            <SwarmResourceActions
-              resourceType="network"
-              name={row.name}
-              onDelete={handleDelete}
-            />
-          )
-        }
-      />
-      <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
-        <QuickInfoSection
-          resourceName={row.name}
-          data={row}
-          loading={false}
-          error={null}
-          fields={quickInfoFields}
-        />
-        <div style={{ display: 'flex', flex: 1, minWidth: 0 }}>
-          {rightContent}
-        </div>
-      </div>
-    </div>
-  );
+  if (tab === 'services') {
+    return <NetworkConnectedServicesTable networkId={row.id} />;
+  }
+
+  if (tab === 'containers') {
+    return <NetworkConnectedContainersTable networkId={row.id} />;
+  }
+
+  if (tab === 'inspect') {
+    return <NetworkInspectTab networkId={row.id} />;
+  }
+
+  return null;
 }
 
 export default function SwarmNetworksOverviewTable() {
@@ -126,6 +132,18 @@ export default function SwarmNetworksOverviewTable() {
 
   const refresh = useCallback(() => {
     setRefreshKey(k => k + 1);
+  }, []);
+
+  const fetchTabCountsForRow = useCallback(async (row) => {
+    if (!row?.id) return {};
+    const [services, containers] = await Promise.all([
+      GetSwarmNetworkServices(row.id),
+      GetSwarmNetworkContainers(row.id),
+    ]);
+    return {
+      services: Array.isArray(services) ? services.length : 0,
+      containers: Array.isArray(containers) ? containers.length : 0,
+    };
   }, []);
 
   useEffect(() => {
@@ -175,6 +193,7 @@ export default function SwarmNetworksOverviewTable() {
       data={networks}
       tabs={bottomTabs}
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, refresh)}
+      tabCountsFetcher={fetchTabCountsForRow}
       createPlatform="swarm"
       createKind="network"
       tableTestId="swarm-networks-table"

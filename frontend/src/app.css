@@ -3,27 +3,40 @@
   text-align: center;
   padding: 2em 0;
 }
-/* GitHub color scheme */
+/* VS Code Dark+ color scheme - unified with file explorer background */
 :root {
-  --gh-bg: #0d1117;
-  --gh-bg-sidebar: #161b22;
-  --gh-bg-footer: #161b22;
-  --gh-border: #30363d;
-  --gh-text: #c9d1d9;
-  --gh-text-muted: #8b949e;
-  --gh-accent: #238636;
-  --gh-accent-hover: #2ea043;
-  --gh-hover-bg: rgba(177, 186, 196, 0.12);
-  --gh-input-bg: #21262d;
-  --gh-input-border: #30363d;
-  --gh-input-focus: #2ea043;
-  --gh-text-secondary: #ccc;
-  --gh-table-header-bg: #2d323b;
-  --gh-table-header-text: #fff;
-  --gh-table-row-even: #23272e;
-  --gh-table-row-odd: #262b33;
-  --gh-table-text: #e0e0e0;
+  --gh-bg: #181818;
+  --gh-bg-sidebar: #181818;
+  --gh-bg-footer: #141414;
+  --gh-border: #3c3c3c;
+  --gh-text: #d4d4d4;
+  --gh-text-muted: #858585;
+  --gh-accent: #0e639c;
+  --gh-accent-hover: #1177bb;
+  --gh-hover-bg: #181818;
+  --gh-input-bg: #2a2d2e;
+  --gh-input-border: #3c3c3c;
+  --gh-input-focus: #007fd4;
+  --gh-text-secondary: #cccccc;
+  --gh-table-header-bg: #141414;
+  --gh-table-header-text: #d4d4d4;
+  --gh-table-row-even: #1e1e1e;
+  --gh-table-row-odd: #181818;
+  --gh-table-text: #d4d4d4;
   --gh-sidebar-bg: var(--gh-bg-sidebar);
+
+  /* Canvas colors (for component backgrounds) */
+  --gh-canvas-default: #181818;
+  --gh-canvas-subtle: #141414;
+
+  /* VS Code semantic colors */
+  --vsc-selection-bg: #094771;
+  --vsc-list-hover-bg: #2a2d2e;
+  --vsc-error: #f14c4c;
+  --vsc-success: #89d185;
+  --vsc-warning: #cca700;
+  --vsc-info: #3794ff;
+  --vsc-activity-bar-bg: #333333;
 
   /* Full HD optimized spacing and sizing */
   --sidebar-width: 320px;
@@ -79,6 +92,30 @@ body, #layout {
   overflow-y: auto;
   transition: margin-left 0.3s ease;
   position: relative;
+}
+
+/* Sidebar scrollbar styling */
+#sidebar::-webkit-scrollbar {
+  width: 8px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: var(--gh-bg-sidebar);
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: var(--gh-border);
+  border-radius: 4px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--gh-text-muted);
+}
+
+/* Firefox scrollbar styling */
+#sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--gh-border) var(--gh-bg-sidebar);
 }
 
 /* Sidebar collapsed state */
@@ -212,7 +249,6 @@ body, #layout {
   background: var(--gh-bg-sidebar);
   border-radius: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border: 1px solid var(--gh-border);
   flex: 1;
   min-height: 0;
   overflow: hidden;
@@ -409,21 +445,21 @@ body, #layout {
 }
 
 .error-message {
-  background: rgba(248, 81, 73, 0.1);
-  border: 1px solid rgba(248, 81, 73, 0.4);
+  background: rgba(241, 76, 76, 0.1);
+  border: 1px solid rgba(241, 76, 76, 0.4);
 }
 
 .error-message::after {
-  background: rgba(248, 81, 73, 0.4);
+  background: rgba(241, 76, 76, 0.4);
 }
 
 .success-message {
-  background: rgba(46, 160, 67, 0.1);
-  border: 1px solid rgba(46, 160, 67, 0.4);
+  background: rgba(137, 209, 133, 0.1);
+  border: 1px solid rgba(137, 209, 133, 0.4);
 }
 
 .success-message::after {
-  background: rgba(46, 160, 67, 0.4);
+  background: rgba(137, 209, 133, 0.4);
 }
 
 .message-header {
@@ -435,11 +471,11 @@ body, #layout {
 }
 
 .error-message .message-header {
-  background: rgba(248, 81, 73, 0.05);
+  background: rgba(241, 76, 76, 0.05);
 }
 
 .success-message .message-header {
-  background: rgba(46, 160, 67, 0.05);
+  background: rgba(137, 209, 133, 0.05);
 }
 
 .message-icon {
@@ -471,13 +507,13 @@ body, #layout {
 
 .error-message .message-expand:hover,
 .error-message .message-close:hover {
-  background: rgba(248, 81, 73, 0.2);
+  background: rgba(241, 76, 76, 0.2);
   color: var(--gh-text);
 }
 
 .success-message .message-expand:hover,
 .success-message .message-close:hover {
-  background: rgba(46, 160, 67, 0.2);
+  background: rgba(137, 209, 133, 0.2);
   color: var(--gh-text);
 }
 
@@ -493,11 +529,11 @@ body, #layout {
 }
 
 .error-message .message-details {
-  border-top: 1px solid rgba(248, 81, 73, 0.2);
+  border-top: 1px solid rgba(241, 76, 76, 0.2);
 }
 
 .success-message .message-details {
-  border-top: 1px solid rgba(46, 160, 67, 0.2);
+  border-top: 1px solid rgba(137, 209, 133, 0.2);
 }
 
 @keyframes messageSlideIn {
@@ -679,7 +715,7 @@ body, #layout {
 .overlay-create-btn:hover {
   background: var(--gh-accent-hover);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(35, 134, 54, 0.3);
+  box-shadow: 0 4px 12px rgba(14, 99, 156, 0.3);
 }
 
 .overlay-create-btn:disabled {
@@ -816,7 +852,7 @@ input[type="text"], input[type="search"] {
 input[type="text"]:focus, input[type="search"]:focus {
   outline: none;
   border-color: var(--gh-input-focus);
-  box-shadow: 0 0 0 3px rgba(46, 160, 67, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 127, 212, 0.15);
 }
 
 /* Create button enhancements */
@@ -904,9 +940,60 @@ input[type="text"]:focus, input[type="search"]:focus {
   cursor: pointer;
 }
 .pod-row:hover {
-  background: #2a2f38 !important;
+  background: var(--gh-hover-bg) !important;
   cursor: pointer;
 }
 .ͼl {
-  color: gray;
+  color: var(--gh-text-muted);
+}
+
+/* Bottom panel table styles - ensures proper alignment with fixed layout */
+.panel-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 13px;
+}
+
+.panel-table th,
+.panel-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--gh-border, #30363d);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.panel-table th {
+  font-weight: 600;
+  color: var(--gh-text-muted, #8b949e);
+  background: var(--gh-bg, #0d1117);
+}
+
+.panel-table td {
+  color: var(--gh-text, #c9d1d9);
+}
+
+.panel-table tbody tr:hover {
+  background: var(--gh-hover-bg, rgba(177, 186, 196, 0.08));
+}
+
+/* Allow text wrapping for specific columns */
+.panel-table td.wrap-text,
+.panel-table th.wrap-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Centered text alignment for specific columns */
+.panel-table td.text-center,
+.panel-table th.text-center {
+  text-align: center;
+}
+
+/* Muted text color for secondary info */
+.panel-table td.text-muted {
+  color: var(--gh-text-muted, #8b949e);
 }

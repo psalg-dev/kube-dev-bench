@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
@@ -24,13 +24,13 @@ const columns = [
 ];
 
 const bottomTabs = [
-  { key: 'summary', label: 'Summary' },
-  { key: 'pods', label: 'Pods' },
-  { key: 'coverage', label: 'Node Coverage' },
-  { key: 'logs', label: 'Logs' },
-  { key: 'events', label: 'Events' },
-  { key: 'yaml', label: 'YAML' },
-  { key: 'holmes', label: 'Holmes' },
+  { key: 'summary', label: 'Summary', countable: false },
+  { key: 'pods', label: 'Pods', countKey: 'pods' },
+  { key: 'coverage', label: 'Node Coverage', countable: false },
+  { key: 'logs', label: 'Logs', countable: false },
+  { key: 'events', label: 'Events', countKey: 'events' },
+  { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
 function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
@@ -55,7 +55,7 @@ function renderPanelContent(row, tab, holmesState, onAnalyze, onCancel) {
 
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="daemonset" name={row.name} namespace={row.namespace} replicaCount={row.desired} onRestart={async (n,ns)=>{ if(AppAPI.RestartDaemonSet){ await AppAPI.RestartDaemonSet(ns,n);} else { throw new Error('RestartDaemonSet API unavailable; rebuild bindings'); }} } onDelete={async (n,ns)=>{await AppAPI.DeleteResource("daemonset", ns, n);}} />} />
+        <SummaryTabHeader name={row.name} labels={row.labels || row.Labels || row.metadata?.labels} actions={<ResourceActions resourceType="daemonset" name={row.name} namespace={row.namespace} replicaCount={row.desired} onRestart={async (n,ns)=>{ if(AppAPI.RestartDaemonSet){ await AppAPI.RestartDaemonSet(ns,n);} else { throw new Error('RestartDaemonSet API unavailable; rebuild bindings'); }} } onDelete={async (n,ns)=>{await AppAPI.DeleteResource('daemonset', ns, n);}} />} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
           <QuickInfoSection
             resourceName={row.name}
@@ -179,8 +179,8 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
     contextSteps: [],
     toolEvents: [],
   });
-  const holmesStateRef = React.useRef(holmesState);
-  React.useEffect(() => {
+  const holmesStateRef = useRef(holmesState);
+  useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
 
@@ -189,7 +189,7 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
     const unsubscribe = onHolmesChatStream((payload) => {
       if (!payload) return;
       const current = holmesStateRef.current;
-      const { streamId, streamingText } = current;
+      const { streamId, _streamingText } = current;
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
@@ -349,7 +349,7 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }) {
           labels: d.labels ?? d.Labels ?? d.metadata?.labels ?? {}
         }));
         setDaemonSets(flat);
-      } catch (error) {
+      } catch (_error) {
         setDaemonSets([]);
       } finally { setLoading(false); }
     };

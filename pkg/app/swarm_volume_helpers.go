@@ -7,8 +7,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
+	imagetypes "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
@@ -24,7 +24,7 @@ func ensureDockerImage(ctx context.Context, cli *client.Client, image string) er
 	if !client.IsErrNotFound(err) {
 		return err
 	}
-	reader, err := cli.ImagePull(ctx, image, types.ImagePullOptions{})
+	reader, err := cli.ImagePull(ctx, image, imagetypes.PullOptions{})
 	if err != nil {
 		return err
 	}
@@ -82,8 +82,8 @@ func (a *App) ensureSwarmVolumeHelper(volumeName string) (string, error) {
 		return "", err
 	}
 
-	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		_ = cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
+	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+		_ = cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
 		return "", err
 	}
 
@@ -95,7 +95,7 @@ func execInContainer(ctx context.Context, cli *client.Client, containerID string
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	createResp, err := cli.ContainerExecCreate(ctx, containerID, types.ExecConfig{
+	createResp, err := cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		Tty:          false,
@@ -105,7 +105,7 @@ func execInContainer(ctx context.Context, cli *client.Client, containerID string
 		return "", "", 0, err
 	}
 
-	attach, err := cli.ContainerExecAttach(ctx, createResp.ID, types.ExecStartCheck{Tty: false})
+	attach, err := cli.ContainerExecAttach(ctx, createResp.ID, container.ExecAttachOptions{Tty: false})
 	if err != nil {
 		return "", "", 0, err
 	}
@@ -152,7 +152,7 @@ func (a *App) cleanupSwarmVolumeHelpers(ctx context.Context) error {
 	a.swarmVolumeHelpersMu.Unlock()
 
 	for _, id := range ids {
-		_ = cli.ContainerRemove(ctx, id, types.ContainerRemoveOptions{Force: true, RemoveVolumes: false})
+		_ = cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: true, RemoveVolumes: false})
 	}
 
 	return nil

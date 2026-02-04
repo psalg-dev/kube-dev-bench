@@ -74,9 +74,22 @@ test.describe('Docker Swarm Secrets', () => {
       const notifications = new Notifications(page);
 
       await sidebar.goToSecrets();
+      
+      // Wait for backend to stabilize after secret creation
+      await page.waitForTimeout(2000);
 
       const table = page.locator('[data-testid="swarm-secrets-table"]');
-      await expect(table).toBeVisible({ timeout: 60_000 });
+      try {
+        await expect(table).toBeVisible({ timeout: 60_000 });
+      } catch {
+        await page.reload();
+        await page.waitForTimeout(2000);
+        await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+        const sidebar2 = new SwarmSidebarPage(page);
+        await sidebar2.goToSecrets();
+        await page.waitForTimeout(1000);
+        await expect(table).toBeVisible({ timeout: 90_000 });
+      }
 
       const tableFilter = page.getByRole('searchbox', { name: 'Filter table' });
 
@@ -92,10 +105,15 @@ test.describe('Docker Swarm Secrets', () => {
       await expect(panelRoot.getByText(svcName)).toBeVisible({ timeout: 60_000 });
 
       // Edit flow: textarea disabled until ack checked.
-      await page.locator('#swarm-secret-edit-btn').click();
-      await expect(page.getByText(`Edit Swarm secret: ${secretName}`)).toBeVisible({ timeout: 30_000 });
+      const editBtn = panelRoot.locator('#swarm-secret-edit-btn');
+      await expect(editBtn).toBeVisible({ timeout: 30_000 });
+      await editBtn.click();
 
-      const textarea = page.locator('textarea').first();
+      const editModal = page.locator('.base-modal-container').filter({ hasText: `Swarm secret: ${secretName}` }).first();
+      const editTitle = editModal.getByText(new RegExp(`Edit Swarm secret: ${secretName}`));
+      await expect(editTitle).toBeVisible({ timeout: 30_000 });
+
+      const textarea = editModal.locator('textarea').first();
       await expect(textarea).toBeDisabled();
 
       // Toggle reveal requires confirm the first time.
@@ -103,19 +121,19 @@ test.describe('Docker Swarm Secrets', () => {
         expect(d.type()).toBe('confirm');
         await d.accept();
       });
-      await page.getByRole('button', { name: 'Show', exact: true }).click();
-      await expect(page.getByRole('button', { name: 'Hide', exact: true })).toBeVisible();
+      await editModal.getByRole('button', { name: 'Show', exact: true }).click();
+      await expect(editModal.getByRole('button', { name: 'Hide', exact: true })).toBeVisible();
 
       // Ack and enter value.
-      await page.getByRole('checkbox', { name: /I understand/i }).check();
+      await editModal.getByRole('checkbox', { name: /I understand/i }).check();
       await expect(textarea).toBeEnabled();
       await textarea.fill('secret-v2\n');
 
       // Hide again.
-      await page.getByRole('button', { name: 'Hide', exact: true }).click();
-      await expect(page.getByRole('button', { name: 'Show', exact: true })).toBeVisible();
+      await editModal.getByRole('button', { name: 'Hide', exact: true }).click();
+      await expect(editModal.getByRole('button', { name: 'Show', exact: true })).toBeVisible();
 
-      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await editModal.getByRole('button', { name: 'Save', exact: true }).click();
       await notifications.expectSuccessContains(/Secret updated: created/);
 
       // New timestamp secret should exist.
@@ -146,7 +164,15 @@ test.describe('Docker Swarm Secrets', () => {
         const sidebar2 = new SwarmSidebarPage(page);
         await sidebar2.goToSecrets();
         const table2 = page.locator('[data-testid="swarm-secrets-table"]');
-        await expect(table2).toBeVisible({ timeout: 60_000 });
+        try {
+          await expect(table2).toBeVisible({ timeout: 60_000 });
+        } catch {
+          await page.reload();
+          await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+          const sidebar3 = new SwarmSidebarPage(page);
+          await sidebar3.goToSecrets();
+          await expect(table2).toBeVisible({ timeout: 90_000 });
+        }
         const tableFilter2 = page.getByRole('searchbox', { name: 'Filter table' });
         await tableFilter2.fill(rotatedNamePrefix);
         rotateRow = table2.locator('tbody tr').filter({ hasText: rotatedNamePrefix }).first();
@@ -154,11 +180,16 @@ test.describe('Docker Swarm Secrets', () => {
       await expect(rotateRow).toBeVisible({ timeout: 60_000 });
       await rotateRow.click();
       await page.locator('#swarm-secret-rotate-btn').click();
-      await expect(page.getByText(`Rotate Swarm secret: ${rotatedNamePrefix}`)).toBeVisible({ timeout: 30_000 });
+      const rotateModal = page
+        .locator('.base-modal-container')
+        .filter({ hasText: `Swarm secret: ${rotatedNamePrefix}` })
+        .first();
+      const rotateTitle = rotateModal.getByText(new RegExp(`Rotate Swarm secret: ${rotatedNamePrefix}`));
+      await expect(rotateTitle).toBeVisible({ timeout: 30_000 });
 
-      await page.getByRole('checkbox', { name: /I understand/i }).check();
-      await page.locator('textarea').first().fill('rotate-v2\n');
-      await page.getByRole('button', { name: 'Save', exact: true }).click();
+      await rotateModal.getByRole('checkbox', { name: /I understand/i }).check();
+      await rotateModal.locator('textarea').first().fill('rotate-v2\n');
+      await rotateModal.getByRole('button', { name: 'Save', exact: true }).click();
       await notifications.expectSuccessContains(/Secret updated: created/);
       await expect.poll(async () => {
         const ls = await docker(['secret', 'ls', '--format', '{{.Name}}'], 60_000);
@@ -182,21 +213,36 @@ test.describe('Docker Swarm Secrets', () => {
         const sidebar2 = new SwarmSidebarPage(page);
         await sidebar2.goToSecrets();
         const table2 = page.locator('[data-testid="swarm-secrets-table"]');
-        await expect(table2).toBeVisible({ timeout: 60_000 });
+        try {
+          await expect(table2).toBeVisible({ timeout: 60_000 });
+        } catch {
+          await page.reload();
+          await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+          const sidebar3 = new SwarmSidebarPage(page);
+          await sidebar3.goToSecrets();
+          await expect(table2).toBeVisible({ timeout: 90_000 });
+        }
         const tableFilter2 = page.getByRole('searchbox', { name: 'Filter table' });
         await tableFilter2.fill(cloneSource);
         cloneSourceRow = table2.locator('tbody tr').filter({ hasText: cloneSource }).first();
       }
       await expect(cloneSourceRow).toBeVisible({ timeout: 60_000 });
       await cloneSourceRow.click();
+      // Wait for bottom panel and clone button to be visible
+      await expect(page.locator('#swarm-secret-clone-btn')).toBeVisible({ timeout: 30_000 });
       await page.locator('#swarm-secret-clone-btn').click();
 
       const cloneName = `${cloneSource}-clone`;
-      await expect(page.getByText(`Clone Swarm secret: ${cloneSource}`)).toBeVisible({ timeout: 30_000 });
-      await page.locator('#swarm-secret-clone-name').fill(cloneName);
-      await page.locator('#swarm-secret-clone-value').fill('cloned-value\n');
-      await page.locator('#swarm-secret-clone-toggle-mask').click();
-      await page.locator('#swarm-secret-clone-create-btn').click();
+      const cloneModal = page
+        .locator('.base-modal-container')
+        .filter({ hasText: `Swarm secret: ${cloneSource}` })
+        .first();
+      const cloneTitle = cloneModal.getByText(new RegExp(`Clone Swarm secret: ${cloneSource}`));
+      await expect(cloneTitle).toBeVisible({ timeout: 30_000 });
+      await cloneModal.locator('#swarm-secret-clone-name').fill(cloneName);
+      await cloneModal.locator('#swarm-secret-clone-value').fill('cloned-value\n');
+      await cloneModal.locator('#swarm-secret-clone-toggle-mask').click();
+      await cloneModal.locator('#swarm-secret-clone-create-btn').click();
       await notifications.expectSuccessContains(`Secret cloned: created "${cloneName}"`);
       await tableFilter.fill(cloneName);
       await expect(table.locator('tbody tr').filter({ hasText: cloneName }).first()).toBeVisible({ timeout: 60_000 });

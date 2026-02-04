@@ -16,6 +16,7 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
@@ -169,6 +170,83 @@ func buildHolmesProxyURL(apiHost string, namespace string, serviceName string, s
 	return strings.TrimRight(u.String(), "/"), nil
 }
 
+// holmesCandidate represents a potential Holmes service
+type holmesCandidate struct {
+	name  string
+	port  int32
+	score int
+}
+
+// scoreServiceLabels calculates a score based on service labels
+func scoreServiceLabels(svc corev1.Service) int {
+	score := 0
+	labels := svc.Labels
+	nameLower := strings.ToLower(svc.Name)
+
+	if svc.Name == holmesDefaultReleaseName || svc.Name == holmesServiceName {
+		score += 6
+	}
+	if strings.Contains(nameLower, "holmes") {
+		score += 3
+	}
+	if labels["app.kubernetes.io/instance"] == holmesDefaultReleaseName {
+		score += 6
+	}
+	switch strings.ToLower(labels["app.kubernetes.io/name"]) {
+	case "holmes", "holmesgpt":
+		score += 5
+	}
+	if strings.Contains(strings.ToLower(labels["app.kubernetes.io/component"]), "api") {
+		score += 2
+	}
+	return score
+}
+
+// findBestPort selects the best port and returns its score contribution
+func findBestPort(svc corev1.Service) (int32, int) {
+	port := int32(0)
+	portName := ""
+
+	for _, p := range svc.Spec.Ports {
+		candidateName := strings.ToLower(p.Name)
+		if candidateName == "http" || candidateName == "api" {
+			port = p.Port
+			portName = candidateName
+			break
+		}
+		if p.Port == 8080 || p.Port == 5050 {
+			port = p.Port
+			portName = candidateName
+		}
+	}
+	if port == 0 {
+		port = svc.Spec.Ports[0].Port
+		portName = strings.ToLower(svc.Spec.Ports[0].Name)
+	}
+
+	score := 0
+	if port == 8080 || port == 5050 {
+		score += 2
+	}
+	if portName == "http" {
+		score += 2
+	}
+	return port, score
+}
+
+// scoreHolmesService evaluates a service as a Holmes candidate
+func scoreHolmesService(svc corev1.Service) holmesCandidate {
+	if len(svc.Spec.Ports) == 0 {
+		return holmesCandidate{}
+	}
+
+	score := scoreServiceLabels(svc)
+	port, portScore := findBestPort(svc)
+	score += portScore
+
+	return holmesCandidate{name: svc.Name, port: port, score: score}
+}
+
 func (a *App) findHolmesService(namespace string) (string, int32, error) {
 	if namespace == "" {
 		namespace = holmesDefaultNamespace
@@ -184,66 +262,11 @@ func (a *App) findHolmesService(namespace string) (string, int32, error) {
 		return "", 0, err
 	}
 
-	type candidate struct {
-		name  string
-		port  int32
-		score int
-	}
-
-	best := candidate{}
+	best := holmesCandidate{}
 	for _, svc := range svcs.Items {
-		if len(svc.Spec.Ports) == 0 {
-			continue
-		}
-
-		labels := svc.Labels
-		score := 0
-		nameLower := strings.ToLower(svc.Name)
-		if svc.Name == holmesDefaultReleaseName || svc.Name == holmesServiceName {
-			score += 6
-		}
-		if strings.Contains(nameLower, "holmes") {
-			score += 3
-		}
-		if labels["app.kubernetes.io/instance"] == holmesDefaultReleaseName {
-			score += 6
-		}
-		switch strings.ToLower(labels["app.kubernetes.io/name"]) {
-		case "holmes", "holmesgpt":
-			score += 5
-		}
-		if strings.Contains(strings.ToLower(labels["app.kubernetes.io/component"]), "api") {
-			score += 2
-		}
-
-		port := int32(0)
-		portName := ""
-		for _, p := range svc.Spec.Ports {
-			candidateName := strings.ToLower(p.Name)
-			if candidateName == "http" || candidateName == "api" {
-				port = p.Port
-				portName = candidateName
-				break
-			}
-			if p.Port == 8080 || p.Port == 5050 {
-				port = p.Port
-				portName = candidateName
-			}
-		}
-		if port == 0 {
-			port = svc.Spec.Ports[0].Port
-			portName = strings.ToLower(svc.Spec.Ports[0].Name)
-		}
-
-		if port == 8080 || port == 5050 {
-			score += 2
-		}
-		if portName == "http" {
-			score += 2
-		}
-
-		if score > best.score {
-			best = candidate{name: svc.Name, port: port, score: score}
+		c := scoreHolmesService(svc)
+		if c.score > best.score {
+			best = c
 		}
 	}
 
@@ -912,6 +935,243 @@ func (a *App) AnalyzeServiceStream(namespace, name, streamID string) error {
 	return a.AskHolmesStream(question, streamID)
 }
 
+// AnalyzeJobStream gathers job context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeJobStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeJobStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeJobStream: gathering job context")
+	ctx, err := a.getJobContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeJobStream: failed to get job context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get job context: %w", err)
+	}
+	log.Info("AnalyzeJobStream: job context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes job and explain any issues:\n\nJob: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeJobStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeCronJobStream gathers cronjob context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeCronJobStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeCronJobStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeCronJobStream: gathering cronjob context")
+	ctx, err := a.getCronJobContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeCronJobStream: failed to get cronjob context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get cronjob context: %w", err)
+	}
+	log.Info("AnalyzeCronJobStream: cronjob context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes cronjob and explain any issues:\n\nCronJob: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeCronJobStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeIngressStream gathers ingress context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeIngressStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeIngressStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeIngressStream: gathering ingress context")
+	ctx, err := a.getIngressContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeIngressStream: failed to get ingress context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get ingress context: %w", err)
+	}
+	log.Info("AnalyzeIngressStream: ingress context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes ingress and explain any issues:\n\nIngress: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeIngressStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeConfigMapStream gathers configmap context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeConfigMapStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeConfigMapStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeConfigMapStream: gathering configmap context")
+	ctx, err := a.getConfigMapContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeConfigMapStream: failed to get configmap context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get configmap context: %w", err)
+	}
+	log.Info("AnalyzeConfigMapStream: configmap context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes configmap and explain any issues:\n\nConfigMap: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeConfigMapStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeSecretStream gathers secret context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeSecretStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeSecretStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeSecretStream: gathering secret context")
+	ctx, err := a.getSecretContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeSecretStream: failed to get secret context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get secret context: %w", err)
+	}
+	log.Info("AnalyzeSecretStream: secret context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes secret and explain any issues:\n\nSecret: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeSecretStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzePersistentVolumeStream gathers PV context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzePersistentVolumeStream(name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzePersistentVolumeStream: starting",
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzePersistentVolumeStream: gathering PV context")
+	ctx, err := a.getPersistentVolumeContext(name)
+	if err != nil {
+		log.Error("AnalyzePersistentVolumeStream: failed to get PV context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get persistent volume context: %w", err)
+	}
+	log.Info("AnalyzePersistentVolumeStream: PV context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes persistent volume and explain any issues:\n\nPersistentVolume: %s\n\n%s",
+		name, ctx,
+	)
+
+	log.Debug("AnalyzePersistentVolumeStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzePersistentVolumeClaimStream gathers PVC context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzePersistentVolumeClaimStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzePersistentVolumeClaimStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzePersistentVolumeClaimStream: gathering PVC context")
+	ctx, err := a.getPersistentVolumeClaimContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzePersistentVolumeClaimStream: failed to get PVC context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get persistent volume claim context: %w", err)
+	}
+	log.Info("AnalyzePersistentVolumeClaimStream: PVC context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes persistent volume claim and explain any issues:\n\nPersistentVolumeClaim: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzePersistentVolumeClaimStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
 // AnalyzeResourceStream routes to the correct streaming analyzer based on resource kind.
 // This is a Wails RPC method callable from the frontend.
 func (a *App) AnalyzeResourceStream(kind, namespace, name, streamID string) error {
@@ -933,9 +1193,71 @@ func (a *App) AnalyzeResourceStream(kind, namespace, name, streamID string) erro
 		return a.AnalyzeDaemonSetStream(namespace, name, streamID)
 	case "service", "services":
 		return a.AnalyzeServiceStream(namespace, name, streamID)
+	case "job", "jobs":
+		return a.AnalyzeJobStream(namespace, name, streamID)
+	case "cronjob", "cronjobs":
+		return a.AnalyzeCronJobStream(namespace, name, streamID)
+	case "ingress", "ingresses":
+		return a.AnalyzeIngressStream(namespace, name, streamID)
+	case "configmap", "configmaps":
+		return a.AnalyzeConfigMapStream(namespace, name, streamID)
+	case "secret", "secrets":
+		return a.AnalyzeSecretStream(namespace, name, streamID)
+	case "persistentvolume", "persistentvolumes", "pv":
+		return a.AnalyzePersistentVolumeStream(name, streamID)
+	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc":
+		return a.AnalyzePersistentVolumeClaimStream(namespace, name, streamID)
 	default:
 		return fmt.Errorf("unsupported resource kind: %s", kind)
 	}
+}
+
+// emitHolmesStreamEvent sends a stream event to the frontend.
+func (a *App) emitHolmesStreamEvent(streamID, event, errMsg string) {
+	payload := holmesgpt.HolmesStreamEvent{
+		StreamID: streamID,
+		Event:    event,
+		Error:    errMsg,
+	}
+	emitEvent(a.ctx, "holmes:chat:stream", payload)
+}
+
+// tryReconnectAndRetry attempts reconnection strategies and retries streaming.
+func (a *App) tryReconnectAndRetry(ctx context.Context, client *holmesgpt.HolmesClient, question string, streamID string, streamOnce func(*holmesgpt.HolmesClient) error, log *holmesgpt.Logger, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	// Try reconnect on connection refused or proxy not found.
+	if a.tryReconnectHolmesOnRefused(err, client.GetEndpoint()) || a.tryReconnectHolmesOnProxyNotFound(err, client.GetEndpoint()) {
+		log.Warn("AskHolmesStream: reconnecting after connection issue", "error", err)
+		holmesMu.RLock()
+		client = holmesClient
+		holmesMu.RUnlock()
+		if client != nil {
+			log.Info("AskHolmesStream: retrying stream after reconnect")
+			return streamOnce(client)
+		}
+	}
+
+	// Try port-forward on timeout with kube proxy.
+	if isTimeoutError(err) && isKubeProxyEndpoint(client.GetEndpoint()) {
+		log.Warn("AskHolmesStream: timeout on kube proxy, trying port-forward", "error", err)
+		if pfErr := a.ensureHolmesPortForward(client.GetEndpoint()); pfErr != nil {
+			log.Error("AskHolmesStream: port-forward failed", "error", pfErr)
+			a.emitHolmesStreamEvent(streamID, "error", fmt.Sprintf("Holmes proxy timed out; port-forward failed: %v", pfErr))
+			return nil // handled
+		}
+		holmesMu.RLock()
+		client = holmesClient
+		holmesMu.RUnlock()
+		if client != nil {
+			log.Info("AskHolmesStream: retrying stream with port-forward")
+			return streamOnce(client)
+		}
+	}
+
+	return err
 }
 
 // AskHolmesStream streams a question to HolmesGPT and emits SSE events to the frontend.
@@ -944,9 +1266,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 	log := holmesgpt.GetLogger()
 	startTime := time.Now()
 
-	log.Info("AskHolmesStream: starting",
-		"streamID", streamID,
-		"questionLen", len(question))
+	log.Info("AskHolmesStream: starting", "streamID", streamID, "questionLen", len(question))
 
 	holmesMu.RLock()
 	client := holmesClient
@@ -961,8 +1281,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 		return fmt.Errorf("app context not initialized")
 	}
 
-	log.Debug("AskHolmesStream: creating stream context",
-		"endpoint", client.GetEndpoint())
+	log.Debug("AskHolmesStream: creating stream context", "endpoint", client.GetEndpoint())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	if streamID != "" {
@@ -978,20 +1297,15 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 				delete(holmesStreamCancels, streamID)
 				holmesStreamMu.Unlock()
 			}
-			log.Info("AskHolmesStream: goroutine completed",
-				"streamID", streamID,
-				"totalDuration", time.Since(startTime))
+			log.Info("AskHolmesStream: goroutine completed", "streamID", streamID, "totalDuration", time.Since(startTime))
 		}()
 
 		eventCount := 0
 		streamOnce := func(activeClient *holmesgpt.HolmesClient) error {
 			return activeClient.StreamAsk(ctx, question, func(event string, data []byte) error {
 				eventCount++
-				payload := holmesgpt.HolmesStreamEvent{
-					StreamID: streamID,
-					Event:    event,
-					Data:     string(data),
-				}
+				a.emitHolmesStreamEvent(streamID, event, "")
+				payload := holmesgpt.HolmesStreamEvent{StreamID: streamID, Event: event, Data: string(data)}
 				emitEvent(a.ctx, "holmes:chat:stream", payload)
 				return nil
 			})
@@ -999,72 +1313,21 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 
 		log.Debug("AskHolmesStream: calling streamOnce")
 		err := streamOnce(client)
-		if err != nil && (a.tryReconnectHolmesOnRefused(err, client.GetEndpoint()) || a.tryReconnectHolmesOnProxyNotFound(err, client.GetEndpoint())) {
-			log.Warn("AskHolmesStream: reconnecting after connection issue",
-				"error", err)
-			holmesMu.RLock()
-			client = holmesClient
-			holmesMu.RUnlock()
-			if client != nil {
-				log.Info("AskHolmesStream: retrying stream after reconnect")
-				err = streamOnce(client)
-			}
-		}
-		if err != nil && isTimeoutError(err) && isKubeProxyEndpoint(client.GetEndpoint()) {
-			log.Warn("AskHolmesStream: timeout on kube proxy, trying port-forward",
-				"error", err)
-			if pfErr := a.ensureHolmesPortForward(client.GetEndpoint()); pfErr != nil {
-				log.Error("AskHolmesStream: port-forward failed",
-					"error", pfErr)
-				payload := holmesgpt.HolmesStreamEvent{
-					StreamID: streamID,
-					Event:    "error",
-					Error:    fmt.Sprintf("Holmes proxy timed out; port-forward failed: %v", pfErr),
-				}
-				emitEvent(a.ctx, "holmes:chat:stream", payload)
-				return
-			}
-			holmesMu.RLock()
-			client = holmesClient
-			holmesMu.RUnlock()
-			if client != nil {
-				log.Info("AskHolmesStream: retrying stream with port-forward")
-				err = streamOnce(client)
-			}
-		}
+		err = a.tryReconnectAndRetry(ctx, client, question, streamID, streamOnce, log, err)
+
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				log.Info("AskHolmesStream: stream cancelled",
-					"eventCount", eventCount,
-					"elapsed", time.Since(startTime))
-				payload := holmesgpt.HolmesStreamEvent{
-					StreamID: streamID,
-					Event:    "stream_end",
-				}
-				emitEvent(a.ctx, "holmes:chat:stream", payload)
+				log.Info("AskHolmesStream: stream cancelled", "eventCount", eventCount, "elapsed", time.Since(startTime))
+				a.emitHolmesStreamEvent(streamID, "stream_end", "")
 				return
 			}
-			log.Error("AskHolmesStream: stream failed",
-				"error", err,
-				"eventCount", eventCount,
-				"elapsed", time.Since(startTime))
-			payload := holmesgpt.HolmesStreamEvent{
-				StreamID: streamID,
-				Event:    "error",
-				Error:    err.Error(),
-			}
-			emitEvent(a.ctx, "holmes:chat:stream", payload)
+			log.Error("AskHolmesStream: stream failed", "error", err, "eventCount", eventCount, "elapsed", time.Since(startTime))
+			a.emitHolmesStreamEvent(streamID, "error", err.Error())
 			return
 		}
 
-		log.Info("AskHolmesStream: stream completed successfully",
-			"eventCount", eventCount,
-			"elapsed", time.Since(startTime))
-		payload := holmesgpt.HolmesStreamEvent{
-			StreamID: streamID,
-			Event:    "stream_end",
-		}
-		emitEvent(a.ctx, "holmes:chat:stream", payload)
+		log.Info("AskHolmesStream: stream completed successfully", "eventCount", eventCount, "elapsed", time.Since(startTime))
+		a.emitHolmesStreamEvent(streamID, "stream_end", "")
 	}()
 
 	return nil

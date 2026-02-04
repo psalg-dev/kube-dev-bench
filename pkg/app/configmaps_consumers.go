@@ -15,40 +15,76 @@ type ConfigMapConsumer struct {
 	RefType   string `json:"refType,omitempty"`
 }
 
-func podSpecUsesConfigMap(spec corev1.PodSpec, configMapName string) (bool, string) {
-	// Volumes
-	for _, v := range spec.Volumes {
+// checkContainerConfigMapRef checks if a container references a configmap
+func checkContainerConfigMapRef(c corev1.Container, configMapName string) (bool, string) {
+	for _, from := range c.EnvFrom {
+		if from.ConfigMapRef != nil && from.ConfigMapRef.Name == configMapName {
+			return true, fmt.Sprintf("envFrom:%s", c.Name)
+		}
+	}
+	for _, e := range c.Env {
+		if e.ValueFrom != nil && e.ValueFrom.ConfigMapKeyRef != nil && e.ValueFrom.ConfigMapKeyRef.Name == configMapName {
+			return true, fmt.Sprintf("env:%s", c.Name)
+		}
+	}
+	return false, ""
+}
+
+// checkVolumeConfigMapRef checks if any volume references a configmap
+func checkVolumeConfigMapRef(volumes []corev1.Volume, configMapName string) (bool, string) {
+	for _, v := range volumes {
 		if v.ConfigMap != nil && v.ConfigMap.Name == configMapName {
 			return true, fmt.Sprintf("volume:%s", v.Name)
 		}
 	}
+	return false, ""
+}
 
-	checkContainer := func(c corev1.Container) (bool, string) {
-		for _, from := range c.EnvFrom {
-			if from.ConfigMapRef != nil && from.ConfigMapRef.Name == configMapName {
-				return true, fmt.Sprintf("envFrom:%s", c.Name)
-			}
-		}
-		for _, e := range c.Env {
-			if e.ValueFrom != nil && e.ValueFrom.ConfigMapKeyRef != nil && e.ValueFrom.ConfigMapKeyRef.Name == configMapName {
-				return true, fmt.Sprintf("env:%s", c.Name)
-			}
-		}
-		return false, ""
-	}
-
+// checkContainersConfigMapRef checks init and regular containers for configmap references
+func checkContainersConfigMapRef(spec corev1.PodSpec, configMapName string) (bool, string) {
 	for _, c := range spec.InitContainers {
-		if ok, why := checkContainer(c); ok {
+		if ok, why := checkContainerConfigMapRef(c, configMapName); ok {
 			return true, "init:" + why
 		}
 	}
 	for _, c := range spec.Containers {
-		if ok, why := checkContainer(c); ok {
+		if ok, why := checkContainerConfigMapRef(c, configMapName); ok {
 			return true, why
 		}
 	}
-
 	return false, ""
+}
+
+func podSpecUsesConfigMap(spec corev1.PodSpec, configMapName string) (bool, string) {
+	if ok, why := checkVolumeConfigMapRef(spec.Volumes, configMapName); ok {
+		return true, why
+	}
+
+	return checkContainersConfigMapRef(spec, configMapName)
+}
+
+// dedupAndSortConsumers removes duplicates and sorts consumers by Kind/Namespace/Name.
+func dedupAndSortConsumers(consumers []ConfigMapConsumer) []ConfigMapConsumer {
+	seen := map[string]bool{}
+	out := make([]ConfigMapConsumer, 0, len(consumers))
+	for _, c := range consumers {
+		k := c.Kind + "/" + c.Namespace + "/" + c.Name
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		out = append(out, c)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Kind != out[j].Kind {
+			return out[i].Kind < out[j].Kind
+		}
+		if out[i].Namespace != out[j].Namespace {
+			return out[i].Namespace < out[j].Namespace
+		}
+		return out[i].Name < out[j].Name
+	})
+	return out
 }
 
 // GetConfigMapConsumers returns pods and deployments in the namespace that reference the given ConfigMap.
@@ -87,29 +123,7 @@ func (a *App) GetConfigMapConsumers(namespace, configMapName string) ([]ConfigMa
 		}
 	}
 
-	// De-dup by Kind/Name
-	seen := map[string]bool{}
-	out := make([]ConfigMapConsumer, 0, len(consumers))
-	for _, c := range consumers {
-		k := c.Kind + "/" + c.Namespace + "/" + c.Name
-		if seen[k] {
-			continue
-		}
-		seen[k] = true
-		out = append(out, c)
-	}
-
-	sort.Slice(out, func(i, j int) bool {
-		if out[i].Kind != out[j].Kind {
-			return out[i].Kind < out[j].Kind
-		}
-		if out[i].Namespace != out[j].Namespace {
-			return out[i].Namespace < out[j].Namespace
-		}
-		return out[i].Name < out[j].Name
-	})
-
-	return out, nil
+	return dedupAndSortConsumers(consumers), nil
 }
 
 // UpdateConfigMapDataKey updates (or creates) a single key in a ConfigMap's data map.

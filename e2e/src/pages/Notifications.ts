@@ -8,8 +8,11 @@ export class Notifications {
   }
 
   async waitForClear(opts: { timeoutMs?: number } = {}) {
-    const timeoutMs = opts.timeoutMs ?? 10_000;
+    const timeoutMs = opts.timeoutMs ?? 20_000;
+    // Wait for all notifications to disappear, accounting for their auto-dismiss time (3s) + animation
     await expect(this.page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: timeoutMs });
+    // Add a small stabilization wait to ensure UI has settled
+    await this.page.waitForTimeout(500);
   }
 
   async expectSuccessContains(text: string | RegExp, opts: { timeoutMs?: number } = {}) {

@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../../../wailsjs/go/main/App';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader.jsx';
 import ResourceActions from '../../../components/ResourceActions.jsx';
-import * as AppAPI from "../../../../wailsjs/go/main/App.js";
-import { formatDateDMY, formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import * as AppAPI from '../../../../wailsjs/go/main/App.js';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import StatusBadge from '../../../components/StatusBadge.jsx';
 
 export default function PodSummaryTab({ podName, namespace }) {
   const [data, setData] = useState(null);
@@ -62,7 +63,8 @@ export default function PodSummaryTab({ podName, namespace }) {
     }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [podName]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load();   }, [podName]);
 
   // Load events when podName or namespace changes (after summary loaded)
   useEffect(() => {
@@ -103,15 +105,17 @@ export default function PodSummaryTab({ podName, namespace }) {
     return `${s}s`;
   };
 
-  const statusColors = (status) => {
-    const s = String(status || '').toLowerCase();
-    if (s.includes('run')) return { bg: 'rgba(46,160,67,0.15)', fg: '#3fb950', bd: '#30363d' }; // green
-    if (s.includes('pend') || s.includes('init')) return { bg: 'rgba(187,128,9,0.12)', fg: '#d29922', bd: '#30363d' }; // yellow
-    if (s.includes('fail') || s.includes('err') || s.includes('crash')) return { bg: 'rgba(248,81,73,0.12)', fg: '#f85149', bd: '#30363d' }; // red
-    if (s.includes('succ')) return { bg: 'rgba(56,139,253,0.12)', fg: '#58a6ff', bd: '#30363d' }; // blue
-    return { bg: 'rgba(110,118,129,0.12)', fg: '#8b949e', bd: '#30363d' }; // grey
+  // Helper for init container state badges
+  const getInitContainerBadgeStatus = (state, exitCode) => {
+    const s = String(state || '').toLowerCase();
+    if (s === 'terminated') {
+      if (exitCode === 0) return 'succeeded';
+      return 'failed';
+    }
+    if (s === 'running') return 'running';
+    if (s === 'waiting') return 'waiting';
+    return s || 'unknown';
   };
-
   // Handler for restart (no UI side-effects; ResourceActions shows notifications)
   const handleRestart = async (name, ns) => {
     if (typeof AppAPI.RestartPod !== 'function') throw new Error('RestartPod API unavailable');
@@ -156,14 +160,7 @@ export default function PodSummaryTab({ podName, namespace }) {
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Status</div>
-                      {(() => {
-                        const c = statusColors(data.status);
-                        return (
-                          <span style={{ display: 'inline-block', padding: '2px 8px', border: `1px solid ${c.bd}`, background: c.bg, color: c.fg }}>
-                            {data.status || '-'}
-                          </span>
-                        );
-                      })()}
+                      <StatusBadge status={data.status || '-'} size="small" showDot={false} />
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
@@ -207,6 +204,58 @@ export default function PodSummaryTab({ podName, namespace }) {
                     <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Pod name</div>
                     <div style={{ wordBreak: 'break-all' }}>{data.name || '-'}</div>
                   </div>
+
+                  {/* Init Containers */}
+                  {data.initContainers && data.initContainers.length > 0 && (
+                    <div>
+                      <div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Init Containers</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {data.initContainers.map((ic, i) => {
+                          const badgeStatus = getInitContainerBadgeStatus(ic.state, ic.exitCode);
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                background: 'var(--gh-bg-subtle, #161b22)',
+                                border: '1px solid var(--gh-border, #30363d)',
+                                padding: 8,
+                              }}
+                            >
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontWeight: 500, wordBreak: 'break-all' }}>{ic.name}</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                  <StatusBadge status={badgeStatus} size="small" showDot={false} />
+                                  {ic.stateReason && (
+                                    <span style={{ fontSize: 11, color: 'var(--gh-text-muted, #8b949e)' }}>
+                                      ({ic.stateReason})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--gh-text-muted, #8b949e)', marginTop: 4, wordBreak: 'break-all' }}>
+                                {ic.image}
+                              </div>
+                              {ic.stateMessage && (
+                                <div style={{ fontSize: 11, color: '#f85149', marginTop: 4 }}>
+                                  {ic.stateMessage}
+                                </div>
+                              )}
+                              {ic.restartCount > 0 && (
+                                <div style={{ fontSize: 11, color: '#d29922', marginTop: 4 }}>
+                                  Restarts: {ic.restartCount}
+                                </div>
+                              )}
+                              {ic.exitCode !== undefined && ic.exitCode !== null && (
+                                <div style={{ fontSize: 11, color: ic.exitCode === 0 ? '#3fb950' : '#f85149', marginTop: 4 }}>
+                                  Exit code: {ic.exitCode}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Refresh */}
                   <div style={{ marginTop: 8 }}>

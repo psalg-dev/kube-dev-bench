@@ -1,4 +1,3 @@
-import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
 
@@ -111,8 +110,8 @@ vi.mock('../docker/resources/networks/NetworkConnectedServicesSection.jsx', () =
   },
 }));
 
-vi.mock('../docker/resources/networks/NetworkConnectedContainersSection.jsx', () => ({
-  default: function NetworkConnectedContainersSectionMock() {
+vi.mock('../docker/resources/networks/NetworkConnectedContainersTable.jsx', () => ({
+  default: function NetworkConnectedContainersTableMock() {
     return <div data-testid="connected-containers" />;
   },
 }));

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EventsOn, EventsOff, BrowserOpenURL } from '../../../../wailsjs/runtime';
 
 export default function PortForwardOutput({ namespace, podName, localPort, remotePort }) {
@@ -31,7 +31,7 @@ export default function PortForwardOutput({ namespace, podName, localPort, remot
     const onOutput = (line) => setLines(prev => [...prev, String(line)]);
     const onError = (msg) => setLines(prev => [...prev, `[error] ${String(msg)}`]);
     const onReady = () => { setReady(true); setLines(prev => [...prev, `[ready] Forwarding ${localPort} -> ${remotePort}`]); };
-    const onExit = () => { setEnded(true); setLines(prev => [...prev, `[exit] port-forward ended`]); };
+    const onExit = () => { setEnded(true); setLines(prev => [...prev, '[exit] port-forward ended']); };
 
     EventsOn(outputEvent, onOutput);
     EventsOn(errorEvent, onError);

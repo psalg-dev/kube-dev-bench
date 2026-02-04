@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import KeyValueEditor from '../../../components/forms/KeyValueEditor.jsx';
 import { UpdateSwarmNodeLabels } from '../../swarmApi.js';
 import { showError, showSuccess } from '../../../notification.js';

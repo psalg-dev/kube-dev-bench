@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useHolmes } from './HolmesContext';
 import './HolmesOnboardingWizard.css';
 
 /**
  * HolmesOnboardingWizard - Guided setup for deploying HolmesGPT to the cluster
- * 
+ *
  * Steps:
  * 1. Welcome - Explain what Holmes is and what's needed
  * 2. API Key - Collect OpenAI API key
@@ -12,12 +12,12 @@ import './HolmesOnboardingWizard.css';
  * 4. Complete - Success message with quick start tips
  */
 export function HolmesOnboardingWizard() {
-  const { 
-    state, 
-    hideOnboarding, 
+  const {
+    state,
+    hideOnboarding,
     showConfigModal,
     deployHolmes,
-    checkDeployment 
+    checkDeployment
   } = useHolmes();
 
   const [step, setStep] = useState(1);
@@ -83,7 +83,7 @@ export function HolmesOnboardingWizard() {
       const result = await deployHolmes({
         openAIKey: openAIKey.trim(),
       });
-      
+
       if (result.phase === 'deployed') {
         setStep(4);
         setDeploying(false);
@@ -124,10 +124,10 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-icon">🔍</div>
       <h2>Welcome to Holmes AI</h2>
       <p className="holmes-wizard-intro">
-        Holmes is an AI-powered Kubernetes troubleshooting assistant that helps you 
+        Holmes is an AI-powered Kubernetes troubleshooting assistant that helps you
         diagnose issues, understand cluster behavior, and get actionable recommendations.
       </p>
-      
+
       <div className="holmes-wizard-features">
         <div className="holmes-feature">
           <span className="holmes-feature-icon">🎯</span>
@@ -153,7 +153,7 @@ export function HolmesOnboardingWizard() {
       </div>
 
       <div className="holmes-wizard-requirements">
-        <h4>What you'll need:</h4>
+        <h4>What you&apos;ll need:</h4>
         <ul>
           <li>An OpenAI API key (GPT-5 preferred, GPT-4.1 as fallback)</li>
           <li>Cluster admin permissions to deploy Holmes</li>
@@ -161,14 +161,14 @@ export function HolmesOnboardingWizard() {
       </div>
 
       <div className="holmes-wizard-actions">
-        <button 
+        <button
           className="holmes-wizard-btn holmes-wizard-btn-primary"
           onClick={() => setStep(2)}
           disabled={checking}
         >
           {checking ? 'Checking...' : 'Get Started'}
         </button>
-        <button 
+        <button
           className="holmes-wizard-btn"
           onClick={handleManualConfig}
         >
@@ -183,7 +183,7 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-step-indicator">Step 1 of 2</div>
       <h2>Enter Your OpenAI API Key</h2>
       <p>
-        Holmes uses OpenAI's GPT models to analyze your cluster and provide intelligent insights.
+        Holmes uses OpenAI&apos;s GPT models to analyze your cluster and provide intelligent insights.
         Your API key is stored securely as a Kubernetes secret.
       </p>
 
@@ -210,9 +210,9 @@ export function HolmesOnboardingWizard() {
         </div>
         <p className="holmes-wizard-help">
           Get your API key from{' '}
-          <a 
-            href="https://platform.openai.com/api-keys" 
-            target="_blank" 
+          <a
+            href="https://platform.openai.com/api-keys"
+            target="_blank"
             rel="noopener noreferrer"
           >
             platform.openai.com
@@ -228,13 +228,13 @@ export function HolmesOnboardingWizard() {
       )}
 
       <div className="holmes-wizard-actions">
-        <button 
+        <button
           className="holmes-wizard-btn"
           onClick={() => setStep(1)}
         >
           Back
         </button>
-        <button 
+        <button
           className="holmes-wizard-btn holmes-wizard-btn-primary"
           onClick={handleDeploy}
           disabled={!openAIKey.trim()}
@@ -249,11 +249,11 @@ export function HolmesOnboardingWizard() {
     <div className="holmes-wizard-content">
       <div className="holmes-wizard-step-indicator">Step 2 of 2</div>
       <h2>Deploying Holmes</h2>
-      
+
       <div className="holmes-wizard-progress-container">
         <div className="holmes-wizard-spinner"></div>
         <div className="holmes-wizard-progress">
-          <div 
+          <div
             className="holmes-wizard-progress-bar"
             style={{ width: `${deployStatus?.progress || 0}%` }}
           ></div>
@@ -271,7 +271,7 @@ export function HolmesOnboardingWizard() {
         <div className="holmes-wizard-error">
           <span className="holmes-error-icon">⚠️</span>
           {error}
-          <button 
+          <button
             className="holmes-wizard-btn"
             onClick={() => {
               setError(null);
@@ -285,24 +285,24 @@ export function HolmesOnboardingWizard() {
       )}
 
       <div className="holmes-wizard-deployment-steps">
-        <DeploymentStep 
-          status={getStepStatus(deployStatus?.progress, 0, 25)} 
+        <DeploymentStep
+          status={getStepStatus(deployStatus?.progress, 0, 25)}
           label="Adding Helm repository"
         />
-        <DeploymentStep 
-          status={getStepStatus(deployStatus?.progress, 25, 40)} 
+        <DeploymentStep
+          status={getStepStatus(deployStatus?.progress, 25, 40)}
           label="Updating repositories"
         />
-        <DeploymentStep 
-          status={getStepStatus(deployStatus?.progress, 40, 60)} 
+        <DeploymentStep
+          status={getStepStatus(deployStatus?.progress, 40, 60)}
           label="Installing chart"
         />
-        <DeploymentStep 
-          status={getStepStatus(deployStatus?.progress, 60, 95)} 
+        <DeploymentStep
+          status={getStepStatus(deployStatus?.progress, 60, 95)}
           label="Waiting for deployment"
         />
-        <DeploymentStep 
-          status={getStepStatus(deployStatus?.progress, 95, 100)} 
+        <DeploymentStep
+          status={getStepStatus(deployStatus?.progress, 95, 100)}
           label="Configuring integration"
         />
       </div>
@@ -314,7 +314,7 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-success-icon">✓</div>
       <h2>Holmes is Ready!</h2>
       <p>
-        HolmesGPT has been successfully deployed to your cluster and is now configured 
+        HolmesGPT has been successfully deployed to your cluster and is now configured
         to help you troubleshoot issues.
       </p>
 
@@ -327,14 +327,14 @@ export function HolmesOnboardingWizard() {
       <div className="holmes-wizard-tips">
         <h4>Quick Start Tips:</h4>
         <ul>
-          <li>Ask "What's wrong with my cluster?" for an overview</li>
+          <li>Ask &quot;What&apos;s wrong with my cluster?&quot; for an overview</li>
           <li>Select a pod and ask Holmes to investigate failures</li>
           <li>Use natural language to explore your workloads</li>
         </ul>
       </div>
 
       <div className="holmes-wizard-actions">
-        <button 
+        <button
           className="holmes-wizard-btn holmes-wizard-btn-primary"
           onClick={handleClose}
         >
@@ -345,8 +345,8 @@ export function HolmesOnboardingWizard() {
   );
 
   return (
-    <div 
-      className="holmes-wizard-backdrop" 
+    <div
+      className="holmes-wizard-backdrop"
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
     >
@@ -357,8 +357,8 @@ export function HolmesOnboardingWizard() {
             <span>Holmes AI Setup</span>
           </div>
           {!deploying && (
-            <button 
-              className="holmes-wizard-close" 
+            <button
+              className="holmes-wizard-close"
               onClick={handleClose}
               title="Close"
             >

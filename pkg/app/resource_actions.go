@@ -5,11 +5,13 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 )
 
 // --- Generic helpers ---
@@ -55,42 +57,52 @@ func (a *App) RollbackDeploymentToRevision(namespace, name string, revision int6
 	if dep.Spec.Selector == nil {
 		return fmt.Errorf("deployment has no selector")
 	}
-	selector := labels.SelectorFromSet(dep.Spec.Selector.MatchLabels)
-	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector.String()})
+
+	foundTemplate, err := a.findDeploymentRevisionTemplate(clientset, namespace, name, dep, revision)
 	if err != nil {
 		return err
-	}
-
-	var foundTemplate *corev1.PodTemplateSpec
-	for _, rs := range rsList.Items {
-		// Ensure RS is owned by the deployment
-		owned := false
-		for _, ref := range rs.OwnerReferences {
-			if ref.Kind == "Deployment" && ref.Name == name {
-				owned = true
-				break
-			}
-		}
-		if !owned {
-			continue
-		}
-		rsRev := int64(0)
-		if rev, ok := rs.Annotations["deployment.kubernetes.io/revision"]; ok {
-			fmt.Sscanf(rev, "%d", &rsRev)
-		}
-		if rsRev == revision {
-			tpl := rs.Spec.Template
-			foundTemplate = &tpl
-			break
-		}
-	}
-	if foundTemplate == nil {
-		return fmt.Errorf("revision %d not found", revision)
 	}
 
 	dep.Spec.Template = *foundTemplate
 	_, err = clientset.AppsV1().Deployments(namespace).Update(a.ctx, dep, metav1.UpdateOptions{})
 	return err
+}
+
+func (a *App) findDeploymentRevisionTemplate(clientset kubernetes.Interface, namespace, name string, dep *appsv1.Deployment, revision int64) (*corev1.PodTemplateSpec, error) {
+	selector := labels.SelectorFromSet(dep.Spec.Selector.MatchLabels)
+	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, rs := range rsList.Items {
+		if !isOwnedByDeployment(rs.OwnerReferences, name) {
+			continue
+		}
+		if getReplicaSetRevision(rs.Annotations) == revision {
+			tpl := rs.Spec.Template
+			return &tpl, nil
+		}
+	}
+	return nil, fmt.Errorf("revision %d not found", revision)
+}
+
+func isOwnedByDeployment(refs []metav1.OwnerReference, name string) bool {
+	for _, ref := range refs {
+		if ref.Kind == "Deployment" && ref.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func getReplicaSetRevision(annotations map[string]string) int64 {
+	if rev, ok := annotations["deployment.kubernetes.io/revision"]; ok {
+		var rsRev int64
+		fmt.Sscanf(rev, "%d", &rsRev)
+		return rsRev
+	}
+	return 0
 }
 
 // --- StatefulSets ---

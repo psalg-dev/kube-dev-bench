@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext.jsx';
 import { AppLayout } from './layout/AppLayout.jsx';
 import ConnectionWizard from './layout/connection/ConnectionWizard.jsx';
@@ -88,6 +88,7 @@ function MainApp({ selectedSection, setSelectedSection }) {
       if (wizardBtn) wizardBtn.onclick = null;
       if (toggleBtn) toggleBtn.onclick = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showWizard, actions]);
 
   // Map selectedSection -> component
@@ -145,14 +146,14 @@ function MainApp({ selectedSection, setSelectedSection }) {
     }
   }, [selectedSection, selectedNamespaces, firstNs, showWizard]);
 
-  const renderPodsMainContent = useCallback(
+  const _renderPodsMainContent = useCallback(
     (selectedNamespaces) => {
       return <PodOverviewTable namespace={firstNs} namespaces={selectedNamespaces} onCreateResource={(type)=>showResourceOverlay(type)} />;
     },
     [firstNs]
   );
 
-  const renderResourceMainContent = useCallback(
+  const _renderResourceMainContent = useCallback(
     (selectedNamespaces, selectedSection) => {
       const commonNsProps = { namespaces: selectedNamespaces, namespace: firstNs };
       switch (selectedSection) {
@@ -247,7 +248,7 @@ function MainApp({ selectedSection, setSelectedSection }) {
 }
 
 export default function AppContainer() {
-  const [reloadKey, setReloadKey] = useState(0);
+  const [reloadKey, _setReloadKey] = useState(0);
   const [selectedSection, setSelectedSection] = useState('pods');
   return (
     <ClusterStateProvider key={reloadKey}>

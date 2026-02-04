@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { showNotification, showSuccess, showWarning, showError } from '../notification.js';
+import { showSuccess, showWarning, showError } from '../notification.js';
 
 // Provide requestAnimationFrame polyfill for JSDOM + fake timers
 if (!global.requestAnimationFrame) {

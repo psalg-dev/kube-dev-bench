@@ -1,8 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import React from 'react';
 import './wailsMocks';
-import { genericAPIMock, resetAllMocks } from './wailsMocks';
+import { resetAllMocks } from './wailsMocks';
 import HolmesContext from '../holmes/HolmesContext';
 import { HolmesConfigModal } from '../holmes/HolmesConfigModal';
 
@@ -142,7 +141,7 @@ describe('HolmesConfigModal', () => {
 
   it('calls saveConfig when Save button is clicked', async () => {
     const mockSaveConfig = vi.fn().mockResolvedValue(undefined);
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -168,7 +167,7 @@ describe('HolmesConfigModal', () => {
 
   it('calls testConnection when Test Connection button is clicked', async () => {
     const mockTestConnection = vi.fn().mockResolvedValue({ connected: true });
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -194,7 +193,7 @@ describe('HolmesConfigModal', () => {
 
   it('calls hideConfigModal when Cancel button is clicked', () => {
     const mockHideConfigModal = vi.fn();
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {
@@ -218,7 +217,7 @@ describe('HolmesConfigModal', () => {
 
   it('calls hideConfigModal when close button is clicked', () => {
     const mockHideConfigModal = vi.fn();
-    
+
     render(
       <HolmesContext.Provider value={{
         state: {

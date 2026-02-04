@@ -1,5 +1,3 @@
-import React from 'react';
-
 // This tab is intentionally best-effort: PV usage requires storage backend metrics.
 export default function PVCapacityUsageTab({ pvName }) {
   return (

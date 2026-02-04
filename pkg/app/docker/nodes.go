@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
 )
 
@@ -228,4 +229,57 @@ func formatNodeAge(created time.Time) string {
 		return time.Now().Sub(created).Truncate(time.Minute).String()
 	}
 	return time.Now().Sub(created).Truncate(time.Second).String()
+}
+
+// SwarmJoinTokens contains the join tokens for joining the swarm
+type SwarmJoinTokens struct {
+	Worker   string `json:"worker"`
+	Manager  string `json:"manager"`
+	Addr     string `json:"addr"`
+	Commands struct {
+		Worker  string `json:"worker"`
+		Manager string `json:"manager"`
+	} `json:"commands"`
+}
+
+type swarmJoinTokensClient interface {
+	SwarmInspect(context.Context) (swarm.Swarm, error)
+	Info(context.Context) (system.Info, error)
+}
+
+// GetSwarmJoinTokens returns the swarm join tokens and commands
+func GetSwarmJoinTokens(ctx context.Context, cli *client.Client) (*SwarmJoinTokens, error) {
+	return getSwarmJoinTokens(ctx, cli)
+}
+
+func getSwarmJoinTokens(ctx context.Context, cli swarmJoinTokensClient) (*SwarmJoinTokens, error) {
+	swarmInfo, err := cli.SwarmInspect(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	info, err := cli.Info(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the manager address for join command
+	managerAddr := ""
+	if len(info.Swarm.RemoteManagers) > 0 {
+		managerAddr = info.Swarm.RemoteManagers[0].Addr
+	}
+
+	tokens := &SwarmJoinTokens{
+		Worker:  swarmInfo.JoinTokens.Worker,
+		Manager: swarmInfo.JoinTokens.Manager,
+		Addr:    managerAddr,
+	}
+
+	// Construct the join commands
+	if managerAddr != "" {
+		tokens.Commands.Worker = "docker swarm join --token " + swarmInfo.JoinTokens.Worker + " " + managerAddr
+		tokens.Commands.Manager = "docker swarm join --token " + swarmInfo.JoinTokens.Manager + " " + managerAddr
+	}
+
+	return tokens, nil
 }

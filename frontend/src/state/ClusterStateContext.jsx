@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
+import { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
 import {
   GetKubeConfigs,
   GetKubeContexts,
@@ -109,7 +109,7 @@ export function ClusterStateProvider({ children }) {
           return;
         }
         dispatch({ type: 'SET_CONTEXTS', contexts });
-        let selectedContext = config.currentContext && contexts.includes(config.currentContext)
+        const selectedContext = config.currentContext && contexts.includes(config.currentContext)
           ? config.currentContext
           : contexts[0];
         if (!config.currentContext || !contexts.includes(config.currentContext)) {
@@ -201,7 +201,7 @@ export function ClusterStateProvider({ children }) {
         if (selNs[0]) { try { await SetCurrentNamespace(selNs[0]); } catch(_) {} }
         showSuccess(`Auto-selected context '${next}'.`);
       }
-    } catch(err) {
+    } catch(_err) {
       // silent
     }
   }, [state.selectedContext]);
@@ -223,7 +223,7 @@ export function ClusterStateProvider({ children }) {
         if (still[0]) { try { await SetCurrentNamespace(still[0]); } catch(_) {} }
         try { if (still.length > 0) await SetPreferredNamespaces(still); } catch(_) {}
       }
-    } catch(err) {
+    } catch(_err) {
       // silent
     }
   }, [state.selectedContext, state.selectedNamespaces]);

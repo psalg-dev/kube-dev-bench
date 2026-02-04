@@ -1,35 +1,33 @@
-import {renderPodOverviewTable} from "./k8s/resources/pods/PodOverviewEntry";
-import {showResourceOverlay} from "./resource-overlay";
-import DeploymentsOverviewTable from "./k8s/resources/deployments/DeploymentsOverviewTable";
-import ServicesOverviewTable from "./k8s/resources/services/ServicesOverviewTable";
-import JobsOverviewTable from "./k8s/resources/jobs/JobsOverviewTable";
-import CronJobsOverviewTable from "./k8s/resources/cronjobs/CronJobsOverviewTable";
-import DaemonSetsOverviewTable from "./k8s/resources/daemonsets/DaemonSetsOverviewTable";
-import StatefulSetsOverviewTable from "./k8s/resources/statefulsets/StatefulSetsOverviewTable";
-import ReplicaSetsOverviewTable from "./k8s/resources/replicasets/ReplicaSetsOverviewTable";
-import ConfigMapsOverviewTable from "./k8s/resources/configmaps/ConfigMapsOverviewTable";
-import SecretsOverviewTable from "./k8s/resources/secrets/SecretsOverviewTable";
-import IngressesOverviewTable from "./k8s/resources/ingresses/IngressesOverviewTable";
-import PersistentVolumeClaimsOverviewTable from "./k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable";
-import PersistentVolumesOverviewTable from "./k8s/resources/persistentvolumes/PersistentVolumesOverviewTable";
-import HelmReleasesOverviewTable from "./k8s/resources/helmreleases/HelmReleasesOverviewTable";
+import {renderPodOverviewTable} from './k8s/resources/pods/PodOverviewEntry';
+import {showResourceOverlay} from './resource-overlay';
+import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
+import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
+import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
+import CronJobsOverviewTable from './k8s/resources/cronjobs/CronJobsOverviewTable';
+import DaemonSetsOverviewTable from './k8s/resources/daemonsets/DaemonSetsOverviewTable';
+import StatefulSetsOverviewTable from './k8s/resources/statefulsets/StatefulSetsOverviewTable';
+import ReplicaSetsOverviewTable from './k8s/resources/replicasets/ReplicaSetsOverviewTable';
+import ConfigMapsOverviewTable from './k8s/resources/configmaps/ConfigMapsOverviewTable';
+import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable';
+import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewTable';
+import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
+import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
+import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
 // Docker Swarm imports
-import SwarmServicesOverviewTable from "./docker/resources/services/SwarmServicesOverviewTable";
-import SwarmTasksOverviewTable from "./docker/resources/tasks/SwarmTasksOverviewTable";
-import SwarmNodesOverviewTable from "./docker/resources/nodes/SwarmNodesOverviewTable";
-import SwarmNetworksOverviewTable from "./docker/resources/networks/SwarmNetworksOverviewTable";
-import SwarmConfigsOverviewTable from "./docker/resources/configs/SwarmConfigsOverviewTable";
-import SwarmSecretsOverviewTable from "./docker/resources/secrets/SwarmSecretsOverviewTable";
-import SwarmStacksOverviewTable from "./docker/resources/stacks/SwarmStacksOverviewTable";
-import SwarmVolumesOverviewTable from "./docker/resources/volumes/SwarmVolumesOverviewTable";
-import SwarmRegistriesOverview from "./docker/registry/SwarmRegistriesOverview.jsx";
-import SwarmMetricsDashboard from "./docker/metrics/SwarmMetricsDashboard.jsx";
-import TopologyView from "./docker/topology/TopologyView.jsx";
-import SwarmOverview from "./docker/SwarmOverview.jsx";
-import SwarmStateContext from "./docker/SwarmStateContext.jsx";
-import SwarmResourceCountsContext from "./docker/SwarmResourceCountsContext.jsx";
-import {createRoot} from "react-dom/client";
-import React from 'react';
+import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
+import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
+import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable';
+import SwarmNetworksOverviewTable from './docker/resources/networks/SwarmNetworksOverviewTable';
+import SwarmConfigsOverviewTable from './docker/resources/configs/SwarmConfigsOverviewTable';
+import SwarmSecretsOverviewTable from './docker/resources/secrets/SwarmSecretsOverviewTable';
+import SwarmStacksOverviewTable from './docker/resources/stacks/SwarmStacksOverviewTable';
+import SwarmVolumesOverviewTable from './docker/resources/volumes/SwarmVolumesOverviewTable';
+import SwarmRegistriesOverview from './docker/registry/SwarmRegistriesOverview.jsx';
+import SwarmOverview from './docker/SwarmOverview.jsx';
+import SwarmStateContext from './docker/SwarmStateContext.jsx';
+import SwarmResourceCountsContext from './docker/SwarmResourceCountsContext.jsx';
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 
 // React roots are bound to a specific DOM container. Recreating containers (via innerHTML)
 // or re-calling createRoot causes unmount/remount cycles which show up as visible flicker.
@@ -298,7 +296,7 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
         rootByContainerId.set(target.id, root);
     }
 
-    const baseEl = React.createElement(target.table, target.props);
+    const baseEl = createElement(target.table, target.props);
 
     // NOTE: main-content.js renders into a separate React root.
     // React context does NOT cross roots, so we explicitly bridge Swarm contexts
@@ -306,10 +304,10 @@ export function renderResourceMainContent(selectedNamespaces, selectedSection, o
     if (target.section?.startsWith('swarm-') && options?.swarmState) {
         const swarmCountsValue = options?.swarmCounts ?? { counts: null, lastUpdated: 0, refetch: () => {} };
         root.render(
-            React.createElement(
+            createElement(
                 SwarmStateContext.Provider,
                 { value: options.swarmState },
-                React.createElement(
+                createElement(
                     SwarmResourceCountsContext.Provider,
                     { value: swarmCountsValue },
                     baseEl
