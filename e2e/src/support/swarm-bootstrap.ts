@@ -22,6 +22,22 @@ export interface SwarmBootstrapResult {
   wizard: SwarmConnectionWizardPage;
 }
 
+export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
+  const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+  const loading = page.locator('.main-panel-loading').filter({ hasText: /loading swarm services/i });
+
+  const tableVisible = servicesTable.waitFor({ state: 'visible', timeout }).then(() => 'table').catch(() => null);
+  const loadingVisible = loading.waitFor({ state: 'visible', timeout }).then(() => 'loading').catch(() => null);
+
+  const first = await Promise.race([tableVisible, loadingVisible]);
+  if (first === 'loading') {
+    await expect(loading).toBeHidden({ timeout });
+  }
+
+  await expect(servicesTable).toBeVisible({ timeout });
+  return servicesTable;
+}
+
 /**
  * Bootstrap the Swarm section of the application.
  * Connects to Docker Swarm if not already connected and returns page objects.
@@ -188,8 +204,7 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // Many Swarm UI tests expect at least one row to be present.
   if (ensureSeedService) {
     await sidebar.goToServices();
-    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
-    await expect(servicesTable).toBeVisible({ timeout: 60_000 });
+    const servicesTable = await waitForSwarmServicesTable(page, 60_000);
 
     // Give the table a short chance to populate.
     await page.waitForTimeout(500);
