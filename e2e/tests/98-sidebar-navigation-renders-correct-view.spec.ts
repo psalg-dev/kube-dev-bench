@@ -16,7 +16,7 @@ const checks: SectionCheck[] = [
   { key: 'cronjobs', title: /cron jobs/i, mustHave: { role: 'columnheader', name: /schedule/i } },
   { key: 'daemonsets', title: /daemon sets/i, mustHave: { role: 'columnheader', name: /desired/i } },
   { key: 'statefulsets', title: /stateful sets/i, mustHave: { role: 'columnheader', name: /ready/i } },
-  { key: 'replicasets', title: /replica sets/i, mustHave: { role: 'columnheader', name: /replicas/i } },
+  { key: 'replicasets', title: /replica sets/i, mustHave: { role: 'columnheader', name: /desired/i } },
   { key: 'configmaps', title: /config maps/i, mustHave: { role: 'columnheader', name: /keys/i } },
   { key: 'secrets', title: /secrets/i, mustHave: { role: 'columnheader', name: /type/i } },
   { key: 'ingresses', title: /ingresses/i, mustHave: { role: 'columnheader', name: /hosts/i } },

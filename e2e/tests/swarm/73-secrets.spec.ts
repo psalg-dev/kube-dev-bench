@@ -109,9 +109,9 @@ test.describe('Docker Swarm Secrets', () => {
       await expect(editBtn).toBeVisible({ timeout: 30_000 });
       await editBtn.click();
 
-      const editTitle = page.getByRole('heading', { name: new RegExp(`Edit Swarm secret: ${secretName}`) });
+      const editModal = page.locator('.base-modal-container').filter({ hasText: `Swarm secret: ${secretName}` }).first();
+      const editTitle = editModal.getByText(new RegExp(`Edit Swarm secret: ${secretName}`));
       await expect(editTitle).toBeVisible({ timeout: 30_000 });
-      const editModal = page.locator('.base-modal-container', { has: editTitle }).first();
 
       const textarea = editModal.locator('textarea').first();
       await expect(textarea).toBeDisabled();
@@ -180,9 +180,12 @@ test.describe('Docker Swarm Secrets', () => {
       await expect(rotateRow).toBeVisible({ timeout: 60_000 });
       await rotateRow.click();
       await page.locator('#swarm-secret-rotate-btn').click();
-      const rotateTitle = page.getByRole('heading', { name: new RegExp(`Rotate Swarm secret: ${rotatedNamePrefix}`) });
+      const rotateModal = page
+        .locator('.base-modal-container')
+        .filter({ hasText: `Swarm secret: ${rotatedNamePrefix}` })
+        .first();
+      const rotateTitle = rotateModal.getByText(new RegExp(`Rotate Swarm secret: ${rotatedNamePrefix}`));
       await expect(rotateTitle).toBeVisible({ timeout: 30_000 });
-      const rotateModal = page.locator('.base-modal-container', { has: rotateTitle }).first();
 
       await rotateModal.getByRole('checkbox', { name: /I understand/i }).check();
       await rotateModal.locator('textarea').first().fill('rotate-v2\n');
@@ -230,9 +233,12 @@ test.describe('Docker Swarm Secrets', () => {
       await page.locator('#swarm-secret-clone-btn').click();
 
       const cloneName = `${cloneSource}-clone`;
-      const cloneTitle = page.getByRole('heading', { name: new RegExp(`Clone Swarm secret: ${cloneSource}`) });
+      const cloneModal = page
+        .locator('.base-modal-container')
+        .filter({ hasText: `Swarm secret: ${cloneSource}` })
+        .first();
+      const cloneTitle = cloneModal.getByText(new RegExp(`Clone Swarm secret: ${cloneSource}`));
       await expect(cloneTitle).toBeVisible({ timeout: 30_000 });
-      const cloneModal = page.locator('.base-modal-container', { has: cloneTitle }).first();
       await cloneModal.locator('#swarm-secret-clone-name').fill(cloneName);
       await cloneModal.locator('#swarm-secret-clone-value').fill('cloned-value\n');
       await cloneModal.locator('#swarm-secret-clone-toggle-mask').click();

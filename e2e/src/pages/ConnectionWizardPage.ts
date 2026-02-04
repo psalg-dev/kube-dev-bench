@@ -50,8 +50,10 @@ export class ConnectionWizardPage {
     await appRoot.waitFor({ state: 'attached', timeout: Math.max(1_000, deadline - Date.now()) });
 
     const waitForAppMount = async (timeoutMs: number) => {
+      const readySelector =
+        '#app > *, .connection-wizard-layout, .connection-wizard-overlay, .swarm-connection-wizard-overlay, #sidebar, #maincontent, #show-wizard-btn, #swarm-show-wizard-btn';
       await this.page
-        .locator('#app > *')
+        .locator(readySelector)
         .first()
         .waitFor({ state: 'attached', timeout: Math.max(1_000, timeoutMs) });
     };
@@ -68,7 +70,7 @@ export class ConnectionWizardPage {
 
     const openBtn = this.page.locator('#show-wizard-btn');
     const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
-    const mainApp = this.page.locator('#kubecontext-root, #swarm-sidebar');
+    const mainApp = this.page.locator('#kubecontext-root, #sidebar, #maincontent');
 
     while (Date.now() < deadline) {
       if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {

@@ -173,7 +173,8 @@ test.describe('Docker Swarm Configs', () => {
 
       const modal = await openEditModal();
 
-      const editor = page.locator('.cm-content').first();
+      // Target the CodeMirror editor inside the modal (not the one in the bottom panel)
+      const editor = modal.locator('.cm-content');
       await expect(editor).toBeVisible({ timeout: 30_000 });
       // Type into CodeMirror editor directly instead of hidden textarea
       await editor.click();

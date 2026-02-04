@@ -5,7 +5,10 @@ import { expect, type Page } from '@playwright/test';
  */
 export async function waitForTableRow(page: Page, rowText: string | RegExp, opts: { timeout?: number } = {}) {
   const timeout = opts.timeout ?? 60_000;
-  const table = page.locator('#main-panels > div:visible table.gh-table');
+  const table = page
+    .locator('#main-panels > div:visible table.gh-table')
+    .filter({ has: page.locator('tbody tr') })
+    .first();
   await expect(table).toBeVisible({ timeout: 30_000 });
   
   const row = page.getByRole('row', { name: rowText });
@@ -36,7 +39,10 @@ export async function openRowDetailsByName(page: Page, name: string, opts: { tim
   // Ensure no notifications are blocking
   await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
   
-  const table = page.locator('#main-panels > div:visible table.gh-table');
+  const table = page
+    .locator('#main-panels > div:visible table.gh-table')
+    .filter({ has: page.locator('tbody tr') })
+    .first();
   await expect(table).toBeVisible({ timeout: 30_000 });
   
   const row = table.locator('tbody tr').filter({ hasText: name }).first();
@@ -57,6 +63,14 @@ export async function waitForResourceStatus(
   opts: { timeout?: number } = {}
 ) {
   const timeout = opts.timeout ?? 90_000;
-  const row = page.getByRole('row', { name: resourceName });
-  await expect(row).toContainText(status, { timeout });
+  const table = page
+    .locator('#main-panels > div:visible table.gh-table')
+    .filter({ has: page.locator('tbody tr') })
+    .first();
+  await expect(table).toBeVisible({ timeout: 30_000 });
+
+  const rows = table.locator('tbody tr').filter({ hasText: resourceName });
+  await expect
+    .poll(async () => rows.filter({ hasText: status }).count(), { timeout })
+    .toBeGreaterThan(0);
 }

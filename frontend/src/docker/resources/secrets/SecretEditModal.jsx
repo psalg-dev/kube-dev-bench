@@ -85,7 +85,7 @@ export default function SecretEditModal({ open, secretId, secretName, titleVerb 
 
   return (
     <div style={overlayStyle} onClick={() => onClose?.()}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}>
+      <div className="base-modal-container" style={modalStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ fontWeight: 600, color: 'var(--gh-text, #c9d1d9)' }}>
             {titleVerb} Swarm secret: {secretName}
