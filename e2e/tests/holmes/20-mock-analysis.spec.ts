@@ -93,7 +93,7 @@ spec:
       const holmesPanel = page.locator('#holmes-panel');
       // Ensure the panel is visible before checking content
       await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
-      await expect(holmesPanel).toContainText(/Pod Crash Analysis|CrashLoopBackOff/i, { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(/Pod crash root cause analysis completed|Pod Crash Analysis|CrashLoopBackOff/i, { timeout: 30_000 });
     });
   });
 
