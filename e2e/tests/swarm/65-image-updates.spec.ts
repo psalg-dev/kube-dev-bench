@@ -20,7 +20,7 @@ test.describe('Docker Swarm Image Update Detection', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
-    await bootstrapSwarm({ page, skipIfConnected: true });
+    await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });
 
   test('services table includes Update column', async ({ page }) => {
