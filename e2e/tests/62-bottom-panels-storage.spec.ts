@@ -3,21 +3,13 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { openRowDetailsByName, waitForTableRow, waitForResourceStatus } from '../src/support/wait-helpers.js';
 
 test.describe.configure({ timeout: 180_000 });
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
-}
-
-async function openRowDetailsByName(page: any, name: string) {
-  await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
-  const table = page.locator('#main-panels > div:visible table.gh-table');
-  await expect(table).toBeVisible({ timeout: 60_000 });
-  const row = table.locator('tbody tr').filter({ hasText: name }).first();
-  await expect(row).toBeVisible({ timeout: 60_000 });
-  await row.click();
 }
 
 async function confirmAction(panel: BottomPanel, actionLabel: 'Delete') {
@@ -72,6 +64,7 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
   await overlay.fillYaml(pvYaml);
   await overlay.create();
   await notifications.waitForClear();
+  await waitForTableRow(page, new RegExp(pvName));
 
   // Then create PVC (namespaced)
   await sidebar.goToSection('persistentvolumeclaims');
@@ -80,6 +73,9 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
   await overlay.fillYaml(pvcYaml);
   await overlay.create();
   await notifications.waitForClear();
+  await waitForTableRow(page, new RegExp(pvcName));
+  // Wait for PVC to bind to PV
+  await waitForResourceStatus(page, new RegExp(pvcName), 'Bound', { timeout: 60_000 });
 
   // PVC bottom panel
   await openRowDetailsByName(page, pvcName);

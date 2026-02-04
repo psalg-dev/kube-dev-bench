@@ -4,6 +4,7 @@ import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { BottomPanel } from '../../src/pages/BottomPanel.js';
 import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
+import { waitForTableRow, waitForResourceStatus } from '../../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -43,6 +44,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await overlay.fillYaml(deployYaml);
   await overlay.create();
   await notifications.waitForClear();
+  await waitForTableRow(page, new RegExp(deployName));
 
   // Ask Holmes from Deployment row
   await openRowActionsAndAskHolmes(page, deployName);
@@ -55,6 +57,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
 
   const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect(podRow).toBeVisible({ timeout: 90_000 });
+  await waitForResourceStatus(page, new RegExp(deployName), 'Running', { timeout: 120_000 });
 
   await openRowActionsAndAskHolmes(page, deployName);
   await panel.expectVisible(30_000);
@@ -71,6 +74,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await overlay.fillYaml(serviceYaml);
   await overlay.create();
   await notifications.waitForClear();
+  await waitForTableRow(page, new RegExp(serviceName));
 
   await openRowActionsAndAskHolmes(page, serviceName);
   await panel.expectVisible(30_000);

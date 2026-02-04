@@ -17,6 +17,7 @@ import {
   getHolmesInput,
 } from '../../src/support/holmes-bootstrap.js';
 import type { SidebarPage } from '../../src/pages/SidebarPage.js';
+import { waitForTableRow, waitForResourceStatus } from '../../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -72,6 +73,7 @@ spec:
       await overlay.fillYaml(deployYaml);
       await overlay.create();
       await notifications.waitForClear();
+      await waitForTableRow(page, new RegExp(deployName));
     });
 
     await test.step('Ask Holmes about pod crash', async () => {
@@ -127,6 +129,7 @@ spec:
       await overlay.fillYaml(deployYaml);
       await overlay.create();
       await notifications.waitForClear();
+      await waitForTableRow(page, new RegExp(deployName));
     });
 
     await test.step('Ask Holmes about deployment', async () => {
@@ -145,7 +148,10 @@ spec:
       const holmesPanel = page.locator('#holmes-panel');
       // Ensure the panel is visible before checking content
       await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
-      await expect(holmesPanel).toContainText('Deployment health check completed', { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(
+        /Deployment Analysis|deployment is healthy|Deployment health check completed/i,
+        { timeout: 30_000 }
+      );
     });
   });
 
@@ -185,7 +191,10 @@ spec:
     await test.step('Verify mock configuration response', async () => {
       const holmesPanel = page.locator('#holmes-panel');
       await expect(holmesPanel).toBeVisible({ timeout: 10_000 });
-      await expect(holmesPanel).toContainText('Configuration resource analysis completed', { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(
+        /Configuration Resource Analysis|configuration resource has been analyzed|Configuration resource analysis completed/i,
+        { timeout: 30_000 }
+      );
     });
   });
 

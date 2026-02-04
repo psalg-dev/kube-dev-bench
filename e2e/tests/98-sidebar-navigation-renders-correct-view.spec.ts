@@ -16,7 +16,7 @@ const checks: SectionCheck[] = [
   { key: 'cronjobs', title: /cron jobs/i, mustHave: { role: 'columnheader', name: /schedule/i } },
   { key: 'daemonsets', title: /daemon sets/i, mustHave: { role: 'columnheader', name: /desired/i } },
   { key: 'statefulsets', title: /stateful sets/i, mustHave: { role: 'columnheader', name: /ready/i } },
-  { key: 'replicasets', title: /replica sets/i, mustHave: { role: 'columnheader', name: /replicas/i } },
+  { key: 'replicasets', title: /replica sets/i, mustHave: { role: 'columnheader', name: /desired/i } },
   { key: 'configmaps', title: /config maps/i, mustHave: { role: 'columnheader', name: /keys/i } },
   { key: 'secrets', title: /secrets/i, mustHave: { role: 'columnheader', name: /type/i } },
   { key: 'ingresses', title: /ingresses/i, mustHave: { role: 'columnheader', name: /hosts/i } },
@@ -32,6 +32,9 @@ test('sidebar navigation renders the correct main view', async ({ page, contextN
   for (const c of checks) {
     await sidebar.goToSection(c.key);
     await expect(page.locator('h2.overview-title:visible')).toHaveText(c.title, { timeout: 60_000 });
+    
+    // Add a stabilization wait to ensure the view has fully rendered
+    await page.waitForTimeout(1000);
 
     if (c.mustHave.role === 'columnheader') {
       await expect(page.getByRole('columnheader', { name: c.mustHave.name! })).toBeVisible({ timeout: 60_000 });
