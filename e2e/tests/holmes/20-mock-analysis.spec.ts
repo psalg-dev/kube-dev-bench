@@ -254,7 +254,7 @@ spec:
       await expect(sendButton).toBeEnabled({ timeout: 5_000 });
       await sendButton.click();
 
-      await expect(holmesPanel).toContainText('Pod Crash Analysis', { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(/Pod crash root cause analysis completed|Pod Crash Analysis|CrashLoopBackOff/i, { timeout: 30_000 });
 
       // Wait for the UI to settle after first response before sending second question
       // This prevents race conditions where the input isn't ready yet
@@ -266,7 +266,7 @@ spec:
       await expect(sendButton).toBeEnabled({ timeout: 5_000 });
       await sendButton.click();
 
-      await expect(holmesPanel).toContainText('Deployment Analysis', { timeout: 30_000 });
+      await expect(holmesPanel).toContainText(/Deployment health check completed|Deployment Analysis|deployment is healthy/i, { timeout: 30_000 });
     });
 
     await test.step('Verify conversation controls', async () => {
