@@ -25,16 +25,39 @@ export interface SwarmBootstrapResult {
 export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
   const servicesTable = page.locator('[data-testid="swarm-services-table"]');
   const loading = page.locator('.main-panel-loading').filter({ hasText: /loading swarm services/i });
+  const servicesHeading = page.getByRole('heading', { name: /swarm services/i });
+  const servicesSection = page.locator('#section-swarm-services');
+  const mainContent = page.locator('#maincontent');
 
-  const tableVisible = servicesTable.waitFor({ state: 'visible', timeout }).then(() => 'table').catch(() => null);
-  const loadingVisible = loading.waitFor({ state: 'visible', timeout }).then(() => 'loading').catch(() => null);
+  const deadline = Date.now() + timeout;
+  let lastVisibilityError: unknown;
 
-  const first = await Promise.race([tableVisible, loadingVisible]);
-  if (first === 'loading') {
-    await expect(loading).toBeHidden({ timeout });
+  while (Date.now() < deadline) {
+    if (await servicesTable.isVisible().catch(() => false)) return servicesTable;
+
+    await mainContent.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => undefined);
+
+    const headingVisible = await servicesHeading.isVisible().catch(() => false);
+    if (!headingVisible && (await servicesSection.isVisible().catch(() => false))) {
+      try {
+        await servicesSection.click({ timeout: 5_000 });
+      } catch {
+        await servicesSection.evaluate((el) => (el as HTMLElement).click()).catch(() => undefined);
+      }
+    }
+
+    if (await loading.isVisible().catch(() => false)) {
+      const remaining = Math.max(1_000, deadline - Date.now());
+      await expect(loading).toBeHidden({ timeout: remaining }).catch((err) => {
+        lastVisibilityError = err;
+      });
+    }
+
+    await page.waitForTimeout(500);
   }
 
-  await expect(servicesTable).toBeVisible({ timeout });
+  if (lastVisibilityError) throw lastVisibilityError;
+  await expect(servicesTable).toBeVisible({ timeout: 1_000 });
   return servicesTable;
 }
 
