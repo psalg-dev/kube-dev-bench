@@ -27,3 +27,4 @@ e2e-test-results*.zip
 /docker-hub-test-token
 /jfrog-token
 **/*.log
+/test-results
