@@ -67,7 +67,7 @@ test.describe('Docker Swarm Tasks View', () => {
     const rows = await waitForAnyRow(tasksTable, 90_000);
     
     // Click first td (Name cell) to avoid popups intercepting clicks
-    const nameCell = rows.first().locator('td').first();
+    const nameCell = rows.first().locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -86,7 +86,7 @@ test.describe('Docker Swarm Tasks View', () => {
     const rows = await waitForAnyRow(tasksTable, 90_000);
     
     // Click first td (Name cell) to avoid popups intercepting clicks
-    const nameCell = rows.first().locator('td').first();
+    const nameCell = rows.first().locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -118,7 +118,7 @@ test.describe('Docker Swarm Task Logs', () => {
     const rows = await waitForAnyRow(servicesTable, 90_000);
     
     // Click first td (Name cell) to avoid Update badge popup intercepting clicks
-    const nameCell = rows.first().locator('td').first();
+    const nameCell = rows.first().locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -143,7 +143,7 @@ test.describe('Docker Swarm Task Logs', () => {
     const rows = await waitForAnyRow(servicesTable, 90_000);
     
     // Click first td (Name cell) to avoid Update badge popup intercepting clicks
-    const nameCell = rows.first().locator('td').first();
+    const nameCell = rows.first().locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -174,7 +174,7 @@ test.describe('Docker Swarm Task Logs', () => {
     const rows = await waitForAnyRow(servicesTable, 90_000);
     
     // Click first td (Name cell) to avoid Update badge popup intercepting clicks
-    const nameCell = rows.first().locator('td').first();
+    const nameCell = rows.first().locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');

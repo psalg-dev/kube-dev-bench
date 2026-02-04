@@ -26,7 +26,7 @@ test.describe('Holmes Swarm Integration', () => {
     await expect(serviceRow).toBeVisible({ timeout: 60_000 });
     
     // Click Name cell to avoid Update badge popup intercepting clicks
-    const nameCell = serviceRow.locator('td').first();
+    const nameCell = serviceRow.locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -52,7 +52,7 @@ test.describe('Holmes Swarm Integration', () => {
     await expect(taskRow).toBeVisible({ timeout: 60_000 });
     
     // Click first td to avoid popups intercepting clicks
-    const taskNameCell = taskRow.locator('td').first();
+    const taskNameCell = taskRow.locator('td').nth(1);
     await expect(async () => {
       await page.keyboard.press('Escape');
       await taskNameCell.click();

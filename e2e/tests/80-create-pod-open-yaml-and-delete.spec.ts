@@ -35,7 +35,7 @@ test('creates a Pod via manifest overlay, opens YAML tab, then deletes the Pod',
   await waitForResourceStatus(page, new RegExp(deployName), 'Running', { timeout: 120_000 });
 
   // Capture the exact pod name from the first column so we can assert it disappears after delete.
-  const podName = (await row.locator('td').first().innerText()).trim();
+  const podName = (await row.locator('td').nth(1).innerText()).trim();
   await row.click();
   await expect(page.locator('.bottom-panel')).toBeVisible();
 

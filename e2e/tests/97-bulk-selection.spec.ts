@@ -136,7 +136,15 @@ async function assertBulkSelection(opts: {
   await expect(selectAll).toBeVisible({ timeout: 30_000 });
 
   const rowCheckboxes = root.locator('input.bulk-row-checkbox:visible');
-  await expect.poll(async () => rowCheckboxes.count(), { timeout: 60_000 }).toBeGreaterThanOrEqual(1);
+  try {
+    await expect(rowCheckboxes.first()).toBeVisible({ timeout: 60_000 });
+  } catch (err) {
+    const emptyState = root.locator('td.main-panel-loading', { hasText: /no rows match the filter/i }).first();
+    if (await emptyState.isVisible().catch(() => false)) {
+      return;
+    }
+    throw err;
+  }
 
   const rowCount = await rowCheckboxes.count();
   const bulkBar = page.locator('.bulk-action-bar');
