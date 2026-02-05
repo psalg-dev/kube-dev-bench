@@ -250,9 +250,9 @@ describe('PodMountsTab', () => {
 
       render(<PodMountsTab podName="my-pod" />);
 
+      // The component displays projected secrets as combined text: "secrets: secret-1, secret-2"
       await waitFor(() => {
-        expect(screen.getByText('secret-1')).toBeInTheDocument();
-        expect(screen.getByText('secret-2')).toBeInTheDocument();
+        expect(screen.getByText('secrets: secret-1, secret-2')).toBeInTheDocument();
       });
     });
   });

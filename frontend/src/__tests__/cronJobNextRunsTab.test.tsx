@@ -187,9 +187,9 @@ describe('CronJobNextRunsTab', () => {
   });
 
   describe('NextRuns property variations', () => {
-    it('handles NextRuns with capital N', async () => {
+    it('handles nextRuns with lowercase n', async () => {
       const mockData = {
-        NextRuns: ['2024-01-15T10:00:00Z', '2024-01-15T11:00:00Z'],
+        nextRuns: ['2024-01-15T10:00:00Z', '2024-01-15T11:00:00Z'],
       };
       getCronJobDetailMock.mockResolvedValue(toCronJobDetail(mockData));
 

@@ -286,7 +286,7 @@ describe('MonitorPanel', () => {
     const onClose = vi.fn();
     render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
 
-    const closeButton = screen.getByTitle('Close');
+    const closeButton = screen.getByRole('button', { name: 'Close' });
     fireEvent.click(closeButton);
 
     expect(onClose).toHaveBeenCalled();
@@ -303,23 +303,23 @@ describe('MonitorPanel', () => {
 
     render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
 
-    fireEvent.click(screen.getByText('Scan Now'));
+    fireEvent.click(screen.getByText('Rescan'));
     await waitFor(() => {
       expect(appApiMocks.ScanClusterHealth).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getByText('Analyze All'));
+    fireEvent.click(screen.getByText('Analyze all'));
     await waitFor(() => {
       expect(appApiMocks.AnalyzeAllMonitorIssues).toHaveBeenCalled();
     });
   });
 
-  it('shows Prometheus Alerts tab content', async () => {
+  it('shows Prometheus tab content', async () => {
     const onClose = vi.fn();
     render(<MonitorPanel monitorInfo={mockMonitorInfo} open={true} onClose={onClose} />);
 
     act(() => {
-      fireEvent.click(screen.getByText('Prometheus Alerts'));
+      fireEvent.click(screen.getByText('Prometheus'));
     });
     await waitFor(() => {
       expect(screen.getByPlaceholderText(/Prometheus URL/i)).toBeInTheDocument();
@@ -357,7 +357,7 @@ describe('MonitorPanel', () => {
     });
   });
 
-  it('shows "No errors found" when errors tab is empty', () => {
+  it('shows "No issues found." when errors tab is empty', () => {
     const onClose = vi.fn();
     const emptyErrorsInfo = { ...mockMonitorInfo, errorCount: 0, errors: [] };
     render(<MonitorPanel monitorInfo={emptyErrorsInfo} open={true} onClose={onClose} />);
@@ -366,10 +366,10 @@ describe('MonitorPanel', () => {
     const errorsTab = screen.getByText(/Errors \(0\)/).closest('button');
     if (errorsTab) fireEvent.click(errorsTab);
 
-    expect(screen.getByText('No errors found')).toBeInTheDocument();
+    expect(screen.getByText('No issues found.')).toBeInTheDocument();
   });
 
-  it('shows "No warnings found" when warnings tab is empty', () => {
+  it('shows "No issues found." when warnings tab is empty', () => {
     const onClose = vi.fn();
     const emptyWarningsInfo = { ...mockMonitorInfo, warningCount: 0, warnings: [] };
     render(<MonitorPanel monitorInfo={emptyWarningsInfo} open={true} onClose={onClose} />);
@@ -378,7 +378,7 @@ describe('MonitorPanel', () => {
     const warningsTab = screen.getByText(/Warnings \(0\)/).closest('button');
     if (warningsTab) fireEvent.click(warningsTab);
 
-    expect(screen.getByText('No warnings found')).toBeInTheDocument();
+    expect(screen.getByText('No issues found.')).toBeInTheDocument();
   });
 
   it('emits navigate-to-resource event and closes panel when issue is clicked', () => {

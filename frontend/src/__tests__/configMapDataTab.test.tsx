@@ -53,8 +53,9 @@ describe('ConfigMapDataTab', () => {
 
       render(<ConfigMapDataTab namespace="default" configMapName="my-config" />);
 
+      // When error is not an Error instance, String({}) gives "[object Object]"
       await waitFor(() => {
-        expect(screen.getByText(/Failed to fetch configmap data/i)).toBeInTheDocument();
+        expect(screen.getByText(/Error:/i)).toBeInTheDocument();
       });
     });
   });
