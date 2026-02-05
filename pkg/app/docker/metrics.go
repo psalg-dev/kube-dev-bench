@@ -47,6 +47,56 @@ func CollectSwarmMetrics(ctx context.Context, cli *client.Client) (SwarmMetricsP
 	return collectSwarmMetrics(ctx, cli)
 }
 
+// countReadyNodesAndCapacity counts ready nodes and their total resources
+func countReadyNodesAndCapacity(nodes []swarm.Node) (int, int64, int64) {
+	readyNodes := 0
+	var cpuCap, memCap int64
+	for _, n := range nodes {
+		if n.Status.State == swarm.NodeStateReady {
+			readyNodes++
+			if n.Description.Resources.NanoCPUs > 0 {
+				cpuCap += n.Description.Resources.NanoCPUs
+			}
+			if n.Description.Resources.MemoryBytes > 0 {
+				memCap += n.Description.Resources.MemoryBytes
+			}
+		}
+	}
+	return readyNodes, cpuCap, memCap
+}
+
+// swarmResourceTotals holds aggregated resource requirements
+type swarmResourceTotals struct {
+	cpuRes, memRes, cpuLim, memLim int64
+}
+
+// calculateServiceResources calculates resource requirements for all services
+func calculateServiceResources(services []swarm.Service, readyNodes int) swarmResourceTotals {
+	var totals swarmResourceTotals
+	for _, s := range services {
+		mult := int64(0)
+		if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
+			mult = int64(*s.Spec.Mode.Replicated.Replicas)
+		} else if s.Spec.Mode.Global != nil {
+			mult = int64(readyNodes)
+		}
+		if mult <= 0 || s.Spec.TaskTemplate.Resources == nil {
+			continue
+		}
+
+		req := s.Spec.TaskTemplate.Resources
+		if req.Reservations != nil {
+			totals.cpuRes += req.Reservations.NanoCPUs * mult
+			totals.memRes += req.Reservations.MemoryBytes * mult
+		}
+		if req.Limits != nil {
+			totals.cpuLim += req.Limits.NanoCPUs * mult
+			totals.memLim += req.Limits.MemoryBytes * mult
+		}
+	}
+	return totals
+}
+
 func collectSwarmMetrics(ctx context.Context, cli swarmMetricsClient) (SwarmMetricsPoint, error) {
 	if ctx == nil {
 		ctx = context.Background()
@@ -65,61 +115,9 @@ func collectSwarmMetrics(ctx context.Context, cli swarmMetricsClient) (SwarmMetr
 		return SwarmMetricsPoint{}, err
 	}
 
-	readyNodes := 0
-	var cpuCap int64
-	var memCap int64
-	for _, n := range nodes {
-		if n.Status.State == swarm.NodeStateReady {
-			readyNodes++
-			if n.Description.Resources.NanoCPUs > 0 {
-				cpuCap += n.Description.Resources.NanoCPUs
-			}
-			if n.Description.Resources.MemoryBytes > 0 {
-				memCap += n.Description.Resources.MemoryBytes
-			}
-		}
-	}
-
-	runningTasks := 0
-	for _, t := range tasks {
-		if t.Status.State == swarm.TaskStateRunning {
-			runningTasks++
-		}
-	}
-
-	// Resource requirements are per-task. Multiply by replicas where possible.
-	var cpuRes int64
-	var memRes int64
-	var cpuLim int64
-	var memLim int64
-
-	for _, s := range services {
-		mult := int64(0)
-		if s.Spec.Mode.Replicated != nil {
-			if s.Spec.Mode.Replicated.Replicas != nil {
-				mult = int64(*s.Spec.Mode.Replicated.Replicas)
-			}
-		} else if s.Spec.Mode.Global != nil {
-			mult = int64(readyNodes)
-		}
-		if mult <= 0 {
-			continue
-		}
-
-		req := s.Spec.TaskTemplate.Resources
-		if req == nil {
-			continue
-		}
-
-		if req.Reservations != nil {
-			cpuRes += req.Reservations.NanoCPUs * mult
-			memRes += req.Reservations.MemoryBytes * mult
-		}
-		if req.Limits != nil {
-			cpuLim += req.Limits.NanoCPUs * mult
-			memLim += req.Limits.MemoryBytes * mult
-		}
-	}
+	readyNodes, cpuCap, memCap := countReadyNodesAndCapacity(nodes)
+	runningTasks := countRunningTasks(tasks)
+	resources := calculateServiceResources(services, readyNodes)
 
 	p := SwarmMetricsPoint{
 		Timestamp:               time.Now().UTC().Format(time.RFC3339),
@@ -130,10 +128,10 @@ func collectSwarmMetrics(ctx context.Context, cli swarmMetricsClient) (SwarmMetr
 		ReadyNodes:              readyNodes,
 		CpuCapacityNano:         cpuCap,
 		MemoryCapacityBytes:     memCap,
-		CpuReservationsNano:     cpuRes,
-		MemoryReservationsBytes: memRes,
-		CpuLimitsNano:           cpuLim,
-		MemoryLimitsBytes:       memLim,
+		CpuReservationsNano:     resources.cpuRes,
+		MemoryReservationsBytes: resources.memRes,
+		CpuLimitsNano:           resources.cpuLim,
+		MemoryLimitsBytes:       resources.memLim,
 	}
 
 	appendSwarmMetricsPoint(p)

@@ -5,6 +5,31 @@ description: 'Comprehensive guide for building robust, secure, and efficient CI/
 
 # GitHub Actions CI/CD Best Practices
 
+## Project Context: kube-dev-bench
+
+This project uses GitHub Actions for CI/CD. The workflows are located in `.github/workflows/`:
+
+### Existing Workflows
+- **build.yml**: Main CI pipeline with frontend tests, backend tests, and E2E tests
+- **registry-e2e.yml**: Registry-specific E2E tests with JFrog Artifactory
+
+### Pipeline Architecture
+```
+frontend (Node.js 24, Vitest) → backend (Go 1.25+) → e2e (Playwright, sharded)
+```
+
+### Key CI/CD Patterns Used
+- **Caching**: npm cache for frontend, Go module cache for backend
+- **Artifacts**: Frontend dist passed between jobs
+- **Matrix Strategy**: E2E tests sharded across 3 parallel jobs + registry tests
+- **Coverage**: Both frontend (Vitest) and backend (Go) coverage uploaded to Codecov
+
+### Project-Specific Considerations
+- **Wails Build**: Production builds require `wails build` command
+- **E2E Prerequisites**: Requires KinD (Kubernetes in Docker) cluster setup
+- **JFrog Tests**: Registry tests require JFrog Artifactory container
+- **Port Allocation**: E2E shards use different base ports (34200, 34300, 34400, 34500)
+
 ## Your Mission
 
 As GitHub Copilot, you are an expert in designing and optimizing CI/CD pipelines using GitHub Actions. Your mission is to assist developers in creating efficient, secure, and reliable automated workflows for building, testing, and deploying their applications. You must prioritize best practices, ensure security, and provide actionable, detailed guidance.

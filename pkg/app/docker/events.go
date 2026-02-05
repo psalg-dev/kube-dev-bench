@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 )
@@ -29,7 +29,7 @@ func GetRecentEvents(ctx context.Context, cli *client.Client, since time.Duratio
 
 	sinceTime := time.Now().Add(-since)
 
-	options := types.EventsOptions{
+	options := events.ListOptions{
 		Since: sinceTime.Format(time.RFC3339),
 		Until: time.Now().Format(time.RFC3339),
 		Filters: filters.NewArgs(
@@ -99,7 +99,7 @@ func GetSwarmServiceEvents(ctx context.Context, cli *client.Client, serviceID st
 
 	sinceTime := time.Now().Add(-since)
 
-	options := types.EventsOptions{
+	options := events.ListOptions{
 		Since: sinceTime.Format(time.RFC3339),
 		Until: time.Now().Format(time.RFC3339),
 		Filters: filters.NewArgs(

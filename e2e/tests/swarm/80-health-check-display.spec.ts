@@ -26,7 +26,7 @@ test.describe('Docker Swarm Health Check Display', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
-    await bootstrapSwarm({ page, skipIfConnected: true });
+    await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });
 
   test('tasks table includes Health column', async ({ page }) => {

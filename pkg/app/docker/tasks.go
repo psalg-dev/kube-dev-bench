@@ -284,68 +284,70 @@ func healthCheckToInfo(hc *container.HealthConfig) *SwarmHealthCheckInfo {
 	}
 }
 
+// isSwarmClientValid checks if the swarm client is valid and non-nil
+func isSwarmClientValid(cli swarmTasksClient) bool {
+	if cli == nil {
+		return false
+	}
+	v := reflect.ValueOf(cli)
+	return !(v.Kind() == reflect.Ptr && v.IsNil())
+}
+
+// getCachedHealthStatus returns cached health status if valid, otherwise empty string
+func getCachedHealthStatus(containerID string) (string, bool) {
+	swarmTaskHealthCache.mu.RLock()
+	entry, ok := swarmTaskHealthCache.items[containerID]
+	swarmTaskHealthCache.mu.RUnlock()
+	if ok && time.Since(entry.fetchedAt) <= swarmTaskHealthCacheTTL {
+		if entry.status != "" {
+			return entry.status, true
+		}
+		return "none", true
+	}
+	return "", false
+}
+
+// setCachedHealthStatus stores health status in cache
+func setCachedHealthStatus(containerID, status string) {
+	now := time.Now()
+	swarmTaskHealthCache.mu.Lock()
+	swarmTaskHealthCache.items[containerID] = cachedHealthStatus{status: status, fetchedAt: now}
+	swarmTaskHealthCache.mu.Unlock()
+}
+
+// fetchContainerHealthStatus fetches health status from container inspect
+func fetchContainerHealthStatus(ctx context.Context, cli swarmTasksClient, containerID string) string {
+	ci, err := cli.ContainerInspect(ctx, containerID)
+	if err != nil {
+		return "none"
+	}
+	if ci.State != nil && ci.State.Health != nil && ci.State.Health.Status != "" {
+		return ci.State.Health.Status
+	}
+	return "none"
+}
+
 func populateSwarmTaskHealth(ctx context.Context, cli swarmTasksClient, info *SwarmTaskInfo) {
 	defer func() {
-		// Health is best-effort; never allow a buggy/edge-case ContainerInspect to crash polling.
-		if recover() != nil {
-			if info != nil {
-				info.HealthStatus = "none"
-			}
+		if recover() != nil && info != nil {
+			info.HealthStatus = "none"
 		}
 	}()
 
 	if info == nil {
 		return
 	}
-	if cli == nil {
-		info.HealthStatus = "none"
-		return
-	}
-	if v := reflect.ValueOf(cli); v.Kind() == reflect.Ptr && v.IsNil() {
-		info.HealthStatus = "none"
-		return
-	}
-	if info.ContainerID == "" {
+	if !isSwarmClientValid(cli) || info.ContainerID == "" {
 		info.HealthStatus = "none"
 		return
 	}
 
-	// Cheap TTL cache: StartSwarmTaskPolling runs every second.
-	swarmTaskHealthCache.mu.RLock()
-	entry, ok := swarmTaskHealthCache.items[info.ContainerID]
-	swarmTaskHealthCache.mu.RUnlock()
-	if ok {
-		if time.Since(entry.fetchedAt) <= swarmTaskHealthCacheTTL {
-			if entry.status != "" {
-				info.HealthStatus = entry.status
-			} else {
-				info.HealthStatus = "none"
-			}
-			return
-		}
-	}
-
-	ci, err := cli.ContainerInspect(ctx, info.ContainerID)
-	if err != nil {
-		info.HealthStatus = "none"
-		now := time.Now()
-		swarmTaskHealthCache.mu.Lock()
-		swarmTaskHealthCache.items[info.ContainerID] = cachedHealthStatus{status: "none", fetchedAt: now}
-		swarmTaskHealthCache.mu.Unlock()
+	if cached, ok := getCachedHealthStatus(info.ContainerID); ok {
+		info.HealthStatus = cached
 		return
 	}
 
-	status := "none"
-	if ci.State != nil && ci.State.Health != nil {
-		s := ci.State.Health.Status
-		if s != "" {
-			status = s
-		}
-	}
-
+	status := fetchContainerHealthStatus(ctx, cli, info.ContainerID)
 	info.HealthStatus = status
-	now := time.Now()
-	swarmTaskHealthCache.mu.Lock()
-	swarmTaskHealthCache.items[info.ContainerID] = cachedHealthStatus{status: status, fetchedAt: now}
-	swarmTaskHealthCache.mu.Unlock()
+	setCachedHealthStatus(info.ContainerID, status)
 }

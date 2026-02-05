@@ -9,8 +9,34 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 )
+
+// createFileTarPipe creates a pipe that streams a single-file tar archive.
+func createFileTarPipe(name string, data []byte) *io.PipeReader {
+	pr, pw := io.Pipe()
+	go func() {
+		tw := tar.NewWriter(pw)
+		defer func() {
+			_ = tw.Close()
+			_ = pw.Close()
+		}()
+		hdr := &tar.Header{
+			Name: name,
+			Mode: 0o644,
+			Size: int64(len(data)),
+		}
+		if err := tw.WriteHeader(hdr); err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
+		if _, err := tw.Write(data); err != nil {
+			_ = pw.CloseWithError(err)
+			return
+		}
+	}()
+	return pr
+}
 
 // WriteSwarmVolumeFile writes content to a file within the volume.
 // encoding can be "utf-8" (default) or "base64".
@@ -67,29 +93,8 @@ func (a *App) WriteSwarmVolumeFile(volumeName string, filePath string, content s
 		return fmt.Errorf("%s", msg)
 	}
 
-	pr, pw := io.Pipe()
-	go func() {
-		tw := tar.NewWriter(pw)
-		defer func() {
-			_ = tw.Close()
-			_ = pw.Close()
-		}()
-		hdr := &tar.Header{
-			Name: name,
-			Mode: 0o644,
-			Size: int64(len(data)),
-		}
-		if err := tw.WriteHeader(hdr); err != nil {
-			_ = pw.CloseWithError(err)
-			return
-		}
-		if _, err := tw.Write(data); err != nil {
-			_ = pw.CloseWithError(err)
-			return
-		}
-	}()
-
-	return cli.CopyToContainer(a.ctx, containerID, "/mnt"+dir, pr, types.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	pr := createFileTarPipe(name, data)
+	return cli.CopyToContainer(a.ctx, containerID, "/mnt"+dir, pr, container.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
 }
 
 // DeleteSwarmVolumeFile deletes a path within the volume.

@@ -6,8 +6,13 @@ import (
 	"sort"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 )
 
 // ResourcePodInfo provides pod information for resource detail views
@@ -149,6 +154,231 @@ type DaemonSetDetail struct {
 	Pods []ResourcePodInfo `json:"pods"`
 }
 
+// isPodOwnedBy checks if a pod is owned by the specified resource
+func isPodOwnedBy(pod *corev1.Pod, ownerKind, ownerName string) bool {
+	for _, ref := range pod.OwnerReferences {
+		if ref.Kind == ownerKind && ref.Name == ownerName {
+			return true
+		}
+	}
+	return false
+}
+
+// buildResourcePodInfo creates a ResourcePodInfo from a pod
+func buildResourcePodInfo(pod *corev1.Pod, now time.Time) ResourcePodInfo {
+	total := len(pod.Spec.Containers)
+	readyCount := 0
+	var restarts int32
+
+	for _, cs := range pod.Status.ContainerStatuses {
+		if cs.Ready {
+			readyCount++
+		}
+		restarts += cs.RestartCount
+	}
+
+	age := "-"
+	if !pod.CreationTimestamp.Time.IsZero() {
+		age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
+	}
+
+	return ResourcePodInfo{
+		Name:      pod.Name,
+		Namespace: pod.Namespace,
+		Status:    string(pod.Status.Phase),
+		Ready:     fmt.Sprintf("%d/%d", readyCount, total),
+		Restarts:  restarts,
+		Age:       age,
+		Node:      pod.Spec.NodeName,
+		IP:        pod.Status.PodIP,
+	}
+}
+
+// collectOwnedPods collects pods owned by a specific resource and returns ResourcePodInfo slice
+func collectOwnedPods(pods []corev1.Pod, ownerKind, ownerName string) []ResourcePodInfo {
+	now := time.Now()
+	result := make([]ResourcePodInfo, 0)
+
+	for i := range pods {
+		pod := &pods[i]
+		if !isPodOwnedBy(pod, ownerKind, ownerName) {
+			continue
+		}
+		result = append(result, buildResourcePodInfo(pod, now))
+	}
+
+	return result
+}
+
+// buildJobConditions converts batch job conditions to JobCondition slice
+func buildJobConditions(conditions []batchv1.JobCondition) []JobCondition {
+	result := make([]JobCondition, 0, len(conditions))
+	for _, cond := range conditions {
+		lastTransition := "-"
+		if !cond.LastTransitionTime.Time.IsZero() {
+			lastTransition = cond.LastTransitionTime.Time.Format(time.RFC3339)
+		}
+		result = append(result, JobCondition{
+			Type:           string(cond.Type),
+			Status:         string(cond.Status),
+			LastTransition: lastTransition,
+			Reason:         cond.Reason,
+			Message:        cond.Message,
+		})
+	}
+	return result
+}
+
+// buildAllPodsInfo builds ResourcePodInfo slice from all pods (no ownership filter)
+func buildAllPodsInfo(pods []corev1.Pod) []ResourcePodInfo {
+	now := time.Now()
+	result := make([]ResourcePodInfo, 0, len(pods))
+	for i := range pods {
+		result = append(result, buildResourcePodInfo(&pods[i], now))
+	}
+	return result
+}
+
+// buildDeploymentConditions converts deployment conditions to DeploymentCondition slice
+func buildDeploymentConditions(conditions []appsv1.DeploymentCondition) []DeploymentCondition {
+	result := make([]DeploymentCondition, 0, len(conditions))
+	for _, cond := range conditions {
+		lastTransition := "-"
+		if !cond.LastTransitionTime.Time.IsZero() {
+			lastTransition = cond.LastTransitionTime.Time.Format(time.RFC3339)
+		}
+		result = append(result, DeploymentCondition{
+			Type:           string(cond.Type),
+			Status:         string(cond.Status),
+			LastTransition: lastTransition,
+			Reason:         cond.Reason,
+			Message:        cond.Message,
+		})
+	}
+	return result
+}
+
+// buildDeploymentRevisions builds rollout revision info from replicasets
+func buildDeploymentRevisions(replicaSets []appsv1.ReplicaSet, deploymentName string) []RolloutRevision {
+	result := make([]RolloutRevision, 0)
+	for i := range replicaSets {
+		rs := &replicaSets[i]
+
+		// Check if this RS is owned by this deployment
+		if !isOwnedBy(rs.OwnerReferences, "Deployment", deploymentName) {
+			continue
+		}
+
+		revision := int64(0)
+		if rev, ok := rs.Annotations["deployment.kubernetes.io/revision"]; ok {
+			fmt.Sscanf(rev, "%d", &revision)
+		}
+
+		image := ""
+		if len(rs.Spec.Template.Spec.Containers) > 0 {
+			image = rs.Spec.Template.Spec.Containers[0].Image
+		}
+
+		createdAt := "-"
+		if !rs.CreationTimestamp.Time.IsZero() {
+			createdAt = rs.CreationTimestamp.Time.Format(time.RFC3339)
+		}
+
+		replicas := int32(0)
+		if rs.Spec.Replicas != nil {
+			replicas = *rs.Spec.Replicas
+		}
+
+		result = append(result, RolloutRevision{
+			Revision:   revision,
+			ReplicaSet: rs.Name,
+			Image:      image,
+			CreatedAt:  createdAt,
+			Replicas:   replicas,
+			IsCurrent:  replicas > 0,
+		})
+	}
+	return result
+}
+
+// isOwnedBy checks if the owner references include a specific owner
+func isOwnedBy(refs []metav1.OwnerReference, kind, name string) bool {
+	for _, ref := range refs {
+		if ref.Kind == kind && ref.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+// collectStatefulSetPVCs collects PVCs that match statefulset naming pattern
+func collectStatefulSetPVCs(pvcs []corev1.PersistentVolumeClaim, volumeClaimTemplates []corev1.PersistentVolumeClaim, statefulSetName string) []StatefulSetPVCInfo {
+	now := time.Now()
+	result := make([]StatefulSetPVCInfo, 0)
+
+	for i := range pvcs {
+		pvc := &pvcs[i]
+		// Check if PVC name matches any statefulset naming pattern
+		// StatefulSet PVCs are named: {volumeClaimTemplateName}-{statefulSetName}-{ordinal}
+		for _, vct := range volumeClaimTemplates {
+			prefix := fmt.Sprintf("%s-%s-", vct.Name, statefulSetName)
+			if len(pvc.Name) <= len(prefix) || pvc.Name[:len(prefix)] != prefix {
+				continue
+			}
+
+			info := buildPVCInfo(pvc, now)
+			info.PodName = pvc.Name[len(vct.Name)+1:]
+			result = append(result, info)
+		}
+	}
+
+	return result
+}
+
+// buildPVCInfo creates a StatefulSetPVCInfo from a PVC
+func buildPVCInfo(pvc *corev1.PersistentVolumeClaim, now time.Time) StatefulSetPVCInfo {
+	age := "-"
+	if !pvc.CreationTimestamp.Time.IsZero() {
+		age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
+	}
+
+	capacity := "-"
+	if pvc.Status.Capacity != nil {
+		if qty, ok := pvc.Status.Capacity["storage"]; ok {
+			capacity = qty.String()
+		}
+	}
+
+	accessModes := formatAccessModes(pvc.Spec.AccessModes)
+
+	storageClass := ""
+	if pvc.Spec.StorageClassName != nil {
+		storageClass = *pvc.Spec.StorageClassName
+	}
+
+	return StatefulSetPVCInfo{
+		Name:         pvc.Name,
+		Namespace:    pvc.Namespace,
+		Status:       string(pvc.Status.Phase),
+		Capacity:     capacity,
+		AccessModes:  accessModes,
+		StorageClass: storageClass,
+		Age:          age,
+	}
+}
+
+// formatAccessModes converts access modes to a comma-separated string
+func formatAccessModes(modes []corev1.PersistentVolumeAccessMode) string {
+	if len(modes) == 0 {
+		return ""
+	}
+	result := string(modes[0])
+	for i := 1; i < len(modes); i++ {
+		result += ", " + string(modes[i])
+	}
+	return result
+}
+
 // GetJobDetail returns detailed information about a job including its pods and conditions
 func (a *App) GetJobDetail(namespace, jobName string) (*JobDetail, error) {
 	clientset, err := a.getKubernetesInterface()
@@ -173,64 +403,11 @@ func (a *App) GetJobDetail(namespace, jobName string) (*JobDetail, error) {
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		now := time.Now()
-		for _, pod := range pods.Items {
-			// Verify this pod is owned by this job
-			isOwnedByJob := false
-			for _, ref := range pod.OwnerReferences {
-				if ref.Kind == "Job" && ref.Name == jobName {
-					isOwnedByJob = true
-					break
-				}
-			}
-			if !isOwnedByJob {
-				continue
-			}
-
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
-		}
+		detail.Pods = collectOwnedPods(pods.Items, "Job", jobName)
 	}
 
 	// Get job conditions
-	for _, cond := range job.Status.Conditions {
-		lastTransition := "-"
-		if cond.LastTransitionTime.Time != (time.Time{}) {
-			lastTransition = cond.LastTransitionTime.Time.Format(time.RFC3339)
-		}
-		detail.Conditions = append(detail.Conditions, JobCondition{
-			Type:           string(cond.Type),
-			Status:         string(cond.Status),
-			LastTransition: lastTransition,
-			Reason:         cond.Reason,
-			Message:        cond.Message,
-		})
-	}
+	detail.Conditions = buildJobConditions(job.Status.Conditions)
 
 	return detail, nil
 }
@@ -248,18 +425,7 @@ func (a *App) GetCronJobDetail(namespace, cronJobName string) (*CronJobDetail, e
 	}
 
 	// Compute next scheduled runs (best-effort)
-	if cronJobName != "" {
-		cj, err := clientset.BatchV1().CronJobs(namespace).Get(a.ctx, cronJobName, metav1.GetOptions{})
-		if err == nil {
-			suspend := false
-			if cj.Spec.Suspend != nil {
-				suspend = *cj.Spec.Suspend
-			}
-			if !suspend && cj.Spec.Schedule != "" {
-				detail.NextRuns = computeNextRuns(cj.Spec.Schedule, time.Now(), 5)
-			}
-		}
-	}
+	detail.NextRuns = a.computeCronJobNextRuns(clientset, namespace, cronJobName)
 
 	// Get all jobs in the namespace and filter by owner
 	jobs, err := clientset.BatchV1().Jobs(namespace).List(a.ctx, metav1.ListOptions{})
@@ -267,51 +433,7 @@ func (a *App) GetCronJobDetail(namespace, cronJobName string) (*CronJobDetail, e
 		return nil, err
 	}
 
-	for _, job := range jobs.Items {
-		// Check if this job is owned by the cronjob
-		isOwnedByCronJob := false
-		for _, ref := range job.OwnerReferences {
-			if ref.Kind == "CronJob" && ref.Name == cronJobName {
-				isOwnedByCronJob = true
-				break
-			}
-		}
-		if !isOwnedByCronJob {
-			continue
-		}
-
-		status := "Running"
-		if job.Status.Succeeded > 0 {
-			status = "Succeeded"
-		} else if job.Status.Failed > 0 {
-			status = "Failed"
-		}
-
-		startTime := "-"
-		endTime := "-"
-		duration := "-"
-
-		if job.Status.StartTime != nil {
-			startTime = job.Status.StartTime.Time.Format(time.RFC3339)
-			if job.Status.CompletionTime != nil {
-				endTime = job.Status.CompletionTime.Time.Format(time.RFC3339)
-				dur := job.Status.CompletionTime.Time.Sub(job.Status.StartTime.Time)
-				duration = formatDuration(dur)
-			}
-		}
-
-		detail.Jobs = append(detail.Jobs, CronJobJobInfo{
-			Name:      job.Name,
-			Namespace: job.Namespace,
-			Status:    status,
-			StartTime: startTime,
-			EndTime:   endTime,
-			Duration:  duration,
-			Succeeded: job.Status.Succeeded,
-			Failed:    job.Status.Failed,
-			Active:    job.Status.Active,
-		})
-	}
+	detail.Jobs = collectCronJobJobs(jobs.Items, cronJobName)
 
 	// Sort jobs by start time (most recent first)
 	sort.Slice(detail.Jobs, func(i, j int) bool {
@@ -324,6 +446,84 @@ func (a *App) GetCronJobDetail(namespace, cronJobName string) (*CronJobDetail, e
 	}
 
 	return detail, nil
+}
+
+// computeCronJobNextRuns computes the next scheduled runs for a cronjob
+func (a *App) computeCronJobNextRuns(clientset kubernetes.Interface, namespace, cronJobName string) []string {
+	if cronJobName == "" {
+		return []string{}
+	}
+
+	cj, err := clientset.BatchV1().CronJobs(namespace).Get(a.ctx, cronJobName, metav1.GetOptions{})
+	if err != nil {
+		return []string{}
+	}
+
+	suspend := cj.Spec.Suspend != nil && *cj.Spec.Suspend
+	if suspend || cj.Spec.Schedule == "" {
+		return []string{}
+	}
+
+	return computeNextRuns(cj.Spec.Schedule, time.Now(), 5)
+}
+
+// collectCronJobJobs collects job info for jobs owned by a cronjob
+func collectCronJobJobs(jobs []batchv1.Job, cronJobName string) []CronJobJobInfo {
+	result := make([]CronJobJobInfo, 0)
+
+	for i := range jobs {
+		job := &jobs[i]
+
+		// Check if this job is owned by the cronjob
+		if !isOwnedBy(job.OwnerReferences, "CronJob", cronJobName) {
+			continue
+		}
+
+		result = append(result, buildCronJobJobInfo(job))
+	}
+
+	return result
+}
+
+// buildCronJobJobInfo builds a CronJobJobInfo from a job
+func buildCronJobJobInfo(job *batchv1.Job) CronJobJobInfo {
+	status := determineJobStatus(job)
+
+	startTime := "-"
+	endTime := "-"
+	duration := "-"
+
+	if job.Status.StartTime != nil {
+		startTime = job.Status.StartTime.Time.Format(time.RFC3339)
+		if job.Status.CompletionTime != nil {
+			endTime = job.Status.CompletionTime.Time.Format(time.RFC3339)
+			dur := job.Status.CompletionTime.Time.Sub(job.Status.StartTime.Time)
+			duration = formatDuration(dur)
+		}
+	}
+
+	return CronJobJobInfo{
+		Name:      job.Name,
+		Namespace: job.Namespace,
+		Status:    status,
+		StartTime: startTime,
+		EndTime:   endTime,
+		Duration:  duration,
+		Succeeded: job.Status.Succeeded,
+		Failed:    job.Status.Failed,
+		Active:    job.Status.Active,
+	}
+}
+
+// determineJobStatus determines the status string for a job
+func determineJobStatus(job *batchv1.Job) string {
+	if job.Status.Succeeded > 0 {
+		return "Succeeded"
+	}
+	if job.Status.Failed > 0 {
+		return "Failed"
+	}
+	return "Running"
 }
 
 // GetConfigMapDataByName returns the data of a configmap
@@ -432,101 +632,18 @@ func (a *App) GetDeploymentDetail(namespace, deploymentName string) (*Deployment
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		now := time.Now()
-		for _, pod := range pods.Items {
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
-		}
+		detail.Pods = buildAllPodsInfo(pods.Items)
 	}
 
 	// Get deployment conditions
-	for _, cond := range deployment.Status.Conditions {
-		lastTransition := "-"
-		if cond.LastTransitionTime.Time != (time.Time{}) {
-			lastTransition = cond.LastTransitionTime.Time.Format(time.RFC3339)
-		}
-		detail.Conditions = append(detail.Conditions, DeploymentCondition{
-			Type:           string(cond.Type),
-			Status:         string(cond.Status),
-			LastTransition: lastTransition,
-			Reason:         cond.Reason,
-			Message:        cond.Message,
-		})
-	}
+	detail.Conditions = buildDeploymentConditions(deployment.Status.Conditions)
 
 	// Get replicasets owned by this deployment for rollout history
 	replicaSets, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		for _, rs := range replicaSets.Items {
-			// Check if this RS is owned by this deployment
-			isOwned := false
-			for _, ref := range rs.OwnerReferences {
-				if ref.Kind == "Deployment" && ref.Name == deploymentName {
-					isOwned = true
-					break
-				}
-			}
-			if !isOwned {
-				continue
-			}
-
-			revision := int64(0)
-			if rev, ok := rs.Annotations["deployment.kubernetes.io/revision"]; ok {
-				fmt.Sscanf(rev, "%d", &revision)
-			}
-
-			image := ""
-			if len(rs.Spec.Template.Spec.Containers) > 0 {
-				image = rs.Spec.Template.Spec.Containers[0].Image
-			}
-
-			createdAt := "-"
-			if rs.CreationTimestamp.Time != (time.Time{}) {
-				createdAt = rs.CreationTimestamp.Time.Format(time.RFC3339)
-			}
-
-			replicas := int32(0)
-			if rs.Spec.Replicas != nil {
-				replicas = *rs.Spec.Replicas
-			}
-
-			detail.Revisions = append(detail.Revisions, RolloutRevision{
-				Revision:   revision,
-				ReplicaSet: rs.Name,
-				Image:      image,
-				CreatedAt:  createdAt,
-				Replicas:   replicas,
-				IsCurrent:  replicas > 0,
-			})
-		}
-
+		detail.Revisions = buildDeploymentRevisions(replicaSets.Items, deploymentName)
 		// Sort revisions by revision number (descending)
 		sort.Slice(detail.Revisions, func(i, j int) bool {
 			return detail.Revisions[i].Revision > detail.Revisions[j].Revision
@@ -559,49 +676,7 @@ func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*Stateful
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		now := time.Now()
-		for _, pod := range pods.Items {
-			// Verify ownership
-			isOwned := false
-			for _, ref := range pod.OwnerReferences {
-				if ref.Kind == "StatefulSet" && ref.Name == statefulSetName {
-					isOwned = true
-					break
-				}
-			}
-			if !isOwned {
-				continue
-			}
-
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
-		}
-
+		detail.Pods = collectOwnedPods(pods.Items, "StatefulSet", statefulSetName)
 		// Sort pods by name (to maintain statefulset ordering)
 		sort.Slice(detail.Pods, func(i, j int) bool {
 			return detail.Pods[i].Name < detail.Pods[j].Name
@@ -611,55 +686,7 @@ func (a *App) GetStatefulSetDetail(namespace, statefulSetName string) (*Stateful
 	// Get PVCs owned by this statefulset's pods
 	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(a.ctx, metav1.ListOptions{})
 	if err == nil {
-		now := time.Now()
-		for _, pvc := range pvcs.Items {
-			// Check if PVC name matches statefulset naming pattern
-			// StatefulSet PVCs are named: {volumeClaimTemplateName}-{statefulSetName}-{ordinal}
-			for _, vct := range ss.Spec.VolumeClaimTemplates {
-				prefix := fmt.Sprintf("%s-%s-", vct.Name, statefulSetName)
-				if len(pvc.Name) > len(prefix) && pvc.Name[:len(prefix)] == prefix {
-					age := "-"
-					if pvc.CreationTimestamp.Time != (time.Time{}) {
-						age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
-					}
-
-					capacity := "-"
-					if pvc.Status.Capacity != nil {
-						if qty, ok := pvc.Status.Capacity["storage"]; ok {
-							capacity = qty.String()
-						}
-					}
-
-					accessModes := ""
-					for i, mode := range pvc.Spec.AccessModes {
-						if i > 0 {
-							accessModes += ", "
-						}
-						accessModes += string(mode)
-					}
-
-					storageClass := ""
-					if pvc.Spec.StorageClassName != nil {
-						storageClass = *pvc.Spec.StorageClassName
-					}
-
-					// Extract pod name from PVC name
-					podName := pvc.Name[len(vct.Name)+1:]
-
-					detail.PVCs = append(detail.PVCs, StatefulSetPVCInfo{
-						Name:         pvc.Name,
-						Namespace:    pvc.Namespace,
-						Status:       string(pvc.Status.Phase),
-						Capacity:     capacity,
-						AccessModes:  accessModes,
-						StorageClass: storageClass,
-						Age:          age,
-						PodName:      podName,
-					})
-				}
-			}
-		}
-
+		detail.PVCs = collectStatefulSetPVCs(pvcs.Items, ss.Spec.VolumeClaimTemplates, statefulSetName)
 		// Sort PVCs by name
 		sort.Slice(detail.PVCs, func(i, j int) bool {
 			return detail.PVCs[i].Name < detail.PVCs[j].Name
@@ -691,49 +718,7 @@ func (a *App) GetDaemonSetDetail(namespace, daemonSetName string) (*DaemonSetDet
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		now := time.Now()
-		for _, pod := range pods.Items {
-			// Verify ownership
-			isOwned := false
-			for _, ref := range pod.OwnerReferences {
-				if ref.Kind == "DaemonSet" && ref.Name == daemonSetName {
-					isOwned = true
-					break
-				}
-			}
-			if !isOwned {
-				continue
-			}
-
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
-		}
-
+		detail.Pods = collectOwnedPods(pods.Items, "DaemonSet", daemonSetName)
 		// Sort pods by node name
 		sort.Slice(detail.Pods, func(i, j int) bool {
 			return detail.Pods[i].Node < detail.Pods[j].Node
@@ -774,51 +759,65 @@ func (a *App) GetReplicaSetDetail(namespace, replicaSetName string) (*ReplicaSet
 		LabelSelector: selector.String(),
 	})
 	if err == nil {
-		now := time.Now()
-		for _, pod := range pods.Items {
-			// Verify ownership
-			isOwned := false
-			for _, ref := range pod.OwnerReferences {
-				if ref.Kind == "ReplicaSet" && ref.Name == replicaSetName {
-					isOwned = true
-					break
-				}
-			}
-			if !isOwned {
-				continue
-			}
-
-			ready := "0/0"
-			total := len(pod.Spec.Containers)
-			readyCount := 0
-			var restarts int32
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Ready {
-					readyCount++
-				}
-				restarts += cs.RestartCount
-			}
-			ready = fmt.Sprintf("%d/%d", readyCount, total)
-
-			age := "-"
-			if pod.CreationTimestamp.Time != (time.Time{}) {
-				age = formatDuration(now.Sub(pod.CreationTimestamp.Time))
-			}
-
-			detail.Pods = append(detail.Pods, ResourcePodInfo{
-				Name:      pod.Name,
-				Namespace: pod.Namespace,
-				Status:    string(pod.Status.Phase),
-				Ready:     ready,
-				Restarts:  restarts,
-				Age:       age,
-				Node:      pod.Spec.NodeName,
-				IP:        pod.Status.PodIP,
-			})
-		}
+		detail.Pods = collectOwnedPods(pods.Items, "ReplicaSet", replicaSetName)
 	}
 
 	return detail, nil
+}
+
+// getIngressPathType returns the path type as a string
+func getIngressPathType(pathType *networkingv1.PathType) string {
+	if pathType != nil {
+		return string(*pathType)
+	}
+	return "Prefix"
+}
+
+// getIngressBackendInfo extracts service name and port from a backend
+func getIngressBackendInfo(backend networkingv1.IngressBackend) (serviceName, servicePort string) {
+	if backend.Service == nil {
+		return "", ""
+	}
+	serviceName = backend.Service.Name
+	if backend.Service.Port.Name != "" {
+		servicePort = backend.Service.Port.Name
+	} else {
+		servicePort = fmt.Sprintf("%d", backend.Service.Port.Number)
+	}
+	return
+}
+
+// buildIngressRulesFromSpec extracts rules from ingress spec
+func buildIngressRulesFromSpec(ing *networkingv1.Ingress) []IngressRule {
+	rules := []IngressRule{}
+	for _, rule := range ing.Spec.Rules {
+		if rule.HTTP == nil {
+			continue
+		}
+		for _, path := range rule.HTTP.Paths {
+			serviceName, servicePort := getIngressBackendInfo(path.Backend)
+			rules = append(rules, IngressRule{
+				Host:        rule.Host,
+				Path:        path.Path,
+				PathType:    getIngressPathType(path.PathType),
+				ServiceName: serviceName,
+				ServicePort: servicePort,
+			})
+		}
+	}
+	return rules
+}
+
+// buildIngressTLSFromSpec extracts TLS info from ingress spec
+func buildIngressTLSFromSpec(ing *networkingv1.Ingress) []IngressTLSInfo {
+	tlsList := make([]IngressTLSInfo, 0, len(ing.Spec.TLS))
+	for _, tls := range ing.Spec.TLS {
+		tlsList = append(tlsList, IngressTLSInfo{
+			Hosts:      tls.Hosts,
+			SecretName: tls.SecretName,
+		})
+	}
+	return tlsList
 }
 
 // GetIngressDetail returns detailed information about an ingress
@@ -833,53 +832,156 @@ func (a *App) GetIngressDetail(namespace, ingressName string) (*IngressDetail, e
 		return nil, err
 	}
 
-	detail := &IngressDetail{
-		Rules: []IngressRule{},
-		TLS:   []IngressTLSInfo{},
+	return &IngressDetail{
+		Rules: buildIngressRulesFromSpec(ing),
+		TLS:   buildIngressTLSFromSpec(ing),
+	}, nil
+}
+
+// ServiceDetail provides detailed service information including endpoints
+type ServiceDetail struct {
+	Endpoints []ServiceEndpoint `json:"endpoints"`
+}
+
+// ServiceEndpoint represents a service endpoint (already defined in services.go, reusing here)
+
+// GetServiceDetail returns detailed information about a service including its endpoints
+func (a *App) GetServiceDetail(namespace, serviceName string) (*ServiceDetail, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("missing required parameter: namespace")
+	}
+	if serviceName == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
 	}
 
-	// Get rules
-	for _, rule := range ing.Spec.Rules {
-		if rule.HTTP == nil {
-			continue
-		}
-		for _, path := range rule.HTTP.Paths {
-			pathType := "Prefix"
-			if path.PathType != nil {
-				pathType = string(*path.PathType)
-			}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
 
-			servicePort := ""
-			if path.Backend.Service != nil {
-				if path.Backend.Service.Port.Name != "" {
-					servicePort = path.Backend.Service.Port.Name
-				} else {
-					servicePort = fmt.Sprintf("%d", path.Backend.Service.Port.Number)
+	// Get the service
+	svc, err := clientset.CoreV1().Services(namespace).Get(a.ctx, serviceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &ServiceDetail{
+		Endpoints: []ServiceEndpoint{},
+	}
+
+	// Get endpoints for this service
+	endpoints, err := clientset.CoreV1().Endpoints(namespace).Get(a.ctx, serviceName, metav1.GetOptions{})
+	if err == nil && endpoints != nil {
+		portProtocols := buildPortProtocolMap(svc.Spec.Ports)
+		for _, subset := range endpoints.Subsets {
+			for _, port := range subset.Ports {
+				// Ready endpoints
+				for _, addr := range subset.Addresses {
+					detail.Endpoints = append(detail.Endpoints, buildEndpointFromAddress(addr, port, portProtocols, true))
+				}
+				// Not ready endpoints
+				for _, addr := range subset.NotReadyAddresses {
+					detail.Endpoints = append(detail.Endpoints, buildEndpointFromAddress(addr, port, portProtocols, false))
 				}
 			}
-
-			serviceName := ""
-			if path.Backend.Service != nil {
-				serviceName = path.Backend.Service.Name
-			}
-
-			detail.Rules = append(detail.Rules, IngressRule{
-				Host:        rule.Host,
-				Path:        path.Path,
-				PathType:    pathType,
-				ServiceName: serviceName,
-				ServicePort: servicePort,
-			})
 		}
 	}
 
-	// Get TLS info
-	for _, tls := range ing.Spec.TLS {
-		detail.TLS = append(detail.TLS, IngressTLSInfo{
-			Hosts:      tls.Hosts,
-			SecretName: tls.SecretName,
+	return detail, nil
+}
+
+// PersistentVolumeClaimDetail provides detailed PVC information
+type PersistentVolumeClaimDetail struct {
+	Conditions []PVCCondition `json:"conditions"`
+}
+
+// PVCCondition represents a PVC condition
+type PVCCondition struct {
+	Type           string `json:"type"`
+	Status         string `json:"status"`
+	LastTransition string `json:"lastTransition"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+}
+
+// GetPersistentVolumeClaimDetail returns detailed information about a PVC
+func (a *App) GetPersistentVolumeClaimDetail(namespace, pvcName string) (*PersistentVolumeClaimDetail, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("missing required parameter: namespace")
+	}
+	if pvcName == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(a.ctx, pvcName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &PersistentVolumeClaimDetail{
+		Conditions: []PVCCondition{},
+	}
+
+	// Convert conditions
+	for _, cond := range pvc.Status.Conditions {
+		lastTransition := "-"
+		if !cond.LastTransitionTime.Time.IsZero() {
+			lastTransition = cond.LastTransitionTime.Time.Format(time.RFC3339)
+		}
+		detail.Conditions = append(detail.Conditions, PVCCondition{
+			Type:           string(cond.Type),
+			Status:         string(cond.Status),
+			LastTransition: lastTransition,
+			Reason:         cond.Reason,
+			Message:        cond.Message,
 		})
 	}
+
+	return detail, nil
+}
+
+// PersistentVolumeDetail provides detailed PV information
+type PersistentVolumeDetail struct {
+	Conditions []PVCondition `json:"conditions"`
+}
+
+// PVCondition represents a PV condition
+type PVCondition struct {
+	Type           string `json:"type"`
+	Status         string `json:"status"`
+	LastTransition string `json:"lastTransition"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+}
+
+// GetPersistentVolumeDetail returns detailed information about a PV
+func (a *App) GetPersistentVolumeDetail(pvName string) (*PersistentVolumeDetail, error) {
+	if pvName == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	pv, err := clientset.CoreV1().PersistentVolumes().Get(a.ctx, pvName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	detail := &PersistentVolumeDetail{
+		Conditions: []PVCondition{},
+	}
+
+	// Convert conditions (PVs don't have conditions in the API, but we keep the structure for consistency)
+	// If PVs later get conditions, this will work automatically
+	_ = pv // Use pv to avoid unused variable
 
 	return detail, nil
 }

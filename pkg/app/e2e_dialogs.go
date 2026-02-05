@@ -31,44 +31,50 @@ const (
 	e2eEnabledMarkerFile = "enabled.txt"
 )
 
-func e2eDialogDir() string {
-	if v := strings.TrimSpace(os.Getenv(e2eDialogDirEnv)); v != "" {
-		return v
-	}
-
-	// Auto-detect for E2E runs: if the marker file exists under os.TempDir(),
-	// treat that directory as the dialog override dir.
+// detectDialogDirFromTemp checks for the temp directory fallback with marker file.
+func detectDialogDirFromTemp() string {
 	fallback := filepath.Join(os.TempDir(), "kdb-e2e-dialogs")
 	if _, err := os.Stat(filepath.Join(fallback, e2eEnabledMarkerFile)); err == nil {
 		return fallback
 	}
+	return ""
+}
 
-	// Repo-local fallback: e2e harness can write a dialog dir mapping file.
-	// This is intended for single-instance runs; if multiple mappings exist, we do not guess.
-	if wd, err := os.Getwd(); err == nil {
-		mappingDir := filepath.Join(wd, "e2e", ".run", "dialog-dirs")
-		entries, err := os.ReadDir(mappingDir)
-		if err == nil {
-			var mappingFiles []fs.DirEntry
-			for _, ent := range entries {
-				if ent.IsDir() {
-					continue
-				}
-				mappingFiles = append(mappingFiles, ent)
-			}
-			if len(mappingFiles) == 1 {
-				b, err := os.ReadFile(filepath.Join(mappingDir, mappingFiles[0].Name()))
-				if err == nil {
-					p := strings.TrimSpace(string(b))
-					if p != "" {
-						return p
-					}
-				}
-			}
+// detectDialogDirFromWorkdir checks for a single mapping file in the e2e run directory.
+func detectDialogDirFromWorkdir() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	mappingDir := filepath.Join(wd, "e2e", ".run", "dialog-dirs")
+	entries, err := os.ReadDir(mappingDir)
+	if err != nil {
+		return ""
+	}
+	var mappingFiles []fs.DirEntry
+	for _, ent := range entries {
+		if !ent.IsDir() {
+			mappingFiles = append(mappingFiles, ent)
 		}
 	}
+	if len(mappingFiles) != 1 {
+		return ""
+	}
+	b, err := os.ReadFile(filepath.Join(mappingDir, mappingFiles[0].Name()))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
 
-	return ""
+func e2eDialogDir() string {
+	if v := strings.TrimSpace(os.Getenv(e2eDialogDirEnv)); v != "" {
+		return v
+	}
+	if dir := detectDialogDirFromTemp(); dir != "" {
+		return dir
+	}
+	return detectDialogDirFromWorkdir()
 }
 
 func consumeOneShotPath(dir string, filename string) (string, bool) {

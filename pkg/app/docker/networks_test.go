@@ -4,12 +4,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/network"
 )
 
 func TestNetworkResourceToInfo_NilLabels_DefaultsToEmptyMap(t *testing.T) {
 	created := time.Date(2025, 1, 2, 3, 4, 5, 0, time.UTC)
-	in := types.NetworkResource{
+	in := network.Inspect{
 		ID:         "nid",
 		Name:       "n1",
 		Driver:     "overlay",

@@ -33,6 +33,8 @@ export function HolmesPanel() {
   const lastQueryRef = useRef(null);
   const lastResponseRef = useRef(null);
   const lastErrorRef = useRef(null);
+  // Track timestamps that have been cleared to prevent re-adding them
+  const clearedTimestampsRef = useRef(new Set());
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -90,6 +92,8 @@ export function HolmesPanel() {
   useEffect(() => {
     if (!state.query || !state.queryTimestamp) return;
     if (lastQueryRef.current === state.queryTimestamp) return;
+    // Skip if this timestamp was cleared
+    if (clearedTimestampsRef.current.has(state.queryTimestamp)) return;
 
     setConversation((prev) => [
       ...prev,
@@ -101,6 +105,8 @@ export function HolmesPanel() {
   useEffect(() => {
     if (!responseText || !state.responseTimestamp) return;
     if (lastResponseRef.current === state.responseTimestamp) return;
+    // Skip if this timestamp was cleared
+    if (clearedTimestampsRef.current.has(state.responseTimestamp)) return;
 
     setConversation((prev) => [
       ...prev,
@@ -121,6 +127,13 @@ export function HolmesPanel() {
   }, [state.error, state.loading]);
 
   const handleClearConversation = () => {
+    // Mark current timestamps as cleared to prevent re-adding them
+    if (state.queryTimestamp) {
+      clearedTimestampsRef.current.add(state.queryTimestamp);
+    }
+    if (state.responseTimestamp) {
+      clearedTimestampsRef.current.add(state.responseTimestamp);
+    }
     setConversation([]);
     lastQueryRef.current = null;
     lastResponseRef.current = null;

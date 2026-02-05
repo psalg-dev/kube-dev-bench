@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -32,60 +33,14 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
 
-	// Base point (counts + capacity/reservations/limits) and store append.
-	// We re-use the same logic as collectSwarmMetrics, but avoid re-listing by inlining.
-	readyNodes := 0
-	var cpuCap int64
-	var memCap int64
-	for _, n := range nodes {
-		if n.Status.State == swarm.NodeStateReady {
-			readyNodes++
-			if n.Description.Resources.NanoCPUs > 0 {
-				cpuCap += n.Description.Resources.NanoCPUs
-			}
-			if n.Description.Resources.MemoryBytes > 0 {
-				memCap += n.Description.Resources.MemoryBytes
-			}
-		}
-	}
+	// Compute node capacity metrics
+	readyNodes, cpuCap, memCap := computeNodeCapacity(nodes)
 
-	runningTasks := 0
-	for _, t := range tasks {
-		if t.Status.State == swarm.TaskStateRunning {
-			runningTasks++
-		}
-	}
+	// Count running tasks
+	runningTasks := countRunningTasks(tasks)
 
-	var cpuRes int64
-	var memRes int64
-	var cpuLim int64
-	var memLim int64
-	for _, s := range services {
-		mult := int64(0)
-		if s.Spec.Mode.Replicated != nil {
-			if s.Spec.Mode.Replicated.Replicas != nil {
-				mult = int64(*s.Spec.Mode.Replicated.Replicas)
-			}
-		} else if s.Spec.Mode.Global != nil {
-			mult = int64(readyNodes)
-		}
-		if mult <= 0 {
-			continue
-		}
-
-		req := s.Spec.TaskTemplate.Resources
-		if req == nil {
-			continue
-		}
-		if req.Reservations != nil {
-			cpuRes += req.Reservations.NanoCPUs * mult
-			memRes += req.Reservations.MemoryBytes * mult
-		}
-		if req.Limits != nil {
-			cpuLim += req.Limits.NanoCPUs * mult
-			memLim += req.Limits.MemoryBytes * mult
-		}
-	}
+	// Compute resource reservations and limits
+	cpuRes, memRes, cpuLim, memLim := computeResourceUsage(services, readyNodes)
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	point := SwarmMetricsPoint{
@@ -103,27 +58,117 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		MemoryLimitsBytes:       memLim,
 	}
 
-	// Build name maps.
-	serviceNames := make(map[string]string, len(services))
-	for _, s := range services {
-		serviceNames[s.ID] = s.Spec.Name
-	}
-	nodeNames := make(map[string]string, len(nodes))
+	// Build name maps
+	serviceNames := buildServiceNameMap(services)
+	nodeNames := buildNodeNameMap(nodes)
+
+	// Collect container stats and build breakdown
+	breakdown, containers, sumCpuPercent, sumMemUsed, sumNetRx, sumNetTx := collectContainerStats(ctx, cli, tasks, serviceNames, nodeNames, now)
+
+	point.RunningContainers = containers
+	point.MemoryUsedBytes = sumMemUsed
+	point.NetworkRxBytes = sumNetRx
+	point.NetworkTxBytes = sumNetTx
+	point.CpuUsagePercent = cpuUsagePercentOfCapacity(sumCpuPercent, cpuCap)
+
+	appendSwarmMetricsPoint(point)
+
+	return point, breakdown, nil
+}
+
+// computeNodeCapacity computes the total capacity from ready nodes
+func computeNodeCapacity(nodes []swarm.Node) (readyNodes int, cpuCap, memCap int64) {
 	for _, n := range nodes {
-		nodeNames[n.ID] = n.Description.Hostname
+		if n.Status.State == swarm.NodeStateReady {
+			readyNodes++
+			if n.Description.Resources.NanoCPUs > 0 {
+				cpuCap += n.Description.Resources.NanoCPUs
+			}
+			if n.Description.Resources.MemoryBytes > 0 {
+				memCap += n.Description.Resources.MemoryBytes
+			}
+		}
 	}
+	return
+}
 
-	// Collect container stats for running tasks that have a container id.
-	// This is best-effort; individual stat failures are skipped.
-	type svcAgg struct {
-		m SwarmServiceMetrics
+// countRunningTasks counts the number of running tasks
+func countRunningTasks(tasks []swarm.Task) int {
+	count := 0
+	for _, t := range tasks {
+		if t.Status.State == swarm.TaskStateRunning {
+			count++
+		}
 	}
-	type nodeAgg struct {
-		m SwarmNodeMetrics
-	}
+	return count
+}
 
-	servicesAgg := map[string]*svcAgg{}
-	nodesAgg := map[string]*nodeAgg{}
+// computeResourceUsage computes CPU and memory reservations/limits from services
+func computeResourceUsage(services []swarm.Service, readyNodes int) (cpuRes, memRes, cpuLim, memLim int64) {
+	for _, s := range services {
+		mult := getServiceMultiplier(&s, readyNodes)
+		if mult <= 0 {
+			continue
+		}
+
+		req := s.Spec.TaskTemplate.Resources
+		if req == nil {
+			continue
+		}
+		if req.Reservations != nil {
+			cpuRes += req.Reservations.NanoCPUs * mult
+			memRes += req.Reservations.MemoryBytes * mult
+		}
+		if req.Limits != nil {
+			cpuLim += req.Limits.NanoCPUs * mult
+			memLim += req.Limits.MemoryBytes * mult
+		}
+	}
+	return
+}
+
+// getServiceMultiplier returns the replica count for a service
+func getServiceMultiplier(s *swarm.Service, readyNodes int) int64 {
+	if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
+		return int64(*s.Spec.Mode.Replicated.Replicas)
+	}
+	if s.Spec.Mode.Global != nil {
+		return int64(readyNodes)
+	}
+	return 0
+}
+
+// buildServiceNameMap creates a map of service ID to name
+func buildServiceNameMap(services []swarm.Service) map[string]string {
+	m := make(map[string]string, len(services))
+	for _, s := range services {
+		m[s.ID] = s.Spec.Name
+	}
+	return m
+}
+
+// buildNodeNameMap creates a map of node ID to hostname
+func buildNodeNameMap(nodes []swarm.Node) map[string]string {
+	m := make(map[string]string, len(nodes))
+	for _, n := range nodes {
+		m[n.ID] = n.Description.Hostname
+	}
+	return m
+}
+
+// containerStatsResult holds aggregated container stats
+type containerStatsResult struct {
+	cpuP     float64
+	memUsed  int64
+	memLimit int64
+	rx       int64
+	tx       int64
+}
+
+// collectContainerStats collects stats from all running containers
+func collectContainerStats(ctx context.Context, cli *client.Client, tasks []swarm.Task, serviceNames, nodeNames map[string]string, now string) (SwarmMetricsBreakdown, int, float64, int64, int64, int64) {
+	servicesAgg := map[string]*SwarmServiceMetrics{}
+	nodesAgg := map[string]*SwarmNodeMetrics{}
 
 	var sumCpuPercent float64
 	var sumMemUsed int64
@@ -139,84 +184,99 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 			continue
 		}
 
-		cid := t.Status.ContainerStatus.ContainerID
-		statsResp, err := cli.ContainerStats(ctx, cid, false)
-		if err != nil {
+		stats := getContainerStats(ctx, cli, t.Status.ContainerStatus.ContainerID)
+		if stats == nil {
 			continue
 		}
-		var sj types.StatsJSON
-		err = json.NewDecoder(statsResp.Body).Decode(&sj)
-		_ = statsResp.Body.Close()
-		if err != nil {
-			continue
-		}
-
-		cpuP := cpuPercent(&sj)
-		memUsed, memLimit := memoryUsage(&sj)
-		rx, tx := networkTotals(&sj)
 
 		containers++
-		sumCpuPercent += cpuP
-		sumMemUsed += memUsed
-		sumNetRx += rx
-		sumNetTx += tx
+		sumCpuPercent += stats.cpuP
+		sumMemUsed += stats.memUsed
+		sumNetRx += stats.rx
+		sumNetTx += stats.tx
 
-		// Service aggregation.
-		sid := t.ServiceID
-		if sid != "" {
-			agg := servicesAgg[sid]
-			if agg == nil {
-				agg = &svcAgg{m: SwarmServiceMetrics{Timestamp: now, ServiceID: sid, ServiceName: serviceNames[sid]}}
-				servicesAgg[sid] = agg
-			}
-			agg.m.RunningTasks++
-			agg.m.Containers++
-			agg.m.CpuPercent += cpuP
-			agg.m.MemoryUsedBytes += memUsed
-			agg.m.MemoryLimitBytes += memLimit
-			agg.m.NetworkRxBytes += rx
-			agg.m.NetworkTxBytes += tx
+		// Aggregate by service
+		if t.ServiceID != "" {
+			aggregateServiceMetrics(servicesAgg, t.ServiceID, serviceNames[t.ServiceID], now, stats)
 		}
 
-		// Node aggregation.
-		nid := t.NodeID
-		if nid != "" {
-			agg := nodesAgg[nid]
-			if agg == nil {
-				agg = &nodeAgg{m: SwarmNodeMetrics{Timestamp: now, NodeID: nid, Hostname: nodeNames[nid]}}
-				nodesAgg[nid] = agg
-			}
-			agg.m.RunningTasks++
-			agg.m.Containers++
-			agg.m.CpuPercent += cpuP
-			agg.m.MemoryUsedBytes += memUsed
-			agg.m.NetworkRxBytes += rx
-			agg.m.NetworkTxBytes += tx
+		// Aggregate by node
+		if t.NodeID != "" {
+			aggregateNodeMetrics(nodesAgg, t.NodeID, nodeNames[t.NodeID], now, stats)
 		}
 	}
-
-	point.RunningContainers = containers
-	point.MemoryUsedBytes = sumMemUsed
-	point.NetworkRxBytes = sumNetRx
-	point.NetworkTxBytes = sumNetTx
-	point.CpuUsagePercent = cpuUsagePercentOfCapacity(sumCpuPercent, cpuCap)
-
-	appendSwarmMetricsPoint(point)
 
 	breakdown := SwarmMetricsBreakdown{Timestamp: now}
 	breakdown.Services = make([]SwarmServiceMetrics, 0, len(servicesAgg))
 	for _, v := range servicesAgg {
-		breakdown.Services = append(breakdown.Services, v.m)
+		breakdown.Services = append(breakdown.Services, *v)
 	}
 	breakdown.Nodes = make([]SwarmNodeMetrics, 0, len(nodesAgg))
 	for _, v := range nodesAgg {
-		breakdown.Nodes = append(breakdown.Nodes, v.m)
+		breakdown.Nodes = append(breakdown.Nodes, *v)
 	}
 
-	return point, breakdown, nil
+	return breakdown, containers, sumCpuPercent, sumMemUsed, sumNetRx, sumNetTx
 }
 
-func cpuPercent(s *types.StatsJSON) float64 {
+// getContainerStats fetches stats for a single container
+func getContainerStats(ctx context.Context, cli *client.Client, cid string) *containerStatsResult {
+	statsResp, err := cli.ContainerStats(ctx, cid, false)
+	if err != nil {
+		return nil
+	}
+	var sj container.StatsResponse
+	err = json.NewDecoder(statsResp.Body).Decode(&sj)
+	_ = statsResp.Body.Close()
+	if err != nil {
+		return nil
+	}
+
+	cpuP := cpuPercent(&sj)
+	memUsed, memLimit := memoryUsage(&sj)
+	rx, tx := networkTotals(&sj)
+
+	return &containerStatsResult{
+		cpuP:     cpuP,
+		memUsed:  memUsed,
+		memLimit: memLimit,
+		rx:       rx,
+		tx:       tx,
+	}
+}
+
+// aggregateServiceMetrics adds container stats to service aggregation
+func aggregateServiceMetrics(agg map[string]*SwarmServiceMetrics, sid, name, now string, stats *containerStatsResult) {
+	m := agg[sid]
+	if m == nil {
+		m = &SwarmServiceMetrics{Timestamp: now, ServiceID: sid, ServiceName: name}
+		agg[sid] = m
+	}
+	m.RunningTasks++
+	m.Containers++
+	m.CpuPercent += stats.cpuP
+	m.MemoryUsedBytes += stats.memUsed
+	m.MemoryLimitBytes += stats.memLimit
+	m.NetworkRxBytes += stats.rx
+	m.NetworkTxBytes += stats.tx
+}
+
+// aggregateNodeMetrics adds container stats to node aggregation
+func aggregateNodeMetrics(agg map[string]*SwarmNodeMetrics, nid, hostname, now string, stats *containerStatsResult) {
+	m := agg[nid]
+	if m == nil {
+		m = &SwarmNodeMetrics{Timestamp: now, NodeID: nid, Hostname: hostname}
+		agg[nid] = m
+	}
+	m.RunningTasks++
+	m.Containers++
+	m.CpuPercent += stats.cpuP
+	m.MemoryUsedBytes += stats.memUsed
+	m.NetworkRxBytes += stats.rx
+	m.NetworkTxBytes += stats.tx
+}
+
+func cpuPercent(s *container.StatsResponse) float64 {
 	if s == nil {
 		return 0
 	}
@@ -236,7 +296,7 @@ func cpuPercent(s *types.StatsJSON) float64 {
 	return (cpuDelta / sysDelta) * online * 100.0
 }
 
-func memoryUsage(s *types.StatsJSON) (used int64, limit int64) {
+func memoryUsage(s *container.StatsResponse) (used int64, limit int64) {
 	if s == nil {
 		return 0, 0
 	}
@@ -257,7 +317,7 @@ func memoryUsage(s *types.StatsJSON) (used int64, limit int64) {
 	return usage, limit
 }
 
-func networkTotals(s *types.StatsJSON) (rx int64, tx int64) {
+func networkTotals(s *container.StatsResponse) (rx int64, tx int64) {
 	if s == nil {
 		return 0, 0
 	}

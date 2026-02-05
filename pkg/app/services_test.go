@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -320,5 +321,193 @@ func TestGetServiceSummary_NotFound(t *testing.T) {
 	_, err := app.GetServiceSummary("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent service")
+	}
+}
+
+func TestGetServices_PortFormatting(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "multi-port",
+				Namespace: "default",
+			},
+			Spec: corev1.ServiceSpec{
+				Type:      corev1.ServiceTypeClusterIP,
+				ClusterIP: "10.0.0.1",
+				Ports: []corev1.ServicePort{
+					{Port: 80, Protocol: corev1.ProtocolTCP, Name: "http"},
+					{Port: 443, Protocol: corev1.ProtocolTCP, Name: "https"},
+					{Port: 8080, Protocol: corev1.ProtocolTCP},
+				},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	services, err := app.GetServices("default")
+	if err != nil {
+		t.Fatalf("GetServices failed: %v", err)
+	}
+
+	if len(services) != 1 {
+		t.Fatalf("expected 1 service, got %d", len(services))
+	}
+
+	ports := services[0].Ports
+	if !strings.Contains(ports, "80/TCP (http)") {
+		t.Errorf("expected port 80/TCP (http) in ports, got: %s", ports)
+	}
+	if !strings.Contains(ports, "443/TCP (https)") {
+		t.Errorf("expected port 443/TCP (https) in ports, got: %s", ports)
+	}
+	if !strings.Contains(ports, "8080/TCP") {
+		t.Errorf("expected port 8080/TCP in ports, got: %s", ports)
+	}
+}
+
+func TestGetServices_DifferentTypes(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "clusterip", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "nodeport", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeNodePort},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "loadbalancer", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeLoadBalancer},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	services, err := app.GetServices("default")
+	if err != nil {
+		t.Fatalf("GetServices failed: %v", err)
+	}
+
+	if len(services) != 3 {
+		t.Fatalf("expected 3 services, got %d", len(services))
+	}
+
+	typeMap := make(map[string]string)
+	for _, svc := range services {
+		typeMap[svc.Name] = svc.Type
+	}
+
+	if typeMap["clusterip"] != "ClusterIP" {
+		t.Errorf("expected ClusterIP type, got %s", typeMap["clusterip"])
+	}
+	if typeMap["nodeport"] != "NodePort" {
+		t.Errorf("expected NodePort type, got %s", typeMap["nodeport"])
+	}
+	if typeMap["loadbalancer"] != "LoadBalancer" {
+		t.Errorf("expected LoadBalancer type, got %s", typeMap["loadbalancer"])
+	}
+}
+
+func TestGetServiceEndpoints_MultipleSubsets(t *testing.T) {
+	ctx := context.Background()
+	nodeName := "node-1"
+	clientset := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "web",
+				Namespace: "default",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{Port: 80, Protocol: corev1.ProtocolTCP},
+				},
+			},
+		},
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "web",
+				Namespace: "default",
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{IP: "10.0.0.1", NodeName: &nodeName},
+					},
+					Ports: []corev1.EndpointPort{
+						{Port: 8080, Protocol: corev1.ProtocolTCP},
+					},
+				},
+				{
+					Addresses: []corev1.EndpointAddress{
+						{IP: "10.0.0.2", NodeName: &nodeName},
+					},
+					Ports: []corev1.EndpointPort{
+						{Port: 8080, Protocol: corev1.ProtocolTCP},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	endpoints, err := app.GetServiceEndpoints("default", "web")
+	if err != nil {
+		t.Fatalf("GetServiceEndpoints failed: %v", err)
+	}
+
+	if len(endpoints) != 2 {
+		t.Fatalf("expected 2 endpoints, got %d", len(endpoints))
+	}
+}
+
+func TestGetServiceEndpoints_WithoutNodeName(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "web",
+				Namespace: "default",
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{Port: 80, Protocol: corev1.ProtocolTCP},
+				},
+			},
+		},
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "web",
+				Namespace: "default",
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{IP: "10.0.0.1"}, // No NodeName
+					},
+					Ports: []corev1.EndpointPort{
+						{Port: 8080, Protocol: corev1.ProtocolTCP},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	endpoints, err := app.GetServiceEndpoints("default", "web")
+	if err != nil {
+		t.Fatalf("GetServiceEndpoints failed: %v", err)
+	}
+
+	if len(endpoints) != 1 {
+		t.Fatalf("expected 1 endpoint, got %d", len(endpoints))
+	}
+
+	if endpoints[0].NodeName != "" {
+		t.Errorf("expected empty NodeName, got %s", endpoints[0].NodeName)
 	}
 }

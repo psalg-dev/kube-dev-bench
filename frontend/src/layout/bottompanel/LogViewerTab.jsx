@@ -176,8 +176,10 @@ export default function LogViewerTab({ podName, namespace, onClose, embedded = f
 
       // Auto-scroll when not paused
       if (editorRef.current) {
+        const editorEl = editorRef.current;
         requestAnimationFrame(() => {
-          const scroller = editorRef.current.querySelector('.cm-scroller');
+          if (!editorEl) return;
+          const scroller = editorEl.querySelector('.cm-scroller');
           if (scroller) scroller.scrollTop = scroller.scrollHeight;
         });
       }

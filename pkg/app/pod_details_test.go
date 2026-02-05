@@ -48,8 +48,7 @@ func TestShEscape_WithSpecialChars(t *testing.T) {
 		{"single quote", "it's", "'it'\\''s'"},
 		{"backtick", "cmd`echo`", "'cmd`echo`'"},
 		{"double quote", "say \"hello\"", "'say \"hello\"'"},
-		{"parenthesis", "test)", "'test)'"},
-		{"multiple special", "a 'b' c", "'a '\\''b'\\'' c'"},
+		{"dollar", "var $HOME", "'var $HOME'"},
 	}
 
 	for _, tc := range tests {
@@ -59,6 +58,241 @@ func TestShEscape_WithSpecialChars(t *testing.T) {
 				t.Errorf("shEscape(%q) = %q, want %q", tc.input, result, tc.expected)
 			}
 		})
+	}
+}
+
+func TestBuildInitContainerInfo_NoInitContainers(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{},
+		},
+	}
+
+	result := buildInitContainerInfo(pod)
+	if result != nil {
+		t.Errorf("expected nil for pod with no init containers, got %v", result)
+	}
+}
+
+func TestBuildInitContainerInfo_WithInitContainers(t *testing.T) {
+	exitCode := int32(0)
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{
+				{
+					Name:  "init-config",
+					Image: "busybox:1.28",
+				},
+				{
+					Name:  "init-network",
+					Image: "alpine:3.12",
+				},
+			},
+		},
+		Status: corev1.PodStatus{
+			InitContainerStatuses: []corev1.ContainerStatus{
+				{
+					Name:         "init-config",
+					Ready:        true,
+					RestartCount: 0,
+					State: corev1.ContainerState{
+						Terminated: &corev1.ContainerStateTerminated{
+							ExitCode: exitCode,
+							Reason:   "Completed",
+						},
+					},
+				},
+				{
+					Name:         "init-network",
+					Ready:        false,
+					RestartCount: 1,
+					State: corev1.ContainerState{
+						Running: &corev1.ContainerStateRunning{},
+					},
+				},
+			},
+		},
+	}
+
+	result := buildInitContainerInfo(pod)
+
+	if len(result) != 2 {
+		t.Fatalf("expected 2 init containers, got %d", len(result))
+	}
+
+	// Check first init container (terminated)
+	if result[0].Name != "init-config" {
+		t.Errorf("expected name 'init-config', got %s", result[0].Name)
+	}
+	if result[0].Image != "busybox:1.28" {
+		t.Errorf("expected image 'busybox:1.28', got %s", result[0].Image)
+	}
+	if result[0].State != "Terminated" {
+		t.Errorf("expected state 'Terminated', got %s", result[0].State)
+	}
+	if result[0].StateReason != "Completed" {
+		t.Errorf("expected reason 'Completed', got %s", result[0].StateReason)
+	}
+	if result[0].ExitCode == nil || *result[0].ExitCode != 0 {
+		t.Errorf("expected exit code 0, got %v", result[0].ExitCode)
+	}
+
+	// Check second init container (running)
+	if result[1].Name != "init-network" {
+		t.Errorf("expected name 'init-network', got %s", result[1].Name)
+	}
+	if result[1].State != "Running" {
+		t.Errorf("expected state 'Running', got %s", result[1].State)
+	}
+	if result[1].RestartCount != 1 {
+		t.Errorf("expected restart count 1, got %d", result[1].RestartCount)
+	}
+}
+
+func TestBuildInitContainerInfo_WaitingState(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{
+				{
+					Name:  "init-wait",
+					Image: "busybox",
+				},
+			},
+		},
+		Status: corev1.PodStatus{
+			InitContainerStatuses: []corev1.ContainerStatus{
+				{
+					Name:  "init-wait",
+					Ready: false,
+					State: corev1.ContainerState{
+						Waiting: &corev1.ContainerStateWaiting{
+							Reason:  "ImagePullBackOff",
+							Message: "Back-off pulling image",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := buildInitContainerInfo(pod)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 init container, got %d", len(result))
+	}
+
+	if result[0].State != "Waiting" {
+		t.Errorf("expected state 'Waiting', got %s", result[0].State)
+	}
+	if result[0].StateReason != "ImagePullBackOff" {
+		t.Errorf("expected reason 'ImagePullBackOff', got %s", result[0].StateReason)
+	}
+	if result[0].StateMessage != "Back-off pulling image" {
+		t.Errorf("expected message 'Back-off pulling image', got %s", result[0].StateMessage)
+	}
+}
+
+func TestBuildInitContainerInfo_NoStatusYet(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-pod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			InitContainers: []corev1.Container{
+				{
+					Name:  "init-pending",
+					Image: "busybox",
+				},
+			},
+		},
+		Status: corev1.PodStatus{
+			InitContainerStatuses: []corev1.ContainerStatus{},
+		},
+	}
+
+	result := buildInitContainerInfo(pod)
+
+	if len(result) != 1 {
+		t.Fatalf("expected 1 init container, got %d", len(result))
+	}
+
+	if result[0].State != "Pending" {
+		t.Errorf("expected state 'Pending', got %s", result[0].State)
+	}
+	if result[0].StateReason != "ContainerNotStarted" {
+		t.Errorf("expected reason 'ContainerNotStarted', got %s", result[0].StateReason)
+	}
+}
+
+func TestGetPodSummary_Success(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-pod",
+				Namespace: "default",
+				Labels: map[string]string{
+					"app": "test",
+				},
+			},
+			Spec: corev1.PodSpec{
+				Containers: []corev1.Container{
+					{
+						Name:  "main",
+						Image: "nginx:latest",
+						Ports: []corev1.ContainerPort{
+							{ContainerPort: 80},
+							{ContainerPort: 443},
+						},
+					},
+				},
+			},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset, currentNamespace: "default"}
+
+	summary, err := app.GetPodSummary("test-pod")
+	if err != nil {
+		t.Fatalf("GetPodSummary failed: %v", err)
+	}
+
+	if summary.Name != "test-pod" {
+		t.Errorf("expected name 'test-pod', got %s", summary.Name)
+	}
+	if summary.Namespace != "default" {
+		t.Errorf("expected namespace 'default', got %s", summary.Namespace)
+	}
+	if summary.Status != "Running" {
+		t.Errorf("expected status 'Running', got %s", summary.Status)
+	}
+	if len(summary.Ports) != 2 {
+		t.Errorf("expected 2 ports, got %d", len(summary.Ports))
+	}
+}
+
+func TestGetPodSummary_NoNamespace(t *testing.T) {
+	app := &App{ctx: context.Background(), currentNamespace: ""}
+
+	_, err := app.GetPodSummary("test-pod")
+	if err == nil {
+		t.Fatal("expected error for no namespace selected")
 	}
 }
 

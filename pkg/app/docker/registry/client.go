@@ -115,25 +115,8 @@ type bearerChallenge struct {
 	scope   string
 }
 
-func parseBearerChallenge(header string) (bearerChallenge, bool) {
-	header = strings.TrimSpace(header)
-	if header == "" {
-		return bearerChallenge{}, false
-	}
-	lower := strings.ToLower(header)
-	if !strings.HasPrefix(lower, "bearer ") {
-		return bearerChallenge{}, false
-	}
-	sp := strings.IndexByte(header, ' ')
-	if sp < 0 {
-		return bearerChallenge{}, false
-	}
-	params := strings.TrimSpace(header[sp+1:])
-	if params == "" {
-		return bearerChallenge{}, false
-	}
-
-	// Split on commas not inside quotes.
+// splitChallengeParams splits challenge parameters on commas not inside quotes.
+func splitChallengeParams(params string) []string {
 	var parts []string
 	var cur strings.Builder
 	inQuotes := false
@@ -156,7 +139,11 @@ func parseBearerChallenge(header string) (bearerChallenge, bool) {
 	if s := strings.TrimSpace(cur.String()); s != "" {
 		parts = append(parts, s)
 	}
+	return parts
+}
 
+// parseChallengeParams parses key=value pairs into a bearerChallenge.
+func parseChallengeParams(parts []string) bearerChallenge {
 	out := bearerChallenge{}
 	for _, p := range parts {
 		if p == "" {
@@ -179,6 +166,29 @@ func parseBearerChallenge(header string) (bearerChallenge, bool) {
 			out.scope = v
 		}
 	}
+	return out
+}
+
+func parseBearerChallenge(header string) (bearerChallenge, bool) {
+	header = strings.TrimSpace(header)
+	if header == "" {
+		return bearerChallenge{}, false
+	}
+	lower := strings.ToLower(header)
+	if !strings.HasPrefix(lower, "bearer ") {
+		return bearerChallenge{}, false
+	}
+	sp := strings.IndexByte(header, ' ')
+	if sp < 0 {
+		return bearerChallenge{}, false
+	}
+	params := strings.TrimSpace(header[sp+1:])
+	if params == "" {
+		return bearerChallenge{}, false
+	}
+
+	parts := splitChallengeParams(params)
+	out := parseChallengeParams(parts)
 
 	if strings.TrimSpace(out.realm) == "" {
 		return bearerChallenge{}, false
@@ -284,6 +294,57 @@ type v2ImageManifest struct {
 	} `json:"layers"`
 }
 
+// parseManifestListSize tries to parse as manifest list and return the size for a specific platform.
+func (c *v2Client) parseManifestListSize(ctx context.Context, repository string, body []byte) (int64, bool) {
+	var ml v2ManifestList
+	if err := json.Unmarshal(body, &ml); err != nil || len(ml.Manifests) == 0 {
+		return 0, false
+	}
+
+	chosen := chooseManifestDigestFromList(ml.Manifests)
+	if chosen == "" {
+		return 0, true // empty means we handled it but found nothing
+	}
+	size, _ := c.GetImageSizeBytes(ctx, repository, chosen)
+	return size, true
+}
+
+// chooseManifestDigestFromList selects the best manifest digest, preferring linux/amd64.
+func chooseManifestDigestFromList(manifests []struct {
+	MediaType string `json:"mediaType"`
+	Digest    string `json:"digest"`
+	Platform  struct {
+		Architecture string `json:"architecture"`
+		OS           string `json:"os"`
+		Variant      string `json:"variant"`
+	} `json:"platform"`
+}) string {
+	for _, m := range manifests {
+		if m.Platform.OS == "linux" && m.Platform.Architecture == "amd64" && strings.TrimSpace(m.Digest) != "" {
+			return strings.TrimSpace(m.Digest)
+		}
+	}
+	if len(manifests) > 0 {
+		return strings.TrimSpace(manifests[0].Digest)
+	}
+	return ""
+}
+
+// parseImageManifestSize tries to parse as image manifest and sum layer sizes.
+func parseImageManifestSize(body []byte) (int64, bool) {
+	var im v2ImageManifest
+	if err := json.Unmarshal(body, &im); err != nil || len(im.Layers) == 0 {
+		return 0, false
+	}
+	var total int64
+	for _, l := range im.Layers {
+		if l.Size > 0 {
+			total += l.Size
+		}
+	}
+	return total, true
+}
+
 func (c *v2Client) GetImageSizeBytes(ctx context.Context, repository, reference string) (int64, error) {
 	repository = strings.TrimSpace(repository)
 	reference = strings.TrimSpace(reference)
@@ -313,35 +374,13 @@ func (c *v2Client) GetImageSizeBytes(ctx context.Context, repository, reference 
 	}
 
 	// Try manifest list / index first.
-	var ml v2ManifestList
-	if err := json.Unmarshal(body, &ml); err == nil && len(ml.Manifests) > 0 {
-		// Prefer linux/amd64; fall back to the first manifest.
-		chosen := ""
-		for _, m := range ml.Manifests {
-			if m.Platform.OS == "linux" && m.Platform.Architecture == "amd64" && strings.TrimSpace(m.Digest) != "" {
-				chosen = strings.TrimSpace(m.Digest)
-				break
-			}
-		}
-		if chosen == "" {
-			chosen = strings.TrimSpace(ml.Manifests[0].Digest)
-		}
-		if chosen == "" {
-			return 0, nil
-		}
-		return c.GetImageSizeBytes(ctx, repository, chosen)
+	if size, ok := c.parseManifestListSize(ctx, repository, body); ok {
+		return size, nil
 	}
 
 	// Try image manifest (schema2/OCI).
-	var im v2ImageManifest
-	if err := json.Unmarshal(body, &im); err == nil && len(im.Layers) > 0 {
-		var total int64
-		for _, l := range im.Layers {
-			if l.Size > 0 {
-				total += l.Size
-			}
-		}
-		return total, nil
+	if size, ok := parseImageManifestSize(body); ok {
+		return size, nil
 	}
 
 	return 0, nil
@@ -424,72 +463,93 @@ func (c *v2Client) getJSON(ctx context.Context, p string, query url.Values, out 
 	return resp, nil
 }
 
-func (c *v2Client) do(ctx context.Context, method, p string, query url.Values, headers map[string]string) (*http.Response, []byte, error) {
-	if c == nil || c.baseURL == nil {
-		return nil, nil, fmt.Errorf("client not initialized")
-	}
-
+// buildRequestURL constructs the full URL for the registry request.
+func (c *v2Client) buildRequestURL(p string, query url.Values) url.URL {
 	u := *c.baseURL
-	// Join with base path.
 	u.Path = path.Join(strings.TrimSuffix(u.Path, "/"), p)
 	u.RawQuery = ""
 	if query != nil {
 		u.RawQuery = query.Encode()
 	}
+	return u
+}
 
-	doOnce := func(authHeader string) (*http.Response, []byte, error) {
-		req, err := http.NewRequestWithContext(ctx, method, u.String(), nil)
-		if err != nil {
-			return nil, nil, err
-		}
-		for k, v := range headers {
-			if strings.TrimSpace(k) == "" {
-				continue
-			}
+// executeRequest executes a single HTTP request with the given auth header.
+func (c *v2Client) executeRequest(ctx context.Context, method string, u url.URL, headers map[string]string, authHeader string) (*http.Response, []byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	for k, v := range headers {
+		if strings.TrimSpace(k) != "" {
 			req.Header.Set(k, v)
 		}
-		if strings.TrimSpace(authHeader) != "" {
-			req.Header.Set("Authorization", authHeader)
-		}
-
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			return nil, nil, err
-		}
-		defer resp.Body.Close()
-		b, _ := io.ReadAll(resp.Body)
-		return resp, b, nil
+	}
+	if strings.TrimSpace(authHeader) != "" {
+		req.Header.Set("Authorization", authHeader)
 	}
 
-	resp, b, err := doOnce(c.authHeader)
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer resp.Body.Close()
+	b, _ := io.ReadAll(resp.Body)
+	return resp, b, nil
+}
+
+// handleBearerChallenge attempts to exchange a Bearer token and retry the request.
+func (c *v2Client) handleBearerChallenge(ctx context.Context, resp *http.Response, method string, u url.URL, headers map[string]string) (*http.Response, []byte, bool) {
+	if resp.StatusCode != http.StatusUnauthorized {
+		return nil, nil, false
+	}
+	ch, ok := parseBearerChallenge(resp.Header.Get("Www-Authenticate"))
+	if !ok {
+		return nil, nil, false
+	}
+	tok, err := c.exchangeBearerToken(ctx, ch)
+	if err != nil {
+		return nil, nil, false
+	}
+	c.authHeader = "Bearer " + tok
+	resp2, b2, err2 := c.executeRequest(ctx, method, u, headers, c.authHeader)
+	if err2 != nil {
+		return nil, nil, false
+	}
+	return resp2, b2, true
+}
+
+// formatErrorMessage formats the error message from response body.
+func formatErrorMessage(body []byte, status string) string {
+	msg := strings.TrimSpace(string(body))
+	if len(msg) > 512 {
+		msg = msg[:512]
+	}
+	if msg == "" {
+		msg = status
+	}
+	return msg
+}
+
+func (c *v2Client) do(ctx context.Context, method, p string, query url.Values, headers map[string]string) (*http.Response, []byte, error) {
+	if c == nil || c.baseURL == nil {
+		return nil, nil, fmt.Errorf("client not initialized")
+	}
+
+	u := c.buildRequestURL(p, query)
+
+	resp, b, err := c.executeRequest(ctx, method, u, headers, c.authHeader)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Handle Bearer token challenge (Docker Hub and other registries).
-	if resp.StatusCode == http.StatusUnauthorized {
-		if ch, ok := parseBearerChallenge(resp.Header.Get("Www-Authenticate")); ok {
-			if tok, terr := c.exchangeBearerToken(ctx, ch); terr == nil {
-				c.authHeader = "Bearer " + tok
-				resp2, b2, err2 := doOnce(c.authHeader)
-				if err2 != nil {
-					return nil, nil, err2
-				}
-				resp, b = resp2, b2
-			}
-		}
+	// Handle Bearer token challenge.
+	if resp2, b2, ok := c.handleBearerChallenge(ctx, resp, method, u, headers); ok {
+		resp, b = resp2, b2
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		// Keep the error short but include a hint.
-		msg := strings.TrimSpace(string(b))
-		if len(msg) > 512 {
-			msg = msg[:512]
-		}
-		if msg == "" {
-			msg = resp.Status
-		}
-		return nil, nil, fmt.Errorf("registry request failed: %s", msg)
+		return nil, nil, fmt.Errorf("registry request failed: %s", formatErrorMessage(b, resp.Status))
 	}
 
 	return resp, b, nil

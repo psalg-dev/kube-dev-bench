@@ -20,10 +20,16 @@ import PortForwardDialog from './PortForwardDialog';
 import PodMountsTab from './PodMountsTab';
 import PodFilesTab from './PodFilesTab';
 import '../../../layout/overview/OverviewTableWithPanel.css';
+import '../../../layout/overview/BulkSelection.css';
 import { showResourceOverlay } from '../../../resource-overlay.js';
 import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHolmesStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel.jsx';
 import StatusBadge from '../../../components/StatusBadge.jsx';
+import BulkActionBar from '../../../components/BulkActionBar.jsx';
+import useTableSelection from '../../../hooks/useTableSelection.js';
+import { getBulkActionsForResource } from '../../../constants/bulkActions.js';
+import { executeBulkAction } from '../../../api/bulkOperations.js';
+import { showError, showSuccess } from '../../../notification.js';
 
 // Resource types matching sidebar and templates in resource-overlay.js
 const createOptions = [
@@ -58,6 +64,8 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
   const [forwardRemotePort, setForwardRemotePort] = useState(null);
   const [internalData, setInternalData] = useState([]);
   const [pfByKey, setPfByKey] = useState({}); // key: ns/pod -> { remotePort: [locals] }
+  const bulkActions = useMemo(() => getBulkActionsForResource({ platform: 'k8s', kind: 'pod' }), []);
+  const bulkEnabled = bulkActions.length > 0;
   const [holmesState, setHolmesState] = useState({
     loading: false,
     response: null,
@@ -505,6 +513,82 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
     manualSorting: false,
   });
 
+  const getRowKey = useCallback((row, idx) => {
+    const ns = row?.namespace ?? row?.Namespace ?? namespace ?? '';
+    const name = row?.name ?? row?.Name ?? row?.id ?? row?.ID ?? idx;
+    return ns ? `${ns}/${name}` : String(name);
+  }, [namespace]);
+
+  const selectionVisibleData = table.getRowModel().rows.map((row) => row.original);
+  const selection = useTableSelection(tableData, getRowKey, selectionVisibleData);
+  const selectAllRef = useRef(null);
+
+  useEffect(() => {
+    if (!bulkEnabled || !selectAllRef.current) return;
+    selectAllRef.current.indeterminate = selection.isIndeterminate;
+  }, [bulkEnabled, selection.isIndeterminate, selection.isAllSelected]);
+
+  useEffect(() => {
+    if (!bulkEnabled) return;
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        selection.toggleAll();
+        return;
+      }
+      if (e.key === 'Escape') {
+        selection.clearSelection();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [bulkEnabled, selection]);
+
+  const handleBulkAction = useCallback(async (action) => {
+    if (!bulkEnabled || !action) return;
+    const selectedRows = selection.getSelectedRows(selectionVisibleData);
+    if (selectedRows.length === 0) return;
+
+    if (action.confirm) {
+      const ok = window.confirm(`${action.label} ${selectedRows.length} selected item(s)?`);
+      if (!ok) return;
+    }
+
+    const options = {};
+    if (action.promptReplicas) {
+      const current = selectedRows[0]?.replicas ?? selectedRows[0]?.Replicas ?? 0;
+      const raw = window.prompt('Enter desired replica count:', String(current ?? 0));
+      if (raw === null) return;
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        showError('Replica count must be a non-negative number.');
+        return;
+      }
+      options.replicas = Math.floor(parsed);
+    }
+
+    try {
+      const summary = await executeBulkAction({
+        platform: 'k8s',
+        kind: 'pod',
+        actionKey: action.key,
+        rows: selectedRows,
+        options,
+      });
+      if (summary.failed === 0) {
+        showSuccess(`${action.label} succeeded for ${summary.succeeded} item(s).`);
+      } else {
+        showError(`${action.label} completed with ${summary.failed} failure(s).`);
+      }
+      selection.clearSelection();
+    } catch (err) {
+      showError(`${action.label} failed: ${err?.message || String(err)}`);
+    }
+  }, [bulkEnabled, selection, selectionVisibleData]);
+
   const handleMenuClickRow = (index) => {
     setOpenMenuIndex(openMenuIndex === index ? null : index);
   };
@@ -888,6 +972,14 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
               onClick={e => { e.stopPropagation(); setShowMenu(v => !v); }}
             >+
             </button>
+            {bulkEnabled && (
+              <BulkActionBar
+                selectedCount={selection.selectedCount}
+                actions={bulkActions}
+                onAction={handleBulkAction}
+                onClear={selection.clearSelection}
+              />
+            )}
             {showMenu && (
               <div
                 className="menu-content"
@@ -931,6 +1023,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         {/* Column widths: Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
         <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
           <colgroup>
+            {bulkEnabled && <col className="bulk-checkbox-col" />}
             <col style={{ width: '25%' }} />
             {multiNs && <col style={{ width: '12%' }} />}
             <col style={{ width: '15%' }} />
@@ -942,6 +1035,18 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
           <thead>
           {table.getHeaderGroups().map(headerGroup => (
               <tr key={headerGroup.id}>
+                {bulkEnabled && (
+                  <th className="bulk-checkbox-col" aria-label="Select all">
+                    <input
+                      ref={selectAllRef}
+                      className="bulk-select-all"
+                      type="checkbox"
+                      checked={selection.isAllSelected}
+                      onChange={() => selection.toggleAll()}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </th>
+                )}
                 {headerGroup.headers.map(header => (
                     <th
                         key={header.id}
@@ -984,6 +1089,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
         <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <colgroup>
+              {bulkEnabled && <col className="bulk-checkbox-col" />}
               <col style={{ width: '25%' }} />
               {multiNs && <col style={{ width: '12%' }} />}
               <col style={{ width: '15%' }} />
@@ -995,19 +1101,41 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
             <tbody>
             {topPadHeight > 0 && (
                 <tr style={{height: topPadHeight}}>
-                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                  <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
             {visibleRows.map((row, i) => (
                 <tr
                     key={row.id}
-                    onClick={() => openDetails(row.original.name, row.original.namespace)}
+                    onClick={(e) => {
+                      if (bulkEnabled && e.shiftKey) {
+                        e.preventDefault();
+                        selection.toggleRow(getRowKey(row.original, visibleRowStart + i), visibleRowStart + i, true);
+                        return;
+                      }
+                      openDetails(row.original.name, row.original.namespace);
+                    }}
+                    className={bulkEnabled && selection.isSelected(getRowKey(row.original, row.index)) ? 'bulk-selected' : undefined}
                     style={{
                       borderBottom: '1px solid #353a42',
                       transition: 'background 0.2s',
                       height: ROW_HEIGHT
                     }}
                 >
+                  {bulkEnabled && (
+                    <td className="bulk-checkbox-col" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        className="bulk-row-checkbox"
+                        type="checkbox"
+                        checked={selection.isSelected(getRowKey(row.original, row.index))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selection.toggleRow(getRowKey(row.original, visibleRowStart + i), visibleRowStart + i, e.shiftKey);
+                        }}
+                        onChange={() => {}}
+                      />
+                    </td>
+                  )}
                   {row.getVisibleCells().map(cell => (
                       <td
                           key={cell.id}
@@ -1179,7 +1307,7 @@ export default function PodOverviewTable({ namespace, namespaces = [], data = []
               ))}
             {bottomPadHeight > 0 && (
                 <tr style={{height: bottomPadHeight}}>
-                  <td colSpan={baseColumns.length + 1} style={{padding: 0, border: 'none', background: 'transparent'}}/>
+                  <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
             </tbody>

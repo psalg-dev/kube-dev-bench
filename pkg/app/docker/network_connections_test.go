@@ -13,7 +13,7 @@ type fakeNetworkConnectionsClient struct {
 	services []swarm.Service
 	tasks    []swarm.Task
 	nodes    []swarm.Node
-	networks map[string]types.NetworkResource
+	networks map[string]network.Inspect
 }
 
 func (f *fakeNetworkConnectionsClient) ServiceList(ctx context.Context, opts types.ServiceListOptions) ([]swarm.Service, error) {
@@ -28,11 +28,11 @@ func (f *fakeNetworkConnectionsClient) NodeList(ctx context.Context, opts types.
 	return f.nodes, nil
 }
 
-func (f *fakeNetworkConnectionsClient) NetworkInspect(ctx context.Context, networkID string, opts types.NetworkInspectOptions) (types.NetworkResource, error) {
+func (f *fakeNetworkConnectionsClient) NetworkInspect(ctx context.Context, networkID string, opts network.InspectOptions) (network.Inspect, error) {
 	if net, ok := f.networks[networkID]; ok {
 		return net, nil
 	}
-	return types.NetworkResource{ID: networkID}, nil
+	return network.Inspect{ID: networkID}, nil
 }
 
 func TestGetSwarmNetworkServices_ReturnsAttachedServices(t *testing.T) {
@@ -75,7 +75,7 @@ func TestGetSwarmNetworkServices_ReturnsAttachedServices(t *testing.T) {
 				},
 			},
 		},
-		networks: map[string]types.NetworkResource{
+		networks: map[string]network.Inspect{
 			networkID: {ID: networkID, Name: "my-network"},
 		},
 	}
@@ -117,7 +117,7 @@ func TestGetSwarmNetworkServices_MatchesByNetworkName(t *testing.T) {
 				},
 			},
 		},
-		networks: map[string]types.NetworkResource{
+		networks: map[string]network.Inspect{
 			networkID: {ID: networkID, Name: networkName},
 		},
 	}
@@ -281,7 +281,7 @@ func TestGetSwarmNetworkInspectJSON_ReturnsJSON(t *testing.T) {
 	networkID := "net-123"
 
 	cli := &fakeNetworkConnectionsClient{
-		networks: map[string]types.NetworkResource{
+		networks: map[string]network.Inspect{
 			networkID: {
 				ID:     networkID,
 				Name:   "my-network",

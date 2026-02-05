@@ -1,0 +1,117 @@
+{
+  "patterns": [
+    {
+      "pattern": "pod.*crash|CrashLoopBackOff|why.*pod.*crash|pod.*restart",
+      "response": {
+        "response": "## Pod Crash Analysis\n\nThe pod is experiencing CrashLoopBackOff due to application errors.\n\n### Root Cause\n- Container exit code 1 indicates application failure\n- The application is failing during startup initialization\n- Check logs for application-specific errors\n\n### Investigation Steps\n```bash\nkubectl logs <pod-name> --previous\nkubectl describe pod <pod-name>\n```\n\n### Recommendations\n1. Review application logs for stack traces\n2. Verify resource limits are appropriate\n3. Check liveness probe configuration\n4. Ensure required environment variables are set",
+        "analysis": "Pod crash root cause analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Pod Crash Analysis\n\n", "reasoning": "Analyzing pod state and recent events" } },
+        { "event": "start_tool_calling", "data": { "id": "tool-1", "tool_name": "kubectl_logs", "description": "Fetching pod logs" } },
+        { "event": "tool_calling_result", "data": { "tool_call_id": "tool-1", "name": "kubectl_logs", "status": "success" } },
+        { "event": "start_tool_calling", "data": { "id": "tool-2", "tool_name": "kubectl_describe", "description": "Getting pod details" } },
+        { "event": "tool_calling_result", "data": { "tool_call_id": "tool-2", "name": "kubectl_describe", "status": "success" } },
+        { "event": "ai_message", "data": { "content": "The pod is experiencing CrashLoopBackOff due to application errors.\n\n### Root Cause\n- Container exit code 1 indicates application failure\n- The application is failing during startup initialization\n- Check logs for application-specific errors\n\n### Investigation Steps\n```bash\nkubectl logs <pod-name> --previous\nkubectl describe pod <pod-name>\n```\n\n### Recommendations\n1. Review application logs for stack traces\n2. Verify resource limits are appropriate\n3. Check liveness probe configuration\n4. Ensure required environment variables are set" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Pod crash root cause analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "deployment|replica|rollout|scale",
+      "response": {
+        "response": "## Deployment Analysis\n\nThe deployment is healthy with all replicas running.\n\n### Status\n- **Desired replicas**: Matched\n- **Available replicas**: All healthy\n- **Strategy**: RollingUpdate\n- **Max unavailable**: 25%\n\n### Health Check\n✓ All pods running and ready\n✓ No pending updates\n✓ Resource utilization within normal limits\n✓ No rollout in progress\n\n### Recent Events\n- Last successful deployment: within SLA\n- No OOM kills detected\n- Network policies applied correctly",
+        "analysis": "Deployment health check completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Deployment Analysis\n\n" } },
+        { "event": "start_tool_calling", "data": { "id": "tool-1", "tool_name": "kubectl_get_deployment", "description": "Fetching deployment status" } },
+        { "event": "tool_calling_result", "data": { "tool_call_id": "tool-1", "name": "kubectl_get_deployment", "status": "success" } },
+        { "event": "ai_message", "data": { "content": "The deployment is healthy with all replicas running.\n\n### Status\n- **Desired replicas**: Matched\n- **Available replicas**: All healthy\n- **Strategy**: RollingUpdate\n- **Max unavailable**: 25%\n\n### Health Check\n✓ All pods running and ready\n✓ No pending updates\n✓ Resource utilization within normal limits\n✓ No rollout in progress\n\n### Recent Events\n- Last successful deployment: within SLA\n- No OOM kills detected\n- Network policies applied correctly" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Deployment health check completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "logs?|explain.*log|analyze.*log|what.*log",
+      "response": {
+        "response": "## Log Analysis\n\nAnalyzed the provided logs.\n\n### Findings\n- **Severity**: No critical errors detected\n- **Warnings**: Minor configuration warnings present\n- **Info**: Application startup successful\n\n### Log Patterns Identified\n1. **Startup sequence**: Normal initialization\n2. **Health checks**: Passing consistently\n3. **Request handling**: Normal traffic patterns\n\n### Notable Entries\n```\n[INFO] Application started successfully on port 8080\n[WARN] Deprecated configuration option detected\n[INFO] Health check endpoint responding\n```\n\n### Recommendations\n- Address deprecation warnings in next release\n- Continue monitoring error rates",
+        "analysis": "Log analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Log Analysis\n\nAnalyzed the provided logs.\n\n### Findings\n- **Severity**: No critical errors detected\n- **Warnings**: Minor configuration warnings present\n- **Info**: Application startup successful\n\n### Log Patterns Identified\n1. **Startup sequence**: Normal initialization\n2. **Health checks**: Passing consistently\n3. **Request handling**: Normal traffic patterns\n\n### Notable Entries\n```\n[INFO] Application started successfully on port 8080\n[WARN] Deprecated configuration option detected\n[INFO] Health check endpoint responding\n```\n\n### Recommendations\n- Address deprecation warnings in next release\n- Continue monitoring error rates" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Log analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "swarm.*service|docker.*swarm|service.*swarm",
+      "response": {
+        "response": "## Swarm Service Analysis\n\nThe Docker Swarm service is running normally.\n\n### Service Status\n- **Replicas**: Running as expected (desired = actual)\n- **Network**: Connected to overlay network\n- **Ports**: Published correctly\n- **Mode**: Replicated\n\n### Health Indicators\n✓ All service tasks healthy\n✓ Load balancer active and distributing traffic\n✓ DNS resolution working correctly\n✓ Ingress network operational\n\n### Resource Usage\n- CPU: Within limits\n- Memory: No OOM events\n- Network I/O: Normal",
+        "analysis": "Swarm service analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Swarm Service Analysis\n\nThe Docker Swarm service is running normally.\n\n### Service Status\n- **Replicas**: Running as expected (desired = actual)\n- **Network**: Connected to overlay network\n- **Ports**: Published correctly\n- **Mode**: Replicated\n\n### Health Indicators\n✓ All service tasks healthy\n✓ Load balancer active and distributing traffic\n✓ DNS resolution working correctly\n✓ Ingress network operational\n\n### Resource Usage\n- CPU: Within limits\n- Memory: No OOM events\n- Network I/O: Normal" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Swarm service analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "secret|configmap|configuration|config",
+      "response": {
+        "response": "## Configuration Resource Analysis\n\nThe configuration resource has been analyzed.\n\n### Details\n- **Resource Status**: Exists and accessible\n- **Data Keys**: All present and properly encoded\n- **Size**: Within acceptable limits\n\n### Usage Verification\n✓ Mounted as volumes in referencing pods\n✓ Environment variable injection working\n✓ No orphaned references found\n✓ RBAC permissions correctly configured\n\n### Best Practices Check\n- Secrets are base64 encoded\n- ConfigMaps follow naming conventions\n- No sensitive data in ConfigMaps",
+        "analysis": "Configuration resource analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Configuration Resource Analysis\n\nThe configuration resource has been analyzed.\n\n### Details\n- **Resource Status**: Exists and accessible\n- **Data Keys**: All present and properly encoded\n- **Size**: Within acceptable limits\n\n### Usage Verification\n✓ Mounted as volumes in referencing pods\n✓ Environment variable injection working\n✓ No orphaned references found\n✓ RBAC permissions correctly configured\n\n### Best Practices Check\n- Secrets are base64 encoded\n- ConfigMaps follow naming conventions\n- No sensitive data in ConfigMaps" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Configuration resource analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "job|cronjob|batch|scheduled",
+      "response": {
+        "response": "## Job/CronJob Analysis\n\nThe batch workload has been analyzed.\n\n### Status\n- **Job Status**: Completed successfully\n- **Last Run**: Within expected schedule\n- **Success Rate**: 100% in last 24 hours\n\n### Schedule Details\n- **Schedule**: As configured\n- **Concurrency Policy**: Forbid (prevents overlap)\n- **History Limits**: 3 successful, 1 failed\n\n### Execution History\n| Run Time | Duration | Status |\n|----------|----------|--------|\n| Latest   | 45s      | ✓ Success |\n| Previous | 42s      | ✓ Success |\n\n### Recommendations\n- Job execution time is consistent\n- No failed runs detected",
+        "analysis": "Batch workload analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Job/CronJob Analysis\n\nThe batch workload has been analyzed.\n\n### Status\n- **Job Status**: Completed successfully\n- **Last Run**: Within expected schedule\n- **Success Rate**: 100% in last 24 hours\n\n### Schedule Details\n- **Schedule**: As configured\n- **Concurrency Policy**: Forbid (prevents overlap)\n- **History Limits**: 3 successful, 1 failed\n\n### Execution History\n| Run Time | Duration | Status |\n|----------|----------|--------|\n| Latest   | 45s      | ✓ Success |\n| Previous | 42s      | ✓ Success |\n\n### Recommendations\n- Job execution time is consistent\n- No failed runs detected" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Batch workload analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "service|endpoint|networking|ingress",
+      "response": {
+        "response": "## Service/Networking Analysis\n\nThe service and networking configuration has been analyzed.\n\n### Service Status\n- **Type**: ClusterIP/NodePort/LoadBalancer\n- **Endpoints**: Healthy and responding\n- **Selector**: Matching pods correctly\n\n### Network Health\n✓ Service discovery working\n✓ DNS resolution active\n✓ Endpoints synced with pods\n✓ Port mappings correct\n\n### Connectivity Test\n```\nCluster IP → Pod: OK\nService DNS → Endpoints: OK\nLoad Balancer → Backend: OK\n```",
+        "analysis": "Service and networking analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Service/Networking Analysis\n\nThe service and networking configuration has been analyzed.\n\n### Service Status\n- **Type**: ClusterIP/NodePort/LoadBalancer\n- **Endpoints**: Healthy and responding\n- **Selector**: Matching pods correctly\n\n### Network Health\n✓ Service discovery working\n✓ DNS resolution active\n✓ Endpoints synced with pods\n✓ Port mappings correct\n\n### Connectivity Test\n```\nCluster IP → Pod: OK\nService DNS → Endpoints: OK\nLoad Balancer → Backend: OK\n```" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Service and networking analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    },
+    {
+      "pattern": "pvc|pv|storage|volume|persistent",
+      "response": {
+        "response": "## Storage Analysis\n\nThe storage resources have been analyzed.\n\n### PersistentVolumeClaim Status\n- **Status**: Bound\n- **Access Mode**: ReadWriteOnce\n- **Storage Class**: Standard\n- **Capacity**: As requested\n\n### Health Check\n✓ Volume bound successfully\n✓ Mount point accessible\n✓ No I/O errors detected\n✓ Storage class provisioner working\n\n### Usage\n- Current utilization within limits\n- No capacity warnings\n- Backup schedule configured",
+        "analysis": "Storage analysis completed"
+      },
+      "streamChunks": [
+        { "event": "ai_message", "data": { "content": "## Storage Analysis\n\nThe storage resources have been analyzed.\n\n### PersistentVolumeClaim Status\n- **Status**: Bound\n- **Access Mode**: ReadWriteOnce\n- **Storage Class**: Standard\n- **Capacity**: As requested\n\n### Health Check\n✓ Volume bound successfully\n✓ Mount point accessible\n✓ No I/O errors detected\n✓ Storage class provisioner working\n\n### Usage\n- Current utilization within limits\n- No capacity warnings\n- Backup schedule configured" } },
+        { "event": "ai_answer_end", "data": { "analysis": "Storage analysis completed" } },
+        { "event": "stream_end", "data": {} }
+      ]
+    }
+  ],
+  "defaultResponse": {
+    "response": "## Resource Analysis\n\nThe resource appears to be in a healthy state.\n\n### Summary\n- **Status**: Healthy\n- **Configuration**: Valid\n- **Operation**: Normal\n\n### Details\nNo issues were detected during the analysis. The resource is configured correctly and operating within expected parameters.\n\n### Recommendations\n- Continue monitoring for any changes\n- No immediate action required\n- Review logs periodically for anomalies",
+    "analysis": "General resource analysis completed"
+  },
+  "defaultStreamChunks": [
+    { "event": "ai_message", "data": { "content": "## Resource Analysis\n\nThe resource appears to be in a healthy state.\n\n### Summary\n- **Status**: Healthy\n- **Configuration**: Valid\n- **Operation**: Normal\n\n### Details\nNo issues were detected during the analysis. The resource is configured correctly and operating within expected parameters.\n\n### Recommendations\n- Continue monitoring for any changes\n- No immediate action required\n- Review logs periodically for anomalies" } },
+    { "event": "ai_answer_end", "data": { "analysis": "General resource analysis completed" } },
+    { "event": "stream_end", "data": {} }
+  ]
+}

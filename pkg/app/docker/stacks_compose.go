@@ -74,7 +74,6 @@ func GetSwarmStackComposeYAML(ctx context.Context, cli *client.Client, stackName
 		Services: map[string]composeService{},
 	}
 
-	// Stable output ordering
 	var names []string
 	for _, svc := range services {
 		if svc.Spec.Labels["com.docker.stack.namespace"] != stackName {
@@ -82,88 +81,7 @@ func GetSwarmStackComposeYAML(ctx context.Context, cli *client.Client, stackName
 		}
 		name := svc.Spec.Name
 		names = append(names, name)
-
-		cs := composeService{
-			Image:  svc.Spec.TaskTemplate.ContainerSpec.Image,
-			Labels: svc.Spec.Labels,
-		}
-
-		// Ports: published:target/proto (similar to UI)
-		if svc.Endpoint.Spec.Mode == swarm.ResolutionModeVIP {
-			// no-op
-		}
-		if svc.Endpoint.Spec.Ports != nil {
-			for _, p := range svc.Endpoint.Spec.Ports {
-				if p.PublishedPort == 0 || p.TargetPort == 0 {
-					continue
-				}
-				proto := string(p.Protocol)
-				if proto == "" {
-					proto = "tcp"
-				}
-				cs.Ports = append(cs.Ports, fmt.Sprintf("%d:%d/%s", p.PublishedPort, p.TargetPort, proto))
-			}
-		}
-
-		// Deploy info (mode/replicas/update_config/restart_policy)
-		deploy := &composeDeploy{}
-		switch {
-		case svc.Spec.Mode.Replicated != nil:
-			deploy.Mode = "replicated"
-			if svc.Spec.Mode.Replicated.Replicas != nil {
-				rep := *svc.Spec.Mode.Replicated.Replicas
-				deploy.Replicas = &rep
-			}
-		case svc.Spec.Mode.Global != nil:
-			deploy.Mode = "global"
-		}
-
-		if uc := svc.Spec.UpdateConfig; uc != nil {
-			cu := &composeUpdateConfig{}
-			if uc.Parallelism != 0 {
-				p := uint64(uc.Parallelism)
-				cu.Parallelism = &p
-			}
-			if uc.Delay != 0 {
-				cu.Delay = uc.Delay.String()
-			}
-			if uc.FailureAction != "" {
-				cu.FailureAction = string(uc.FailureAction)
-			}
-			if uc.Order != "" {
-				cu.Order = string(uc.Order)
-			}
-			// only set if any field present
-			if cu.Parallelism != nil || cu.Delay != "" || cu.FailureAction != "" || cu.Order != "" {
-				deploy.Update = cu
-			}
-		}
-
-		if rp := svc.Spec.TaskTemplate.RestartPolicy; rp != nil {
-			cr := &composeRestartPolicy{}
-			if rp.Condition != "" {
-				cr.Condition = string(rp.Condition)
-			}
-			if rp.Delay != nil && *rp.Delay != 0 {
-				cr.Delay = rp.Delay.String()
-			}
-			if rp.MaxAttempts != nil {
-				m := uint64(*rp.MaxAttempts)
-				cr.MaxAttempts = &m
-			}
-			if rp.Window != nil && *rp.Window != 0 {
-				cr.Window = rp.Window.String()
-			}
-			if cr.Condition != "" || cr.Delay != "" || cr.MaxAttempts != nil || cr.Window != "" {
-				deploy.Restart = cr
-			}
-		}
-
-		if deploy.Mode != "" || deploy.Replicas != nil || deploy.Update != nil || deploy.Restart != nil {
-			cs.Deploy = deploy
-		}
-
-		cf.Services[name] = cs
+		cf.Services[name] = buildComposeService(&svc)
 	}
 
 	sort.Strings(names)
@@ -178,4 +96,122 @@ func GetSwarmStackComposeYAML(ctx context.Context, cli *client.Client, stackName
 		return "", nil
 	}
 	return out + "\n", nil
+}
+
+// buildComposeService builds a composeService from a swarm service
+func buildComposeService(svc *swarm.Service) composeService {
+	cs := composeService{
+		Image:  svc.Spec.TaskTemplate.ContainerSpec.Image,
+		Labels: svc.Spec.Labels,
+		Ports:  buildServicePorts(svc.Endpoint.Spec.Ports),
+	}
+
+	deploy := buildComposeDeploy(svc)
+	if deploy != nil {
+		cs.Deploy = deploy
+	}
+
+	return cs
+}
+
+// buildServicePorts converts swarm port configs to compose port strings
+func buildServicePorts(ports []swarm.PortConfig) []string {
+	if ports == nil {
+		return nil
+	}
+
+	result := make([]string, 0, len(ports))
+	for _, p := range ports {
+		if p.PublishedPort == 0 || p.TargetPort == 0 {
+			continue
+		}
+		proto := string(p.Protocol)
+		if proto == "" {
+			proto = "tcp"
+		}
+		result = append(result, fmt.Sprintf("%d:%d/%s", p.PublishedPort, p.TargetPort, proto))
+	}
+	return result
+}
+
+// buildComposeDeploy builds deploy config from a swarm service
+func buildComposeDeploy(svc *swarm.Service) *composeDeploy {
+	deploy := &composeDeploy{}
+
+	// Set mode and replicas
+	switch {
+	case svc.Spec.Mode.Replicated != nil:
+		deploy.Mode = "replicated"
+		if svc.Spec.Mode.Replicated.Replicas != nil {
+			rep := *svc.Spec.Mode.Replicated.Replicas
+			deploy.Replicas = &rep
+		}
+	case svc.Spec.Mode.Global != nil:
+		deploy.Mode = "global"
+	}
+
+	deploy.Update = buildComposeUpdateConfig(svc.Spec.UpdateConfig)
+	deploy.Restart = buildComposeRestartPolicy(svc.Spec.TaskTemplate.RestartPolicy)
+
+	// Only return if any field is set
+	if deploy.Mode == "" && deploy.Replicas == nil && deploy.Update == nil && deploy.Restart == nil {
+		return nil
+	}
+	return deploy
+}
+
+// buildComposeUpdateConfig builds update config from swarm update config
+func buildComposeUpdateConfig(uc *swarm.UpdateConfig) *composeUpdateConfig {
+	if uc == nil {
+		return nil
+	}
+
+	cu := &composeUpdateConfig{}
+	if uc.Parallelism != 0 {
+		p := uint64(uc.Parallelism)
+		cu.Parallelism = &p
+	}
+	if uc.Delay != 0 {
+		cu.Delay = uc.Delay.String()
+	}
+	if uc.FailureAction != "" {
+		cu.FailureAction = string(uc.FailureAction)
+	}
+	if uc.Order != "" {
+		cu.Order = string(uc.Order)
+	}
+
+	// Only return if any field is set
+	if cu.Parallelism == nil && cu.Delay == "" && cu.FailureAction == "" && cu.Order == "" {
+		return nil
+	}
+	return cu
+}
+
+// buildComposeRestartPolicy builds restart policy from swarm restart policy
+func buildComposeRestartPolicy(rp *swarm.RestartPolicy) *composeRestartPolicy {
+	if rp == nil {
+		return nil
+	}
+
+	cr := &composeRestartPolicy{}
+	if rp.Condition != "" {
+		cr.Condition = string(rp.Condition)
+	}
+	if rp.Delay != nil && *rp.Delay != 0 {
+		cr.Delay = rp.Delay.String()
+	}
+	if rp.MaxAttempts != nil {
+		m := uint64(*rp.MaxAttempts)
+		cr.MaxAttempts = &m
+	}
+	if rp.Window != nil && *rp.Window != 0 {
+		cr.Window = rp.Window.String()
+	}
+
+	// Only return if any field is set
+	if cr.Condition == "" && cr.Delay == "" && cr.MaxAttempts == nil && cr.Window == "" {
+		return nil
+	}
+	return cr
 }

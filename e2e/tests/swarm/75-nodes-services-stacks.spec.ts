@@ -70,7 +70,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
     const firstRow = table.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 60_000 });
-    const nodeName = (await firstRow.locator('td').first().innerText()).trim();
+    const nodeName = (await firstRow.locator('td').nth(1).innerText()).trim();
 
     await firstRow.click();
 
@@ -161,7 +161,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
       }).toPass({ timeout: 90_000, intervals: [1000, 2000, 5000] });
       
       // Click the Name cell (first td) to avoid clicking the Update badge which opens a different popup
-      const nameCell = row.locator('td').first();
+      const nameCell = row.locator('td').nth(1);
       const panel = new SwarmBottomPanel(page);
       await expect(async () => {
         // Dismiss any open popups first

@@ -70,19 +70,28 @@ export class CreateOverlay {
     // API/connectivity errors often contain "could not find REST mapping" or "dial tcp" or "connectex"
     const apiError = this.page.getByText(/could not find REST mapping|dial tcp|connectex/i).first();
 
-    await Promise.race([
-      closeBtn.waitFor({ state: 'hidden', timeout: 60_000 }),
-      parseError.waitFor({ state: 'visible', timeout: 60_000 }),
-      apiError.waitFor({ state: 'visible', timeout: 60_000 }),
-    ]);
+    const timeoutMs = 60_000;
+    const start = Date.now();
 
-    if (await closeBtn.isVisible()) {
-      // Try to extract the error message from either error locator
-      let msg = (await parseError.textContent())?.trim();
-      if (!msg) {
-        msg = (await apiError.textContent())?.trim();
+    while (Date.now() - start < timeoutMs) {
+      const closeVisible = await closeBtn.isVisible().catch(() => false);
+      if (!closeVisible) return;
+
+      const parseVisible = await parseError.isVisible().catch(() => false);
+      if (parseVisible) {
+        const msg = (await parseError.textContent())?.trim();
+        throw new Error(`Create failed: ${msg || 'YAML parse error'}`);
       }
-      throw new Error(`Create failed: ${msg || 'Unknown error'}`);
+
+      const apiVisible = await apiError.isVisible().catch(() => false);
+      if (apiVisible) {
+        const msg = (await apiError.textContent())?.trim();
+        throw new Error(`Create failed: ${msg || 'API error'}`);
+      }
+
+      await this.page.waitForTimeout(250);
     }
+
+    throw new Error('Create did not complete within 60s.');
   }
 }

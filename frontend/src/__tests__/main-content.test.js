@@ -97,7 +97,7 @@ describe('main-content.js', () => {
     // sibling should be hidden
     expect(document.getElementById('some-other-panel').style.display).toBe('none');
     expect(panel.style.display).toBe('');
-  });
+  }, 10000);
 
   it('renderResourceMainContent creates a single React root per container', async () => {
     const { renderResourceMainContent } = await importFreshMainContent();

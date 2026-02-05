@@ -4,16 +4,16 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/network"
 )
 
 func Test_getSwarmNetworks_returnsConvertedNetworks(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NetworkListFn: func(context.Context, types.NetworkListOptions) ([]types.NetworkResource, error) {
-			return []types.NetworkResource{
+		NetworkListFn: func(context.Context, network.ListOptions) ([]network.Summary, error) {
+			return []network.Summary{
 				{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"},
 				{ID: "net-2", Name: "n2", Driver: "bridge", Scope: "local"},
 			}, nil
@@ -36,8 +36,8 @@ func Test_getSwarmNetwork_returnsNetwork(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NetworkInspectFn: func(context.Context, string, types.NetworkInspectOptions) (types.NetworkResource, error) {
-			return types.NetworkResource{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"}, nil
+		NetworkInspectFn: func(context.Context, string, network.InspectOptions) (network.Inspect, error) {
+			return network.Inspect{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"}, nil
 		},
 	}
 
@@ -54,12 +54,12 @@ func Test_createSwarmNetwork_passesDriverAndOptions(t *testing.T) {
 	ctx := context.Background()
 
 	var gotName string
-	var got types.NetworkCreate
+	var got network.CreateOptions
 	cli := &fakeDockerClient{
-		NetworkCreateFn: func(_ context.Context, name string, opts types.NetworkCreate) (types.NetworkCreateResponse, error) {
+		NetworkCreateFn: func(_ context.Context, name string, opts network.CreateOptions) (network.CreateResponse, error) {
 			gotName = name
 			got = opts
-			return types.NetworkCreateResponse{ID: "net-123"}, nil
+			return network.CreateResponse{ID: "net-123"}, nil
 		},
 	}
 
@@ -91,8 +91,8 @@ func Test_pruneSwarmNetworks_returnsDeletedIDs(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NetworksPruneFn: func(context.Context, filters.Args) (types.NetworksPruneReport, error) {
-			return types.NetworksPruneReport{NetworksDeleted: []string{"n1", "n2"}}, nil
+		NetworksPruneFn: func(context.Context, filters.Args) (network.PruneReport, error) {
+			return network.PruneReport{NetworksDeleted: []string{"n1", "n2"}}, nil
 		},
 	}
 

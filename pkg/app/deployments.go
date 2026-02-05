@@ -4,9 +4,61 @@ import (
 	"fmt"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// getDeploymentImage returns the first container image from the deployment spec
+func getDeploymentImage(d *appsv1.Deployment) string {
+	if len(d.Spec.Template.Spec.Containers) > 0 {
+		return d.Spec.Template.Spec.Containers[0].Image
+	}
+	return ""
+}
+
+// getDeploymentReplicas returns the desired replica count
+func getDeploymentReplicas(d *appsv1.Deployment) int32 {
+	if d.Spec.Replicas != nil {
+		return *d.Spec.Replicas
+	}
+	return 0
+}
+
+// mergeDeploymentLabels merges deployment and template labels, with deployment labels taking precedence
+func mergeDeploymentLabels(d *appsv1.Deployment) map[string]string {
+	labels := make(map[string]string)
+	for k, v := range d.Labels {
+		labels[k] = v
+	}
+	if tpl := d.Spec.Template; tpl.Labels != nil {
+		for k, v := range tpl.Labels {
+			if _, exists := labels[k]; !exists {
+				labels[k] = v
+			}
+		}
+	}
+	return labels
+}
+
+// buildDeploymentInfo constructs a DeploymentInfo from a Deployment
+func buildDeploymentInfo(d *appsv1.Deployment, now time.Time) DeploymentInfo {
+	age := "-"
+	if !d.CreationTimestamp.Time.IsZero() {
+		age = formatDuration(now.Sub(d.CreationTimestamp.Time))
+	}
+
+	return DeploymentInfo{
+		Name:      d.Name,
+		Namespace: d.Namespace,
+		Replicas:  getDeploymentReplicas(d),
+		Ready:     d.Status.ReadyReplicas,
+		Available: d.Status.AvailableReplicas,
+		Age:       age,
+		Image:     getDeploymentImage(d),
+		Labels:    mergeDeploymentLabels(d),
+	}
+}
 
 // GetDeployments returns all deployments in a namespace
 func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
@@ -24,50 +76,11 @@ func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	var result []DeploymentInfo
+
 	now := time.Now()
-
+	result := make([]DeploymentInfo, 0, len(deployments.Items))
 	for _, deployment := range deployments.Items {
-		age := "-"
-		if deployment.CreationTimestamp.Time != (time.Time{}) {
-			age = formatDuration(now.Sub(deployment.CreationTimestamp.Time))
-		}
-
-		// Get the first container image from the deployment spec
-		image := ""
-		if len(deployment.Spec.Template.Spec.Containers) > 0 {
-			image = deployment.Spec.Template.Spec.Containers[0].Image
-		}
-
-		replicas := int32(0)
-		if deployment.Spec.Replicas != nil {
-			replicas = *deployment.Spec.Replicas
-		}
-
-		deploymentInfo := DeploymentInfo{
-			Name:      deployment.Name,
-			Namespace: deployment.Namespace,
-			Replicas:  replicas,
-			Ready:     deployment.Status.ReadyReplicas,
-			Available: deployment.Status.AvailableReplicas,
-			Age:       age,
-			Image:     image,
-			Labels:    map[string]string{},
-		}
-		// Merge labels: deployment metadata first, then template labels (without overwriting existing)
-		if len(deployment.Labels) > 0 {
-			for k, v := range deployment.Labels {
-				deploymentInfo.Labels[k] = v
-			}
-		}
-		if tpl := deployment.Spec.Template; tpl.Labels != nil {
-			for k, v := range tpl.Labels {
-				if _, exists := deploymentInfo.Labels[k]; !exists { // keep deployment-level value precedence
-					deploymentInfo.Labels[k] = v
-				}
-			}
-		}
-		result = append(result, deploymentInfo)
+		result = append(result, buildDeploymentInfo(&deployment, now))
 	}
 
 	return result, nil
@@ -103,22 +116,20 @@ func (a *App) StartDeploymentPolling() {
 			if a.ctx == nil {
 				continue
 			}
-			nsList := a.preferredNamespaces
-			if len(nsList) == 0 && a.currentNamespace != "" {
-				nsList = []string{a.currentNamespace}
+			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
+				all := a.collectDeployments(nsList)
+				emitEvent(a.ctx, "deployments:update", all)
 			}
-			if len(nsList) == 0 {
-				continue
-			}
-			var all []DeploymentInfo
-			for _, ns := range nsList {
-				deploys, err := a.GetDeployments(ns)
-				if err != nil {
-					continue
-				}
-				all = append(all, deploys...)
-			}
-			emitEvent(a.ctx, "deployments:update", all)
 		}
 	}()
+}
+
+func (a *App) collectDeployments(nsList []string) []DeploymentInfo {
+	var all []DeploymentInfo
+	for _, ns := range nsList {
+		if deploys, err := a.GetDeployments(ns); err == nil {
+			all = append(all, deploys...)
+		}
+	}
+	return all
 }

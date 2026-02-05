@@ -8,7 +8,7 @@
  */
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
-import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { bootstrapSwarm, waitForSwarmServicesTable } from '../../src/support/swarm-bootstrap.js';
 
 async function expectSwarmConnected(page: import('@playwright/test').Page) {
   const sidebar = new SwarmSidebarPage(page);
@@ -20,7 +20,7 @@ test.describe('Docker Swarm Image Update Detection', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
     await page.goto('/');
-    await bootstrapSwarm({ page, skipIfConnected: true });
+    await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });
 
   test('services table includes Update column', async ({ page }) => {
@@ -28,9 +28,17 @@ test.describe('Docker Swarm Image Update Detection', () => {
 
     await sidebar.goToServices();
 
-    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
-    await expect(servicesTable).toBeVisible({ timeout: 30_000 });
+    try {
+      await waitForSwarmServicesTable(page, 30_000);
+    } catch {
+      await page.reload();
+      await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
+      const sidebar2 = new SwarmSidebarPage(page);
+      await sidebar2.goToServices();
+      await waitForSwarmServicesTable(page, 60_000);
+    }
 
+    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
     await expect(servicesTable.getByRole('columnheader', { name: /^update$/i })).toBeVisible({ timeout: 10_000 });
 
     // Settings button is part of the finished feature wiring.

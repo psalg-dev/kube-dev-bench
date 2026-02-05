@@ -19,7 +19,9 @@ import (
 	"gowails/pkg/app/docker/topology"
 
 	"github.com/docker/docker/api/types"
+	imagetypes "github.com/docker/docker/api/types/image"
 	registrytypes "github.com/docker/docker/api/types/registry"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
@@ -223,7 +225,7 @@ func (a *App) PullDockerImageLatest(image string, registryName string) error {
 
 	pullCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	r, err := cli.ImagePull(pullCtx, image, types.ImagePullOptions{RegistryAuth: registryAuth})
+	r, err := cli.ImagePull(pullCtx, image, imagetypes.PullOptions{RegistryAuth: registryAuth})
 	if err != nil {
 		return err
 	}
@@ -1397,6 +1399,38 @@ func (a *App) GetSwarmServiceEvents(serviceID string, sinceMinutes int) ([]docke
 	return docker.GetSwarmServiceEvents(ctx, cli, serviceID, duration)
 }
 
+// collectServiceIDs gathers service IDs from a list of services.
+func collectServiceIDs(services []swarm.Service) []string {
+	ids := make([]string, 0, len(services))
+	for _, s := range services {
+		if s.ID != "" {
+			ids = append(ids, s.ID)
+		}
+	}
+	return ids
+}
+
+// pollImageUpdatesOnce performs a single poll for image updates.
+func (a *App) pollImageUpdatesOnce(settings docker.ImageUpdateSettings) {
+	if !settings.Enabled {
+		return
+	}
+
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return
+	}
+
+	services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
+	if err != nil {
+		return
+	}
+
+	ids := collectServiceIDs(services)
+	updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
+	emitEvent(a.ctx, "swarm:image:updates", updates)
+}
+
 // StartSwarmImageUpdatePolling periodically checks service images for updates and emits swarm:image:updates.
 func (a *App) StartSwarmImageUpdatePolling() {
 	go func() {
@@ -1408,7 +1442,6 @@ func (a *App) StartSwarmImageUpdatePolling() {
 
 			settings, err := docker.LoadImageUpdateSettings()
 			if err != nil {
-				// If settings are corrupt/unreadable, don't spam.
 				time.Sleep(30 * time.Second)
 				continue
 			}
@@ -1417,28 +1450,7 @@ func (a *App) StartSwarmImageUpdatePolling() {
 				continue
 			}
 
-			cli, err := a.getDockerClient()
-			if err != nil {
-				time.Sleep(settings.Interval())
-				continue
-			}
-
-			services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
-			if err != nil {
-				time.Sleep(settings.Interval())
-				continue
-			}
-			ids := make([]string, 0, len(services))
-			for _, s := range services {
-				if s.ID == "" {
-					continue
-				}
-				ids = append(ids, s.ID)
-			}
-
-			updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
-			emitEvent(a.ctx, "swarm:image:updates", updates)
-
+			a.pollImageUpdatesOnce(settings)
 			time.Sleep(settings.Interval())
 		}
 	}()

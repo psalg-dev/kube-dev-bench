@@ -781,6 +781,7 @@ export default function SwarmTasksOverviewTable() {
       tableTestId="swarm-tasks-table"
       createPlatform="swarm"
       createKind="service"
+      bulkResourceKind="task"
       createButtonTitle="Create service (tasks are created by services)"
       createHint="Tasks can’t be created directly. Creating a service will create tasks."
       getRowActions={(row, api) => {
