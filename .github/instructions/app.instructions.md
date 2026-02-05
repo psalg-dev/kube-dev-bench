@@ -73,6 +73,7 @@ E2E tests depend on these IDs. If you must change them, update all usages and te
 - Keep changes minimal and consistent with existing patterns.
 - Update related tests when altering UI, selectors, or API contracts.
 - Regenerate Wails bindings after changing backend signatures.
+- When working from a planning document, keep it up to date as implementation progresses so we can always track work and resume later if interrupted.
 
 ## Additional Instructions
 Make sure to refer to other instruction files in the .github/instructions/ directory for specific guidelines on testing, code style, and other best practices.
