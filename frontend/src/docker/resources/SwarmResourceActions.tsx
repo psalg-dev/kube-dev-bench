@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
 import { showWarning } from '../../notification';
+import Button from '../../components/ui/Button';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 interface SwarmResourceActionsProps {
   resourceType: string;
@@ -35,24 +37,6 @@ export default function SwarmResourceActions({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [newReplicas, setNewReplicas] = useState(currentReplicas);
   const [loading, setLoading] = useState(false);
-
-  const buttonStyle: CSSProperties = {
-    padding: '6px 12px',
-    borderRadius: 4,
-    border: '1px solid var(--gh-border, #30363d)',
-    backgroundColor: 'var(--gh-button-bg, #21262d)',
-    color: 'var(--gh-text, #c9d1d9)',
-    cursor: 'pointer',
-    fontSize: 12,
-    fontWeight: 500,
-  };
-
-  const dangerButtonStyle: CSSProperties = {
-    ...buttonStyle,
-    backgroundColor: 'rgba(215, 58, 73, 0.1)',
-    borderColor: '#d73a49',
-    color: '#f85149',
-  };
 
   const handleScale = async () => {
     if (newReplicas < 0) {
@@ -109,8 +93,8 @@ export default function SwarmResourceActions({
     <div style={{ display: 'flex', gap: 8 }}>
       {/* Scale button (only for services with replicated mode) */}
       {canScale && onScale && (
-        <button
-          style={buttonStyle}
+        <Button
+          size="sm"
           onClick={() => {
             setNewReplicas(currentReplicas);
             setShowScaleDialog(true);
@@ -118,33 +102,33 @@ export default function SwarmResourceActions({
           disabled={loading}
         >
           Scale
-        </button>
+        </Button>
       )}
 
       {/* Node availability buttons */}
       {onDrain && availability !== 'drain' && (
-        <button style={buttonStyle} onClick={onDrain} disabled={loading}>
+        <Button size="sm" onClick={onDrain} disabled={loading}>
           Drain
-        </button>
+        </Button>
       )}
       {onActivate && availability !== 'active' && (
-        <button style={buttonStyle} onClick={onActivate} disabled={loading}>
+        <Button size="sm" onClick={onActivate} disabled={loading}>
           Activate
-        </button>
+        </Button>
       )}
 
       {/* Restart button */}
       {onRestart && (
-        <button style={buttonStyle} onClick={handleRestart} disabled={loading}>
+        <Button size="sm" onClick={handleRestart} disabled={loading}>
           Restart
-        </button>
+        </Button>
       )}
 
       {/* Delete button */}
       {onDelete && (
-        <button style={dangerButtonStyle} onClick={() => setShowDeleteDialog(true)} disabled={loading}>
+        <Button variant="danger" size="sm" onClick={() => setShowDeleteDialog(true)} disabled={loading}>
           Delete
-        </button>
+        </Button>
       )}
 
       {/* Scale Dialog */}
@@ -175,41 +159,31 @@ export default function SwarmResourceActions({
               />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button style={buttonStyle} onClick={() => setShowScaleDialog(false)} disabled={loading}>
+              <Button size="sm" onClick={() => setShowScaleDialog(false)} disabled={loading}>
                 Cancel
-              </button>
-              <button
-                style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff' }}
-                onClick={handleScale}
-                disabled={loading}
-              >
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleScale} disabled={loading}>
                 {loading ? 'Scaling...' : 'Scale'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteDialog && (
-        <div style={modalOverlayStyle} onClick={() => setShowDeleteDialog(false)}>
-          <div style={modalStyle} onClick={(e: MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 16px', color: 'var(--gh-text)' }}>Delete {resourceType}?</h3>
-            <p style={{ marginBottom: 16, color: 'var(--gh-text-secondary)' }}>
-              Are you sure you want to delete <strong style={{ color: 'var(--gh-text)' }}>{name}</strong>?
-              This action cannot be undone.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button style={buttonStyle} onClick={() => setShowDeleteDialog(false)} disabled={loading}>
-                Cancel
-              </button>
-              <button style={dangerButtonStyle} onClick={handleDelete} disabled={loading}>
-                {loading ? 'Deleting...' : 'Delete'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={showDeleteDialog}
+        title={`Delete ${resourceType}?`}
+        description={
+          <>
+            Are you sure you want to delete <strong style={{ color: 'var(--gh-text)' }}>{name}</strong>? This action cannot be undone.
+          </>
+        }
+        confirmLabel={loading ? 'Deleting...' : 'Delete'}
+        confirmVariant="danger"
+        isBusy={loading}
+        onCancel={() => setShowDeleteDialog(false)}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

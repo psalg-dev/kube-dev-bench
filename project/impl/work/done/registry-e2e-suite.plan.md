@@ -1,6 +1,6 @@
 # E2E Registry Suite Refactor Plan
 
-**Status:** Complete (100% — infrastructure + documentation done)
+**Status:** Done (100%)
 **Created:** 2026-01-28
 **Updated:** 2026-02-06
 
@@ -9,7 +9,7 @@ Separate Docker registry integration tests (Artifactory/JFrog and Docker Registr
 
 ## Current State (Verified)
 
-The refactor is effectively complete. All infrastructure is in place and working in CI:
+The refactor is complete. All infrastructure is in place and working in CI:
 
 - **Dedicated config**: `e2e/playwright.registry.config.ts` with `testMatch: ['registry/**/*.spec.ts']`
 - **Isolated setup**: `e2e/src/support/global-setup-registry.ts` sets `E2E_REGISTRY_SUITE=1` and calls `ensureRegistry()`
@@ -20,6 +20,22 @@ The refactor is effectively complete. All infrastructure is in place and working
 - **CI workflow**: `.github/workflows/registry-e2e.yml` exists (manual trigger via `workflow_dispatch`) ✅
 - **Main CI**: `build.yml` has 5-shard E2E matrix — shards 1-3 run standard tests, `e2e-holmes-deploy` runs Holmes tests, `e2e-registry` runs registry tests with `E2E_REGISTRY_SUITE=1` and `E2E_SKIP_KIND=1` ✅
 - **JFrog conditional**: `global-setup.ts` only runs JFrog bootstrap when `E2E_REGISTRY_SUITE=1` ✅
+
+## Documentation
+
+### Local runs
+- Default suite (no registry): `cd e2e && npm test`
+- Registry suite only: `cd e2e && npm run test:registry`
+
+### Environment variables
+- `E2E_REGISTRY_SUITE=1` — enables registry bootstrap and registry-only test run
+- `E2E_SKIP_REGISTRY=1` — skips registry bootstrap (reuse a running instance)
+- `E2E_SKIP_JFROG=1` — skips JFrog/Artifactory bootstrap specifically
+- `E2E_ARTIFACTORY_*` — override Artifactory endpoints and credentials for custom environments
+
+### CI usage
+- Trigger the registry suite manually via `.github/workflows/registry-e2e.yml` (`workflow_dispatch`)
+- Main CI includes `e2e-registry` in the matrix with `E2E_REGISTRY_SUITE=1` and `E2E_SKIP_KIND=1`
 
 ## Implementation Checklist
 
@@ -47,14 +63,7 @@ The refactor is effectively complete. All infrastructure is in place and working
    - Dedicated `e2e-registry` shard in build.yml matrix with `E2E_REGISTRY_SUITE=1`
    - Standalone `.github/workflows/registry-e2e.yml` for manual runs (workflow_dispatch)
 
-6. [x] Update docs: registry suite usage and environment variables. ✅ COMPLETE
-   - Need to document:
-     - `E2E_REGISTRY_SUITE=1` — enables registry bootstrap and tests
-     - `E2E_SKIP_REGISTRY=1` — skips registry bootstrap (reuse running instance)
-     - `E2E_SKIP_JFROG=1` — skips JFrog bootstrap specifically
-     - `E2E_ARTIFACTORY_*` overrides for custom endpoints and credentials
-     - How to run locally: `cd e2e && npm run test:registry`
-     - How to run in CI: trigger `registry-e2e.yml` workflow manually
+6. [x] Update docs: registry suite usage and environment variables. ✅ COMPLETED
 
 ## Acceptance Criteria
 
@@ -66,4 +75,4 @@ The refactor is effectively complete. All infrastructure is in place and working
 
 ## Remaining Work
 
-All code, CI infrastructure, and documentation are complete and verified working.
+None.

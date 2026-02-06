@@ -1,0 +1,5 @@
+.confirm-dialog-description {
+  margin: 0;
+  color: var(--gh-text-secondary, #8b949e);
+  line-height: 1.4;
+}

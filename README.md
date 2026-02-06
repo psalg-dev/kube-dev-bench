@@ -147,7 +147,9 @@ cd frontend && npm test
 
 **E2E tests (Playwright + KinD):**
 
-See [E2E.MD](E2E.MD) for full details.
+- Standard E2E suite: `cd e2e && npm test`
+- Registry E2E suite: `cd e2e && npm run test:registry`
+- Documentation: [docs/registry-e2e-suite.md](docs/registry-e2e-suite.md)
 
 ---
 

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, type CSSProperties } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
@@ -9,6 +9,7 @@ import ConfigEditModal from './ConfigEditModal';
 import ConfigInspectTab from './ConfigInspectTab';
 import ConfigCompareModal from './ConfigCompareModal';
 import ConfigUsedBySection from './ConfigUsedBySection';
+import Button from '../../../components/ui/Button';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../swarmApi';
 import { showSuccess, showError } from '../../../notification';
@@ -123,17 +124,6 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }: ConfigSummar
 		}
 	};
 
-	const buttonStyle: CSSProperties = {
-		padding: '6px 12px',
-		borderRadius: 4,
-		border: '1px solid var(--gh-border, #30363d)',
-		backgroundColor: 'var(--gh-button-bg, #21262d)',
-		color: 'var(--gh-text, #c9d1d9)',
-		cursor: 'pointer',
-		fontSize: 12,
-		fontWeight: 500,
-	};
-
 	return (
 		<div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 			<SummaryTabHeader
@@ -141,32 +131,32 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }: ConfigSummar
 				labels={row.labels}
 				actions={(
 					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-						<button style={buttonStyle} onClick={() => onEdit?.(row)}>
+						<Button size="sm" onClick={() => onEdit?.(row)}>
 							Edit
-						</button>
-						<button
+						</Button>
+						<Button
 							id="swarm-config-compare-btn"
-							style={buttonStyle}
+							size="sm"
 							onClick={() => setShowCompare(true)}
 						>
 							Compare
-						</button>
-						<button
+						</Button>
+						<Button
 							id="swarm-config-download-btn"
-							style={buttonStyle}
+							size="sm"
 							onClick={handleDownload}
 							disabled={downloading}
 						>
 							{downloading ? 'Downloading...' : 'Download'}
-						</button>
-						<button
+						</Button>
+						<Button
 							id="swarm-config-clone-btn"
-							style={buttonStyle}
+							size="sm"
 							onClick={handleClone}
 							disabled={cloning}
 						>
 							{cloning ? 'Cloning...' : 'Clone'}
-						</button>
+						</Button>
 						<SwarmResourceActions
 							resourceType="config"
 							name={row.name}

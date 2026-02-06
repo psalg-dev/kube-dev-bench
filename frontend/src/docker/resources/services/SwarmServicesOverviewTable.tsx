@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ServiceTasksTab from './ServiceTasksTab';
 import SwarmResourceActions from '../SwarmResourceActions';
+import Button from '../../../components/ui/Button';
 import UpdateServiceImageModal from './UpdateServiceImageModal';
 import ImageUpdateBadge from './ImageUpdateBadge';
 import ImageUpdateModal from './ImageUpdateModal';
@@ -390,17 +391,6 @@ function ServiceSummaryPanel({ row, onRefresh }: ServiceSummaryPanelProps) {
 			}
 		};
 
-		const buttonStyle: CSSProperties = {
-			padding: '6px 12px',
-			borderRadius: 4,
-			border: '1px solid var(--gh-border, #30363d)',
-			backgroundColor: 'var(--gh-button-bg, #21262d)',
-			color: 'var(--gh-text, #c9d1d9)',
-			cursor: 'pointer',
-			fontSize: 12,
-			fontWeight: 500,
-		};
-
 		return (
 			<>
 				<div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -409,13 +399,13 @@ function ServiceSummaryPanel({ row, onRefresh }: ServiceSummaryPanelProps) {
 						labels={row.labels}
 						actions={
 							<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-								<button
-									id="swarm-service-update-image-btn"
-									style={buttonStyle}
-									onClick={() => setShowUpdateImage(true)}
-								>
-									Update Image
-								</button>
+									<Button
+										id="swarm-service-update-image-btn"
+										size="sm"
+										onClick={() => setShowUpdateImage(true)}
+									>
+										Update Image
+									</Button>
 								<SwarmResourceActions
 									resourceType="service"
 									name={row.name ?? ''}

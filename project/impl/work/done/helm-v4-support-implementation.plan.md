@@ -1,4 +1,5 @@
 # Helm v4 Support Implementation Plan
+**Status:** DONE
 **Created:** 2026-02-06
 **Updated:** 2026-02-06
 
