@@ -2,36 +2,12 @@ package app
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
-
-// formatPVAccessModes formats access modes for display
-func formatPVAccessModes(modes []corev1.PersistentVolumeAccessMode) string {
-	if len(modes) == 0 {
-		return "-"
-	}
-	result := make([]string, len(modes))
-	for i, mode := range modes {
-		switch mode {
-		case "ReadWriteOnce":
-			result[i] = "RWO"
-		case "ReadOnlyMany":
-			result[i] = "ROX"
-		case "ReadWriteMany":
-			result[i] = "RWX"
-		case "ReadWriteOncePod":
-			result[i] = "RWOP"
-		default:
-			result[i] = string(mode)
-		}
-	}
-	return strings.Join(result, ",")
-}
 
 // getPVVolumeType determines the volume source type
 func getPVVolumeType(spec *corev1.PersistentVolumeSpec) string {
@@ -84,12 +60,7 @@ func getPVVolumeType(spec *corev1.PersistentVolumeSpec) string {
 }
 
 // buildPVInfo creates a PersistentVolumeInfo from a PV
-func buildPVInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo {
-	age := "-"
-	if pv.CreationTimestamp.Time != (time.Time{}) {
-		age = formatDuration(now.Sub(pv.CreationTimestamp.Time))
-	}
-
+func buildPVInfo(pv *corev1.PersistentVolume, now time.Time) PersistentVolumeInfo {
 	capacity := "-"
 	if pv.Spec.Capacity != nil {
 		if storage, ok := pv.Spec.Capacity["storage"]; ok {
@@ -120,7 +91,7 @@ func buildPVInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo
 	return PersistentVolumeInfo{
 		Name:          pv.Name,
 		Capacity:      capacity,
-		AccessModes:   formatPVAccessModes(pv.Spec.AccessModes),
+		AccessModes:   FormatAccessModes(pv.Spec.AccessModes),
 		ReclaimPolicy: reclaimPolicy,
 		Status:        string(pv.Status.Phase),
 		Claim:         claim,
@@ -128,7 +99,7 @@ func buildPVInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo
 		VolumeType:    getPVVolumeType(&pv.Spec),
 		Reason:        pv.Status.Reason,
 		VolumeMode:    volumeMode,
-		Age:           age,
+		Age:           FormatAge(pv.CreationTimestamp, now),
 		Labels:        pv.Labels,
 		Annotations:   pv.Annotations,
 	}
@@ -136,27 +107,14 @@ func buildPVInfo(pv corev1.PersistentVolume, now time.Time) PersistentVolumeInfo
 
 // GetPersistentVolumes returns all persistent volumes in the cluster
 func (a *App) GetPersistentVolumes() ([]PersistentVolumeInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	pvs, err := clientset.CoreV1().PersistentVolumes().List(a.ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	result := make([]PersistentVolumeInfo, 0, len(pvs.Items))
-	for _, pv := range pvs.Items {
-		result = append(result, buildPVInfo(pv, now))
-	}
-
-	return result, nil
+	return listClusterResources(a,
+		func(cs kubernetes.Interface, opts metav1.ListOptions) ([]corev1.PersistentVolume, error) {
+			list, err := cs.CoreV1().PersistentVolumes().List(a.ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+			return list.Items, nil
+		},
+		buildPVInfo,
+	)
 }

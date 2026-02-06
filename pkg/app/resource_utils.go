@@ -1,7 +1,11 @@
 package app
 
 import (
+	"strings"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ExtractFirstContainerImage returns the image of the first container in a PodSpec.
@@ -49,4 +53,37 @@ func MergeLabels(objectLabels, templateLabels map[string]string) map[string]stri
 // Useful for creating replica count pointers in tests.
 func Int32Ptr(i int32) *int32 {
 	return &i
+}
+
+// FormatAge returns a human-readable age string from a creation timestamp.
+// Returns "-" if the timestamp is zero.
+func FormatAge(ts metav1.Time, now time.Time) string {
+	if ts.Time.IsZero() {
+		return "-"
+	}
+	return formatDuration(now.Sub(ts.Time))
+}
+
+// FormatAccessModes converts PersistentVolume access modes to short form (RWO, ROX, RWX, RWOP).
+// Returns "-" for empty input.
+func FormatAccessModes(modes []corev1.PersistentVolumeAccessMode) string {
+	if len(modes) == 0 {
+		return "-"
+	}
+	result := make([]string, len(modes))
+	for i, mode := range modes {
+		switch mode {
+		case corev1.ReadWriteOnce:
+			result[i] = "RWO"
+		case corev1.ReadOnlyMany:
+			result[i] = "ROX"
+		case corev1.ReadWriteMany:
+			result[i] = "RWX"
+		case corev1.ReadWriteOncePod:
+			result[i] = "RWOP"
+		default:
+			result[i] = string(mode)
+		}
+	}
+	return strings.Join(result, ",")
 }

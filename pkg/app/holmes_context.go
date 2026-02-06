@@ -27,7 +27,7 @@ func (a *App) emitHolmesContextProgress(kind, namespace, name, step, status, det
 		"status":    status,
 		"detail":    detail,
 	}
-	emitEvent(a.ctx, "holmes:context:progress", payload)
+	emitEvent(a.ctx, EventHolmesContextProgress, payload)
 }
 
 func (a *App) getPodContext(namespace, name string) (string, error) {

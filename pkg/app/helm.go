@@ -676,28 +676,4 @@ func (a *App) triggerCountsRefresh() {
 	}
 }
 
-// StartHelmReleasePolling emits helmreleases:update events every second with the current release list
-func (a *App) StartHelmReleasePolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectHelmReleases(nsList)
-				emitEvent(a.ctx, "helmreleases:update", all)
-			}
-		}
-	}()
-}
 
-func (a *App) collectHelmReleases(nsList []string) []HelmReleaseInfo {
-	var all []HelmReleaseInfo
-	for _, ns := range nsList {
-		if releases, err := a.GetHelmReleases(ns); err == nil {
-			all = append(all, releases...)
-		}
-	}
-	return all
-}

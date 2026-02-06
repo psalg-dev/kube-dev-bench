@@ -285,6 +285,46 @@ func TestDeleteResource(t *testing.T) {
 			expectError: false,
 		},
 		{
+			name:         "delete service",
+			resourceType: "service",
+			namespace:    "default",
+			resourceName: "test-svc",
+			setupFunc: func(clientset *fake.Clientset) {
+				svc := &corev1.Service{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-svc", Namespace: "default"},
+					Spec:       corev1.ServiceSpec{Ports: []corev1.ServicePort{{Port: 80}}},
+				}
+				clientset.CoreV1().Services("default").Create(context.Background(), svc, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
+			name:         "delete serviceaccount",
+			resourceType: "serviceaccount",
+			namespace:    "default",
+			resourceName: "test-sa",
+			setupFunc: func(clientset *fake.Clientset) {
+				sa := &corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-sa", Namespace: "default"},
+				}
+				clientset.CoreV1().ServiceAccounts("default").Create(context.Background(), sa, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
+			name:         "delete persistentvolumeclaim (full name)",
+			resourceType: "persistentvolumeclaim",
+			namespace:    "default",
+			resourceName: "test-pvc-full",
+			setupFunc: func(clientset *fake.Clientset) {
+				pvc := &corev1.PersistentVolumeClaim{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-pvc-full", Namespace: "default"},
+				}
+				clientset.CoreV1().PersistentVolumeClaims("default").Create(context.Background(), pvc, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
 			name:         "unsupported resource type",
 			resourceType: "unsupported",
 			namespace:    "default",

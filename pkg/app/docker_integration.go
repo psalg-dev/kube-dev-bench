@@ -348,7 +348,7 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 	}
 
 	// Emit docker:connected event so frontend can refetch counts
-	emitEvent(a.ctx, "docker:connected", status)
+	emitEvent(a.ctx, EventDockerConnected, status)
 
 	// Fire post-connect hooks asynchronously after successful connection.
 	a.runPostConnectHooksAsync("swarm", resolvedConfig.Host, preEnv)
@@ -1157,7 +1157,7 @@ func (a *App) StartSwarmServicePolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:services:update", services)
+			emitEvent(a.ctx, EventSwarmServicesUpdate, services)
 		}
 	}()
 }
@@ -1178,7 +1178,7 @@ func (a *App) StartSwarmTaskPolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:tasks:update", tasks)
+			emitEvent(a.ctx, EventSwarmTasksUpdate, tasks)
 		}
 	}()
 }
@@ -1199,7 +1199,7 @@ func (a *App) StartSwarmNodePolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:nodes:update", nodes)
+			emitEvent(a.ctx, EventSwarmNodesUpdate, nodes)
 		}
 	}()
 }
@@ -1217,7 +1217,7 @@ func (a *App) StartSwarmResourceCountsPolling() {
 				// Only log on first failure to avoid spam
 				continue
 			}
-			emitEvent(a.ctx, "swarm:resourcecounts:update", counts)
+			emitEvent(a.ctx, EventSwarmResourceCountsUpdate, counts)
 		}
 	}()
 }
@@ -1347,9 +1347,9 @@ func (a *App) StartSwarmMetricsPolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:metrics:update", p)
+			emitEvent(a.ctx, EventSwarmMetricsUpdate, p)
 			if len(breakdown.Services) > 0 || len(breakdown.Nodes) > 0 {
-				emitEvent(a.ctx, "swarm:metrics:breakdown", breakdown)
+				emitEvent(a.ctx, EventSwarmMetricsBreakdown, breakdown)
 			}
 		}
 	}()
@@ -1428,7 +1428,7 @@ func (a *App) pollImageUpdatesOnce(settings docker.ImageUpdateSettings) {
 
 	ids := collectServiceIDs(services)
 	updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
-	emitEvent(a.ctx, "swarm:image:updates", updates)
+	emitEvent(a.ctx, EventSwarmImageUpdates, updates)
 }
 
 // StartSwarmImageUpdatePolling periodically checks service images for updates and emits swarm:image:updates.

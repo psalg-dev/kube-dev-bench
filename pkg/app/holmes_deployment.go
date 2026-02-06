@@ -601,7 +601,7 @@ func (a *App) waitForHolmesReady(namespace, releaseName string) (string, error) 
 // emitHolmesDeploymentStatus emits deployment status to the frontend
 func (a *App) emitHolmesDeploymentStatus(status *holmesgpt.HolmesDeploymentStatus) {
 	if a.ctx != nil {
-		emitEvent(a.ctx, "holmes:deployment:status", status)
+		emitEvent(a.ctx, EventHolmesDeploymentStatus, status)
 	}
 }
 

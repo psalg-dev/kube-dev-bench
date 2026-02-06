@@ -14,33 +14,49 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// --- Generic helpers ---
+// --- Generic restart helper ---
 
-// Remove unused parameter warnings
-func (a *App) patchControllerAnnotation(_kind, _namespace, _name string, patchFunc func() error) error {
-	// reference parameters to avoid unused parameter warnings in static analysis
-	_ = _kind
-	_ = _namespace
-	_ = _name
-	return patchFunc()
+// restartWorkload patches the pod template annotation to trigger a rolling restart.
+// Supported kinds: deployment, statefulset, daemonset.
+func (a *App) restartWorkload(kind, namespace, name string) error {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return err
+	}
+	patch := []byte(fmt.Sprintf(
+		`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`,
+		time.Now().Format(time.RFC3339),
+	))
+	switch strings.ToLower(kind) {
+	case "deployment", "deployments":
+		_, err = clientset.AppsV1().Deployments(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
+	case "statefulset", "statefulsets":
+		_, err = clientset.AppsV1().StatefulSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
+	case "daemonset", "daemonsets":
+		_, err = clientset.AppsV1().DaemonSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
+	default:
+		return fmt.Errorf("restart not supported for kind %s", kind)
+	}
+	return err
+}
+
+// RestartWorkload restarts a workload by kind. Exposed to frontend via Wails.
+// Supported kinds: deployment, statefulset, daemonset.
+func (a *App) RestartWorkload(kind, namespace, name string) error {
+	return a.restartWorkload(kind, namespace, name)
 }
 
 // --- Deployments ---
+
+// RestartDeployment restarts a deployment by patching its pod template annotation.
+// Delegates to restartWorkload for the common restart logic.
 func (a *App) RestartDeployment(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
-	_, err = clientset.AppsV1().Deployments(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	return err
+	return a.restartWorkload("deployment", namespace, name)
 }
+
+// DeleteDeployment deletes a deployment. Delegates to DeleteResource.
 func (a *App) DeleteDeployment(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().Deployments(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("deployment", namespace, name)
 }
 
 // RollbackDeploymentToRevision updates the Deployment's pod template to match a previous ReplicaSet revision.
@@ -106,93 +122,69 @@ func getReplicaSetRevision(annotations map[string]string) int64 {
 }
 
 // --- StatefulSets ---
+
+// RestartStatefulSet restarts a statefulset. Delegates to restartWorkload.
 func (a *App) RestartStatefulSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
-	_, err = clientset.AppsV1().StatefulSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	return err
+	return a.restartWorkload("statefulset", namespace, name)
 }
+
+// DeleteStatefulSet deletes a statefulset. Delegates to DeleteResource.
 func (a *App) DeleteStatefulSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().StatefulSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("statefulset", namespace, name)
 }
 
 // --- DaemonSets ---
+
+// RestartDaemonSet restarts a daemonset. Delegates to restartWorkload.
 func (a *App) RestartDaemonSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
-	_, err = clientset.AppsV1().DaemonSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	return err
+	return a.restartWorkload("daemonset", namespace, name)
 }
+
+// DeleteDaemonSet deletes a daemonset. Delegates to DeleteResource.
 func (a *App) DeleteDaemonSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().DaemonSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("daemonset", namespace, name)
 }
 
 // --- ReplicaSets (restart not meaningful separately) ---
+
+// DeleteReplicaSet deletes a replicaset. Delegates to DeleteResource.
 func (a *App) DeleteReplicaSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().ReplicaSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("replicaset", namespace, name)
 }
 
 // --- ConfigMaps ---
+
+// DeleteConfigMap deletes a configmap. Delegates to DeleteResource.
 func (a *App) DeleteConfigMap(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().ConfigMaps(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("configmap", namespace, name)
 }
 
 // --- Secrets ---
+
+// DeleteSecret deletes a secret. Delegates to DeleteResource.
 func (a *App) DeleteSecret(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().Secrets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("secret", namespace, name)
 }
 
 // --- Persistent Volume Claims ---
+
+// DeletePersistentVolumeClaim deletes a PVC. Delegates to DeleteResource.
 func (a *App) DeletePersistentVolumeClaim(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().PersistentVolumeClaims(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("pvc", namespace, name)
 }
 
 // --- Persistent Volumes ---
+
+// DeletePersistentVolume deletes a PV. Delegates to DeleteResource.
 func (a *App) DeletePersistentVolume(name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().PersistentVolumes().Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("pv", "", name)
 }
 
 // --- Ingresses ---
+
+// DeleteIngress deletes an ingress. Delegates to DeleteResource.
 func (a *App) DeleteIngress(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.NetworkingV1().Ingresses(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("ingress", namespace, name)
 }
 
 // Job and CronJob App methods moved to resource_actions_jobs.go

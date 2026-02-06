@@ -361,14 +361,14 @@ func (a *App) emitHookStarted(h HookConfig, connectionType, connectionID string)
 	if a == nil || a.ctx == nil {
 		return
 	}
-	emitEvent(a.ctx, "hook:started", hookStartedEvent{Hook: h, ConnectionType: connectionType, ConnectionID: connectionID})
+	emitEvent(a.ctx, EventHookStarted, hookStartedEvent{Hook: h, ConnectionType: connectionType, ConnectionID: connectionID})
 }
 
 func (a *App) emitHookCompleted(h HookConfig, r HookExecutionResult, connectionType, connectionID string) {
 	if a == nil || a.ctx == nil {
 		return
 	}
-	emitEvent(a.ctx, "hook:completed", hookCompletedEvent{Hook: h, Result: r, ConnectionType: connectionType, ConnectionID: connectionID})
+	emitEvent(a.ctx, EventHookCompleted, hookCompletedEvent{Hook: h, Result: r, ConnectionType: connectionType, ConnectionID: connectionID})
 }
 
 func (a *App) getApplicableHooks(hookType, connectionType, connectionID string) ([]HookConfig, error) {

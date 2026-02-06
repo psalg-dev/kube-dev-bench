@@ -10,21 +10,14 @@ import (
 
 // App methods for Jobs and CronJobs
 
+// DeleteJob deletes a job. Delegates to DeleteResource.
 func (a *App) DeleteJob(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	opts := metav1.DeleteOptions{}
-	return clientset.BatchV1().Jobs(namespace).Delete(a.ctx, name, opts)
+	return a.DeleteResource("job", namespace, name)
 }
 
+// DeleteCronJob deletes a cronjob. Delegates to DeleteResource.
 func (a *App) DeleteCronJob(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.BatchV1().CronJobs(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("cronjob", namespace, name)
 }
 
 func (a *App) SuspendCronJob(namespace, name string) error {
@@ -75,7 +68,7 @@ func (a *App) StartJobFromCronJob(namespace, cronJobName string) error {
 			return
 		}
 		if jobs, e := a.GetJobs(ns); e == nil {
-			emitEvent(a.ctx, "jobs:update", jobs)
+			emitEvent(a.ctx, EventJobsUpdate, jobs)
 		}
 	}(namespace)
 
@@ -125,7 +118,7 @@ func (a *App) StartJob(namespace, name string) error {
 			return
 		}
 		if jobs, e := a.GetJobs(ns); e == nil {
-			emitEvent(a.ctx, "jobs:update", jobs)
+			emitEvent(a.ctx, EventJobsUpdate, jobs)
 		}
 	}(namespace)
 

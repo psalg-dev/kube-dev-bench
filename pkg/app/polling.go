@@ -17,6 +17,44 @@ type ResourcePollingConfig[T any] struct {
 	Interval time.Duration
 }
 
+// StartAllPolling registers and starts all resource polling loops using the
+// generic polling framework. MonitorPolling is excluded because it has different
+// aggregation semantics (single MonitorInfo across all namespaces).
+func (a *App) StartAllPolling() {
+	startResourcePolling(a, ResourcePollingConfig[PodInfo]{
+		EventName: EventPodsUpdate,
+		FetchFn:   a.GetRunningPods,
+	})
+	startResourcePolling(a, ResourcePollingConfig[DeploymentInfo]{
+		EventName: EventDeploymentsUpdate,
+		FetchFn:   a.GetDeployments,
+	})
+	startResourcePolling(a, ResourcePollingConfig[CronJobInfo]{
+		EventName: EventCronJobsUpdate,
+		FetchFn:   a.GetCronJobs,
+	})
+	startResourcePolling(a, ResourcePollingConfig[DaemonSetInfo]{
+		EventName: EventDaemonSetsUpdate,
+		FetchFn:   a.GetDaemonSets,
+	})
+	startResourcePolling(a, ResourcePollingConfig[StatefulSetInfo]{
+		EventName: EventStatefulSetsUpdate,
+		FetchFn:   a.GetStatefulSets,
+	})
+	startResourcePolling(a, ResourcePollingConfig[ReplicaSetInfo]{
+		EventName: EventReplicaSetsUpdate,
+		FetchFn:   a.GetReplicaSets,
+	})
+	startResourcePolling(a, ResourcePollingConfig[HelmReleaseInfo]{
+		EventName: EventHelmReleasesUpdate,
+		FetchFn:   a.GetHelmReleases,
+	})
+
+	// Monitor uses a custom loop (5s interval, aggregates across all namespaces
+	// into a single MonitorInfo instead of a flat list), so it remains separate.
+	a.StartMonitorPolling()
+}
+
 // startResourcePolling starts a generic polling loop for any K8s resource type.
 // It polls the configured namespaces periodically and emits events with the collected resources.
 func startResourcePolling[T any](a *App, config ResourcePollingConfig[T]) {

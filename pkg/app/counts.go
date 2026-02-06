@@ -67,7 +67,7 @@ func (a *App) refreshPodStatusOnly() {
 	a.resourceCountsMu.Lock()
 	a.lastResourceCounts = last
 	a.resourceCountsMu.Unlock()
-	emitEvent(a.ctx, "resourcecounts:update", last)
+	emitEvent(a.ctx, EventResourceCountsUpdate, last)
 }
 
 // getRefreshNamespaces returns the list of namespaces to count
@@ -169,7 +169,7 @@ func (a *App) refreshResourceCounts() {
 	a.lastResourceCounts = agg
 	a.resourceCountsMu.Unlock()
 
-	emitEvent(a.ctx, "resourcecounts:update", agg)
+	emitEvent(a.ctx, EventResourceCountsUpdate, agg)
 }
 
 // resourceCountsEqual shallow comparison including embedded pod status counts.

@@ -15,7 +15,7 @@ func (a *App) GetServices(namespace string) ([]ServiceInfo, error) {
 		return nil, fmt.Errorf("namespace required")
 	}
 
-	clientset, err := a.getKubernetesInterface()
+	clientset, err := a.getClient()
 	if err != nil {
 		return nil, err
 	}

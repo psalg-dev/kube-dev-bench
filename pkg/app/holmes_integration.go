@@ -1219,7 +1219,7 @@ func (a *App) emitHolmesStreamEvent(streamID, event, errMsg string) {
 		Event:    event,
 		Error:    errMsg,
 	}
-	emitEvent(a.ctx, "holmes:chat:stream", payload)
+	emitEvent(a.ctx, EventHolmesChatStream, payload)
 }
 
 // tryReconnectAndRetry attempts reconnection strategies and retries streaming.
@@ -1306,7 +1306,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 				eventCount++
 				a.emitHolmesStreamEvent(streamID, event, "")
 				payload := holmesgpt.HolmesStreamEvent{StreamID: streamID, Event: event, Data: string(data)}
-				emitEvent(a.ctx, "holmes:chat:stream", payload)
+				emitEvent(a.ctx, EventHolmesChatStream, payload)
 				return nil
 			})
 		}
