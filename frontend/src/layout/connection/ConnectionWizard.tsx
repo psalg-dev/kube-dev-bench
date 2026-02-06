@@ -1,6 +1,7 @@
 import { ConnectionsStateProvider, useConnectionsState, type SelectedSection } from './ConnectionsStateContext';
 import ConnectionsSidebar from './ConnectionsSidebar';
 import ConnectionsMainView from './ConnectionsMainView';
+import './ConnectionWizard.css';
 
 type ConnectionWizardLayoutProps = {
   onComplete?: () => void;
@@ -31,7 +32,7 @@ function ConnectionWizardLayout({ onComplete }: ConnectionWizardLayoutProps) {
       </aside>
       <main id="maincontent" className="connection-wizard-main">
         <div id="error-container" />
-        <div id="main-panels" style={{ height: '100%' }}>
+        <div id="main-panels" className="connection-wizard-panels">
           <ConnectionsMainView onConnect={onComplete} />
         </div>
       </main>
@@ -46,17 +47,7 @@ function ConnectionsFooter() {
   const { kubeConfigCount, swarmConnectionCount } = useConnectionsState();
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: '0 16px',
-        fontSize: 12,
-        color: 'var(--gh-text-muted, #8b949e)',
-        height: '100%',
-      }}
-    >
+    <div className="connection-wizard-footer-content">
       <span>
         {kubeConfigCount} kubeconfig{kubeConfigCount !== 1 ? 's' : ''} • {swarmConnectionCount} Docker connection
         {swarmConnectionCount !== 1 ? 's' : ''}

@@ -1,0 +1,39 @@
+.footer-bar__monitor-badges {
+  display: flex;
+  gap: 8px;
+  margin-right: auto;
+}
+
+.footer-bar__badge {
+  color: #fff;
+  border: none;
+  border-radius: 0;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.footer-bar__badge--error {
+  background: #d73a49;
+}
+
+.footer-bar__badge--warning {
+  background: #dbab09;
+}
+
+.footer-bar__proxy-indicator {
+  background: #0366d6;
+  color: #fff;
+  border-radius: 0;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}

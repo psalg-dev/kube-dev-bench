@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils';
 import StatusBadge from './components/StatusBadge';
+import './QuickInfoSection.css';
 
 export type QuickInfoField = {
   key?: string;
@@ -42,15 +43,9 @@ function QuickInfoSection({
     if (!labels || Object.keys(labels).length === 0) return '-';
     const pairs = Object.keys(labels).sort().map((k) => `${k}=${labels[k]}`);
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      <div className="quick-info__labels">
         {pairs.map((p, i) => (
-          <span key={i} style={{
-            background: 'rgba(56,139,253,0.12)',
-            border: '1px solid #3c3c3c',
-            padding: '2px 6px',
-            borderRadius: 0,
-            color: '#d4d4d4',
-          }}>
+          <span key={i} className="quick-info__label-chip">
             {p}
           </span>
         ))}
@@ -107,15 +102,9 @@ function QuickInfoSection({
     if (field.type === 'list' && Array.isArray(value)) {
       if (value.length === 0) return '-';
       return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div className="quick-info__list">
           {value.map((item, i) => (
-            <span key={i} style={{
-              background: 'rgba(46,160,67,0.15)',
-              border: '1px solid #3c3c3c',
-              padding: '2px 6px',
-              borderRadius: 0,
-              color: '#3fb950',
-            }}>
+            <span key={i} className="quick-info__list-chip">
               {item}
             </span>
           ))}
@@ -124,53 +113,25 @@ function QuickInfoSection({
     }
 
     if (field.type === 'break-word' && value) {
-      return <div style={{ wordBreak: 'break-all' }}>{value}</div>;
+      return <div className="quick-info__break-word">{value}</div>;
     }
 
     return value || '-';
   };
 
   return (
-    <div style={{
-      width: 320,
-      borderRight: '1px solid #30363d', // Use hard-coded color instead of CSS variable
-      background: '#0d1117', // Use hard-coded color instead of CSS variable
-      display: 'flex',
-      flexDirection: 'column',
-      minWidth: 260,
-      textAlign: 'left',
-    }}>
-      <div style={{
-        height: 44,
-        padding: '0 12px',
-        borderBottom: '1px solid #30363d', // Use hard-coded color
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        fontWeight: 600,
-        textAlign: 'left',
-        background: '#161b22', // Add explicit background
-        color: '#d4d4d4', // Add explicit text color
-      }}>
+    <div className="quick-info">
+      <div className="quick-info__header">
         Quick info
       </div>
 
-      <div style={{
-        padding: 12,
-        display: 'grid',
-        gridTemplateColumns: '1fr',
-        gap: 10,
-        flex: 1,
-        overflow: 'auto',
-        textAlign: 'left',
-        color: '#d4d4d4', // Add explicit text color
-      }}>
+      <div className="quick-info__content">
         {loading && (
-          <div style={{ color: '#858585' }}>Loading…</div>
+          <div className="quick-info__loading">Loading…</div>
         )}
 
         {error && (
-          <div style={{ color: '#f14c4c' }}>Error: {String(error)}</div>
+          <div className="quick-info__error">Error: {String(error)}</div>
         )}
 
         {!loading && !error && data && Object.keys(data).length > 0 ? (
@@ -181,32 +142,19 @@ function QuickInfoSection({
               if (field.layout === 'flex') {
                 // Special layout for fields that should be side by side
                 return (
-                  <div key={index} style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                    alignItems: 'flex-start',
-                  }}>
+                  <div key={index} className="quick-info__field-row">
                     <div>
-                      <div style={{
-                        fontSize: 12,
-                        color: '#858585',
-                        marginBottom: 4,
-                      }}>
+                      <div className="quick-info__field-label">
                         {field.label}
                       </div>
-                      <div style={{ color: '#d4d4d4' }}>{renderFieldValue(field, value)}</div>
+                      <div className="quick-info__field-value">{renderFieldValue(field, value)}</div>
                     </div>
                     {field.rightField && (
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{
-                          fontSize: 12,
-                          color: '#858585',
-                          marginBottom: 4,
-                        }}>
+                      <div className="quick-info__field-right">
+                        <div className="quick-info__field-label">
                           {field.rightField.label}
                         </div>
-                        <div style={{ whiteSpace: 'nowrap', color: '#d4d4d4' }}>
+                        <div className="quick-info__field-right-value">
                           {renderFieldValue(field.rightField, field.rightField.getValue ? field.rightField.getValue(data) : (field.rightField.key ? data[field.rightField.key] : undefined))}
                         </div>
                       </div>
@@ -217,31 +165,20 @@ function QuickInfoSection({
 
               return (
                 <div key={index}>
-                  <div style={{
-                    fontSize: 12,
-                    color: '#858585',
-                    marginBottom: 4,
-                  }}>
+                  <div className="quick-info__field-label">
                     {field.label}
                   </div>
-                  <div style={{ color: '#d4d4d4' }}>{renderFieldValue(field, value)}</div>
+                  <div className="quick-info__field-value">{renderFieldValue(field, value)}</div>
                 </div>
               );
             })}
 
             {onRefresh && (
-              <div style={{ marginTop: 8 }}>
+              <div className="quick-info__refresh">
                 <button
                   onClick={onRefresh}
                   disabled={loading}
-                  style={{
-                    padding: '6px 10px',
-                    background: 'rgba(56,139,253,0.15)',
-                    color: '#3794ff',
-                    border: '1px solid #3c3c3c',
-                    cursor: loading ? 'default' : 'pointer',
-                    opacity: loading ? 0.6 : 1,
-                  }}
+                  className="quick-info__refresh-button"
                 >
                   {loading ? 'Refreshing…' : 'Refresh'}
                 </button>
@@ -249,7 +186,7 @@ function QuickInfoSection({
             )}
           </>
         ) : (
-          <div style={{ color: '#858585' }}>
+          <div className="quick-info__empty">
             No data available.
           </div>
         )}

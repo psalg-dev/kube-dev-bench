@@ -144,6 +144,8 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: 
 
 const ConnectionsStateContext = createContext<ConnectionsStateContextValue | null>(null);
 
+const PINNED_STORAGE_KEY = 'kdb-pinned-connections';
+
 export const initialState: ConnectionsState = {
   selectedSection: 'kubernetes',
   loading: false,
@@ -249,7 +251,7 @@ export type {
 
 function loadPinnedConnections(): PinnedConnection[] {
   try {
-    const saved = localStorage.getItem('kdb-pinned-connections');
+    const saved = localStorage.getItem(PINNED_STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
@@ -258,10 +260,21 @@ function loadPinnedConnections(): PinnedConnection[] {
 
 function savePinnedConnections(connections: PinnedConnection[]) {
   try {
-    localStorage.setItem('kdb-pinned-connections', JSON.stringify(connections));
+    localStorage.setItem(PINNED_STORAGE_KEY, JSON.stringify(connections));
   } catch {
     // Ignore localStorage errors
   }
+}
+
+function buildLocalConnection(host: string, status?: docker.DockerConnectionStatus): SwarmConnectionEntry {
+  return {
+    id: 'local',
+    name: 'Local Docker',
+    host,
+    connected: !!status?.connected,
+    serverVersion: status?.serverVersion || '',
+    swarmActive: status?.swarmActive || false,
+  };
 }
 
 interface ConnectionsStateProviderProps {
@@ -346,25 +359,7 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
       const status = await GetDockerConnectionStatus();
       const connections: SwarmConnectionEntry[] = [];
 
-      if (status?.connected) {
-        connections.push({
-          id: 'local',
-          name: 'Local Docker',
-          host: defaultHost,
-          connected: true,
-          serverVersion: status.serverVersion || '',
-          swarmActive: status.swarmActive || false,
-        });
-      } else {
-        connections.push({
-          id: 'local',
-          name: 'Local Docker',
-          host: defaultHost,
-          connected: false,
-          serverVersion: '',
-          swarmActive: false,
-        });
-      }
+      connections.push(buildLocalConnection(defaultHost, status));
 
       dispatch({ type: 'SET_SWARM_CONNECTIONS', connections });
     } catch (err) {
@@ -373,16 +368,7 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
       const fallbackHost = isWindows ? 'npipe:////./pipe/dockerDesktopLinuxEngine' : 'unix:///var/run/docker.sock';
       dispatch({
         type: 'SET_SWARM_CONNECTIONS',
-        connections: [
-          {
-            id: 'local',
-            name: 'Local Docker',
-            host: fallbackHost,
-            connected: false,
-            serverVersion: '',
-            swarmActive: false,
-          },
-        ],
+        connections: [buildLocalConnection(fallbackHost)],
       });
     } finally {
       dispatch({ type: 'SET_SWARM_DETECTING', detecting: false });

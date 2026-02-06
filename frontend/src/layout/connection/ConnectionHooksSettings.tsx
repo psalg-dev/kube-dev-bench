@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext';
+import './ConnectionHooksSettings.css';
 
 type ConnectionHooksSettingsProps = {
   onClose: () => void;
@@ -45,90 +46,6 @@ type TestResult = {
   stdout?: string;
   stderr?: string;
   error?: string;
-};
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle: React.CSSProperties = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '760px',
-  width: '95%',
-  maxHeight: '86vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '18px 20px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle: React.CSSProperties = {
-  padding: 20,
-  overflowY: 'auto',
-  flex: 1,
-  display: 'grid',
-  gridTemplateColumns: '1fr 340px',
-  gap: 16,
-};
-
-const cardStyle: React.CSSProperties = {
-  background: 'var(--gh-card-bg, #161b22)',
-  border: '1px solid var(--gh-border, #30363d)',
-  borderRadius: 0,
-  padding: 12,
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 13,
-  fontWeight: 600,
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px 12px',
-  backgroundColor: 'var(--gh-input-bg, #0d1117)',
-  border: '1px solid var(--gh-border, #30363d)',
-  color: 'var(--gh-text, #c9d1d9)',
-  fontSize: 14,
-  boxSizing: 'border-box',
 };
 
 function safeIdPart(str: string) {
@@ -331,61 +248,44 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
   return (
     <div
       id={`connection-hooks-overlay-${connectionIdForDom}`}
-      style={overlayStyle}
+      className="hooks-settings-overlay connection-hooks-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={handleKeyDown}
-      className="hooks-settings-overlay"
     >
-      <div style={dialogStyle}>
-        <div style={headerStyle}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 18 }}>{title}</h2>
-            <div style={{ color: 'var(--gh-text-secondary, #ccc)', fontSize: 12 }}>
+      <div className="connection-hooks-dialog">
+        <div className="connection-hooks-header">
+          <div className="connection-hooks-header-text">
+            <h2 className="connection-hooks-title">{title}</h2>
+            <div className="connection-hooks-subtitle">
               Pre-connect hooks can block connections when &quot;Abort on failure&quot; is enabled.
             </div>
           </div>
           <button
             id="hooks-settings-close-btn"
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
+            className="connection-hooks-close"
           >
             ✕
           </button>
         </div>
 
         {(error || localError) && (
-          <div
-            style={{
-              background: 'rgba(248, 81, 73, 0.1)',
-              border: '1px solid #f85149',
-              color: '#f85149',
-              padding: '10px 12px',
-              margin: 12,
-              fontSize: 13,
-            }}
-          >
+          <div className="connection-hooks-alert">
             {localError || error}
           </div>
         )}
 
-        <div style={{ ...contentStyle, gridTemplateColumns: hasHooks || formOpen ? '1fr 340px' : '1fr' }}>
-          <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', minHeight: hasHooks ? undefined : 260 }}>
+        <div className={`connection-hooks-content${hasHooks || formOpen ? ' is-split' : ''}`}>
+          <div className={`connection-hooks-card connection-hooks-card--list${hasHooks ? '' : ' is-empty'}`}>
             {!hasHooks && !formOpen && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 8 }}>
-                <div style={{ fontWeight: 700, color: 'var(--gh-text, #fff)', fontSize: 14 }}>No hooks configured</div>
-                <div style={{ color: 'var(--gh-text-secondary, #ccc)', fontSize: 13, lineHeight: 1.5 }}>
+              <div className="connection-hooks-empty">
+                <div className="connection-hooks-empty-title">No hooks configured</div>
+                <div className="connection-hooks-empty-text">
                   Add a hook to run a script before or after connecting. Pre-connect hooks can block connections when “Abort on
                   failure” is enabled.
                 </div>
                 <div>
-                  <button id="add-hook-btn" style={primaryButtonStyle} onClick={openAdd}>
+                  <button id="add-hook-btn" className="connection-hooks-button connection-hooks-button--primary" onClick={openAdd}>
                     ➕ Add Hook
                   </button>
                 </div>
@@ -394,8 +294,8 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
 
             {(hasHooks || formOpen) && (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-                  <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #ccc)' }}>
+                <div className="connection-hooks-note">
+                  <div>
                     {editingConnectionHooks
                       ? 'Showing global hooks and hooks scoped to this connection.'
                       : 'Showing global hooks.'}
@@ -409,49 +309,25 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                     <div
                       key={h.id}
                       id={`hook-row-${safeIdPart(h.id)}`}
-                      style={{
-                        border: '1px solid var(--gh-border, #30363d)',
-                        background: selected ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
-                        padding: 10,
-                        marginBottom: 8,
-                      }}
+                      className={`connection-hooks-row${selected ? ' is-selected' : ''}`}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <div style={{ fontWeight: 700, color: 'var(--gh-text, #fff)' }}>{h.name || '(Unnamed)'}</div>
-                            <div
-                              style={{
-                                fontSize: 11,
-                                color: 'var(--gh-text-secondary, #ccc)',
-                                border: '1px solid var(--gh-border, #30363d)',
-                                padding: '2px 6px',
-                              }}
-                            >
-                              {hookTypeLabel(type)}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--gh-text-secondary, #ccc)' }}>
+                      <div className="connection-hooks-row-inner">
+                        <div className="connection-hooks-row-main">
+                          <div className="connection-hooks-row-title">
+                            <div className="connection-hooks-row-name">{h.name || '(Unnamed)'}</div>
+                            <div className="connection-hooks-row-tag">{hookTypeLabel(type)}</div>
+                            <div className="connection-hooks-row-scope">
                               {h.scope === 'connection' ? 'This connection' : 'Global'}
                             </div>
                           </div>
-                          <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #ccc)', fontFamily: 'monospace' }}>
-                            {h.scriptPath}
-                          </div>
+                          <div className="connection-hooks-row-path">{h.scriptPath}</div>
                           {h.abortOnFailure && type === 'pre-connect' && (
-                            <div style={{ marginTop: 4, fontSize: 11, color: '#f0c674' }}>Abort on failure</div>
+                            <div className="connection-hooks-row-warning">Abort on failure</div>
                           )}
                         </div>
 
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <label
-                            style={{
-                              display: 'inline-flex',
-                              gap: 6,
-                              alignItems: 'center',
-                              fontSize: 12,
-                              color: 'var(--gh-text-secondary, #ccc)',
-                            }}
-                          >
+                        <div className="connection-hooks-row-actions">
+                          <label className="connection-hooks-toggle">
                             <input
                               id={`hook-enabled-${safeIdPart(h.id)}`}
                               type="checkbox"
@@ -461,18 +337,26 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                             Enabled
                           </label>
 
-                          <button id={`hook-edit-${safeIdPart(h.id)}`} style={secondaryButtonStyle} onClick={() => openEdit(h)}>
+                          <button
+                            id={`hook-edit-${safeIdPart(h.id)}`}
+                            className="connection-hooks-button connection-hooks-button--secondary"
+                            onClick={() => openEdit(h)}
+                          >
                             Edit
                           </button>
                           <button
                             id={`hook-test-${safeIdPart(h.id)}`}
-                            style={secondaryButtonStyle}
+                            className="connection-hooks-button connection-hooks-button--secondary"
                             onClick={() => handleTest(h.id)}
                             disabled={testRunningId === h.id}
                           >
                             {testRunningId === h.id ? 'Testing...' : 'Test'}
                           </button>
-                          <button id={`hook-delete-${safeIdPart(h.id)}`} style={secondaryButtonStyle} onClick={() => handleDelete(h)}>
+                          <button
+                            id={`hook-delete-${safeIdPart(h.id)}`}
+                            className="connection-hooks-button connection-hooks-button--secondary"
+                            onClick={() => handleDelete(h)}
+                          >
                             Delete
                           </button>
                         </div>
@@ -482,8 +366,8 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                 })}
 
                 {hasHooks && (
-                  <div style={{ marginTop: 8 }}>
-                    <button id="add-hook-btn" style={primaryButtonStyle} onClick={openAdd}>
+                  <div className="connection-hooks-footer">
+                    <button id="add-hook-btn" className="connection-hooks-button connection-hooks-button--primary" onClick={openAdd}>
                       ➕ Add Hook
                     </button>
                   </div>
@@ -493,42 +377,35 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
           </div>
 
           {(hasHooks || formOpen) && (
-            <div style={cardStyle}>
-              <div style={{ fontWeight: 700, color: 'var(--gh-text, #fff)', marginBottom: 10 }}>
+            <div className="connection-hooks-card connection-hooks-card--form">
+              <div className="connection-hooks-form-title">
                 {formOpen ? (form.id ? 'Edit Hook' : 'Add Hook') : 'Select “Add Hook” or “Edit”'}
               </div>
 
               {!formOpen && (
                 <>
-                  <div style={{ color: 'var(--gh-text-secondary, #ccc)', fontSize: 13 }}>
+                  <div className="connection-hooks-form-text">
                     Use hooks to run scripts before or after connecting.
                   </div>
 
                   {testResult && (
-                    <div style={{ marginTop: 16, borderTop: '1px solid var(--gh-border, #30363d)', paddingTop: 12 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--gh-text, #fff)', marginBottom: 8 }}>Test Result</div>
-                      <div style={{ fontSize: 12, color: testResult.success ? '#2ea44f' : '#f85149' }}>
+                    <div className="connection-hooks-test">
+                      <div className="connection-hooks-test-title">Test Result</div>
+                      <div className={`connection-hooks-test-status${testResult.success ? ' is-success' : ' is-error'}`}>
                         {testResult.success ? '✓ Success' : '✗ Failed'} (exit {testResult.exitCode})
                       </div>
                       {testResult.stdout && (
-                        <pre
-                          style={{
-                            marginTop: 10,
-                            whiteSpace: 'pre-wrap',
-                            color: 'var(--gh-text-secondary, #ccc)',
-                            fontSize: 12,
-                          }}
-                        >
+                        <pre className="connection-hooks-test-output">
                           {testResult.stdout}
                         </pre>
                       )}
                       {testResult.stderr && (
-                        <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: '#f85149', fontSize: 12 }}>
+                        <pre className="connection-hooks-test-output connection-hooks-test-output--error">
                           {testResult.stderr}
                         </pre>
                       )}
                       {testResult.error && (
-                        <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: '#f85149', fontSize: 12 }}>
+                        <pre className="connection-hooks-test-output connection-hooks-test-output--error">
                           {testResult.error}
                         </pre>
                       )}
@@ -539,18 +416,15 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
 
               {formOpen && (
                 <>
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
-                      <label
-                        style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #fff)', fontSize: 13 }}
-                        htmlFor="hook-type-select"
-                      >
+                  <div className="connection-hooks-field">
+                    <div className="connection-hooks-field-row">
+                      <label className="connection-hooks-label" htmlFor="hook-type-select">
                         Hook type
                       </label>
                     </div>
                     <select
                       id="hook-type-select"
-                      style={inputStyle}
+                      className="connection-hooks-input"
                       value={form.type}
                       onChange={(e) => {
                         const nextType = e.target.value;
@@ -566,52 +440,47 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                     </select>
                   </div>
 
-                  <div style={{ marginBottom: 12 }}>
-                    <label
-                      style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #fff)', fontSize: 13 }}
-                      htmlFor="hook-name-input"
-                    >
+                  <div className="connection-hooks-field">
+                    <label className="connection-hooks-label" htmlFor="hook-name-input">
                       Hook name
                     </label>
                     <input
                       id="hook-name-input"
-                      style={inputStyle}
+                      className="connection-hooks-input"
                       value={form.name}
                       onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                     />
                   </div>
 
-                  <div style={{ marginBottom: 12 }}>
-                    <label
-                      style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #fff)', fontSize: 13 }}
-                      htmlFor="hook-scriptpath-input"
-                    >
+                  <div className="connection-hooks-field">
+                    <label className="connection-hooks-label" htmlFor="hook-scriptpath-input">
                       Script path
                     </label>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div className="connection-hooks-field-row">
                       <input
                         id="hook-scriptpath-input"
-                        style={inputStyle}
+                        className="connection-hooks-input"
                         value={form.scriptPath}
                         onChange={(e) => setForm((p) => ({ ...p, scriptPath: e.target.value }))}
                       />
-                      <button id="hook-browse-btn" style={secondaryButtonStyle} onClick={handleBrowse}>
+                      <button
+                        id="hook-browse-btn"
+                        className="connection-hooks-button connection-hooks-button--secondary"
+                        onClick={handleBrowse}
+                      >
                         Browse
                       </button>
                     </div>
                   </div>
 
-                  <div style={{ marginBottom: 12 }}>
-                    <label
-                      style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text, #fff)', fontSize: 13 }}
-                      htmlFor="hook-timeout-input"
-                    >
+                  <div className="connection-hooks-field">
+                    <label className="connection-hooks-label" htmlFor="hook-timeout-input">
                       Timeout (seconds)
                     </label>
                     <input
                       id="hook-timeout-input"
                       type="number"
-                      style={inputStyle}
+                      className="connection-hooks-input"
                       value={form.timeoutSeconds}
                       min={1}
                       onChange={(e) => setForm((p) => ({ ...p, timeoutSeconds: Number(e.target.value) }))}
@@ -619,8 +488,8 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                   </div>
 
                   {form.type === 'pre-connect' && (
-                    <div style={{ marginBottom: 12 }}>
-                      <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: 13, color: 'var(--gh-text, #fff)' }}>
+                    <div className="connection-hooks-field">
+                      <label className="connection-hooks-toggle connection-hooks-toggle--primary">
                         <input
                           id="hook-abort-checkbox"
                           type="checkbox"
@@ -632,9 +501,9 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                     </div>
                   )}
 
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, color: 'var(--gh-text, #fff)', marginBottom: 6 }}>Scope</div>
-                    <label style={{ display: 'block', fontSize: 13, color: 'var(--gh-text-secondary, #ccc)', marginBottom: 6 }}>
+                  <div className="connection-hooks-field">
+                    <div className="connection-hooks-label">Scope</div>
+                    <label className="connection-hooks-scope">
                       <input
                         id="hook-scope-global"
                         type="radio"
@@ -644,7 +513,7 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                       />{' '}
                       Global
                     </label>
-                    <label style={{ display: 'block', fontSize: 13, color: 'var(--gh-text-secondary, #ccc)' }}>
+                    <label className="connection-hooks-scope">
                       <input
                         id="hook-scope-connection"
                         type="radio"
@@ -657,10 +526,10 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                     </label>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 16 }}>
+                  <div className="connection-hooks-actions">
                     <button
                       id="hook-cancel-btn"
-                      style={secondaryButtonStyle}
+                      className="connection-hooks-button connection-hooks-button--secondary"
                       onClick={() => {
                         setFormOpen(false);
                         setLocalError('');
@@ -672,7 +541,7 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                     </button>
                     <button
                       id="hook-save-btn"
-                      style={{ ...primaryButtonStyle, opacity: loading ? 0.6 : 1 }}
+                      className={`connection-hooks-button connection-hooks-button--primary${loading ? ' is-loading' : ''}`}
                       onClick={handleSave}
                       disabled={loading}
                     >
@@ -681,30 +550,23 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                   </div>
 
                   {testResult && (
-                    <div style={{ marginTop: 16, borderTop: '1px solid var(--gh-border, #30363d)', paddingTop: 12 }}>
-                      <div style={{ fontWeight: 700, color: 'var(--gh-text, #fff)', marginBottom: 8 }}>Test Result</div>
-                      <div style={{ fontSize: 12, color: testResult.success ? '#2ea44f' : '#f85149' }}>
+                    <div className="connection-hooks-test">
+                      <div className="connection-hooks-test-title">Test Result</div>
+                      <div className={`connection-hooks-test-status${testResult.success ? ' is-success' : ' is-error'}`}>
                         {testResult.success ? '✓ Success' : '✗ Failed'} (exit {testResult.exitCode})
                       </div>
                       {testResult.stdout && (
-                        <pre
-                          style={{
-                            marginTop: 10,
-                            whiteSpace: 'pre-wrap',
-                            color: 'var(--gh-text-secondary, #ccc)',
-                            fontSize: 12,
-                          }}
-                        >
+                        <pre className="connection-hooks-test-output">
                           {testResult.stdout}
                         </pre>
                       )}
                       {testResult.stderr && (
-                        <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: '#f85149', fontSize: 12 }}>
+                        <pre className="connection-hooks-test-output connection-hooks-test-output--error">
                           {testResult.stderr}
                         </pre>
                       )}
                       {testResult.error && (
-                        <pre style={{ marginTop: 10, whiteSpace: 'pre-wrap', color: '#f85149', fontSize: 12 }}>
+                        <pre className="connection-hooks-test-output connection-hooks-test-output--error">
                           {testResult.error}
                         </pre>
                       )}

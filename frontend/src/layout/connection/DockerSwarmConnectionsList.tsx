@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useConnectionsState, type PinnedConnection, type SwarmConnectionEntry } from './ConnectionsStateContext';
 import type { docker } from '../../../wailsjs/go/models';
+import './ConnectionsList.css';
 
 type TestResult = docker.DockerConnectionStatus;
 
@@ -13,68 +14,6 @@ type HookEntry = {
 type DockerSwarmConnectionsListProps = {
   onConnect?: () => void;
   filterConnection?: { id: string };
-};
-
-const cardStyle: React.CSSProperties = {
-  border: '2px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  padding: '16px',
-  marginBottom: '12px',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
-  background: 'var(--gh-input-bg, #2a2a2a)',
-};
-
-const cardHoverStyle: React.CSSProperties = {
-  ...cardStyle,
-  borderColor: 'var(--gh-accent, #0969da)',
-  background: 'var(--gh-input-bg-hover, #333)',
-};
-
-const connectedCardStyle: React.CSSProperties = {
-  ...cardStyle,
-  borderColor: '#2ea44f',
-  background: 'rgba(46, 164, 79, 0.1)',
-};
-
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '24px',
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
-};
-
-const statusBadgeStyle: React.CSSProperties = {
-  padding: '4px 8px',
-  borderRadius: 4,
-  fontSize: 11,
-  fontWeight: 600,
-  textTransform: 'uppercase',
 };
 
 function DockerSwarmConnectionsList({ onConnect, filterConnection }: DockerSwarmConnectionsListProps) {
@@ -194,163 +133,101 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }: DockerSwarm
   };
 
   return (
-    <div style={{ padding: '24px', height: '100%', overflowY: 'auto' }}>
-      <div style={headerStyle}>
-        <div>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 24 }}>🐳 Docker Swarm Connections</h2>
-          <p style={{ margin: '8px 0 0', color: 'var(--gh-text-secondary, #ccc)', fontSize: 14 }}>
-            Connect to Docker hosts and manage Swarm clusters
-          </p>
+    <div className="connections-list">
+      <div className="connections-header">
+        <div className="connections-header-text">
+          <h2>🐳 Docker Swarm Connections</h2>
+          <p>Connect to Docker hosts and manage Swarm clusters</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="connections-header-actions">
           <button
             id="refresh-swarm-btn"
-            style={secondaryButtonStyle}
+            className="connections-button secondary"
             onClick={() => actions.detectSwarmConnections()}
             disabled={swarmDetecting}
           >
             🔄 Refresh
           </button>
-          <button id="add-swarm-btn" style={primaryButtonStyle} onClick={() => actions.showAddSwarmOverlay(true)}>
+          <button
+            id="add-swarm-btn"
+            className="connections-button primary"
+            onClick={() => actions.showAddSwarmOverlay(true)}
+          >
             ➕ Add Connection
           </button>
         </div>
       </div>
 
-      {swarmDetecting && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gh-text-secondary, #ccc)' }}>
-          Detecting Docker connections...
-        </div>
-      )}
+      {swarmDetecting && <div className="connections-loading">Detecting Docker connections...</div>}
 
       {!swarmDetecting && displayConnections.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--gh-text-secondary, #ccc)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>🐳</div>
-          <h3 style={{ margin: '0 0 12px', color: 'var(--gh-text, #fff)' }}>No Docker Connections Found</h3>
-          <p style={{ margin: '0 0 24px' }}>
-            Add a Docker host connection to manage containers and Swarm services
-          </p>
-          <button style={primaryButtonStyle} onClick={() => actions.showAddSwarmOverlay(true)}>
+        <div className="connections-empty">
+          <div className="connections-empty-icon">🐳</div>
+          <h3 className="connections-empty-title">No Docker Connections Found</h3>
+          <p>Add a Docker host connection to manage containers and Swarm services</p>
+          <button className="connections-button primary" onClick={() => actions.showAddSwarmOverlay(true)}>
             ➕ Add Connection
           </button>
         </div>
       )}
 
       {!swarmDetecting && displayConnections.length > 0 && (
-        <div className="connection-list">
+        <div className="connections-card-list">
           {displayConnections.map((connection, index) => {
             const isHovered = hoveredIndex === index;
             const pinned = isPinned(connection);
             const testResult = testResults[connection.id];
             const isConnected = connection.connected || testResult?.connected;
+            const cardClassName = [
+              'connections-card',
+              isConnected ? 'is-connected' : '',
+              !isConnected && isHovered ? 'is-hovered' : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
 
             return (
               <div
                 key={connection.id}
-                className="connection-item"
-                style={isConnected ? connectedCardStyle : isHovered ? cardHoverStyle : cardStyle}
+                className={cardClassName}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontWeight: 'bold',
-                        color: 'var(--gh-text, #fff)',
-                        marginBottom: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
+                <div className="connections-card-row">
+                  <div className="connections-card-main">
+                    <div className="connections-card-title">
                       {connection.name}
-                      {pinned && <span style={{ fontSize: 12 }}>📌</span>}
+                      {pinned && <span>📌</span>}
                       {isConnected && (
-                        <span
-                          style={{
-                            ...statusBadgeStyle,
-                            background: 'rgba(46, 164, 79, 0.2)',
-                            color: '#2ea44f',
-                          }}
-                        >
-                          Connected
-                        </span>
+                        <span className="connections-status-badge connections-status-connected">Connected</span>
                       )}
                       {connection.swarmActive && (
-                        <span
-                          style={{
-                            ...statusBadgeStyle,
-                            background: 'rgba(56, 139, 253, 0.2)',
-                            color: '#388bfd',
-                          }}
-                        >
-                          Swarm
-                        </span>
+                        <span className="connections-status-badge connections-status-swarm">Swarm</span>
                       )}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--gh-text-secondary, #ccc)',
-                        fontFamily: 'monospace',
-                        marginBottom: 4,
-                      }}
-                    >
-                      {connection.host}
-                    </div>
+                    <div className="connections-card-path">{connection.host}</div>
                     {connection.serverVersion && (
-                      <div style={{ fontSize: 12, color: 'var(--gh-text-tertiary, #999)' }}>
-                        Docker {connection.serverVersion}
-                      </div>
+                      <div className="connections-card-meta">Docker {connection.serverVersion}</div>
                     )}
                     {testResult && (
-                      <div
-                        style={{
-                          marginTop: 8,
-                          padding: '8px 12px',
-                          borderRadius: 4,
-                          fontSize: 12,
-                          background: testResult.connected
-                            ? 'rgba(46, 164, 79, 0.1)'
-                            : 'rgba(248, 81, 73, 0.1)',
-                          color: testResult.connected ? '#2ea44f' : '#f85149',
-                          border: `1px solid ${testResult.connected ? '#2ea44f' : '#f85149'}`,
-                        }}
-                      >
+                      <div className={`connections-test-result ${testResult.connected ? 'success' : 'error'}`}>
                         {testResult.connected
                           ? `✓ Connection successful${testResult.serverVersion ? ` (Docker ${testResult.serverVersion})` : ''}`
                           : `✗ ${testResult.error || 'Connection failed'}`}
                       </div>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="connections-card-actions">
                     <button
                       onClick={(e) => handleTogglePin(e, connection)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--gh-border, #444)',
-                        color: pinned ? '#f0c674' : 'var(--gh-text-secondary, #ccc)',
-                        padding: '4px 8px',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                      }}
+                      className={`connections-icon-button${pinned ? ' pinned' : ''}`}
                       title={pinned ? 'Unpin' : 'Pin to sidebar'}
                     >
                       📌
                     </button>
                     <button
                       onClick={(e) => handleProxySettings(e, connection)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--gh-border, #444)',
-                        color: 'var(--gh-text-secondary, #ccc)',
-                        padding: '4px 8px',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                      }}
+                      className="connections-icon-button"
                       title="Proxy settings"
                     >
                       🌐
@@ -359,61 +236,24 @@ function DockerSwarmConnectionsList({ onConnect, filterConnection }: DockerSwarm
                     <button
                       id={`swarm-hooks-btn-${String(connection.id).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)}`}
                       onClick={(e) => handleHooksSettings(e, connection)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--gh-border, #444)',
-                        color: 'var(--gh-text-secondary, #ccc)',
-                        padding: '4px 8px',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        position: 'relative',
-                      }}
+                      className="connections-icon-button"
                       title="Hooks"
                     >
                       🪝
                       {hookCountFor(connection) > 0 && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: -6,
-                            right: -6,
-                            background: 'var(--gh-accent, #0969da)',
-                            color: '#fff',
-                            fontSize: 10,
-                            lineHeight: '14px',
-                            minWidth: 14,
-                            height: 14,
-                            borderRadius: 0,
-                            padding: '0 4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {hookCountFor(connection)}
-                        </span>
+                        <span className="connections-badge">{hookCountFor(connection)}</span>
                       )}
                     </button>
                     <button
                       onClick={(e) => handleTestConnection(e, connection)}
                       disabled={testing === connection.id}
-                      style={{
-                        ...secondaryButtonStyle,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                        opacity: testing === connection.id ? 0.5 : 1,
-                      }}
+                      className={`connections-button secondary small${testing === connection.id ? ' dimmed' : ''}`}
                     >
                       {testing === connection.id ? '...' : 'Test'}
                     </button>
                     <button
                       onClick={(e) => handleConnect(e, connection)}
-                      style={{
-                        ...primaryButtonStyle,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                      }}
+                      className="connections-button primary small"
                     >
                       Connect
                     </button>

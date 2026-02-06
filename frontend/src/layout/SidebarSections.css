@@ -1,0 +1,64 @@
+.sidebar-section-link {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--gh-table-header-text, #fff);
+  font-size: 15px;
+  margin: 0;
+  border-radius: 4px;
+  transition: background 0.15s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+  text-decoration: none;
+}
+
+.sidebar-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-section-count {
+  min-width: 2em;
+  text-align: right;
+  color: #9aa0a6;
+  font-weight: 700;
+}
+
+.sidebar-section-count.is-active {
+  color: #8ecfff;
+}
+
+.sidebar-pod-counts {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-width: 2em;
+  justify-content: flex-end;
+}
+
+.sidebar-pod-count {
+  font-weight: 700;
+}
+
+.sidebar-pod-count--running {
+  color: #2ea44f;
+}
+
+.sidebar-pod-count--pending {
+  color: #e6b800;
+}
+
+.sidebar-pod-count--failed {
+  color: #d73a49;
+}
+
+.sidebar-pod-count--muted {
+  color: #9aa0a6;
+}
+
+.sidebar-pod-count-sep {
+  color: #666;
+}

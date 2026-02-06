@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useConnectionsState, type PinnedConnection, type SelectedSection } from './ConnectionsStateContext';
+import './ConnectionsSidebar.css';
 
 type SidebarSection = {
   key: SelectedSection;
@@ -10,26 +11,6 @@ type SidebarSection = {
 
 type ConnectionsSidebarProps = {
   onConnect?: () => void;
-};
-
-const sidebarItemStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  cursor: 'pointer',
-  color: 'var(--gh-table-header-text, #fff)',
-  fontSize: 15,
-  margin: 0,
-  borderRadius: 4,
-  transition: 'background 0.15s',
-  textAlign: 'left',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  justifyContent: 'space-between',
-};
-
-const selectedStyle: React.CSSProperties = {
-  ...sidebarItemStyle,
-  background: 'rgba(56, 139, 253, 0.08)',
 };
 
 function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
@@ -54,33 +35,27 @@ function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ marginBottom: 16 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--gh-text-secondary, #ccc)' }}>Connections</span>
+    <div className="connections-sidebar">
+      <div className="connections-sidebar__title">
+        <span>Connections</span>
       </div>
 
-      <div style={{ flex: 1 }}>
+      <div className="connections-sidebar__sections">
         {sections.map((sec) => {
           const isSelected = selectedSection === sec.key;
           return (
             <div
               key={sec.key}
               id={`connection-section-${sec.key}`}
-              className={`sidebar-section${isSelected ? ' selected' : ''}`}
-              style={isSelected ? selectedStyle : sidebarItemStyle}
+              className={`sidebar-section connections-sidebar__item${isSelected ? ' selected' : ''}`}
               onClick={() => actions.selectSection(sec.key)}
             >
-              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="connections-sidebar__item-label">
                 <span>{sec.icon}</span>
                 <span>{sec.label}</span>
               </span>
               <span
-                style={{
-                  minWidth: '2em',
-                  textAlign: 'right',
-                  color: sec.count > 0 ? '#8ecfff' : '#9aa0a6',
-                  fontWeight: 700,
-                }}
+                className={`connections-sidebar__count${sec.count > 0 ? ' is-active' : ''}`}
               >
                 {sec.count}
               </span>
@@ -90,9 +65,9 @@ function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
 
         {pinnedConnections.length > 0 && (
           <>
-            <hr style={{ border: 'none', borderTop: '1px solid var(--gh-border, #30363d)', margin: '16px 0' }} />
-            <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--gh-text-muted, #8b949e)' }}>PINNED</span>
+            <hr className="connections-sidebar__divider" />
+            <div className="connections-sidebar__pinned-label">
+              <span>PINNED</span>
             </div>
             {(pinnedConnections as PinnedConnection[]).map((conn) => {
               const isSelected = selectedSection === `pinned-${conn.type}-${conn.id}`;
@@ -135,19 +110,15 @@ function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
                 <div
                   key={connKey}
                   id={`pinned-connection-${conn.type}-${conn.id}`}
-                  className={`sidebar-section${isSelected ? ' selected' : ''}`}
-                  style={{
-                    ...(isSelected ? selectedStyle : sidebarItemStyle),
-                    opacity: isConnecting ? 0.6 : 1,
-                  }}
+                  className={`sidebar-section connections-sidebar__item${isSelected ? ' selected' : ''}${isConnecting ? ' is-connecting' : ''}`}
                   onClick={handlePinnedClick}
                   title={isConnecting ? 'Connecting...' : `Click to connect to ${conn.name}`}
                 >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span className="connections-sidebar__item-label">
                     <span>{conn.type === 'kubernetes' ? '☸️' : '🐳'}</span>
-                    <span style={{ fontSize: 13 }}>{isConnecting ? 'Connecting...' : conn.name}</span>
+                    <span className="connections-sidebar__item-name">{isConnecting ? 'Connecting...' : conn.name}</span>
                   </span>
-                  <span style={{ fontSize: 10, color: 'var(--gh-text-muted, #8b949e)' }}>📌</span>
+                  <span className="connections-sidebar__pinned-icon">📌</span>
                 </div>
               );
             })}
@@ -155,24 +126,11 @@ function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
         )}
       </div>
 
-      <div style={{ marginTop: 'auto', paddingTop: 16, borderTop: '1px solid var(--gh-border, #30363d)' }}>
+      <div className="connections-sidebar__footer">
         <button
           id="global-proxy-settings-btn"
           onClick={() => actions.showProxySettings(true)}
-          style={{
-            width: '100%',
-            padding: '8px 16px',
-            background: 'transparent',
-            border: '1px solid var(--gh-border, #444)',
-            color: 'var(--gh-text-secondary, #ccc)',
-            borderRadius: 0,
-            cursor: 'pointer',
-            fontSize: 13,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
+          className="connections-sidebar__proxy-button"
         >
           <span>🌐</span>
           <span>Proxy Settings</span>
