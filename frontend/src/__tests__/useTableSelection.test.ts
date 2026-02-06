@@ -119,4 +119,39 @@ describe('useTableSelection', () => {
     expect(result.current.selectedCount).toBe(0);
     expect(result.current.isIndeterminate).toBe(false);
   });
+
+  it('preserves selection when data reference changes but keys are identical (polling)', async () => {
+    const data1 = createRows(3);
+    const data2 = createRows(3); // same keys, different array reference
+    const { result, rerender } = renderHook(
+      ({ data }) => useTableSelection(data, getRowKey),
+      { initialProps: { data: data1 } }
+    );
+
+    // Select first row, then shift-select third row for range
+    act(() => {
+      result.current.toggleRow('row-1', 0, false);
+    });
+    expect(result.current.selectedCount).toBe(1);
+
+    act(() => {
+      result.current.toggleRow('row-3', 2, true);
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedCount).toBeGreaterThanOrEqual(2);
+    });
+    expect(result.current.isSelected('row-1')).toBe(true);
+    expect(result.current.isSelected('row-3')).toBe(true);
+
+    // Simulate polling: re-render with a new array that has the same keys
+    rerender({ data: data2 });
+
+    // Wait for any async pruning effects to settle
+    await waitFor(() => {
+      expect(result.current.selectedCount).toBeGreaterThanOrEqual(2);
+    });
+    expect(result.current.isSelected('row-1')).toBe(true);
+    expect(result.current.isSelected('row-3')).toBe(true);
+  });
 });

@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+/** Return the previous array reference when all elements are identical. */
+function useStableKeys<T extends string | number>(nextKeys: T[]): T[] {
+  const ref = useRef<T[]>(nextKeys);
+  const prev = ref.current;
+  if (
+    prev.length === nextKeys.length &&
+    prev.every((k, i) => k === nextKeys[i])
+  ) {
+    return prev;
+  }
+  ref.current = nextKeys;
+  return nextKeys;
+}
+
 export interface TableSelectionResult<TKey extends string | number, TRow> {
   selectedKeys: Set<TKey>;
   isSelected: (key: TKey) => boolean;
@@ -23,15 +37,17 @@ export default function useTableSelection<TRow, TKey extends string | number>(
 
   const keySource = Array.isArray(visibleData) ? visibleData : data;
 
-  const baseKeys = useMemo(() => {
+  const rawBaseKeys = useMemo(() => {
     if (!Array.isArray(data)) return [] as TKey[];
     return data.map((row, idx) => getRowKey(row, idx));
   }, [data, getRowKey]);
+  const baseKeys = useStableKeys(rawBaseKeys);
 
-  const keys = useMemo(() => {
+  const rawKeys = useMemo(() => {
     if (!Array.isArray(keySource)) return [] as TKey[];
     return keySource.map((row, idx) => getRowKey(row, idx));
   }, [keySource, getRowKey]);
+  const keys = useStableKeys(rawKeys);
 
   const clearSelection = useCallback(() => {
     setSelectedKeys(new Set());
@@ -43,6 +59,12 @@ export default function useTableSelection<TRow, TKey extends string | number>(
     const timeoutId = setTimeout(() => {
       setSelectedKeys((prev) => {
         if (prev.size === 0) return prev;
+        const baseKeySet = new Set(baseKeys);
+        let changed = false;
+        prev.forEach((key) => {
+          if (!baseKeySet.has(key)) changed = true;
+        });
+        if (!changed) return prev; // identical content — keep same reference
         const next = new Set<TKey>();
         baseKeys.forEach((key) => {
           if (prev.has(key)) {
