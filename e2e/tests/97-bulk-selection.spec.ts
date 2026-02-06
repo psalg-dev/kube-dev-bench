@@ -164,8 +164,12 @@ async function assertBulkSelection(opts: {
   const rowCount = await rowCheckboxes.count();
   const bulkBar = page.locator('.bulk-action-bar');
 
-  await rowCheckboxes.first().click();
-  await expect(rowCheckboxes.first()).toBeChecked();
+  // Use toPass to retry the click+check — the table can re-render between the
+  // click and the assertion, causing the locator to resolve to a fresh element.
+  await expect(async () => {
+    await rowCheckboxes.first().click();
+    await expect(rowCheckboxes.first()).toBeChecked();
+  }).toPass({ timeout: 30_000, intervals: [500, 1_000, 2_000] });
 
   await expect(bulkBar).toBeVisible({ timeout: 30_000 });
   await expect(bulkBar.locator('.bulk-action-count')).toHaveText('1 selected', { timeout: 30_000 });

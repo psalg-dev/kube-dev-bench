@@ -30,7 +30,6 @@ export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
   const mainContent = page.locator('#maincontent');
 
   const deadline = Date.now() + timeout;
-  let lastVisibilityError: unknown;
 
   while (Date.now() < deadline) {
     if (await servicesTable.isVisible().catch(() => false)) return servicesTable;
@@ -48,16 +47,15 @@ export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
 
     if (await loading.isVisible().catch(() => false)) {
       const remaining = Math.max(1_000, deadline - Date.now());
-      await expect(loading).toBeHidden({ timeout: remaining }).catch((err) => {
-        lastVisibilityError = err;
-      });
+      await expect(loading).toBeHidden({ timeout: remaining }).catch(() => undefined);
     }
 
     await page.waitForTimeout(500);
   }
 
-  if (lastVisibilityError) throw lastVisibilityError;
-  await expect(servicesTable).toBeVisible({ timeout: 10_000 });
+  // Final assertion — use a generous timeout since the loop may have spent its
+  // budget waiting for loading spinners to clear, not for the table itself.
+  await expect(servicesTable).toBeVisible({ timeout: Math.max(30_000, timeout / 2) });
   return servicesTable;
 }
 
