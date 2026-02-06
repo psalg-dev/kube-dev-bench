@@ -10,7 +10,16 @@ export class Notifications {
   async waitForClear(opts: { timeoutMs?: number } = {}) {
     const timeoutMs = opts.timeoutMs ?? 20_000;
     // Wait for all notifications to disappear, accounting for their auto-dismiss time (3s) + animation
-    await expect(this.page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: timeoutMs });
+    try {
+      await expect(this.page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: timeoutMs });
+    } catch {
+      const closeButtons = this.page.locator('#gh-notification-container .gh-notification__close');
+      const closeCount = await closeButtons.count();
+      for (let i = 0; i < closeCount; i++) {
+        await closeButtons.nth(i).click({ timeout: 2000 }).catch(() => undefined);
+      }
+      await expect(this.page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
+    }
     // Add a small stabilization wait to ensure UI has settled
     await this.page.waitForTimeout(500);
   }

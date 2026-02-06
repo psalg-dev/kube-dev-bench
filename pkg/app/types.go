@@ -23,6 +23,7 @@ type PodInfo struct {
 	// Container ports exposed by this pod (unique, across containers)
 	Ports  []int  `json:"ports"`
 	Status string `json:"status"`
+	UID    string `json:"uid"`
 }
 
 // PodStatusCounts provides counts of pods by phase for a namespace

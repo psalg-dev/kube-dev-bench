@@ -25,39 +25,57 @@ export interface SwarmBootstrapResult {
 export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
   const servicesTable = page.locator('[data-testid="swarm-services-table"]');
   const loading = page.locator('.main-panel-loading').filter({ hasText: /loading swarm services/i });
-  const servicesHeading = page.getByRole('heading', { name: /swarm services/i });
   const servicesSection = page.locator('#section-swarm-services');
   const mainContent = page.locator('#maincontent');
 
   const deadline = Date.now() + timeout;
-  let lastVisibilityError: unknown;
+  // Track how many consecutive iterations see neither table nor loading spinner.
+  // When this exceeds a threshold the services component likely hasn't mounted;
+  // re-clicking the sidebar section or reloading the page can recover.
+  let idleIterations = 0;
 
   while (Date.now() < deadline) {
     if (await servicesTable.isVisible().catch(() => false)) return servicesTable;
 
     await mainContent.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => undefined);
 
-    const headingVisible = await servicesHeading.isVisible().catch(() => false);
-    if (!headingVisible && (await servicesSection.isVisible().catch(() => false))) {
-      try {
-        await servicesSection.click({ timeout: 5_000 });
-      } catch {
-        await servicesSection.evaluate((el) => (el as HTMLElement).click()).catch(() => undefined);
+    const loadingVisible = await loading.isVisible().catch(() => false);
+
+    if (loadingVisible) {
+      idleIterations = 0;
+      const remaining = Math.max(1_000, deadline - Date.now());
+      await expect(loading).toBeHidden({ timeout: remaining }).catch(() => undefined);
+      continue;
+    }
+
+    // Neither table nor loading spinner — the services component may not have mounted.
+    idleIterations++;
+
+    if (idleIterations >= 6 && idleIterations % 6 === 0) {
+      // Re-click the sidebar section to trigger component mount / data fetch.
+      console.warn(`[e2e] waitForSwarmServicesTable: idle ${idleIterations} iterations, re-clicking section`);
+      if (await servicesSection.isVisible().catch(() => false)) {
+        try {
+          await servicesSection.click({ timeout: 5_000 });
+        } catch {
+          await servicesSection.evaluate((el) => (el as HTMLElement).click()).catch(() => undefined);
+        }
       }
     }
 
-    if (await loading.isVisible().catch(() => false)) {
-      const remaining = Math.max(1_000, deadline - Date.now());
-      await expect(loading).toBeHidden({ timeout: remaining }).catch((err) => {
-        lastVisibilityError = err;
-      });
+    if (idleIterations === 24) {
+      // Last-resort recovery: reload the page entirely.
+      console.warn('[e2e] waitForSwarmServicesTable: reloading page as last-resort recovery');
+      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
+      await page.waitForTimeout(2_000);
     }
 
     await page.waitForTimeout(500);
   }
 
-  if (lastVisibilityError) throw lastVisibilityError;
-  await expect(servicesTable).toBeVisible({ timeout: 1_000 });
+  // Final assertion — use a generous timeout since the loop may have spent its
+  // budget waiting for loading spinners to clear, not for the table itself.
+  await expect(servicesTable).toBeVisible({ timeout: Math.max(30_000, timeout / 2) });
   return servicesTable;
 }
 

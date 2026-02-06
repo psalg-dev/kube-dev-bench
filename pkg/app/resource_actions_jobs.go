@@ -98,6 +98,18 @@ func (a *App) StartJob(namespace, name string) error {
 		},
 		Spec: job.Spec,
 	}
+	newJob.Spec.Selector = nil
+	newJob.Spec.ManualSelector = nil
+	if newJob.Spec.Template.ObjectMeta.Labels != nil {
+		for _, key := range []string{
+			"controller-uid",
+			"batch.kubernetes.io/controller-uid",
+			"job-name",
+			"batch.kubernetes.io/job-name",
+		} {
+			delete(newJob.Spec.Template.ObjectMeta.Labels, key)
+		}
+	}
 	newJob.ResourceVersion = ""
 	newJob.UID = ""
 	newJob.CreationTimestamp = metav1.Time{}

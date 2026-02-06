@@ -1,4 +1,5 @@
 import { test, expect } from '../../src/fixtures.js';
+import type { Page } from '@playwright/test';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
@@ -8,9 +9,28 @@ const fixtureStackName = 'kdb-e2e-fixtures';
 const replicatedServiceName = `${fixtureStackName}_a-replicated`;
 
 test.describe('Holmes Swarm Integration', () => {
+  const gotoWithRetry = async (page: Page) => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await page.goto('/', { waitUntil: 'load' });
+        return;
+      } catch (error) {
+        lastError = error;
+        const message = String(error);
+        const shouldRetry = /ERR_HTTP_RESPONSE_CODE_FAILURE|HTTP ERROR 502|net::ERR/i.test(message);
+        if (!shouldRetry || attempt === 2) {
+          throw error;
+        }
+        await page.waitForTimeout(1000);
+      }
+    }
+    if (lastError) throw lastError;
+  };
+
   test.beforeEach(async ({ page }) => {
     test.setTimeout(150_000);
-    await page.goto('/');
+    await gotoWithRetry(page);
     await bootstrapSwarm({ page, skipIfConnected: true });
     await configureHolmesMock({ page });
   });

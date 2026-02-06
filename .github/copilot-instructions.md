@@ -26,9 +26,9 @@ frontend/src/          →    wailsjs/go/main/App.js   →   pkg/app/
 |------|---------|
 | Dev mode | `wails dev` |
 | Build | `wails build` |
-| Frontend tests | `cd frontend && npm test` |
-| Backend tests | `go test ./pkg/app/...` |
-| E2E tests | `cd e2e && npx playwright test` |
+| Frontend Unit Tests | `cd frontend && npm test` |
+| Backend Tests | `go test ./pkg/app/...` |
+| E2E Tests | `cd e2e && npm test` |
 | Start KinD | `cd kind && docker compose up -d` |
 
 ## Critical Conventions
@@ -55,11 +55,18 @@ Sidebar → table (`@tanstack/react-table`) → bottom panel details. YAML editi
 
 ## Testing
 
-### Unit Tests
-- **Frontend**: Vitest + `@testing-library/react`. Mocks in `frontend/src/__tests__/wailsMocks.js`
-- **Backend**: Go `testing` with table-driven tests. Target ≥70% coverage
+### Frontend Unit Tests
+- **Location**: `frontend/src/__tests__/` directory
+- **Framework**: Vitest + `@testing-library/react`
+- **Mocks**: Located in `frontend/src/__tests__/wailsMocks.js`
+- **Run**: `cd frontend && npm test`
 
-### E2E (Playwright)
+### Backend Tests
+- **Framework**: Go `testing` with table-driven tests
+- **Target**: ≥70% coverage
+- **Run**: `go test ./pkg/app/...`
+
+### E2E Tests (Playwright)
 ```typescript
 import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
@@ -72,11 +79,12 @@ test('example', async ({ page, contextName, namespace }) => {
 - Tests in `e2e/tests/`, numbered by feature (`00-`, `10-`, etc.)
 - Uses KinD cluster: `kind/output/kubeconfig`
 - **Tests trigger RPCs via UI**, never call Go directly
+- **Run**: `cd e2e && npm test`
 
-### Swarm E2E
+### Swarm E2E Tests
 ```bash
 docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
-cd e2e && npx playwright test tests/swarm/
+cd e2e && npm test -- tests/swarm/
 ```
 
 ## Adding Features

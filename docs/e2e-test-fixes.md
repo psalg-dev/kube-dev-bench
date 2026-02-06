@@ -40,23 +40,52 @@ await page.keyboard.type(updated);
 
 **File:** `e2e/tests/swarm/72-configs.spec.ts`
 
-### 3. Swarm Secret Clone Button Timing (Test: `swarm/73-secrets.spec.ts`)
+### 4. React Duplicate Key Warnings (Test: `monitoring/20-manual-scan.spec.ts`)
 
-**Issue:** The test was clicking the clone button immediately after clicking a row, without waiting for the bottom panel to render.
+**Issue:** The test was failing due to React console warnings about duplicate keys in the pod list table. Multiple pods with the same name, namespace, and status were generating identical React keys, causing "Encountered two children with the same key" errors.
 
-**Fix:** Added explicit wait for the clone button to be visible before clicking:
+**Root Cause:** The `getRowKey` function in `PodOverviewTable.tsx` was using a composite key of `${name}-${namespace}-${status}`, but pods from failed deployments could have identical values for these fields.
+
+**Fix:** 
+1. Added `UID` field to the `PodInfo` struct in Go backend
+2. Updated `buildPodInfoFromPod` to include the pod's UID
+3. Modified `getRowKey` to prioritize the unique `uid` field, falling back to the composite key if UID is not available
+4. Regenerated Wails bindings to update TypeScript interfaces
+
+**Files Changed:**
+- `pkg/app/types.go` - Added UID field to PodInfo struct
+- `pkg/app/pods.go` - Updated buildPodInfoFromPod to include UID
+- `frontend/src/k8s/resources/pods/PodOverviewTable.tsx` - Updated getRowKey to use UID
+- `frontend/wailsjs/go/models.ts` - Auto-generated with UID field
+
+**Before:**
 ```typescript
-// Before
-await cloneSourceRow.click();
-await page.locator('#swarm-secret-clone-btn').click();
-
-// After
-await cloneSourceRow.click();
-await expect(page.locator('#swarm-secret-clone-btn')).toBeVisible({ timeout: 30_000 });
-await page.locator('#swarm-secret-clone-btn').click();
+const getRowKey = useCallback((row: PodRow, idx: number) => {
+  const ns = row?.namespace ?? row?.Namespace ?? namespace ?? '';
+  const rowRecord = row as unknown as Record<string, unknown>;
+  const name = row?.name ?? row?.Name ?? rowRecord.id ?? rowRecord.ID ?? idx;
+  const status = row?.status ?? row?.Status ?? row?.phase ?? row?.Phase ?? '';
+  const base = `${name}-${status}`;
+  return ns ? `${ns}/${base}` : String(base);
+}, [namespace]);
 ```
 
-**File:** `e2e/tests/swarm/73-secrets.spec.ts`
+**After:**
+```typescript
+const getRowKey = useCallback((row: PodRow, idx: number) => {
+  // Use UID for unique keys, fallback to namespace + name + status for stable, unique row keys.
+  const uid = row?.uid ?? row?.UID ?? '';
+  if (uid) {
+    return uid;
+  }
+  const ns = row?.namespace ?? row?.Namespace ?? namespace ?? '';
+  const rowRecord = row as unknown as Record<string, unknown>;
+  const name = row?.name ?? row?.Name ?? rowRecord.id ?? rowRecord.ID ?? idx;
+  const status = row?.status ?? row?.Status ?? row?.phase ?? row?.Phase ?? '';
+  const base = `${name}-${status}`;
+  return ns ? `${ns}/${base}` : String(base);
+}, [namespace]);
+```
 
 ## Files Changed
 
@@ -70,6 +99,9 @@ await page.locator('#swarm-secret-clone-btn').click();
 - `frontend/src/config/resourceConfigs/replicasetConfig.jsx` - Added Owner tab
 - `e2e/tests/swarm/72-configs.spec.ts` - Fixed CodeMirror input
 - `e2e/tests/swarm/73-secrets.spec.ts` - Added button visibility wait
+- `pkg/app/types.go` - Added UID field to PodInfo struct
+- `pkg/app/pods.go` - Updated buildPodInfoFromPod to include UID
+- `frontend/src/k8s/resources/pods/PodOverviewTable.tsx` - Updated getRowKey to use UID
 
 ## Remaining Issues
 
@@ -96,4 +128,5 @@ Some tests may still need attention:
 | `70-create-and-delete-configmap-from-details.spec.ts` | Row not removed | ⚠️ May need more work |
 | `swarm/72-configs.spec.ts` | CodeMirror input | ✅ Fixed |
 | `swarm/73-secrets.spec.ts` | Button timing | ✅ Fixed |
+| `monitoring/20-manual-scan.spec.ts` | React duplicate keys | ✅ Fixed with UID |
 | `holmes/10-context-analysis.spec.ts` | Panel visibility | ⚠️ May need more work |

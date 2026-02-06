@@ -1,0 +1,277 @@
+import {EditorState} from '@codemirror/state';
+import {
+    crosshairCursor,
+    drawSelection, dropCursor,
+    highlightActiveLine, highlightActiveLineGutter,
+    highlightSpecialChars, keymap,
+    lineNumbers, rectangularSelection
+} from '@codemirror/view';
+import { EditorView } from '@codemirror/view';
+import {
+    bracketMatching,
+    defaultHighlightStyle,
+    foldGutter, foldKeymap,
+    indentOnInput,
+    syntaxHighlighting
+} from '@codemirror/language';
+import {highlightSelectionMatches, searchKeymap} from '@codemirror/search';
+import {yaml} from '@codemirror/lang-yaml';
+import {closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete';
+import {defaultKeymap, history as _history, historyKeymap} from '@codemirror/commands';
+import {lintKeymap} from '@codemirror/lint';
+import { CreateResource } from '../wailsjs/go/main/App';
+import { showSuccess, showError } from './notification';
+
+type ResourceOverlayOptions = {
+  onSuccess?: () => void;
+  onError?: (err: unknown) => void;
+  onClose?: () => void;
+  namespace?: string;
+};
+
+export function showResourceOverlay(resourceType: string, options: ResourceOverlayOptions = {}) {
+    console.warn('showResourceOverlay called with:', resourceType);
+    const template = resourceTemplates[resourceType];
+    console.warn('Template found:', template ? 'yes' : 'no');
+    if (!template) {
+        console.error('No template found for resource type:', resourceType);
+        console.warn('Available templates:', Object.keys(resourceTemplates));
+        return;
+    }
+
+    const { onSuccess, onError, onClose, namespace } = options;
+    const title = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.innerHTML = `
+    <div class="overlay-content">
+      <div class="overlay-header">
+        <div class="overlay-title">New ${title} Resource</div>
+        <button class="overlay-close">×</button>
+      </div>
+      <div id="resourceEditor" class="editor-wrapper"></div>
+      <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
+        <button class="overlay-cancel-btn">Cancel</button>
+        <button class="overlay-create-btn" style="background:var(--gh-accent);color:#fff;border:none;padding:0.5em 1.5em;border-radius:6px;cursor:pointer;font-weight:600;">Create</button>
+      </div>
+    </div>
+  `;
+
+    document.body.appendChild(overlay);
+
+    // Initialize CodeMirror editor
+    const customDarkTheme = EditorView.theme({
+        '&': { color: 'var(--gh-text)', backgroundColor: 'var(--gh-input-bg)', height: '400px', fontSize: '14px' },
+        '.cm-content': { fontFamily: "'Consolas', monospace", color: 'var(--gh-text)', padding: '10px' },
+        '.cm-gutters': { backgroundColor: 'var(--gh-input-bg)', color: 'var(--gh-text-muted)', border: 'none' }
+    }, {dark: true});
+
+    const state = EditorState.create({
+        doc: template,
+        extensions: [
+            lineNumbers(), foldGutter(), highlightSpecialChars(), drawSelection(),
+            dropCursor(), EditorState.allowMultipleSelections.of(true), indentOnInput(),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }), bracketMatching(),
+            rectangularSelection(), crosshairCursor(), highlightActiveLine(),
+            highlightActiveLineGutter(), highlightSelectionMatches(), yaml(), customDarkTheme,
+            keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...searchKeymap, ...historyKeymap, ...foldKeymap, ...completionKeymap, ...lintKeymap])
+        ]
+    });
+
+    const editor = new EditorView({
+        state,
+      parent: document.querySelector('#resourceEditor') as HTMLElement
+    });
+
+    const closeOverlay = () => {
+        editor.destroy();
+        overlay.remove();
+        if (onClose) onClose();
+    };
+
+    // Close overlay handlers
+    const closeBtn = overlay.querySelector('.overlay-close') as HTMLButtonElement | null;
+    const cancelBtn = overlay.querySelector('.overlay-cancel-btn') as HTMLButtonElement | null;
+    if (closeBtn) closeBtn.onclick = closeOverlay;
+    if (cancelBtn) cancelBtn.onclick = closeOverlay;
+
+    // Create resource handler
+    const createBtn = overlay.querySelector('.overlay-create-btn') as HTMLButtonElement | null;
+    if (createBtn) {
+      createBtn.onclick = async () => {
+        const yamlText = editor.state.doc.toString();
+        createBtn.disabled = true;
+        createBtn.textContent = 'Creating...';
+        try {
+            await CreateResource(namespace || 'default', yamlText);
+            showSuccess(`${title} was created successfully!`);
+            closeOverlay();
+            if (onSuccess) onSuccess();
+        } catch (err) {
+            showError(`Error creating resource: ${err}`);
+            createBtn.disabled = false;
+            createBtn.textContent = 'Create';
+            if (onError) onError(err);
+        }
+      };
+      }
+
+    overlay.onclick = (e) => {
+      if (e.target === overlay) {
+            closeOverlay();
+        }
+    };
+}
+
+// Resource templates
+const resourceTemplates: Record<string, string> = {
+    deployment: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deployment
+  labels:
+    app: nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.14.2
+        ports:
+        - containerPort: 80`,
+
+    job: `apiVersion: batch/v1
+kind: Job
+metadata:
+  name: busybox-job
+spec:
+  template:
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command: ["sh", "-c", "echo Hello Kubernetes! && sleep 30"]
+      restartPolicy: Never
+  backoffLimit: 4`,
+
+    configmap: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: example-config
+data:
+  # Configuration data as key-value pairs
+  app.properties: |
+    debug=true
+    database.host=localhost
+    database.port=5432
+  config.yaml: |
+    server:
+      port: 8080
+      host: 0.0.0.0
+    logging:
+      level: info
+  simple-key: simple-value`,
+
+    service: `apiVersion: v1
+kind: Service
+metadata:
+  name: example-service
+spec:
+  type: ClusterIP
+  selector:
+    app: example-app
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80`,
+
+    secret: `apiVersion: v1
+kind: Secret
+metadata:
+  name: example-secret
+type: Opaque
+data:
+  # Secret data must be base64 encoded
+  # Use: echo -n "your-value" | base64
+  username: dXNlcm5hbWU=  # username
+  password: cGFzc3dvcmQ=  # password
+stringData:
+  # Alternative: use stringData for plain text (will be auto-encoded)
+  # api-key: your-api-key-here
+  # database-url: postgresql://user:pass@localhost:5432/db`,
+
+    ingress: `apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80
+  # Optional: TLS configuration
+  # tls:
+  # - hosts:
+  #   - example.com
+  #   secretName: example-tls-secret`,
+
+    persistentvolumeclaim: `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: example-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # Optional: specify storage class
+  # storageClassName: fast-ssd
+  # Optional: selector for existing PV
+  # selector:
+  #   matchLabels:
+  #     type: local`,
+
+    persistentvolume: `apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: example-pv
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: "/mnt/data"
+  # Alternative volume sources:
+  # nfs:
+  #   server: nfs-server.example.com
+  #   path: /path/to/nfs/share
+  # awsElasticBlockStore:
+  #   volumeID: vol-12345678
+  #   fsType: ext4
+  # gcePersistentDisk:
+  #   pdName: my-data-disk
+  #   fsType: ext4`
+};

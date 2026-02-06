@@ -3,7 +3,7 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { Notifications } from '../../src/pages/Notifications.js';
-import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
+import { bootstrapSwarm, uniqueSwarmName, waitForSwarmServicesTable } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
 
 function escapeRegExp(input: string): string {
@@ -151,8 +151,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
       await sidebar.goToServices();
 
-      const table = page.locator('[data-testid="swarm-services-table"]');
-      await expect(table).toBeVisible({ timeout: 60_000 });
+      const table = await waitForSwarmServicesTable(page, 60_000);
 
       // Poll for the service row to appear
       const row = table.locator('tbody tr').filter({ hasText: svcName }).first();

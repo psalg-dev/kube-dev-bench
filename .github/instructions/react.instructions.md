@@ -62,6 +62,7 @@ This is the frontend for **kube-dev-bench**, a desktop Kubernetes client applica
 - Design components to be testable and reusable
 - Keep components small and focused on a single concern
 - Use composition patterns (render props, children as functions)
+- Data tables: list keys must be unique and stable (never reuse keys across rows)
 
 ### State Management
 - Use `useState` for local component state

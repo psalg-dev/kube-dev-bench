@@ -98,8 +98,9 @@ async function createDeployment(page: Page, namespace: string) {
 
   await sidebar.goToSection('deployments');
 
-  const deployName = uniqueName('e2e-holmes-error');
-  const deployYaml = `apiVersion: apps/v1
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const deployName = uniqueName('e2e-holmes-error');
+    const deployYaml = `apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ${deployName}
@@ -121,12 +122,38 @@ spec:
         - containerPort: 80
 `;
 
-  await overlay.openFromOverviewHeader();
-  await overlay.fillYaml(deployYaml);
-  await overlay.create();
-  await notifications.waitForClear();
+    try {
+      await overlay.openFromOverviewHeader();
+      await overlay.fillYaml(deployYaml);
+      await overlay.create();
+      await notifications.waitForClear();
+      return deployName;
+    } catch (err) {
+      const row = page
+        .locator('#main-panels > div:visible table.gh-table tbody tr')
+        .filter({ hasText: deployName })
+        .first();
+      if (await row.isVisible().catch(() => false)) {
+        await notifications.waitForClear();
+        return deployName;
+      }
 
-  return deployName;
+      const overlayRoot = page.locator('[data-testid="create-manifest-overlay"]').first();
+      if (await overlayRoot.isVisible().catch(() => false)) {
+        const closeBtn = overlayRoot.getByRole('button', { name: /close|cancel/i }).first();
+        if (await closeBtn.isVisible().catch(() => false)) {
+          await closeBtn.click().catch(() => undefined);
+        } else {
+          await page.keyboard.press('Escape').catch(() => undefined);
+        }
+      }
+
+      if (attempt === 3) throw err;
+      await page.waitForTimeout(1000 * attempt);
+    }
+  }
+
+  throw new Error('Failed to create deployment after retries');
 }
 
 async function analyzeDeploymentByName(page: Page, deployName: string) {
@@ -148,6 +175,25 @@ async function analyzeDeploymentByName(page: Page, deployName: string) {
   await panel.clickTab('Holmes');
 
   return panel;
+}
+
+async function expectHolmesSuccessWithRetry(page: Page, deployName: string) {
+  const expectedText = 'Deployment health check completed';
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const panel = await analyzeDeploymentByName(page, deployName);
+    const holmesPanel = panel.root;
+    try {
+      await expect(holmesPanel).toContainText(expectedText, { timeout: 30_000 });
+      return;
+    } catch (err) {
+      const content = (await holmesPanel.textContent()) || '';
+      const transient = /connectex|proxyconnect|dial tcp|Only one usage of each socket address|timeout|timed out|deadline exceeded|i\/o timeout/i.test(content);
+      if (!transient || attempt === 3) throw err;
+      await panel.closeByClickingOutside();
+      await page.waitForTimeout(1000 * attempt);
+    }
+  }
 }
 
 async function analyzeWithHolmesFromDeployment(page: Page, namespace: string) {
@@ -347,13 +393,7 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Ask again and verify success', async () => {
-        await analyzeDeploymentByName(page, deployName);
-
-        const panel = new BottomPanel(page);
-        const holmesPanel = panel.root;
-        await expect(holmesPanel).toContainText('Deployment health check completed', {
-          timeout: 30_000,
-        });
+        await expectHolmesSuccessWithRetry(page, deployName);
       });
     } finally {
       await killMockServer(errorMockServer);
