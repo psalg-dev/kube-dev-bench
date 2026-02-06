@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { render, act, waitFor } from '@testing-library/react';
 import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext';
 
 vi.mock('../../wailsjs/runtime', () => {
@@ -25,6 +25,21 @@ vi.mock('../k8s/resources/kubeApi', () => ({
     }),
 }));
 
+// Expose a fake Wails binding on window so the provider's waitForWailsBinding check passes
+beforeAll(() => {
+  (window as any).go = {
+    main: {
+      App: {
+        GetResourceCounts: () => Promise.resolve({}),
+      },
+    },
+  };
+});
+
+afterAll(() => {
+  delete (window as any).go;
+});
+
 function Probe() {
   const { counts } = useResourceCounts();
   return <pre data-testid="counts">{JSON.stringify(counts || null)}</pre>;
@@ -38,6 +53,13 @@ describe('ResourceCountsContext', () => {
       </ResourceCountsProvider>
     );
     const pre = await findByTestId('counts');
+
+    // Wait for the async provider to fetch and populate counts
+    await waitFor(() => {
+      const parsed = JSON.parse(pre.textContent || 'null');
+      expect(parsed).not.toBeNull();
+      expect(parsed.podStatus.running).toBe(1);
+    });
     const initial = JSON.parse(pre.textContent || 'null');
     expect(initial.podStatus.running).toBe(1);
     expect(initial.deployments).toBe(2);

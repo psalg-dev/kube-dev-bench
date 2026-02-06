@@ -96,6 +96,17 @@ vi.mock('../../wailsjs/runtime/runtime.js', () => ({
   EventsEmit: (...args: unknown[]) => eventsEmitMock(...args),
 }));
 
+// Provide a minimal Wails binding for tests that gate on window.go.* availability.
+if (typeof window !== 'undefined') {
+  const win = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+  if (!win.go) win.go = { main: { App: {} } };
+  if (!win.go.main) win.go.main = { App: {} };
+  if (!win.go.main.App) win.go.main.App = {};
+  if (!('GetResourceCounts' in win.go.main.App)) {
+    win.go.main.App.GetResourceCounts = vi.fn(() => Promise.resolve(undefined));
+  }
+}
+
 export function resetAllMocks() {
   createResourceMock.mockReset();
   createSwarmConfigMock.mockReset();
