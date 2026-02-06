@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { FullConfig } from '@playwright/test';
-import { ensureKindCluster } from './kind.js';
+import { cleanupWorkerNamespaces, ensureKindCluster, writeKubeconfigFile } from './kind.js';
 import type { KindInfo } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
@@ -201,6 +201,14 @@ export default async function globalSetup(config: FullConfig) {
         throw err;
       }
     }
+  }
+
+  if (kind?.kubeconfigYaml) {
+    await timed('cleanup stale worker namespaces', async () => {
+      const kubeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, 'kube');
+      const kubeconfigPath = await writeKubeconfigFile(kubeDir, kind.kubeconfigYaml);
+      await cleanupWorkerNamespaces(kubeconfigPath, runId, (msg) => console.log(msg));
+    });
   }
 
   // JFrog Artifactory/JCR bootstrap (used by Swarm registry E2Es).
@@ -516,9 +524,9 @@ export default async function globalSetup(config: FullConfig) {
           port,
           homeDir,
           assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
-          // Parallel startup; allow more time here. Increased to 420s (7min) for CI to handle
+          // Parallel startup; allow more time here. Increased to 600s (10min) for CI to handle
           // resource contention when multiple Wails instances start in parallel.
-          readyTimeoutMs: process.env.CI ? 420_000 : 240_000,
+          readyTimeoutMs: process.env.CI ? 600_000 : 240_000,
         })
       );
 

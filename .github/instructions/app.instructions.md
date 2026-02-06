@@ -57,22 +57,23 @@ E2E tests depend on these IDs. If you must change them, update all usages and te
 - Streaming responses should render progressively in the frontend.
 
 ## Testing Expectations
-- Frontend: Vitest + React Testing Library.
-- Backend: Go testing with table-driven tests, target ≥70% coverage.
-- E2E: Playwright tests in e2e/tests/, rely on stable selectors.
+- Frontend Unit Tests: Vitest + React Testing Library, located in frontend/src directory.
+- Backend Tests: Go testing with table-driven tests, target ≥70% coverage.
+- E2E Tests: Playwright tests in e2e/tests/, rely on stable selectors.
 - When fixing tests, especially E2E tests, document the approaches tried and whether they were successful so we avoid repeating non-working approaches. Record these notes as Markdown files under project/e2e/fixes.
 
 ## Common Commands
 - Dev: wails dev
 - Build: wails build
-- Frontend tests: cd frontend; npm test
-- Backend tests: go test ./pkg/app/...
-- E2E: cd e2e; npx playwright test
+- Frontend Unit Tests: cd frontend; npm test
+- Backend Tests: go test ./pkg/app/...
+- E2E Tests: cd e2e; npm test
 
 ## Change Management
 - Keep changes minimal and consistent with existing patterns.
 - Update related tests when altering UI, selectors, or API contracts.
 - Regenerate Wails bindings after changing backend signatures.
+- When working from a planning document, keep it up to date as implementation progresses so we can always track work and resume later if interrupted.
 
 ## Additional Instructions
 Make sure to refer to other instruction files in the .github/instructions/ directory for specific guidelines on testing, code style, and other best practices.

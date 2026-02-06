@@ -49,11 +49,34 @@ func TestGetJobs_ReturnsJobInfo(t *testing.T) {
 
 // Test StartJob success and failure
 func TestStartJob_SuccessAndError(t *testing.T) {
+	manual := true
 	mockJobs := &mockJobInterface{
 		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error) {
-			return &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: batchv1.JobSpec{}}, nil
+			return &batchv1.Job{
+				ObjectMeta: metav1.ObjectMeta{Name: name},
+				Spec: batchv1.JobSpec{
+					ManualSelector: &manual,
+					Selector:       &metav1.LabelSelector{MatchLabels: map[string]string{"controller-uid": "abc"}},
+					Template: corev1.PodTemplateSpec{
+						ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{
+							"controller-uid":                     "abc",
+							"batch.kubernetes.io/controller-uid": "abc",
+							"job-name":                           "job-a",
+							"batch.kubernetes.io/job-name":       "job-a",
+							"app":                                "job-a",
+						}},
+					},
+				},
+			}, nil
 		},
 		createFunc: func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error) {
+			if job.Spec.Selector != nil || job.Spec.ManualSelector != nil {
+				return nil, errors.New("selector should be cleared for rerun")
+			}
+			labels := job.Spec.Template.ObjectMeta.Labels
+			if labels["controller-uid"] != "" || labels["batch.kubernetes.io/controller-uid"] != "" || labels["job-name"] != "" || labels["batch.kubernetes.io/job-name"] != "" {
+				return nil, errors.New("controller labels should be cleared for rerun")
+			}
 			if job.GenerateName == "j-manual-" || job.GenerateName == "myjob-manual-" {
 				return job, nil
 			}

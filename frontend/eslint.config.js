@@ -3,6 +3,7 @@ import globals from 'globals';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import reactRefreshPlugin from 'eslint-plugin-react-refresh';
+import tseslint from 'typescript-eslint';
 
 export default [
   // Ignore patterns
@@ -22,13 +23,17 @@ export default [
   // Base JS recommended rules
   js.configs.recommended,
 
+  // TypeScript recommended rules
+  ...tseslint.configs.recommended,
+
   // React configuration
   {
-    files: ['src/**/*.{js,jsx}'],
+    files: ['src/**/*.{js,jsx,ts,tsx}'],
     plugins: {
       react: reactPlugin,
       'react-hooks': reactHooksPlugin,
       'react-refresh': reactRefreshPlugin,
+      '@typescript-eslint': tseslint.plugin,
     },
     languageOptions: {
       ecmaVersion: 2022,
@@ -37,6 +42,7 @@ export default [
         ...globals.browser,
         ...globals.es2021,
       },
+      parser: tseslint.parser,
       parserOptions: {
         ecmaFeatures: {
           jsx: true,
@@ -131,7 +137,7 @@ export default [
 
   // Test files configuration
   {
-    files: ['src/**/__tests__/**/*.{js,jsx}', 'src/**/*.test.{js,jsx}'],
+    files: ['src/**/__tests__/**/*.{js,jsx,ts,tsx}', 'src/**/*.test.{js,jsx,ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.jest,
