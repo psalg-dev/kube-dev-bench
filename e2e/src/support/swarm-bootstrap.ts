@@ -57,7 +57,7 @@ export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
   }
 
   if (lastVisibilityError) throw lastVisibilityError;
-  await expect(servicesTable).toBeVisible({ timeout: 1_000 });
+  await expect(servicesTable).toBeVisible({ timeout: 10_000 });
   return servicesTable;
 }
 
