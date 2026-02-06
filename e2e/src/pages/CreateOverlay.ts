@@ -209,13 +209,15 @@ export class CreateOverlay {
 
         const parseVisible = await parseError.isVisible().catch(() => false);
         if (parseVisible) {
-          const msg = (await parseError.textContent())?.trim();
+          const msg = await parseError.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
+          if (msg === undefined) continue; // element vanished, re-check loop
           throw new Error(`Create failed: ${msg || 'YAML parse error'}`);
         }
 
         const overlayErrVisible = await overlayError.isVisible().catch(() => false);
         if (overlayErrVisible) {
-          const msg = (await overlayError.textContent())?.trim();
+          const msg = await overlayError.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
+          if (msg === undefined) continue; // element vanished, re-check loop
           const transient = /Bad Gateway|502|dial tcp|connectex|proxyconnect|connection refused|timeout|timed out|deadline exceeded|i\/o timeout/i.test(msg || '');
           if (transient && attempt < maxAttempts) {
             await this.page.waitForTimeout(1000 * attempt);
@@ -226,7 +228,10 @@ export class CreateOverlay {
 
         const apiVisible = await apiError.isVisible().catch(() => false);
         if (apiVisible) {
-          const msg = (await apiError.textContent())?.trim();
+          // Use a short timeout to avoid racing: the element can disappear between
+          // the isVisible() check and the textContent() call.
+          const msg = await apiError.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
+          if (msg === undefined) continue; // element vanished, re-check loop
           // If the API error looks transient (network / gateway), retry a few times.
           const transient = /Bad Gateway|502|dial tcp|connectex/i.test(msg || '');
           if (transient && attempt < maxAttempts) {
@@ -245,7 +250,8 @@ export class CreateOverlay {
 
         const toastVisible = await errorToast.isVisible().catch(() => false);
         if (toastVisible) {
-          const msg = (await errorToast.textContent())?.trim();
+          const msg = await errorToast.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
+          if (msg === undefined) continue; // element vanished, re-check loop
           const transient = /Bad Gateway|502|dial tcp|connectex|proxyconnect|connection refused|timeout|timed out|deadline exceeded|i\/o timeout/i.test(msg || '');
           if (transient && attempt < maxAttempts) {
             await this.page.waitForTimeout(1000 * attempt);

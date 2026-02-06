@@ -61,15 +61,26 @@ export class ConnectionWizardPage {
     try {
       await waitForAppMount(Math.min(20_000, deadline - Date.now()));
     } catch {
-      // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` can leave the page blank.
-      // A single reload tends to recover without adding additional flake.
-      console.warn('[e2e] App did not mount under #app; reloading once to recover');
-      try {
-        await this.page.reload({ waitUntil: 'domcontentloaded' });
-      } catch {
-        await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+      // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` or slow Wails startup
+      // can leave the page blank. Retry with multiple reloads and increasing backoff.
+      const maxReloads = 3;
+      let mounted = false;
+      for (let i = 1; i <= maxReloads && Date.now() < deadline; i++) {
+        console.warn(`[e2e] App did not mount under #app; reload attempt ${i}/${maxReloads}`);
+        await this.page.waitForTimeout(1_000 * i); // backoff
+        try {
+          await this.page.reload({ waitUntil: 'domcontentloaded' });
+        } catch {
+          await this.page.goto('/', { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+        }
+        try {
+          await waitForAppMount(Math.min(20_000, deadline - Date.now()));
+          mounted = true;
+          break;
+        } catch {
+          if (i === maxReloads) throw new Error('App failed to mount after multiple reload attempts');
+        }
       }
-      await waitForAppMount(deadline - Date.now());
     }
 
     const openBtn = this.page.locator('#show-wizard-btn');
