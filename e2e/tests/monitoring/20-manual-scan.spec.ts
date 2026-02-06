@@ -61,7 +61,7 @@ test('manual scan shows issues and dismiss works', async ({ page, contextName, n
 
     await expect(page.locator('#monitor-panel')).toBeVisible({ timeout: 30_000 });
 
-    const scanButton = page.getByRole('button', { name: 'Scan Now' });
+    const scanButton = page.getByRole('button', { name: /(?:Scan Now|Rescan)/i });
     await scanButton.click();
 
     // Wait for issue card to appear

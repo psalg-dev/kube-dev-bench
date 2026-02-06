@@ -64,7 +64,11 @@ export class ConnectionWizardPage {
       // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` can leave the page blank.
       // A single reload tends to recover without adding additional flake.
       console.warn('[e2e] App did not mount under #app; reloading once to recover');
-      await this.page.reload({ waitUntil: 'domcontentloaded' });
+      try {
+        await this.page.reload({ waitUntil: 'domcontentloaded' });
+      } catch {
+        await this.page.goto('/', { waitUntil: 'domcontentloaded' });
+      }
       await waitForAppMount(deadline - Date.now());
     }
 

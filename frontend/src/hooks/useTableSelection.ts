@@ -72,6 +72,7 @@ export default function useTableSelection<TRow, TKey extends string | number>(
 
       if (rangeSelect && resolvedIndex >= 0) {
         let anchor = lastClickedIndex.current;
+        // range selection anchor handling
         if (lastClickedKey.current !== null) {
           const keyIndex = keys.findIndex((k) => k === lastClickedKey.current);
           if (keyIndex >= 0) {

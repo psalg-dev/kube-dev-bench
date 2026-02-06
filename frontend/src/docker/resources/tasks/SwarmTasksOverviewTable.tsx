@@ -427,6 +427,7 @@ function renderPanelContent(
     }
     return (
       <ConsoleTab
+        swarmExec={true}
         swarmTaskId={row.id}
       />
     );

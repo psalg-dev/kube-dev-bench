@@ -159,6 +159,21 @@ export function MonitorPanel({ monitorInfo, open, onClose }: MonitorPanelProps) 
 
   const issues = activeTab === 'errors' ? panelInfo.errors || [] : panelInfo.warnings || [];
 
+  // Deduplicate issues by stable IssueID (or computed fallback) to avoid
+  // rendering duplicate React keys when the backend can emit repeated entries.
+  const uniqueIssues = (() => {
+    const seen = new Set<string>();
+    const out: MonitorIssue[] = [];
+    issues.forEach((issue) => {
+      const id = issue.issueID || `${issue.resource || 'issue'}-${issue.namespace || 'ns'}-${issue.name || 'unknown'}-${issue.containerName || ''}-${issue.reason || ''}`;
+      if (!seen.has(id)) {
+        seen.add(id);
+        out.push(issue);
+      }
+    });
+    return out;
+  })();
+
   const handleAnalyzeIssue = async (issue: MonitorIssue) => {
     if (!issue?.issueID) return;
     setIssueLoading((prev) => ({ ...prev, [issue.issueID as string]: true }));
@@ -408,9 +423,9 @@ export function MonitorPanel({ monitorInfo, open, onClose }: MonitorPanelProps) 
           <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No issues found.</div>
         ) : (
           <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {issues.map((issue) => (
+            {uniqueIssues.map((issue, idx) => (
               <MonitorIssueCard
-                key={issue.issueID || `${issue.resource || 'issue'}-${issue.name || 'unknown'}`}
+                key={issue.issueID || `${issue.resource || 'issue'}-${issue.name || 'unknown'}-${idx}`}
                 issue={issue}
                 onNavigate={handleIssueClick}
                 onAnalyze={handleAnalyzeIssue}

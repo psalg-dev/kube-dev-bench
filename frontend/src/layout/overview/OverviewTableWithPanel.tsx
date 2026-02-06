@@ -296,11 +296,16 @@ export default function OverviewTableWithPanel({
     return sortRows(filteredData, sortState.key, sortState.direction);
   }, [filteredData, sortState]);
 
-  const getRowKey = (row: any, idx: number) => {
-    // Include namespace to ensure uniqueness when same-named resources exist across namespaces
+  const getRowKey = (row: any, _idx: number) => {
+    // Prefer stable unique identifiers: metadata.uid or provided uid fields.
+    // Fallback to namespace + name which is also stable across sorts.
     const ns = row?.namespace || row?.Namespace || '';
-    const name = row?.id ?? row?.name ?? row?.Name ?? idx;
-    return ns ? `${ns}/${name}` : String(name);
+    const uid = row?.uid ?? row?.UID ?? row?.metadata?.uid ?? null;
+    const name = row?.id ?? row?.name ?? row?.Name ?? null;
+    if (uid) return String(uid);
+    if (name) return ns ? `${ns}/${String(name)}` : String(name);
+    // Last resort: JSON-stringify the row to produce a deterministic key
+    return String(JSON.stringify(row));
   };
 
   const resolvedBulkActions = useMemo(() => {

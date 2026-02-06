@@ -17,6 +17,21 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     let active = true;
+    let off: (() => void) | undefined;
+    const hasWailsBinding = () => {
+      const win = window as Window & {
+        go?: { main?: { App?: { GetResourceCounts?: () => Promise<any> } } };
+      };
+      return typeof win.go?.main?.App?.GetResourceCounts === 'function';
+    };
+    const waitForWailsBinding = async () => {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        if (!active) return false;
+        if (hasWailsBinding()) return true;
+        await new Promise((resolve) => setTimeout(resolve, 200));
+      }
+      return hasWailsBinding();
+    };
     const computeSig = (c: any) => {
       if (!c) return 'none';
       const ps = c.podStatus || c.PodStatus || {}; // pod status signature prominent
@@ -47,8 +62,19 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
         if (active) setCounts(norm);
       }
     };
-    GetResourceCounts().then(applyCounts).catch(() => {});
-    const off = EventsOn('resourcecounts:update', (data: any) => { try { applyCounts(data); } catch (_) {} });
+    (async () => {
+      if (!(await waitForWailsBinding())) return;
+      try {
+        await GetResourceCounts().then(applyCounts).catch(() => {});
+      } catch {
+        return;
+      }
+      off = EventsOn('resourcecounts:update', (data: any) => {
+        try {
+          applyCounts(data);
+        } catch (_) {}
+      });
+    })();
     return () => { active = false; if (typeof off === 'function') off(); };
   }, []);
 

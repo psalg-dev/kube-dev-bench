@@ -1745,6 +1745,7 @@ export namespace app {
 	    startTime: string;
 	    ports: number[];
 	    status: string;
+	    uid: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new PodInfo(source);
@@ -1759,6 +1760,7 @@ export namespace app {
 	        this.startTime = source["startTime"];
 	        this.ports = source["ports"];
 	        this.status = source["status"];
+	        this.uid = source["uid"];
 	    }
 	}
 	export class PodMetrics {

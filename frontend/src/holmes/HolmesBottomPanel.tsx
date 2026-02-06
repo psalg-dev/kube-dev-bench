@@ -67,7 +67,10 @@ export default function HolmesBottomPanel({
           <HolmesResourceButton
             onClick={onAnalyze}
             loading={loading}
-            disabled={!name || !namespace}
+            // For Kubernetes resources we require both name and namespace.
+            // For Swarm resources namespace is not applicable and may be undefined,
+            // so only enforce namespace when it is explicitly provided.
+            disabled={!name || (typeof namespace !== 'undefined' && !namespace)}
             label="Analyze with Holmes"
             prominent
           />

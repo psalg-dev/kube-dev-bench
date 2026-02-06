@@ -216,7 +216,9 @@ func swarmExecAttachTTYWithProbe(ctx context.Context, cli swarmExecClient, conta
 	lower := strings.ToLower(string(initial))
 	if strings.Contains(lower, "oci runtime exec failed") ||
 		strings.Contains(lower, "no such file or directory") ||
-		(strings.Contains(lower, "exec:") && strings.Contains(lower, "stat")) {
+		(strings.Contains(lower, "exec:") && strings.Contains(lower, "stat")) ||
+		strings.Contains(lower, "shell error") ||
+		strings.Contains(lower, "unsupported") {
 		attach.Close()
 		return types.HijackedResponse{}, "", nil, errors.New(strings.TrimSpace(string(initial)))
 	}

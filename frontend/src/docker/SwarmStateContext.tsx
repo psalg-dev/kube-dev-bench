@@ -373,9 +373,16 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   useEffect(() => {
-    const offs: Array<(() => void) | undefined> = [];
+    let active = true;
+    let offs: Array<(() => void) | undefined> = [];
 
-    try {
+    const hasRuntimeEvents = () => {
+      const win = window as Window & { runtime?: { EventsOnMultiple?: (...args: any[]) => unknown } };
+      return typeof win.runtime?.EventsOnMultiple === 'function';
+    };
+
+    const registerEvents = () => {
+      offs = [];
       offs.push(
         EventsOn('docker:connected', () => {
           setTimeout(() => {
@@ -390,60 +397,72 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
           }, 250);
         })
       );
-    } catch {
-      // When not running inside Wails, window.runtime is not available.
-    }
+      offs.push(EventsOn('swarm:services:update', (data: unknown) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_SERVICES', data });
+        } else {
+          refreshServices();
+        }
+      }));
+      offs.push(EventsOn('swarm:tasks:update', (data: unknown) => {
+        dispatch({ type: 'SET_TASKS', data: Array.isArray(data) ? data : [] });
+      }));
+      offs.push(EventsOn('swarm:nodes:update', (data: unknown) => {
+        dispatch({ type: 'SET_NODES', data: Array.isArray(data) ? data : [] });
+      }));
+      offs.push(EventsOn('swarm:networks:update', (data: unknown) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_NETWORKS', data });
+        } else {
+          refreshNetworks();
+        }
+      }));
+      offs.push(EventsOn('swarm:configs:update', (data: unknown) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_CONFIGS', data });
+        } else {
+          refreshConfigs();
+        }
+      }));
+      offs.push(EventsOn('swarm:secrets:update', (data: unknown) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_SECRETS', data });
+        } else {
+          refreshSecrets();
+        }
+      }));
+      offs.push(EventsOn('swarm:stacks:update', (data: unknown) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_STACKS', data });
+        } else {
+          refreshStacks();
+        }
+      }));
+      offs.push(EventsOn('swarm:volumes:update', (data: unknown) => {
+        if (Array.isArray(data)) {
+          dispatch({ type: 'SET_VOLUMES', data });
+        } else {
+          refreshVolumes();
+        }
+      }));
+    };
 
-    offs.push(EventsOn('swarm:services:update', (data: unknown) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_SERVICES', data });
-      } else {
-        refreshServices();
+    (async () => {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        if (!active) return;
+        if (hasRuntimeEvents()) {
+          registerEvents();
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
-    }));
-    offs.push(EventsOn('swarm:tasks:update', (data: unknown) => {
-      dispatch({ type: 'SET_TASKS', data: Array.isArray(data) ? data : [] });
-    }));
-    offs.push(EventsOn('swarm:nodes:update', (data: unknown) => {
-      dispatch({ type: 'SET_NODES', data: Array.isArray(data) ? data : [] });
-    }));
-    offs.push(EventsOn('swarm:networks:update', (data: unknown) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_NETWORKS', data });
-      } else {
-        refreshNetworks();
+      if (hasRuntimeEvents()) {
+        registerEvents();
       }
-    }));
-    offs.push(EventsOn('swarm:configs:update', (data: unknown) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_CONFIGS', data });
-      } else {
-        refreshConfigs();
-      }
-    }));
-    offs.push(EventsOn('swarm:secrets:update', (data: unknown) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_SECRETS', data });
-      } else {
-        refreshSecrets();
-      }
-    }));
-    offs.push(EventsOn('swarm:stacks:update', (data: unknown) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_STACKS', data });
-      } else {
-        refreshStacks();
-      }
-    }));
-    offs.push(EventsOn('swarm:volumes:update', (data: unknown) => {
-      if (Array.isArray(data)) {
-        dispatch({ type: 'SET_VOLUMES', data });
-      } else {
-        refreshVolumes();
-      }
-    }));
+    })();
 
     return () => {
+      active = false;
       offs.forEach((off) => { if (typeof off === 'function') off(); });
     };
   }, [refreshConnectionStatus, refreshServices, refreshNetworks, refreshConfigs, refreshSecrets, refreshStacks, refreshVolumes]);

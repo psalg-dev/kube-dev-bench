@@ -354,8 +354,8 @@ export function HolmesPanel() {
 
                       {state.loading || !toolsCollapsed ? (
                         <ul className="holmes-tool-events-list">
-                          {state.toolEvents.map((tool) => (
-                            <li key={tool.id} className={`holmes-tool-event holmes-tool-${tool.status}`}>
+                          {state.toolEvents.map((tool, idx) => (
+                            <li key={tool.id || `tool-${idx}`} className={`holmes-tool-event holmes-tool-${tool.status}`}>
                               <span className={`holmes-tool-dot holmes-tool-dot-${tool.status}`} aria-hidden="true" />
                               <span className="holmes-tool-name">{tool.name}</span>
                               <span className="holmes-tool-status">{tool.status}</span>

@@ -599,6 +599,7 @@ func buildPodInfoFromPod(pod v1.Pod, now time.Time) PodInfo {
 		StartTime: startTimeStr,
 		Ports:     collectContainerPorts(&pod),
 		Status:    string(pod.Status.Phase),
+		UID:       string(pod.UID),
 	}
 }
 

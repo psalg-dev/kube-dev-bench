@@ -9,6 +9,7 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
+  maxFailures: 1,  // Stop after first failure
   workers: process.env.PW_WORKERS
     ? Number(process.env.PW_WORKERS)
     : process.platform === 'win32'

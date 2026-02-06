@@ -129,8 +129,8 @@ export function PrometheusAlertsTab() {
         {computedAlerts.length === 0 && !loading ? (
           <div className="prometheus-empty">No alerts loaded</div>
         ) : (
-          computedAlerts.map((alert) => (
-            <div key={alert.name} className="prometheus-alert-card">
+          computedAlerts.map((alert, idx) => (
+            <div key={`${alert.name || 'alert'}-${idx}`} className="prometheus-alert-card">
               <div className="prometheus-alert-top">
                 <div className="prometheus-alert-title">{alert.name}</div>
                 <span className={`prometheus-alert-state ${alert.state || alert.State}`}> 

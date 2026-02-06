@@ -3,7 +3,7 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { FullConfig } from '@playwright/test';
-import { ensureKindCluster } from './kind.js';
+import { cleanupWorkerNamespaces, ensureKindCluster, writeKubeconfigFile } from './kind.js';
 import type { KindInfo } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
@@ -201,6 +201,14 @@ export default async function globalSetup(config: FullConfig) {
         throw err;
       }
     }
+  }
+
+  if (kind?.kubeconfigYaml) {
+    await timed('cleanup stale worker namespaces', async () => {
+      const kubeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, 'kube');
+      const kubeconfigPath = await writeKubeconfigFile(kubeDir, kind.kubeconfigYaml);
+      await cleanupWorkerNamespaces(kubeconfigPath, runId, (msg) => console.log(msg));
+    });
   }
 
   // JFrog Artifactory/JCR bootstrap (used by Swarm registry E2Es).

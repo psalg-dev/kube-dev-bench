@@ -19,7 +19,26 @@ export async function bootstrapApp(opts: {
     );
   }
 
-  await page.goto('/');
+  const gotoWithRetry = async () => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await page.goto('/', { waitUntil: 'load' });
+        return;
+      } catch (error) {
+        lastError = error;
+        const message = String(error);
+        const shouldRetry = /ERR_HTTP_RESPONSE_CODE_FAILURE|HTTP ERROR 502|net::ERR/i.test(message);
+        if (!shouldRetry || attempt === 2) {
+          throw error;
+        }
+        await page.waitForTimeout(1000);
+      }
+    }
+    if (lastError) throw lastError;
+  };
+
+  await gotoWithRetry();
 
   const wizard = new ConnectionWizardPage(page);
   await wizard.openWizardIfHidden();

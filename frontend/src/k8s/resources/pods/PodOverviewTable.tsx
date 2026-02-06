@@ -582,10 +582,19 @@ export default function PodOverviewTable({
   });
 
   const getRowKey = useCallback((row: PodRow, idx: number) => {
+    // Use UID for unique keys, fallback to namespace + name + status plus index
+    // to guarantee uniqueness when UIDs are unavailable.
+    const uid = row?.uid ?? row?.UID ?? '';
+    if (uid) {
+      return uid;
+    }
     const ns = row?.namespace ?? row?.Namespace ?? namespace ?? '';
     const rowRecord = row as unknown as Record<string, unknown>;
     const name = row?.name ?? row?.Name ?? rowRecord.id ?? rowRecord.ID ?? idx;
-    return ns ? `${ns}/${name}` : String(name);
+    const status = row?.status ?? row?.Status ?? row?.phase ?? row?.Phase ?? '';
+    const base = `${name}-${status}`;
+    const unique = `${base}-${idx}`;
+    return ns ? `${ns}/${unique}` : String(unique);
   }, [namespace]);
 
   const selectionVisibleData = table.getRowModel().rows.map((row) => row.original);
@@ -1217,9 +1226,11 @@ export default function PodOverviewTable({
                   <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} style={{padding: 0, border: 'none', background: 'transparent'}}/>
                 </tr>
             )}
-            {visibleRows.map((row, i) => (
+            {visibleRows.map((row, i) => {
+                const rowKey = getRowKey(row.original, visibleRowStart + i);
+                return (
                 <tr
-                    key={row.id}
+                    key={rowKey}
                     onClick={(e) => {
                       if (bulkEnabled && e.shiftKey) {
                         e.preventDefault();
@@ -1417,7 +1428,8 @@ export default function PodOverviewTable({
                     )}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             {bottomPadHeight > 0 && (
                 <tr style={{height: bottomPadHeight}}>
                   <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} style={{padding: 0, border: 'none', background: 'transparent'}}/>

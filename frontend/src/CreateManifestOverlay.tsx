@@ -751,7 +751,12 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
   }
 
   return (
-    <div id={isSwarm ? 'swarm-create-overlay' : undefined} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={onClose}>
+    <div
+      id={isSwarm ? 'swarm-create-overlay' : undefined}
+      data-testid="create-manifest-overlay"
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={onClose}
+    >
       <div style={{ width: '70%', maxWidth: 900, height: '75vh', background: 'var(--gh-table-header-bg, #2d323b)', border: '1px solid #353a42', boxShadow: '0 8px 20px rgba(0,0,0,0.35)', color: '#fff', display: 'grid', gridTemplateRows: 'auto 1fr auto', boxSizing: 'border-box' }} onClick={(e) => e.stopPropagation()}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid #353a42', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{title}</span>
@@ -1030,7 +1035,10 @@ export default function CreateManifestOverlay({ open, kind, namespace, onClose, 
             <div id={isSwarm && swarmKind === 'stack' ? 'swarm-compose-editor' : undefined} ref={editorParentRef} style={{ width: '100%', flex: '1 1 auto', minHeight: 0 }} />
           )}
           {error && (
-            <div style={{ position: 'absolute', top: 8, left: 10, color: '#f85149', background: 'rgba(248,81,73,0.1)', padding: '4px 8px', borderRadius: 0, border: '1px solid rgba(248,81,73,0.4)' }}>
+            <div
+              data-testid="create-overlay-error"
+              style={{ position: 'absolute', top: 8, left: 10, color: '#f85149', background: 'rgba(248,81,73,0.1)', padding: '4px 8px', borderRadius: 0, border: '1px solid rgba(248,81,73,0.4)' }}
+            >
               {error}
             </div>
           )}
