@@ -181,13 +181,18 @@ async function assertBulkSelection(opts: {
 
   const targetIndex = rowCount > 1 ? 1 : 0;
   if (targetIndex > 0) {
-    await rowCheckboxes.nth(targetIndex).click({ modifiers: ['Shift'] });
-    const getSelectedCount = async () => {
+    // Wrap in toPass — the table can re-render between clicks, making the
+    // Shift+click land on a stale element or incorrect row index.
+    await expect(async () => {
+      // Re-read count in case the table re-rendered
+      const currentCount = await rowCheckboxes.count();
+      const idx = currentCount > 1 ? 1 : 0;
+      if (idx === 0) throw new Error('Not enough rows for range selection');
+      await rowCheckboxes.nth(idx).click({ modifiers: ['Shift'] });
       const text = (await bulkBar.locator('.bulk-action-count').textContent()) || '';
       const count = parseInt(text, 10);
-      return Number.isFinite(count) ? count : 0;
-    };
-    await expect.poll(getSelectedCount, { timeout: 30_000 }).toBeGreaterThanOrEqual(2);
+      if (!Number.isFinite(count) || count < 2) throw new Error(`Expected >=2 selected, got ${count}`);
+    }).toPass({ timeout: 30_000, intervals: [500, 1_000, 2_000] });
     await expect.poll(async () => root.locator('input.bulk-row-checkbox:checked').count(), { timeout: 30_000 })
       .toBeGreaterThanOrEqual(2);
   } else {

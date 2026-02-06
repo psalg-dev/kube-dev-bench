@@ -22,7 +22,8 @@ async function openRowDetailsByName(page: any, name: string) {
     .locator('.bottom-panel')
     .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
   for (let attempt = 0; attempt < 3; attempt++) {
-    await nameCell.click();
+    await nameCell.waitFor({ state: 'visible', timeout: 30_000 });
+    await nameCell.click({ timeout: 30_000 });
     try {
       await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
       await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
