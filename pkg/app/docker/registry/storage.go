@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -90,10 +89,12 @@ func getOrCreateSecretsKey() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := os.MkdirAll(filepath.Dir(keyPath), 0o755); err != nil {
+	keyPath = filepath.Clean(keyPath)
+	if err := os.MkdirAll(filepath.Dir(keyPath), 0o750); err != nil {
 		return nil, err
 	}
 
+	// #nosec G304 -- key path is within the app data directory.
 	b, err := os.ReadFile(keyPath)
 	if err == nil {
 		decoded, derr := base64.StdEncoding.DecodeString(strings.TrimSpace(string(b)))
@@ -201,7 +202,9 @@ func loadRegistryFile() (registryFile, string, error) {
 	if err != nil {
 		return registryFile{Registries: []registryFileEntry{}}, "", err
 	}
+	p = filepath.Clean(p)
 
+	// #nosec G304 -- registry file is stored under the app data directory.
 	b, err := os.ReadFile(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -228,14 +231,16 @@ func saveRegistryFile(f registryFile, p string) error {
 		return strings.ToLower(f.Registries[i].Name) < strings.ToLower(f.Registries[j].Name)
 	})
 
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+	p = filepath.Clean(p)
+	if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
 		return err
 	}
 	b, err := json.MarshalIndent(f, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p, b, 0o644)
+	// #nosec G306 -- registry file can include encrypted credentials.
+	return os.WriteFile(p, b, 0o600)
 }
 
 func toEntry(cfg RegistryConfig) (registryFileEntry, error) {
@@ -401,7 +406,7 @@ func TestConnection(ctx context.Context, cfg RegistryConfig) error {
 	if err != nil {
 		return err
 	}
-	_, _, pingErr := v2.do(ctx, http.MethodGet, "/v2/", nil, map[string]string{"Accept": "application/json"})
+	_, _, pingErr := v2.do(ctx, "/v2/", nil, map[string]string{"Accept": "application/json"})
 	if pingErr != nil {
 		return pingErr
 	}

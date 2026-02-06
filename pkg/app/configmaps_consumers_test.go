@@ -11,7 +11,7 @@ import (
 )
 
 func TestGetConfigMapConsumers(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
+	clientset := fake.NewClientset()
 
 	// ConfigMap
 	_, err := clientset.CoreV1().ConfigMaps("default").Create(context.Background(), &corev1.ConfigMap{
@@ -80,7 +80,7 @@ func TestGetConfigMapConsumers(t *testing.T) {
 }
 
 func TestUpdateConfigMapDataKey(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
+	clientset := fake.NewClientset()
 	_, err := clientset.CoreV1().ConfigMaps("default").Create(context.Background(), &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{Name: "cm1", Namespace: "default"},
 		Data:       map[string]string{"a": "1"},

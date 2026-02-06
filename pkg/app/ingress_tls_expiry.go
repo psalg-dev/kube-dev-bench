@@ -20,9 +20,6 @@ type IngressTLSSummary struct {
 
 // parseCertificateExpiry extracts certificate expiry info from PEM-encoded data
 func parseCertificateExpiry(crt []byte, now time.Time) (notBefore, notAfter string, daysRemaining int, err string) {
-	notBefore = "-"
-	notAfter = "-"
-
 	rest := crt
 	for {
 		block, remaining := pem.Decode(rest)

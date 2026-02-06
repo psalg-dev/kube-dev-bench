@@ -19,6 +19,8 @@ var ErrUnsupportedRegistryType = errors.New("unsupported registry type")
 
 // RegistryClient provides minimal operations used by the Swarm UI.
 // Implementations may support a subset of the methods depending on registry capabilities.
+//
+//revive:disable-next-line:var-naming
 type RegistryClient interface {
 	ListRepositories(ctx context.Context) ([]string, error)
 	ListTags(ctx context.Context, repository string) ([]string, error)
@@ -69,7 +71,7 @@ func NewV2Client(cfg RegistryConfig) (*v2Client, error) {
 		timeout = time.Duration(cfg.TimeoutSeconds) * time.Second
 	}
 
-	tlsCfg := &tls.Config{}
+	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
 	// Support both fields (DisableTLSVerification exists for forward/backward flexibility).
 	if cfg.InsecureSkipTLSVerify || cfg.DisableTLSVerification {
 		tlsCfg.InsecureSkipVerify = true
@@ -365,7 +367,7 @@ func (c *v2Client) GetImageSizeBytes(ctx context.Context, repository, reference 
 		}, ", "),
 	}
 
-	_, body, err := c.do(ctx, http.MethodGet, p, nil, headers)
+	_, body, err := c.do(ctx, p, nil, headers)
 	if err != nil {
 		return 0, err
 	}
@@ -390,7 +392,7 @@ func (c *v2Client) ListRepositories(ctx context.Context) ([]string, error) {
 	// Docker Hub does not generally support catalog listing; it returns 401/404.
 	// Keep behavior generic (return error if server doesn't support it).
 	var out catalogResponse
-	_, err := c.getJSON(ctx, "/v2/_catalog", nil, &out)
+	err := c.getJSON(ctx, "/v2/_catalog", nil, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +408,7 @@ func (c *v2Client) ListTags(ctx context.Context, repository string) ([]string, e
 		return nil, fmt.Errorf("repository is required")
 	}
 	var out tagsResponse
-	_, err := c.getJSON(ctx, fmt.Sprintf("/v2/%s/tags/list", repository), nil, &out)
+	err := c.getJSON(ctx, fmt.Sprintf("/v2/%s/tags/list", repository), nil, &out)
 	if err != nil {
 		return nil, err
 	}
@@ -436,7 +438,7 @@ func (c *v2Client) GetManifestDigest(ctx context.Context, repository, reference 
 		}, ", "),
 	}
 
-	resp, body, err := c.do(ctx, http.MethodGet, p, nil, headers)
+	resp, body, err := c.do(ctx, p, nil, headers)
 	if err != nil {
 		return "", err
 	}
@@ -449,18 +451,18 @@ func (c *v2Client) GetManifestDigest(ctx context.Context, repository, reference 
 	return digest, nil
 }
 
-func (c *v2Client) getJSON(ctx context.Context, p string, query url.Values, out any) (*http.Response, error) {
-	resp, body, err := c.do(ctx, http.MethodGet, p, query, map[string]string{"Accept": "application/json"})
+func (c *v2Client) getJSON(ctx context.Context, p string, query url.Values, out any) error {
+	_, body, err := c.do(ctx, p, query, map[string]string{"Accept": "application/json"})
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if len(body) == 0 {
-		return resp, nil
+		return nil
 	}
 	if err := json.Unmarshal(body, out); err != nil {
-		return nil, fmt.Errorf("decode response: %w", err)
+		return fmt.Errorf("decode response: %w", err)
 	}
-	return resp, nil
+	return nil
 }
 
 // buildRequestURL constructs the full URL for the registry request.
@@ -499,7 +501,7 @@ func (c *v2Client) executeRequest(ctx context.Context, method string, u url.URL,
 }
 
 // handleBearerChallenge attempts to exchange a Bearer token and retry the request.
-func (c *v2Client) handleBearerChallenge(ctx context.Context, resp *http.Response, method string, u url.URL, headers map[string]string) (*http.Response, []byte, bool) {
+func (c *v2Client) handleBearerChallenge(ctx context.Context, resp *http.Response, u url.URL, headers map[string]string) (*http.Response, []byte, bool) {
 	if resp.StatusCode != http.StatusUnauthorized {
 		return nil, nil, false
 	}
@@ -512,7 +514,7 @@ func (c *v2Client) handleBearerChallenge(ctx context.Context, resp *http.Respons
 		return nil, nil, false
 	}
 	c.authHeader = "Bearer " + tok
-	resp2, b2, err2 := c.executeRequest(ctx, method, u, headers, c.authHeader)
+	resp2, b2, err2 := c.executeRequest(ctx, http.MethodGet, u, headers, c.authHeader)
 	if err2 != nil {
 		return nil, nil, false
 	}
@@ -531,20 +533,20 @@ func formatErrorMessage(body []byte, status string) string {
 	return msg
 }
 
-func (c *v2Client) do(ctx context.Context, method, p string, query url.Values, headers map[string]string) (*http.Response, []byte, error) {
+func (c *v2Client) do(ctx context.Context, p string, query url.Values, headers map[string]string) (*http.Response, []byte, error) {
 	if c == nil || c.baseURL == nil {
 		return nil, nil, fmt.Errorf("client not initialized")
 	}
 
 	u := c.buildRequestURL(p, query)
 
-	resp, b, err := c.executeRequest(ctx, method, u, headers, c.authHeader)
+	resp, b, err := c.executeRequest(ctx, http.MethodGet, u, headers, c.authHeader)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// Handle Bearer token challenge.
-	if resp2, b2, ok := c.handleBearerChallenge(ctx, resp, method, u, headers); ok {
+	if resp2, b2, ok := c.handleBearerChallenge(ctx, resp, u, headers); ok {
 		resp, b = resp2, b2
 	}
 

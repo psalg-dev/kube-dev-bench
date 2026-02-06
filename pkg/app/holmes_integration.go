@@ -1292,6 +1292,7 @@ func (a *App) AskHolmesStream(question string, streamID string) error {
 
 	go func() {
 		defer func() {
+			cancel()
 			if streamID != "" {
 				holmesStreamMu.Lock()
 				delete(holmesStreamCancels, streamID)

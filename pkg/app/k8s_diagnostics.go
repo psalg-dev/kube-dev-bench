@@ -51,11 +51,11 @@ func (a *App) GetPodLogsPrevious(namespace, podName, containerName string, lines
 
 // PodMetrics represents CPU and memory usage for a pod
 type PodMetrics struct {
-	Namespace  string              `json:"namespace"`
-	Name       string              `json:"name"`
-	Containers []ContainerMetrics  `json:"containers"`
-	CPU        string              `json:"cpu"`
-	Memory     string              `json:"memory"`
+	Namespace  string             `json:"namespace"`
+	Name       string             `json:"name"`
+	Containers []ContainerMetrics `json:"containers"`
+	CPU        string             `json:"cpu"`
+	Memory     string             `json:"memory"`
 }
 
 // ContainerMetrics represents CPU and memory usage for a container
@@ -107,7 +107,7 @@ func (a *App) TopPods(namespace string) ([]PodMetrics, error) {
 		for _, container := range pm.Containers {
 			cpu := container.Usage.Cpu().MilliValue()
 			memory := container.Usage.Memory().Value()
-			
+
 			totalCPU += cpu
 			totalMemory += memory
 
@@ -297,18 +297,18 @@ func (a *App) GetRolloutStatus(kind, namespace, name string) (*RolloutStatus, er
 
 // RolloutHistoryRevision represents a single revision in rollout history
 type RolloutHistoryRevision struct {
-	Revision       int64  `json:"revision"`
-	ChangeReason   string `json:"changeReason,omitempty"`
-	CreationTime   string `json:"creationTime"`
-	PodTemplate    string `json:"podTemplate,omitempty"`
+	Revision     int64  `json:"revision"`
+	ChangeReason string `json:"changeReason,omitempty"`
+	CreationTime string `json:"creationTime"`
+	PodTemplate  string `json:"podTemplate,omitempty"`
 }
 
 // RolloutHistory represents the rollout history for a resource
 type RolloutHistory struct {
-	Kind       string                   `json:"kind"`
-	Name       string                   `json:"name"`
-	Namespace  string                   `json:"namespace"`
-	Revisions  []RolloutHistoryRevision `json:"revisions"`
+	Kind      string                   `json:"kind"`
+	Name      string                   `json:"name"`
+	Namespace string                   `json:"namespace"`
+	Revisions []RolloutHistoryRevision `json:"revisions"`
 }
 
 // GetRolloutHistory returns the rollout history for a Deployment, StatefulSet, or DaemonSet
@@ -446,8 +446,9 @@ func isOwnedByUID(obj metav1.Object, uid interface{}) bool {
 func getRevisionNumber(rs metav1.Object) int64 {
 	if rev, ok := rs.GetAnnotations()["deployment.kubernetes.io/revision"]; ok {
 		var revision int64
-		fmt.Sscanf(rev, "%d", &revision)
-		return revision
+		if _, err := fmt.Sscanf(rev, "%d", &revision); err == nil {
+			return revision
+		}
 	}
 	return 0
 }

@@ -141,11 +141,12 @@ func formatDuration(d time.Duration) string {
 
 	if days > 0 {
 		return fmt.Sprintf("%dd", days)
-	} else if hours > 0 {
-		return fmt.Sprintf("%dh", hours)
-	} else if minutes > 0 {
-		return fmt.Sprintf("%dm", minutes)
-	} else {
-		return fmt.Sprintf("%ds", int(d.Seconds()))
 	}
+	if hours > 0 {
+		return fmt.Sprintf("%dh", hours)
+	}
+	if minutes > 0 {
+		return fmt.Sprintf("%dm", minutes)
+	}
+	return fmt.Sprintf("%ds", int(d.Seconds()))
 }

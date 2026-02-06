@@ -29,16 +29,16 @@ func TestSwarmStackResources_FieldsExist(t *testing.T) {
 func TestSwarmStackResources_EmptyByDefault(t *testing.T) {
 	resources := &SwarmStackResources{}
 
-	if resources.Networks != nil && len(resources.Networks) != 0 {
+	if len(resources.Networks) != 0 {
 		t.Error("expected empty networks")
 	}
-	if resources.Volumes != nil && len(resources.Volumes) != 0 {
+	if len(resources.Volumes) != 0 {
 		t.Error("expected empty volumes")
 	}
-	if resources.Configs != nil && len(resources.Configs) != 0 {
+	if len(resources.Configs) != 0 {
 		t.Error("expected empty configs")
 	}
-	if resources.Secrets != nil && len(resources.Secrets) != 0 {
+	if len(resources.Secrets) != 0 {
 		t.Error("expected empty secrets")
 	}
 }

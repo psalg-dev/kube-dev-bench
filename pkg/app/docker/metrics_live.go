@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -20,15 +19,15 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
@@ -63,13 +62,13 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 	nodeNames := buildNodeNameMap(nodes)
 
 	// Collect container stats and build breakdown
-	breakdown, containers, sumCpuPercent, sumMemUsed, sumNetRx, sumNetTx := collectContainerStats(ctx, cli, tasks, serviceNames, nodeNames, now)
+	breakdown, containers, sumCPUPercent, sumMemUsed, sumNetRx, sumNetTx := collectContainerStats(ctx, cli, tasks, serviceNames, nodeNames, now)
 
 	point.RunningContainers = containers
 	point.MemoryUsedBytes = sumMemUsed
 	point.NetworkRxBytes = sumNetRx
 	point.NetworkTxBytes = sumNetTx
-	point.CpuUsagePercent = cpuUsagePercentOfCapacity(sumCpuPercent, cpuCap)
+	point.CpuUsagePercent = cpuUsagePercentOfCapacity(sumCPUPercent, cpuCap)
 
 	appendSwarmMetricsPoint(point)
 
@@ -130,7 +129,7 @@ func computeResourceUsage(services []swarm.Service, readyNodes int) (cpuRes, mem
 // getServiceMultiplier returns the replica count for a service
 func getServiceMultiplier(s *swarm.Service, readyNodes int) int64 {
 	if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
-		return int64(*s.Spec.Mode.Replicated.Replicas)
+		return safeInt64FromUint64(*s.Spec.Mode.Replicated.Replicas)
 	}
 	if s.Spec.Mode.Global != nil {
 		return int64(readyNodes)
@@ -170,7 +169,7 @@ func collectContainerStats(ctx context.Context, cli *client.Client, tasks []swar
 	servicesAgg := map[string]*SwarmServiceMetrics{}
 	nodesAgg := map[string]*SwarmNodeMetrics{}
 
-	var sumCpuPercent float64
+	var sumCPUPercent float64
 	var sumMemUsed int64
 	var sumNetRx int64
 	var sumNetTx int64
@@ -190,7 +189,7 @@ func collectContainerStats(ctx context.Context, cli *client.Client, tasks []swar
 		}
 
 		containers++
-		sumCpuPercent += stats.cpuP
+		sumCPUPercent += stats.cpuP
 		sumMemUsed += stats.memUsed
 		sumNetRx += stats.rx
 		sumNetTx += stats.tx
@@ -216,7 +215,7 @@ func collectContainerStats(ctx context.Context, cli *client.Client, tasks []swar
 		breakdown.Nodes = append(breakdown.Nodes, *v)
 	}
 
-	return breakdown, containers, sumCpuPercent, sumMemUsed, sumNetRx, sumNetTx
+	return breakdown, containers, sumCPUPercent, sumMemUsed, sumNetRx, sumNetTx
 }
 
 // getContainerStats fetches stats for a single container
@@ -300,12 +299,12 @@ func memoryUsage(s *container.StatsResponse) (used int64, limit int64) {
 	if s == nil {
 		return 0, 0
 	}
-	usage := int64(s.MemoryStats.Usage)
-	limit = int64(s.MemoryStats.Limit)
+	usage := safeInt64FromUint64(s.MemoryStats.Usage)
+	limit = safeInt64FromUint64(s.MemoryStats.Limit)
 	cache := int64(0)
 	if s.MemoryStats.Stats != nil {
 		if v, ok := s.MemoryStats.Stats["cache"]; ok {
-			cache = int64(v)
+			cache = safeInt64FromUint64(v)
 		}
 	}
 	if cache > 0 && usage > cache {
@@ -325,14 +324,14 @@ func networkTotals(s *container.StatsResponse) (rx int64, tx int64) {
 		return 0, 0
 	}
 	for _, v := range s.Networks {
-		rx += int64(v.RxBytes)
-		tx += int64(v.TxBytes)
+		rx += safeInt64FromUint64(v.RxBytes)
+		tx += safeInt64FromUint64(v.TxBytes)
 	}
 	return rx, tx
 }
 
-func cpuUsagePercentOfCapacity(sumCpuPercent float64, cpuCapNano int64) float64 {
-	if sumCpuPercent <= 0 {
+func cpuUsagePercentOfCapacity(sumCPUPercent float64, cpuCapNano int64) float64 {
+	if sumCPUPercent <= 0 {
 		return 0
 	}
 	capCores := float64(cpuCapNano) / 1e9
@@ -340,5 +339,5 @@ func cpuUsagePercentOfCapacity(sumCpuPercent float64, cpuCapNano int64) float64 
 		return 0
 	}
 	// sumCpuPercent is already in the "can exceed 100" space; divide by core-count to normalize.
-	return sumCpuPercent / capCores
+	return sumCPUPercent / capCores
 }

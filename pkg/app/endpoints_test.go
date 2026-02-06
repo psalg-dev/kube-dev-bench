@@ -4,42 +4,45 @@ import (
 	"context"
 	"testing"
 
-	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
 func TestGetEndpoints_ReturnsEndpoints(t *testing.T) {
 	ctx := context.Background()
-	clientset := fake.NewSimpleClientset(
-		&corev1.Endpoints{
+	port := int32(8080)
+	clientset := fake.NewClientset(
+		&discoveryv1.EndpointSlice{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-service",
+				Name:      "my-service-1",
 				Namespace: "default",
 				Labels: map[string]string{
-					"app": "myapp",
+					discoveryv1.LabelServiceName: "my-service",
+					"app":                       "myapp",
 				},
 				Annotations: map[string]string{
 					"description": "test endpoint",
 				},
 			},
-			Subsets: []corev1.EndpointSubset{
-				{
-					Addresses: []corev1.EndpointAddress{
-						{IP: "10.0.0.1"},
-						{IP: "10.0.0.2"},
-					},
-					Ports: []corev1.EndpointPort{
-						{Port: 8080},
-					},
-				},
+			AddressType: discoveryv1.AddressTypeIPv4,
+			Endpoints: []discoveryv1.Endpoint{
+				{Addresses: []string{"10.0.0.1"}},
+				{Addresses: []string{"10.0.0.2"}},
+			},
+			Ports: []discoveryv1.EndpointSlicePort{
+				{Port: &port},
 			},
 		},
-		&corev1.Endpoints{
+		&discoveryv1.EndpointSlice{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "another-service",
+				Name:      "another-service-1",
 				Namespace: "default",
+				Labels: map[string]string{
+					discoveryv1.LabelServiceName: "another-service",
+				},
 			},
+			AddressType: discoveryv1.AddressTypeIPv4,
 		},
 	)
 
@@ -81,7 +84,7 @@ func TestGetEndpoints_ReturnsEndpoints(t *testing.T) {
 
 func TestGetEndpoints_NoEndpoints(t *testing.T) {
 	ctx := context.Background()
-	clientset := fake.NewSimpleClientset()
+	clientset := fake.NewClientset()
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
@@ -110,24 +113,23 @@ func TestGetEndpoints_EmptyNamespace(t *testing.T) {
 
 func TestGetEndpointDetail_ReturnsEndpoint(t *testing.T) {
 	ctx := context.Background()
-	clientset := fake.NewSimpleClientset(
-		&corev1.Endpoints{
+	port := int32(8080)
+	clientset := fake.NewClientset(
+		&discoveryv1.EndpointSlice{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-service",
+				Name:      "my-service-1",
 				Namespace: "default",
 				Labels: map[string]string{
-					"app": "myapp",
+					discoveryv1.LabelServiceName: "my-service",
+					"app":                       "myapp",
 				},
 			},
-			Subsets: []corev1.EndpointSubset{
-				{
-					Addresses: []corev1.EndpointAddress{
-						{IP: "10.0.0.1"},
-					},
-					Ports: []corev1.EndpointPort{
-						{Port: 8080},
-					},
-				},
+			AddressType: discoveryv1.AddressTypeIPv4,
+			Endpoints: []discoveryv1.Endpoint{
+				{Addresses: []string{"10.0.0.1"}},
+			},
+			Ports: []discoveryv1.EndpointSlicePort{
+				{Port: &port},
 			},
 		},
 	)
@@ -174,26 +176,30 @@ func TestGetEndpointDetail_EmptyName(t *testing.T) {
 }
 
 func TestBuildEndpointInfo_MultiplePortsAndAddresses(t *testing.T) {
-	endpoint := &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "multi-endpoint",
-			Namespace: "default",
-		},
-		Subsets: []corev1.EndpointSubset{
-			{
-				Addresses: []corev1.EndpointAddress{
-					{IP: "10.0.0.1"},
-					{IP: "10.0.0.2"},
+	port8080 := int32(8080)
+	port9090 := int32(9090)
+	slices := []discoveryv1.EndpointSlice{
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "multi-endpoint-1",
+				Namespace: "default",
+				Labels: map[string]string{
+					discoveryv1.LabelServiceName: "multi-endpoint",
 				},
-				Ports: []corev1.EndpointPort{
-					{Port: 8080},
-					{Port: 9090},
-				},
+			},
+			AddressType: discoveryv1.AddressTypeIPv4,
+			Endpoints: []discoveryv1.Endpoint{
+				{Addresses: []string{"10.0.0.1"}},
+				{Addresses: []string{"10.0.0.2"}},
+			},
+			Ports: []discoveryv1.EndpointSlicePort{
+				{Port: &port8080},
+				{Port: &port9090},
 			},
 		},
 	}
 
-	info := buildEndpointInfo(endpoint, metav1.Now().Time)
+	info := buildEndpointInfoFromSlices("default", "multi-endpoint", slices, metav1.Now().Time)
 
 	expectedAddresses := 4 // 2 IPs * 2 ports
 	if len(info.Endpoints) != expectedAddresses {

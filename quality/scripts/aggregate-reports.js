@@ -17,6 +17,27 @@ function readJsonSafe(filepath) {
   }
 }
 
+function readJsonLines(filepath) {
+  try {
+    const content = fs.readFileSync(filepath, 'utf8');
+    return content
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean)
+      .map(line => {
+        try {
+          return JSON.parse(line);
+        } catch (e) {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  } catch (e) {
+    console.warn(`Warning: Could not read ${filepath}`);
+    return null;
+  }
+}
+
 function aggregateReports() {
   const report = {
     timestamp: new Date().toISOString(),
@@ -137,6 +158,43 @@ function aggregateReports() {
   if (gosec?.Issues) {
     report.summary.goSecurityIssues = gosec.Issues.length;
     report.details.gosecIssues = gosec.Issues;
+  }
+
+  // Govulncheck
+  const govulncheckEvents = readJsonLines(path.join(REPORTS_DIR, 'go', 'govulncheck.json'));
+  if (govulncheckEvents) {
+    const findings = govulncheckEvents
+      .filter(e => e?.finding || e?.Finding || e?.type === 'finding' || e?.Type === 'finding')
+      .map(e => e.finding || e.Finding || e);
+
+    const normalizedFindings = findings.map(f => {
+      const osv = f.osv || f.OSV || {};
+      const module = f.module || f.Module || {};
+      const pkg = f.package || f.Package || {};
+      return {
+        id: osv.id || osv.ID || f.id || f.ID || '-',
+        module: module.path || module || '-',
+        package: pkg.path || pkg || '-',
+        symbol: f.symbol || f.Symbol || '-',
+        details: f.details || ''
+      };
+    });
+
+    report.summary.govulncheckFindings = normalizedFindings.length;
+    report.details.govulncheckFindings = normalizedFindings;
+  }
+
+  // Ineffassign
+  try {
+    const ineffassignText = fs.readFileSync(path.join(REPORTS_DIR, 'go', 'ineffassign.txt'), 'utf8');
+    const ineffassignLines = ineffassignText
+      .split('\n')
+      .map(line => line.trim())
+      .filter(Boolean);
+    report.summary.ineffassignIssues = ineffassignLines.length;
+    report.details.ineffassignIssues = ineffassignLines.slice(0, 200);
+  } catch (e) {
+    // ineffassign.txt not found or empty
   }
 
   // Cyclomatic Complexity (gocyclo) - parse from text file
@@ -292,6 +350,32 @@ function generateHtmlDashboard(report) {
        ${(report.details.gosecIssues?.length || 0) > 100 ? '<p><em>Showing first 100 of ' + report.details.gosecIssues.length + ' issues</em></p>' : ''}`
     : '<p>No Go security issues found.</p>';
 
+  const govulncheckTableHtml = (report.details.govulncheckFindings?.length || 0) > 0
+    ? `<table>
+        <tr><th>ID</th><th>Package</th><th>Symbol</th><th>Module</th></tr>
+        ${(report.details.govulncheckFindings || []).slice(0, 100).map(f => `
+          <tr>
+            <td>${f.id}</td>
+            <td class="file-path">${f.package}</td>
+            <td>${f.symbol}</td>
+            <td class="file-path">${f.module}</td>
+          </tr>
+        `).join('')}
+       </table>
+       ${(report.details.govulncheckFindings?.length || 0) > 100 ? '<p><em>Showing first 100 of ' + report.details.govulncheckFindings.length + ' findings</em></p>' : ''}`
+    : '<p>No govulncheck findings.</p>';
+
+  const ineffassignTableHtml = (report.details.ineffassignIssues?.length || 0) > 0
+    ? `<table>
+        <tr><th>Issue</th></tr>
+        ${(report.details.ineffassignIssues || []).map(line => `
+          <tr>
+            <td class="file-path">${line}</td>
+          </tr>
+        `).join('')}
+       </table>`
+    : '<p>No ineffassign issues found.</p>';
+
   const cycloTableHtml = (report.details.highComplexityFunctions?.length || 0) > 0
     ? `<table>
         <tr><th>Complexity</th><th>Package</th><th>Function</th><th>Location</th></tr>
@@ -421,7 +505,7 @@ function generateHtmlDashboard(report) {
     <div class="card">
       <h2 class="collapsible" onclick="toggleDetails('security-details', this)">
         Security
-        <span class="badge badge-count">${(report.details.vulnerabilities?.length || 0) + (report.details.secrets?.length || 0) + (report.details.gosecIssues?.length || 0)} issues</span>
+        <span class="badge badge-count">${(report.details.vulnerabilities?.length || 0) + (report.details.secrets?.length || 0) + (report.details.gosecIssues?.length || 0) + (report.details.govulncheckFindings?.length || 0)} issues</span>
       </h2>
       <div class="metric">
         <div class="metric-value ${(report.summary.vulnerabilities?.critical || 0) === 0 ? 'pass' : 'fail'}">${report.summary.vulnerabilities?.critical || 0}</div>
@@ -443,12 +527,17 @@ function generateHtmlDashboard(report) {
         <div class="metric-value warn">${report.summary.goSecurityIssues || 0}</div>
         <div class="metric-label">Go Security Issues</div>
       </div>
+      <div class="metric">
+        <div class="metric-value ${(report.summary.govulncheckFindings || 0) === 0 ? 'pass' : 'warn'}">${report.summary.govulncheckFindings || 0}</div>
+        <div class="metric-label">Govulncheck Findings</div>
+      </div>
       
       <div id="security-details" class="details">
         <div class="tab-container">
           <div class="tab active" onclick="switchTab(this, 'vulns-tab')">Vulnerabilities (${report.details.vulnerabilities?.length || 0})</div>
           <div class="tab" onclick="switchTab(this, 'secrets-tab')">Secrets (${report.details.secrets?.length || 0})</div>
           <div class="tab" onclick="switchTab(this, 'gosec-tab')">Go Security (${report.details.gosecIssues?.length || 0})</div>
+          <div class="tab" onclick="switchTab(this, 'govulncheck-tab')">Govulncheck (${report.details.govulncheckFindings?.length || 0})</div>
         </div>
         
         <div id="vulns-tab" class="tab-content active">
@@ -462,6 +551,24 @@ function generateHtmlDashboard(report) {
         <div id="gosec-tab" class="tab-content">
           ${gosecTableHtml}
         </div>
+
+        <div id="govulncheck-tab" class="tab-content">
+          ${govulncheckTableHtml}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="collapsible" onclick="toggleDetails('go-static-details', this)">
+        Go Static Analysis
+        <span class="badge badge-count">${report.summary.ineffassignIssues || 0} issues</span>
+      </h2>
+      <div class="metric">
+        <div class="metric-value ${(report.summary.ineffassignIssues || 0) === 0 ? 'pass' : 'warn'}">${report.summary.ineffassignIssues || 0}</div>
+        <div class="metric-label">Ineffassign Issues</div>
+      </div>
+      <div id="go-static-details" class="details">
+        ${ineffassignTableHtml}
       </div>
     </div>
 

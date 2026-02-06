@@ -54,6 +54,8 @@ func loadPersistedIssues() (map[string]PersistedIssue, error) {
 	if err != nil {
 		return nil, err
 	}
+	path = filepath.Clean(path)
+	// #nosec G304 -- path is derived from user home or explicit override.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -79,14 +81,16 @@ func savePersistedIssues(issues map[string]PersistedIssue) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	path = filepath.Clean(path)
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
 	data, err := json.MarshalIndent(issues, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	// #nosec G306 -- persisted issues may include user data.
+	return os.WriteFile(path, data, 0o600)
 }
 
 func cleanupExpiredIssues(issues map[string]PersistedIssue, now time.Time) (bool, map[string]PersistedIssue) {

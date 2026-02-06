@@ -145,7 +145,7 @@ func TestV2Client_Do_ExchangesBearerToken_Anonymous(t *testing.T) {
 		t.Fatalf("NewV2Client: %v", err)
 	}
 
-	_, _, err = cli.do(ctx, http.MethodGet, "/v2/", nil, map[string]string{"Accept": "application/json"})
+	_, _, err = cli.do(ctx, "/v2/", nil, map[string]string{"Accept": "application/json"})
 	if err != nil {
 		t.Fatalf("expected token exchange to succeed, got: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestV2Client_Do_ExchangesBearerToken_UsesBasicAuthWhenConfigured(t *testing
 		t.Fatalf("NewV2Client: %v", err)
 	}
 
-	_, _, err = cli.do(ctx, http.MethodGet, "/v2/", nil, map[string]string{"Accept": "application/json"})
+	_, _, err = cli.do(ctx, "/v2/", nil, map[string]string{"Accept": "application/json"})
 	if err != nil {
 		t.Fatalf("expected token exchange to succeed, got: %v", err)
 	}

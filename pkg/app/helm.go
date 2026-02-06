@@ -85,7 +85,7 @@ func (a *App) GetHelmReleases(namespace string) ([]HelmReleaseInfo, error) {
 		return nil, fmt.Errorf("failed to list helm releases: %w", err)
 	}
 
-	var result []HelmReleaseInfo
+	result := make([]HelmReleaseInfo, 0, len(releases))
 	now := time.Now()
 
 	for _, rel := range releases {
@@ -173,7 +173,7 @@ func (a *App) AddHelmRepository(name, url string) error {
 	repoFile := a.getHelmRepoFile()
 
 	// Ensure directory exists
-	if err := os.MkdirAll(filepath.Dir(repoFile), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(repoFile), 0o750); err != nil {
 		return fmt.Errorf("failed to create helm config directory: %w", err)
 	}
 
@@ -345,7 +345,7 @@ func (a *App) GetHelmChartVersions(repoName, chartName string) ([]HelmChartVersi
 		return nil, fmt.Errorf("chart %q not found in repository %q", chartName, repoName)
 	}
 
-	var result []HelmChartVersionInfo
+	result := make([]HelmChartVersionInfo, 0, len(chartVersions))
 	for _, v := range chartVersions {
 		created := "-"
 		if !v.Created.IsZero() {

@@ -271,7 +271,9 @@ func buildDeploymentRevisions(replicaSets []appsv1.ReplicaSet, deploymentName st
 
 		revision := int64(0)
 		if rev, ok := rs.Annotations["deployment.kubernetes.io/revision"]; ok {
-			fmt.Sscanf(rev, "%d", &revision)
+			if _, err := fmt.Sscanf(rev, "%d", &revision); err != nil {
+				revision = 0
+			}
 		}
 
 		image := ""

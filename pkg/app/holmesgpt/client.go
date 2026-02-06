@@ -269,22 +269,22 @@ func (p *sseParser) dispatch() error {
 	return p.onEvent(currentEvent, []byte(data))
 }
 
-func (p *sseParser) parseLine(line string) (done bool, err error) {
+func (p *sseParser) parseLine(line string) error {
 	line = strings.TrimRight(line, "\r\n")
 	if line == "" {
-		return false, p.dispatch()
+		return p.dispatch()
 	}
 	if strings.HasPrefix(line, ":") {
-		return false, nil
+		return nil
 	}
 	if strings.HasPrefix(line, "event:") {
 		p.eventType = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-		return false, nil
+		return nil
 	}
 	if strings.HasPrefix(line, "data:") {
 		p.dataLines = append(p.dataLines, strings.TrimSpace(strings.TrimPrefix(line, "data:")))
 	}
-	return false, nil
+	return nil
 }
 
 // StreamAsk streams a question to HolmesGPT and emits SSE events via callback.
@@ -338,7 +338,7 @@ func (c *HolmesClient) StreamAsk(ctx context.Context, question string, onEvent f
 			log.Error("StreamAsk: error reading stream", "error", err, "eventCount", parser.count, "elapsed", time.Since(startTime))
 			return err
 		}
-		if _, err := parser.parseLine(line); err != nil {
+		if err := parser.parseLine(line); err != nil {
 			return err
 		}
 	}
@@ -350,7 +350,7 @@ func shouldRetry(err error) bool {
 	}
 	var netErr net.Error
 	if errors.As(err, &netErr) {
-		return netErr.Timeout() || netErr.Temporary()
+		return netErr.Timeout()
 	}
 	return false
 }

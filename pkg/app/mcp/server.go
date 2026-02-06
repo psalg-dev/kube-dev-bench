@@ -254,7 +254,9 @@ func (s *MCPServer) Stop() {
 	if s.httpServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		s.httpServer.Shutdown(ctx)
+		if err := s.httpServer.Shutdown(ctx); err != nil {
+			fmt.Printf("MCP server shutdown error: %v\n", err)
+		}
 	}
 
 	s.running = false
@@ -282,9 +284,9 @@ func (s *MCPServer) GetStatus() MCPStatus {
 
 // HTTP Handlers
 
-func (s *MCPServer) handleRoot(w http.ResponseWriter, r *http.Request) {
+func (s *MCPServer) handleRoot(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"name":        "KubeDevBench MCP Server",
 		"version":     "1.0.0",
 		"description": "Model Context Protocol server for Kubernetes and Docker Swarm management",
@@ -292,15 +294,19 @@ func (s *MCPServer) handleRoot(w http.ResponseWriter, r *http.Request) {
 			"mcp":    "/mcp",
 			"health": "/health",
 		},
-	})
+	}); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
-func (s *MCPServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+func (s *MCPServer) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	if err := json.NewEncoder(w).Encode(map[string]interface{}{
 		"status":  "ok",
 		"running": s.IsRunning(),
-	})
+	}); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (s *MCPServer) handleMCP(w http.ResponseWriter, r *http.Request) {
@@ -325,19 +331,23 @@ func (s *MCPServer) handleMCP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (s *MCPServer) sendHTTPError(w http.ResponseWriter, id interface{}, err error) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&jsonRPCResponse{
+	if encErr := json.NewEncoder(w).Encode(&jsonRPCResponse{
 		JSONRPC: "2.0",
 		ID:      id,
 		Error: &rpcError{
 			Code:    -32603,
 			Message: err.Error(),
 		},
-	})
+	}); encErr != nil {
+		http.Error(w, "failed to encode error", http.StatusInternalServerError)
+	}
 }
 
 // JSON-RPC structures

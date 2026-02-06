@@ -6,15 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 	"gopkg.in/yaml.v3"
 )
-
-type swarmServiceLister interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-}
 
 type composeFile struct {
 	Version  string                    `yaml:"version"`
@@ -49,22 +44,10 @@ type composeRestartPolicy struct {
 	Window      string  `yaml:"window,omitempty"`
 }
 
-func toDurationString(d interface{}) string {
-	// Docker types use time.Duration underneath; yaml wants string.
-	// We accept fmt.Stringer or fallback.
-	if d == nil {
-		return ""
-	}
-	if s, ok := d.(fmt.Stringer); ok {
-		return s.String()
-	}
-	return fmt.Sprint(d)
-}
-
 // GetSwarmStackComposeYAML generates a best-effort docker-compose YAML derived from current service specs.
 // It is NOT source-of-truth; it only includes fields we can reliably infer.
 func GetSwarmStackComposeYAML(ctx context.Context, cli *client.Client, stackName string) (string, error) {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -74,7 +57,7 @@ func GetSwarmStackComposeYAML(ctx context.Context, cli *client.Client, stackName
 		Services: map[string]composeService{},
 	}
 
-	var names []string
+	names := make([]string, 0, len(services))
 	for _, svc := range services {
 		if svc.Spec.Labels["com.docker.stack.namespace"] != stackName {
 			continue
@@ -168,17 +151,17 @@ func buildComposeUpdateConfig(uc *swarm.UpdateConfig) *composeUpdateConfig {
 
 	cu := &composeUpdateConfig{}
 	if uc.Parallelism != 0 {
-		p := uint64(uc.Parallelism)
+		p := uc.Parallelism
 		cu.Parallelism = &p
 	}
 	if uc.Delay != 0 {
 		cu.Delay = uc.Delay.String()
 	}
 	if uc.FailureAction != "" {
-		cu.FailureAction = string(uc.FailureAction)
+		cu.FailureAction = uc.FailureAction
 	}
 	if uc.Order != "" {
-		cu.Order = string(uc.Order)
+		cu.Order = uc.Order
 	}
 
 	// Only return if any field is set

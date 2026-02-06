@@ -78,10 +78,11 @@ func (a *App) saveConfig() error {
 		return err
 	}
 	// Ensure the parent directory exists
-	if err := os.MkdirAll(filepath.Dir(a.configPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(a.configPath), 0o750); err != nil {
 		return err
 	}
-	return os.WriteFile(a.configPath, data, 0644)
+	// #nosec G306 -- config contains user-specific settings.
+	return os.WriteFile(a.configPath, data, 0o600)
 }
 
 // getKubeConfigPath returns the kubeconfig path to use

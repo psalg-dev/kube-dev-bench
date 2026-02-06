@@ -669,7 +669,9 @@ func (a *App) getRemoteFileSize(clientset *kubernetes.Clientset, restConfig *res
 	}
 	var fullSize int64
 	if szLine != "" {
-		fmt.Sscan(szLine, &fullSize)
+		if _, err := fmt.Sscan(szLine, &fullSize); err != nil {
+			return 0, fmt.Errorf("parse file size: %w", err)
+		}
 	}
 	return fullSize, nil
 }

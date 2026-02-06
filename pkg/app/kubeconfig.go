@@ -21,6 +21,8 @@ type kubeConfigFile struct {
 // GetKubeContexts reads the configured kubeconfig and returns all context names
 func (a *App) GetKubeContexts() ([]string, error) {
 	configPath := a.getKubeConfigPath()
+	configPath = filepath.Clean(configPath)
+	// #nosec G304 -- path is derived from user home or explicitly set config.
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
@@ -29,7 +31,7 @@ func (a *App) GetKubeContexts() ([]string, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	var names []string
+	names := make([]string, 0, len(cfg.Contexts))
 	for _, ctx := range cfg.Contexts {
 		names = append(names, ctx.Name)
 	}
@@ -39,6 +41,8 @@ func (a *App) GetKubeContexts() ([]string, error) {
 
 // getContextsFromFile extracts context names from a kubeconfig file
 func (a *App) getContextsFromFile(path string) ([]string, error) {
+	path = filepath.Clean(path)
+	// #nosec G304 -- path comes from user selection.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -47,7 +51,7 @@ func (a *App) getContextsFromFile(path string) ([]string, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	var names []string
+	names := make([]string, 0, len(cfg.Contexts))
 	for _, ctx := range cfg.Contexts {
 		names = append(names, ctx.Name)
 	}
@@ -81,7 +85,7 @@ func (a *App) SaveCustomKubeConfig(name string, content string) error {
 		return err
 	}
 	kubeDir := filepath.Join(home, ".kube")
-	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+	if err := os.MkdirAll(kubeDir, 0o750); err != nil {
 		return err
 	}
 	// Validate the YAML content first
@@ -108,7 +112,7 @@ func (a *App) SavePrimaryKubeConfig(content string) (string, error) {
 		return "", err
 	}
 	kubeDir := filepath.Join(home, ".kube")
-	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+	if err := os.MkdirAll(kubeDir, 0o750); err != nil {
 		return "", err
 	}
 	// Validate YAML

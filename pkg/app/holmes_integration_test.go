@@ -236,7 +236,7 @@ func TestTestHolmesConnection_Healthy(t *testing.T) {
 
 func TestTestHolmesConnection_Unhealthy(t *testing.T) {
 	// Create fake Holmes server that returns 500
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
@@ -270,7 +270,7 @@ func TestTestHolmesConnection_Unhealthy(t *testing.T) {
 
 func TestInitHolmes_CreatesClient(t *testing.T) {
 	// Create fake Holmes server
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 	defer server.Close()
 
 	holmesConfig = holmesgpt.HolmesConfigData{
@@ -355,7 +355,7 @@ func TestGetPodContext_NotFound(t *testing.T) {
 
 func TestGetPodContext_RBACError(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	clientset.PrependReactor("get", "pods", func(action clientgotesting.Action) (bool, runtime.Object, error) {
+	clientset.PrependReactor("get", "pods", func(_ clientgotesting.Action) (bool, runtime.Object, error) {
 		return true, nil, apierrors.NewForbidden(schema.GroupResource{Group: "", Resource: "pods"}, "test-pod", fmt.Errorf("forbidden"))
 	})
 

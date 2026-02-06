@@ -99,7 +99,9 @@ func isOwnedByDeployment(refs []metav1.OwnerReference, name string) bool {
 func getReplicaSetRevision(annotations map[string]string) int64 {
 	if rev, ok := annotations["deployment.kubernetes.io/revision"]; ok {
 		var rsRev int64
-		fmt.Sscanf(rev, "%d", &rsRev)
+		if _, err := fmt.Sscanf(rev, "%d", &rsRev); err == nil {
+			return rsRev
+		}
 		return rsRev
 	}
 	return 0
@@ -202,10 +204,15 @@ func (a *App) ScaleResource(kind, namespace, name string, replicas int) error {
 	if replicas < 0 {
 		return fmt.Errorf("replicas must be non-negative")
 	}
+	maxInt32 := int(^uint32(0) >> 1)
+	if replicas > maxInt32 {
+		return fmt.Errorf("replicas must be <= %d", maxInt32)
+	}
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
+	// #nosec G115 -- bounds checked above.
 	desired := int32(replicas)
 	switch strings.ToLower(kind) {
 	case "deployment", "deployments":

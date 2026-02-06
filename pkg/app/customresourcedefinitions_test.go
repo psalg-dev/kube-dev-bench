@@ -12,9 +12,9 @@ import (
 
 func TestGetCustomResourceDefinitions_ReturnsCRDs(t *testing.T) {
 	ctx := context.Background()
-	clientset := fake.NewSimpleClientset()
+	clientset := fake.NewClientset()
 
-	crdClientset := apiextensionsfake.NewSimpleClientset(
+	crdClientset := apiextensionsfake.NewClientset(
 		&apiextensionsv1.CustomResourceDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myresources.example.com",
@@ -120,8 +120,8 @@ func TestGetCustomResourceDefinitions_ReturnsCRDs(t *testing.T) {
 
 func TestGetCustomResourceDefinitions_NoCRDs(t *testing.T) {
 	ctx := context.Background()
-	clientset := fake.NewSimpleClientset()
-	crdClientset := apiextensionsfake.NewSimpleClientset()
+	clientset := fake.NewClientset()
+	crdClientset := apiextensionsfake.NewClientset()
 
 	app := &App{
 		ctx:              ctx,
@@ -141,9 +141,9 @@ func TestGetCustomResourceDefinitions_NoCRDs(t *testing.T) {
 
 func TestGetCustomResourceDefinitionDetail_ReturnsCRD(t *testing.T) {
 	ctx := context.Background()
-	clientset := fake.NewSimpleClientset()
+	clientset := fake.NewClientset()
 
-	crdClientset := apiextensionsfake.NewSimpleClientset(
+	crdClientset := apiextensionsfake.NewClientset(
 		&apiextensionsv1.CustomResourceDefinition{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "myresources.example.com",

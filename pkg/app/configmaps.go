@@ -41,7 +41,7 @@ func (a *App) GetConfigMaps(namespace string) ([]ConfigMapInfo, error) {
 		return nil, err
 	}
 
-	var result []ConfigMapInfo
+	result := make([]ConfigMapInfo, 0, len(configMaps.Items))
 	now := time.Now()
 
 	for _, cm := range configMaps.Items {
@@ -96,5 +96,8 @@ func formatBytes(bytes int) string {
 	}
 
 	sizes := []string{"B", "KB", "MB", "GB", "TB"}
+	if exp >= len(sizes) {
+		exp = len(sizes) - 1
+	}
 	return fmt.Sprintf("%.1f %s", float64(bytes)/float64(div), sizes[exp])
 }

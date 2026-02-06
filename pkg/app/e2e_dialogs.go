@@ -60,7 +60,9 @@ func detectDialogDirFromWorkdir() string {
 	if len(mappingFiles) != 1 {
 		return ""
 	}
-	b, err := os.ReadFile(filepath.Join(mappingDir, mappingFiles[0].Name()))
+	p := filepath.Join(mappingDir, mappingFiles[0].Name())
+	// #nosec G304 -- mapping file is within the e2e run directory.
+	b, err := os.ReadFile(p)
 	if err != nil {
 		return ""
 	}
@@ -79,6 +81,7 @@ func e2eDialogDir() string {
 
 func consumeOneShotPath(dir string, filename string) (string, bool) {
 	p := filepath.Join(dir, filename)
+	// #nosec G304 -- path is within the e2e run directory.
 	b, err := os.ReadFile(p)
 	if err != nil {
 		return "", false
@@ -92,7 +95,7 @@ func consumeOneShotPath(dir string, filename string) (string, bool) {
 }
 
 func ensureDir(p string) error {
-	return os.MkdirAll(p, 0o755)
+	return os.MkdirAll(p, 0o750)
 }
 
 func safeBaseFilename(name string, fallback string) string {
@@ -115,7 +118,7 @@ func (a *App) saveFileDialogWithE2E(opts runtime.SaveDialogOptions) (string, err
 
 	if p, ok := consumeOneShotPath(dir, e2eSaveOverrideFile); ok {
 		// Best-effort record for tests.
-		_ = os.WriteFile(filepath.Join(dir, e2eLastSavePathFile), []byte(p), 0o644)
+		_ = os.WriteFile(filepath.Join(dir, e2eLastSavePathFile), []byte(p), 0o600)
 		return p, nil
 	}
 
@@ -127,7 +130,7 @@ func (a *App) saveFileDialogWithE2E(opts runtime.SaveDialogOptions) (string, err
 	name := safeBaseFilename(opts.DefaultFilename, "download")
 	p := filepath.Join(savesDir, name)
 	// Best-effort record for tests.
-	_ = os.WriteFile(filepath.Join(dir, e2eLastSavePathFile), []byte(p), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, e2eLastSavePathFile), []byte(p), 0o600)
 	return p, nil
 }
 
@@ -139,11 +142,11 @@ func (a *App) openFileDialogWithE2E(opts runtime.OpenDialogOptions) (string, err
 
 	if p, ok := consumeOneShotPath(dir, e2eOpenOverrideFile); ok {
 		// Best-effort record for tests.
-		_ = os.WriteFile(filepath.Join(dir, e2eLastOpenPathFile), []byte(p), 0o644)
+		_ = os.WriteFile(filepath.Join(dir, e2eLastOpenPathFile), []byte(p), 0o600)
 		return p, nil
 	}
 
 	// No default file available: treat as cancelled.
-	_ = os.WriteFile(filepath.Join(dir, e2eLastOpenPathFile), []byte(""), 0o644)
+	_ = os.WriteFile(filepath.Join(dir, e2eLastOpenPathFile), []byte(""), 0o600)
 	return "", nil
 }

@@ -18,7 +18,6 @@ import (
 	"gowails/pkg/app/docker/registry"
 	"gowails/pkg/app/docker/topology"
 
-	"github.com/docker/docker/api/types"
 	imagetypes "github.com/docker/docker/api/types/image"
 	registrytypes "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/swarm"
@@ -335,7 +334,9 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 	// Store the client
 	dockerClientMu.Lock()
 	if dockerClient != nil {
-		dockerClient.Close()
+		if err := dockerClient.Close(); err != nil {
+			fmt.Printf("Warning: failed to close Docker client: %v\n", err)
+		}
 	}
 	dockerClient = cli
 	configCopy := resolvedConfig
@@ -461,6 +462,10 @@ func (a *App) ScaleSwarmService(serviceID string, replicas int) error {
 	if err != nil {
 		return err
 	}
+	if replicas < 0 {
+		return fmt.Errorf("replicas must be non-negative")
+	}
+	// #nosec G115 -- guarded to prevent negative values from wrapping.
 	return docker.ScaleSwarmService(a.ctx, cli, serviceID, uint64(replicas))
 }
 
@@ -1257,7 +1262,8 @@ func (a *App) saveDockerConfig(config docker.DockerConfig) error {
 		return err
 	}
 
-	return os.WriteFile(configPath, data, 0644)
+	// #nosec G306 -- docker config is user-specific.
+	return os.WriteFile(configPath, data, 0o600)
 }
 
 // loadDockerConfig loads Docker configuration from disk
@@ -1268,7 +1274,8 @@ func (a *App) loadDockerConfig() (*docker.DockerConfig, error) {
 	}
 
 	configPath := filepath.Join(home, "KubeDevBench", "docker-config.json")
-
+	configPath = filepath.Clean(configPath)
+	// #nosec G304 -- config path is within the app data directory.
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -1421,7 +1428,7 @@ func (a *App) pollImageUpdatesOnce(settings docker.ImageUpdateSettings) {
 		return
 	}
 
-	services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(a.ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return
 	}

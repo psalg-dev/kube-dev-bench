@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
@@ -14,13 +13,13 @@ import (
 )
 
 type swarmTasksClient interface {
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
 	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
+	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
 	NodeInspectWithRaw(context.Context, string) (swarm.Node, []byte, error)
-	ContainerInspect(context.Context, string) (types.ContainerJSON, error)
+	ContainerInspect(context.Context, string) (container.InspectResponse, error)
 }
 
 type cachedHealthStatus struct {
@@ -47,13 +46,13 @@ func getSwarmTasks(ctx context.Context, cli swarmTasksClient) ([]SwarmTaskInfo, 
 		return nil, nil
 	}
 
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// Get services to map service IDs to names
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	serviceNames := make(map[string]string)
 	if err == nil {
 		for _, svc := range services {
@@ -62,7 +61,7 @@ func getSwarmTasks(ctx context.Context, cli swarmTasksClient) ([]SwarmTaskInfo, 
 	}
 
 	// Get nodes to map node IDs to hostnames
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	nodeNames := make(map[string]string)
 	if err == nil {
 		for _, node := range nodes {
@@ -89,13 +88,13 @@ func getSwarmTasksByService(ctx context.Context, cli swarmTasksClient, serviceID
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
 
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{Filters: filter})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filter})
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the service name
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	serviceName := ""
 	if err == nil {
 		serviceName = svc.Spec.Name
@@ -103,7 +102,7 @@ func getSwarmTasksByService(ctx context.Context, cli swarmTasksClient, serviceID
 	serviceNames := map[string]string{serviceID: serviceName}
 
 	// Get nodes to map node IDs to hostnames
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	nodeNames := make(map[string]string)
 	if err == nil {
 		for _, node := range nodes {
@@ -139,7 +138,7 @@ func getSwarmTask(ctx context.Context, cli swarmTasksClient, taskID string) (*Sw
 	}
 
 	// Get service name
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, task.ServiceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, task.ServiceID, swarm.ServiceInspectOptions{})
 	serviceName := ""
 	if err == nil {
 		serviceName = svc.Spec.Name

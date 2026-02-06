@@ -52,9 +52,9 @@ func convertEventsV1Event(e eventsv1.Event) EventInfo {
 	}
 	count := int32(0)
 	if e.Series != nil {
-		count = int32(e.Series.Count)
+		count = e.Series.Count
 	} else if e.DeprecatedCount != 0 {
-		count = int32(e.DeprecatedCount)
+		count = e.DeprecatedCount
 	}
 	source := ""
 	if e.DeprecatedSource.Component != "" || e.DeprecatedSource.Host != "" {

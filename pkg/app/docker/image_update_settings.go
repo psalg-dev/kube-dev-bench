@@ -52,7 +52,9 @@ func LoadImageUpdateSettings() (ImageUpdateSettings, error) {
 	if err != nil {
 		return DefaultImageUpdateSettings(), err
 	}
+	path = filepath.Clean(path)
 
+	// #nosec G304 -- settings file is within the app data directory.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -87,8 +89,9 @@ func SaveImageUpdateSettings(s ImageUpdateSettings) error {
 	if err != nil {
 		return err
 	}
+	path = filepath.Clean(path)
 
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		return err
 	}
 
@@ -96,7 +99,8 @@ func SaveImageUpdateSettings(s ImageUpdateSettings) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	// #nosec G306 -- settings are user-specific.
+	return os.WriteFile(path, data, 0o600)
 }
 
 func (s ImageUpdateSettings) Interval() time.Duration {

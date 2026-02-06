@@ -52,7 +52,8 @@ func (a *App) ExportSwarmConfig(configID string, defaultFilename string) (string
 		return "", nil
 	}
 
-	if err := os.WriteFile(destPath, data, 0o644); err != nil {
+	// #nosec G306 -- exported config may include sensitive data.
+	if err := os.WriteFile(destPath, data, 0o600); err != nil {
 		return "", err
 	}
 	return destPath, nil

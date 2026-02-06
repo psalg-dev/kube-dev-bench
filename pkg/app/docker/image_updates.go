@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 
@@ -228,10 +229,10 @@ func CheckImageUpdate(ctx context.Context, image string) (ImageUpdateInfo, error
 }
 
 type swarmServiceInspector interface {
-	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
-	ContainerInspect(context.Context, string) (types.ContainerJSON, error)
-	ImageInspectWithRaw(context.Context, string) (types.ImageInspect, []byte, error)
+	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	ContainerInspect(context.Context, string) (container.InspectResponse, error)
+	ImageInspectWithRaw(context.Context, string) (image.InspectResponse, []byte, error)
 }
 
 func repoDigestForRef(ref parsedImageRef, repoDigests []string) string {
@@ -299,7 +300,7 @@ func resolveLocalDigestForService(ctx context.Context, cli swarmServiceInspector
 
 	filter := filters.NewArgs()
 	filter.Add("service", serviceID)
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{Filters: filter})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filter})
 	if err != nil {
 		return "", err.Error()
 	}
@@ -371,7 +372,7 @@ func checkSwarmServiceImageUpdates(ctx context.Context, cli swarmServiceInspecto
 
 	out := make(map[string]ImageUpdateInfo, len(ids))
 	for _, id := range ids {
-		svc, _, err := cli.ServiceInspectWithRaw(ctx, id, types.ServiceInspectOptions{})
+		svc, _, err := cli.ServiceInspectWithRaw(ctx, id, swarm.ServiceInspectOptions{})
 		if err != nil {
 			info := ImageUpdateInfo{Image: "", CheckedAt: time.Now().UTC().Format(time.RFC3339), Error: err.Error()}
 			setCachedImageUpdate(id, info)

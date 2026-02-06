@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/api/types/system"
@@ -13,12 +12,12 @@ import (
 )
 
 type swarmNodesClient interface {
-	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
 	NodeInspectWithRaw(context.Context, string) (swarm.Node, []byte, error)
 	NodeUpdate(context.Context, string, swarm.Version, swarm.NodeSpec) error
-	NodeRemove(context.Context, string, types.NodeRemoveOptions) error
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	NodeRemove(context.Context, string, swarm.NodeRemoveOptions) error
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
 }
 
 // GetSwarmNodes returns all Swarm nodes
@@ -27,7 +26,7 @@ func GetSwarmNodes(ctx context.Context, cli *client.Client) ([]SwarmNodeInfo, er
 }
 
 func getSwarmNodes(ctx context.Context, cli swarmNodesClient) ([]SwarmNodeInfo, error) {
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +165,7 @@ func RemoveSwarmNode(ctx context.Context, cli *client.Client, nodeID string, for
 }
 
 func removeSwarmNode(ctx context.Context, cli swarmNodesClient, nodeID string, force bool) error {
-	return cli.NodeRemove(ctx, nodeID, types.NodeRemoveOptions{Force: force})
+	return cli.NodeRemove(ctx, nodeID, swarm.NodeRemoveOptions{Force: force})
 }
 
 // GetSwarmNodeTasks returns all tasks running on a specific node
@@ -176,13 +175,13 @@ func GetSwarmNodeTasks(ctx context.Context, cli *client.Client, nodeID string) (
 
 func getSwarmNodeTasks(ctx context.Context, cli swarmNodesClient, nodeID string) ([]SwarmTaskInfo, error) {
 	// Use TaskList with filter for the node
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{Filters: filters.NewArgs(filters.Arg("node", nodeID))})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filters.NewArgs(filters.Arg("node", nodeID))})
 	if err != nil {
 		return nil, err
 	}
 
 	// Get services to map service IDs to names
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	serviceNames := make(map[string]string)
 	if err == nil {
 		for _, svc := range services {
@@ -191,7 +190,7 @@ func getSwarmNodeTasks(ctx context.Context, cli swarmNodesClient, nodeID string)
 	}
 
 	// Get nodes to map node IDs to hostnames
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	nodeNames := make(map[string]string)
 	if err == nil {
 		for _, node := range nodes {
@@ -222,13 +221,13 @@ func formatNodeAge(created time.Time) string {
 	minutes := int(d.Minutes()) % 60
 
 	if days > 0 {
-		return time.Now().Sub(created).Truncate(time.Hour * 24).String()
+		return d.Truncate(time.Hour * 24).String()
 	} else if hours > 0 {
-		return time.Now().Sub(created).Truncate(time.Hour).String()
+		return d.Truncate(time.Hour).String()
 	} else if minutes > 0 {
-		return time.Now().Sub(created).Truncate(time.Minute).String()
+		return d.Truncate(time.Minute).String()
 	}
-	return time.Now().Sub(created).Truncate(time.Second).String()
+	return d.Truncate(time.Second).String()
 }
 
 // SwarmJoinTokens contains the join tokens for joining the swarm

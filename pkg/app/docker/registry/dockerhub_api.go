@@ -13,12 +13,8 @@ import (
 
 var dockerHubAPIBaseURL = "https://hub.docker.com"
 
-func dockerHubHTTPClient(timeoutSeconds int) *http.Client {
-	timeout := 15 * time.Second
-	if timeoutSeconds > 0 {
-		timeout = time.Duration(timeoutSeconds) * time.Second
-	}
-	return &http.Client{Timeout: timeout}
+func dockerHubHTTPClient() *http.Client {
+	return &http.Client{Timeout: 15 * time.Second}
 }
 
 // buildDockerHubSearchURL builds the search endpoint URL with query parameters.
@@ -75,7 +71,7 @@ func SearchDockerHubRepositories(ctx context.Context, query string) ([]DockerHub
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return nil, err
@@ -154,7 +150,7 @@ func GetDockerHubRepositoryDetails(ctx context.Context, fullName string) (Docker
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return DockerHubRepoDetails{}, err
@@ -250,7 +246,7 @@ func dockerHubGetTagSizeBytes(ctx context.Context, namespace, name, tag string) 
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return 0, err
@@ -303,7 +299,7 @@ func dockerHubResolveDisplayImageSizeBytes(ctx context.Context, namespace, name 
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return 0, err

@@ -151,7 +151,7 @@ func classifyWaitingReason(reason string) string {
 
 // checkContainerStatus checks a single container status for issues
 func checkContainerStatus(ctx podIssueContext, cs v1.ContainerStatus, isInit bool) []MonitorIssue {
-	var issues []MonitorIssue
+	issues := make([]MonitorIssue, 0, 3)
 	containerName := cs.Name
 	if isInit {
 		containerName += " (init)"
@@ -179,7 +179,7 @@ func checkContainerStatus(ctx podIssueContext, cs v1.ContainerStatus, isInit boo
 
 // checkPodConditions checks pod conditions for issues
 func checkPodConditions(ctx podIssueContext, conditions []v1.PodCondition) []MonitorIssue {
-	var issues []MonitorIssue
+	issues := make([]MonitorIssue, 0, len(conditions))
 	for _, cond := range conditions {
 		if cond.Status == v1.ConditionFalse {
 			if cond.Type == v1.PodReady || cond.Type == v1.PodInitialized {
@@ -192,7 +192,7 @@ func checkPodConditions(ctx podIssueContext, conditions []v1.PodCondition) []Mon
 
 // checkSinglePod checks a single pod for issues
 func checkSinglePod(namespace string, pod v1.Pod) []MonitorIssue {
-	var issues []MonitorIssue
+	issues := make([]MonitorIssue, 0, len(pod.Status.ContainerStatuses)+len(pod.Status.InitContainerStatuses)+len(pod.Status.Conditions))
 	ctx := newPodIssueContext(namespace, &pod)
 
 	// Check overall pod phase

@@ -56,6 +56,7 @@ const (
 )
 
 func (a *App) hooksConfigPath() (string, error) {
+	_ = a
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -82,7 +83,8 @@ func (a *App) loadHooksConfig() (HooksConfig, error) {
 	if err != nil {
 		return HooksConfig{Hooks: []HookConfig{}}, err
 	}
-
+	p = filepath.Clean(p)
+	// #nosec G304 -- config path is within the app config directory.
 	b, err := os.ReadFile(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -106,14 +108,16 @@ func (a *App) saveHooksConfig(cfg HooksConfig) error {
 	if err != nil {
 		return err
 	}
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+	p = filepath.Clean(p)
+	if err := os.MkdirAll(filepath.Dir(p), 0o750); err != nil {
 		return err
 	}
 	b, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(p, b, 0o644)
+	// #nosec G306 -- hooks may include user-specific configuration.
+	return os.WriteFile(p, b, 0o600)
 }
 
 func (a *App) GetHooksConfig() (HooksConfig, error) {

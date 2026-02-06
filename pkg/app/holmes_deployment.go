@@ -29,7 +29,8 @@ const (
 	holmesHelmRepoURL        = "https://robusta-charts.storage.googleapis.com"
 	holmesChartName          = "robusta/holmes"
 	holmesOpenAISecretName   = "holmes-openai"
-	holmesOpenAISecretKey    = "openai-api-key"
+	// #nosec G101 -- this is a secret key name, not a credential.
+	holmesOpenAISecretKey = "openai-api-key"
 )
 
 // isE2ETestMode returns true if running in E2E test mode where lightweight deployment is preferred

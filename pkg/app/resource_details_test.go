@@ -190,7 +190,7 @@ func TestGetCronJobDetail(t *testing.T) {
 	}
 
 	if detail == nil {
-		t.Error("expected non-nil detail")
+		t.Fatal("expected non-nil detail")
 	}
 
 	// Should have 3 jobs (not counting unrelated job)
@@ -320,7 +320,7 @@ func TestGetDeploymentDetail(t *testing.T) {
 	}
 
 	if detail == nil {
-		t.Error("expected non-nil detail")
+		t.Fatal("expected non-nil detail")
 	}
 }
 
@@ -408,7 +408,7 @@ func TestGetStatefulSetDetail(t *testing.T) {
 	}
 
 	if detail == nil {
-		t.Error("expected non-nil detail")
+		t.Fatal("expected non-nil detail")
 	}
 
 	if len(detail.Pods) != 2 {

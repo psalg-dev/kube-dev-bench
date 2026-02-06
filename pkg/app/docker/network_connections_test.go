@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -16,15 +15,15 @@ type fakeNetworkConnectionsClient struct {
 	networks map[string]network.Inspect
 }
 
-func (f *fakeNetworkConnectionsClient) ServiceList(ctx context.Context, opts types.ServiceListOptions) ([]swarm.Service, error) {
+func (f *fakeNetworkConnectionsClient) ServiceList(ctx context.Context, opts swarm.ServiceListOptions) ([]swarm.Service, error) {
 	return f.services, nil
 }
 
-func (f *fakeNetworkConnectionsClient) TaskList(ctx context.Context, opts types.TaskListOptions) ([]swarm.Task, error) {
+func (f *fakeNetworkConnectionsClient) TaskList(ctx context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
 	return f.tasks, nil
 }
 
-func (f *fakeNetworkConnectionsClient) NodeList(ctx context.Context, opts types.NodeListOptions) ([]swarm.Node, error) {
+func (f *fakeNetworkConnectionsClient) NodeList(ctx context.Context, opts swarm.NodeListOptions) ([]swarm.Node, error) {
 	return f.nodes, nil
 }
 

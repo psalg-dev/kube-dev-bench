@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 )
 
@@ -14,15 +13,15 @@ type fakeSwarmMetricsClient struct {
 	nodes    []swarm.Node
 }
 
-func (f *fakeSwarmMetricsClient) ServiceList(ctx context.Context, opts types.ServiceListOptions) ([]swarm.Service, error) {
+func (f *fakeSwarmMetricsClient) ServiceList(ctx context.Context, opts swarm.ServiceListOptions) ([]swarm.Service, error) {
 	return f.services, nil
 }
 
-func (f *fakeSwarmMetricsClient) TaskList(ctx context.Context, opts types.TaskListOptions) ([]swarm.Task, error) {
+func (f *fakeSwarmMetricsClient) TaskList(ctx context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
 	return f.tasks, nil
 }
 
-func (f *fakeSwarmMetricsClient) NodeList(ctx context.Context, opts types.NodeListOptions) ([]swarm.Node, error) {
+func (f *fakeSwarmMetricsClient) NodeList(ctx context.Context, opts swarm.NodeListOptions) ([]swarm.Node, error) {
 	return f.nodes, nil
 }
 

@@ -76,6 +76,14 @@ func (q *terminalSizeQueue) Close() {
 	q.once.Do(func() { close(q.ch) })
 }
 
+func safeUint16FromInt(v int) (uint16, error) {
+	maxUint16 := int(^uint16(0))
+	if v < 0 || v > maxUint16 {
+		return 0, fmt.Errorf("value out of range: %d", v)
+	}
+	return uint16(v), nil
+}
+
 var shellSessions sync.Map // sessionID -> *ShellSession
 
 func termOutputEvent(sessionID string) string { return fmt.Sprintf("terminal:%s:output", sessionID) }
@@ -90,8 +98,10 @@ func (a *App) StartShellSession(sessionID, shellCmd string) error {
 		if cmdPath == "" {
 			cmdPath = `C:\\Windows\\System32\\cmd.exe`
 		}
+		// #nosec G204 -- user-initiated local shell session.
 		cmd = exec.CommandContext(ctx, cmdPath)
 	} else {
+		// #nosec G204 -- user-initiated local shell session.
 		cmd = exec.CommandContext(ctx, "bash", "-i")
 	}
 	ptyFile, err := pty.Start(cmd)
@@ -236,11 +246,19 @@ func (a *App) ResizeShellSession(sessionID string, cols, rows int) error {
 	if !ok {
 		return fmt.Errorf("session not found")
 	}
+	cols16, err := safeUint16FromInt(cols)
+	if err != nil {
+		return err
+	}
+	rows16, err := safeUint16FromInt(rows)
+	if err != nil {
+		return err
+	}
 	sess := v.(*ShellSession)
 	if sess.PTY != nil {
 		// local PTY resize requires *os.File
 		if f, ok := sess.PTY.(*os.File); ok {
-			return pty.Setsize(f, &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)})
+			return pty.Setsize(f, &pty.Winsize{Cols: cols16, Rows: rows16})
 		}
 		if sess.ResizeFn != nil {
 			return sess.ResizeFn(cols, rows)
@@ -248,7 +266,7 @@ func (a *App) ResizeShellSession(sessionID string, cols, rows int) error {
 		return nil
 	}
 	if sess.SizeQ != nil {
-		sess.SizeQ.Push(uint16(cols), uint16(rows))
+		sess.SizeQ.Push(cols16, rows16)
 		return nil
 	}
 	if sess.ResizeFn != nil {
@@ -382,6 +400,7 @@ func (a *App) buildKubectlCmd(ctx context.Context, namespace, podName string, lo
 		args = append(args, "--context", a.currentKubeContext)
 	}
 	args = append(args, "-n", namespace, "port-forward", "pod/"+podName, fmt.Sprintf("%d:%d", localPort, remotePort))
+	// #nosec G204 -- arguments are constructed, no shell used.
 	return exec.CommandContext(ctx, kubectl, args...)
 }
 
@@ -575,7 +594,7 @@ func collectContainerPorts(pod *v1.Pod) []int {
 			}
 		}
 	}
-	var ports []int
+	ports := make([]int, 0, len(portSet))
 	for v := range portSet {
 		ports = append(ports, v)
 	}
@@ -631,7 +650,7 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 	}
 
 	now := time.Now()
-	var result []PodInfo
+	result := make([]PodInfo, 0, len(pods.Items))
 	for _, pod := range pods.Items {
 		if shouldIncludePod(&pod) {
 			result = append(result, buildPodInfoFromPod(pod, now))
@@ -699,8 +718,10 @@ func (a *App) ExecCommand(cmdline string) error {
 		if comspec == "" {
 			comspec = `C:\\Windows\\System32\\cmd.exe`
 		}
+		// #nosec G204 -- user-initiated command execution.
 		cmd = exec.CommandContext(ctx, comspec, "/C", cmdline)
 	} else {
+		// #nosec G204 -- user-initiated command execution.
 		cmd = exec.CommandContext(ctx, "bash", "-c", cmdline)
 	}
 	stdout, err := cmd.StdoutPipe()

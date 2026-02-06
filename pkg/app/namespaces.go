@@ -43,7 +43,7 @@ func (a *App) GetNamespaces() ([]string, error) {
 		return nil, err
 	}
 
-	var namespaces []string
+	namespaces := make([]string, 0, len(nsList.Items))
 	for _, ns := range nsList.Items {
 		namespaces = append(namespaces, ns.Name)
 	}

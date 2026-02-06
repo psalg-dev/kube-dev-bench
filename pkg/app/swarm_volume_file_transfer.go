@@ -63,6 +63,7 @@ func (a *App) getDefaultDownloadName(containerID, containerPath, base string, cl
 
 // writeTarToFile writes the reader content directly to a file
 func writeTarToFile(destPath string, reader io.ReadCloser) error {
+	// #nosec G304 -- destination path is chosen by the user.
 	f, err := os.Create(destPath)
 	if err != nil {
 		return err
@@ -103,6 +104,7 @@ func extractSingleFileFromTar(destPath string, reader io.ReadCloser) error {
 
 // writeFileFromTar writes content from tar reader to a file
 func writeFileFromTar(destPath string, tr *tar.Reader) error {
+	// #nosec G304 -- destination path is chosen by the user.
 	f, err := os.Create(destPath)
 	if err != nil {
 		return err
@@ -267,6 +269,7 @@ func (a *App) ensureVolumeDir(volumeName, dir string) error {
 
 // copyLocalFileToContainer copies a local file to the container.
 func (a *App) copyLocalFileToContainer(cli *client.Client, containerID, localPath, destDir string) error {
+	// #nosec G304 -- source path is chosen by the user.
 	src, err := os.Open(localPath)
 	if err != nil {
 		return err

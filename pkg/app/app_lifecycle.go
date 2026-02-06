@@ -70,7 +70,7 @@ func NewApp() *App {
 
 	// Ensure KubeDevBench directory exists
 	newDir := filepath.Join(home, "KubeDevBench")
-	if err := os.MkdirAll(newDir, 0755); err != nil {
+	if err := os.MkdirAll(newDir, 0o750); err != nil {
 		fmt.Printf("Error creating config directory: %v\n", err)
 		return &App{
 			isInsecureConnection: false,
@@ -105,14 +105,16 @@ func NewApp() *App {
 }
 
 func copyFile(src, dst string) error {
+	// #nosec G304 -- migration path is controlled by app config locations.
 	sf, err := os.Open(src)
 	if err != nil {
 		return err
 	}
 	defer sf.Close()
-	if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dst), 0o750); err != nil {
 		return err
 	}
+	// #nosec G304 -- destination path is within app config directory.
 	df, err := os.Create(dst)
 	if err != nil {
 		return err
@@ -144,6 +146,8 @@ func (a *App) Startup(ctx context.Context) {
 
 	// Initialize Holmes AI client if configured
 	a.initHolmes()
+	// Initialize MCP server if enabled
+	a.initMCP()
 }
 
 // Shutdown is called by Wails when the app is closing.
@@ -161,6 +165,9 @@ func (a *App) Shutdown(ctx context.Context) {
 
 	// Remove any helper containers created for Swarm volume browsing.
 	_ = a.cleanupSwarmVolumeHelpers(ctx)
+
+	// Stop MCP server if running.
+	a.shutdownMCP()
 }
 
 // GetCurrentConfig returns the currently loaded configuration

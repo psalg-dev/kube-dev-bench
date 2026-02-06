@@ -1,7 +1,9 @@
 package registry
 
+//revive:disable:var-naming
+
 // RegistryType is the kind of registry backend.
-type RegistryType string
+type RegistryType string //nolint:revive
 
 const (
 	RegistryTypeDockerHub   RegistryType = "dockerhub"
@@ -16,7 +18,7 @@ const (
 // For registries that support username/password, use Username + Password.
 // For token-based registries, use Token.
 // For AWS ECR, Region can be used by the ECR-specific client.
-type RegistryCredentials struct {
+type RegistryCredentials struct { //nolint:revive
 	Username string `json:"username"`
 	Password string `json:"password"`
 	Token    string `json:"token"`
@@ -24,7 +26,7 @@ type RegistryCredentials struct {
 }
 
 // RegistryConfig describes a configured registry instance.
-type RegistryConfig struct {
+type RegistryConfig struct { //nolint:revive
 	Name string       `json:"name"`
 	URL  string       `json:"url"`
 	Type RegistryType `json:"type"`
@@ -39,7 +41,7 @@ type RegistryConfig struct {
 }
 
 // RegistryImage is a registry image reference with basic metadata.
-type RegistryImage struct {
+type RegistryImage struct { //nolint:revive
 	Name        string   `json:"name"`
 	Tags        []string `json:"tags"`
 	Digest      string   `json:"digest"`
@@ -78,15 +80,17 @@ type DockerHubRepoDetails struct {
 
 // RegistryRepoSearchResult is a generic v2-registry search result.
 // FullName is the repository name as returned by the registry catalog.
-type RegistryRepoSearchResult struct {
+type RegistryRepoSearchResult struct { //nolint:revive
 	Name     string `json:"name"`
 	FullName string `json:"fullName"`
 }
 
 // RegistryRepoDetails is a generic v2-registry repository details response.
-type RegistryRepoDetails struct {
+type RegistryRepoDetails struct { //nolint:revive
 	Name      string `json:"name"`
 	FullName  string `json:"fullName"`
 	URL       string `json:"url"`
 	SizeBytes int64  `json:"sizeBytes"`
 }
+
+//revive:enable:var-naming

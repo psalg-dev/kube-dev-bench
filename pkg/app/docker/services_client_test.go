@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -41,10 +40,10 @@ func Test_getSwarmServices_countsRunningTasksAndDefaultsLabels(t *testing.T) {
 	}
 
 	cli := &fakeDockerClient{
-		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
+		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
 			return []swarm.Service{svc1, svc2}, nil
 		},
-		TaskListFn: func(context.Context, types.TaskListOptions) ([]swarm.Task, error) {
+		TaskListFn: func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error) {
 			return []swarm.Task{
 				{ServiceID: "svc-1", Status: swarm.TaskStatus{State: swarm.TaskStateRunning}},
 				{ServiceID: "svc-1", Status: swarm.TaskStatus{State: swarm.TaskStateRunning}},
@@ -97,10 +96,10 @@ func Test_scaleSwarmService_replicatedUpdatesReplicas(t *testing.T) {
 
 	var updatedReplicas *uint64
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			updatedReplicas = spec.Mode.Replicated.Replicas
 			return swarm.ServiceUpdateResponse{}, nil
 		},
@@ -127,7 +126,7 @@ func Test_scaleSwarmService_globalReturnsError(t *testing.T) {
 	}
 
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
 	}
@@ -151,10 +150,10 @@ func Test_updateSwarmServiceImage_updatesImageAndForceUpdate(t *testing.T) {
 	var updatedImage string
 	var updatedForce uint64
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			updatedImage = spec.TaskTemplate.ContainerSpec.Image
 			updatedForce = spec.TaskTemplate.ForceUpdate
 			return swarm.ServiceUpdateResponse{}, nil
@@ -185,10 +184,10 @@ func Test_restartSwarmService_incrementsForceUpdate(t *testing.T) {
 
 	var updatedForce uint64
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return svc, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			updatedForce = spec.TaskTemplate.ForceUpdate
 			return swarm.ServiceUpdateResponse{}, nil
 		},
@@ -206,7 +205,7 @@ func Test_getSwarmService_countsOnlyRunningTasks(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return swarm.Service{
 				ID: "svc-1",
 				Meta: swarm.Meta{
@@ -216,7 +215,7 @@ func Test_getSwarmService_countsOnlyRunningTasks(t *testing.T) {
 				Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svc"}, Mode: swarm.ServiceMode{Replicated: &swarm.ReplicatedService{Replicas: uint64Ptr(1)}}},
 			}, nil, nil
 		},
-		TaskListFn: func(_ context.Context, opts types.TaskListOptions) ([]swarm.Task, error) {
+		TaskListFn: func(_ context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
 			// Should include desired-state=running.
 			vals := opts.Filters.Get("desired-state")
 			if len(vals) != 1 || vals[0] != "running" {
@@ -258,10 +257,10 @@ func Test_rollbackSwarmService_setsRollback(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return swarm.Service{ID: "s1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ServiceSpec{}}, nil, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, _ swarm.ServiceSpec, opts types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, _ swarm.ServiceSpec, opts swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 			if opts.Rollback != "previous" {
 				t.Fatalf("expected rollback='previous', got %q", opts.Rollback)
 			}
@@ -278,7 +277,7 @@ func Test_createSwarmService_withPorts(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
+		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
 			if len(spec.EndpointSpec.Ports) != 1 {
 				t.Fatalf("expected 1 port, got %d", len(spec.EndpointSpec.Ports))
 			}
@@ -307,7 +306,7 @@ func Test_createSwarmService_globalMode(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
+		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
 			if spec.Mode.Global == nil {
 				t.Fatalf("expected global mode")
 			}

@@ -242,11 +242,11 @@ func (m *mockServerInterface) TopNodes() (interface{}, error) {
 	return map[string]interface{}{"nodes": []string{"node1"}}, nil
 }
 
-func (m *mockServerInterface) GetRolloutStatus(kind, namespace, name string) (interface{}, error) {
+func (m *mockServerInterface) GetRolloutStatus(_, _, _ string) (interface{}, error) {
 	return map[string]string{"status": "complete"}, nil
 }
 
-func (m *mockServerInterface) GetRolloutHistory(kind, namespace, name string) (interface{}, error) {
+func (m *mockServerInterface) GetRolloutHistory(_, _, _ string) (interface{}, error) {
 	return []string{"revision 1", "revision 2"}, nil
 }
 

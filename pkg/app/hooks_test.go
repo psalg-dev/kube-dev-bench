@@ -150,9 +150,7 @@ func TestHooksConfig_CRUD(t *testing.T) {
 		Scope:          "global",
 		ConnectionType: "kubernetes",
 	})
-	if err == nil {
-		// script doesn't exist; SaveHook shouldn't validate it
-	} else {
+	if err != nil {
 		t.Fatalf("SaveHook: %v", err)
 	}
 	if strings.TrimSpace(h.ID) == "" {
@@ -194,28 +192,28 @@ func TestBuildHookCommand_Unix(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		scriptPath   string
-		wantCommand  string
-		wantArgs     []string
+		name        string
+		scriptPath  string
+		wantCommand string
+		wantArgs    []string
 	}{
 		{
-			name:         "shell script",
-			scriptPath:   "/tmp/test.sh",
-			wantCommand:  "sh",
-			wantArgs:     []string{"/tmp/test.sh"},
+			name:        "shell script",
+			scriptPath:  "/tmp/test.sh",
+			wantCommand: "sh",
+			wantArgs:    []string{"/tmp/test.sh"},
 		},
 		{
-			name:         "executable without extension",
-			scriptPath:   "/tmp/test",
-			wantCommand:  "/tmp/test",
-			wantArgs:     []string{},
+			name:        "executable without extension",
+			scriptPath:  "/tmp/test",
+			wantCommand: "/tmp/test",
+			wantArgs:    []string{},
 		},
 		{
-			name:         "script with other extension",
-			scriptPath:   "/tmp/test.py",
-			wantCommand:  "/tmp/test.py",
-			wantArgs:     []string{},
+			name:        "script with other extension",
+			scriptPath:  "/tmp/test.py",
+			wantCommand: "/tmp/test.py",
+			wantArgs:    []string{},
 		},
 	}
 
@@ -248,9 +246,9 @@ func TestBuildHookCommand_Windows(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		scriptPath   string
-		wantCommand  string
+		name        string
+		scriptPath  string
+		wantCommand string
 	}{
 		{
 			name:        "batch file",

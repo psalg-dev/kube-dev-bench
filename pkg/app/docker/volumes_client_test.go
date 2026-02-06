@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
@@ -136,7 +135,7 @@ func Test_getSwarmVolumeUsage_findsServicesUsingVolume(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
+		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
 			return []swarm.Service{
 				{
 					ID: "svc-1",

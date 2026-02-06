@@ -66,7 +66,7 @@ func NewClient(config DockerConfig) (*client.Client, error) {
 
 // createTLSHTTPClient creates an HTTP client with TLS configuration
 func createTLSHTTPClient(config DockerConfig) (*http.Client, error) {
-	tlsConfig := &tls.Config{}
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
 
 	// Load client certificate if provided
 	if config.TLSCert != "" && config.TLSKey != "" {

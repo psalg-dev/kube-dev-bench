@@ -5,14 +5,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 )
 
 type swarmTopologyClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
-	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
 }
 
 // buildNodeLookup creates a map of node IDs to hostnames and a slice of TopologyNodes
@@ -38,9 +37,19 @@ func getServiceModeAndDesired(s swarm.Service) (string, int) {
 		return "global", 0
 	}
 	if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
-		return "replicated", int(*s.Spec.Mode.Replicated.Replicas)
+		return "replicated", safeIntFromUint64(*s.Spec.Mode.Replicated.Replicas)
 	}
 	return "replicated", 0
+}
+
+func safeIntFromUint64(v uint64) int {
+	maxIntU := uint64(^uint(0) >> 1)
+	if v > maxIntU {
+		// #nosec G115 -- clamped to max int value above.
+		return int(maxIntU)
+	}
+	// #nosec G115 -- clamped to max int value above.
+	return int(v)
 }
 
 // buildServiceLookup creates service maps and a slice of TopologyServices
@@ -153,15 +162,15 @@ func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (Cluster
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return ClusterTopology{}, err
 	}
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
 	if err != nil {
 		return ClusterTopology{}, err
 	}
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	if err != nil {
 		return ClusterTopology{}, err
 	}

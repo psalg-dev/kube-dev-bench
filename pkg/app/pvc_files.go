@@ -3,17 +3,17 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"math/rand"
+	"io"
+	"math/big"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
-
-	"io"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -352,25 +352,26 @@ func (a *App) ArchivePVCPath(namespace, pvcName, path string, maxBytes int64) (A
 }
 
 // ensurePVCBrowseHelper creates or reuses a helper pod to mount the PVC read-only.
-func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (podName, containerName, mountPath, subPath string, err error) {
-	clientset, err2 := a.getKubernetesClient()
-	if err2 != nil {
-		err = err2
-		return
+func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (string, string, string, string, error) {
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return "", "", "", "", err
 	}
 	// Try to find existing helper pod
 	labelSel := fmt.Sprintf("app=kdb-pvc-browse,kdb-pvc=%s", pvcName)
 	pods, _ := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: labelSel})
 	for _, p := range pods.Items {
 		if p.Status.Phase == corev1.PodRunning {
-			podName = p.Name
-			containerName = "browse"
-			mountPath = "/mnt/claim"
-			return
+			return p.Name, "browse", "/mnt/claim", "", nil
 		}
 	}
 	// Create new helper pod
-	suffix := rand.Int31() & 0xffff
+	limit := big.NewInt(1 << 16)
+	value, err := rand.Int(rand.Reader, limit)
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("generate pvc browse suffix: %w", err)
+	}
+	suffix := value.Int64()
 	name := fmt.Sprintf("kdb-pvc-browse-%s-%x", sanitizeName(pvcName, 20), suffix)
 	podSpec := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -407,24 +408,19 @@ func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (podName, contain
 			}},
 		},
 	}
-	if _, err2 := clientset.CoreV1().Pods(namespace).Create(a.ctx, podSpec, metav1.CreateOptions{}); err2 != nil {
-		err = err2
-		return
+	if _, err := clientset.CoreV1().Pods(namespace).Create(a.ctx, podSpec, metav1.CreateOptions{}); err != nil {
+		return "", "", "", "", err
 	}
 	// Wait for running (timeout 20s)
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
 		p, e := clientset.CoreV1().Pods(namespace).Get(a.ctx, name, metav1.GetOptions{})
 		if e == nil && p.Status.Phase == corev1.PodRunning {
-			podName = name
-			containerName = "browse"
-			mountPath = "/mnt/claim"
-			return
+			return name, "browse", "/mnt/claim", "", nil
 		}
 		time.Sleep(750 * time.Millisecond)
 	}
-	err = fmt.Errorf("helper pod not ready in time")
-	return
+	return "", "", "", "", fmt.Errorf("helper pod not ready in time")
 }
 
 func sanitizeName(in string, max int) string {

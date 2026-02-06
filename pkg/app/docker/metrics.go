@@ -5,15 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
 type swarmMetricsClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
-	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
 }
 
 var swarmMetricsStore = struct {
@@ -76,7 +75,7 @@ func calculateServiceResources(services []swarm.Service, readyNodes int) swarmRe
 	for _, s := range services {
 		mult := int64(0)
 		if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
-			mult = int64(*s.Spec.Mode.Replicated.Replicas)
+			mult = safeInt64FromUint64(*s.Spec.Mode.Replicated.Replicas)
 		} else if s.Spec.Mode.Global != nil {
 			mult = int64(readyNodes)
 		}
@@ -102,15 +101,15 @@ func collectSwarmMetrics(ctx context.Context, cli swarmMetricsClient) (SwarmMetr
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, err
 	}
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, err
 	}
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, err
 	}

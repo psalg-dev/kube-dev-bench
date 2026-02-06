@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
@@ -70,7 +69,7 @@ func copyNormalizedTar(tr *tar.Reader, tw *tar.Writer, pw *io.PipeWriter) {
 	}
 }
 
-func normalizeTarStream(r io.Reader) (io.Reader, error) {
+func normalizeTarStream(r io.Reader) io.Reader {
 	// Strip common prefixes from tar entries so archives can be restored cleanly.
 	// - docker.CopyFromContainer(/mnt) produces entries like "mnt/..."
 	// - many tars use "./..."
@@ -90,7 +89,7 @@ func normalizeTarStream(r io.Reader) (io.Reader, error) {
 		copyNormalizedTar(tr, tw, pw)
 	}()
 
-	return pr, nil
+	return pr
 }
 
 // BackupSwarmVolume saves a tar archive of the entire volume to a local file chosen via dialog.
@@ -131,8 +130,9 @@ func (a *App) BackupSwarmVolume(volumeName string) (string, error) {
 	}
 	defer reader.Close()
 
-	norm, _ := normalizeTarStream(reader)
+	norm := normalizeTarStream(reader)
 
+	// #nosec G304 -- destination path is chosen by the user.
 	out, err := os.Create(destPath)
 	if err != nil {
 		return "", err
@@ -188,6 +188,7 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 		return "", err
 	}
 
+	// #nosec G304 -- archive path is chosen by the user.
 	f, err := os.Open(archivePath)
 	if err != nil {
 		return "", err
@@ -204,7 +205,7 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 		r = gz
 	}
 
-	norm, _ := normalizeTarStream(r)
+	norm := normalizeTarStream(r)
 
 	if err := cli.CopyToContainer(a.ctx, containerID, "/mnt", norm, container.CopyToContainerOptions{
 		AllowOverwriteDirWithFile: true,
@@ -312,11 +313,4 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 	}
 
 	return newVolumeName, nil
-}
-
-// Helper: build a label selector for volume helper containers (unused, but kept for future cleanup).
-func helperContainerFilter() filters.Args {
-	f := filters.NewArgs()
-	f.Add("ancestor", swarmVolumeHelperImage)
-	return f
 }

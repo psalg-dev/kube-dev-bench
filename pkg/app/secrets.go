@@ -48,7 +48,7 @@ func (a *App) GetSecretData(secretName string) (map[string]string, error) {
 
 // GetSecrets retrieves all secrets in the given namespace
 func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
-	var secrets []map[string]interface{}
+	secrets := make([]map[string]interface{}, 0)
 
 	var clientset kubernetes.Interface
 	var err error
@@ -73,6 +73,7 @@ func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 	if err != nil {
 		return secrets, err
 	}
+	secrets = make([]map[string]interface{}, 0, len(secretList.Items))
 
 	for _, secret := range secretList.Items {
 		age := "-"

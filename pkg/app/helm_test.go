@@ -34,7 +34,7 @@ func TestGetHelmRepoFile(t *testing.T) {
 	// Should contain a path with 'helm' in it
 	if !filepath.IsAbs(repoFile) {
 		// On Windows, helm settings may return relative paths depending on env
-		// Just check it's not empty
+		t.Logf("repoFile is not absolute: %q", repoFile)
 	}
 }
 
