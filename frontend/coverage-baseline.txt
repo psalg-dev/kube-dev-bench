@@ -433,3 +433,30 @@ Failed to fetch CronJob history count: Error: API error
  [32mÔ£ô[39m src/__tests__/clusterStateReducer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
  [32mÔ£ô[39m src/__tests__/codeMirrorLanguage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/podOverviewEntry.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dateUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/legacy-jsx-imports.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/router.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/main-content.test.ts > main-content > renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable
+Error: Test timed out in 10000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ÔØ» src/__tests__/main-content.test.ts:70:3
+     68| 
+     69| describe('main-content', () => {
+     70|   it('renderPodsMainContent mounts into a stable panel and calls rendeÔÇª
+       |   ^
+     71|     const { renderPodsMainContent } = await importFreshMainContent();
+     72| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m142 passed[39m[22m[90m (143)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1329 passed[39m[22m[90m (1330)[39m
+[2m   Start at [22m 06:56:15
+[2m   Duration [22m 154.95s[2m (transform 38.33s, setup 62.00s, import 132.10s, tests 184.45s, environment 491.15s)[22m
+

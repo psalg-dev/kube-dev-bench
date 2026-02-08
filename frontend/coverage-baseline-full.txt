@@ -1,0 +1,4 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mZ:/development/git/psalg-dev/kube-dev-bench/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
