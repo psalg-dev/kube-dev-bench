@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,9 +17,9 @@ func TestGetPodsCountForResource_Success(t *testing.T) {
 	ns := "default"
 
 	tests := []struct {
-		name        string
-		kind        string
-		resource    string
+		name         string
+		kind         string
+		resource     string
 		setupObjects func(cs *fake.Clientset)
 	}{
 		{
@@ -241,5 +242,32 @@ func TestGetWorkloadPodCountAndStatefulSetCounts(t *testing.T) {
 	pods, pvcs := app.getStatefulSetCounts(ns, "db")
 	if pods != 1 || pvcs != 1 {
 		t.Fatalf("getStatefulSetCounts = pods %d pvcs %d, want 1/1", pods, pvcs)
+	}
+}
+
+func TestTabCounts_ReturnsErrorWhenKubeConfigMissing(t *testing.T) {
+	app := &App{
+		ctx:        context.Background(),
+		kubeConfig: filepath.Join(t.TempDir(), "missing"),
+	}
+
+	tests := []struct {
+		name string
+		fn   func() (int, error)
+	}{
+		{"resource events", func() (int, error) { return app.GetResourceEventsCount("default", "ConfigMap", "example") }},
+		{"pvc consumers", func() (int, error) { return app.GetPVCConsumersCount("default", "pvc1") }},
+		{"cronjob history", func() (int, error) { return app.GetCronJobHistoryCount("default", "cron") }},
+		{"service endpoints", func() (int, error) { return app.GetServiceEndpointsCount("default", "svc") }},
+		{"configmap data", func() (int, error) { return app.GetConfigMapDataCount("default", "cm") }},
+		{"secret data", func() (int, error) { return app.GetSecretDataCount("default", "sec") }},
+		{"statefulset pvcs", func() (int, error) { return app.GetStatefulSetPVCsCount("default", "sts") }},
+		{"ingress rules", func() (int, error) { return app.GetIngressRulesCount("default", "ing") }},
+	}
+
+	for _, tt := range tests {
+		if _, err := tt.fn(); err == nil {
+			t.Fatalf("expected error for %s", tt.name)
+		}
 	}
 }
