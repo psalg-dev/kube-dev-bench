@@ -53,8 +53,9 @@ func TestCheckForwardingReady_MatchesVariants(t *testing.T) {
 }
 
 func TestListAndFindPortForwards(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	key1 := "ns1/p1:8080:80"
 	key2 := "ns2/p2:3000:3000"
@@ -79,8 +80,9 @@ func TestListAndFindPortForwards(t *testing.T) {
 }
 
 func TestStopPortForward_RemovesAndCancels(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	called := false
 	key := "ns1/p1:8080:80"
