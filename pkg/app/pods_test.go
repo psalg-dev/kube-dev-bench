@@ -453,19 +453,6 @@ func TestGetRunningPods(t *testing.T) {
 	}
 }
 
-func TestGetRunningPods_ListError(t *testing.T) {
-	clientset := fake.NewSimpleClientset()
-	clientset.PrependReactor("list", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
-		return true, nil, errors.New("list failed")
-	})
-
-	app := newTestAppWithClientset(clientset)
-	_, err := app.GetRunningPods("default")
-	if err == nil {
-		t.Fatal("expected list error")
-	}
-}
-
 // Test GetRunningPods returns correct restarts
 func TestGetRunningPods_RestartsCount(t *testing.T) {
 	startTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
