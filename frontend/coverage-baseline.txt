@@ -71,3 +71,33 @@ Not implemented: navigation to another Document
      [33m[2mÔ£ô[22m[39m shows rollback button for non-current revisions [33m 555[2mms[22m[39m
      [33m[2mÔ£ô[22m[39m has toggle for showing all values [33m 465[2mms[22m[39m
      [33m[2mÔ£ô[22m[39m renders resources with health status [33m 453[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3164[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 815[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays ingress name in header [33m 687[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvYamlTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2825[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 652[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 864[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 421[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m copies content to clipboard on copy button click [33m 426[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3334[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 792[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 930[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 379[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3308[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 751[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays secret name in header [33m 863[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 371[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 323[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3422[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 735[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays configmap name in header [33m 874[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 339[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 343[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3472[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 692[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays job name in header [33m 828[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 386[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 373[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobPodsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 2496[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by name column [33m 900[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by status column [33m 457[2mms[22m[39m
