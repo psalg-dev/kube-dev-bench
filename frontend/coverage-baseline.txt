@@ -2,192 +2,124 @@
 [1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mZ:/development/git/psalg-dev/kube-dev-bench/frontend[39m
       [2mCoverage enabled with [22m[33mv8[39m
 
- [32mÔ£ô[39m src/__tests__/topologyView.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 3476[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders topology and opens node details panel [33m 2812[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m opens service details and loads logs (masked env + mount formatting) [33m 400[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/resourceActions.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 4107[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m prepopulates replica count and applies scale changes [33m 937[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m cancels inline scale editor and restores original value [33m 319[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pods/PodFilesTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 4528[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders without crashing [33m 427[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows directory entries [33m 917[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m navigates into a directory [33m 701[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m previews a file on click [33m 758[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m filters entries by search [33m 526[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m handles copy-to-clipboard state [33m 1117[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/volumeFilesTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 4639[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads root dir and previews a file [33m 908[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m opens editor and saves edits (writes file and refreshes dir) [33m 1478[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m read-only volumes disable edit/create actions [33m 963[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m prompts to discard unsaved changes before navigating directories [33m 804[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m supports row download and delete actions [33m 482[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/createManifestOverlay.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 4216[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m calls CreateResource and emits events + success on Create [33m 662[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m swarm: creates config via CreateSwarmConfig [33m 382[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m swarm: config YAML tab uses CodeMirror and renders YAML wrapper [33m 350[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m swarm: creates secret via CreateSwarmSecret (labels parsed) [33m 591[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m swarm: updates node via UpdateSwarmNodeAvailability/Role/Labels [33m 362[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m swarm: service YAML view uses CodeMirror editor [33m 308[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/connectionWizard.test.tsx [2m([22m[2m35 tests[22m[2m)[22m[33m 8189[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows Add Config button [33m 714[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m opens Add Kubeconfig overlay when clicking Add Config button [33m 330[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows Connect button for each config [33m 402[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m allows connecting to a config [33m 305[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows kubeconfig content textarea in overlay [33m 319[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m disables Save button when content is empty [33m 460[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m enables Save button when content is provided [33m 446[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m saves primary kubeconfig and completes [33m 432[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m closes overlay when clicking close button [33m 370[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m closes overlay when clicking Cancel button [33m 415[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows configuration type selection when configs exist [33m 373[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows Add Kubeconfig title when configs exist [33m 384[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m calls file browser when Browse button is clicked [33m 398[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m handles file selection cancellation [33m 448[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when save fails [33m 551[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m saves global proxy settings [33m 452[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/overviewTableWithPanel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 3167[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters rows by search input [33m 905[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m switches tabs and updates panel content [33m 396[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m resets active tab after closing & reopening [33m 420[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pods/PodFilesTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 4175[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders without crashing [33m 406[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows directory entries [33m 790[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m navigates into a directory [33m 677[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m previews a file on click [33m 756[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters entries by search [33m 428[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m handles copy-to-clipboard state [33m 1045[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceActions.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 4105[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m prepopulates replica count and applies scale changes [33m 837[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m cancels inline scale editor and restores original value [33m 350[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders start, suspend, and resume buttons for CronJob [33m 320[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeFilesTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 4086[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads root dir and previews a file [33m 874[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens editor and saves edits (writes file and refreshes dir) [33m 1264[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m read-only volumes disable edit/create actions [33m 856[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m prompts to discard unsaved changes before navigating directories [33m 707[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m supports row download and delete actions [33m 379[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/createManifestOverlay.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 4105[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls CreateResource and emits events + success on Create [33m 597[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates config via CreateSwarmConfig [33m 329[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: config YAML tab uses CodeMirror and renders YAML wrapper [33m 341[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates secret via CreateSwarmSecret (labels parsed) [33m 578[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: updates node via UpdateSwarmNodeAvailability/Role/Labels [33m 336[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates service via form (CreateSwarmService) [33m 315[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: service YAML view uses CodeMirror editor [33m 314[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionWizard.test.tsx [2m([22m[2m35 tests[22m[2m)[22m[33m 7908[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Add Config button [33m 638[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m opens Add Kubeconfig overlay when clicking Add Config button [33m 346[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Connect button for each config [33m 320[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows kubeconfig content textarea in overlay [33m 322[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m disables Save button when content is empty [33m 463[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m enables Save button when content is provided [33m 436[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m saves primary kubeconfig and completes [33m 416[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking close button [33m 457[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking Cancel button [33m 451[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows configuration type selection when configs exist [33m 369[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls file browser when Browse button is clicked [33m 322[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m handles file selection cancellation [33m 372[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when save fails [33m 450[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m saves global proxy settings [33m 468[2mms[22m[39m
+ [31mÔØ»[39m src/__tests__/main-content.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 12894[2mms[22m[39m
+[31m     [31m├ù[31m renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable[39m[33m 10027[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renderResourceMainContent creates a single React root per container [33m 2811[2mms[22m[39m
+     [32mÔ£ô[39m bridges Swarm contexts for swarm-* sections when options.swarmState is provided[32m 37[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/topologyView.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 3226[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders topology and opens node details panel [33m 2603[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens service details and loads logs (masked env + mount formatting) [33m 336[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvcYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2973[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 677[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays PVC name in header [33m 612[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 336[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2827[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 763[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 549[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 338[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2653[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 673[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 673[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/helmReleases.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 2878[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows rollback button for non-current revisions [33m 473[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m has toggle for showing all values [33m 407[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders resources with health status [33m 428[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvYamlTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2447[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 627[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays PV name in header [33m 543[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3095[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 755[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 769[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 348[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m does not call API when name is missing [33m 319[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3357[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 719[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays cronjob name in header [33m 724[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 329[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 399[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3102[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 702[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays job name in header [33m 705[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 324[2mms[22m[39m
 Not implemented: navigation to another Document
- [32mÔ£ô[39m src/__tests__/podYamlTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 3297[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 588[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays YAML content when loaded [33m 703[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays action buttons [33m 389[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 305[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/overviewTableWithPanel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 4121[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m filters rows by search input [33m 1099[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m switches tabs and updates panel content [33m 552[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m resets active tab after closing & reopening [33m 599[2mms[22m[39m
- [31mÔØ»[39m src/__tests__/main-content.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 14074[2mms[22m[39m
-[31m     [31m├ù[31m renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable[39m[33m 10037[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renderResourceMainContent creates a single React root per container [33m 3982[2mms[22m[39m
-     [32mÔ£ô[39m bridges Swarm contexts for swarm-* sections when options.swarmState is provided[32m 35[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pvcYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3234[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 859[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays action buttons [33m 872[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/serviceYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3417[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 724[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays service name in header [33m 941[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays action buttons [33m 320[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m re-fetches when props change [33m 344[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/helmReleases.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 3233[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows rollback button for non-current revisions [33m 555[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m has toggle for showing all values [33m 465[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders resources with health status [33m 453[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/ingressYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3164[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 815[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays ingress name in header [33m 687[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pvYamlTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2825[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 652[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 864[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 421[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m copies content to clipboard on copy button click [33m 426[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/cronJobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3334[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 792[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 930[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 379[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/secretYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3308[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 751[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays secret name in header [33m 863[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays action buttons [33m 371[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 323[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/configMapYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3422[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 735[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays configmap name in header [33m 874[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays action buttons [33m 339[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 343[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/jobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3472[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows loading initially [33m 692[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays job name in header [33m 828[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays action buttons [33m 386[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 373[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/jobPodsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 2496[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m can sort by name column [33m 900[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m can sort by status column [33m 457[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/viewToggle.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 2156[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders Form and YAML buttons [33m 703[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/connectionHooksSettings.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2256[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows applicable hooks for a connection [33m 1033[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m can add a new hook using browse and save [33m 860[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m can test an existing hook and show results [33m 359[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmTasksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1738[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads and renders tasks with formatted cells [33m 945[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m reacts to runtime updates: array replaces, non-array triggers reload [33m 323[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/registryBrowser.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1822[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads repositories, tags, and digests [33m 367[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m searches Docker Hub, inspects a repo, and pulls latest [33m 1092[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows an error when repository inspection fails [33m 358[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pods/PodSummaryTab.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 1908[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmServicesOverviewTable.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1572[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads services and renders rows/cells [33m 330[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m adds Ask Holmes action for services [33m 550[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmResourceActions.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1626[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m scales a resource and closes the dialog [33m 946[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmConnectionWizard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1718[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m defaults to local socket and picks Windows default host [33m 809[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/configCompareModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 1782[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders when open is true [33m 320[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders a select dropdown [33m 503[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/textField.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1102[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 721[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/cronJobActionsTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1822[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders Trigger Now action [33m 659[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/deploymentPodsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1473[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m can switch to conditions section [33m 550[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmNodesOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2185[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads and renders nodes; row action disabled states apply [33m 1274[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m executes row actions and shows notifications [33m 750[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/monitorFeature.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 1746[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m closes panel when close button is clicked [33m 639[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/holmesConfigModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1775[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows pre-filled values from state [33m 640[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/keyValueEditor.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1714[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders add button with correct label [33m 562[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pvAnnotationsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 1795[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders as a table [33m 449[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m shows column headers [33m 384[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/selectField.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1570[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders select with correct id [33m 612[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/collapsibleSection.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1561[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m expands when header button is clicked [33m 583[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/secretCloneModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1359[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m allows entering secret name [33m 513[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmSecretsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1470[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m deletes via row action [33m 646[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m opens edit/rotate/clone modals from summary panel and deletes from panel actions [33m 521[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/addRegistryModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1778[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m saves dockerhub registry with basic auth [33m 908[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m tests dockerhub token auth (token used as password) [33m 697[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmConfigsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1363[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m opens Compare modal from summary panel [33m 668[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/numberField.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1349[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 624[2mms[22m[39m
-stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter)
-Docker not connected - Swarm features will be unavailable
-
- [32mÔ£ô[39m src/__tests__/updateServiceImageModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1308[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m requires a changed image to enable update and confirms trimmed value [33m 1258[2mms[22m[39m
-stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with correct section for multiple switches
-Docker not connected - Swarm features will be unavailable
-
- [32mÔ£ô[39m src/__tests__/appContainer.resourceSwitch.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1212[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter) [33m 800[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with correct section for multiple switches [33m 407[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmConfigInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1511[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays config inspect JSON when loaded [33m 606[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m re-fetches when configId changes [33m 487[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/logViewerHolmes.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1161[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m triggers Holmes log analysis and renders response [33m 1157[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmVolumesOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1331[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m row actions call APIs and trigger refresh where expected [33m 743[2mms[22m[39m
-Not implemented: navigation to another Document
- [32mÔ£ô[39m src/__tests__/holmesPanel.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1387[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows unconfigured state when Holmes is disabled [33m 585[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/podMountsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1351[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays volume mounts [33m 360[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmNetworksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1078[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads and renders networks; built-in delete is disabled [33m 639[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/serviceTasksTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1127[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads tasks and renders a table with state colors [33m 978[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmNetworkInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1006[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays network inspect JSON when loaded [33m 494[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobPodsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 2784[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays pods in table [33m 394[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by name column [33m 1017[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by status column [33m 444[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podYamlTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 3637[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 869[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays YAML content when loaded [33m 785[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 307[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m copies content to clipboard on copy button click [33m 322[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2960[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 734[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays secret name in header [33m 622[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 303[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionHooksSettings.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2208[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows applicable hooks for a connection [33m 1127[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m can add a new hook using browse and save [33m 770[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m can test an existing hook and show results [33m 306[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/viewToggle.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 2149[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders Form and YAML buttons [33m 661[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pods/PodSummaryTab.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 1927[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesConfigModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1794[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows pre-filled values from state [33m 580[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/registryBrowser.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1935[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m searches Docker Hub, inspects a repo, and pulls latest [33m 997[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows an error when repository inspection fails [33m 694[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmTasksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1817[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders tasks with formatted cells [33m 1019[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m reacts to runtime updates: array replaces, non-array triggers reload [33m 366[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNodesOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1997[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders nodes; row action disabled states apply [33m 1245[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m executes row actions and shows notifications [33m 566[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvAnnotationsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 1674[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders as a table [33m 456[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows column headers [33m 360[2mms[22m[39m
 stderr | src/__tests__/swarmConfigDataTab.test.tsx > ConfigDataTab > error state > displays error message when API call fails
 Failed to load config data: Error: Access denied
     at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/swarmConfigDataTab.test.tsx:29:48
@@ -201,11 +133,69 @@ Failed to load config data: Error: Access denied
     at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
     at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
 
- [32mÔ£ô[39m src/__tests__/swarmConfigDataTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1245[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays config content when loaded [33m 565[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/secretEditModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1247[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m calls UpdateSwarmSecretData API when saved with acknowledgment [33m 481[2mms[22m[39m
-06:57:26 [vite] (client) warning: Duplicate "className" attribute in JSX element
+ [32mÔ£ô[39m src/__tests__/swarmConfigDataTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1253[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays config content when loaded [33m 556[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/selectField.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1786[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders select with correct id [33m 810[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConnectionWizard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 2033[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m defaults to local socket and picks Windows default host [33m 1074[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m tests connection and renders success details (including truncated node id) [33m 322[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobActionsTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1760[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders Trigger Now action [33m 732[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configCompareModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 1388[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders a select dropdown [33m 351[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/addRegistryModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1553[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves dockerhub registry with basic auth [33m 812[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m tests dockerhub token auth (token used as password) [33m 567[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/monitorFeature.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 1692[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m closes panel when close button is clicked [33m 660[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmServicesOverviewTable.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1857[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads services and renders rows/cells [33m 321[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m adds Ask Holmes action for services [33m 700[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m row actions call APIs and emit notifications [33m 399[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/keyValueEditor.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1723[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders add button with correct label [33m 632[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/updateServiceImageModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1090[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m requires a changed image to enable update and confirms trimmed value [33m 1034[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logViewerHolmes.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1334[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m triggers Holmes log analysis and renders response [33m 1329[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32mÔ£ô[39m src/__tests__/holmesPanel.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1361[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows unconfigured state when Holmes is disabled [33m 565[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceActions.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1466[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m scales a resource and closes the dialog [33m 822[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens delete confirmation dialog and calls onDelete [33m 307[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSecretsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1590[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deletes via row action [33m 728[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens edit/rotate/clone modals from summary panel and deletes from panel actions [33m 558[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretCloneModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1301[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m allows entering secret name [33m 469[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/collapsibleSection.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1316[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m expands when header button is clicked [33m 509[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/numberField.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1313[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 629[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSecretInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1419[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays secret inspect JSON when loaded [33m 567[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m re-fetches when secretId changes [33m 322[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentPodsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 2192[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can switch to conditions section [33m 962[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podMountsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1022[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1432[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens Compare modal from summary panel [33m 629[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceTasksTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1292[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads tasks and renders a table with state colors [33m 1067[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretEditModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1205[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls UpdateSwarmSecretData API when saved with acknowledgment [33m 539[2mms[22m[39m
+stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter)
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with correct section for multiple switches
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/appContainer.resourceSwitch.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1134[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter) [33m 752[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with correct section for multiple switches [33m 378[2mms[22m[39m
+07:10:27 [vite] (client) warning: Duplicate "className" attribute in JSX element
 125 |                      className="monitor-issue-item"
 126 |                      onClick={() => handleIssueClick(issue)}
 127 |                      className={`monitor-issue-item monitor-issue-item--${issueTone}`}
@@ -215,82 +205,98 @@ Failed to load config data: Error: Access denied
 
   Plugin: vite:esbuild
   File: Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/layout/MonitorModal.tsx
- [32mÔ£ô[39m src/__tests__/pvcBoundPVTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1079[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays Open PV button [33m 560[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/monitorModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1165[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders close button [33m 575[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/useAsyncData.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 1228[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/secretDataTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 960[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/serviceEndpointsTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 906[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/nodeLabelsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 954[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m save/reset disabled when not dirty; becomes enabled after edit; save calls API [33m 697[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/bottomPanel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 994[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders tabs and active content [33m 680[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/GenericInspectTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 682[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m should have absolute positioning container [33m 342[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmEventsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1039[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m has retry button on error [33m 458[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/daemonSetNodeCoverageTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 580[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmMetricsDashboard.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 815[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m filters charts by selected time range [33m 812[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/useResourceData.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 853[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmSecretInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1058[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays secret inspect JSON when loaded [33m 488[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/deploymentRolloutTab.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1129[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/nodeTasksTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1068[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders tasks table and state colors [33m 922[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/imageUpdateSettingsModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 933[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m saves settings (minutes -> seconds) and closes [33m 573[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/updateStackModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1154[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m displays initial compose YAML [33m 727[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/dropdowns.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1143[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m ContextSelect passes selected value [33m 959[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/nodeLogsTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 919[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m selects a running task with container and wires AggregateLogsTab loadLogs [33m 694[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/statusBadge.test.tsx [2m([22m[2m21 tests[22m[2m)[22m[33m 785[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m applies inline styles with correct color [33m 391[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/cronJobHistoryTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 803[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/BaseModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 634[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m should apply custom width [33m 357[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/statefulSetPVCsTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 743[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders PVCs when loaded [33m 328[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/networkConnectedContainersSection.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 862[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m navigates to task when clicked [33m 485[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/imageUpdateBadge.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1035[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders disabled when serviceId is missing [33m 673[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/ingressRulesTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 889[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/emptyState.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 820[2mms[22m[39m
-       [33m[2mÔ£ô[22m[39m renders action button when onAction and actionLabel are provided [33m 482[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/holmesContext.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 616[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/holmesOnboardingWizard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 776[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/emptyTabContent.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 724[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders action button when provided [33m 450[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 701[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows Metrics by default and switches to Topology [33m 658[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmStacksOverviewTable.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 864[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m opens stack create overlay when + clicked [33m 860[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/configEditModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 913[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/configMapDataTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 924[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/quickInfoSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 620[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m handles refresh button callback [33m 361[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/cronJobNextRunsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 761[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/resourcePodsTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 688[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/holmesResponseRenderer.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 814[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m renders code blocks with copy button [33m 687[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/resourceEventsTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 557[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/notification.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 578[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m injects styles & container once [33m 303[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/secretUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 464[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/holmesBottomPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 682[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m shows empty state when no response [33m 586[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmSidebarSections.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 422[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/imageUpdateModal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 519[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/configUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 510[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/clusterStateProvider.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 411[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/networkConnectedServicesSection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 530[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/aggregateLogsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 642[2mms[22m[39m
- [32mÔ£ô[39m src/layout/__tests__/PrometheusAlertsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 373[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/replicaSetOwnerTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 293[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/monitorModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1162[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders close button [33m 636[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmVolumesOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1726[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m row actions call APIs and trigger refresh where expected [33m 1112[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmEventsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1018[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m has retry button on error [33m 468[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/updateStackModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 970[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays initial compose YAML [33m 437[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeTasksTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1177[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders tasks table and state colors [33m 1035[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNetworksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1331[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders networks; built-in delete is disabled [33m 954[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/textField.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1130[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 719[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statusBadge.test.tsx [2m([22m[2m21 tests[22m[2m)[22m[33m 869[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m applies inline styles with correct color [33m 450[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNetworkInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1270[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays network inspect JSON when loaded [33m 559[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeLabelsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 958[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m save/reset disabled when not dirty; becomes enabled after edit; save calls API [33m 759[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useAsyncData.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 1068[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1062[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays config inspect JSON when loaded [33m 516[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/bottomPanel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 995[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders tabs and active content [33m 704[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvcBoundPVTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1175[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays Open PV button [33m 599[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapDataTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 839[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateSettingsModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1181[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves settings (minutes -> seconds) and closes [33m 772[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1570[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays secret keys [33m 473[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1141[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows Metrics by default and switches to Topology [33m 1036[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentRolloutTab.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1271[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays revisions table with correct headers [33m 307[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesOnboardingWizard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 835[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmStacksOverviewTable.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1154[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens stack create overlay when + clicked [33m 1149[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dropdowns.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1084[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ContextSelect passes selected value [33m 801[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceEndpointsTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 1074[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsDashboard.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 832[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters charts by selected time range [33m 828[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useResourceData.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 957[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesContext.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 643[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m askHolmes handles errors [33m 330[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/GenericInspectTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 636[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should have absolute positioning container [33m 391[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabContent.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 771[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders action button when provided [33m 449[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobHistoryTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 855[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/daemonSetNodeCoverageTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 690[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/BaseModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 956[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should apply custom width [33m 582[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateBadge.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1113[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders disabled when serviceId is missing [33m 730[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyState.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 771[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders action button when onAction and actionLabel are provided [33m 458[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourcePodsTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 735[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressRulesTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 918[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedContainersSection.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 807[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m navigates to task when clicked [33m 456[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobNextRunsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 743[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statefulSetPVCsTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 662[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configEditModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 769[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeLogsTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 735[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m selects a running task with container and wires AggregateLogsTab loadLogs [33m 514[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesResponseRenderer.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 751[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders code blocks with copy button [33m 628[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/quickInfoSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 701[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m handles refresh button callback [33m 433[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmRegistriesOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 399[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads registries, opens bottom panel, and can remove a registry [33m 305[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 439[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/aggregateLogsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 419[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateModal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 516[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesBottomPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 726[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows empty state when no response [33m 603[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedServicesSection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 497[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/notification.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 587[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m injects styles & container once [33m 339[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSidebarSections.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 483[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders section labels and counts [33m 318[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceEventsTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 448[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 532[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterStateProvider.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 442[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/healthStatusBadge.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 381[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeUsedBySection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 330[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/PrometheusAlertsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 324[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvBoundPVCTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 357[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkDetailsSections.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 348[2mms[22m[39m
 stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > initializes with default state
 Docker not connected - Swarm features will be unavailable
 
@@ -303,12 +309,7 @@ Docker not connected - Swarm features will be unavailable
 stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > provides resource refresh functions
 Docker not connected - Swarm features will be unavailable
 
- [32mÔ£ô[39m src/__tests__/swarmStateContext.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 444[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmRegistriesOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 538[2mms[22m[39m
-     [33m[2mÔ£ô[22m[39m loads registries, opens bottom panel, and can remove a registry [33m 406[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/networkDetailsSections.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 421[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/healthStatusBadge.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 354[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pvBoundPVCTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 373[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmStateContext.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 392[2mms[22m[39m
 stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > does nothing for unknown resource type
 showResourceOverlay called with: does-not-exist
 Template found: no
@@ -338,28 +339,28 @@ Template found: yes
 showResourceOverlay called with: secret
 Template found: yes
 
- [32mÔ£ô[39m src/__tests__/resource-overlay.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 298[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/stackComposeTab.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 277[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/volumeUsedBySection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 318[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/yamlTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 272[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/settingsContext.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[32m 261[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/consoleTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[32m 192[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/volumeInspectTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 350[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/tabLabel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 264[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/useHolmesAnalysis.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 252[2mms[22m[39m
- [32mÔ£ô[39m src/layout/__tests__/MonitorIssueCard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 299[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/secretDataSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 161[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/useSwarmServiceForm.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 162[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/resourceCountsContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 111[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/pvCapacityUsageTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 169[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmMetricsStateContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 276[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmResourceCountsContext.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 151[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/configDataSection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 154[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/logger.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 126[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/useTableSelection.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 113[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/useEventSubscription.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 99[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resource-overlay.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 296[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/yamlTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 290[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/settingsContext.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[32m 267[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/replicaSetOwnerTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 306[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/stackComposeTab.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 208[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/consoleTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[32m 211[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 184[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeInspectTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 246[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/MonitorIssueCard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 190[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tabLabel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 161[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceCountsContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 165[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configDataSection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 136[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useHolmesAnalysis.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 171[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsStateContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 199[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvCapacityUsageTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 170[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceCountsContext.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 158[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useSwarmServiceForm.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 145[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logger.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 88[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useTableSelection.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 145[2mms[22m[39m
  [32mÔ£ô[39m src/__tests__/tableSorting.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 43[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/swarmYamlUtils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useEventSubscription.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 105[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmYamlUtils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 34[2mms[22m[39m
 stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchAllTabCounts > returns empty object on error
 Failed to fetch tab counts: Error: API error
     at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:48:45
@@ -425,19 +426,19 @@ Failed to fetch CronJob history count: Error: API error
     at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
     at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
 
- [32mÔ£ô[39m src/__tests__/tabCounts.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 32[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/resourceNavigation.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 19[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/emptyTabMessages.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 17[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/timeUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/persistence.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/clusterStateReducer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 12[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/codeMirrorLanguage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tabCounts.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 33[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceNavigation.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabMessages.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/timeUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/persistence.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterStateReducer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/codeMirrorLanguage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dateUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
- [32mÔ£ô[39m src/__tests__/podOverviewEntry.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
- [32mÔ£ô[39m src/__tests__/dateUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podOverviewEntry.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 16[2mms[22m[39m
  [32mÔ£ô[39m src/__tests__/legacy-jsx-imports.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
 Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
- [32mÔ£ô[39m src/__tests__/router.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/router.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 21[2mms[22m[39m
 
 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
 
@@ -457,6 +458,6 @@ If this is a long-running test, pass a timeout value as the last argument or con
 
 [2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m142 passed[39m[22m[90m (143)[39m
 [2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1329 passed[39m[22m[90m (1330)[39m
-[2m   Start at [22m 06:56:15
-[2m   Duration [22m 154.95s[2m (transform 38.33s, setup 62.00s, import 132.10s, tests 184.45s, environment 491.15s)[22m
+[2m   Start at [22m 07:09:21
+[2m   Duration [22m 151.52s[2m (transform 36.00s, setup 62.32s, import 128.70s, tests 180.20s, environment 476.83s)[22m
 
