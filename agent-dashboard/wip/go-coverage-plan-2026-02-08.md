@@ -1,9 +1,9 @@
 ---
 title: "Go Coverage Baseline and 5% Increase Plan (2026-02-08)"   # Card title (string)
-status: todo                              # todo | wip | done
+status: wip
 priority: high                            # low | medium | high | critical (default: medium)
-assignedAgent: null                       # Set automatically when an agent starts
-branch: null                              # Set automatically to the agent's git branch
+assignedAgent: add08a1d-3217-437d-8a94-1ff1f83366f7
+branch: agent/6e2ea7f87709c4c71fea6abd705c8e0e/1770513916633
 projectRoot: "Z:\\development\\git\\psalg-dev\\kube-dev-bench"       # Optional — explicit repo root for the agent to work in
 ---
 
