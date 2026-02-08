@@ -23,8 +23,9 @@ func TestGetRefreshNamespaces_FallbackAndPreferred(t *testing.T) {
 }
 
 func TestRefreshPodStatusOnly_AggregatesAndSkipsNoChange(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	cs := fake.NewSimpleClientset()
 	_, _ = cs.CoreV1().Pods("default").Create(context.Background(), &v1.Pod{
