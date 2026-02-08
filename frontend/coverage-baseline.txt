@@ -227,3 +227,202 @@ Failed to load config data: Error: Access denied
  [32mÔ£ô[39m src/__tests__/serviceEndpointsTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 821[2mms[22m[39m
  [32mÔ£ô[39m src/__tests__/swarmStacksOverviewTable.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 668[2mms[22m[39m
      [33m[2mÔ£ô[22m[39m opens stack create overlay when + clicked [33m 664[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configEditModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 685[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedServicesSection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 425[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedContainersSection.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 733[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m navigates to task when clicked [33m 368[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/GenericInspectTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 622[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should have absolute positioning container [33m 351[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyState.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 741[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders action button when onAction and actionLabel are provided [33m 411[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/BaseModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 591[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should apply custom width [33m 323[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressRulesTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1019[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders rules from API response [33m 320[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 722[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows Metrics by default and switches to Topology [33m 633[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobHistoryTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 758[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesContext.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 504[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/daemonSetNodeCoverageTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 755[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/notification.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 473[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourcePodsTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 684[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmRegistriesOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 390[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads registries, opens bottom panel, and can remove a registry [33m 316[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/stackComposeTab.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 271[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/aggregateLogsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 341[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkDetailsSections.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 329[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateModal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 456[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvBoundPVCTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 334[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobNextRunsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 785[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/replicaSetOwnerTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 245[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSidebarSections.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 366[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 470[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 515[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceEventsTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 424[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/settingsContext.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[32m 258[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/PrometheusAlertsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 297[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeUsedBySection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 340[2mms[22m[39m
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > does nothing for unknown resource type
+showResourceOverlay called with: does-not-exist
+Template found: no
+No template found for resource type: does-not-exist
+Available templates: [
+  'deployment',
+  'job',
+  'configmap',
+  'service',
+  'secret',
+  'ingress',
+  'persistentvolumeclaim',
+  'persistentvolume'
+]
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > creates overlay and calls CreateResource on success
+showResourceOverlay called with: deployment
+Template found: yes
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > shows error and keeps overlay when CreateResource fails
+showResourceOverlay called with: job
+Template found: yes
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > closes overlay via cancel button and overlay background click
+showResourceOverlay called with: configmap
+Template found: yes
+showResourceOverlay called with: secret
+Template found: yes
+
+ [32mÔ£ô[39m src/__tests__/resource-overlay.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 304[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > initializes with default state
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > opens and closes wizard
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > connects to Docker successfully
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > provides resource refresh functions
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/swarmStateContext.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 271[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/yamlTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 262[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsStateContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 131[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesResponseRenderer.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 688[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders code blocks with copy button [33m 546[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeInspectTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 204[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterStateProvider.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 394[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tabLabel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 190[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useTableSelection.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 142[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configDataSection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 204[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/consoleTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[32m 151[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/MonitorIssueCard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 213[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useHolmesAnalysis.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 186[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 156[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceCountsContext.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 115[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useSwarmServiceForm.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 124[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logger.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 136[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvCapacityUsageTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 230[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useEventSubscription.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 114[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceCountsContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 106[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tableSorting.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 43[2mms[22m[39m
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchAllTabCounts > returns empty object on error
+Failed to fetch tab counts: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:48:45
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchEventsCount > returns null on error
+Failed to fetch events count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:75:52
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchPodsCount > returns null on error
+Failed to fetch pods count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:94:53
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchConsumersCount > returns null on error
+Failed to fetch consumers count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:137:56
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchCronJobHistoryCount > returns null on error
+Failed to fetch CronJob history count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:156:52
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [32mÔ£ô[39m src/__tests__/tabCounts.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 31[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmYamlUtils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 32[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/timeUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceNavigation.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterStateReducer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/persistence.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabMessages.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/podOverviewEntry.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dateUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/codeMirrorLanguage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 11[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/router.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/legacy-jsx-imports.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 4[2mms[22m[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/main-content.test.ts > main-content > renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable
+Error: Test timed out in 10000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ÔØ» src/__tests__/main-content.test.ts:70:3
+     68| 
+     69| describe('main-content', () => {
+     70|   it('renderPodsMainContent mounts into a stable panel and calls rendeÔÇª
+       |   ^
+     71|     const { renderPodsMainContent } = await importFreshMainContent();
+     72| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m142 passed[39m[22m[90m (143)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m1329 passed[39m[22m[90m (1330)[39m
+[2m   Start at [22m 06:45:18
+[2m   Duration [22m 136.29s[2m (transform 33.92s, setup 55.68s, import 124.29s, tests 151.22s, environment 477.68s)[22m
+
