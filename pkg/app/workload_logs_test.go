@@ -367,9 +367,11 @@ func TestAggregatePodsLogs_StableOrderingAndFormatting(t *testing.T) {
 
 	want := "===== pod-a =====\n" +
 		"alpha-1\n" +
+		"\n" +
 		"===== pod-b =====\n" +
 		"beta-1\n" +
 		"beta-2\n" +
+		"\n" +
 		"===== pod-c =====\n" +
 		"[error] simulated read error\n"
 
