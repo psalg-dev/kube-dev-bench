@@ -28,3 +28,26 @@ npm warn Unknown cli config "--coverage". This will stop working in the next maj
      [33m[2mÔ£ô[22m[39m calls CreateResource and emits events + success on Create [33m 625[2mms[22m[39m
      [33m[2mÔ£ô[22m[39m swarm: creates config via CreateSwarmConfig [33m 469[2mms[22m[39m
      [33m[2mÔ£ô[22m[39m swarm: creates secret via CreateSwarmSecret (labels parsed) [33m 710[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionWizard.test.tsx [2m([22m[2m35 tests[22m[2m)[22m[33m 5810[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Add Config button [33m 580[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Connect button for each config [33m 324[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m allows connecting to a config [33m 424[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking close button [33m 324[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32mÔ£ô[39m src/__tests__/podYamlTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 2494[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 642[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays YAML content when loaded [33m 560[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvcYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2404[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 710[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 530[2mms[22m[39m
+ [31mÔØ»[39m src/__tests__/main-content.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[33m 12279[2mms[22m[39m
+[31m     [31m├ù[31m renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable[39m[33m 10028[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renderResourceMainContent creates a single React root per container [33m 2200[2mms[22m[39m
+     [32mÔ£ô[39m bridges Swarm contexts for swarm-* sections when options.swarmState is provided[32m 33[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/overviewTableWithPanel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 3071[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters rows by search input [33m 943[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m switches tabs and updates panel content [33m 434[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m resets active tab after closing & reopening [33m 357[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2618[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 794[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays configmap name in header [33m 640[2mms[22m[39m
