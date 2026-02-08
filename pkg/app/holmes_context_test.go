@@ -2,14 +2,17 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -216,9 +219,40 @@ func TestGetDeploymentContext_DeploymentNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getDeploymentContext("default", "nonexistent")
+	result, err := app.getDeploymentContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent deployment")
+	}
+	if !strings.Contains(err.Error(), "failed to get deployment") {
+		t.Fatalf("expected wrapped deployment error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetDeploymentContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-deployment",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getDeploymentContext("default", "my-deployment")
+	if err == nil {
+		t.Fatal("expected error for deployment without selector")
+	}
+	if !strings.Contains(err.Error(), "deployment has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -269,9 +303,40 @@ func TestGetStatefulSetContext_StatefulSetNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getStatefulSetContext("default", "nonexistent")
+	result, err := app.getStatefulSetContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent statefulset")
+	}
+	if !strings.Contains(err.Error(), "failed to get statefulset") {
+		t.Fatalf("expected wrapped statefulset error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetStatefulSetContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-statefulset",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getStatefulSetContext("default", "my-statefulset")
+	if err == nil {
+		t.Fatal("expected error for statefulset without selector")
+	}
+	if !strings.Contains(err.Error(), "statefulset has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -317,9 +382,40 @@ func TestGetDaemonSetContext_DaemonSetNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getDaemonSetContext("default", "nonexistent")
+	result, err := app.getDaemonSetContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent daemonset")
+	}
+	if !strings.Contains(err.Error(), "failed to get daemonset") {
+		t.Fatalf("expected wrapped daemonset error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetDaemonSetContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-daemonset",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getDaemonSetContext("default", "my-daemonset")
+	if err == nil {
+		t.Fatal("expected error for daemonset without selector")
+	}
+	if !strings.Contains(err.Error(), "daemonset has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -365,9 +461,40 @@ func TestGetJobContext_JobNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getJobContext("default", "nonexistent")
+	result, err := app.getJobContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent job")
+	}
+	if !strings.Contains(err.Error(), "failed to get job") {
+		t.Fatalf("expected wrapped job error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetJobContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-job",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getJobContext("default", "my-job")
+	if err == nil {
+		t.Fatal("expected error for job without selector")
+	}
+	if !strings.Contains(err.Error(), "job has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
