@@ -1,9 +1,9 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [string]$ProfilePath = "coverage_profiles/app_coverage",
     [string]$FuncPath = "coverage_profiles/app_coverage_func.txt"
 )
+
+$ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
 Set-Location $repoRoot

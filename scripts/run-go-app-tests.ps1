@@ -1,8 +1,8 @@
-$ErrorActionPreference = "Stop"
-
 param(
     [string[]]$ExtraArgs = @()
 )
+
+$ErrorActionPreference = "Stop"
 
 $repoRoot = Split-Path $PSScriptRoot -Parent
 Set-Location $repoRoot
