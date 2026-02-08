@@ -187,8 +187,16 @@ func TestStartResourcePollingContinuesOnFetchError(t *testing.T) {
 
 	startResourcePolling(app, config)
 
-	// Wait long enough for several cycles including error recovery
-	time.Sleep(150 * time.Millisecond)
+	deadline := time.Now().Add(300 * time.Millisecond)
+	for {
+		mu.Lock()
+		calls := fetchCalls
+		mu.Unlock()
+		if calls >= 3 || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 
 	mu.Lock()
 	calls := fetchCalls
