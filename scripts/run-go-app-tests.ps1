@@ -1,11 +1,14 @@
 param(
     [Parameter()]
+    [string]$PackagePath = './pkg/app',
+
+    [Parameter()]
     [string]$RunPattern
 )
 
 $ErrorActionPreference = 'Stop'
 
-$arguments = @('./pkg/app')
+$arguments = @($PackagePath)
 if ($RunPattern) {
     $arguments += @('-run', $RunPattern)
 }
