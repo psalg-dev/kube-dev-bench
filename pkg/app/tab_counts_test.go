@@ -2,13 +2,17 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 func TestGetResourceEventsCount(t *testing.T) {
@@ -59,6 +63,46 @@ func TestGetResourceEventsCountEmpty(t *testing.T) {
 	}
 	if count != 0 {
 		t.Errorf("expected count 0, got %d", count)
+	}
+}
+
+func TestGetPodsCountForResource_UnsupportedKind(t *testing.T) {
+	app := &App{
+		ctx:           context.Background(),
+		testClientset: fake.NewSimpleClientset(),
+	}
+
+	_, err := app.GetPodsCountForResource("default", "Widget", "example")
+	if err == nil {
+		t.Fatal("expected error for unsupported owner kind")
+	}
+}
+
+func TestGetPodsCountForResource_DetailErrors(t *testing.T) {
+	app := &App{
+		ctx:           context.Background(),
+		testClientset: fake.NewSimpleClientset(),
+	}
+
+	tests := []struct {
+		name string
+		kind string
+	}{
+		{name: "deployment", kind: "Deployment"},
+		{name: "statefulset", kind: "StatefulSet"},
+		{name: "job", kind: "Job"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			count, err := app.GetPodsCountForResource("default", tt.kind, "missing")
+			if err == nil {
+				t.Fatalf("expected error for %s detail", tt.kind)
+			}
+			if count != 0 {
+				t.Errorf("expected count 0, got %d", count)
+			}
+		})
 	}
 }
 
