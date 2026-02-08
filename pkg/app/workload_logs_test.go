@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -559,5 +560,18 @@ func TestGetPodLogsInNamespace_NilContext_NoPanic(t *testing.T) {
 	}
 	if out != "ok" {
 		t.Errorf("unexpected output: %q", out)
+	}
+}
+
+func TestGetPodLogsInNamespace_ReturnsFetcherError(t *testing.T) {
+	app := &App{ctx: context.Background()}
+	expected := errors.New("boom")
+	app.testPodLogsFetcher = func(ns, pod, container string, lines int) (string, error) {
+		return "", expected
+	}
+
+	_, err := app.getPodLogsInNamespace("default", "p1", 25)
+	if !errors.Is(err, expected) {
+		t.Fatalf("expected error %v, got %v", expected, err)
 	}
 }
