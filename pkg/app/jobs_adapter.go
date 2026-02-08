@@ -20,7 +20,7 @@ import (
 
 // GetJobs returns all jobs in a namespace by delegating to the jobs package.
 func (a *App) GetJobs(namespace string) ([]jobs.JobInfo, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}

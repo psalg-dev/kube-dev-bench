@@ -1,20 +1,11 @@
-param(
-    [Parameter()]
-    [string]$PackagePath = './pkg/app',
+$ErrorActionPreference = "Stop"
 
-    [Parameter()]
-    [string]$RunPattern
+param(
+    [string[]]$ExtraArgs = @()
 )
 
-$ErrorActionPreference = 'Stop'
+$repoRoot = Split-Path $PSScriptRoot -Parent
+Set-Location $repoRoot
 
-$arguments = @($PackagePath)
-if ($RunPattern) {
-    $arguments += @('-run', $RunPattern)
-}
-$arguments += '-v'
-
-& go test @arguments
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
+$argsList = @("test", "./pkg/app/...") + $ExtraArgs
+& go @argsList
