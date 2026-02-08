@@ -15,19 +15,20 @@ import (
 )
 
 func TestAppendRecentEvents_WritesLines(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	cs := fake.NewSimpleClientset(
 		&corev1.Event{
-			ObjectMeta: metav1.ObjectMeta{Name: "e1", Namespace: "default"},
+			ObjectMeta:     metav1.ObjectMeta{Name: "e1", Namespace: "default"},
 			InvolvedObject: corev1.ObjectReference{Kind: "Deployment", Name: "web"},
 			Reason:         "Started",
 			Message:        "pod created",
 			LastTimestamp:  metav1.NewTime(time.Now().Add(-30 * time.Second)),
 		},
 		&corev1.Event{
-			ObjectMeta: metav1.ObjectMeta{Name: "e2", Namespace: "default"},
+			ObjectMeta:     metav1.ObjectMeta{Name: "e2", Namespace: "default"},
 			InvolvedObject: corev1.ObjectReference{Kind: "Deployment", Name: "web"},
 			Reason:         "Scaled",
 			Message:        "replicas increased",
