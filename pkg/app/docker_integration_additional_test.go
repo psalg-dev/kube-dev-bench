@@ -44,7 +44,7 @@ func TestDockerIntegration_NotConnectedErrors(t *testing.T) {
 		{"UpdateSwarmNodeRole", func() error { return app.UpdateSwarmNodeRole("node", "worker") }},
 		{"UpdateSwarmNodeLabels", func() error { return app.UpdateSwarmNodeLabels("node", map[string]string{"k": "v"}) }},
 		{"GetSwarmNodeTasks", func() error { _, err := app.GetSwarmNodeTasks("node"); return err }},
-		{"RemoveSwarmNode", func() error { return app.RemoveSwarmNode("node") }},
+		{"RemoveSwarmNode", func() error { return app.RemoveSwarmNode("node", false) }},
 		{"GetSwarmJoinTokens", func() error { _, err := app.GetSwarmJoinTokens(); return err }},
 		{"GetSwarmNetworks", func() error { _, err := app.GetSwarmNetworks(); return err }},
 		{"GetSwarmNetwork", func() error { _, err := app.GetSwarmNetwork("net"); return err }},
@@ -52,7 +52,10 @@ func TestDockerIntegration_NotConnectedErrors(t *testing.T) {
 		{"GetSwarmNetworkContainers", func() error { _, err := app.GetSwarmNetworkContainers("net"); return err }},
 		{"GetSwarmNetworkInspectJSON", func() error { _, err := app.GetSwarmNetworkInspectJSON("net"); return err }},
 		{"RemoveSwarmNetwork", func() error { return app.RemoveSwarmNetwork("net") }},
-		{"CreateSwarmNetwork", func() error { _, err := app.CreateSwarmNetwork("net", "overlay", docker.CreateNetworkOptions{}); return err }},
+		{"CreateSwarmNetwork", func() error {
+			_, err := app.CreateSwarmNetwork("net", "overlay", docker.CreateNetworkOptions{})
+			return err
+		}},
 		{"PruneSwarmNetworks", func() error { _, err := app.PruneSwarmNetworks(); return err }},
 		{"GetSwarmConfigs", func() error { _, err := app.GetSwarmConfigs(); return err }},
 		{"GetSwarmConfig", func() error { _, err := app.GetSwarmConfig("cfg"); return err }},
@@ -83,7 +86,7 @@ func TestDockerIntegration_NotConnectedErrors(t *testing.T) {
 		{"GetVolumeInfo", func() error { _, err := app.GetVolumeInfo("vol"); return err }},
 		{"GetSwarmVolumeInspectJSON", func() error { _, err := app.GetSwarmVolumeInspectJSON("vol"); return err }},
 		{"GetSwarmVolumeUsage", func() error { _, err := app.GetSwarmVolumeUsage("vol"); return err }},
-		{"RemoveSwarmVolume", func() error { return app.RemoveSwarmVolume("vol") }},
+		{"RemoveSwarmVolume", func() error { return app.RemoveSwarmVolume("vol", false) }},
 		{"CreateSwarmVolume", func() error { _, err := app.CreateSwarmVolume("vol", "local", nil, nil); return err }},
 		{"PruneSwarmVolumes", func() error { _, err := app.PruneSwarmVolumes(); return err }},
 		{"GetSwarmServiceLogs", func() error { _, err := app.GetSwarmServiceLogs("svc", "100"); return err }},
