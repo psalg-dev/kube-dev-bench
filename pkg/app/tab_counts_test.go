@@ -333,6 +333,219 @@ func TestGetAllTabCounts(t *testing.T) {
 		t.Errorf("expected Data count 1, got %d", counts.Data)
 	}
 }
+
+func TestGetAllTabCounts_StatefulSetCounts(t *testing.T) {
+	ctx := context.Background()
+	labels := map[string]string{"app": "db"}
+	clientset := fake.NewSimpleClientset(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "db",
+				Namespace: "default",
+			},
+			Spec: appsv1.StatefulSetSpec{
+				Selector: &metav1.LabelSelector{MatchLabels: labels},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "db-0",
+				Namespace: "default",
+				Labels:    labels,
+				OwnerReferences: []metav1.OwnerReference{
+					{Kind: "StatefulSet", Name: "db"},
+				},
+			},
+		},
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "db-0",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "StatefulSet", "db")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Pods != 1 {
+		t.Errorf("expected Pods count 1, got %d", counts.Pods)
+	}
+	if counts.PVCs != 1 {
+		t.Errorf("expected PVCs count 1, got %d", counts.PVCs)
+	}
+}
+
+func TestGetAllTabCounts_StatefulSetErrors(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+	clientset.PrependReactor("list", "persistentvolumeclaims", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated pvc list error")
+	})
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "StatefulSet", "missing")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Pods != 0 || counts.PVCs != 0 {
+		t.Errorf("expected zero counts, got pods=%d pvcs=%d", counts.Pods, counts.PVCs)
+	}
+}
+
+func TestGetAllTabCounts_ConfigMapCounts(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-config",
+				Namespace: "default",
+			},
+			Data: map[string]string{
+				"key1": "value1",
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cm-pod",
+				Namespace: "default",
+			},
+			Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{
+					{
+						Name: "config",
+						VolumeSource: corev1.VolumeSource{
+							ConfigMap: &corev1.ConfigMapVolumeSource{
+								LocalObjectReference: corev1.LocalObjectReference{Name: "my-config"},
+							},
+						},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "ConfigMap", "my-config")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Consumers != 1 {
+		t.Errorf("expected Consumers count 1, got %d", counts.Consumers)
+	}
+	if counts.Data != 1 {
+		t.Errorf("expected Data count 1, got %d", counts.Data)
+	}
+}
+
+func TestGetAllTabCounts_ConfigMapErrors(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+	clientset.PrependReactor("list", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated pods list error")
+	})
+	clientset.PrependReactor("get", "configmaps", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated configmap get error")
+	})
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "ConfigMap", "my-config")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Consumers != 0 || counts.Data != 0 {
+		t.Errorf("expected zero counts, got consumers=%d data=%d", counts.Consumers, counts.Data)
+	}
+}
+
+func TestGetAllTabCounts_SecretCounts(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-secret",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"password": []byte("secret"),
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-pod",
+				Namespace: "default",
+			},
+			Spec: corev1.PodSpec{
+				Volumes: []corev1.Volume{
+					{
+						Name: "secret",
+						VolumeSource: corev1.VolumeSource{
+							Secret: &corev1.SecretVolumeSource{SecretName: "my-secret"},
+						},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "Secret", "my-secret")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Consumers != 1 {
+		t.Errorf("expected Consumers count 1, got %d", counts.Consumers)
+	}
+	if counts.Data != 1 {
+		t.Errorf("expected Data count 1, got %d", counts.Data)
+	}
+}
+
+func TestGetAllTabCounts_SecretErrors(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+	clientset.PrependReactor("list", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated pods list error")
+	})
+	clientset.PrependReactor("get", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated secret get error")
+	})
+
+	app := &App{
+		ctx:           ctx,
+		testClientset: clientset,
+	}
+
+	counts, err := app.GetAllTabCounts("default", "Secret", "my-secret")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if counts.Consumers != 0 || counts.Data != 0 {
+		t.Errorf("expected zero counts, got consumers=%d data=%d", counts.Consumers, counts.Data)
+	}
+}
 func TestGetStatefulSetPVCsCount_ByOwnerReference(t *testing.T) {
 	ctx := context.Background()
 	stsOwner := metav1.OwnerReference{
