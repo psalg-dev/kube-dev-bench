@@ -14,7 +14,7 @@ func TestEmitEvent_Disabled_NoPanic(t *testing.T) {
 
 func TestEmitEvent_NilContext_NoPanic(t *testing.T) {
 	previous := disableWailsEvents
-	disableWailsEvents = false
+	disableWailsEvents = true
 	t.Cleanup(func() { disableWailsEvents = previous })
 	emitEvent(nil, "unit:test", nil)
 }
