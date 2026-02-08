@@ -152,7 +152,8 @@ func TestFindHolmesService(t *testing.T) {
 	cs := fake.NewSimpleClientset(
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "misc",
+				Name:      "misc",
+				Namespace: ns,
 				Labels: map[string]string{
 					"app.kubernetes.io/name": "other",
 				},
@@ -163,7 +164,8 @@ func TestFindHolmesService(t *testing.T) {
 		},
 		&corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: holmesServiceName,
+				Name:      holmesServiceName,
+				Namespace: ns,
 				Labels: map[string]string{
 					"app.kubernetes.io/instance": holmesDefaultReleaseName,
 					"app.kubernetes.io/name":     "holmesgpt",
