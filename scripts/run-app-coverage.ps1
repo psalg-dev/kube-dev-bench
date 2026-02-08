@@ -1,5 +1,8 @@
 param(
     [Parameter()]
+    [string]$PackagePath = './pkg/app',
+
+    [Parameter()]
     [string]$ProfilePath = 'coverage_profiles/app_mcp_wrappers.cov'
 )
 
@@ -7,7 +10,7 @@ $ErrorActionPreference = 'Stop'
 
 New-Item -ItemType Directory -Force (Split-Path $ProfilePath) | Out-Null
 
-go test ./pkg/app -coverprofile=$ProfilePath
+go test $PackagePath -coverprofile=$ProfilePath
 
 $legacyPath = Join-Path (Split-Path $ProfilePath) ([System.IO.Path]::GetFileNameWithoutExtension($ProfilePath))
 if ((Test-Path $legacyPath) -and -not (Test-Path $ProfilePath)) {
