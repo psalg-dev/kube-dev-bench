@@ -3,11 +3,14 @@ package app
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 // Tests for GetSecretData function
@@ -273,5 +276,20 @@ func TestGetSecrets_Details(t *testing.T) {
 	}
 	if s["keys"] != "2" {
 		t.Errorf("expected 2 keys, got %q", s["keys"])
+	}
+}
+
+func TestGetSecrets_ListError(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	cs.PrependReactor("list", "secrets", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated list error")
+	})
+	app := &App{ctx: context.Background(), testClientset: cs}
+	result, err := app.GetSecrets("default")
+	if err == nil {
+		t.Fatal("expected error from GetSecrets when list fails")
+	}
+	if result != nil && len(result) != 0 {
+		t.Errorf("expected empty result on list error, got %d", len(result))
 	}
 }
