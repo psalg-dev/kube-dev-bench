@@ -167,3 +167,11 @@ func TestCronJobInterfaceAdapter(t *testing.T) {
 		t.Errorf("Delete failed: %v", err)
 	}
 }
+
+func TestAppGetJobs_NoKubeContext(t *testing.T) {
+	app := &App{ctx: context.Background(), currentKubeContext: ""}
+	_, err := app.GetJobs("default")
+	if err == nil {
+		t.Fatal("expected error when no kube context selected")
+	}
+}

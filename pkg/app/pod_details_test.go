@@ -296,6 +296,15 @@ func TestGetPodSummary_NoNamespace(t *testing.T) {
 	}
 }
 
+func TestGetPodSummary_NotFound(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{ctx: context.Background(), testClientset: cs, currentNamespace: "default"}
+	_, err := app.GetPodSummary("missing-pod")
+	if err == nil {
+		t.Fatal("expected error for missing pod")
+	}
+}
+
 // Tests for defaultShortTimeout function
 func TestDefaultShortTimeout(t *testing.T) {
 	timeout := defaultShortTimeout()

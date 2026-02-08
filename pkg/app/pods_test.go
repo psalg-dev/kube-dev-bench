@@ -599,3 +599,83 @@ func TestShellPod(t *testing.T) {
 		t.Errorf("command should contain namespace and pod name: %s", cmd)
 	}
 }
+
+func TestGetRunningPods_ListError(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	cs.PrependReactor("list", "pods", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated list error")
+	})
+	app := &App{ctx: context.Background(), testClientset: cs}
+	_, err := app.GetRunningPods("default")
+	if err == nil {
+		t.Fatal("expected error from GetRunningPods when list fails")
+	}
+}
+
+func TestShouldIncludePod_Cases(t *testing.T) {
+	start := metav1.NewTime(time.Now())
+	cases := []struct {
+		name string
+		pod  *v1.Pod
+		want bool
+	}{
+		{"running", &v1.Pod{Status: v1.PodStatus{Phase: v1.PodRunning, StartTime: &start}}, true},
+		{"pending", &v1.Pod{Status: v1.PodStatus{Phase: v1.PodPending}}, true},
+		{"failed-not-job", &v1.Pod{Status: v1.PodStatus{Phase: v1.PodFailed}}, false},
+		{"failed-job-owned", &v1.Pod{ObjectMeta: metav1.ObjectMeta{OwnerReferences: []metav1.OwnerReference{{Kind: "Job", Name: "j"}}}, Status: v1.PodStatus{Phase: v1.PodFailed}}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := shouldIncludePod(tc.pod); got != tc.want {
+				t.Errorf("shouldIncludePod => %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestBuildPodInfoFromPod_Format(t *testing.T) {
+	now := time.Now()
+	st := metav1.NewTime(now.Add(-90 * time.Minute))
+	uid := types.UID("abc-123")
+	pod := v1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "p", Namespace: "ns", UID: uid},
+		Spec: v1.PodSpec{Containers: []v1.Container{
+			{Name: "c1", Ports: []v1.ContainerPort{{ContainerPort: 8080}, {ContainerPort: 8080}}},
+			{Name: "c2", Ports: []v1.ContainerPort{{ContainerPort: 9090}}},
+		}},
+		Status: v1.PodStatus{Phase: v1.PodRunning, StartTime: &st, ContainerStatuses: []v1.ContainerStatus{{RestartCount: 2}, {RestartCount: 3}}},
+	}
+	info := buildPodInfoFromPod(pod, now)
+	if info.UID != string(uid) {
+		t.Errorf("UID = %q, want %q", info.UID, uid)
+	}
+	if info.Restarts != 5 {
+		t.Errorf("Restarts = %d, want 5", info.Restarts)
+	}
+	wantStart := st.Time.UTC().Format(time.RFC3339)
+	if info.StartTime != wantStart {
+		t.Errorf("StartTime = %q, want %q", info.StartTime, wantStart)
+	}
+	wantUptime := now.Sub(st.Time).Truncate(time.Second).String()
+	if info.Uptime != wantUptime {
+		t.Errorf("Uptime = %q, want %q", info.Uptime, wantUptime)
+	}
+	if len(info.Ports) != 2 {
+		t.Fatalf("Ports len = %d, want 2", len(info.Ports))
+	}
+}
+
+func TestCollectContainerPorts_Dedup(t *testing.T) {
+	pod := &v1.Pod{Spec: v1.PodSpec{Containers: []v1.Container{
+		{Name: "a", Ports: []v1.ContainerPort{{ContainerPort: 80}, {ContainerPort: 80}}},
+		{Name: "b", Ports: []v1.ContainerPort{{ContainerPort: 443}, {ContainerPort: 80}}},
+	}}}
+	ports := collectContainerPorts(pod)
+	sort.Ints(ports)
+	if len(ports) != 2 {
+		t.Fatalf("expected 2 unique ports, got %d", len(ports))
+	}
+	if !(ports[0] == 80 && ports[1] == 443) {
+		t.Errorf("ports = %v, want [80 443]", ports)
+	}
+}
