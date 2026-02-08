@@ -2,7 +2,8 @@ Param(
     [string[]]$Packages = @('./...'),
     [string]$Run = '',
     [int]$Count = 1,
-    [string]$CoverProfile = ''
+    [string]$CoverProfile = '',
+    [string[]]$ExtraArgs = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,4 +21,4 @@ if ($CoverProfile) {
     $flags += "-coverprofile=$CoverProfile"
 }
 
-& go test @flags @Packages
+& go test @flags @ExtraArgs @Packages
