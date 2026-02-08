@@ -221,6 +221,7 @@ func TestMCPAdapter_GetResourceYAML_ConfigMap(t *testing.T) {
 	ns := "ns1"
 	cs := fake.NewSimpleClientset()
 	_, _ = cs.CoreV1().ConfigMaps(ns).Create(context.Background(), &v1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: "v1"},
 		ObjectMeta: metav1.ObjectMeta{Name: "cm1", Namespace: ns},
 		Data:       map[string]string{"k": "v"},
 	}, metav1.CreateOptions{})
