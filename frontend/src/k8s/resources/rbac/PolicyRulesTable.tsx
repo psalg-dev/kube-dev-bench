@@ -1,31 +1,26 @@
-import React from 'react';
+import { useMemo } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
-import type { app } from '../../../../wailsjs/go/models';
 
-type PolicyRulesTableProps = {
-  rules?: app.PolicyRule[] | null;
-};
+type PolicyRulesTableProps = { rules?: app.PolicyRule[] | null };
 
 export default function PolicyRulesTable({ rules }: PolicyRulesTableProps) {
-  const items = Array.isArray(rules) ? rules.filter(Boolean) : [];
+  const items = useMemo(() => (Array.isArray(rules) ? rules.filter(Boolean) : []), [rules]);
   if (items.length === 0) {
-    const empty = getEmptyTabMessage('rules');
+    const emptyMsg = getEmptyTabMessage('rules');
     return (
-      <div style={{ padding: 16 }}>
-        <EmptyTabContent icon={empty.icon} title={empty.title || 'No rules'} description={empty.description} tip={empty.tip} />
-      </div>
+      <EmptyTabContent
+        icon={emptyMsg.icon}
+        title="No RBAC rules"
+        description="No policy rules are defined."
+        tip="Add rules to restrict or grant permissions."
+      />
     );
   }
   return (
-    <div style={{ padding: 8, overflow: 'auto' }}>
-      <table className="gh-table">
-        <colgroup>
-          <col style={{ width: '24%' }} />
-          <col style={{ width: '24%' }} />
-          <col style={{ width: '24%' }} />
-          <col style={{ width: '28%' }} />
-        </colgroup>
+    <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
+      <table className="panel-table">
         <thead>
           <tr>
             <th>Verbs</th>
@@ -35,12 +30,16 @@ export default function PolicyRulesTable({ rules }: PolicyRulesTableProps) {
           </tr>
         </thead>
         <tbody>
-          {items.map((r, idx) => (
+          {items.map((rule, idx) => (
             <tr key={idx}>
-              <td>{Array.isArray(r.verbs) ? r.verbs.join(', ') : '-'}</td>
-              <td>{Array.isArray(r.apiGroups) ? r.apiGroups.join(', ') : '-'}</td>
-              <td>{Array.isArray(r.resources) ? r.resources.join(', ') : '-'}</td>
-              <td>{Array.isArray(r.resourceNames) ? r.resourceNames.join(', ') : '-'}</td>
+              <td>{Array.isArray(rule.verbs) ? rule.verbs.join(', ') : '-'}</td>
+              <td>{Array.isArray(rule.apiGroups) ? rule.apiGroups.join(', ') : '-'}</td>
+              <td>{Array.isArray(rule.resources) ? rule.resources.join(', ') : '-'}</td>
+              <td>
+                {Array.isArray(rule.resourceNames) && rule.resourceNames.length > 0
+                  ? rule.resourceNames.join(', ')
+                  : '-'}
+              </td>
             </tr>
           ))}
         </tbody>
