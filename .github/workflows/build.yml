@@ -227,6 +227,11 @@ jobs:
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
+      - name: Pre-build Wails dev binary for E2E
+        run: |
+          go build -tags dev -gcflags "all=-N -l" -o build/bin/kube-dev-bench-e2e .
+          echo "Dev binary size: $(du -h build/bin/kube-dev-bench-e2e | cut -f1)"
+
       - name: Install e2e dependencies
         working-directory: e2e
         run: npm ci
@@ -257,6 +262,7 @@ jobs:
           PW_WORKERS: '2'
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+          E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
       - name: Run MCP e2e tests
         if: matrix.mcp == true
@@ -267,6 +273,7 @@ jobs:
           PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+          E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
       - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
         if: matrix.holmes_deploy == true
@@ -286,6 +293,7 @@ jobs:
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_HOLMES_DEPLOY: '1'
+          E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
       - name: Run registry e2e tests
         if: matrix.registry == true
@@ -298,6 +306,7 @@ jobs:
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_REGISTRY_SUITE: '1'
           E2E_SKIP_KIND: '1'
+          E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
       - name: Upload e2e test results
         if: always()

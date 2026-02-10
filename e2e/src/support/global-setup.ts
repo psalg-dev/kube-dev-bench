@@ -7,7 +7,7 @@ import { cleanupWorkerNamespaces, ensureKindCluster, writeKubeconfigFile } from 
 import type { KindInfo } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
-import { startWailsDev } from './wails.js';
+import { startWailsDev, startPrebuiltApp } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
 import { ensureHolmesMockServer } from './holmes-mock.js';
 import { exec } from './exec.js';
@@ -107,9 +107,26 @@ export default async function globalSetup(config: FullConfig) {
   const platform = process.platform as unknown as string;
   const isWin32 = platform === 'win32';
 
+  // Prebuilt binary mode: skip `wails dev` recompilation by spawning a
+  // pre-compiled dev binary directly.  Set E2E_PREBUILT_BINARY to the absolute
+  // path of a binary built with `-tags dev -gcflags "all=-N -l"`.
+  const prebuiltBinary = process.env.E2E_PREBUILT_BINARY || '';
+  const usePrebuilt = prebuiltBinary.length > 0;
+  if (usePrebuilt) {
+    try {
+      await fs.stat(prebuiltBinary);
+    } catch {
+      throw new Error(
+        `E2E_PREBUILT_BINARY is set but the file does not exist: ${prebuiltBinary}\n` +
+          `Build it with: go build -tags dev -gcflags "all=-N -l" -o ${prebuiltBinary} .`
+      );
+    }
+  }
+
   console.log(
     `[e2e][setup] ${isoNow()} starting runId=${runId} platform=${platform} ` +
-      `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}`
+      `cluster=${clusterName} skipKind=${skipKind} sharedServer=${process.env.E2E_SHARED_SERVER === '1'}` +
+      (usePrebuilt ? ` prebuilt=${prebuiltBinary}` : '')
   );
 
   if (skipKindAuto && !skipKindEnv) {
@@ -302,17 +319,29 @@ export default async function globalSetup(config: FullConfig) {
       await timed('clear Windows listener on port 34115', async () => killWindowsListenerOnPort(34115));
     }
 
-    const instance = await timed('start shared wails dev (port=34115)', async () =>
-      startWailsDev({
-        repoRoot: withinRepo(),
-        logRepoRoot: withinRepo(),
-        port: 34115,
-        homeDir,
-        assetDir,
-        // Allow more time in CI/global setup while keeping per-test timeouts strict.
-        readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
-      })
-    );
+    const instance = usePrebuilt
+      ? await timed('start shared prebuilt binary (port=34115)', async () =>
+          startPrebuiltApp({
+            binaryPath: prebuiltBinary,
+            repoRoot: withinRepo(),
+            logRepoRoot: withinRepo(),
+            port: 34115,
+            homeDir,
+            assetDir,
+            // Prebuilt binaries start much faster; keep a reasonable timeout.
+            readyTimeoutMs: process.env.CI ? 120_000 : 60_000,
+          })
+        )
+      : await timed('start shared wails dev (port=34115)', async () =>
+          startWailsDev({
+            repoRoot: withinRepo(),
+            logRepoRoot: withinRepo(),
+            port: 34115,
+            homeDir,
+            assetDir,
+            readyTimeoutMs: process.env.CI ? 240_000 : 180_000,
+          })
+        );
     if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
 
     console.log(`[e2e][setup] ${isoNow()} shared wails ready at ${instance.baseURL} pid=${instance.process.pid ?? 'unknown'}`);
@@ -517,18 +546,32 @@ export default async function globalSetup(config: FullConfig) {
     console.log(`[e2e][setup] ${isoNow()} starting ${instanceCount} wails dev instances in parallel...`);
 
     const startPromises = preparations.map(async ({ index, port, homeDir, repoRoot: repoRootResolved }) => {
-      const instance = await timed(`start wails dev instance #${index} port=${port}`, async () =>
-        startWailsDev({
-          repoRoot: repoRootResolved,
-          logRepoRoot: withinRepo(),
-          port,
-          homeDir,
-          assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
-          // Parallel startup; allow more time here. Increased to 600s (10min) for CI to handle
-          // resource contention when multiple Wails instances start in parallel.
-          readyTimeoutMs: process.env.CI ? 600_000 : 240_000,
-        })
-      );
+      const instanceAssetDir = path.join(repoRootResolved, 'frontend', 'dist');
+      const instance = usePrebuilt
+        ? await timed(`start prebuilt instance #${index} port=${port}`, async () =>
+            startPrebuiltApp({
+              binaryPath: prebuiltBinary,
+              repoRoot: repoRootResolved,
+              logRepoRoot: withinRepo(),
+              port,
+              homeDir,
+              assetDir: instanceAssetDir,
+              // Prebuilt binaries skip compilation; much faster startup.
+              readyTimeoutMs: process.env.CI ? 120_000 : 60_000,
+            })
+          )
+        : await timed(`start wails dev instance #${index} port=${port}`, async () =>
+            startWailsDev({
+              repoRoot: repoRootResolved,
+              logRepoRoot: withinRepo(),
+              port,
+              homeDir,
+              assetDir: instanceAssetDir,
+              // Parallel startup; allow more time here. Increased to 600s (10min) for CI to handle
+              // resource contention when multiple Wails instances start in parallel.
+              readyTimeoutMs: process.env.CI ? 600_000 : 240_000,
+            })
+          );
 
       if (typeof instance.process.pid === 'number') startedWailsPids.push(instance.process.pid);
 
