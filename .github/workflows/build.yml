@@ -105,6 +105,24 @@ jobs:
       - name: Build Go app
         run: go build -v .
 
+      - name: Install Wails Linux dependencies for dev build
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: libgtk-3-dev libwebkit2gtk-4.0-dev
+          version: 1.0
+
+      - name: Build Wails dev binary for E2E
+        run: |
+          go build -tags dev -gcflags "all=-N -l" -o build/bin/kube-dev-bench-e2e .
+          echo "Dev binary size: $(du -h build/bin/kube-dev-bench-e2e | cut -f1)"
+
+      - name: Upload E2E dev binary artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-dev-binary
+          path: build/bin/kube-dev-bench-e2e
+          retention-days: 1
+
   e2e:
     runs-on: ubuntu-22.04
     needs: backend
@@ -171,6 +189,15 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
+      - name: Download E2E dev binary
+        uses: actions/download-artifact@v7
+        with:
+          name: e2e-dev-binary
+          path: build/bin
+
+      - name: Make dev binary executable
+        run: chmod +x build/bin/kube-dev-bench-e2e
+
       - name: Install kubectl
         uses: azure/setup-kubectl@v4
         with:
@@ -226,11 +253,6 @@ jobs:
 
       - name: Install Wails CLI
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
-
-      - name: Pre-build Wails dev binary for E2E
-        run: |
-          go build -tags dev -gcflags "all=-N -l" -o build/bin/kube-dev-bench-e2e .
-          echo "Dev binary size: $(du -h build/bin/kube-dev-bench-e2e | cut -f1)"
 
       - name: Install e2e dependencies
         working-directory: e2e
