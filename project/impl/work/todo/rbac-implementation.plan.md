@@ -1,3 +1,8 @@
+---
+title: "Implementation Plan: K8s RBAC Resources"
+status: todo
+priority: medium
+---
 # Implementation Plan: K8s RBAC Resources
 
 **Status:** WIP (30% — backend types + getters done, no frontend)

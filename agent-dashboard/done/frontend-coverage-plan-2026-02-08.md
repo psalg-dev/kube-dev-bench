@@ -1,6 +1,6 @@
 ---
 title: "Frontend Vitest Coverage Baseline and 5% Increase Plan (2026-02-08)"   # Card title (string)
-status: wip
+status: done
 priority: high                            # low | medium | high | critical (default: medium)
 assignedAgent: null
 branch: null

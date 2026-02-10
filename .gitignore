@@ -28,3 +28,6 @@ e2e-test-results*.zip
 /jfrog-token
 **/*.log
 /test-results
+
+# Agent worktrees (auto-added)
+.agent-worktrees/

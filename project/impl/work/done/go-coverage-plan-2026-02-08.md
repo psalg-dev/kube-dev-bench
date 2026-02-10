@@ -1,3 +1,8 @@
+---
+title: "Go Coverage Baseline and 5% Increase Plan (2026-02-08)"
+status: done
+priority: medium
+---
 # Go Coverage Baseline and 5% Increase Plan (2026-02-08)
 
 ## Current Coverage (Measured)
