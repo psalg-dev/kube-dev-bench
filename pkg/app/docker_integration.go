@@ -957,6 +957,10 @@ func (a *App) RemoveSwarmStack(stackName string) error {
 
 // CreateSwarmStack deploys a stack from a docker-compose YAML.
 func (a *App) CreateSwarmStack(stackName string, composeYAML string) (string, error) {
+	// Verify docker client is connected before attempting CLI-based deploy.
+	if _, err := a.getDockerClient(); err != nil {
+		return "", err
+	}
 	// Stack deploy is CLI-based.
 	if err := docker.DeploySwarmStack(a.ctx, stackName, composeYAML); err != nil {
 		return "", err

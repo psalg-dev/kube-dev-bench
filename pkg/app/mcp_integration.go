@@ -150,8 +150,12 @@ func (m *MCPServerAdapter) GetEndpoints(namespace string) (interface{}, error) {
 // Detail methods
 
 func (m *MCPServerAdapter) GetPodDetail(namespace, name string) (interface{}, error) {
-	// Use namespace-aware pod lookup via GetPodDetailInNamespace
-	return m.app.GetPodDetailInNamespace(namespace, name)
+	// Use the app's current namespace for pod lookup
+	ns := m.app.currentNamespace
+	if ns == "" {
+		ns = namespace
+	}
+	return m.app.GetPodDetailInNamespace(ns, name)
 }
 
 func (m *MCPServerAdapter) GetDeploymentDetail(namespace, name string) (interface{}, error) {
