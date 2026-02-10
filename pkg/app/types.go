@@ -304,6 +304,11 @@ type ResourceCounts struct {
 	PersistentVolumeClaims int             `json:"persistentvolumeclaims"`
 	PersistentVolumes      int             `json:"persistentvolumes"`
 	HelmReleases           int             `json:"helmreleases"`
+	// RBAC counts
+	Roles               int `json:"roles"`
+	ClusterRoles        int `json:"clusterroles"`
+	RoleBindings        int `json:"rolebindings"`
+	ClusterRoleBindings int `json:"clusterrolebindings"`
 }
 
 // MonitorIssue represents a single warning or error detected in the cluster
