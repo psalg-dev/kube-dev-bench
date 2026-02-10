@@ -1,8 +1,14 @@
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
 param(
-    [Parameter()]
-    [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    [string]$CoverProfile = 'go-cover.out'
 )
 
-Set-Location $RepoRoot
-
-go test ./pkg/app -v
+try {
+    go test -v ./pkg/app/...
+    go test -coverprofile $CoverProfile ./pkg/app/...
+} catch {
+    Write-Error "Tests failed: $_"
+    exit 1
+}
