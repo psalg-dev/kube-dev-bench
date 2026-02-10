@@ -4,6 +4,7 @@ import FooterBar from './FooterBar';
 import SidebarSections from './SidebarSections';
 import { SwarmSidebarSections } from '../docker/SwarmSidebarSections';
 import SwarmStateContext from '../docker/SwarmStateContext';
+import { useMCP } from '../mcp/MCPContext';
 
 type DockerSwarmSidebarProps = {
   selectedSection: string;
@@ -98,6 +99,8 @@ export function AppLayout({
   const swarmConnected = Boolean(swarmContext?.connected);
   const activeConnectionCount = (kubernetesAvailable !== false ? 1 : 0) + (swarmConnected ? 1 : 0);
   const showSidebarSeparators = activeConnectionCount > 1;
+  const { state: mcpState } = useMCP();
+  const mcpRunning = mcpState.status?.running ?? false;
   return (
     <div id="layout">
       <aside id="sidebar">
@@ -123,18 +126,28 @@ export function AppLayout({
             <button
               id="mcp-config-btn"
               onClick={onToggleMCP}
-              title="MCP Server Configuration"
+              title={mcpRunning ? 'MCP Server Running' : 'MCP Server Configuration'}
               style={{
-                background: 'transparent',
+                background: mcpRunning ? 'var(--gh-accent, #238636)' : 'transparent',
                 border: '1px solid var(--gh-border, #444)',
-                color: 'var(--gh-text-secondary, #ccc)',
+                color: mcpRunning ? '#ffffff' : 'var(--gh-text-secondary, #ccc)',
                 padding: '4px 8px',
                 borderRadius: 0,
                 cursor: 'pointer',
                 fontSize: 12,
+                position: 'relative',
               }}
             >
-              🔌
+              🔌{mcpRunning && <span style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#3fb950',
+                border: '1px solid #238636',
+              }} />}
             </button>
             <button
               id="show-wizard-btn"

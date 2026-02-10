@@ -646,6 +646,10 @@ export function GetPodContainers(arg1) {
   return window['go']['main']['App']['GetPodContainers'](arg1);
 }
 
+export function GetPodDetailInNamespace(arg1, arg2) {
+  return window['go']['main']['App']['GetPodDetailInNamespace'](arg1, arg2);
+}
+
 export function GetPodEvents(arg1, arg2) {
   return window['go']['main']['App']['GetPodEvents'](arg1, arg2);
 }
@@ -1158,6 +1162,10 @@ export function RestartSwarmService(arg1) {
   return window['go']['main']['App']['RestartSwarmService'](arg1);
 }
 
+export function RestartWorkload(arg1, arg2, arg3) {
+  return window['go']['main']['App']['RestartWorkload'](arg1, arg2, arg3);
+}
+
 export function RestoreSwarmVolume(arg1) {
   return window['go']['main']['App']['RestoreSwarmVolume'](arg1);
 }
@@ -1282,20 +1290,8 @@ export function Shutdown(arg1) {
   return window['go']['main']['App']['Shutdown'](arg1);
 }
 
-export function StartCronJobPolling() {
-  return window['go']['main']['App']['StartCronJobPolling']();
-}
-
-export function StartDaemonSetPolling() {
-  return window['go']['main']['App']['StartDaemonSetPolling']();
-}
-
-export function StartDeploymentPolling() {
-  return window['go']['main']['App']['StartDeploymentPolling']();
-}
-
-export function StartHelmReleasePolling() {
-  return window['go']['main']['App']['StartHelmReleasePolling']();
+export function StartAllPolling() {
+  return window['go']['main']['App']['StartAllPolling']();
 }
 
 export function StartHolmesPortForward(arg1) {
@@ -1322,20 +1318,8 @@ export function StartPodExecSession(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
 }
 
-export function StartPodPolling() {
-  return window['go']['main']['App']['StartPodPolling']();
-}
-
-export function StartReplicaSetPolling() {
-  return window['go']['main']['App']['StartReplicaSetPolling']();
-}
-
 export function StartShellSession(arg1, arg2) {
   return window['go']['main']['App']['StartShellSession'](arg1, arg2);
-}
-
-export function StartStatefulSetPolling() {
-  return window['go']['main']['App']['StartStatefulSetPolling']();
 }
 
 export function StartSwarmImageUpdatePolling() {

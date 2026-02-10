@@ -117,24 +117,28 @@ jobs:
             base_port: 34200
             registry: false
             holmes_deploy: false
+            mcp: false
           - name: e2e-shard-2
             shard: 2
             base_port: 34300
             registry: false
             holmes_deploy: false
-          - name: e2e-shard-3
-            shard: 3
+            mcp: false
+          - name: e2e-mcp
             base_port: 34400
             registry: false
             holmes_deploy: false
+            mcp: true
           - name: e2e-holmes-deploy
             base_port: 34600
             registry: false
             holmes_deploy: true
+            mcp: false
           - name: e2e-registry
             base_port: 34500
             registry: true
             holmes_deploy: false
+            mcp: false
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -244,13 +248,23 @@ jobs:
         working-directory: e2e
         run: npx playwright install --with-deps chromium
 
-      - name: Run e2e tests (shard ${{ matrix.shard }}/3)
-        if: matrix.registry != true && matrix.holmes_deploy != true
+      - name: Run e2e tests (shard ${{ matrix.shard }}/2)
+        if: matrix.registry != true && matrix.holmes_deploy != true && matrix.mcp != true
         working-directory: e2e
-        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
+        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/2
         env:
           CI: true
           PW_WORKERS: '2'
+          KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+
+      - name: Run MCP e2e tests
+        if: matrix.mcp == true
+        working-directory: e2e
+        run: xvfb-run -a npx playwright test tests/mcp/
+        env:
+          CI: true
+          PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 

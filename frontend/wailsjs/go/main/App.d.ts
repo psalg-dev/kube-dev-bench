@@ -331,6 +331,8 @@ export function GetPodContainerPorts(arg1:string):Promise<Array<number>>;
 
 export function GetPodContainers(arg1:string):Promise<Array<string>>;
 
+export function GetPodDetailInNamespace(arg1:string,arg2:string):Promise<app.PodSummary>;
+
 export function GetPodEvents(arg1:string,arg2:string):Promise<Array<app.EventInfo>>;
 
 export function GetPodEventsLegacy(arg1:string):Promise<Array<app.EventInfo>>;
@@ -587,6 +589,8 @@ export function RestartStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function RestartSwarmService(arg1:string):Promise<void>;
 
+export function RestartWorkload(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function RestoreSwarmVolume(arg1:string):Promise<string>;
 
 export function ResumeCronJob(arg1:string,arg2:string):Promise<void>;
@@ -649,13 +653,7 @@ export function ShellPod(arg1:string,arg2:string):Promise<string>;
 
 export function Shutdown(arg1:context.Context):Promise<void>;
 
-export function StartCronJobPolling():Promise<void>;
-
-export function StartDaemonSetPolling():Promise<void>;
-
-export function StartDeploymentPolling():Promise<void>;
-
-export function StartHelmReleasePolling():Promise<void>;
+export function StartAllPolling():Promise<void>;
 
 export function StartHolmesPortForward(arg1:string):Promise<string>;
 
@@ -669,13 +667,7 @@ export function StartMonitorPolling():Promise<void>;
 
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
 
-export function StartPodPolling():Promise<void>;
-
-export function StartReplicaSetPolling():Promise<void>;
-
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
-
-export function StartStatefulSetPolling():Promise<void>;
 
 export function StartSwarmImageUpdatePolling():Promise<void>;
 
