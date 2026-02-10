@@ -1,30 +1,24 @@
-import React from 'react';
-import EmptyTabContent from '../../../components/EmptyTabContent';
-import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import { useMemo } from 'react';
 import type { app } from '../../../../wailsjs/go/models';
+import EmptyTabContent from '../../../components/EmptyTabContent';
 
-type SubjectsTableProps = {
-  subjects?: app.Subject[] | null;
-};
+type SubjectsTableProps = { subjects?: app.Subject[] | null };
 
 export default function SubjectsTable({ subjects }: SubjectsTableProps) {
-  const items = Array.isArray(subjects) ? subjects.filter(Boolean) : [];
+  const items = useMemo(() => (Array.isArray(subjects) ? subjects.filter(Boolean) : []), [subjects]);
   if (items.length === 0) {
-    const empty = getEmptyTabMessage('data');
     return (
-      <div style={{ padding: 16 }}>
-        <EmptyTabContent icon={empty.icon} title={empty.title || 'No subjects'} description={empty.description} tip={empty.tip} />
-      </div>
+      <EmptyTabContent
+        icon="default"
+        title="No subjects"
+        description="No subjects are bound to this role."
+        tip="Bind users, groups, or service accounts to grant permissions."
+      />
     );
   }
   return (
-    <div style={{ padding: 8, overflow: 'auto' }}>
-      <table className="gh-table">
-        <colgroup>
-          <col style={{ width: '20%' }} />
-          <col style={{ width: '40%' }} />
-          <col style={{ width: '40%' }} />
-        </colgroup>
+    <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
+      <table className="panel-table">
         <thead>
           <tr>
             <th>Kind</th>
@@ -33,11 +27,11 @@ export default function SubjectsTable({ subjects }: SubjectsTableProps) {
           </tr>
         </thead>
         <tbody>
-          {items.map((s, idx) => (
-            <tr key={idx}>
-              <td>{s.kind || '-'}</td>
-              <td>{s.name || '-'}</td>
-              <td>{s.namespace || '-'}</td>
+          {items.map((subject, idx) => (
+            <tr key={`${subject.kind}-${subject.name}-${idx}`}>
+              <td>{subject.kind || '-'}</td>
+              <td>{subject.name || '-'}</td>
+              <td>{subject.namespace || '-'}</td>
             </tr>
           ))}
         </tbody>
