@@ -422,6 +422,8 @@ func (s *MCPServer) handleRoot(w http.ResponseWriter, _ *http.Request) {
 		"name":        "KubeDevBench MCP Server",
 		"version":     "1.0.0",
 		"description": "Model Context Protocol server for Kubernetes and Docker Swarm management",
+		"transport":   "streamable-http",
+		"endpoint":    "/mcp",
 		"protocol":    "mcp-go SDK v0.43",
 		"endpoints": map[string]string{
 			"mcp":    "/mcp",
