@@ -5,40 +5,58 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 )
 
-// --- Generic helpers ---
+// --- Generic restart helper ---
 
-// Remove unused parameter warnings
-func (a *App) patchControllerAnnotation(_kind, _namespace, _name string, patchFunc func() error) error {
-	// reference parameters to avoid unused parameter warnings in static analysis
-	_ = _kind
-	_ = _namespace
-	_ = _name
-	return patchFunc()
+// restartWorkload patches the pod template annotation to trigger a rolling restart.
+// Supported kinds: deployment, statefulset, daemonset.
+func (a *App) restartWorkload(kind, namespace, name string) error {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return err
+	}
+	patch := []byte(fmt.Sprintf(
+		`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`,
+		time.Now().Format(time.RFC3339),
+	))
+	switch strings.ToLower(kind) {
+	case "deployment", "deployments":
+		_, err = clientset.AppsV1().Deployments(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
+	case "statefulset", "statefulsets":
+		_, err = clientset.AppsV1().StatefulSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
+	case "daemonset", "daemonsets":
+		_, err = clientset.AppsV1().DaemonSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
+	default:
+		return fmt.Errorf("restart not supported for kind %s", kind)
+	}
+	return err
+}
+
+// RestartWorkload restarts a workload by kind. Exposed to frontend via Wails.
+// Supported kinds: deployment, statefulset, daemonset.
+func (a *App) RestartWorkload(kind, namespace, name string) error {
+	return a.restartWorkload(kind, namespace, name)
 }
 
 // --- Deployments ---
+
+// RestartDeployment restarts a deployment by patching its pod template annotation.
+// Delegates to restartWorkload for the common restart logic.
 func (a *App) RestartDeployment(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
-	_, err = clientset.AppsV1().Deployments(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	return err
+	return a.restartWorkload("deployment", namespace, name)
 }
+
+// DeleteDeployment deletes a deployment. Delegates to DeleteResource.
 func (a *App) DeleteDeployment(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().Deployments(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("deployment", namespace, name)
 }
 
 // RollbackDeploymentToRevision updates the Deployment's pod template to match a previous ReplicaSet revision.
@@ -55,37 +73,10 @@ func (a *App) RollbackDeploymentToRevision(namespace, name string, revision int6
 	if dep.Spec.Selector == nil {
 		return fmt.Errorf("deployment has no selector")
 	}
-	selector := labels.SelectorFromSet(dep.Spec.Selector.MatchLabels)
-	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector.String()})
+
+	foundTemplate, err := a.findDeploymentRevisionTemplate(clientset, namespace, name, dep, revision)
 	if err != nil {
 		return err
-	}
-
-	var foundTemplate *corev1.PodTemplateSpec
-	for _, rs := range rsList.Items {
-		// Ensure RS is owned by the deployment
-		owned := false
-		for _, ref := range rs.OwnerReferences {
-			if ref.Kind == "Deployment" && ref.Name == name {
-				owned = true
-				break
-			}
-		}
-		if !owned {
-			continue
-		}
-		rsRev := int64(0)
-		if rev, ok := rs.Annotations["deployment.kubernetes.io/revision"]; ok {
-			fmt.Sscanf(rev, "%d", &rsRev)
-		}
-		if rsRev == revision {
-			tpl := rs.Spec.Template
-			foundTemplate = &tpl
-			break
-		}
-	}
-	if foundTemplate == nil {
-		return fmt.Errorf("revision %d not found", revision)
 	}
 
 	dep.Spec.Template = *foundTemplate
@@ -93,94 +84,109 @@ func (a *App) RollbackDeploymentToRevision(namespace, name string, revision int6
 	return err
 }
 
-// --- StatefulSets ---
-func (a *App) RestartStatefulSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
+func (a *App) findDeploymentRevisionTemplate(clientset kubernetes.Interface, namespace, name string, dep *appsv1.Deployment, revision int64) (*corev1.PodTemplateSpec, error) {
+	selector := labels.SelectorFromSet(dep.Spec.Selector.MatchLabels)
+	rsList, err := clientset.AppsV1().ReplicaSets(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector.String()})
 	if err != nil {
-		return err
+		return nil, err
 	}
-	patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
-	_, err = clientset.AppsV1().StatefulSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	return err
+
+	for _, rs := range rsList.Items {
+		if !isOwnedByDeployment(rs.OwnerReferences, name) {
+			continue
+		}
+		if getReplicaSetRevision(rs.Annotations) == revision {
+			tpl := rs.Spec.Template
+			return &tpl, nil
+		}
+	}
+	return nil, fmt.Errorf("revision %d not found", revision)
 }
-func (a *App) DeleteStatefulSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
+
+func isOwnedByDeployment(refs []metav1.OwnerReference, name string) bool {
+	for _, ref := range refs {
+		if ref.Kind == "Deployment" && ref.Name == name {
+			return true
+		}
 	}
-	return clientset.AppsV1().StatefulSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return false
+}
+
+func getReplicaSetRevision(annotations map[string]string) int64 {
+	if rev, ok := annotations["deployment.kubernetes.io/revision"]; ok {
+		var rsRev int64
+		if _, err := fmt.Sscanf(rev, "%d", &rsRev); err == nil {
+			return rsRev
+		}
+		return rsRev
+	}
+	return 0
+}
+
+// --- StatefulSets ---
+
+// RestartStatefulSet restarts a statefulset. Delegates to restartWorkload.
+func (a *App) RestartStatefulSet(namespace, name string) error {
+	return a.restartWorkload("statefulset", namespace, name)
+}
+
+// DeleteStatefulSet deletes a statefulset. Delegates to DeleteResource.
+func (a *App) DeleteStatefulSet(namespace, name string) error {
+	return a.DeleteResource("statefulset", namespace, name)
 }
 
 // --- DaemonSets ---
+
+// RestartDaemonSet restarts a daemonset. Delegates to restartWorkload.
 func (a *App) RestartDaemonSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	patch := []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`, time.Now().Format(time.RFC3339)))
-	_, err = clientset.AppsV1().DaemonSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
-	return err
+	return a.restartWorkload("daemonset", namespace, name)
 }
+
+// DeleteDaemonSet deletes a daemonset. Delegates to DeleteResource.
 func (a *App) DeleteDaemonSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().DaemonSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("daemonset", namespace, name)
 }
 
 // --- ReplicaSets (restart not meaningful separately) ---
+
+// DeleteReplicaSet deletes a replicaset. Delegates to DeleteResource.
 func (a *App) DeleteReplicaSet(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.AppsV1().ReplicaSets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("replicaset", namespace, name)
 }
 
 // --- ConfigMaps ---
+
+// DeleteConfigMap deletes a configmap. Delegates to DeleteResource.
 func (a *App) DeleteConfigMap(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().ConfigMaps(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("configmap", namespace, name)
 }
 
 // --- Secrets ---
+
+// DeleteSecret deletes a secret. Delegates to DeleteResource.
 func (a *App) DeleteSecret(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().Secrets(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("secret", namespace, name)
 }
 
 // --- Persistent Volume Claims ---
+
+// DeletePersistentVolumeClaim deletes a PVC. Delegates to DeleteResource.
 func (a *App) DeletePersistentVolumeClaim(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().PersistentVolumeClaims(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("pvc", namespace, name)
 }
 
 // --- Persistent Volumes ---
+
+// DeletePersistentVolume deletes a PV. Delegates to DeleteResource.
 func (a *App) DeletePersistentVolume(name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.CoreV1().PersistentVolumes().Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("pv", "", name)
 }
 
 // --- Ingresses ---
+
+// DeleteIngress deletes an ingress. Delegates to DeleteResource.
 func (a *App) DeleteIngress(namespace, name string) error {
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return err
-	}
-	return clientset.NetworkingV1().Ingresses(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	return a.DeleteResource("ingress", namespace, name)
 }
 
 // Job and CronJob App methods moved to resource_actions_jobs.go
@@ -190,10 +196,15 @@ func (a *App) ScaleResource(kind, namespace, name string, replicas int) error {
 	if replicas < 0 {
 		return fmt.Errorf("replicas must be non-negative")
 	}
+	maxInt32 := int(^uint32(0) >> 1)
+	if replicas > maxInt32 {
+		return fmt.Errorf("replicas must be <= %d", maxInt32)
+	}
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
+	// #nosec G115 -- bounds checked above.
 	desired := int32(replicas)
 	switch strings.ToLower(kind) {
 	case "deployment", "deployments":

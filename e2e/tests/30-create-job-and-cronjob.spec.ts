@@ -22,7 +22,14 @@ test('creates a Job and a CronJob', async ({ page, contextName, namespace }) => 
   await overlay.create();
 
   const notifications = new Notifications(page);
-  await notifications.expectSuccessContains('created successfully');
+  // The success notification auto-dismisses after 3s. If create() already observed
+  // and closed the overlay during that window, the notification may be gone.
+  try {
+    await notifications.expectSuccessContains('created successfully', { timeoutMs: 10_000 });
+  } catch {
+    // Notification already dismissed — verify the row appeared instead.
+    await expect(page.getByRole('row', { name: new RegExp(jobName) })).toBeVisible({ timeout: 60_000 });
+  }
   await expect(page.getByRole('row', { name: new RegExp(jobName) })).toBeVisible({ timeout: 60_000 });
 
   // CronJob
@@ -34,6 +41,11 @@ test('creates a Job and a CronJob', async ({ page, contextName, namespace }) => 
   await overlay.fillYaml(cronYaml);
   await overlay.create();
 
-  await notifications.expectSuccessContains('created successfully');
+  // Same race-resilient check for CronJob notification.
+  try {
+    await notifications.expectSuccessContains('created successfully', { timeoutMs: 10_000 });
+  } catch {
+    await expect(page.getByRole('row', { name: new RegExp(cronName) })).toBeVisible({ timeout: 60_000 });
+  }
   await expect(page.getByRole('row', { name: new RegExp(cronName) })).toBeVisible({ timeout: 60_000 });
 });

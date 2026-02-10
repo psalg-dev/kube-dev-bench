@@ -1,7 +1,9 @@
 package topology
 
+//revive:disable:var-naming
+
 // TopologyNode represents a Swarm node in the topology view.
-type TopologyNode struct {
+type TopologyNode struct { //nolint:revive
 	ID       string `json:"id"`
 	Hostname string `json:"hostname"`
 	Role     string `json:"role"`  // manager/worker
@@ -11,7 +13,7 @@ type TopologyNode struct {
 }
 
 // TopologyService represents a Swarm service in the topology view.
-type TopologyService struct {
+type TopologyService struct { //nolint:revive
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Mode string `json:"mode"` // replicated/global
@@ -22,7 +24,7 @@ type TopologyService struct {
 }
 
 // TopologyLink connects a service to a node with a weight (task count).
-type TopologyLink struct {
+type TopologyLink struct { //nolint:revive
 	From   string `json:"from"`
 	To     string `json:"to"`
 	Type   string `json:"type"` // e.g. runs_on
@@ -37,3 +39,5 @@ type ClusterTopology struct {
 	Services []TopologyService `json:"services"`
 	Links    []TopologyLink    `json:"links"`
 }
+
+//revive:enable:var-naming

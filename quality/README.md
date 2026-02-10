@@ -60,7 +60,9 @@ docker compose --profile full run sonar-scanner
 - **gocyclo** - Cyclomatic complexity
 - **gocognit** - Cognitive complexity
 - **gosec** - Security scanner
+- **govulncheck** - Known vulnerability scanner
 - **dupl** - Code duplication detector
+- **ineffassign** - Ineffective assignment detector
 - **go test -cover** - Test coverage
 
 ### JavaScript Analysis

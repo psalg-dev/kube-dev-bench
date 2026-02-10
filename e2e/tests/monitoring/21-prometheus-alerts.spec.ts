@@ -1,5 +1,6 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import type { Page } from '@playwright/test';
 import { test, expect } from '../../src/fixtures.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { bootstrapApp } from '../../src/support/bootstrap.js';
@@ -8,6 +9,52 @@ import { Notifications } from '../../src/pages/Notifications.js';
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
+}
+
+async function createDeploymentWithRetry(opts: {
+  page: Page;
+  overlay: CreateOverlay;
+  notifications: Notifications;
+  name: string;
+  yaml: string;
+}) {
+  const { page, overlay, notifications, name, yaml } = opts;
+  const overlayRoot = page.locator('[data-testid="create-manifest-overlay"]').first();
+
+  const closeOverlayIfOpen = async () => {
+    if (!(await overlayRoot.isVisible().catch(() => false))) return;
+    const closeBtn = overlayRoot.getByRole('button', { name: /close|cancel/i }).first();
+    if (await closeBtn.isVisible().catch(() => false)) {
+      await closeBtn.click().catch(() => undefined);
+    } else {
+      await page.keyboard.press('Escape').catch(() => undefined);
+    }
+    await overlayRoot.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => undefined);
+  };
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await overlay.openFromOverviewHeader();
+      await overlay.fillYaml(yaml);
+      await overlay.create();
+      await notifications.expectSuccessContains('created successfully');
+      await closeOverlayIfOpen();
+      return;
+    } catch (err) {
+      const row = page
+        .locator('#main-panels > div:visible table.gh-table tbody tr')
+        .filter({ hasText: name })
+        .first();
+      if (await row.isVisible().catch(() => false)) {
+        await closeOverlayIfOpen();
+        return;
+      }
+
+      await closeOverlayIfOpen();
+      if (attempt === 3) throw err;
+      await page.waitForTimeout(1000 * attempt);
+    }
+  }
 }
 
 test('prometheus alerts fetch and investigation', async ({ page, contextName, namespace }) => {
@@ -58,10 +105,7 @@ test('prometheus alerts fetch and investigation', async ({ page, contextName, na
     const yaml = `apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: ${deployName}\n  namespace: ${namespace}\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: ${deployName}\n  template:\n    metadata:\n      labels:\n        app: ${deployName}\n    spec:\n      containers:\n      - name: app\n        image: doesnotexist.invalid/does-not-exist:latest\n`;
 
     const overlay = new CreateOverlay(page);
-    await overlay.openFromOverviewHeader();
-    await overlay.fillYaml(yaml);
-    await overlay.create();
-    await notifications.expectSuccessContains('created successfully');
+    await createDeploymentWithRetry({ page, overlay, notifications, name: deployName, yaml });
 
     // Navigate to Pods to see the failing pods
     await sidebar.goToSection('pods');
@@ -92,7 +136,7 @@ test('prometheus alerts fetch and investigation', async ({ page, contextName, na
     
     if (!hasPrometheusTab) {
       // Prometheus alerts tab may not be visible - verify basic monitoring works
-      const scanButton = page.getByRole('button', { name: 'Scan Now' });
+      const scanButton = page.getByRole('button', { name: /(?:Scan Now|Rescan)/i });
       if (await scanButton.isVisible().catch(() => false)) {
         await scanButton.click();
         // Just verify scan completes

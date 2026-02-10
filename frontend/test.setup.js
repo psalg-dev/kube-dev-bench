@@ -1,4 +1,4 @@
 // Global test setup
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 // Load centralized Wails & notification mocks so all tests share them
-import './src/__tests__/wailsMocks.js';
+import './src/__tests__/wailsMocks.ts';

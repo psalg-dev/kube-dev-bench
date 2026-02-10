@@ -14,12 +14,25 @@ func StartJob(client ResourceClient, namespace, name string) error {
 	if err != nil {
 		return err
 	}
+	// Clone the spec and remove fields that must be auto-generated for new jobs.
 	newJob := &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: job.Name + "-manual-",
 			Namespace:    namespace,
 		},
 		Spec: job.Spec,
+	}
+	newJob.Spec.Selector = nil
+	newJob.Spec.ManualSelector = nil
+	if newJob.Spec.Template.ObjectMeta.Labels != nil {
+		for _, key := range []string{
+			"controller-uid",
+			"batch.kubernetes.io/controller-uid",
+			"job-name",
+			"batch.kubernetes.io/job-name",
+		} {
+			delete(newJob.Spec.Template.ObjectMeta.Labels, key)
+		}
 	}
 	newJob.ResourceVersion = ""
 	newJob.UID = ""

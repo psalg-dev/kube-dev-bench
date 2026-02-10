@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
@@ -13,12 +12,12 @@ import (
 )
 
 type swarmServicesClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceCreate(context.Context, swarm.ServiceSpec, types.ServiceCreateOptions) (types.ServiceCreateResponse, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceCreate(context.Context, swarm.ServiceSpec, swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 	ServiceRemove(context.Context, string) error
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
 }
 
 // CreateServiceOptions holds common options for creating a Swarm service.
@@ -38,13 +37,48 @@ func CreateSwarmService(ctx context.Context, cli *client.Client, opts CreateServ
 	return createSwarmService(ctx, cli, opts)
 }
 
+// buildServiceMode builds the service mode configuration from options.
+func buildServiceMode(mode string, replicas uint64) swarm.ServiceMode {
+	if mode == "global" {
+		return swarm.ServiceMode{Global: &swarm.GlobalService{}}
+	}
+	rep := replicas
+	if rep == 0 {
+		rep = 1
+	}
+	return swarm.ServiceMode{Replicated: &swarm.ReplicatedService{Replicas: &rep}}
+}
+
+// buildPortConfigs converts SwarmPortInfo slice to swarm.PortConfig slice.
+func buildPortConfigs(ports []SwarmPortInfo) []swarm.PortConfig {
+	if len(ports) == 0 {
+		return nil
+	}
+	result := make([]swarm.PortConfig, 0, len(ports))
+	for _, p := range ports {
+		proto := swarm.PortConfigProtocolTCP
+		if p.Protocol == "udp" {
+			proto = swarm.PortConfigProtocolUDP
+		}
+		publishMode := swarm.PortConfigPublishModeIngress
+		if p.PublishMode == "host" {
+			publishMode = swarm.PortConfigPublishModeHost
+		}
+		result = append(result, swarm.PortConfig{
+			Protocol:      proto,
+			TargetPort:    p.TargetPort,
+			PublishedPort: p.PublishedPort,
+			PublishMode:   publishMode,
+		})
+	}
+	return result
+}
+
 func createSwarmService(ctx context.Context, cli swarmServicesClient, opts CreateServiceOptions) (string, error) {
-	name := opts.Name
-	image := opts.Image
-	if name == "" {
+	if opts.Name == "" {
 		return "", ErrInvalidServiceName
 	}
-	if image == "" {
+	if opts.Image == "" {
 		return "", ErrInvalidServiceImage
 	}
 
@@ -61,47 +95,24 @@ func createSwarmService(ctx context.Context, cli swarmServicesClient, opts Creat
 		env = append(env, k+"="+v)
 	}
 
-	spec := swarm.ServiceSpec{}
-	spec.Name = name
-	spec.Labels = labels
-	spec.TaskTemplate = swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Image: image, Env: env}}
-
 	mode := opts.Mode
 	if mode == "" {
 		mode = "replicated"
 	}
-	if mode == "global" {
-		spec.Mode = swarm.ServiceMode{Global: &swarm.GlobalService{}}
-	} else {
-		rep := opts.Replicas
-		if rep == 0 {
-			rep = 1
-		}
-		spec.Mode = swarm.ServiceMode{Replicated: &swarm.ReplicatedService{Replicas: &rep}}
+
+	spec := swarm.ServiceSpec{
+		Annotations: swarm.Annotations{Name: opts.Name, Labels: labels},
+		TaskTemplate: swarm.TaskSpec{
+			ContainerSpec: &swarm.ContainerSpec{Image: opts.Image, Env: env},
+		},
+		Mode: buildServiceMode(mode, opts.Replicas),
 	}
 
-	if len(opts.Ports) > 0 {
-		ports := make([]swarm.PortConfig, 0, len(opts.Ports))
-		for _, p := range opts.Ports {
-			proto := swarm.PortConfigProtocolTCP
-			if p.Protocol == "udp" {
-				proto = swarm.PortConfigProtocolUDP
-			}
-			publishMode := swarm.PortConfigPublishModeIngress
-			if p.PublishMode == "host" {
-				publishMode = swarm.PortConfigPublishModeHost
-			}
-			ports = append(ports, swarm.PortConfig{
-				Protocol:      proto,
-				TargetPort:    p.TargetPort,
-				PublishedPort: p.PublishedPort,
-				PublishMode:   publishMode,
-			})
-		}
-		spec.EndpointSpec = &swarm.EndpointSpec{Ports: ports}
+	if portConfigs := buildPortConfigs(opts.Ports); portConfigs != nil {
+		spec.EndpointSpec = &swarm.EndpointSpec{Ports: portConfigs}
 	}
 
-	resp, err := cli.ServiceCreate(ctx, spec, types.ServiceCreateOptions{})
+	resp, err := cli.ServiceCreate(ctx, spec, swarm.ServiceCreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -114,13 +125,13 @@ func GetSwarmServices(ctx context.Context, cli *client.Client) ([]SwarmServiceIn
 }
 
 func getSwarmServices(ctx context.Context, cli swarmServicesClient) ([]SwarmServiceInfo, error) {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// Get tasks to count running tasks per service
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
 	if err != nil {
 		tasks = []swarm.Task{} // Continue without task counts
 	}
@@ -148,7 +159,7 @@ func GetSwarmService(ctx context.Context, cli *client.Client, serviceID string) 
 }
 
 func getSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) (*SwarmServiceInfo, error) {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +168,7 @@ func getSwarmService(ctx context.Context, cli swarmServicesClient, serviceID str
 	taskFilter := filters.NewArgs()
 	taskFilter.Add("service", serviceID)
 	taskFilter.Add("desired-state", "running")
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{Filters: taskFilter})
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: taskFilter})
 	runningTasks := uint64(0)
 	if err == nil {
 		for _, task := range tasks {
@@ -171,6 +182,120 @@ func getSwarmService(ctx context.Context, cli swarmServicesClient, serviceID str
 	return &info, nil
 }
 
+// extractContainerInfo extracts image, env, and mounts from container spec
+func extractContainerInfo(svc *swarm.Service, info *SwarmServiceInfo) {
+	if svc.Spec.TaskTemplate.ContainerSpec == nil {
+		return
+	}
+	cs := svc.Spec.TaskTemplate.ContainerSpec
+	info.Image = cs.Image
+	if cs.Env != nil {
+		info.Env = append([]string{}, cs.Env...)
+	}
+	if cs.Mounts != nil {
+		info.Mounts = mountsToInfo(cs.Mounts)
+	}
+}
+
+// extractUpdateConfig extracts update configuration from service
+func extractUpdateConfig(svc *swarm.Service) *SwarmUpdateConfigInfo {
+	if svc.Spec.UpdateConfig == nil {
+		return nil
+	}
+	uc := svc.Spec.UpdateConfig
+	return &SwarmUpdateConfigInfo{
+		Parallelism:     uc.Parallelism,
+		Delay:           uc.Delay.String(),
+		FailureAction:   uc.FailureAction,
+		Monitor:         uc.Monitor.String(),
+		MaxFailureRatio: float64(uc.MaxFailureRatio),
+		Order:           uc.Order,
+	}
+}
+
+// extractResources extracts resource limits and reservations
+func extractResources(svc *swarm.Service) *SwarmResourcesInfo {
+	if svc.Spec.TaskTemplate.Resources == nil {
+		return nil
+	}
+	res := svc.Spec.TaskTemplate.Resources
+	info := &SwarmResourcesInfo{}
+	if res.Limits != nil {
+		info.Limits = &SwarmResourceLimitsInfo{
+			NanoCPUs:    res.Limits.NanoCPUs,
+			MemoryBytes: res.Limits.MemoryBytes,
+		}
+	}
+	if res.Reservations != nil {
+		info.Reservations = &SwarmResourceLimitsInfo{
+			NanoCPUs:    res.Reservations.NanoCPUs,
+			MemoryBytes: res.Reservations.MemoryBytes,
+		}
+	}
+	if info.Limits == nil && info.Reservations == nil {
+		return nil
+	}
+	return info
+}
+
+// extractPlacement extracts placement constraints and preferences
+func extractPlacement(svc *swarm.Service) *SwarmPlacementInfo {
+	if svc.Spec.TaskTemplate.Placement == nil {
+		return nil
+	}
+	p := svc.Spec.TaskTemplate.Placement
+	out := &SwarmPlacementInfo{
+		Constraints: append([]string{}, p.Constraints...),
+		MaxReplicas: p.MaxReplicas,
+	}
+	if len(p.Preferences) > 0 {
+		prefs := make([]string, 0, len(p.Preferences))
+		for _, pref := range p.Preferences {
+			if pref.Spread != nil {
+				prefs = append(prefs, fmt.Sprintf("spread:%s", pref.Spread.SpreadDescriptor))
+			} else {
+				prefs = append(prefs, fmt.Sprintf("%+v", pref))
+			}
+		}
+		out.Preferences = prefs
+	}
+	if len(out.Constraints) == 0 && len(out.Preferences) == 0 && out.MaxReplicas == 0 {
+		return nil
+	}
+	return out
+}
+
+// extractModeAndReplicas extracts service mode and replica count
+func extractModeAndReplicas(svc *swarm.Service, runningTasks uint64) (mode string, replicas uint64) {
+	if svc.Spec.Mode.Replicated != nil {
+		mode = "replicated"
+		if svc.Spec.Mode.Replicated.Replicas != nil {
+			replicas = *svc.Spec.Mode.Replicated.Replicas
+		}
+	} else if svc.Spec.Mode.Global != nil {
+		mode = "global"
+		replicas = runningTasks
+	}
+	return mode, replicas
+}
+
+// extractPorts extracts published port information
+func extractPorts(svc *swarm.Service) []SwarmPortInfo {
+	if svc.Endpoint.Ports == nil {
+		return nil
+	}
+	ports := make([]SwarmPortInfo, 0, len(svc.Endpoint.Ports))
+	for _, port := range svc.Endpoint.Ports {
+		ports = append(ports, SwarmPortInfo{
+			Protocol:      string(port.Protocol),
+			TargetPort:    port.TargetPort,
+			PublishedPort: port.PublishedPort,
+			PublishMode:   string(port.PublishMode),
+		})
+	}
+	return ports
+}
+
 // serviceToInfo converts a swarm.Service to SwarmServiceInfo
 func serviceToInfo(svc swarm.Service, runningTasks uint64) SwarmServiceInfo {
 	info := SwarmServiceInfo{
@@ -182,94 +307,12 @@ func serviceToInfo(svc swarm.Service, runningTasks uint64) SwarmServiceInfo {
 		UpdatedAt:    svc.UpdatedAt.Format(time.RFC3339),
 	}
 
-	// Get image from container spec
-	if svc.Spec.TaskTemplate.ContainerSpec != nil {
-		info.Image = svc.Spec.TaskTemplate.ContainerSpec.Image
-		if svc.Spec.TaskTemplate.ContainerSpec.Env != nil {
-			info.Env = append([]string{}, svc.Spec.TaskTemplate.ContainerSpec.Env...)
-		}
-		if svc.Spec.TaskTemplate.ContainerSpec.Mounts != nil {
-			info.Mounts = mountsToInfo(svc.Spec.TaskTemplate.ContainerSpec.Mounts)
-		}
-	}
-
-	if svc.Spec.UpdateConfig != nil {
-		info.UpdateConfig = &SwarmUpdateConfigInfo{
-			Parallelism:     svc.Spec.UpdateConfig.Parallelism,
-			Delay:           svc.Spec.UpdateConfig.Delay.String(),
-			FailureAction:   string(svc.Spec.UpdateConfig.FailureAction),
-			Monitor:         svc.Spec.UpdateConfig.Monitor.String(),
-			MaxFailureRatio: float64(svc.Spec.UpdateConfig.MaxFailureRatio),
-			Order:           string(svc.Spec.UpdateConfig.Order),
-		}
-	}
-
-	if svc.Spec.TaskTemplate.Resources != nil {
-		info.Resources = &SwarmResourcesInfo{}
-		if svc.Spec.TaskTemplate.Resources.Limits != nil {
-			info.Resources.Limits = &SwarmResourceLimitsInfo{
-				NanoCPUs:    svc.Spec.TaskTemplate.Resources.Limits.NanoCPUs,
-				MemoryBytes: svc.Spec.TaskTemplate.Resources.Limits.MemoryBytes,
-			}
-		}
-		if svc.Spec.TaskTemplate.Resources.Reservations != nil {
-			info.Resources.Reservations = &SwarmResourceLimitsInfo{
-				NanoCPUs:    svc.Spec.TaskTemplate.Resources.Reservations.NanoCPUs,
-				MemoryBytes: svc.Spec.TaskTemplate.Resources.Reservations.MemoryBytes,
-			}
-		}
-		if info.Resources.Limits == nil && info.Resources.Reservations == nil {
-			info.Resources = nil
-		}
-	}
-
-	if svc.Spec.TaskTemplate.Placement != nil {
-		p := svc.Spec.TaskTemplate.Placement
-		out := &SwarmPlacementInfo{
-			Constraints: append([]string{}, p.Constraints...),
-			MaxReplicas: p.MaxReplicas,
-		}
-		if len(p.Preferences) > 0 {
-			prefs := make([]string, 0, len(p.Preferences))
-			for _, pref := range p.Preferences {
-				if pref.Spread != nil {
-					prefs = append(prefs, fmt.Sprintf("spread:%s", pref.Spread.SpreadDescriptor))
-					continue
-				}
-				prefs = append(prefs, fmt.Sprintf("%+v", pref))
-			}
-			out.Preferences = prefs
-		}
-		if len(out.Constraints) == 0 && len(out.Preferences) == 0 && out.MaxReplicas == 0 {
-			out = nil
-		}
-		info.Placement = out
-	}
-
-	// Determine mode and replicas
-	if svc.Spec.Mode.Replicated != nil {
-		info.Mode = "replicated"
-		if svc.Spec.Mode.Replicated.Replicas != nil {
-			info.Replicas = *svc.Spec.Mode.Replicated.Replicas
-		}
-	} else if svc.Spec.Mode.Global != nil {
-		info.Mode = "global"
-		// For global mode, replicas equals running tasks (one per node)
-		info.Replicas = runningTasks
-	}
-
-	// Get published ports
-	if svc.Endpoint.Ports != nil {
-		info.Ports = make([]SwarmPortInfo, 0, len(svc.Endpoint.Ports))
-		for _, port := range svc.Endpoint.Ports {
-			info.Ports = append(info.Ports, SwarmPortInfo{
-				Protocol:      string(port.Protocol),
-				TargetPort:    port.TargetPort,
-				PublishedPort: port.PublishedPort,
-				PublishMode:   string(port.PublishMode),
-			})
-		}
-	}
+	extractContainerInfo(&svc, &info)
+	info.UpdateConfig = extractUpdateConfig(&svc)
+	info.Resources = extractResources(&svc)
+	info.Placement = extractPlacement(&svc)
+	info.Mode, info.Replicas = extractModeAndReplicas(&svc, runningTasks)
+	info.Ports = extractPorts(&svc)
 
 	if info.Labels == nil {
 		info.Labels = make(map[string]string)
@@ -302,7 +345,7 @@ func ScaleSwarmService(ctx context.Context, cli *client.Client, serviceID string
 }
 
 func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string, replicas uint64) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -315,7 +358,7 @@ func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID s
 	// Update the replica count
 	svc.Spec.Mode.Replicated.Replicas = &replicas
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{})
 	return err
 }
 
@@ -334,7 +377,7 @@ func UpdateSwarmServiceImage(ctx context.Context, cli *client.Client, serviceID 
 }
 
 func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, serviceID string, image string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -346,7 +389,7 @@ func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, servi
 	svc.Spec.TaskTemplate.ContainerSpec.Image = image
 	svc.Spec.TaskTemplate.ForceUpdate++
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{})
 	return err
 }
 
@@ -356,7 +399,7 @@ func RestartSwarmService(ctx context.Context, cli *client.Client, serviceID stri
 }
 
 func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -364,7 +407,7 @@ func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID
 	// Increment ForceUpdate to trigger a rolling restart
 	svc.Spec.TaskTemplate.ForceUpdate++
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{})
 	return err
 }
 
@@ -375,11 +418,11 @@ func RollbackSwarmService(ctx context.Context, cli *client.Client, serviceID str
 }
 
 func rollbackSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{Rollback: "previous"})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{Rollback: "previous"})
 	return err
 }

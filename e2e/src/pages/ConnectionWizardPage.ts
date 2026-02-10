@@ -13,6 +13,20 @@ export class ConnectionWizardPage {
   constructor(private readonly page: Page) {}
 
   /**
+   * Ensure Wails Go bindings are available before triggering a connect action.
+   * This prevents silent failures when `window.go.main.App` is not yet populated.
+   */
+  private async ensureWailsReady(timeout = 30_000): Promise<void> {
+    await this.page.waitForFunction(
+      () => {
+        const app = (window as any)?.go?.main?.App;
+        return app != null && typeof app.SetKubeConfigPath === 'function';
+      },
+      { timeout, polling: 200 },
+    );
+  }
+
+  /**
    * Check if the connection wizard layout is visible
    * The new wizard uses AppLayout-style structure with #layout.connection-wizard-layout
    */
@@ -50,8 +64,10 @@ export class ConnectionWizardPage {
     await appRoot.waitFor({ state: 'attached', timeout: Math.max(1_000, deadline - Date.now()) });
 
     const waitForAppMount = async (timeoutMs: number) => {
+      const readySelector =
+        '#app > *, .connection-wizard-layout, .connection-wizard-overlay, .swarm-connection-wizard-overlay, #sidebar, #maincontent, #show-wizard-btn, #swarm-show-wizard-btn';
       await this.page
-        .locator('#app > *')
+        .locator(readySelector)
         .first()
         .waitFor({ state: 'attached', timeout: Math.max(1_000, timeoutMs) });
     };
@@ -59,16 +75,31 @@ export class ConnectionWizardPage {
     try {
       await waitForAppMount(Math.min(20_000, deadline - Date.now()));
     } catch {
-      // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` can leave the page blank.
-      // A single reload tends to recover without adding additional flake.
-      console.warn('[e2e] App did not mount under #app; reloading once to recover');
-      await this.page.reload({ waitUntil: 'domcontentloaded' });
-      await waitForAppMount(deadline - Date.now());
+      // Seen in CI traces: transient `net::ERR_NETWORK_CHANGED` or slow Wails startup
+      // can leave the page blank. Retry with multiple reloads and increasing backoff.
+      const maxReloads = 3;
+      let mounted = false;
+      for (let i = 1; i <= maxReloads && Date.now() < deadline; i++) {
+        console.warn(`[e2e] App did not mount under #app; reload attempt ${i}/${maxReloads}`);
+        await this.page.waitForTimeout(1_000 * i); // backoff
+        try {
+          await this.page.reload({ waitUntil: 'domcontentloaded' });
+        } catch {
+          await this.page.goto('/', { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+        }
+        try {
+          await waitForAppMount(Math.min(20_000, deadline - Date.now()));
+          mounted = true;
+          break;
+        } catch {
+          if (i === maxReloads) throw new Error('App failed to mount after multiple reload attempts');
+        }
+      }
     }
 
     const openBtn = this.page.locator('#show-wizard-btn');
     const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
-    const mainApp = this.page.locator('#kubecontext-root, #swarm-sidebar');
+    const mainApp = this.page.locator('#kubecontext-root, #sidebar, #maincontent');
 
     while (Date.now() < deadline) {
       if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
@@ -131,12 +162,14 @@ export class ConnectionWizardPage {
 
     if (isNewWizard) {
       // New wizard flow - check if there are existing configs
-      const configItems = this.page.locator('.config-item');
+      const configItems = this.page.locator('.connections-card');
       const hasConfigs = (await configItems.count()) > 0;
 
       if (hasConfigs) {
         // Click the first config item to select it
         await configItems.first().click();
+        // Ensure Wails IPC bindings are ready before triggering connect
+        await this.ensureWailsReady();
         // Click the Connect button on that item
         const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
         await expect(connectBtn).toBeVisible({ timeout: 10_000 });
@@ -187,9 +220,11 @@ export class ConnectionWizardPage {
       await this.page.waitForTimeout(1000);
 
       // Now click Connect on the newly added config
-      const newConfigItems = this.page.locator('.config-item');
+      const newConfigItems = this.page.locator('.connections-card');
       if ((await newConfigItems.count()) > 0) {
         await newConfigItems.first().click();
+        // Ensure Wails IPC bindings are ready before triggering connect
+        await this.ensureWailsReady();
         const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
         await expect(connectBtn).toBeVisible({ timeout: 10_000 });
         await connectBtn.click();

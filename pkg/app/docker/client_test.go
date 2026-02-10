@@ -10,6 +10,7 @@ import (
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/system"
 	"github.com/docker/docker/client"
 )
 
@@ -19,7 +20,7 @@ type fakeConnClient struct {
 	serverErr     error
 	swarmInfo     swarm.Swarm
 	swarmErr      error
-	info          types.Info
+	info          system.Info
 	infoErr       error
 	closed        bool
 }
@@ -37,9 +38,9 @@ func (f *fakeConnClient) SwarmInspect(context.Context) (swarm.Swarm, error) {
 	}
 	return f.swarmInfo, nil
 }
-func (f *fakeConnClient) Info(context.Context) (types.Info, error) {
+func (f *fakeConnClient) Info(context.Context) (system.Info, error) {
 	if f.infoErr != nil {
-		return types.Info{}, f.infoErr
+		return system.Info{}, f.infoErr
 	}
 	return f.info, nil
 }
@@ -156,7 +157,7 @@ func Test_TestConnection_happyPathSetsSwarmAndManager(t *testing.T) {
 	fc := &fakeConnClient{
 		serverVersion: types.Version{Version: "1.2.3"},
 		swarmInfo:     swarm.Swarm{ClusterInfo: swarm.ClusterInfo{ID: "node-id"}},
-		info:          types.Info{Swarm: swarm.Info{ControlAvailable: true}},
+		info:          system.Info{Swarm: swarm.Info{ControlAvailable: true}},
 	}
 
 	newDockerConnectionClient = func(DockerConfig) (dockerConnectionClient, error) {

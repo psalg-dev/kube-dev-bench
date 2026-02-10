@@ -23,6 +23,7 @@ type PodInfo struct {
 	// Container ports exposed by this pod (unique, across containers)
 	Ports  []int  `json:"ports"`
 	Status string `json:"status"`
+	UID    string `json:"uid"`
 }
 
 // PodStatusCounts provides counts of pods by phase for a namespace
@@ -394,6 +395,9 @@ type HelmInstallRequest struct {
 	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
 	CreateNs    bool                   `json:"createNamespace"`
+	// Helm v4 options
+	WaitStrategy string `json:"waitStrategy"` // "none", "legacy", "watcher" - defaults to "legacy"
+	Timeout      int    `json:"timeout"`      // Wait timeout in seconds, defaults to 300
 }
 
 // HelmUpgradeRequest contains parameters for upgrading a Helm release
@@ -404,4 +408,7 @@ type HelmUpgradeRequest struct {
 	Version     string                 `json:"version"`
 	Values      map[string]interface{} `json:"values"`
 	ReuseValues bool                   `json:"reuseValues"`
+	// Helm v4 options
+	WaitStrategy string `json:"waitStrategy"` // "none", "legacy", "watcher" - defaults to "legacy"
+	Timeout      int    `json:"timeout"`      // Wait timeout in seconds, defaults to 300
 }

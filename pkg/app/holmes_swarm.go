@@ -9,7 +9,7 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -158,6 +158,21 @@ func (a *App) AnalyzeSwarmTaskStream(taskID string, streamID string) error {
 	return a.AskHolmesStream(question, streamID)
 }
 
+// writeServiceTasksContext writes task summary to the string builder.
+func writeServiceTasksContext(sb *strings.Builder, tasks []swarm.Task) {
+	sb.WriteString(fmt.Sprintf("\nTasks (%d):\n", len(tasks)))
+	for _, task := range tasks {
+		taskIDShort := task.ID
+		if len(taskIDShort) > 12 {
+			taskIDShort = taskIDShort[:12]
+		}
+		sb.WriteString(fmt.Sprintf("  - %s: %s\n", taskIDShort, task.Status.State))
+		if task.Status.Err != "" {
+			sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
+		}
+	}
+}
+
 func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	dockerClient, err := a.getDockerClient()
 	if err != nil {
@@ -175,7 +190,7 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	serviceCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	service, _, err := dockerClient.ServiceInspectWithRaw(serviceCtx, serviceID, types.ServiceInspectOptions{})
+	service, _, err := dockerClient.ServiceInspectWithRaw(serviceCtx, serviceID, swarm.ServiceInspectOptions{})
 	if err != nil {
 		a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Fetching service details", "error", err.Error())
 		return "", fmt.Errorf("failed to inspect service: %w", err)
@@ -193,7 +208,7 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	// Get tasks for this service
 	a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Listing tasks", "running", "")
 	listCtx, listCancel := context.WithTimeout(ctx, 8*time.Second)
-	tasks, err := dockerClient.TaskList(listCtx, types.TaskListOptions{
+	tasks, err := dockerClient.TaskList(listCtx, swarm.TaskListOptions{
 		Filters: filters.NewArgs(filters.Arg("service", serviceID)),
 	})
 	listCancel()
@@ -202,23 +217,13 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 		sb.WriteString(fmt.Sprintf("\nFailed to get tasks: %v\n", err))
 	} else {
 		a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Listing tasks", "done", "")
-		sb.WriteString(fmt.Sprintf("\nTasks (%d):\n", len(tasks)))
-		for _, task := range tasks {
-			taskIDShort := task.ID
-			if len(taskIDShort) > 12 {
-				taskIDShort = taskIDShort[:12]
-			}
-			sb.WriteString(fmt.Sprintf("  - %s: %s\n", taskIDShort, task.Status.State))
-			if task.Status.Err != "" {
-				sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
-			}
-		}
+		writeServiceTasksContext(&sb, tasks)
 	}
 
 	// Get service logs (last 50 lines)
 	a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Collecting recent logs", "running", "")
 	logCtx, logCancel := context.WithTimeout(ctx, 10*time.Second)
-	logs, err := dockerClient.ServiceLogs(logCtx, serviceID, types.ContainerLogsOptions{
+	logs, err := dockerClient.ServiceLogs(logCtx, serviceID, container.LogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Tail:       "50",
@@ -240,6 +245,33 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	}
 
 	return sb.String(), nil
+}
+
+// truncateID returns the first 12 characters of an ID
+func truncateID(id string) string {
+	if len(id) > 12 {
+		return id[:12]
+	}
+	return id
+}
+
+// writeTaskInfo writes basic task info to the builder
+func writeTaskInfo(sb *strings.Builder, task swarm.Task) {
+	sb.WriteString(fmt.Sprintf("Task: %s\n", truncateID(task.ID)))
+	sb.WriteString(fmt.Sprintf("Service: %s\n", truncateID(task.ServiceID)))
+	sb.WriteString(fmt.Sprintf("Node: %s\n", truncateID(task.NodeID)))
+	sb.WriteString(fmt.Sprintf("State: %s\n", task.Status.State))
+
+	if task.Status.Err != "" {
+		sb.WriteString(fmt.Sprintf("Error: %s\n", task.Status.Err))
+	}
+
+	if task.Status.ContainerStatus != nil {
+		sb.WriteString(fmt.Sprintf("Container ID: %s\n", truncateID(task.Status.ContainerStatus.ContainerID)))
+		if task.Status.ContainerStatus.ExitCode != 0 {
+			sb.WriteString(fmt.Sprintf("Exit Code: %d\n", task.Status.ContainerStatus.ExitCode))
+		}
+	}
 }
 
 func (a *App) getSwarmTaskContext(taskID string) (string, error) {
@@ -266,43 +298,13 @@ func (a *App) getSwarmTaskContext(taskID string) (string, error) {
 	}
 	a.emitHolmesContextProgress("Swarm Task", "swarm", taskID, "Fetching task details", "done", "")
 
-	taskIDShort := task.ID
-	if len(taskIDShort) > 12 {
-		taskIDShort = taskIDShort[:12]
-	}
-	serviceIDShort := task.ServiceID
-	if len(serviceIDShort) > 12 {
-		serviceIDShort = serviceIDShort[:12]
-	}
-	nodeIDShort := task.NodeID
-	if len(nodeIDShort) > 12 {
-		nodeIDShort = nodeIDShort[:12]
-	}
-	sb.WriteString(fmt.Sprintf("Task: %s\n", taskIDShort))
-	sb.WriteString(fmt.Sprintf("Service: %s\n", serviceIDShort))
-	sb.WriteString(fmt.Sprintf("Node: %s\n", nodeIDShort))
-	sb.WriteString(fmt.Sprintf("State: %s\n", task.Status.State))
-
-	if task.Status.Err != "" {
-		sb.WriteString(fmt.Sprintf("Error: %s\n", task.Status.Err))
-	}
-
-	if task.Status.ContainerStatus != nil {
-		cid := task.Status.ContainerStatus.ContainerID
-		if len(cid) > 12 {
-			cid = cid[:12]
-		}
-		sb.WriteString(fmt.Sprintf("Container ID: %s\n", cid))
-		if task.Status.ContainerStatus.ExitCode != 0 {
-			sb.WriteString(fmt.Sprintf("Exit Code: %d\n", task.Status.ContainerStatus.ExitCode))
-		}
-	}
+	writeTaskInfo(&sb, task)
 
 	// Get task logs if container exists
 	if task.Status.ContainerStatus != nil {
 		a.emitHolmesContextProgress("Swarm Task", "swarm", taskID, "Collecting recent logs", "running", "")
 		logCtx, logCancel := context.WithTimeout(ctx, 10*time.Second)
-		logs, err := dockerClient.ContainerLogs(logCtx, task.Status.ContainerStatus.ContainerID, types.ContainerLogsOptions{
+		logs, err := dockerClient.ContainerLogs(logCtx, task.Status.ContainerStatus.ContainerID, container.LogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
 			Tail:       "50",
@@ -471,6 +473,19 @@ func (a *App) AnalyzeSwarmStackStream(stackName string, streamID string) error {
 	return a.AskHolmesStream(question, streamID)
 }
 
+// writeNodeTasksContext writes tasks on a node to the string builder.
+func writeNodeTasksContext(sb *strings.Builder, tasks []swarm.Task) {
+	sb.WriteString(fmt.Sprintf("\nTasks on node (%d):\n", len(tasks)))
+	for _, task := range tasks {
+		taskIDShort := truncateID(task.ID)
+		serviceIDShort := truncateID(task.ServiceID)
+		sb.WriteString(fmt.Sprintf("  - %s: %s (service: %s)\n", taskIDShort, task.Status.State, serviceIDShort))
+		if task.Status.Err != "" {
+			sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
+		}
+	}
+}
+
 func (a *App) getSwarmNodeContext(nodeID string) (string, error) {
 	dockerClient, err := a.getDockerClient()
 	if err != nil {
@@ -495,11 +510,7 @@ func (a *App) getSwarmNodeContext(nodeID string) (string, error) {
 	}
 	a.emitHolmesContextProgress("Swarm Node", "swarm", nodeID, "Fetching node details", "done", "")
 
-	nodeIDShort := node.ID
-	if len(nodeIDShort) > 12 {
-		nodeIDShort = nodeIDShort[:12]
-	}
-	sb.WriteString(fmt.Sprintf("Node: %s\n", nodeIDShort))
+	sb.WriteString(fmt.Sprintf("Node: %s\n", truncateID(node.ID)))
 	sb.WriteString(fmt.Sprintf("Hostname: %s\n", node.Description.Hostname))
 	sb.WriteString(fmt.Sprintf("Role: %s\n", node.Spec.Role))
 	sb.WriteString(fmt.Sprintf("Availability: %s\n", node.Spec.Availability))
@@ -515,7 +526,7 @@ func (a *App) getSwarmNodeContext(nodeID string) (string, error) {
 	// Get tasks on this node
 	a.emitHolmesContextProgress("Swarm Node", "swarm", nodeID, "Listing tasks on node", "running", "")
 	listCtx, listCancel := context.WithTimeout(ctx, 8*time.Second)
-	tasks, err := dockerClient.TaskList(listCtx, types.TaskListOptions{
+	tasks, err := dockerClient.TaskList(listCtx, swarm.TaskListOptions{
 		Filters: filters.NewArgs(filters.Arg("node", nodeID)),
 	})
 	listCancel()
@@ -524,21 +535,7 @@ func (a *App) getSwarmNodeContext(nodeID string) (string, error) {
 		sb.WriteString(fmt.Sprintf("\nFailed to get tasks: %v\n", err))
 	} else {
 		a.emitHolmesContextProgress("Swarm Node", "swarm", nodeID, "Listing tasks on node", "done", "")
-		sb.WriteString(fmt.Sprintf("\nTasks on node (%d):\n", len(tasks)))
-		for _, task := range tasks {
-			taskIDShort := task.ID
-			if len(taskIDShort) > 12 {
-				taskIDShort = taskIDShort[:12]
-			}
-			serviceIDShort := task.ServiceID
-			if len(serviceIDShort) > 12 {
-				serviceIDShort = serviceIDShort[:12]
-			}
-			sb.WriteString(fmt.Sprintf("  - %s: %s (service: %s)\n", taskIDShort, task.Status.State, serviceIDShort))
-			if task.Status.Err != "" {
-				sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
-			}
-		}
+		writeNodeTasksContext(&sb, tasks)
 	}
 
 	// Node labels
@@ -550,6 +547,63 @@ func (a *App) getSwarmNodeContext(nodeID string) (string, error) {
 	}
 
 	return sb.String(), nil
+}
+
+// formatServiceReplicas returns a human-readable replica count string
+func formatServiceReplicas(svc swarm.Service) string {
+	if svc.Spec.Mode.Replicated != nil && svc.Spec.Mode.Replicated.Replicas != nil {
+		return fmt.Sprintf("%d replicas", *svc.Spec.Mode.Replicated.Replicas)
+	}
+	if svc.Spec.Mode.Global != nil {
+		return "global"
+	}
+	return ""
+}
+
+// writeStackServiceInfo writes service info to the builder
+func writeStackServiceInfo(sb *strings.Builder, services []swarm.Service) {
+	sb.WriteString(fmt.Sprintf("Services (%d):\n", len(services)))
+	for _, svc := range services {
+		sb.WriteString(fmt.Sprintf("  - %s (%s)\n", svc.Spec.Name, formatServiceReplicas(svc)))
+		if svc.Spec.TaskTemplate.ContainerSpec != nil {
+			sb.WriteString(fmt.Sprintf("    Image: %s\n", svc.Spec.TaskTemplate.ContainerSpec.Image))
+		}
+	}
+}
+
+// countTaskStates returns a map of state counts and a list of failed tasks
+func countTaskStates(tasks []swarm.Task) (map[string]int, []swarm.Task) {
+	stateCounts := make(map[string]int)
+	var failedTasks []swarm.Task
+	for _, task := range tasks {
+		stateCounts[string(task.Status.State)]++
+		if task.Status.State == "failed" || task.Status.State == "rejected" {
+			failedTasks = append(failedTasks, task)
+		}
+	}
+	return stateCounts, failedTasks
+}
+
+// writeTaskSummary writes task summary info to the builder
+func writeTaskSummary(sb *strings.Builder, tasks []swarm.Task, stateCounts map[string]int, failedTasks []swarm.Task) {
+	sb.WriteString(fmt.Sprintf("\nTask Summary (%d total):\n", len(tasks)))
+	for state, count := range stateCounts {
+		sb.WriteString(fmt.Sprintf("  %s: %d\n", state, count))
+	}
+
+	if len(failedTasks) > 0 {
+		sb.WriteString("\nFailed Tasks:\n")
+		for _, task := range failedTasks {
+			taskIDShort := task.ID
+			if len(taskIDShort) > 12 {
+				taskIDShort = taskIDShort[:12]
+			}
+			sb.WriteString(fmt.Sprintf("  - %s: %s\n", taskIDShort, task.Status.State))
+			if task.Status.Err != "" {
+				sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
+			}
+		}
+	}
 }
 
 func (a *App) getSwarmStackContext(stackName string) (string, error) {
@@ -570,7 +624,7 @@ func (a *App) getSwarmStackContext(stackName string) (string, error) {
 	// Get services in this stack
 	a.emitHolmesContextProgress("Swarm Stack", "swarm", stackName, "Listing stack services", "running", "")
 	svcCtx, svcCancel := context.WithTimeout(ctx, 10*time.Second)
-	services, err := dockerClient.ServiceList(svcCtx, types.ServiceListOptions{
+	services, err := dockerClient.ServiceList(svcCtx, swarm.ServiceListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", fmt.Sprintf("com.docker.stack.namespace=%s", stackName))),
 	})
 	svcCancel()
@@ -579,19 +633,7 @@ func (a *App) getSwarmStackContext(stackName string) (string, error) {
 		sb.WriteString(fmt.Sprintf("Failed to get services: %v\n", err))
 	} else {
 		a.emitHolmesContextProgress("Swarm Stack", "swarm", stackName, "Listing stack services", "done", "")
-		sb.WriteString(fmt.Sprintf("Services (%d):\n", len(services)))
-		for _, svc := range services {
-			var replicas string
-			if svc.Spec.Mode.Replicated != nil && svc.Spec.Mode.Replicated.Replicas != nil {
-				replicas = fmt.Sprintf("%d replicas", *svc.Spec.Mode.Replicated.Replicas)
-			} else if svc.Spec.Mode.Global != nil {
-				replicas = "global"
-			}
-			sb.WriteString(fmt.Sprintf("  - %s (%s)\n", svc.Spec.Name, replicas))
-			if svc.Spec.TaskTemplate.ContainerSpec != nil {
-				sb.WriteString(fmt.Sprintf("    Image: %s\n", svc.Spec.TaskTemplate.ContainerSpec.Image))
-			}
-		}
+		writeStackServiceInfo(&sb, services)
 	}
 
 	// Get tasks for all services in the stack
@@ -599,7 +641,7 @@ func (a *App) getSwarmStackContext(stackName string) (string, error) {
 	taskCtx, taskCancel := context.WithTimeout(ctx, 10*time.Second)
 	var allTasks []swarm.Task
 	for _, svc := range services {
-		tasks, taskErr := dockerClient.TaskList(taskCtx, types.TaskListOptions{
+		tasks, taskErr := dockerClient.TaskList(taskCtx, swarm.TaskListOptions{
 			Filters: filters.NewArgs(filters.Arg("service", svc.ID)),
 		})
 		if taskErr == nil {
@@ -609,35 +651,8 @@ func (a *App) getSwarmStackContext(stackName string) (string, error) {
 	taskCancel()
 	a.emitHolmesContextProgress("Swarm Stack", "swarm", stackName, "Listing stack tasks", "done", "")
 
-	// Count task states
-	stateCounts := make(map[string]int)
-	var failedTasks []swarm.Task
-	for _, task := range allTasks {
-		stateCounts[string(task.Status.State)]++
-		if task.Status.State == "failed" || task.Status.State == "rejected" {
-			failedTasks = append(failedTasks, task)
-		}
-	}
-
-	sb.WriteString(fmt.Sprintf("\nTask Summary (%d total):\n", len(allTasks)))
-	for state, count := range stateCounts {
-		sb.WriteString(fmt.Sprintf("  %s: %d\n", state, count))
-	}
-
-	// Show failed tasks with errors
-	if len(failedTasks) > 0 {
-		sb.WriteString("\nFailed Tasks:\n")
-		for _, task := range failedTasks {
-			taskIDShort := task.ID
-			if len(taskIDShort) > 12 {
-				taskIDShort = taskIDShort[:12]
-			}
-			sb.WriteString(fmt.Sprintf("  - %s: %s\n", taskIDShort, task.Status.State))
-			if task.Status.Err != "" {
-				sb.WriteString(fmt.Sprintf("    Error: %s\n", task.Status.Err))
-			}
-		}
-	}
+	stateCounts, failedTasks := countTaskStates(allTasks)
+	writeTaskSummary(&sb, allTasks, stateCounts, failedTasks)
 
 	return sb.String(), nil
 }

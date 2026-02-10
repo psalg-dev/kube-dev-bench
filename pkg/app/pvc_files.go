@@ -3,22 +3,116 @@ package app
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"math/rand"
+	"io"
+	"math/big"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
 
-	"io"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 )
+
+// parsedLsEntry represents a parsed entry from ls -alp output
+type parsedLsEntry struct {
+	fileType   string
+	perms      string
+	size       int64
+	modified   string
+	name       string
+	isSymlink  bool
+	linkTarget string
+}
+
+// lsRegex parses ls -alp output lines
+var lsRegex = regexp.MustCompile(`^([\-ldcbps])([rwxstST\-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\s+(.+)$`)
+
+// parseLsLine parses a single line of ls -alp output
+func parseLsLine(line string) (*parsedLsEntry, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return nil, false
+	}
+	m := lsRegex.FindStringSubmatch(line)
+	if len(m) != 6 {
+		return nil, false
+	}
+
+	fType := m[1]
+	nameField := m[5]
+
+	var name = nameField
+	var linkTarget string
+	isSymlink := fType == "l"
+	if isSymlink {
+		parts := strings.SplitN(nameField, " -> ", 2)
+		name = parts[0]
+		if len(parts) == 2 {
+			linkTarget = parts[1]
+		}
+	}
+	if name == "." || name == ".." {
+		return nil, false
+	}
+
+	size := int64(0)
+	_, _ = fmt.Sscan(m[3], &size)
+
+	modified := m[4]
+	if _, err := time.Parse("2006-01-02T15:04:05", m[4]); err != nil {
+		modified = time.Now().UTC().Format(time.RFC3339)
+	}
+
+	return &parsedLsEntry{
+		fileType:   fType,
+		perms:      m[2],
+		size:       size,
+		modified:   modified,
+		name:       name,
+		isSymlink:  isSymlink,
+		linkTarget: linkTarget,
+	}, true
+}
+
+// buildPVCFileEntry converts a parsed ls entry to PodFileEntry
+func buildPVCFileEntry(entry *parsedLsEntry, path string) PodFileEntry {
+	entryPath := strings.TrimSuffix(path, "/") + "/" + entry.name
+	if path == "/" {
+		entryPath = "/" + entry.name
+	}
+	return PodFileEntry{
+		Name:       entry.name,
+		Path:       entryPath,
+		IsDir:      entry.fileType == "d",
+		Size:       entry.size,
+		Mode:       entry.fileType + entry.perms,
+		Modified:   entry.modified,
+		IsSymlink:  entry.isSymlink,
+		LinkTarget: entry.linkTarget,
+	}
+}
+
+// buildAbsPath constructs the absolute path inside container
+func buildAbsPath(mountPath, subPath, path string) string {
+	rel := strings.TrimPrefix(path, "/")
+	absPath := mountPath
+	if subPath != "" {
+		absPath = strings.TrimSuffix(absPath, "/") + "/" + strings.TrimPrefix(subPath, "/")
+	}
+	if rel != "" {
+		absPath = strings.TrimSuffix(absPath, "/") + "/" + rel
+	}
+	return absPath
+}
 
 // ListPVCFiles lists files for a PersistentVolumeClaim by reusing an existing running pod that mounts it.
 // path is relative to the root of the PVC mount ("/" means the mount root). Only directories are listed.
@@ -28,14 +122,8 @@ import (
 //   - Returns minimal fields required by UI
 //   - Hard times out after 5 seconds
 func (a *App) ListPVCFiles(namespace, pvcName, path string) ([]PodFileEntry, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("namespace required")
-	}
-	if pvcName == "" {
-		return nil, fmt.Errorf("pvc name required")
-	}
-	if strings.Contains(path, "..") {
-		return nil, fmt.Errorf("invalid path")
+	if err := validatePVCFilesRequest(namespace, pvcName, path); err != nil {
+		return nil, err
 	}
 	if path == "" {
 		path = "/"
@@ -46,106 +134,81 @@ func (a *App) ListPVCFiles(namespace, pvcName, path string) ([]PodFileEntry, err
 		return nil, err
 	}
 
-	// Ensure PVC exists & is bound (we don't strictly require Bound but it's a helpful early check)
-	pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(a.ctx, pvcName, metav1.GetOptions{})
+	if err := a.checkPVCState(clientset, namespace, pvcName); err != nil {
+		return nil, err
+	}
+
+	pod, container, mountPath, subPath, err := a.resolvePVCMount(namespace, pvcName)
 	if err != nil {
 		return nil, err
 	}
-	if pvc.Status.Phase == corev1.ClaimLost {
-		return nil, fmt.Errorf("pvc is in Lost state")
-	}
 
-	pod, container, mountPath, subPath, err := a.findPodMountingPVC(namespace, pvcName)
+	return a.listPVCFilesFromPod(namespace, pod, container, mountPath, subPath, path)
+}
+
+func validatePVCFilesRequest(namespace, pvcName, path string) error {
+	if namespace == "" {
+		return fmt.Errorf("namespace required")
+	}
+	if pvcName == "" {
+		return fmt.Errorf("pvc name required")
+	}
+	if strings.Contains(path, "..") {
+		return fmt.Errorf("invalid path")
+	}
+	return nil
+}
+
+func (a *App) checkPVCState(clientset *kubernetes.Clientset, namespace, pvcName string) error {
+	pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(a.ctx, pvcName, metav1.GetOptions{})
 	if err != nil {
-		// attempt helper pod creation
+		return err
+	}
+	if pvc.Status.Phase == corev1.ClaimLost {
+		return fmt.Errorf("pvc is in Lost state")
+	}
+	return nil
+}
+
+func (a *App) resolvePVCMount(namespace, pvcName string) (pod, container, mountPath, subPath string, err error) {
+	pod, container, mountPath, subPath, err = a.findPodMountingPVC(namespace, pvcName)
+	if err != nil {
 		pod, container, mountPath, subPath, err = a.ensurePVCBrowseHelper(namespace, pvcName)
-		if err != nil {
-			return nil, err
-		}
 	}
+	return
+}
 
-	// Build absolute path inside container
-	rel := strings.TrimPrefix(path, "/")
-	absPath := mountPath
-	if subPath != "" {
-		// If a subPath is used in the mount, the effective root is mountPath/subPath
-		absPath = strings.TrimSuffix(absPath, "/") + "/" + strings.TrimPrefix(subPath, "/")
-	}
-	if rel != "" {
-		absPath = strings.TrimSuffix(absPath, "/") + "/" + rel
-	}
-
-	// Use POSIX locale stable output. We skip first line (total X). time-style ISO for parse friendliness.
-	// tail -n +2 ensures we skip the summary line if present.
+func (a *App) listPVCFilesFromPod(namespace, pod, container, mountPath, subPath, path string) ([]PodFileEntry, error) {
+	absPath := buildAbsPath(mountPath, subPath, path)
 	cmd := []string{"sh", "-c", fmt.Sprintf("ls -alp --time-style=+%%Y-%%m-%%dT%%H:%%M:%%S %q 2>/dev/null | tail -n +2", absPath)}
 	raw, err := a.execInPod(namespace, pod, container, cmd, 5*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("exec ls: %w", err)
 	}
+
+	entries := parsePVCLsOutput(raw, path)
+	sortFileEntriesByDirFirst(entries)
+	return entries, nil
+}
+
+func parsePVCLsOutput(raw, path string) []PodFileEntry {
 	lines := strings.Split(strings.TrimSpace(raw), "\n")
-	// Regex: type+perms, links, owner, group, size, timestamp, name (allow spaces in name => we capture rest)
-	re := regexp.MustCompile(`^([\-ldcbps])([rwxstST\-]{9})\s+\d+\s+\S+\s+\S+\s+(\d+)\s+(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})\s+(.+)$`)
-	now := time.Now()
 	var entries []PodFileEntry
 	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
+		if entry, ok := parseLsLine(line); ok {
+			entries = append(entries, buildPVCFileEntry(entry, path))
 		}
-		m := re.FindStringSubmatch(line)
-		if len(m) != 6 {
-			continue // skip unparseable line (e.g., permission denied entries)
-		}
-		fType := m[1]
-		sizeStr := m[3]
-		ts := m[4]
-		nameField := m[5]
-		// Symlink 'name -> target'
-		var name = nameField
-		var linkTarget string
-		isSymlink := false
-		if fType == "l" {
-			parts := strings.SplitN(nameField, " -> ", 2)
-			name = parts[0]
-			if len(parts) == 2 {
-				linkTarget = parts[1]
-			}
-			isSymlink = true
-		}
-		if name == "." || name == ".." {
-			continue
-		}
-		size := int64(0)
-		// Intentionally ignoring scan error; defaults to 0 size if parse fails
-		_, _ = fmt.Sscan(sizeStr, &size)
-		modified := ts
-		// Validate timestamp parse (ignore error; fallback to ts string)
-		if _, err := time.Parse("2006-01-02T15:04:05", ts); err != nil {
-			modified = now.UTC().Format(time.RFC3339)
-		}
-		entryPath := strings.TrimSuffix(path, "/") + "/" + name
-		if path == "/" {
-			entryPath = "/" + name
-		}
-		entries = append(entries, PodFileEntry{
-			Name:       name,
-			Path:       entryPath,
-			IsDir:      fType == "d",
-			Size:       size,
-			Mode:       fType + m[2],
-			Modified:   modified,
-			IsSymlink:  isSymlink,
-			LinkTarget: linkTarget,
-		})
 	}
-	// Sort directories first then by name
+	return entries
+}
+
+func sortFileEntriesByDirFirst(entries []PodFileEntry) {
 	sort.Slice(entries, func(i, j int) bool {
 		if entries[i].IsDir != entries[j].IsDir {
 			return entries[i].IsDir && !entries[j].IsDir
 		}
 		return entries[i].Name < entries[j].Name
 	})
-	return entries, nil
 }
 
 // GetPVCFileContent returns (possibly truncated) content of a file within the PVC using an existing pod mount.
@@ -216,6 +279,28 @@ func (a *App) GetPVCFileContent(namespace, pvcName, filePath string, maxBytes in
 	}, nil
 }
 
+// buildPVCAbsPath constructs the absolute path inside the container
+func buildPVCAbsPath(mountPath, subPath, relPath string) string {
+	base := mountPath
+	if subPath != "" {
+		base = strings.TrimSuffix(base, "/") + "/" + strings.TrimPrefix(subPath, "/")
+	}
+	if relPath == "" {
+		return base
+	}
+	return strings.TrimSuffix(base, "/") + "/" + relPath
+}
+
+// buildTarCommand creates the tar command for archiving a path
+func buildTarCommand(abs string, isDir bool) string {
+	if isDir {
+		return fmt.Sprintf("tar -C %q -czf - .", abs)
+	}
+	parent := filepath.Dir(abs)
+	name := filepath.Base(abs)
+	return fmt.Sprintf("tar -C %q -czf - %q", parent, name)
+}
+
 // ArchivePVCPath creates a tar.gz archive (base64) of the specified path (file or directory) inside the PVC.
 // If maxBytes > 0 and the archive exceeds that size, it is truncated and Truncated=true.
 func (a *App) ArchivePVCPath(namespace, pvcName, path string, maxBytes int64) (ArchiveResult, error) {
@@ -243,14 +328,8 @@ func (a *App) ArchivePVCPath(namespace, pvcName, path string, maxBytes int64) (A
 		}
 	}
 	rel := strings.TrimPrefix(path, "/")
-	base := mountPath
-	if subPath != "" {
-		base = strings.TrimSuffix(base, "/") + "/" + strings.TrimPrefix(subPath, "/")
-	}
-	abs := base
-	if rel != "" {
-		abs = strings.TrimSuffix(abs, "/") + "/" + rel
-	}
+	abs := buildPVCAbsPath(mountPath, subPath, rel)
+
 	// Determine if directory
 	statCmd := []string{"sh", "-c", fmt.Sprintf("if [ -d %q ]; then echo dir; elif [ -f %q ]; then echo file; else echo missing; fi", abs, abs)}
 	kind, err := a.execInPod(namespace, pod, container, statCmd, 5*time.Second)
@@ -261,51 +340,38 @@ func (a *App) ArchivePVCPath(namespace, pvcName, path string, maxBytes int64) (A
 	if kind == "missing" {
 		return ArchiveResult{}, fmt.Errorf("path not found")
 	}
-	var tarCmd string
-	if kind == "dir" {
-		// For root '/' we want contents of mountPath
-		if rel == "" {
-			tarCmd = fmt.Sprintf("tar -C %q -czf - .", abs)
-		} else {
-			tarCmd = fmt.Sprintf("tar -C %q -czf - .", abs)
-		}
-	} else {
-		parent := filepath.Dir(abs)
-		name := filepath.Base(abs)
-		tarCmd = fmt.Sprintf("tar -C %q -czf - %q", parent, name)
-	}
+
+	tarCmd := buildTarCommand(abs, kind == "dir")
 	data, err := a.execInPodLimited(namespace, pod, container, []string{"sh", "-c", tarCmd}, 60*time.Second, maxBytes)
 	if err != nil {
 		return ArchiveResult{}, err
 	}
-	truncated := false
-	if maxBytes > 0 && int64(len(data)) >= maxBytes {
-		truncated = true
-	}
+	truncated := maxBytes > 0 && int64(len(data)) >= maxBytes
 	encoded := base64.StdEncoding.EncodeToString([]byte(data))
 	return ArchiveResult{Path: path, Base64: encoded, Truncated: truncated, Size: int64(len(data))}, nil
 }
 
 // ensurePVCBrowseHelper creates or reuses a helper pod to mount the PVC read-only.
-func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (podName, containerName, mountPath, subPath string, err error) {
-	clientset, err2 := a.getKubernetesClient()
-	if err2 != nil {
-		err = err2
-		return
+func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (string, string, string, string, error) {
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return "", "", "", "", err
 	}
 	// Try to find existing helper pod
 	labelSel := fmt.Sprintf("app=kdb-pvc-browse,kdb-pvc=%s", pvcName)
 	pods, _ := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: labelSel})
 	for _, p := range pods.Items {
 		if p.Status.Phase == corev1.PodRunning {
-			podName = p.Name
-			containerName = "browse"
-			mountPath = "/mnt/claim"
-			return
+			return p.Name, "browse", "/mnt/claim", "", nil
 		}
 	}
 	// Create new helper pod
-	suffix := rand.Int31() & 0xffff
+	limit := big.NewInt(1 << 16)
+	value, err := rand.Int(rand.Reader, limit)
+	if err != nil {
+		return "", "", "", "", fmt.Errorf("generate pvc browse suffix: %w", err)
+	}
+	suffix := value.Int64()
 	name := fmt.Sprintf("kdb-pvc-browse-%s-%x", sanitizeName(pvcName, 20), suffix)
 	podSpec := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -342,24 +408,19 @@ func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (podName, contain
 			}},
 		},
 	}
-	if _, err2 := clientset.CoreV1().Pods(namespace).Create(a.ctx, podSpec, metav1.CreateOptions{}); err2 != nil {
-		err = err2
-		return
+	if _, err := clientset.CoreV1().Pods(namespace).Create(a.ctx, podSpec, metav1.CreateOptions{}); err != nil {
+		return "", "", "", "", err
 	}
 	// Wait for running (timeout 20s)
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
 		p, e := clientset.CoreV1().Pods(namespace).Get(a.ctx, name, metav1.GetOptions{})
 		if e == nil && p.Status.Phase == corev1.PodRunning {
-			podName = name
-			containerName = "browse"
-			mountPath = "/mnt/claim"
-			return
+			return name, "browse", "/mnt/claim", "", nil
 		}
 		time.Sleep(750 * time.Millisecond)
 	}
-	err = fmt.Errorf("helper pod not ready in time")
-	return
+	return "", "", "", "", fmt.Errorf("helper pod not ready in time")
 }
 
 func sanitizeName(in string, max int) string {
@@ -476,6 +537,42 @@ func (l *limitedWriter) Write(p []byte) (int, error) {
 }
 
 // findPodMountingPVC attempts to locate an existing running pod mounting the PVC.
+// isPodReady checks if at least one container in the pod is ready
+func isPodReady(p *corev1.Pod) bool {
+	if p.Status.Phase != corev1.PodRunning {
+		return false
+	}
+	for _, cs := range p.Status.ContainerStatuses {
+		if cs.Ready {
+			return true
+		}
+	}
+	return false
+}
+
+// getVolumeNamesForPVC returns a set of volume names that reference the given PVC
+func getVolumeNamesForPVC(p *corev1.Pod, pvcName string) map[string]bool {
+	volForPVC := make(map[string]bool)
+	for _, v := range p.Spec.Volumes {
+		if v.PersistentVolumeClaim != nil && v.PersistentVolumeClaim.ClaimName == pvcName {
+			volForPVC[v.Name] = true
+		}
+	}
+	return volForPVC
+}
+
+// findContainerMountingVolume finds a container that mounts any of the given volumes
+func findContainerMountingVolume(p *corev1.Pod, volNames map[string]bool) (containerName, mountPath, subPath string, found bool) {
+	for _, c := range p.Spec.Containers {
+		for _, m := range c.VolumeMounts {
+			if volNames[m.Name] {
+				return c.Name, m.MountPath, m.SubPath, true
+			}
+		}
+	}
+	return "", "", "", false
+}
+
 // Returns error if none found (caller may create helper pod).
 func (a *App) findPodMountingPVC(namespace, pvcName string) (podName, containerName, mountPath, subPath string, err error) {
 	clientset, err2 := a.getKubernetesClient()
@@ -489,38 +586,16 @@ func (a *App) findPodMountingPVC(namespace, pvcName string) (podName, containerN
 		return
 	}
 	for _, p := range pods.Items {
-		if p.Status.Phase != corev1.PodRunning {
+		if !isPodReady(&p) {
 			continue
 		}
-		ready := false
-		for _, cs := range p.Status.ContainerStatuses {
-			if cs.Ready {
-				ready = true
-				break
-			}
-		}
-		if !ready {
-			continue
-		}
-		volForPVC := make(map[string]bool)
-		for _, v := range p.Spec.Volumes {
-			if v.PersistentVolumeClaim != nil && v.PersistentVolumeClaim.ClaimName == pvcName {
-				volForPVC[v.Name] = true
-			}
-		}
+		volForPVC := getVolumeNamesForPVC(&p, pvcName)
 		if len(volForPVC) == 0 {
 			continue
 		}
-		for _, c := range p.Spec.Containers {
-			for _, m := range c.VolumeMounts {
-				if volForPVC[m.Name] {
-					podName = p.Name
-					containerName = c.Name
-					mountPath = m.MountPath
-					subPath = m.SubPath
-					return
-				}
-			}
+		cName, mPath, sPath, found := findContainerMountingVolume(&p, volForPVC)
+		if found {
+			return p.Name, cName, mPath, sPath, nil
 		}
 	}
 	err = errors.New("no running pod found mounting pvc")

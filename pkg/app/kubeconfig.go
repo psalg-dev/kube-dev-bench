@@ -21,6 +21,8 @@ type kubeConfigFile struct {
 // GetKubeContexts reads the configured kubeconfig and returns all context names
 func (a *App) GetKubeContexts() ([]string, error) {
 	configPath := a.getKubeConfigPath()
+	configPath = filepath.Clean(configPath)
+	// #nosec G304 -- path is derived from user home or explicitly set config.
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, err
@@ -29,7 +31,7 @@ func (a *App) GetKubeContexts() ([]string, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	var names []string
+	names := make([]string, 0, len(cfg.Contexts))
 	for _, ctx := range cfg.Contexts {
 		names = append(names, ctx.Name)
 	}
@@ -39,6 +41,8 @@ func (a *App) GetKubeContexts() ([]string, error) {
 
 // getContextsFromFile extracts context names from a kubeconfig file
 func (a *App) getContextsFromFile(path string) ([]string, error) {
+	path = filepath.Clean(path)
+	// #nosec G304 -- path comes from user selection.
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
@@ -47,7 +51,7 @@ func (a *App) getContextsFromFile(path string) ([]string, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
-	var names []string
+	names := make([]string, 0, len(cfg.Contexts))
 	for _, ctx := range cfg.Contexts {
 		names = append(names, ctx.Name)
 	}
@@ -81,7 +85,7 @@ func (a *App) SaveCustomKubeConfig(name string, content string) error {
 		return err
 	}
 	kubeDir := filepath.Join(home, ".kube")
-	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+	if err := os.MkdirAll(kubeDir, 0o750); err != nil {
 		return err
 	}
 	// Validate the YAML content first
@@ -108,7 +112,7 @@ func (a *App) SavePrimaryKubeConfig(content string) (string, error) {
 		return "", err
 	}
 	kubeDir := filepath.Join(home, ".kube")
-	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+	if err := os.MkdirAll(kubeDir, 0o750); err != nil {
 		return "", err
 	}
 	// Validate YAML
@@ -123,31 +127,59 @@ func (a *App) SavePrimaryKubeConfig(content string) (string, error) {
 	return primaryPath, nil
 }
 
+// kubeconfigCollector helps discover and dedupe kubeconfig files
+type kubeconfigCollector struct {
+	app     *App
+	configs []KubeConfigInfo
+	seen    map[string]bool
+}
+
+// add adds a kubeconfig file if it exists and is valid
+func (c *kubeconfigCollector) add(path, name string) {
+	if path == "" || c.seen[path] {
+		return
+	}
+	info, err := os.Stat(path)
+	if err != nil || info.IsDir() {
+		return
+	}
+	contexts, err := c.app.getContextsFromFile(path)
+	if err != nil || len(contexts) == 0 {
+		return
+	}
+	c.configs = append(c.configs, KubeConfigInfo{Path: path, Name: name, Contexts: contexts})
+	c.seen[path] = true
+}
+
+// scanKubeDir scans the .kube directory for additional kubeconfig files
+func (c *kubeconfigCollector) scanKubeDir(kubeDir string) {
+	entries, err := os.ReadDir(kubeDir)
+	if err != nil {
+		return
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if name == "config" || name == "kubeconfig" { // already handled
+			continue
+		}
+		if strings.Contains(name, "config") || strings.Contains(name, "kube") {
+			c.add(filepath.Join(kubeDir, name), name)
+		}
+	}
+}
+
 // GetKubeConfigs discovers kubeconfig files in the user's home directory and .kube folder
 func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
-	configs := []KubeConfigInfo{}
-	seen := map[string]bool{}
 	kubeDir := filepath.Join(home, ".kube")
 
-	addConfig := func(path, name string) {
-		if path == "" || seen[path] {
-			return
-		}
-		info, err := os.Stat(path)
-		if err != nil || info.IsDir() {
-			return
-		}
-		contexts, err := a.getContextsFromFile(path)
-		if err != nil || len(contexts) == 0 {
-			return
-		}
-		configs = append(configs, KubeConfigInfo{Path: path, Name: name, Contexts: contexts})
-		seen[path] = true
-	}
+	collector := &kubeconfigCollector{app: a, seen: make(map[string]bool)}
 
 	// Always include the currently configured kubeconfig, even if it lives outside ~/.kube
 	currentPath := a.getKubeConfigPath()
@@ -156,35 +188,20 @@ func (a *App) GetKubeConfigs() ([]KubeConfigInfo, error) {
 		if label == "" {
 			label = "current kubeconfig"
 		}
-		addConfig(currentPath, label)
+		collector.add(currentPath, label)
 	}
 
-	// Check for primary kubeconfig (non-standard name requested by project): ~/.kube/kubeconfig
-	primaryConfig := filepath.Join(kubeDir, "kubeconfig")
-	addConfig(primaryConfig, "kubeconfig (primary)")
+	// Check for primary kubeconfig: ~/.kube/kubeconfig
+	collector.add(filepath.Join(kubeDir, "kubeconfig"), "kubeconfig (primary)")
 
-	// Existing default config handling
-	defaultConfig := filepath.Join(kubeDir, "config")
-	addConfig(defaultConfig, "config (default)")
+	// Default config: ~/.kube/config
+	collector.add(filepath.Join(kubeDir, "config"), "config (default)")
 
-	// Look for other kubeconfig files in .kube directory
-	if entries, err := os.ReadDir(kubeDir); err == nil {
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			name := entry.Name()
-			if name == "config" || name == "kubeconfig" { // already handled
-				continue
-			}
-			if strings.Contains(name, "config") || strings.Contains(name, "kube") {
-				fullPath := filepath.Join(kubeDir, name)
-				addConfig(fullPath, name)
-			}
-		}
-	}
-	if len(configs) == 0 {
+	// Scan for other kubeconfig files
+	collector.scanKubeDir(kubeDir)
+
+	if len(collector.configs) == 0 {
 		return []KubeConfigInfo{}, nil
 	}
-	return configs, nil
+	return collector.configs, nil
 }

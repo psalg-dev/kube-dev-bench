@@ -1,0 +1,6 @@
+apiVersion: v2
+name: holmes-mock
+description: Lightweight Holmes API mock for E2E testing
+type: application
+version: 0.1.0
+appVersion: "1.0"

@@ -74,21 +74,8 @@ func NewHolmesClient(config HolmesConfig) (*HolmesClient, error) {
 	}, nil
 }
 
-// Ask sends a question to HolmesGPT and returns the response
-func (c *HolmesClient) Ask(question string) (*HolmesResponse, error) {
-	log := GetLogger()
-	questionLen := len(question)
-	questionPreview := question
-	if len(questionPreview) > 200 {
-		questionPreview = questionPreview[:200] + "..."
-	}
-
-	log.Info("Ask: starting request",
-		"endpoint", c.endpoint,
-		"model", c.modelKey,
-		"questionLen", questionLen)
-	log.Debug("Ask: question preview", "preview", questionPreview)
-
+// buildAskRequest creates the HTTP request for a non-streaming ask.
+func (c *HolmesClient) buildAskRequest(question string, log *Logger) ([]byte, error) {
 	reqBody := HolmesRequest{
 		Ask:                    question,
 		Model:                  c.modelKey,
@@ -104,11 +91,76 @@ func (c *HolmesClient) Ask(question string) (*HolmesResponse, error) {
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 	log.Debug("Ask: request body marshaled", "bodyLen", len(body))
+	return body, nil
+}
 
-	// Overall deadline should exceed httpClient timeout to allow for retries
+// executeAskRequest executes a single attempt to ask Holmes.
+func (c *HolmesClient) executeAskRequest(ctx context.Context, body []byte, log *Logger) (*HolmesResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, "POST", c.endpoint+"/api/chat", bytes.NewReader(body))
+	if err != nil {
+		log.Error("Ask: failed to create request", "error", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+		log.Debug("Ask: using API key authentication")
+	}
+
+	log.Debug("Ask: executing HTTP request")
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		log.Error("Ask: API returned error status", "statusCode", resp.StatusCode, "responseBody", string(respBody))
+		return nil, fmt.Errorf("holmes API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	log.Debug("Ask: decoding response body")
+	var holmesResp HolmesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&holmesResp); err != nil {
+		log.Error("Ask: failed to decode response", "error", err)
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Set timestamp if not provided by API
+	if holmesResp.Timestamp == "" {
+		holmesResp.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+	if holmesResp.Response == "" && holmesResp.Analysis != "" {
+		holmesResp.Response = holmesResp.Analysis
+	}
+
+	return &holmesResp, nil
+}
+
+// Ask sends a question to HolmesGPT and returns the response
+func (c *HolmesClient) Ask(question string) (*HolmesResponse, error) {
+	log := GetLogger()
+	startTime := time.Now()
+	questionPreview := question
+	if len(questionPreview) > 200 {
+		questionPreview = questionPreview[:200] + "..."
+	}
+
+	log.Info("Ask: starting request",
+		"endpoint", c.endpoint,
+		"model", c.modelKey,
+		"questionLen", len(question))
+	log.Debug("Ask: question preview", "preview", questionPreview)
+
+	body, err := c.buildAskRequest(question, log)
+	if err != nil {
+		return nil, err
+	}
+
 	overallDeadline := time.Now().Add(6 * time.Minute)
 	attempt := 0
-	startTime := time.Now()
 
 	log.Info("Ask: sending HTTP request",
 		"url", c.endpoint+"/api/chat",
@@ -120,96 +172,39 @@ func (c *HolmesClient) Ask(question string) (*HolmesResponse, error) {
 		log.Debug("Ask: attempt", "attempt", attempt+1, "elapsed", time.Since(startTime))
 
 		ctx, cancel := context.WithDeadline(context.Background(), overallDeadline)
-		req, err := http.NewRequestWithContext(ctx, "POST", c.endpoint+"/api/chat", bytes.NewReader(body))
-		if err != nil {
-			cancel()
-			log.Error("Ask: failed to create request", "error", err)
-			return nil, fmt.Errorf("failed to create request: %w", err)
+		resp, err := c.executeAskRequest(ctx, body, log)
+		cancel()
+
+		if err == nil {
+			log.Info("Ask: request completed successfully",
+				"responseLen", len(resp.Response),
+				"totalDuration", time.Since(startTime))
+			logHolmesResponse(log, "Ask", resp.Response)
+			return resp, nil
 		}
 
-		req.Header.Set("Content-Type", "application/json")
-		if c.apiKey != "" {
-			req.Header.Set("Authorization", "Bearer "+c.apiKey)
-			log.Debug("Ask: using API key authentication")
-		}
-
-		log.Debug("Ask: executing HTTP request")
-		resp, err := c.httpClient.Do(req)
-		if err != nil {
-			cancel()
-			log.Error("Ask: HTTP request failed",
-				"error", err,
-				"attempt", attempt+1,
-				"attemptDuration", time.Since(attemptStart),
-				"totalElapsed", time.Since(startTime))
-
-			if shouldRetry(err) && time.Now().Before(overallDeadline) {
-				delay := retryDelay(attempt)
-				attempt++
-				log.Info("Ask: will retry after delay", "delay", delay, "attempt", attempt)
-				if time.Now().Add(delay).Before(overallDeadline) {
-					time.Sleep(delay)
-					continue
-				}
-				log.Warn("Ask: retry delay would exceed deadline, giving up")
-			}
-			return nil, fmt.Errorf("failed to send request: %w", err)
-		}
-		defer resp.Body.Close()
-		log.Info("Ask: received HTTP response",
-			"statusCode", resp.StatusCode,
+		log.Error("Ask: request failed",
+			"error", err,
+			"attempt", attempt+1,
 			"attemptDuration", time.Since(attemptStart),
 			"totalElapsed", time.Since(startTime))
 
-		if resp.StatusCode != http.StatusOK {
-			respBody, _ := io.ReadAll(resp.Body)
-			cancel()
-			log.Error("Ask: API returned error status",
-				"statusCode", resp.StatusCode,
-				"responseBody", string(respBody))
-			return nil, fmt.Errorf("holmes API error (status %d): %s", resp.StatusCode, string(respBody))
+		if shouldRetry(err) && time.Now().Before(overallDeadline) {
+			delay := retryDelay(attempt)
+			attempt++
+			log.Info("Ask: will retry after delay", "delay", delay, "attempt", attempt)
+			if time.Now().Add(delay).Before(overallDeadline) {
+				time.Sleep(delay)
+				continue
+			}
+			log.Warn("Ask: retry delay would exceed deadline, giving up")
 		}
-
-		log.Debug("Ask: decoding response body")
-		var holmesResp HolmesResponse
-		if err := json.NewDecoder(resp.Body).Decode(&holmesResp); err != nil {
-			cancel()
-			log.Error("Ask: failed to decode response", "error", err)
-			return nil, fmt.Errorf("failed to decode response: %w", err)
-		}
-
-		cancel()
-
-		// Set timestamp if not provided by API
-		if holmesResp.Timestamp == "" {
-			holmesResp.Timestamp = time.Now().UTC().Format(time.RFC3339Nano)
-		}
-
-		if holmesResp.Response == "" && holmesResp.Analysis != "" {
-			holmesResp.Response = holmesResp.Analysis
-		}
-
-		responseLen := len(holmesResp.Response)
-		log.Info("Ask: request completed successfully",
-			"responseLen", responseLen,
-			"totalDuration", time.Since(startTime))
-		logHolmesResponse(log, "Ask", holmesResp.Response)
-
-		return &holmesResp, nil
+		return nil, err
 	}
 }
 
-// StreamAsk streams a question to HolmesGPT and emits SSE events via callback.
-func (c *HolmesClient) StreamAsk(ctx context.Context, question string, onEvent func(event string, data []byte) error) error {
-	log := GetLogger()
-	questionLen := len(question)
-	startTime := time.Now()
-
-	log.Info("StreamAsk: starting streaming request",
-		"endpoint", c.endpoint,
-		"model", c.modelKey,
-		"questionLen", questionLen)
-
+// buildStreamRequest creates the HTTP request for streaming.
+func (c *HolmesClient) buildStreamRequest(ctx context.Context, question string, log *Logger) (*http.Request, error) {
 	reqBody := HolmesRequest{
 		Ask:                    question,
 		Model:                  c.modelKey,
@@ -223,14 +218,14 @@ func (c *HolmesClient) StreamAsk(ctx context.Context, question string, onEvent f
 	body, err := json.Marshal(reqBody)
 	if err != nil {
 		log.Error("StreamAsk: failed to marshal request", "error", err)
-		return fmt.Errorf("failed to marshal request: %w", err)
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 	log.Debug("StreamAsk: request body marshaled", "bodyLen", len(body))
 
 	req, err := http.NewRequestWithContext(ctx, "POST", c.endpoint+"/api/chat", bytes.NewReader(body))
 	if err != nil {
 		log.Error("StreamAsk: failed to create request", "error", err)
-		return fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -240,93 +235,111 @@ func (c *HolmesClient) StreamAsk(ctx context.Context, question string, onEvent f
 		log.Debug("StreamAsk: using API key authentication")
 	}
 
+	return req, nil
+}
+
+// sseParser handles parsing of SSE events from a stream.
+type sseParser struct {
+	log       *Logger
+	reader    *bufio.Reader
+	onEvent   func(event string, data []byte) error
+	eventType string
+	dataLines []string
+	count     int
+}
+
+func (p *sseParser) dispatch() error {
+	if len(p.dataLines) == 0 {
+		return nil
+	}
+	currentEvent := strings.TrimSpace(p.eventType)
+	if currentEvent == "" {
+		currentEvent = "message"
+	}
+	data := strings.Join(p.dataLines, "\n")
+	p.dataLines = nil
+	p.eventType = ""
+	p.count++
+	if p.count <= 5 || p.count%50 == 0 {
+		p.log.Debug("StreamAsk: dispatching event",
+			"eventType", currentEvent,
+			"eventCount", p.count,
+			"dataLen", len(data))
+	}
+	return p.onEvent(currentEvent, []byte(data))
+}
+
+func (p *sseParser) parseLine(line string) error {
+	line = strings.TrimRight(line, "\r\n")
+	if line == "" {
+		return p.dispatch()
+	}
+	if strings.HasPrefix(line, ":") {
+		return nil
+	}
+	if strings.HasPrefix(line, "event:") {
+		p.eventType = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+		return nil
+	}
+	if strings.HasPrefix(line, "data:") {
+		p.dataLines = append(p.dataLines, strings.TrimSpace(strings.TrimPrefix(line, "data:")))
+	}
+	return nil
+}
+
+// StreamAsk streams a question to HolmesGPT and emits SSE events via callback.
+func (c *HolmesClient) StreamAsk(ctx context.Context, question string, onEvent func(event string, data []byte) error) error {
+	log := GetLogger()
+	startTime := time.Now()
+
+	log.Info("StreamAsk: starting streaming request",
+		"endpoint", c.endpoint,
+		"model", c.modelKey,
+		"questionLen", len(question))
+
+	req, err := c.buildStreamRequest(ctx, question, log)
+	if err != nil {
+		return err
+	}
+
 	log.Debug("StreamAsk: sending HTTP request")
 	resp, err := c.streamClient.Do(req)
 	if err != nil {
-		log.Error("StreamAsk: HTTP request failed",
-			"error", err,
-			"elapsed", time.Since(startTime))
+		log.Error("StreamAsk: HTTP request failed", "error", err, "elapsed", time.Since(startTime))
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	log.Info("StreamAsk: received HTTP response",
-		"statusCode", resp.StatusCode,
-		"elapsed", time.Since(startTime))
+	log.Info("StreamAsk: received HTTP response", "statusCode", resp.StatusCode, "elapsed", time.Since(startTime))
 
 	if resp.StatusCode != http.StatusOK {
 		respBody, _ := io.ReadAll(resp.Body)
-		log.Error("StreamAsk: API returned error status",
-			"statusCode", resp.StatusCode,
-			"responseBody", string(respBody))
+		log.Error("StreamAsk: API returned error status", "statusCode", resp.StatusCode, "responseBody", string(respBody))
 		return fmt.Errorf("holmes API error (status %d): %s", resp.StatusCode, string(respBody))
 	}
 
 	log.Debug("StreamAsk: starting to read SSE stream")
-	reader := bufio.NewReader(resp.Body)
-	var eventType string
-	var dataLines []string
-	eventCount := 0
-
-	dispatch := func() error {
-		if len(dataLines) == 0 {
-			return nil
-		}
-		currentEvent := strings.TrimSpace(eventType)
-		if currentEvent == "" {
-			currentEvent = "message"
-		}
-		data := strings.Join(dataLines, "\n")
-		dataLines = nil
-		eventType = ""
-		eventCount++
-		if eventCount <= 5 || eventCount%50 == 0 {
-			log.Debug("StreamAsk: dispatching event",
-				"eventType", currentEvent,
-				"eventCount", eventCount,
-				"dataLen", len(data))
-		}
-		return onEvent(currentEvent, []byte(data))
+	parser := &sseParser{
+		log:     log,
+		reader:  bufio.NewReader(resp.Body),
+		onEvent: onEvent,
 	}
 
 	for {
 		if ctx.Err() != nil {
-			log.Warn("StreamAsk: context cancelled",
-				"error", ctx.Err(),
-				"eventCount", eventCount,
-				"elapsed", time.Since(startTime))
+			log.Warn("StreamAsk: context cancelled", "error", ctx.Err(), "eventCount", parser.count, "elapsed", time.Since(startTime))
 			return ctx.Err()
 		}
-		line, err := reader.ReadString('\n')
+		line, err := parser.reader.ReadString('\n')
 		if err != nil {
 			if errors.Is(err, io.EOF) {
-				log.Info("StreamAsk: stream completed",
-					"eventCount", eventCount,
-					"totalDuration", time.Since(startTime))
-				return dispatch()
+				log.Info("StreamAsk: stream completed", "eventCount", parser.count, "totalDuration", time.Since(startTime))
+				return parser.dispatch()
 			}
-			log.Error("StreamAsk: error reading stream",
-				"error", err,
-				"eventCount", eventCount,
-				"elapsed", time.Since(startTime))
+			log.Error("StreamAsk: error reading stream", "error", err, "eventCount", parser.count, "elapsed", time.Since(startTime))
 			return err
 		}
-		line = strings.TrimRight(line, "\r\n")
-		if line == "" {
-			if err := dispatch(); err != nil {
-				return err
-			}
-			continue
-		}
-		if strings.HasPrefix(line, ":") {
-			continue
-		}
-		if strings.HasPrefix(line, "event:") {
-			eventType = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
-			continue
-		}
-		if strings.HasPrefix(line, "data:") {
-			dataLines = append(dataLines, strings.TrimSpace(strings.TrimPrefix(line, "data:")))
-			continue
+		if err := parser.parseLine(line); err != nil {
+			return err
 		}
 	}
 }
@@ -337,7 +350,7 @@ func shouldRetry(err error) bool {
 	}
 	var netErr net.Error
 	if errors.As(err, &netErr) {
-		return netErr.Timeout() || netErr.Temporary()
+		return netErr.Timeout()
 	}
 	return false
 }

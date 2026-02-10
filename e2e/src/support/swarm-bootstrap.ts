@@ -22,6 +22,63 @@ export interface SwarmBootstrapResult {
   wizard: SwarmConnectionWizardPage;
 }
 
+export async function waitForSwarmServicesTable(page: Page, timeout = 60_000) {
+  const servicesTable = page.locator('[data-testid="swarm-services-table"]');
+  const loading = page.locator('.main-panel-loading').filter({ hasText: /loading swarm services/i });
+  const servicesSection = page.locator('#section-swarm-services');
+  const mainContent = page.locator('#maincontent');
+
+  const deadline = Date.now() + timeout;
+  // Track how many consecutive iterations see neither table nor loading spinner.
+  // When this exceeds a threshold the services component likely hasn't mounted;
+  // re-clicking the sidebar section or reloading the page can recover.
+  let idleIterations = 0;
+
+  while (Date.now() < deadline) {
+    if (await servicesTable.isVisible().catch(() => false)) return servicesTable;
+
+    await mainContent.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => undefined);
+
+    const loadingVisible = await loading.isVisible().catch(() => false);
+
+    if (loadingVisible) {
+      idleIterations = 0;
+      const remaining = Math.max(1_000, deadline - Date.now());
+      await expect(loading).toBeHidden({ timeout: remaining }).catch(() => undefined);
+      continue;
+    }
+
+    // Neither table nor loading spinner — the services component may not have mounted.
+    idleIterations++;
+
+    if (idleIterations >= 6 && idleIterations % 6 === 0) {
+      // Re-click the sidebar section to trigger component mount / data fetch.
+      console.warn(`[e2e] waitForSwarmServicesTable: idle ${idleIterations} iterations, re-clicking section`);
+      if (await servicesSection.isVisible().catch(() => false)) {
+        try {
+          await servicesSection.click({ timeout: 5_000 });
+        } catch {
+          await servicesSection.evaluate((el) => (el as HTMLElement).click()).catch(() => undefined);
+        }
+      }
+    }
+
+    if (idleIterations === 24) {
+      // Last-resort recovery: reload the page entirely.
+      console.warn('[e2e] waitForSwarmServicesTable: reloading page as last-resort recovery');
+      await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => undefined);
+      await page.waitForTimeout(2_000);
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  // Final assertion — use a generous timeout since the loop may have spent its
+  // budget waiting for loading spinners to clear, not for the table itself.
+  await expect(servicesTable).toBeVisible({ timeout: Math.max(30_000, timeout / 2) });
+  return servicesTable;
+}
+
 /**
  * Bootstrap the Swarm section of the application.
  * Connects to Docker Swarm if not already connected and returns page objects.
@@ -51,6 +108,16 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // Wait for page to be fully loaded before checking connection state
   // This prevents race conditions where the page is still initializing
   await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+
+  // Ensure Wails IPC bindings are ready before any Go-bound interactions
+  await page.waitForFunction(
+    () => {
+      const app = (window as any)?.go?.main?.App;
+      return app != null && typeof app.ConnectToDocker === 'function';
+    },
+    { timeout: 30_000, polling: 200 },
+  );
+
   await page.waitForTimeout(1000); // Allow UI to settle
 
   // If the Swarm sidebar is already present, we're effectively "in Swarm mode".
@@ -97,7 +164,7 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   const swarmHeading = page.getByRole('heading', { name: /docker swarm connections/i });
   const addSwarmBtn = page.locator('#add-swarm-btn');
   const detectingText = page.getByText(/detecting docker connections\.{3}/i);
-  const connectionItems = page.locator('.connection-item');
+  const connectionItems = page.locator('.connections-card');
   const wizardLayout = page.locator('.connection-wizard-layout, .connection-wizard-overlay').first();
 
   await expect(swarmSection).toBeVisible({ timeout: 30_000 });
@@ -188,8 +255,7 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // Many Swarm UI tests expect at least one row to be present.
   if (ensureSeedService) {
     await sidebar.goToServices();
-    const servicesTable = page.locator('[data-testid="swarm-services-table"]');
-    await expect(servicesTable).toBeVisible({ timeout: 60_000 });
+    const servicesTable = await waitForSwarmServicesTable(page, 60_000);
 
     // Give the table a short chance to populate.
     await page.waitForTimeout(500);

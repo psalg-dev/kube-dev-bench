@@ -13,12 +13,45 @@ import (
 
 var dockerHubAPIBaseURL = "https://hub.docker.com"
 
-func dockerHubHTTPClient(timeoutSeconds int) *http.Client {
-	timeout := 15 * time.Second
-	if timeoutSeconds > 0 {
-		timeout = time.Duration(timeoutSeconds) * time.Second
+func dockerHubHTTPClient() *http.Client {
+	return &http.Client{Timeout: 15 * time.Second}
+}
+
+// buildDockerHubSearchURL builds the search endpoint URL with query parameters.
+func buildDockerHubSearchURL(query string) (string, error) {
+	base, err := url.Parse(dockerHubAPIBaseURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid docker hub api base url: %w", err)
 	}
-	return &http.Client{Timeout: timeout}
+	u, err := base.Parse("/v2/search/repositories/")
+	if err != nil {
+		return "", fmt.Errorf("build docker hub search url: %w", err)
+	}
+	q := u.Query()
+	q.Set("query", query)
+	q.Set("page_size", "25")
+	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
+
+// normalizeRepoName normalizes namespace and name into a full repository name.
+func normalizeRepoName(name, namespace, full string) (string, string) {
+	name = strings.TrimSpace(name)
+	namespace = strings.TrimSpace(namespace)
+	full = strings.TrimSpace(full)
+
+	if full == "" {
+		if namespace != "" {
+			full = namespace + "/" + name
+		} else {
+			full = name
+		}
+	}
+	if name == "" && full != "" {
+		parts := strings.Split(full, "/")
+		name = parts[len(parts)-1]
+	}
+	return name, full
 }
 
 func SearchDockerHubRepositories(ctx context.Context, query string) ([]DockerHubRepoSearchResult, error) {
@@ -27,27 +60,18 @@ func SearchDockerHubRepositories(ctx context.Context, query string) ([]DockerHub
 		return []DockerHubRepoSearchResult{}, nil
 	}
 
-	base, err := url.Parse(dockerHubAPIBaseURL)
+	searchURL, err := buildDockerHubSearchURL(query)
 	if err != nil {
-		return nil, fmt.Errorf("invalid docker hub api base url: %w", err)
+		return nil, err
 	}
 
-	u, err := base.Parse("/v2/search/repositories/")
-	if err != nil {
-		return nil, fmt.Errorf("build docker hub search url: %w", err)
-	}
-	q := u.Query()
-	q.Set("query", query)
-	q.Set("page_size", "25")
-	u.RawQuery = q.Encode()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, searchURL, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return nil, err
@@ -83,27 +107,13 @@ func SearchDockerHubRepositories(ctx context.Context, query string) ([]DockerHub
 
 	results := make([]DockerHubRepoSearchResult, 0, len(out.Results))
 	for _, r := range out.Results {
-		name := strings.TrimSpace(r.Name)
-		ns := strings.TrimSpace(r.Namespace)
-		full := strings.TrimSpace(r.Repository)
-		if full == "" {
-			if ns != "" {
-				full = ns + "/" + name
-			} else {
-				full = name
-			}
-		}
-		if name == "" && full != "" {
-			parts := strings.Split(full, "/")
-			name = parts[len(parts)-1]
-		}
-		sizeBytes := r.ContentSize
+		name, full := normalizeRepoName(r.Name, r.Namespace, r.Repository)
 		results = append(results, DockerHubRepoSearchResult{
 			Name:        name,
-			Namespace:   ns,
+			Namespace:   strings.TrimSpace(r.Namespace),
 			FullName:    full,
 			Description: r.Description,
-			SizeBytes:   sizeBytes,
+			SizeBytes:   r.ContentSize,
 			StarCount:   r.StarCount,
 			PullCount:   r.PullCount,
 			IsOfficial:  r.IsOfficial,
@@ -140,7 +150,7 @@ func GetDockerHubRepositoryDetails(ctx context.Context, fullName string) (Docker
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return DockerHubRepoDetails{}, err
@@ -236,7 +246,7 @@ func dockerHubGetTagSizeBytes(ctx context.Context, namespace, name, tag string) 
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return 0, err
@@ -289,7 +299,7 @@ func dockerHubResolveDisplayImageSizeBytes(ctx context.Context, namespace, name 
 	}
 	req.Header.Set("Accept", "application/json")
 
-	hc := dockerHubHTTPClient(0)
+	hc := dockerHubHTTPClient()
 	resp, err := hc.Do(req)
 	if err != nil {
 		return 0, err

@@ -8,12 +8,34 @@ applyTo: '**/*.jsx, **/*.tsx, **/*.js, **/*.ts, **/*.css, **/*.scss'
 Instructions for building high-quality ReactJS applications with modern patterns, hooks, and best practices following the official React documentation at https://react.dev.
 
 ## Project Context
-- Latest React version (React 19+)
-- TypeScript for type safety (when applicable)
+
+This is the frontend for **kube-dev-bench**, a desktop Kubernetes client application.
+
+- React 19+ with JavaScript (JSX, not TypeScript)
+- Vite 7.x as the build tool and dev server
 - Functional components with hooks as default
-- Follow React's official style guide and best practices
-- Use modern build tools (Vite, Create React App, or custom Webpack setup)
-- Implement proper component composition and reusability patterns
+- Wails integration via `wailsjs/go/main/App` for backend RPC calls
+- Component-specific CSS files (avoid global CSS bloat)
+
+### Key Libraries
+- **@tanstack/react-table**: Used for all Kubernetes resource tables
+- **@codemirror**: YAML editor for viewing/editing manifests
+- **react-router-dom**: Client-side routing
+- **xterm**: Terminal emulation for pod logs/exec
+- **react-select**: Dropdown components (context/namespace selection)
+
+### UI Patterns
+- Sidebar with collapsible menu and dropdowns for context/namespace selection
+- Main content area with tables for Kubernetes resources
+- Bottom Panel for resource details (opened by clicking table rows)
+- CreateManifestOverlay for creating new resources via YAML
+- Notification system (top-center, draggable, auto-dismiss after 3s)
+
+### Stable DOM IDs (preserve for testing)
+- `#show-wizard-btn` - Opens connection wizard
+- `#sidebar` - Sidebar container
+- `#maincontent` - Main content area
+- `#primaryConfigContent` - Kubeconfig paste textarea
 
 ## Development Standards
 
@@ -40,6 +62,7 @@ Instructions for building high-quality ReactJS applications with modern patterns
 - Design components to be testable and reusable
 - Keep components small and focused on a single concern
 - Use composition patterns (render props, children as functions)
+- Data tables: list keys must be unique and stable (never reuse keys across rows)
 
 ### State Management
 - Use `useState` for local component state

@@ -97,9 +97,8 @@ metadata:
 	if err == nil {
 		t.Error("Expected error when no kube context is selected")
 	}
-	// German error message: "Kein Kontext gewählt"
-	if err != nil && !contains(err.Error(), "Kein Kontext") {
-		t.Errorf("Expected 'Kein Kontext', got: %v", err)
+	if err != nil && !contains(err.Error(), "no kube context selected") {
+		t.Errorf("Expected 'no kube context selected', got: %v", err)
 	}
 }
 

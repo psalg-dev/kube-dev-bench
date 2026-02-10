@@ -1,27 +1,25 @@
 name: Registry E2E
 
 on:
-  push:
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   e2e-registry:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: |
             frontend/package-lock.json
@@ -67,6 +65,16 @@ jobs:
         run: |
           kind create cluster --name kdb-e2e --wait 120s
 
+      - name: Start Docker Registry v2
+        run: |
+          cd registry
+          bash start-registry.sh "password"
+          
+      - name: Verify Docker Registry
+        run: |
+          curl -f -u admin:password http://localhost:5000/v2/_catalog
+          echo "✅ Docker Registry is accessible"
+
       - name: Cache apt packages
         uses: actions/cache@v5
         id: apt-cache
@@ -101,7 +109,7 @@ jobs:
 
       - name: Upload e2e test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: e2e-registry-test-results
           path: |

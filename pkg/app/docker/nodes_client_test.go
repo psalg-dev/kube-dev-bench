@@ -5,15 +5,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
+	"github.com/docker/docker/api/types/system"
 )
 
 func Test_getSwarmNodes_listsAndConverts(t *testing.T) {
 	ctx := context.Background()
 
 	node := swarm.Node{ID: "n1", Spec: swarm.NodeSpec{Role: swarm.NodeRoleWorker}, Description: swarm.NodeDescription{Hostname: "h1"}}
-	cli := &fakeDockerClient{NodeListFn: func(context.Context, types.NodeListOptions) ([]swarm.Node, error) { return []swarm.Node{node}, nil }}
+	cli := &fakeDockerClient{NodeListFn: func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) { return []swarm.Node{node}, nil }}
 
 	items, err := getSwarmNodes(ctx, cli)
 	if err != nil {
@@ -91,7 +91,7 @@ func Test_removeSwarmNode_callsRemoveWithForce(t *testing.T) {
 	ctx := context.Background()
 
 	var gotForce bool
-	cli := &fakeDockerClient{NodeRemoveFn: func(_ context.Context, _ string, opts types.NodeRemoveOptions) error {
+	cli := &fakeDockerClient{NodeRemoveFn: func(_ context.Context, _ string, opts swarm.NodeRemoveOptions) error {
 		gotForce = opts.Force
 		return nil
 	}}
@@ -109,7 +109,7 @@ func Test_getSwarmNodeTasks_usesNodeFilter(t *testing.T) {
 
 	var gotFiltersLen int
 	cli := &fakeDockerClient{
-		TaskListFn: func(_ context.Context, opts types.TaskListOptions) ([]swarm.Task, error) {
+		TaskListFn: func(_ context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
 			gotFiltersLen = opts.Filters.Len()
 			values := opts.Filters.Get("node")
 			if len(values) != 1 || values[0] != "n1" {
@@ -117,10 +117,10 @@ func Test_getSwarmNodeTasks_usesNodeFilter(t *testing.T) {
 			}
 			return []swarm.Task{{ID: "t1", ServiceID: "s1", NodeID: "n1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}}}, nil
 		},
-		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
+		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
 			return []swarm.Service{{ID: "s1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svc"}}}}, nil
 		},
-		NodeListFn: func(context.Context, types.NodeListOptions) ([]swarm.Node, error) {
+		NodeListFn: func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) {
 			return []swarm.Node{{ID: "n1", Description: swarm.NodeDescription{Hostname: "h"}}}, nil
 		},
 	}
@@ -170,7 +170,7 @@ func Test_formatNodeAge_formatsNonZero(t *testing.T) {
 type fakeSwarmJoinTokensClient struct {
 	swarmInfo swarm.Swarm
 	swarmErr  error
-	info      types.Info
+	info      system.Info
 	infoErr   error
 }
 
@@ -181,9 +181,9 @@ func (f *fakeSwarmJoinTokensClient) SwarmInspect(context.Context) (swarm.Swarm, 
 	return f.swarmInfo, nil
 }
 
-func (f *fakeSwarmJoinTokensClient) Info(context.Context) (types.Info, error) {
+func (f *fakeSwarmJoinTokensClient) Info(context.Context) (system.Info, error) {
 	if f.infoErr != nil {
-		return types.Info{}, f.infoErr
+		return system.Info{}, f.infoErr
 	}
 	return f.info, nil
 }
@@ -198,7 +198,7 @@ func Test_getSwarmJoinTokens_returnsTokensAndCommands(t *testing.T) {
 				Manager: "SWMTKN-manager-token",
 			},
 		},
-		info: types.Info{
+		info: system.Info{
 			Swarm: swarm.Info{
 				RemoteManagers: []swarm.Peer{
 					{Addr: "192.168.1.1:2377"},
@@ -239,7 +239,7 @@ func Test_getSwarmJoinTokens_handlesNoRemoteManagers(t *testing.T) {
 				Manager: "SWMTKN-manager-token",
 			},
 		},
-		info: types.Info{
+		info: system.Info{
 			Swarm: swarm.Info{
 				RemoteManagers: []swarm.Peer{}, // empty
 			},
@@ -288,3 +288,8 @@ func Test_getSwarmJoinTokens_propagatesInfoError(t *testing.T) {
 		t.Fatalf("expected DeadlineExceeded, got %v", err)
 	}
 }
+
+// Note: The public wrapper functions (GetSwarmNodes, GetSwarmNode, UpdateSwarmNodeAvailability, etc.)
+// that accept *client.Client cannot be easily unit tested since they require a real Docker client.
+// These wrappers are thin delegates to the internal functions (getSwarmNodes, getSwarmNode, etc.)
+// which are already comprehensively tested above.

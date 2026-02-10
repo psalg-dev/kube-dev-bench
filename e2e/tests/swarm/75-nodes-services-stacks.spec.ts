@@ -3,7 +3,7 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { Notifications } from '../../src/pages/Notifications.js';
-import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
+import { bootstrapSwarm, uniqueSwarmName, waitForSwarmServicesTable } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
 
 function escapeRegExp(input: string): string {
@@ -70,7 +70,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
     const firstRow = table.locator('tbody tr').first();
     await expect(firstRow).toBeVisible({ timeout: 60_000 });
-    const nodeName = (await firstRow.locator('td').first().innerText()).trim();
+    const nodeName = (await firstRow.locator('td').nth(1).innerText()).trim();
 
     await firstRow.click();
 
@@ -151,8 +151,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
 
       await sidebar.goToServices();
 
-      const table = page.locator('[data-testid="swarm-services-table"]');
-      await expect(table).toBeVisible({ timeout: 60_000 });
+      const table = await waitForSwarmServicesTable(page, 60_000);
 
       // Poll for the service row to appear
       const row = table.locator('tbody tr').filter({ hasText: svcName }).first();
@@ -161,7 +160,7 @@ test.describe('Docker Swarm Nodes/Services/Stacks', () => {
       }).toPass({ timeout: 90_000, intervals: [1000, 2000, 5000] });
       
       // Click the Name cell (first td) to avoid clicking the Update badge which opens a different popup
-      const nameCell = row.locator('td').first();
+      const nameCell = row.locator('td').nth(1);
       const panel = new SwarmBottomPanel(page);
       await expect(async () => {
         // Dismiss any open popups first

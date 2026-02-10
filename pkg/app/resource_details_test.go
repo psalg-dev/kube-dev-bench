@@ -190,7 +190,7 @@ func TestGetCronJobDetail(t *testing.T) {
 	}
 
 	if detail == nil {
-		t.Error("expected non-nil detail")
+		t.Fatal("expected non-nil detail")
 	}
 
 	// Should have 3 jobs (not counting unrelated job)
@@ -320,7 +320,7 @@ func TestGetDeploymentDetail(t *testing.T) {
 	}
 
 	if detail == nil {
-		t.Error("expected non-nil detail")
+		t.Fatal("expected non-nil detail")
 	}
 }
 
@@ -408,7 +408,7 @@ func TestGetStatefulSetDetail(t *testing.T) {
 	}
 
 	if detail == nil {
-		t.Error("expected non-nil detail")
+		t.Fatal("expected non-nil detail")
 	}
 
 	if len(detail.Pods) != 2 {
@@ -642,5 +642,69 @@ func TestGetIngressDetail(t *testing.T) {
 	}
 	if len(detail.Rules) != 1 {
 		t.Errorf("expected 1 rule, got %d", len(detail.Rules))
+	}
+}
+
+func TestGetDeploymentDetail_NotFound(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{ctx: context.Background(), testClientset: cs}
+	_, err := app.GetDeploymentDetail("default", "missing-deploy")
+	if err == nil {
+		t.Fatal("expected error for missing deployment")
+	}
+}
+
+func TestGetDeploymentDetail_EmptySelectorPods(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	dep := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "no-pods", Namespace: "default"}, Spec: appsv1.DeploymentSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "no-match"}}}}
+	_, _ = cs.AppsV1().Deployments("default").Create(context.Background(), dep, metav1.CreateOptions{})
+	app := &App{ctx: context.Background(), testClientset: cs}
+	d, err := app.GetDeploymentDetail("default", "no-pods")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(d.Pods) != 0 {
+		t.Errorf("expected 0 pods, got %d", len(d.Pods))
+	}
+}
+
+func TestGetStatefulSetDetail_NotFound(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{ctx: context.Background(), testClientset: cs}
+	_, err := app.GetStatefulSetDetail("default", "missing-sts")
+	if err == nil {
+		t.Fatal("expected error for missing statefulset")
+	}
+}
+
+func TestGetStatefulSetDetail_EmptySelectorPods(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	sts := &appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: "no-pods", Namespace: "default"}, Spec: appsv1.StatefulSetSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "no-match"}}}}
+	_, _ = cs.AppsV1().StatefulSets("default").Create(context.Background(), sts, metav1.CreateOptions{})
+	app := &App{ctx: context.Background(), testClientset: cs}
+	d, err := app.GetStatefulSetDetail("default", "no-pods")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(d.Pods) != 0 {
+		t.Errorf("expected 0 pods, got %d", len(d.Pods))
+	}
+}
+
+func TestGetDaemonSetDetail_NotFound(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{ctx: context.Background(), testClientset: cs}
+	_, err := app.GetDaemonSetDetail("default", "missing-ds")
+	if err == nil {
+		t.Fatal("expected error for missing daemonset")
+	}
+}
+
+func TestGetJobDetail_NotFound(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{ctx: context.Background(), testClientset: cs}
+	_, err := app.GetJobDetail("default", "missing-job")
+	if err == nil {
+		t.Fatal("expected error for missing job")
 	}
 }

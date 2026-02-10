@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 
@@ -228,10 +229,10 @@ func CheckImageUpdate(ctx context.Context, image string) (ImageUpdateInfo, error
 }
 
 type swarmServiceInspector interface {
-	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
-	ContainerInspect(context.Context, string) (types.ContainerJSON, error)
-	ImageInspectWithRaw(context.Context, string) (types.ImageInspect, []byte, error)
+	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	ContainerInspect(context.Context, string) (container.InspectResponse, error)
+	ImageInspectWithRaw(context.Context, string) (image.InspectResponse, []byte, error)
 }
 
 func repoDigestForRef(ref parsedImageRef, repoDigests []string) string {
@@ -264,19 +265,9 @@ func repoDigestForRef(ref parsedImageRef, repoDigests []string) string {
 	return ""
 }
 
-func resolveLocalDigestForService(ctx context.Context, cli swarmServiceInspector, serviceID string, ref parsedImageRef) (string, string) {
-	if strings.TrimSpace(serviceID) == "" {
-		return "", "service id missing"
-	}
-
-	filter := filters.NewArgs()
-	filter.Add("service", serviceID)
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{Filters: filter})
-	if err != nil {
-		return "", err.Error()
-	}
-
-	containerID := ""
+// findRunningContainerID looks for a running task's container ID, falling back to any container ID.
+func findRunningContainerID(tasks []swarm.Task) string {
+	// First try: find running task.
 	for _, t := range tasks {
 		if t.Status.State != swarm.TaskStateRunning {
 			continue
@@ -285,26 +276,36 @@ func resolveLocalDigestForService(ctx context.Context, cli swarmServiceInspector
 			continue
 		}
 		cid := strings.TrimSpace(t.Status.ContainerStatus.ContainerID)
-		if cid == "" {
+		if cid != "" {
+			return cid
+		}
+	}
+	// Fallback: any task with a container ID.
+	for _, t := range tasks {
+		if t.Status.ContainerStatus == nil {
 			continue
 		}
-		containerID = cid
-		break
-	}
-	if containerID == "" {
-		// Fallback: any task with a container ID.
-		for _, t := range tasks {
-			if t.Status.ContainerStatus == nil {
-				continue
-			}
-			cid := strings.TrimSpace(t.Status.ContainerStatus.ContainerID)
-			if cid == "" {
-				continue
-			}
-			containerID = cid
-			break
+		cid := strings.TrimSpace(t.Status.ContainerStatus.ContainerID)
+		if cid != "" {
+			return cid
 		}
 	}
+	return ""
+}
+
+func resolveLocalDigestForService(ctx context.Context, cli swarmServiceInspector, serviceID string, ref parsedImageRef) (string, string) {
+	if strings.TrimSpace(serviceID) == "" {
+		return "", "service id missing"
+	}
+
+	filter := filters.NewArgs()
+	filter.Add("service", serviceID)
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filter})
+	if err != nil {
+		return "", err.Error()
+	}
+
+	containerID := findRunningContainerID(tasks)
 	if containerID == "" {
 		return "", "no task container found"
 	}
@@ -335,22 +336,43 @@ func CheckSwarmServiceImageUpdates(ctx context.Context, cli *client.Client, serv
 	return checkSwarmServiceImageUpdates(ctx, cli, serviceIDs)
 }
 
+// trimServiceIDs filters and trims service IDs.
+func trimServiceIDs(serviceIDs []string) []string {
+	ids := make([]string, 0, len(serviceIDs))
+	for _, id := range serviceIDs {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// resolveAndUpdateLocalDigest attempts to resolve the local digest for a service.
+func resolveAndUpdateLocalDigest(ctx context.Context, cli swarmServiceInspector, serviceID string, ref parsedImageRef, info *ImageUpdateInfo) {
+	if strings.TrimSpace(info.LocalDigest) != "" || strings.TrimSpace(ref.tag) == "" {
+		return
+	}
+	ld, lerr := resolveLocalDigestForService(ctx, cli, serviceID, ref)
+	if strings.TrimSpace(ld) != "" {
+		info.LocalDigest = ld
+		if info.RemoteDigest != "" && info.LocalDigest != info.RemoteDigest {
+			info.UpdateAvailable = true
+		}
+	} else if info.Error == "" && strings.TrimSpace(lerr) != "" {
+		info.Error = lerr
+	}
+}
+
 func checkSwarmServiceImageUpdates(ctx context.Context, cli swarmServiceInspector, serviceIDs []string) (map[string]ImageUpdateInfo, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
-	ids := make([]string, 0, len(serviceIDs))
-	for _, id := range serviceIDs {
-		id = strings.TrimSpace(id)
-		if id == "" {
-			continue
-		}
-		ids = append(ids, id)
-	}
+	ids := trimServiceIDs(serviceIDs)
 
 	out := make(map[string]ImageUpdateInfo, len(ids))
 	for _, id := range ids {
-		svc, _, err := cli.ServiceInspectWithRaw(ctx, id, types.ServiceInspectOptions{})
+		svc, _, err := cli.ServiceInspectWithRaw(ctx, id, swarm.ServiceInspectOptions{})
 		if err != nil {
 			info := ImageUpdateInfo{Image: "", CheckedAt: time.Now().UTC().Format(time.RFC3339), Error: err.Error()}
 			setCachedImageUpdate(id, info)
@@ -364,18 +386,7 @@ func checkSwarmServiceImageUpdates(ctx context.Context, cli swarmServiceInspecto
 		info, _ := CheckImageUpdate(ctx, img)
 		ref, refErr := parseImageReference(img)
 		if refErr == nil {
-			if strings.TrimSpace(info.LocalDigest) == "" && strings.TrimSpace(ref.tag) != "" {
-				ld, lerr := resolveLocalDigestForService(ctx, cli, id, ref)
-				if strings.TrimSpace(ld) != "" {
-					info.LocalDigest = ld
-					if info.RemoteDigest != "" && info.LocalDigest != "" && info.LocalDigest != info.RemoteDigest {
-						info.UpdateAvailable = true
-					}
-				} else if info.Error == "" && strings.TrimSpace(lerr) != "" {
-					// Preserve remote digest when available; surface why we can't compare.
-					info.Error = lerr
-				}
-			}
+			resolveAndUpdateLocalDigest(ctx, cli, id, ref, &info)
 		}
 		setCachedImageUpdate(id, info)
 		out[id] = info

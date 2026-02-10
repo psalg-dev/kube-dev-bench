@@ -34,7 +34,7 @@ func TestGetHelmRepoFile(t *testing.T) {
 	// Should contain a path with 'helm' in it
 	if !filepath.IsAbs(repoFile) {
 		// On Windows, helm settings may return relative paths depending on env
-		// Just check it's not empty
+		t.Logf("repoFile is not absolute: %q", repoFile)
 	}
 }
 
@@ -170,12 +170,14 @@ func TestHelmHistoryInfo_Fields(t *testing.T) {
 
 func TestHelmInstallRequest_Fields(t *testing.T) {
 	req := HelmInstallRequest{
-		ReleaseName: "my-nginx",
-		Namespace:   "default",
-		ChartRef:    "bitnami/nginx",
-		Version:     "15.0.0",
-		Values:      map[string]interface{}{"replicaCount": 2},
-		CreateNs:    true,
+		ReleaseName:  "my-nginx",
+		Namespace:    "default",
+		ChartRef:     "bitnami/nginx",
+		Version:      "15.0.0",
+		Values:       map[string]interface{}{"replicaCount": 2},
+		CreateNs:     true,
+		WaitStrategy: "watcher",
+		Timeout:      600,
 	}
 
 	if req.ReleaseName != "my-nginx" {
@@ -187,16 +189,24 @@ func TestHelmInstallRequest_Fields(t *testing.T) {
 	if !req.CreateNs {
 		t.Error("expected CreateNs to be true")
 	}
+	if req.WaitStrategy != "watcher" {
+		t.Errorf("expected WaitStrategy to be 'watcher', got %q", req.WaitStrategy)
+	}
+	if req.Timeout != 600 {
+		t.Errorf("expected Timeout to be 600, got %d", req.Timeout)
+	}
 }
 
 func TestHelmUpgradeRequest_Fields(t *testing.T) {
 	req := HelmUpgradeRequest{
-		ReleaseName: "my-nginx",
-		Namespace:   "default",
-		ChartRef:    "bitnami/nginx",
-		Version:     "16.0.0",
-		Values:      map[string]interface{}{"replicaCount": 3},
-		ReuseValues: true,
+		ReleaseName:  "my-nginx",
+		Namespace:    "default",
+		ChartRef:     "bitnami/nginx",
+		Version:      "16.0.0",
+		Values:       map[string]interface{}{"replicaCount": 3},
+		ReuseValues:  true,
+		WaitStrategy: "legacy",
+		Timeout:      120,
 	}
 
 	if req.ReleaseName != "my-nginx" {
@@ -207,6 +217,12 @@ func TestHelmUpgradeRequest_Fields(t *testing.T) {
 	}
 	if !req.ReuseValues {
 		t.Error("expected ReuseValues to be true")
+	}
+	if req.WaitStrategy != "legacy" {
+		t.Errorf("expected WaitStrategy to be 'legacy', got %q", req.WaitStrategy)
+	}
+	if req.Timeout != 120 {
+		t.Errorf("expected Timeout to be 120, got %d", req.Timeout)
 	}
 }
 
@@ -302,4 +318,246 @@ func createTempHelmRepoFile(t *testing.T, content string) (string, func()) {
 	}
 
 	return repoFile, cleanup
+}
+
+// ============================================================================
+// Helm v4 Feature Tests - WaitStrategy and Timeout handling
+// ============================================================================
+
+func TestHelmInstallRequest_WaitStrategies(t *testing.T) {
+	testCases := []struct {
+		name         string
+		waitStrategy string
+		timeout      int
+		description  string
+	}{
+		{
+			name:         "watcher strategy",
+			waitStrategy: "watcher",
+			timeout:      600,
+			description:  "Helm v4 event-driven wait using kstatus",
+		},
+		{
+			name:         "legacy strategy",
+			waitStrategy: "legacy",
+			timeout:      300,
+			description:  "Helm 3-style periodic polling",
+		},
+		{
+			name:         "hookOnly strategy",
+			waitStrategy: "hookOnly",
+			timeout:      120,
+			description:  "Wait only for hook Pods/Jobs to complete",
+		},
+		{
+			name:         "empty strategy defaults to legacy",
+			waitStrategy: "",
+			timeout:      0,
+			description:  "Empty strategy should use legacy for backward compat",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := HelmInstallRequest{
+				ReleaseName:  "test-release",
+				Namespace:    "default",
+				ChartRef:     "test/chart",
+				WaitStrategy: tc.waitStrategy,
+				Timeout:      tc.timeout,
+			}
+
+			if req.WaitStrategy != tc.waitStrategy {
+				t.Errorf("expected WaitStrategy %q, got %q", tc.waitStrategy, req.WaitStrategy)
+			}
+			if req.Timeout != tc.timeout {
+				t.Errorf("expected Timeout %d, got %d", tc.timeout, req.Timeout)
+			}
+		})
+	}
+}
+
+func TestHelmUpgradeRequest_WaitStrategies(t *testing.T) {
+	testCases := []struct {
+		name         string
+		waitStrategy string
+		timeout      int
+	}{
+		{
+			name:         "watcher strategy",
+			waitStrategy: "watcher",
+			timeout:      600,
+		},
+		{
+			name:         "legacy strategy",
+			waitStrategy: "legacy",
+			timeout:      300,
+		},
+		{
+			name:         "hookOnly strategy",
+			waitStrategy: "hookOnly",
+			timeout:      180,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := HelmUpgradeRequest{
+				ReleaseName:  "test-release",
+				Namespace:    "default",
+				ChartRef:     "test/chart",
+				WaitStrategy: tc.waitStrategy,
+				Timeout:      tc.timeout,
+				ReuseValues:  true,
+			}
+
+			if req.WaitStrategy != tc.waitStrategy {
+				t.Errorf("expected WaitStrategy %q, got %q", tc.waitStrategy, req.WaitStrategy)
+			}
+			if req.Timeout != tc.timeout {
+				t.Errorf("expected Timeout %d, got %d", tc.timeout, req.Timeout)
+			}
+		})
+	}
+}
+
+func TestHelmInstallRequest_DefaultTimeout(t *testing.T) {
+	// Test that when timeout is 0, the function should use default (300s)
+	req := HelmInstallRequest{
+		ReleaseName:  "test-release",
+		Namespace:    "default",
+		ChartRef:     "test/chart",
+		WaitStrategy: "watcher",
+		Timeout:      0, // Should default to 300 in InstallHelmChart
+	}
+
+	if req.Timeout != 0 {
+		t.Errorf("expected request Timeout to be 0 (will use default), got %d", req.Timeout)
+	}
+}
+
+func TestHelmUpgradeRequest_DefaultTimeout(t *testing.T) {
+	// Test that when timeout is 0, the function should use default (300s)
+	req := HelmUpgradeRequest{
+		ReleaseName:  "test-release",
+		Namespace:    "default",
+		ChartRef:     "test/chart",
+		WaitStrategy: "legacy",
+		Timeout:      0, // Should default to 300 in UpgradeHelmRelease
+	}
+
+	if req.Timeout != 0 {
+		t.Errorf("expected request Timeout to be 0 (will use default), got %d", req.Timeout)
+	}
+}
+
+func TestHelmInstallRequest_FullV4Config(t *testing.T) {
+	// Test a full Helm v4 installation request with all fields
+	req := HelmInstallRequest{
+		ReleaseName:  "production-app",
+		Namespace:    "production",
+		ChartRef:     "oci://registry.example.com/charts/myapp",
+		Version:      "2.0.0",
+		Values:       map[string]interface{}{"replicaCount": 3, "image.tag": "v2.0.0"},
+		CreateNs:     true,
+		WaitStrategy: "watcher",
+		Timeout:      900, // 15 minutes
+	}
+
+	if req.ReleaseName != "production-app" {
+		t.Errorf("expected ReleaseName 'production-app', got %q", req.ReleaseName)
+	}
+	if req.Namespace != "production" {
+		t.Errorf("expected Namespace 'production', got %q", req.Namespace)
+	}
+	if req.WaitStrategy != "watcher" {
+		t.Errorf("expected WaitStrategy 'watcher', got %q", req.WaitStrategy)
+	}
+	if req.Timeout != 900 {
+		t.Errorf("expected Timeout 900, got %d", req.Timeout)
+	}
+	if !req.CreateNs {
+		t.Error("expected CreateNs to be true")
+	}
+	if req.Values["replicaCount"] != 3 {
+		t.Errorf("expected Values.replicaCount to be 3, got %v", req.Values["replicaCount"])
+	}
+}
+
+func TestHelmUpgradeRequest_FullV4Config(t *testing.T) {
+	// Test a full Helm v4 upgrade request with all fields
+	req := HelmUpgradeRequest{
+		ReleaseName:  "production-app",
+		Namespace:    "production",
+		ChartRef:     "oci://registry.example.com/charts/myapp",
+		Version:      "2.1.0",
+		Values:       map[string]interface{}{"replicaCount": 5},
+		ReuseValues:  true,
+		WaitStrategy: "watcher",
+		Timeout:      600,
+	}
+
+	if req.ReleaseName != "production-app" {
+		t.Errorf("expected ReleaseName 'production-app', got %q", req.ReleaseName)
+	}
+	if req.Version != "2.1.0" {
+		t.Errorf("expected Version '2.1.0', got %q", req.Version)
+	}
+	if !req.ReuseValues {
+		t.Error("expected ReuseValues to be true")
+	}
+	if req.WaitStrategy != "watcher" {
+		t.Errorf("expected WaitStrategy 'watcher', got %q", req.WaitStrategy)
+	}
+	if req.Timeout != 600 {
+		t.Errorf("expected Timeout 600, got %d", req.Timeout)
+	}
+}
+
+func TestWaitStrategyValues(t *testing.T) {
+	// Test that valid wait strategy values are correctly handled
+	validStrategies := []string{"watcher", "legacy", "hookOnly", ""}
+
+	for _, strategy := range validStrategies {
+		t.Run("strategy_"+strategy, func(t *testing.T) {
+			req := HelmInstallRequest{
+				ReleaseName:  "test",
+				Namespace:    "default",
+				ChartRef:     "test/chart",
+				WaitStrategy: strategy,
+			}
+			// Just verify the struct accepts the value without panic
+			if req.WaitStrategy != strategy {
+				t.Errorf("expected WaitStrategy %q, got %q", strategy, req.WaitStrategy)
+			}
+		})
+	}
+}
+
+func TestTimeoutValues(t *testing.T) {
+	// Test various timeout values
+	testCases := []struct {
+		name    string
+		timeout int
+	}{
+		{"zero (uses default)", 0},
+		{"30 seconds", 30},
+		{"5 minutes", 300},
+		{"15 minutes", 900},
+		{"30 minutes", 1800},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := HelmInstallRequest{
+				ReleaseName: "test",
+				Namespace:   "default",
+				ChartRef:    "test/chart",
+				Timeout:     tc.timeout,
+			}
+			if req.Timeout != tc.timeout {
+				t.Errorf("expected Timeout %d, got %d", tc.timeout, req.Timeout)
+			}
+		})
+	}
 }

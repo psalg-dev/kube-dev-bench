@@ -90,6 +90,40 @@ export default defineConfig(async ({ command, mode }) => {
     // In E2E, keep dependency optimization enabled with an isolated cache dir.
     // This avoids ESM default export issues when deps import React as default.
     optimizeDeps: isE2E ? { include: ['react', 'react-dom'], force: true } : undefined,
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // CodeMirror in separate chunks (loaded on demand)
+            'codemirror-core': [
+              '@codemirror/view',
+              '@codemirror/state',
+              '@codemirror/language',
+            ],
+            'codemirror-lang': [
+              '@codemirror/lang-yaml',
+              '@codemirror/autocomplete',
+              '@codemirror/lint',
+            ],
+            'codemirror-extras': [
+              '@codemirror/commands',
+              '@codemirror/search',
+              '@codemirror/theme-one-dark',
+            ],
+
+            // Holmes/markdown rendering
+            'markdown': ['react-markdown', 'react-syntax-highlighter'],
+
+            // Terminal
+            'terminal': ['xterm', 'xterm-addon-fit'],
+
+            // React core (vendor chunk)
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          },
+        },
+      },
+      reportCompressedSize: true,
+    },
     server: {
       host: hostOverride || undefined,
       fs: allowOutsideRoot ? { strict: false } : undefined,

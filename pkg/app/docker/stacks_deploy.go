@@ -42,6 +42,7 @@ func DeploySwarmStack(ctx context.Context, stackName string, composeYAML string)
 		absPath = path
 	}
 
+	// #nosec G204 -- arguments are constructed, no shell used.
 	cmd := exec.CommandContext(ctx, "docker", "stack", "deploy", "-c", absPath, stackName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {

@@ -2,39 +2,20 @@ package topology
 
 import (
 	"context"
+	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 )
 
 type swarmTopologyClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
-	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
 }
 
-// BuildClusterTopology aggregates Swarm nodes/services/tasks into a bipartite graph.
-// It is best-effort and safe to call on a polling loop.
-func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (ClusterTopology, error) {
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
-	if err != nil {
-		return ClusterTopology{}, err
-	}
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
-	if err != nil {
-		return ClusterTopology{}, err
-	}
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
-	if err != nil {
-		return ClusterTopology{}, err
-	}
-
-	// Node lookup
+// buildNodeLookup creates a map of node IDs to hostnames and a slice of TopologyNodes
+func buildNodeLookup(nodes []swarm.Node) (map[string]string, []TopologyNode) {
 	nodeHost := make(map[string]string, len(nodes))
 	outNodes := make([]TopologyNode, 0, len(nodes))
 	for _, n := range nodes {
@@ -47,23 +28,41 @@ func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (Cluster
 			State:    string(n.Status.State),
 		})
 	}
+	return nodeHost, outNodes
+}
 
-	// Service lookup
-	outServices := make([]TopologyService, 0, len(services))
+// getServiceModeAndDesired determines the mode and desired replicas for a service
+func getServiceModeAndDesired(s swarm.Service) (string, int) {
+	if s.Spec.Mode.Global != nil {
+		return "global", 0
+	}
+	if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
+		return "replicated", safeIntFromUint64(*s.Spec.Mode.Replicated.Replicas)
+	}
+	return "replicated", 0
+}
+
+func safeIntFromUint64(v uint64) int {
+	maxIntU := uint64(^uint(0) >> 1)
+	if v > maxIntU {
+		// #nosec G115 -- clamped to max int value above.
+		return int(maxIntU)
+	}
+	// #nosec G115 -- clamped to max int value above.
+	return int(v)
+}
+
+// buildServiceLookup creates service maps and a slice of TopologyServices
+func buildServiceLookup(services []swarm.Service) (map[string]string, map[string]string, map[string]int, []TopologyService) {
 	serviceName := make(map[string]string, len(services))
 	serviceMode := make(map[string]string, len(services))
 	serviceDesired := make(map[string]int, len(services))
+	outServices := make([]TopologyService, 0, len(services))
+
 	for _, s := range services {
 		name := s.Spec.Annotations.Name
 		serviceName[s.ID] = name
-
-		mode := "replicated"
-		desired := 0
-		if s.Spec.Mode.Global != nil {
-			mode = "global"
-		} else if s.Spec.Mode.Replicated != nil && s.Spec.Mode.Replicated.Replicas != nil {
-			desired = int(*s.Spec.Mode.Replicated.Replicas)
-		}
+		mode, desired := getServiceModeAndDesired(s)
 		serviceMode[s.ID] = mode
 		serviceDesired[s.ID] = desired
 
@@ -74,63 +73,77 @@ func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (Cluster
 			DesiredReplicas: desired,
 		})
 	}
+	return serviceName, serviceMode, serviceDesired, outServices
+}
 
-	// Counts
-	nodeTaskCount := map[string]int{}
-	svcTaskCount := map[string]int{}
-	svcRunningCount := map[string]int{}
-	pairRunning := map[string]int{} // serviceID|nodeID -> running tasks
+// taskCounts holds the aggregated counts from tasks
+type taskCounts struct {
+	nodeTaskCount   map[string]int
+	svcTaskCount    map[string]int
+	svcRunningCount map[string]int
+	pairRunning     map[string]int // serviceID|nodeID -> running tasks
+}
+
+// aggregateTaskCounts counts tasks by node, service, and running pairs
+func aggregateTaskCounts(tasks []swarm.Task) taskCounts {
+	counts := taskCounts{
+		nodeTaskCount:   make(map[string]int),
+		svcTaskCount:    make(map[string]int),
+		svcRunningCount: make(map[string]int),
+		pairRunning:     make(map[string]int),
+	}
 
 	for _, t := range tasks {
 		if t.NodeID != "" {
-			nodeTaskCount[t.NodeID]++
+			counts.nodeTaskCount[t.NodeID]++
 		}
 		if t.ServiceID != "" {
-			svcTaskCount[t.ServiceID]++
+			counts.svcTaskCount[t.ServiceID]++
 		}
 		if t.Status.State == swarm.TaskStateRunning {
 			if t.ServiceID != "" {
-				svcRunningCount[t.ServiceID]++
+				counts.svcRunningCount[t.ServiceID]++
 			}
 			if t.ServiceID != "" && t.NodeID != "" {
 				key := t.ServiceID + "|" + t.NodeID
-				pairRunning[key]++
+				counts.pairRunning[key]++
 			}
 		}
 	}
+	return counts
+}
 
-	// Merge counts into outputs.
+// mergeNodeCounts updates node task counts in place
+func mergeNodeCounts(outNodes []TopologyNode, nodeTaskCount map[string]int) {
 	for i := range outNodes {
 		outNodes[i].TaskCount = nodeTaskCount[outNodes[i].ID]
 	}
+}
+
+// mergeServiceCounts updates service task counts in place
+func mergeServiceCounts(outServices []TopologyService, counts taskCounts, serviceDesired map[string]int) {
 	for i := range outServices {
 		sid := outServices[i].ID
-		outServices[i].TaskCount = svcTaskCount[sid]
-		outServices[i].RunningTasks = svcRunningCount[sid]
+		outServices[i].TaskCount = counts.svcTaskCount[sid]
+		outServices[i].RunningTasks = counts.svcRunningCount[sid]
 		if outServices[i].Mode == "global" {
-			// For global services, desired replicas is typically per-node; keep 0 here.
 			outServices[i].DesiredReplicas = serviceDesired[sid]
 		}
 	}
+}
 
+// buildTopologyLinks creates links from the pair running counts
+func buildTopologyLinks(pairRunning map[string]int, serviceName, nodeHost map[string]string) []TopologyLink {
 	links := make([]TopologyLink, 0, len(pairRunning))
 	for key, w := range pairRunning {
 		if w <= 0 {
 			continue
 		}
-		// key is service|node
-		sep := -1
-		for i := 0; i < len(key); i++ {
-			if key[i] == '|' {
-				sep = i
-				break
-			}
-		}
-		if sep <= 0 || sep >= len(key)-1 {
+		parts := strings.SplitN(key, "|", 2)
+		if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 			continue
 		}
-		sid := key[:sep]
-		nid := key[sep+1:]
+		sid, nid := parts[0], parts[1]
 		if _, ok := serviceName[sid]; !ok {
 			continue
 		}
@@ -139,6 +152,36 @@ func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (Cluster
 		}
 		links = append(links, TopologyLink{From: sid, To: nid, Type: "runs_on", Weight: w})
 	}
+	return links
+}
+
+// BuildClusterTopology aggregates Swarm nodes/services/tasks into a bipartite graph.
+// It is best-effort and safe to call on a polling loop.
+func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (ClusterTopology, error) {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	if err != nil {
+		return ClusterTopology{}, err
+	}
+	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	if err != nil {
+		return ClusterTopology{}, err
+	}
+	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	if err != nil {
+		return ClusterTopology{}, err
+	}
+
+	nodeHost, outNodes := buildNodeLookup(nodes)
+	serviceName, _, serviceDesired, outServices := buildServiceLookup(services)
+	counts := aggregateTaskCounts(tasks)
+
+	mergeNodeCounts(outNodes, counts.nodeTaskCount)
+	mergeServiceCounts(outServices, counts, serviceDesired)
+	links := buildTopologyLinks(counts.pairRunning, serviceName, nodeHost)
 
 	return ClusterTopology{
 		Timestamp: time.Now().UTC().Format(time.RFC3339),

@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -29,7 +29,7 @@ jobs:
 
       - name: Upload frontend coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -37,7 +37,7 @@ jobs:
           retention-days: 7
 
       - name: Upload frontend coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           directory: frontend/coverage
           flags: frontend
@@ -50,7 +50,7 @@ jobs:
         run: npm run build
 
       - name: Upload frontend dist artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-dist
           path: frontend/dist
@@ -61,16 +61,16 @@ jobs:
     needs: frontend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download frontend dist
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload backend coverage artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-coverage
           path: coverage.out
@@ -94,7 +94,7 @@ jobs:
           retention-days: 7
 
       - name: Upload backend coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: coverage.out
           flags: backend
@@ -112,26 +112,43 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: 1
+          - name: e2e-shard-1
+            shard: 1
             base_port: 34200
-          - shard: 2
+            registry: false
+            holmes_deploy: false
+          - name: e2e-shard-2
+            shard: 2
             base_port: 34300
-          - shard: 3
+            registry: false
+            holmes_deploy: false
+          - name: e2e-shard-3
+            shard: 3
             base_port: 34400
+            registry: false
+            holmes_deploy: false
+          - name: e2e-holmes-deploy
+            base_port: 34600
+            registry: false
+            holmes_deploy: true
+          - name: e2e-registry
+            base_port: 34500
+            registry: true
+            holmes_deploy: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: |
             frontend/package-lock.json
@@ -145,7 +162,7 @@ jobs:
         run: npm ci
 
       - name: Download frontend dist
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist
@@ -228,6 +245,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run e2e tests (shard ${{ matrix.shard }}/3)
+        if: matrix.registry != true && matrix.holmes_deploy != true
         working-directory: e2e
         run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
         env:
@@ -236,11 +254,42 @@ jobs:
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
 
+      - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
+        if: matrix.holmes_deploy == true
+        run: |
+          echo "Pulling node:20-alpine image..."
+          docker pull node:20-alpine
+          echo "Loading node:20-alpine into kind cluster..."
+          kind load docker-image node:20-alpine --name kdb-e2e
+
+      - name: Run Holmes deployment e2e tests
+        if: matrix.holmes_deploy == true
+        working-directory: e2e
+        run: xvfb-run -a npx playwright test tests/holmes/60-holmes-onboarding-deploy.spec.ts
+        env:
+          CI: true
+          PW_WORKERS: '1'
+          KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+          E2E_HOLMES_DEPLOY: '1'
+
+      - name: Run registry e2e tests
+        if: matrix.registry == true
+        working-directory: e2e
+        run: xvfb-run -a npm run test:registry
+        env:
+          CI: true
+          PW_WORKERS: '3'
+          KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
+          E2E_REGISTRY_SUITE: '1'
+          E2E_SKIP_KIND: '1'
+
       - name: Upload e2e test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
-          name: e2e-test-results-shard-${{ matrix.shard }}
+          name: e2e-test-results-${{ matrix.name }}
           path: |
             e2e/test-results
             e2e/playwright-report
@@ -288,18 +337,18 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -333,7 +382,7 @@ jobs:
 
       - name: Upload release artifact (Windows)
         if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: build/bin/${{ matrix.artifact }}
@@ -341,7 +390,7 @@ jobs:
 
       - name: Upload release artifact (macOS/Linux)
         if: matrix.platform != 'windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.artifact }}
           path: build/bin/${{ matrix.artifact }}

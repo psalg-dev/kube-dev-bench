@@ -67,95 +67,109 @@ func (a *App) refreshPodStatusOnly() {
 	a.resourceCountsMu.Lock()
 	a.lastResourceCounts = last
 	a.resourceCountsMu.Unlock()
-	emitEvent(a.ctx, "resourcecounts:update", last)
+	emitEvent(a.ctx, EventResourceCountsUpdate, last)
+}
+
+// getRefreshNamespaces returns the list of namespaces to count
+func (a *App) getRefreshNamespaces() []string {
+	nsList := append([]string(nil), a.preferredNamespaces...)
+	if len(nsList) == 0 && a.currentNamespace != "" {
+		nsList = []string{a.currentNamespace}
+	}
+	return nsList
+}
+
+// aggregatePodCounts adds pod status counts from a namespace to the aggregate
+func (a *App) aggregatePodCounts(ns string, agg *ResourceCounts) {
+	if pcs, err := a.GetPodStatusCounts(ns); err == nil {
+		agg.PodStatus.Running += pcs.Running
+		agg.PodStatus.Pending += pcs.Pending
+		agg.PodStatus.Failed += pcs.Failed
+		agg.PodStatus.Succeeded += pcs.Succeeded
+		agg.PodStatus.Unknown += pcs.Unknown
+		agg.PodStatus.Total += pcs.Total
+	}
+}
+
+// aggregateResourceCounts adds counts for all resource types from a namespace
+func (a *App) aggregateResourceCounts(ns string, agg *ResourceCounts) {
+	a.aggregatePodCounts(ns, agg)
+	if deps, err := a.GetDeployments(ns); err == nil {
+		agg.Deployments += len(deps)
+	}
+	if svcs, err := a.GetServices(ns); err == nil {
+		agg.Services += len(svcs)
+	}
+	if jobs, err := a.GetJobs(ns); err == nil {
+		agg.Jobs += len(jobs)
+	}
+	if cjs, err := a.GetCronJobs(ns); err == nil {
+		agg.CronJobs += len(cjs)
+	}
+	if dss, err := a.GetDaemonSets(ns); err == nil {
+		agg.DaemonSets += len(dss)
+	}
+	if sss, err := a.GetStatefulSets(ns); err == nil {
+		agg.StatefulSets += len(sss)
+	}
+	if rss, err := a.GetReplicaSets(ns); err == nil {
+		agg.ReplicaSets += len(rss)
+	}
+	if cms, err := a.GetConfigMaps(ns); err == nil {
+		agg.ConfigMaps += len(cms)
+	}
+	if secs, err := a.GetSecrets(ns); err == nil {
+		agg.Secrets += len(secs)
+	}
+	if ings, err := a.GetIngresses(ns); err == nil {
+		agg.Ingresses += len(ings)
+	}
+	if pvcs, err := a.GetPersistentVolumeClaims(ns); err == nil {
+		agg.PersistentVolumeClaims += len(pvcs)
+	}
+	if helmReleases, err := a.GetHelmReleases(ns); err == nil {
+		agg.HelmReleases += len(helmReleases)
+	}
+}
+
+// aggregateClusterWideCounts adds cluster-wide resource counts
+func (a *App) aggregateClusterWideCounts(agg *ResourceCounts) {
+	if pvs, err := a.GetPersistentVolumes(); err == nil {
+		agg.PersistentVolumes = len(pvs)
+	}
 }
 
 // refreshResourceCounts computes counts and emits an event if anything changed.
 func (a *App) refreshResourceCounts() {
-	if a.ctx == nil {
-		return
-	}
-	if a.currentKubeContext == "" {
+	if a.ctx == nil || a.currentKubeContext == "" {
 		return
 	}
 
-	// Snapshot namespaces (avoid holding lock during I/O)
-	nsList := append([]string(nil), a.preferredNamespaces...)
-	if len(nsList) == 0 && a.currentNamespace != "" { // legacy single-namespace path
-		nsList = []string{a.currentNamespace}
-	}
+	nsList := a.getRefreshNamespaces()
 	if len(nsList) == 0 {
 		return
 	}
 
-	// Aggregate counts
 	var agg ResourceCounts
-	// Pod status counts aggregated across namespaces
 	for _, ns := range nsList {
-		if ns == "" {
-			continue
-		}
-		if pcs, err := a.GetPodStatusCounts(ns); err == nil {
-			agg.PodStatus.Running += pcs.Running
-			agg.PodStatus.Pending += pcs.Pending
-			agg.PodStatus.Failed += pcs.Failed
-			agg.PodStatus.Succeeded += pcs.Succeeded
-			agg.PodStatus.Unknown += pcs.Unknown
-			agg.PodStatus.Total += pcs.Total
-		}
-		if deps, err := a.GetDeployments(ns); err == nil {
-			agg.Deployments += len(deps)
-		}
-		if svcs, err := a.GetServices(ns); err == nil {
-			agg.Services += len(svcs)
-		}
-		if jobs, err := a.GetJobs(ns); err == nil {
-			agg.Jobs += len(jobs)
-		}
-		if cjs, err := a.GetCronJobs(ns); err == nil {
-			agg.CronJobs += len(cjs)
-		}
-		if dss, err := a.GetDaemonSets(ns); err == nil {
-			agg.DaemonSets += len(dss)
-		}
-		if sss, err := a.GetStatefulSets(ns); err == nil {
-			agg.StatefulSets += len(sss)
-		}
-		if rss, err := a.GetReplicaSets(ns); err == nil {
-			agg.ReplicaSets += len(rss)
-		}
-		if cms, err := a.GetConfigMaps(ns); err == nil {
-			agg.ConfigMaps += len(cms)
-		}
-		if secs, err := a.GetSecrets(ns); err == nil {
-			agg.Secrets += len(secs)
-		}
-		if ings, err := a.GetIngresses(ns); err == nil {
-			agg.Ingresses += len(ings)
-		}
-		if pvcs, err := a.GetPersistentVolumeClaims(ns); err == nil {
-			agg.PersistentVolumeClaims += len(pvcs)
-		}
-		if helmReleases, err := a.GetHelmReleases(ns); err == nil {
-			agg.HelmReleases += len(helmReleases)
+		if ns != "" {
+			a.aggregateResourceCounts(ns, &agg)
 		}
 	}
-	if pvs, err := a.GetPersistentVolumes(); err == nil {
-		agg.PersistentVolumes = len(pvs)
-	}
+	a.aggregateClusterWideCounts(&agg)
 
 	// Compare with last snapshot
 	a.resourceCountsMu.RLock()
 	last := a.lastResourceCounts
 	a.resourceCountsMu.RUnlock()
 	if resourceCountsEqual(last, agg) {
-		return // no change
+		return
 	}
 	a.resourceCountsMu.Lock()
 	a.lastResourceCounts = agg
 	a.resourceCountsMu.Unlock()
 
-	emitEvent(a.ctx, "resourcecounts:update", agg)
+	emitEvent(a.ctx, EventResourceCountsUpdate, agg)
 }
 
 // resourceCountsEqual shallow comparison including embedded pod status counts.

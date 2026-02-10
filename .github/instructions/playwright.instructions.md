@@ -3,6 +3,40 @@ description: 'Playwright test generation instructions'
 applyTo: '**'
 ---
 
+## Project Context: kube-dev-bench E2E Tests
+
+E2E tests for **kube-dev-bench** are located in `e2e/tests/` and test the desktop Kubernetes client application.
+
+### Test Infrastructure
+- Tests run against the Wails dev server (Vite frontend + Go backend)
+- KinD (Kubernetes in Docker) manager in `kind/` creates test clusters
+- Kubeconfig output at `kind/output/kubeconfig`
+- Docker Registry v2 container for registry tests (`registry/` directory)
+  - Replaced JFrog Artifactory with standard Docker Registry v2 (36x faster, 60x smaller)
+  - See `docs/replace-jfrog-with-docker-registry.md` for details
+
+### Key Selectors (stable DOM IDs)
+- `#show-wizard-btn` - Opens connection wizard
+- `#primaryConfigContent` - Kubeconfig paste textarea
+- `button:has-text("Save & Continue")` - Save kubeconfig button
+- `#sidebar` - Sidebar container
+- `#maincontent` - Main content area
+
+### Test Categories
+- `00-connect-and-select.spec.ts` - Connection and namespace selection
+- `10-*` through `50-*` - Resource CRUD operations (deployments, jobs, secrets, etc.)
+- `tests/registry/` - Docker registry integration tests
+
+### Running Tests
+```bash
+cd e2e
+npm install
+npx playwright install
+npm run test              # Standard tests
+npm run test:registry     # Registry-specific tests
+npm run test:headed       # Run with visible browser
+```
+
 ## Test Writing Guidelines
 
 ### Code Quality Standards

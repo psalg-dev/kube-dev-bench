@@ -231,6 +231,7 @@ type SwarmResourceCounts struct {
 }
 
 // SwarmMetricsPoint is a single point-in-time snapshot used by the Swarm Metrics Dashboard.
+//revive:disable:var-naming
 type SwarmMetricsPoint struct {
 	Timestamp string `json:"timestamp"`
 
@@ -255,9 +256,10 @@ type SwarmMetricsPoint struct {
 	NetworkTxBytes    int64   `json:"networkTxBytes"`
 	RunningContainers int     `json:"runningContainers"`
 }
+//revive:enable:var-naming
 
 // DockerConnectionStatus for connection state
-type DockerConnectionStatus struct {
+type DockerConnectionStatus struct { //nolint:revive
 	Connected     bool   `json:"connected"`
 	SwarmActive   bool   `json:"swarmActive"`
 	NodeID        string `json:"nodeId"`
@@ -267,7 +269,7 @@ type DockerConnectionStatus struct {
 }
 
 // DockerConfig holds Docker connection configuration
-type DockerConfig struct {
+type DockerConfig struct { //nolint:revive
 	Host       string `json:"host"`       // unix:///var/run/docker.sock or tcp://host:port or npipe:////./pipe/docker_engine
 	TLSEnabled bool   `json:"tlsEnabled"` // Whether to use TLS
 	TLSCert    string `json:"tlsCert"`    // Path to TLS certificate

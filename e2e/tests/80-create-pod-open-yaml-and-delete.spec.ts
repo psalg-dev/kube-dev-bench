@@ -2,6 +2,7 @@ import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
+import { waitForResourceStatus, waitForTableRowRemoved } from '../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -25,14 +26,16 @@ test('creates a Pod via manifest overlay, opens YAML tab, then deletes the Pod',
   await overlay.fillYaml(deployYaml);
   await overlay.create();
   await notifications.expectSuccessContains('created successfully');
+  await notifications.waitForClear();
 
-  // Verify a pod appears in Pods and bottom panel can show YAML
+  // Verify a pod appears in Pods and is Running
   await sidebar.goToSection('pods');
   const row = page.getByRole('row', { name: new RegExp(deployName) }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
+  await waitForResourceStatus(page, new RegExp(deployName), 'Running', { timeout: 120_000 });
 
   // Capture the exact pod name from the first column so we can assert it disappears after delete.
-  const podName = (await row.locator('td').first().innerText()).trim();
+  const podName = (await row.locator('td').nth(1).innerText()).trim();
   await row.click();
   await expect(page.locator('.bottom-panel')).toBeVisible();
 
@@ -46,11 +49,12 @@ test('creates a Pod via manifest overlay, opens YAML tab, then deletes the Pod',
   await expect(panel.getByRole('button', { name: /^confirm$/i })).toBeVisible();
   await panel.getByRole('button', { name: /^confirm$/i }).click();
   await notifications.expectSuccessContains(`pod '${podName}' deleted`);
+  await notifications.waitForClear();
 
   // Pods list doesn't always refresh immediately after delete; force a refresh by navigating away and back.
   await sidebar.goToSection('deployments');
   await sidebar.goToSection('pods');
 
   // Eventually, the specific pod name should disappear.
-  await expect(page.getByRole('row', { name: new RegExp(podName) })).toHaveCount(0, { timeout: 60_000 });
+  await waitForTableRowRemoved(page, new RegExp(podName));
 });

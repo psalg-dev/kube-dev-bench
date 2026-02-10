@@ -3,12 +3,13 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import type { FullConfig } from '@playwright/test';
-import { ensureKindCluster } from './kind.js';
+import { cleanupWorkerNamespaces, ensureKindCluster, writeKubeconfigFile } from './kind.js';
 import type { KindInfo } from './kind.js';
 import { writeRunState } from './run-state.js';
 import { e2eRoot, withinRepo } from './paths.js';
 import { startWailsDev } from './wails.js';
 import { ensureProxyServer } from './proxy.js';
+import { ensureHolmesMockServer } from './holmes-mock.js';
 import { exec } from './exec.js';
 import { ensureJFrogJcrBootstrapped } from './jfrog.js';
 import { ensureArtifactory } from './artifactory-bootstrap.js';
@@ -202,6 +203,14 @@ export default async function globalSetup(config: FullConfig) {
     }
   }
 
+  if (kind?.kubeconfigYaml) {
+    await timed('cleanup stale worker namespaces', async () => {
+      const kubeDir = path.join(e2eRoot, `.playwright-artifacts-${runId}`, 'kube');
+      const kubeconfigPath = await writeKubeconfigFile(kubeDir, kind.kubeconfigYaml);
+      await cleanupWorkerNamespaces(kubeconfigPath, runId, (msg) => console.log(msg));
+    });
+  }
+
   // JFrog Artifactory/JCR bootstrap (used by Swarm registry E2Es).
   // Run it once per test run so registry tests are reliable.
   // Always capture logs for debugging setup vs data issues.
@@ -241,6 +250,7 @@ export default async function globalSetup(config: FullConfig) {
   // Start a local proxy suitable for real cluster connections.
   // Some E2Es validate proxy behavior and require a working CONNECT proxy.
   let proxy: Awaited<ReturnType<typeof ensureProxyServer>> | null = null;
+  let holmesMock: Awaited<ReturnType<typeof ensureHolmesMockServer>> | null = null;
   const startedWailsPids: number[] = [];
 
   const killPidBestEffort = async (pid: number) => {
@@ -262,6 +272,12 @@ export default async function globalSetup(config: FullConfig) {
       ensureProxyServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 })
     );
     console.log(`[e2e][setup] ${isoNow()} proxy ready at ${proxy.baseURL} pid=${proxy.pid ?? 'reused'}`);
+
+    // Start Holmes mock server for deterministic AI E2E testing
+    holmesMock = await timed('start Holmes mock server', async () =>
+      ensureHolmesMockServer({ repoRoot: withinRepo(), readyTimeoutMs: process.env.CI ? 60_000 : 15_000 })
+    );
+    console.log(`[e2e][setup] ${isoNow()} Holmes mock ready at ${holmesMock.baseURL} pid=${holmesMock.pid ?? 'reused'}`);
 
     const assetDir = withinRepo('frontend', 'dist');
 
@@ -309,6 +325,8 @@ export default async function globalSetup(config: FullConfig) {
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
       jfrogLogPath,
+      holmesMockBaseURL: holmesMock?.baseURL,
+      holmesMockPid: holmesMock?.pid,
       sharedBaseURL: instance.baseURL,
       sharedWailsPid: instance.process.pid ?? undefined,
       sharedHomeDir: homeDir,
@@ -506,8 +524,9 @@ export default async function globalSetup(config: FullConfig) {
           port,
           homeDir,
           assetDir: path.join(repoRootResolved, 'frontend', 'dist'),
-          // Parallel startup; allow more time here.
-          readyTimeoutMs: process.env.CI ? 300_000 : 240_000,
+          // Parallel startup; allow more time here. Increased to 600s (10min) for CI to handle
+          // resource contention when multiple Wails instances start in parallel.
+          readyTimeoutMs: process.env.CI ? 600_000 : 240_000,
         })
       );
 
@@ -535,6 +554,8 @@ export default async function globalSetup(config: FullConfig) {
       proxyBaseURL: proxy.baseURL,
       proxyPid: proxy.pid,
       jfrogLogPath,
+      holmesMockBaseURL: holmesMock?.baseURL,
+      holmesMockPid: holmesMock?.pid,
       wailsInstances,
     });
   }
@@ -550,6 +571,9 @@ export default async function globalSetup(config: FullConfig) {
     }
     if (proxy?.pid) {
       await killPidBestEffort(proxy.pid);
+    }
+    if (holmesMock?.pid) {
+      await killPidBestEffort(holmesMock.pid);
     }
     throw err;
   }

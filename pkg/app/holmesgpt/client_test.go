@@ -149,9 +149,11 @@ func TestHolmesClient_Ask(t *testing.T) {
 
 				w.WriteHeader(tt.serverStatus)
 				if tt.serverStatus == http.StatusOK {
-					json.NewEncoder(w).Encode(tt.serverResponse)
+					_ = json.NewEncoder(w).Encode(tt.serverResponse)
 				} else {
-					w.Write([]byte("error message"))
+					if _, err := w.Write([]byte("error message")); err != nil {
+						t.Errorf("Failed to write response: %v", err)
+					}
 				}
 			}))
 			defer server.Close()

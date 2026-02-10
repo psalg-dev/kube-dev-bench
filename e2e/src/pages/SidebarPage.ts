@@ -74,6 +74,17 @@ export class SidebarPage {
   }
 
   async goToSection(key: string) {
+    const overlay = this.page.locator('[data-testid="create-manifest-overlay"]').first();
+    if (await overlay.isVisible().catch(() => false)) {
+      const closeBtn = overlay.getByRole('button', { name: /close|cancel/i }).first();
+      if (await closeBtn.isVisible().catch(() => false)) {
+        await closeBtn.click().catch(() => undefined);
+      } else {
+        await this.page.keyboard.press('Escape').catch(() => undefined);
+      }
+      await overlay.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => undefined);
+    }
+
     const section = this.page.locator(`#section-${key}`);
     // Wait for the section to exist
     await expect(section).toBeVisible({ timeout: 30_000 });

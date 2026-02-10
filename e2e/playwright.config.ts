@@ -9,6 +9,7 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 10_000 },
   fullyParallel: true,
+  maxFailures: 1,  // Stop after first failure
   workers: process.env.PW_WORKERS
     ? Number(process.env.PW_WORKERS)
     : process.platform === 'win32'
@@ -25,6 +26,13 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'on',
+    colorScheme: 'dark',
+    launchOptions: {
+      args: [
+        '--force-dark-mode',
+        '--enable-features=WebContentsForceDark:inversion_method/cielab_based/image_behavior/none/foreground_lightness_threshold/150/background_lightness_threshold/205',
+      ],
+    },
   },
   globalSetup: './src/support/global-setup.ts',
   globalTeardown: './src/support/global-teardown.ts',

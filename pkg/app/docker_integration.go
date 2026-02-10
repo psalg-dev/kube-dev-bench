@@ -18,8 +18,9 @@ import (
 	"gowails/pkg/app/docker/registry"
 	"gowails/pkg/app/docker/topology"
 
-	"github.com/docker/docker/api/types"
+	imagetypes "github.com/docker/docker/api/types/image"
 	registrytypes "github.com/docker/docker/api/types/registry"
+	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
@@ -223,7 +224,7 @@ func (a *App) PullDockerImageLatest(image string, registryName string) error {
 
 	pullCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	r, err := cli.ImagePull(pullCtx, image, types.ImagePullOptions{RegistryAuth: registryAuth})
+	r, err := cli.ImagePull(pullCtx, image, imagetypes.PullOptions{RegistryAuth: registryAuth})
 	if err != nil {
 		return err
 	}
@@ -333,7 +334,9 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 	// Store the client
 	dockerClientMu.Lock()
 	if dockerClient != nil {
-		dockerClient.Close()
+		if err := dockerClient.Close(); err != nil {
+			fmt.Printf("Warning: failed to close Docker client: %v\n", err)
+		}
 	}
 	dockerClient = cli
 	configCopy := resolvedConfig
@@ -346,7 +349,7 @@ func (a *App) ConnectToDocker(config docker.DockerConfig) (*docker.DockerConnect
 	}
 
 	// Emit docker:connected event so frontend can refetch counts
-	emitEvent(a.ctx, "docker:connected", status)
+	emitEvent(a.ctx, EventDockerConnected, status)
 
 	// Fire post-connect hooks asynchronously after successful connection.
 	a.runPostConnectHooksAsync("swarm", resolvedConfig.Host, preEnv)
@@ -459,6 +462,10 @@ func (a *App) ScaleSwarmService(serviceID string, replicas int) error {
 	if err != nil {
 		return err
 	}
+	if replicas < 0 {
+		return fmt.Errorf("replicas must be non-negative")
+	}
+	// #nosec G115 -- guarded to prevent negative values from wrapping.
 	return docker.ScaleSwarmService(a.ctx, cli, serviceID, uint64(replicas))
 }
 
@@ -1155,7 +1162,7 @@ func (a *App) StartSwarmServicePolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:services:update", services)
+			emitEvent(a.ctx, EventSwarmServicesUpdate, services)
 		}
 	}()
 }
@@ -1176,7 +1183,7 @@ func (a *App) StartSwarmTaskPolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:tasks:update", tasks)
+			emitEvent(a.ctx, EventSwarmTasksUpdate, tasks)
 		}
 	}()
 }
@@ -1197,7 +1204,7 @@ func (a *App) StartSwarmNodePolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:nodes:update", nodes)
+			emitEvent(a.ctx, EventSwarmNodesUpdate, nodes)
 		}
 	}()
 }
@@ -1215,7 +1222,7 @@ func (a *App) StartSwarmResourceCountsPolling() {
 				// Only log on first failure to avoid spam
 				continue
 			}
-			emitEvent(a.ctx, "swarm:resourcecounts:update", counts)
+			emitEvent(a.ctx, EventSwarmResourceCountsUpdate, counts)
 		}
 	}()
 }
@@ -1255,7 +1262,8 @@ func (a *App) saveDockerConfig(config docker.DockerConfig) error {
 		return err
 	}
 
-	return os.WriteFile(configPath, data, 0644)
+	// #nosec G306 -- docker config is user-specific.
+	return os.WriteFile(configPath, data, 0o600)
 }
 
 // loadDockerConfig loads Docker configuration from disk
@@ -1266,7 +1274,8 @@ func (a *App) loadDockerConfig() (*docker.DockerConfig, error) {
 	}
 
 	configPath := filepath.Join(home, "KubeDevBench", "docker-config.json")
-
+	configPath = filepath.Clean(configPath)
+	// #nosec G304 -- config path is within the app data directory.
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -1345,9 +1354,9 @@ func (a *App) StartSwarmMetricsPolling() {
 			if err != nil {
 				continue
 			}
-			emitEvent(a.ctx, "swarm:metrics:update", p)
+			emitEvent(a.ctx, EventSwarmMetricsUpdate, p)
 			if len(breakdown.Services) > 0 || len(breakdown.Nodes) > 0 {
-				emitEvent(a.ctx, "swarm:metrics:breakdown", breakdown)
+				emitEvent(a.ctx, EventSwarmMetricsBreakdown, breakdown)
 			}
 		}
 	}()
@@ -1397,6 +1406,38 @@ func (a *App) GetSwarmServiceEvents(serviceID string, sinceMinutes int) ([]docke
 	return docker.GetSwarmServiceEvents(ctx, cli, serviceID, duration)
 }
 
+// collectServiceIDs gathers service IDs from a list of services.
+func collectServiceIDs(services []swarm.Service) []string {
+	ids := make([]string, 0, len(services))
+	for _, s := range services {
+		if s.ID != "" {
+			ids = append(ids, s.ID)
+		}
+	}
+	return ids
+}
+
+// pollImageUpdatesOnce performs a single poll for image updates.
+func (a *App) pollImageUpdatesOnce(settings docker.ImageUpdateSettings) {
+	if !settings.Enabled {
+		return
+	}
+
+	cli, err := a.getDockerClient()
+	if err != nil {
+		return
+	}
+
+	services, err := cli.ServiceList(a.ctx, swarm.ServiceListOptions{})
+	if err != nil {
+		return
+	}
+
+	ids := collectServiceIDs(services)
+	updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
+	emitEvent(a.ctx, EventSwarmImageUpdates, updates)
+}
+
 // StartSwarmImageUpdatePolling periodically checks service images for updates and emits swarm:image:updates.
 func (a *App) StartSwarmImageUpdatePolling() {
 	go func() {
@@ -1408,7 +1449,6 @@ func (a *App) StartSwarmImageUpdatePolling() {
 
 			settings, err := docker.LoadImageUpdateSettings()
 			if err != nil {
-				// If settings are corrupt/unreadable, don't spam.
 				time.Sleep(30 * time.Second)
 				continue
 			}
@@ -1417,28 +1457,7 @@ func (a *App) StartSwarmImageUpdatePolling() {
 				continue
 			}
 
-			cli, err := a.getDockerClient()
-			if err != nil {
-				time.Sleep(settings.Interval())
-				continue
-			}
-
-			services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
-			if err != nil {
-				time.Sleep(settings.Interval())
-				continue
-			}
-			ids := make([]string, 0, len(services))
-			for _, s := range services {
-				if s.ID == "" {
-					continue
-				}
-				ids = append(ids, s.ID)
-			}
-
-			updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
-			emitEvent(a.ctx, "swarm:image:updates", updates)
-
+			a.pollImageUpdatesOnce(settings)
 			time.Sleep(settings.Interval())
 		}
 	}()

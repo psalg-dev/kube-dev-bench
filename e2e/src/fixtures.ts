@@ -176,6 +176,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       /React Router caught the following error during render/i,  // React error boundary recovery
       /RenderErrorBoundary/i,  // React error boundary recovery messages
       /Failed to load Holmes config/i,  // Holmes init race condition (non-critical)
+      /Failed to load hooks config/i,  // Hooks config file may not exist yet or be mid-write
       /ScanClusterHealth failed/i,  // Transient K8s API connectivity during parallel testing
       /dial tcp.*connectex:/i,  // Windows socket connection errors during parallel testing
     ];

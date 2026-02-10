@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 )
 
@@ -19,7 +18,7 @@ func Test_getSwarmConfigs_listsAndConverts(t *testing.T) {
 	}
 
 	cli := &fakeDockerClient{
-		ConfigListFn: func(context.Context, types.ConfigListOptions) ([]swarm.Config, error) {
+		ConfigListFn: func(context.Context, swarm.ConfigListOptions) ([]swarm.Config, error) {
 			return []swarm.Config{cfg}, nil
 		},
 	}
@@ -76,11 +75,11 @@ func Test_createSwarmConfig_callsConfigCreate(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigCreateFn: func(_ context.Context, spec swarm.ConfigSpec) (types.ConfigCreateResponse, error) {
+		ConfigCreateFn: func(_ context.Context, spec swarm.ConfigSpec) (swarm.ConfigCreateResponse, error) {
 			if spec.Annotations.Name != "c1" {
 				t.Fatalf("unexpected name: %q", spec.Annotations.Name)
 			}
-			return types.ConfigCreateResponse{ID: "new-id"}, nil
+			return swarm.ConfigCreateResponse{ID: "new-id"}, nil
 		},
 	}
 
@@ -124,5 +123,76 @@ func Test_removeSwarmConfig_callsRemove(t *testing.T) {
 	}
 	if !called {
 		t.Fatalf("expected remove to be called")
+	}
+}
+
+// Note: The public wrapper functions (GetSwarmConfigs, GetSwarmConfig, CreateSwarmConfig, etc.)
+// that accept *client.Client cannot be easily unit tested since they require a real Docker client.
+// These wrappers are thin delegates to the internal functions (getSwarmConfigs, getSwarmConfig, etc.)
+// which are already comprehensively tested above. The wrappers exist to provide a clean public API
+// that can be called from the Wails-exposed functions in pkg/app/docker_integration.go.
+
+func Test_getSwarmConfigUsage_findsReferencingServices(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
+			return swarm.Config{ID: "cfg-1", Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "config1"}}}, nil, nil
+		},
+		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
+			return []swarm.Service{
+				{ID: "svc-1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-1"}}}}}},
+				{ID: "svc-2", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service2"}}},
+			}, nil
+		},
+	}
+
+	refs, err := getSwarmConfigUsage(ctx, cli, "cfg-1")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(refs) != 1 || refs[0].ServiceID != "svc-1" {
+		t.Fatalf("expected 1 ref to svc-1, got %+v", refs)
+	}
+}
+
+func Test_updateSwarmConfigDataImmutable_createsNewConfigAndMigrates(t *testing.T) {
+	ctx := context.Background()
+
+	cli := &fakeDockerClient{
+		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
+			return swarm.Config{ID: "cfg-old", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "myconfig"}, Data: []byte("old")}}, nil, nil
+		},
+		ConfigCreateFn: func(_ context.Context, spec swarm.ConfigSpec) (swarm.ConfigCreateResponse, error) {
+			if string(spec.Data) != "new" {
+				t.Fatalf("expected new data, got %q", string(spec.Data))
+			}
+			return swarm.ConfigCreateResponse{ID: "cfg-new"}, nil
+		},
+		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
+			return []swarm.Service{
+				{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-old", ConfigName: "myconfig"}}}}}},
+			}, nil
+		},
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
+			return swarm.Service{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-old", ConfigName: "myconfig"}}}}}}, nil, nil
+		},
+		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+			if spec.TaskTemplate.ContainerSpec.Configs[0].ConfigID != "cfg-new" {
+				t.Fatalf("expected new config ID")
+			}
+			return swarm.ServiceUpdateResponse{}, nil
+		},
+		ConfigRemoveFn: func(context.Context, string) error {
+			return nil
+		},
+	}
+
+	result, err := updateSwarmConfigDataImmutable(ctx, cli, "cfg-old", []byte("new"))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == nil || result.NewConfigID != "cfg-new" || len(result.Updated) != 1 {
+		t.Fatalf("unexpected result: %+v", result)
 	}
 }

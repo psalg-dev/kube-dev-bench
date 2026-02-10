@@ -1,96 +1,64 @@
 package app
 
 import (
-	"strings"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
+// getPVCVolumeName returns the volume name or default
+func getPVCVolumeName(pvc *corev1.PersistentVolumeClaim) string {
+	if pvc.Spec.VolumeName != "" {
+		return pvc.Spec.VolumeName
+	}
+	return "-"
+}
+
+// getPVCCapacity returns the storage capacity or default
+func getPVCCapacity(pvc *corev1.PersistentVolumeClaim) string {
+	if pvc.Status.Capacity != nil {
+		if storage, ok := pvc.Status.Capacity["storage"]; ok {
+			return storage.String()
+		}
+	}
+	return "-"
+}
+
+// getPVCStorageClass returns the storage class name or default
+func getPVCStorageClass(pvc *corev1.PersistentVolumeClaim) string {
+	if pvc.Spec.StorageClassName != nil {
+		return *pvc.Spec.StorageClassName
+	}
+	return "-"
+}
+
+// buildPVCListInfo constructs a PersistentVolumeClaimInfo from a PVC for list view
+func buildPVCListInfo(pvc *corev1.PersistentVolumeClaim, now time.Time) PersistentVolumeClaimInfo {
+	return PersistentVolumeClaimInfo{
+		Name:         pvc.Name,
+		Namespace:    pvc.Namespace,
+		Status:       string(pvc.Status.Phase),
+		Volume:       getPVCVolumeName(pvc),
+		Capacity:     getPVCCapacity(pvc),
+		AccessModes:  FormatAccessModes(pvc.Spec.AccessModes),
+		StorageClass: getPVCStorageClass(pvc),
+		Age:          FormatAge(pvc.CreationTimestamp, now),
+		Labels:       pvc.Labels,
+	}
+}
+
 // GetPersistentVolumeClaims returns all persistent volume claims in a namespace
 func (a *App) GetPersistentVolumeClaims(namespace string) ([]PersistentVolumeClaimInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	pvcs, err := clientset.CoreV1().PersistentVolumeClaims(namespace).List(a.ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	var result []PersistentVolumeClaimInfo
-	now := time.Now()
-
-	for _, pvc := range pvcs.Items {
-		age := "-"
-		if pvc.CreationTimestamp.Time != (time.Time{}) {
-			age = formatDuration(now.Sub(pvc.CreationTimestamp.Time))
-		}
-
-		// Get status
-		status := string(pvc.Status.Phase)
-
-		// Get volume name
-		volume := "-"
-		if pvc.Spec.VolumeName != "" {
-			volume = pvc.Spec.VolumeName
-		}
-
-		// Get capacity
-		capacity := "-"
-		if pvc.Status.Capacity != nil {
-			if storage, ok := pvc.Status.Capacity["storage"]; ok {
-				capacity = storage.String()
+	return listResources(a, namespace,
+		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]corev1.PersistentVolumeClaim, error) {
+			list, err := cs.CoreV1().PersistentVolumeClaims(ns).List(a.ctx, opts)
+			if err != nil {
+				return nil, err
 			}
-		}
-
-		// Get access modes
-		accessModes := "-"
-		if len(pvc.Spec.AccessModes) > 0 {
-			modes := make([]string, len(pvc.Spec.AccessModes))
-			for i, mode := range pvc.Spec.AccessModes {
-				switch mode {
-				case "ReadWriteOnce":
-					modes[i] = "RWO"
-				case "ReadOnlyMany":
-					modes[i] = "ROX"
-				case "ReadWriteMany":
-					modes[i] = "RWX"
-				case "ReadWriteOncePod":
-					modes[i] = "RWOP"
-				default:
-					modes[i] = string(mode)
-				}
-			}
-			accessModes = strings.Join(modes, ",")
-		}
-
-		// Get storage class
-		storageClass := "-"
-		if pvc.Spec.StorageClassName != nil {
-			storageClass = *pvc.Spec.StorageClassName
-		}
-
-		result = append(result, PersistentVolumeClaimInfo{
-			Name:         pvc.Name,
-			Namespace:    pvc.Namespace,
-			Status:       status,
-			Volume:       volume,
-			Capacity:     capacity,
-			AccessModes:  accessModes,
-			StorageClass: storageClass,
-			Age:          age,
-			Labels:       pvc.Labels,
-		})
-	}
-
-	return result, nil
+			return list.Items, nil
+		},
+		buildPVCListInfo,
+	)
 }

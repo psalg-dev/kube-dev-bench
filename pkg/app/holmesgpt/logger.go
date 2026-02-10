@@ -40,13 +40,14 @@ func InitLogger(workspacePath string) error {
 			logDir = filepath.Join(home, "KubeDevBench", "logs")
 		}
 
-		if err := os.MkdirAll(logDir, 0755); err != nil {
+		if err := os.MkdirAll(logDir, 0o750); err != nil {
 			initErr = fmt.Errorf("failed to create log directory: %w", err)
 			return
 		}
 
 		logPath := filepath.Join(logDir, "holmes.log")
-		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		// #nosec G304 -- log path is within the app logs directory.
+		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
 		if err != nil {
 			initErr = fmt.Errorf("failed to open log file: %w", err)
 			return

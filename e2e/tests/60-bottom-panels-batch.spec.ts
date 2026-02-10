@@ -22,7 +22,8 @@ async function openRowDetailsByName(page: any, name: string) {
     .locator('.bottom-panel')
     .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
   for (let attempt = 0; attempt < 3; attempt++) {
-    await nameCell.click();
+    await nameCell.waitFor({ state: 'visible', timeout: 30_000 });
+    await nameCell.click({ timeout: 30_000 });
     try {
       await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
       await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
@@ -35,9 +36,10 @@ async function openRowDetailsByName(page: any, name: string) {
     const actionsBtn = row.getByRole('button', { name: 'Row actions' }).first();
     if (await actionsBtn.isVisible().catch(() => false)) {
       await actionsBtn.click({ timeout: 5_000 });
-      const detailsItem = page.getByText('Details').first();
+      const menu = page.locator('.row-actions-menu').first();
+      const detailsItem = menu.getByText('Details').first();
       if (await detailsItem.isVisible().catch(() => false)) {
-        await detailsItem.click();
+        await detailsItem.click({ force: true });
         try {
           await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
           await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });

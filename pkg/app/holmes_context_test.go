@@ -2,14 +2,18 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -216,9 +220,40 @@ func TestGetDeploymentContext_DeploymentNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getDeploymentContext("default", "nonexistent")
+	result, err := app.getDeploymentContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent deployment")
+	}
+	if !strings.Contains(err.Error(), "failed to get deployment") {
+		t.Fatalf("expected wrapped deployment error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetDeploymentContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-deployment",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getDeploymentContext("default", "my-deployment")
+	if err == nil {
+		t.Fatal("expected error for deployment without selector")
+	}
+	if !strings.Contains(err.Error(), "deployment has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -269,9 +304,40 @@ func TestGetStatefulSetContext_StatefulSetNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getStatefulSetContext("default", "nonexistent")
+	result, err := app.getStatefulSetContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent statefulset")
+	}
+	if !strings.Contains(err.Error(), "failed to get statefulset") {
+		t.Fatalf("expected wrapped statefulset error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetStatefulSetContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&appsv1.StatefulSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-statefulset",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getStatefulSetContext("default", "my-statefulset")
+	if err == nil {
+		t.Fatal("expected error for statefulset without selector")
+	}
+	if !strings.Contains(err.Error(), "statefulset has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -317,9 +383,40 @@ func TestGetDaemonSetContext_DaemonSetNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getDaemonSetContext("default", "nonexistent")
+	result, err := app.getDaemonSetContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent daemonset")
+	}
+	if !strings.Contains(err.Error(), "failed to get daemonset") {
+		t.Fatalf("expected wrapped daemonset error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetDaemonSetContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&appsv1.DaemonSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-daemonset",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getDaemonSetContext("default", "my-daemonset")
+	if err == nil {
+		t.Fatal("expected error for daemonset without selector")
+	}
+	if !strings.Contains(err.Error(), "daemonset has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -365,9 +462,40 @@ func TestGetJobContext_JobNotFound(t *testing.T) {
 
 	app := &App{ctx: ctx, testClientset: clientset}
 
-	_, err := app.getJobContext("default", "nonexistent")
+	result, err := app.getJobContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent job")
+	}
+	if !strings.Contains(err.Error(), "failed to get job") {
+		t.Fatalf("expected wrapped job error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
+	}
+}
+
+func TestGetJobContext_NilSelector(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&batchv1.Job{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-job",
+				Namespace: "default",
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getJobContext("default", "my-job")
+	if err == nil {
+		t.Fatal("expected error for job without selector")
+	}
+	if !strings.Contains(err.Error(), "job has no selector") {
+		t.Fatalf("expected selector error, got %v", err)
+	}
+	if result != "" {
+		t.Errorf("expected empty result, got %q", result)
 	}
 }
 
@@ -450,6 +578,59 @@ func TestGetServiceContext_ReturnsServiceInfo(t *testing.T) {
 	}
 	if !strings.Contains(result, "10.0.0.1") {
 		t.Error("expected ClusterIP in result")
+	}
+}
+
+func TestGetServiceContext_PortsAndEndpoints(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-service",
+				Namespace: "default",
+			},
+			Spec: corev1.ServiceSpec{
+				Type:      corev1.ServiceTypeClusterIP,
+				ClusterIP: "10.0.0.1",
+				Ports: []corev1.ServicePort{
+					{Name: "http", Port: 80, TargetPort: intstr.FromInt(8080)},
+					{Port: 443, TargetPort: intstr.FromInt(8443)},
+				},
+			},
+		},
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-service",
+				Namespace: "default",
+			},
+			Subsets: []corev1.EndpointSubset{
+				{
+					Addresses: []corev1.EndpointAddress{
+						{IP: "10.0.0.2"},
+						{IP: "10.0.0.3"},
+					},
+				},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getServiceContext("default", "my-service")
+	if err != nil {
+		t.Fatalf("getServiceContext failed: %v", err)
+	}
+	if !strings.Contains(result, "Ports:") {
+		t.Error("expected Ports section in result")
+	}
+	if !strings.Contains(result, "http: 80 -> 8080") {
+		t.Error("expected named port formatting in result")
+	}
+	if !strings.Contains(result, "port: 443 -> 8443") {
+		t.Error("expected default port formatting in result")
+	}
+	if !strings.Contains(result, "Endpoints: 2 ready") {
+		t.Error("expected endpoints count in result")
 	}
 }
 
@@ -711,5 +892,60 @@ func TestGetIngressContext_IngressNotFound(t *testing.T) {
 	_, err := app.getIngressContext("default", "nonexistent")
 	if err == nil {
 		t.Fatal("expected error for nonexistent ingress")
+	}
+}
+
+func TestAppendRecentEvents_EventTimeFallbackAndLimit(t *testing.T) {
+	ctx := context.Background()
+	eventTime := time.Date(2026, time.February, 8, 1, 2, 3, 0, time.UTC)
+
+	objects := make([]runtime.Object, 0, 11)
+	for i := 0; i < 11; i++ {
+		event := &corev1.Event{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fmt.Sprintf("event-%d", i),
+				Namespace: "default",
+			},
+			InvolvedObject: corev1.ObjectReference{
+				Kind: "Pod",
+				Name: "my-pod",
+			},
+			Reason:  fmt.Sprintf("Reason-%d", i),
+			Message: "event message",
+		}
+		if i == 10 {
+			event.EventTime = metav1.MicroTime{Time: eventTime}
+		} else {
+			event.LastTimestamp = metav1.NewTime(eventTime.Add(time.Duration(i) * time.Minute))
+		}
+		objects = append(objects, event)
+	}
+
+	clientset := fake.NewSimpleClientset(objects...)
+	var sb strings.Builder
+	appendRecentEvents(ctx, &sb, clientset.CoreV1().Events("default"), "my-pod", "Pod")
+
+	result := sb.String()
+	if !strings.Contains(result, "Recent Events (last 10):") {
+		t.Fatalf("expected recent events header, got %q", result)
+	}
+	if !strings.Contains(result, eventTime.Format("15:04:05")) {
+		t.Fatalf("expected event time fallback in result, got %q", result)
+	}
+	if strings.Count(result, "\n  [") != 10 {
+		t.Fatalf("expected 10 events in output, got %d", strings.Count(result, "\n  ["))
+	}
+}
+
+func TestGetRecentPodLogs_ErrorFormatting(t *testing.T) {
+	app := &App{
+		testPodLogsFetcher: func(namespace, podName, containerName string, lines int) (string, error) {
+			return "", fmt.Errorf("read failed")
+		},
+	}
+
+	result := app.getRecentPodLogs("default", "my-pod", 10)
+	if !strings.Contains(result, "(Failed to fetch logs: read failed)") {
+		t.Fatalf("unexpected log error formatting: %q", result)
 	}
 }

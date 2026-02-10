@@ -73,7 +73,7 @@ test.describe('Docker Swarm Services', () => {
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
 
     // Click Name cell (first td) to avoid Update badge popup intercepting clicks
-    const nameCell = replicatedRow.locator('td').first();
+    const nameCell = replicatedRow.locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape'); // Close any popups
@@ -94,7 +94,7 @@ test.describe('Docker Swarm Services', () => {
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
     
     // Click Name cell to avoid Update badge popup intercepting clicks
-    const nameCell = replicatedRow.locator('td').first();
+    const nameCell = replicatedRow.locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -120,7 +120,7 @@ test.describe('Docker Swarm Services', () => {
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
     
     // Click Name cell to avoid Update badge popup intercepting clicks
-    const nameCell = replicatedRow.locator('td').first();
+    const nameCell = replicatedRow.locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -143,7 +143,7 @@ test.describe('Docker Swarm Services', () => {
     await expect(loggerRow).toBeVisible({ timeout: 60_000 });
     
     // Click Name cell to avoid Update badge popup intercepting clicks
-    const nameCell = loggerRow.locator('td').first();
+    const nameCell = loggerRow.locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');
@@ -167,7 +167,7 @@ test.describe('Docker Swarm Services', () => {
     await expect(replicatedRow).toBeVisible({ timeout: 60_000 });
     
     // Click Name cell to avoid Update badge popup intercepting clicks
-    const nameCell = replicatedRow.locator('td').first();
+    const nameCell = replicatedRow.locator('td').nth(1);
     const panel = new SwarmBottomPanel(page);
     await expect(async () => {
       await page.keyboard.press('Escape');

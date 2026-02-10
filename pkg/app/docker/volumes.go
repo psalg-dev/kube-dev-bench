@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
@@ -17,11 +16,11 @@ type swarmVolumesClient interface {
 	VolumeInspect(context.Context, string) (volume.Volume, error)
 	VolumeCreate(context.Context, volume.CreateOptions) (volume.Volume, error)
 	VolumeRemove(context.Context, string, bool) error
-	VolumesPrune(context.Context, filters.Args) (types.VolumesPruneReport, error)
+	VolumesPrune(context.Context, filters.Args) (volume.PruneReport, error)
 }
 
 type swarmVolumeUsageClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
 }
 
 func buildVolumeCreateOptions(name string, driver string, labels map[string]string, driverOpts map[string]string) volume.CreateOptions {
@@ -131,7 +130,7 @@ func GetSwarmVolumeUsage(ctx context.Context, cli *client.Client, volumeName str
 }
 
 func getSwarmVolumeUsage(ctx context.Context, cli swarmVolumeUsageClient, volumeName string) ([]SwarmServiceRef, error) {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -167,11 +166,11 @@ func formatVolumeAge(createdAt string) string {
 	minutes := int(d.Minutes()) % 60
 
 	if days > 0 {
-		return time.Now().Sub(t).Truncate(time.Hour * 24).String()
+		return d.Truncate(time.Hour * 24).String()
 	} else if hours > 0 {
-		return time.Now().Sub(t).Truncate(time.Hour).String()
+		return d.Truncate(time.Hour).String()
 	} else if minutes > 0 {
-		return time.Now().Sub(t).Truncate(time.Minute).String()
+		return d.Truncate(time.Minute).String()
 	}
-	return time.Now().Sub(t).Truncate(time.Second).String()
+	return d.Truncate(time.Second).String()
 }

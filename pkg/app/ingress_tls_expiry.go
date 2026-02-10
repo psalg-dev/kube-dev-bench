@@ -18,6 +18,27 @@ type IngressTLSSummary struct {
 	Error         string   `json:"error,omitempty"`
 }
 
+// parseCertificateExpiry extracts certificate expiry info from PEM-encoded data
+func parseCertificateExpiry(crt []byte, now time.Time) (notBefore, notAfter string, daysRemaining int, err string) {
+	rest := crt
+	for {
+		block, remaining := pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		rest = remaining
+		if block.Type == "CERTIFICATE" {
+			cert, parseErr := x509.ParseCertificate(block.Bytes)
+			if parseErr != nil {
+				return "-", "-", 0, fmt.Sprintf("parse cert: %v", parseErr)
+			}
+			return cert.NotBefore.Format(time.RFC3339), cert.NotAfter.Format(time.RFC3339),
+				int(cert.NotAfter.Sub(now).Hours() / 24), ""
+		}
+	}
+	return "-", "-", 0, "no certificate found"
+}
+
 // GetIngressTLSSummary returns TLS secret expiry info (best-effort) for an Ingress.
 func (a *App) GetIngressTLSSummary(namespace, ingressName string) ([]IngressTLSSummary, error) {
 	if namespace == "" {
@@ -37,9 +58,10 @@ func (a *App) GetIngressTLSSummary(namespace, ingressName string) ([]IngressTLSS
 		return nil, err
 	}
 
+	now := time.Now()
 	out := make([]IngressTLSSummary, 0, len(ing.Spec.TLS))
 	for _, tls := range ing.Spec.TLS {
-		sum := IngressTLSSummary{Hosts: tls.Hosts, SecretName: tls.SecretName, NotBefore: "-", NotAfter: "-", DaysRemaining: 0}
+		sum := IngressTLSSummary{Hosts: tls.Hosts, SecretName: tls.SecretName, NotBefore: "-", NotAfter: "-"}
 		if tls.SecretName == "" {
 			sum.Error = "no secretName"
 			out = append(out, sum)
@@ -60,33 +82,7 @@ func (a *App) GetIngressTLSSummary(namespace, ingressName string) ([]IngressTLSS
 			continue
 		}
 
-		// tls.crt is typically PEM. Parse first certificate.
-		var block *pem.Block
-		rest := crt
-		for {
-			block, rest = pem.Decode(rest)
-			if block == nil {
-				break
-			}
-			if block.Type == "CERTIFICATE" {
-				cert, err := x509.ParseCertificate(block.Bytes)
-				if err != nil {
-					sum.Error = fmt.Sprintf("parse cert: %v", err)
-					break
-				}
-				now := time.Now()
-				sum.NotBefore = cert.NotBefore.Format(time.RFC3339)
-				sum.NotAfter = cert.NotAfter.Format(time.RFC3339)
-				sum.DaysRemaining = int(cert.NotAfter.Sub(now).Hours() / 24)
-				sum.Error = ""
-				break
-			}
-		}
-
-		if sum.Error == "" && sum.NotAfter == "-" {
-			sum.Error = "no certificate found"
-		}
-
+		sum.NotBefore, sum.NotAfter, sum.DaysRemaining, sum.Error = parseCertificateExpiry(crt, now)
 		out = append(out, sum)
 	}
 

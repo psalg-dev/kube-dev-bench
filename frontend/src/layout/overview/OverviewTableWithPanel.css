@@ -60,6 +60,12 @@
 table.gh-table {
   overflow: visible;
   border-collapse: collapse;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.overview-actions-col {
+  width: 100px;
 }
 
 /* The Actions column is always the last column; keep it right-aligned */
@@ -158,4 +164,55 @@ table.gh-table tbody td:last-child {
 .row-actions-button:active {
   background: var(--gh-button-active-bg, #181818);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+}
+
+.row-actions-cell {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+/* When the dropdown menu is open, elevate the entire cell's stacking context
+   so it paints above adjacent table rows whose cells would otherwise overlap. */
+.row-actions-cell:has(.row-actions-menu) {
+  z-index: 1200;
+}
+
+.row-actions-menu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: var(--gh-table-header-bg, #2d323b);
+  border: 1px solid #353a42;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  z-index: 1200;
+  min-width: 180px;
+  text-align: left;
+  padding: 4px 0;
+}
+
+.context-menu-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: #fff;
+  opacity: 1;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.context-menu-item.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.context-menu-item.is-danger {
+  color: #f85149;
+}
+
+.context-menu-icon {
+  width: 18px;
+  display: inline-block;
+  text-align: center;
 }

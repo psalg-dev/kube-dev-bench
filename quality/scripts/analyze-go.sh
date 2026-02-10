@@ -47,4 +47,15 @@ echo "Running gosec..."
 gosec -fmt json -out "$REPORT_DIR/gosec.json" ./... 2>&1 || true
 gosec -fmt html -out "$REPORT_DIR/gosec.html" ./... 2>&1 || true
 
+# 7. Vulnerability Analysis (govulncheck)
+echo "Running govulncheck..."
+govulncheck -json ./... > "$REPORT_DIR/govulncheck.json" 2>&1 || true
+govulncheck ./... 2>&1 | tee "$REPORT_DIR/govulncheck.txt" || true
+
+# 8. Ineffective Assignments
+echo "Running ineffassign..."
+ineffassign ./... 2>&1 | tee "$REPORT_DIR/ineffassign.txt" || true
+INEFFASSIGN_COUNT=$(grep -c "\S" "$REPORT_DIR/ineffassign.txt" 2>/dev/null || echo "0")
+echo "  → Found $INEFFASSIGN_COUNT ineffassign issues"
+
 echo "=== Go Analysis Complete ==="

@@ -8,14 +8,34 @@
  * These tests validate the Swarm connection flow in the application.
  */
 import { test, expect } from '../../src/fixtures.js';
+import type { Page } from '@playwright/test';
 import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizardPage.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { ConnectionWizardPage } from '../../src/pages/ConnectionWizardPage.js';
 
 test.describe('Docker Swarm Connection', () => {
+  const gotoWithRetry = async (page: Page) => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        await page.goto('/', { waitUntil: 'load' });
+        return;
+      } catch (error) {
+        lastError = error;
+        const message = String(error);
+        const shouldRetry = /ERR_HTTP_RESPONSE_CODE_FAILURE|HTTP ERROR 502|net::ERR/i.test(message);
+        if (!shouldRetry || attempt === 2) {
+          throw error;
+        }
+        await page.waitForTimeout(1000);
+      }
+    }
+    if (lastError) throw lastError;
+  };
+
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await gotoWithRetry(page);
     // The Swarm connection flow should not require Kubernetes setup.
     // Ensure the Connections wizard is visible (it may be hidden if a kubeconfig already exists).
     const wizard = new ConnectionWizardPage(page);
@@ -33,7 +53,7 @@ test.describe('Docker Swarm Connection', () => {
 
     await page.locator('#connection-section-docker-swarm').click();
 
-    const first = page.locator('.connection-item').first();
+    const first = page.locator('.connections-card').first();
     await expect(first).toBeVisible({ timeout: 30_000 });
 
     await first.getByRole('button', { name: /^test$/i }).click();
@@ -45,7 +65,7 @@ test.describe('Docker Swarm Connection', () => {
 
     await page.locator('#connection-section-docker-swarm').click();
 
-    const first = page.locator('.connection-item').first();
+    const first = page.locator('.connections-card').first();
     await expect(first).toBeVisible({ timeout: 30_000 });
 
     await first.getByRole('button', { name: /^connect$/i }).click();

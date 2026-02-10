@@ -8,6 +8,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1client "k8s.io/client-go/kubernetes/typed/core/v1" // This import is still needed for EventInterface
 )
@@ -26,7 +27,7 @@ func (a *App) emitHolmesContextProgress(kind, namespace, name, step, status, det
 		"status":    status,
 		"detail":    detail,
 	}
-	emitEvent(a.ctx, "holmes:context:progress", payload)
+	emitEvent(a.ctx, EventHolmesContextProgress, payload)
 }
 
 func (a *App) getPodContext(namespace, name string) (string, error) {
@@ -116,6 +117,9 @@ func (a *App) getDeploymentContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get deployment: %w", err)
 	}
 	a.emitHolmesContextProgress("Deployment", namespace, name, "Fetching deployment details", "done", "")
+	if deploy.Spec.Selector == nil {
+		return "", fmt.Errorf("deployment has no selector")
+	}
 
 	var desired int32 = 0
 	if deploy.Spec.Replicas != nil {
@@ -173,6 +177,9 @@ func (a *App) getStatefulSetContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get statefulset: %w", err)
 	}
 	a.emitHolmesContextProgress("StatefulSet", namespace, name, "Fetching statefulset details", "done", "")
+	if sts.Spec.Selector == nil {
+		return "", fmt.Errorf("statefulset has no selector")
+	}
 
 	var desired int32 = 0
 	if sts.Spec.Replicas != nil {
@@ -230,6 +237,9 @@ func (a *App) getDaemonSetContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get daemonset: %w", err)
 	}
 	a.emitHolmesContextProgress("DaemonSet", namespace, name, "Fetching daemonset details", "done", "")
+	if ds.Spec.Selector == nil {
+		return "", fmt.Errorf("daemonset has no selector")
+	}
 
 	sb.WriteString(fmt.Sprintf("DaemonSet: %s/%s\n", namespace, name))
 	sb.WriteString(fmt.Sprintf("Desired: %d, Current: %d, Ready: %d\n",
@@ -421,6 +431,9 @@ func (a *App) getJobContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get job: %w", err)
 	}
 	a.emitHolmesContextProgress("Job", namespace, name, "Fetching job details", "done", "")
+	if job.Spec.Selector == nil {
+		return "", fmt.Errorf("job has no selector")
+	}
 
 	sb.WriteString(fmt.Sprintf("Job: %s/%s\n", namespace, name))
 
@@ -507,6 +520,43 @@ func (a *App) getCronJobContext(namespace, name string) (string, error) {
 	return sb.String(), nil
 }
 
+func writeIngressTLSContext(sb *strings.Builder, tlsConfigs []networkingv1.IngressTLS) {
+	if len(tlsConfigs) == 0 {
+		return
+	}
+	sb.WriteString("\nTLS Configuration:\n")
+	for _, tls := range tlsConfigs {
+		sb.WriteString(fmt.Sprintf("  Secret: %s, Hosts: %v\n", tls.SecretName, tls.Hosts))
+	}
+}
+
+func writeIngressRuleContext(sb *strings.Builder, rule networkingv1.IngressRule) {
+	sb.WriteString(fmt.Sprintf("  Host: %s\n", rule.Host))
+	if rule.HTTP != nil {
+		for _, path := range rule.HTTP.Paths {
+			if path.Backend.Service != nil {
+				backend := fmt.Sprintf("%s:%v", path.Backend.Service.Name, path.Backend.Service.Port.Number)
+				sb.WriteString(fmt.Sprintf("    %s -> %s\n", path.Path, backend))
+			}
+		}
+	}
+}
+
+func writeIngressLoadBalancerContext(sb *strings.Builder, ingresses []networkingv1.IngressLoadBalancerIngress) {
+	if len(ingresses) == 0 {
+		return
+	}
+	sb.WriteString("\nLoad Balancer Status:\n")
+	for _, lb := range ingresses {
+		if lb.IP != "" {
+			sb.WriteString(fmt.Sprintf("  IP: %s\n", lb.IP))
+		}
+		if lb.Hostname != "" {
+			sb.WriteString(fmt.Sprintf("  Hostname: %s\n", lb.Hostname))
+		}
+	}
+}
+
 func (a *App) getIngressContext(namespace, name string) (string, error) {
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
@@ -535,40 +585,19 @@ func (a *App) getIngressContext(namespace, name string) (string, error) {
 		sb.WriteString(fmt.Sprintf("IngressClass: %s\n", *ingress.Spec.IngressClassName))
 	}
 
-	if len(ingress.Spec.TLS) > 0 {
-		sb.WriteString("\nTLS Configuration:\n")
-		for _, tls := range ingress.Spec.TLS {
-			sb.WriteString(fmt.Sprintf("  Secret: %s, Hosts: %v\n", tls.SecretName, tls.Hosts))
-		}
-	}
+	// Write TLS configuration
+	writeIngressTLSContext(&sb, ingress.Spec.TLS)
 
+	// Write rules
 	if len(ingress.Spec.Rules) > 0 {
 		sb.WriteString("\nRules:\n")
 		for _, rule := range ingress.Spec.Rules {
-			sb.WriteString(fmt.Sprintf("  Host: %s\n", rule.Host))
-			if rule.HTTP != nil {
-				for _, path := range rule.HTTP.Paths {
-					backend := ""
-					if path.Backend.Service != nil {
-						backend = fmt.Sprintf("%s:%v", path.Backend.Service.Name, path.Backend.Service.Port.Number)
-					}
-					sb.WriteString(fmt.Sprintf("    %s -> %s\n", path.Path, backend))
-				}
-			}
+			writeIngressRuleContext(&sb, rule)
 		}
 	}
 
-	if len(ingress.Status.LoadBalancer.Ingress) > 0 {
-		sb.WriteString("\nLoad Balancer Status:\n")
-		for _, lb := range ingress.Status.LoadBalancer.Ingress {
-			if lb.IP != "" {
-				sb.WriteString(fmt.Sprintf("  IP: %s\n", lb.IP))
-			}
-			if lb.Hostname != "" {
-				sb.WriteString(fmt.Sprintf("  Hostname: %s\n", lb.Hostname))
-			}
-		}
-	}
+	// Write load balancer status
+	writeIngressLoadBalancerContext(&sb, ingress.Status.LoadBalancer.Ingress)
 
 	a.emitHolmesContextProgress("Ingress", namespace, name, "Collecting recent events", "running", "")
 	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)

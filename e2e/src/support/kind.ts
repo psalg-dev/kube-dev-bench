@@ -119,6 +119,47 @@ export async function deleteNamespace(kubeconfigPath: string, namespace: string)
   });
 }
 
+export async function cleanupWorkerNamespaces(
+  kubeconfigPath: string,
+  currentRunId: string,
+  log: (msg: string) => void = (msg) => console.log(msg)
+) {
+  const list = await kubectl(['get', 'ns', '-o', 'json'], { kubeconfigPath, timeoutMs: 60_000 });
+  if (list.code !== 0) {
+    const message = `${list.stderr || ''}\n${list.stdout || ''}`.trim();
+    log(`[e2e][kind] namespace cleanup skipped: ${message || 'kubectl get ns failed'}`);
+    return;
+  }
+
+  let data: { items?: Array<{ metadata?: { name?: string } }> } = {};
+  try {
+    data = JSON.parse(list.stdout) as { items?: Array<{ metadata?: { name?: string } }> };
+  } catch (err) {
+    log(`[e2e][kind] namespace cleanup skipped: failed to parse kubectl output (${String(err)})`);
+    return;
+  }
+
+  const candidates = (data.items ?? [])
+    .map((item) => item.metadata?.name)
+    .filter((name): name is string => Boolean(name));
+
+  const workerNsPattern = /^kdb-e2e-(.+)-w\d+$/;
+  const stale = candidates.filter((name) => {
+    const match = name.match(workerNsPattern);
+    return match ? match[1] !== currentRunId : false;
+  });
+
+  if (stale.length === 0) {
+    log('[e2e][kind] no stale worker namespaces found');
+    return;
+  }
+
+  log(`[e2e][kind] deleting stale worker namespaces: ${stale.join(', ')}`);
+  for (const ns of stale) {
+    await deleteNamespace(kubeconfigPath, ns);
+  }
+}
+
 export async function helm(
   args: string[],
   opts: { kubeconfigPath: string; timeoutMs?: number; homeDir?: string; env?: NodeJS.ProcessEnv }

@@ -1,5 +1,7 @@
 package docker
 
+//revive:disable:var-naming
+
 // SwarmServiceMetrics is an aggregated, point-in-time view of resource usage for a Swarm service.
 // Values are best-effort and are typically derived from local Engine container stats.
 //
@@ -46,3 +48,5 @@ type SwarmMetricsBreakdown struct {
 	Services []SwarmServiceMetrics `json:"services"`
 	Nodes    []SwarmNodeMetrics    `json:"nodes"`
 }
+
+//revive:enable:var-naming

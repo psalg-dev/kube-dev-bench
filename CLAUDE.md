@@ -78,36 +78,36 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
   - Resource handlers: `services.go`, `tasks.go`, `nodes.go`, `networks.go`, `configs.go`, `secrets.go`, `stacks.go`, `volumes.go`, `logs.go`
 
 ### Frontend (React)
-- `frontend/src/state/ClusterStateContext.jsx` - Central cluster connection state management
+- `frontend/src/state/ClusterStateContext.tsx` - Central cluster connection state management
 - `frontend/src/layout/` - UI layout components
-  - `AppLayout.jsx` - Main app layout with stable DOM ids for testing
-  - `MonitorPanel.jsx` - Bottom monitoring panel (errors, warnings, Prometheus alerts)
-  - `MonitorIssueCard.jsx` - Issue card with Holmes analysis + dismissal
-  - `PrometheusAlertsTab.jsx` - Prometheus alert investigation UI
+  - `AppLayout.tsx` - Main app layout with stable DOM ids for testing
+  - `MonitorPanel.tsx` - Bottom monitoring panel (errors, warnings, Prometheus alerts)
+  - `MonitorIssueCard.tsx` - Issue card with Holmes analysis + dismissal
+  - `PrometheusAlertsTab.tsx` - Prometheus alert investigation UI
   - `connection/` - Unified connection management UI (refactored)
-    - `ConnectionWizard.jsx` - Main connection wizard container using shared layout
-    - `ConnectionsStateContext.jsx` - Centralized state for Kubernetes and Docker connections, pinned connections, and proxy settings
-    - `ConnectionsSidebar.jsx` - Sidebar with "Kubernetes", "Docker Swarm", and pinned sections with counts
-    - `ConnectionsMainView.jsx` - Main content area showing connection lists per section
-    - `KubernetesConnectionsList.jsx` - Lists discovered kubeconfig files with connect/pin actions
-    - `DockerSwarmConnectionsList.jsx` - Lists detected Docker Swarm connections
-    - `AddKubeConfigOverlay.jsx` - Overlay for adding new kubeconfig (paste or browse)
-    - `AddSwarmConnectionOverlay.jsx` - Overlay for manually adding Docker Swarm connections
-    - `ConnectionProxySettings.jsx` - Per-connection proxy configuration
+    - `ConnectionWizard.tsx` - Main connection wizard container using shared layout
+    - `ConnectionsStateContext.tsx` - Centralized state for Kubernetes and Docker connections, pinned connections, and proxy settings
+    - `ConnectionsSidebar.tsx` - Sidebar with "Kubernetes", "Docker Swarm", and pinned sections with counts
+    - `ConnectionsMainView.tsx` - Main content area showing connection lists per section
+    - `KubernetesConnectionsList.tsx` - Lists discovered kubeconfig files with connect/pin actions
+    - `DockerSwarmConnectionsList.tsx` - Lists detected Docker Swarm connections
+    - `AddKubeConfigOverlay.tsx` - Overlay for adding new kubeconfig (paste or browse)
+    - `AddSwarmConnectionOverlay.tsx` - Overlay for manually adding Docker Swarm connections
+    - `ConnectionProxySettings.tsx` - Per-connection proxy configuration
 - `frontend/src/k8s/resources/` - K8s resource view components
 - `frontend/src/holmes/` - Holmes AI UI (panel, config modal, response renderer, resource analysis tabs)
-- `frontend/src/layout/bottompanel/LogViewerTab.jsx` - Pod log viewer with Holmes “Explain Logs” analysis
+- `frontend/src/layout/bottompanel/LogViewerTab.tsx` - Pod log viewer with Holmes “Explain Logs” analysis
 - `frontend/src/docker/` - Docker Swarm frontend components
-  - `SwarmStateContext.jsx` - Docker connection and resource state management
-  - `SwarmResourceCountsContext.jsx` - Resource counts context
-  - `SwarmConnectionWizard.jsx` - Docker connection wizard (legacy, being replaced)
-  - `SwarmSidebarSections.jsx` - Sidebar navigation for Swarm resources
-  - `swarmApi.js` - API wrapper for Docker Swarm Wails bindings
+  - `SwarmStateContext.tsx` - Docker connection and resource state management
+  - `SwarmResourceCountsContext.tsx` - Resource counts context
+  - `SwarmConnectionWizard.tsx` - Docker connection wizard (legacy, being replaced)
+  - `SwarmSidebarSections.tsx` - Sidebar navigation for Swarm resources
+  - `swarmApi.ts` - API wrapper for Docker Swarm Wails bindings
   - `resources/` - Swarm resource view components (services, tasks, nodes, networks, configs, secrets, stacks, volumes)
 - `frontend/wailsjs/go/main/App.js` - Auto-generated Wails bindings (frontend calls Go functions here)
 
 ### Frontend Utilities
-- `frontend/src/utils/timeUtils.js` - Time formatting utilities (relative time, durations, etc.)
+- `frontend/src/utils/timeUtils.ts` - Time formatting utilities (relative time, durations, etc.)
 
 ### Frontend-Backend Communication
 Frontend calls Go functions via Wails bindings at `frontend/wailsjs/go/main/App`. Key RPCs:
@@ -156,8 +156,8 @@ When modifying Go method signatures in `pkg/app/`, rebuild Wails to regenerate b
     - `40-manage-nodes.spec.ts` - Node management tests
     - `50-navigate-sections.spec.ts` - Sidebar navigation tests
 - `frontend/src/__tests__/` - Vitest unit tests
-  - `wailsMocks.js` - Centralized Wails mock utilities
-  - `swarmStateContext.test.jsx` - Tests for Docker Swarm state context
+  - `wailsMocks.ts` - Centralized Wails mock utilities
+  - `swarmStateContext.test.tsx` - Tests for Docker Swarm state context
   - `swarmResourceCountsContext.test.jsx` - Tests for Swarm resource counts context
 
 ## Conventions
@@ -197,7 +197,12 @@ All code introduced must pass through those quality gates.
 ### Test Patterns
 - Tests trigger Go RPCs through the UI, not by calling Go functions directly
 - E2E tests use KinD manager container for reproducible clusters
-- Unit tests mock Wails bindings via `wailsMocks.js`
+- Unit tests mock Wails bindings via `wailsMocks.ts`
+
+### TypeScript Conventions
+- Prefer TypeScript/TSX for frontend files; avoid adding new .js/.jsx files.
+- Use `unknown` instead of `any` where possible and narrow types explicitly.
+- Keep test files in `frontend/src/__tests__/` with `.test.ts`/`.test.tsx`.
 
 ## Monitoring Troubleshooting
 - Holmes analysis fails: verify Holmes config (endpoint + API key) in the Holmes settings panel; check `~/.KubeDevBench/holmes.log` for errors.

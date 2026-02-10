@@ -2,12 +2,15 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 // Tests for GetDeployments function
@@ -309,5 +312,20 @@ func TestGetDeployments_NoContainers(t *testing.T) {
 
 	if result[0].Image != "" {
 		t.Errorf("expected empty image for no containers, got %q", result[0].Image)
+	}
+}
+
+func TestGetDeployments_ListError(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	cs.PrependReactor("list", "deployments", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated list error")
+	})
+	app := &App{ctx: context.Background(), testClientset: cs}
+	result, err := app.GetDeployments("default")
+	if err == nil {
+		t.Fatal("expected error from GetDeployments when list fails")
+	}
+	if result != nil && len(result) != 0 {
+		t.Errorf("expected empty result on list error, got %d", len(result))
 	}
 }

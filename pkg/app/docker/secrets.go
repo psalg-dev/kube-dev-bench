@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -14,17 +13,17 @@ import (
 var swarmSecretNowUTC = func() time.Time { return time.Now().UTC() }
 
 type swarmSecretsClient interface {
-	SecretList(context.Context, types.SecretListOptions) ([]swarm.Secret, error)
+	SecretList(context.Context, swarm.SecretListOptions) ([]swarm.Secret, error)
 	SecretInspectWithRaw(context.Context, string) (swarm.Secret, []byte, error)
-	SecretCreate(context.Context, swarm.SecretSpec) (types.SecretCreateResponse, error)
+	SecretCreate(context.Context, swarm.SecretSpec) (swarm.SecretCreateResponse, error)
 	SecretRemove(context.Context, string) error
 }
 
 type swarmSecretEditClient interface {
 	swarmSecretsClient
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (types.ServiceUpdateResponse, error)
+	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 }
 
 // GetSwarmSecrets returns all Swarm secrets (metadata only, not the actual secret data)
@@ -33,7 +32,7 @@ func GetSwarmSecrets(ctx context.Context, cli *client.Client) ([]SwarmSecretInfo
 }
 
 func getSwarmSecrets(ctx context.Context, cli swarmSecretsClient) ([]SwarmSecretInfo, error) {
-	secrets, err := cli.SecretList(ctx, types.SecretListOptions{})
+	secrets, err := cli.SecretList(ctx, swarm.SecretListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +128,7 @@ func getSwarmSecretUsage(ctx context.Context, cli swarmSecretEditClient, secretI
 	}
 	secretName := sec.Spec.Name
 
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +174,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 		Updated:       []SwarmServiceRef{},
 	}
 
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +184,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 		if !serviceReferencesSecret(svc, oldSec.ID, oldName) {
 			continue
 		}
-		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, types.ServiceInspectOptions{})
+		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, swarm.ServiceInspectOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("inspect %s: %v", svc.Spec.Name, err))
 			continue
@@ -195,7 +194,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 			continue
 		}
 		inspected.Spec.TaskTemplate.ForceUpdate++
-		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, types.ServiceUpdateOptions{})
+		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, swarm.ServiceUpdateOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspected.Spec.Name, err))
 			continue

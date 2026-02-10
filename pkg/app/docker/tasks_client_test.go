@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -14,7 +14,7 @@ func Test_getSwarmTasks_mapsServiceAndNodeNames(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		TaskListFn: func(context.Context, types.TaskListOptions) ([]swarm.Task, error) {
+		TaskListFn: func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error) {
 			return []swarm.Task{
 				{
 					ID:        "task-1",
@@ -31,13 +31,13 @@ func Test_getSwarmTasks_mapsServiceAndNodeNames(t *testing.T) {
 				},
 			}, nil
 		},
-		ContainerInspectFn: func(context.Context, string) (types.ContainerJSON, error) {
-			return types.ContainerJSON{}, nil
+		ContainerInspectFn: func(context.Context, string) (container.InspectResponse, error) {
+			return container.InspectResponse{}, nil
 		},
-		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
+		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
 			return []swarm.Service{{ID: "svc-1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svcname"}}}}, nil
 		},
-		NodeListFn: func(context.Context, types.NodeListOptions) ([]swarm.Node, error) {
+		NodeListFn: func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) {
 			return []swarm.Node{{ID: "node-1", Description: swarm.NodeDescription{Hostname: "n1"}}}, nil
 		},
 	}
@@ -65,14 +65,14 @@ func Test_getSwarmTasksByService_addsServiceFilter(t *testing.T) {
 
 	var gotFilters filters.Args
 	cli := &fakeDockerClient{
-		TaskListFn: func(_ context.Context, opts types.TaskListOptions) ([]swarm.Task, error) {
+		TaskListFn: func(_ context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
 			gotFilters = opts.Filters
 			return []swarm.Task{}, nil
 		},
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return swarm.Service{Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svcname"}}}, nil, nil
 		},
-		NodeListFn: func(context.Context, types.NodeListOptions) ([]swarm.Node, error) {
+		NodeListFn: func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) {
 			return []swarm.Node{}, nil
 		},
 	}
@@ -98,7 +98,7 @@ func Test_getSwarmTask_populatesServiceAndNodeNames(t *testing.T) {
 		TaskInspectWithRawFn: func(context.Context, string) (swarm.Task, []byte, error) {
 			return swarm.Task{ID: "t1", ServiceID: "svc-1", NodeID: "node-1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}}, nil, nil
 		},
-		ServiceInspectWithRawFn: func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
 			return swarm.Service{Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svcname"}}}, nil, nil
 		},
 		NodeInspectWithRawFn: func(context.Context, string) (swarm.Node, []byte, error) {
