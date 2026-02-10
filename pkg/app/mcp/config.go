@@ -13,6 +13,9 @@ type MCPConfigData struct {
 	// Port is the port to bind the HTTP server to (default: 3000)
 	Port int `json:"port"`
 
+	// TransportMode is the transport protocol: "http" (default) or "stdio"
+	TransportMode string `json:"transportMode"`
+
 	// AllowDestructive enables delete/scale-to-zero operations
 	AllowDestructive bool `json:"allowDestructive"`
 
@@ -29,6 +32,7 @@ func DefaultConfig() MCPConfigData {
 		Enabled:          false, // User must explicitly enable
 		Host:             "localhost",
 		Port:             3000,
+		TransportMode:    "http",
 		AllowDestructive: false, // Blocks delete/scale-to-zero by default
 		RequireConfirm:   true,  // Requires confirmation when enabled
 		MaxLogLines:      1000,  // Sensible default for log output
@@ -52,6 +56,10 @@ func (c *MCPConfigData) Validate() error {
 	if c.Port <= 0 || c.Port > 65535 {
 		c.Port = 3000
 	}
+	// Normalize transport mode
+	if c.TransportMode != "stdio" {
+		c.TransportMode = "http"
+	}
 	return nil
 }
 
@@ -66,6 +74,7 @@ func (c *MCPConfigData) Copy() MCPConfigData {
 		Enabled:          c.Enabled,
 		Host:             c.Host,
 		Port:             c.Port,
+		TransportMode:    c.TransportMode,
 		AllowDestructive: c.AllowDestructive,
 		RequireConfirm:   c.RequireConfirm,
 		MaxLogLines:      c.MaxLogLines,

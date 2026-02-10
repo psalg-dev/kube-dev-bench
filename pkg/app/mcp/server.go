@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"sync"
 	"time"
+
+	mcpsdk "github.com/mark3labs/mcp-go/mcp"
+	mcpserver "github.com/mark3labs/mcp-go/server"
 )
 
 // ServerInterface defines the methods required from the App
@@ -101,16 +102,22 @@ type ServerInterface interface {
 	GetSwarmConfigs() (interface{}, error)
 }
 
-// MCPServer is the MCP server implementation using HTTP transport
+// MCPServer is the MCP server wrapper that bridges the mcp-go SDK
+// with our application backend.
 type MCPServer struct {
-	app       ServerInterface
-	config    MCPConfigData
+	app    ServerInterface
+	config MCPConfigData
+
+	// Internal tool/resource registries (for security checks and tool metadata)
 	tools     map[string]*ToolDefinition
 	resources map[string]*ResourceDefinition
 
-	// HTTP server
-	httpServer *http.Server
-	listener   net.Listener
+	// mcp-go SDK server
+	sdkServer *mcpserver.MCPServer
+
+	// HTTP transport (for HTTP mode)
+	httpServer     *mcpserver.StreamableHTTPServer
+	httpBaseServer *http.Server
 
 	// Server state
 	running    bool
@@ -118,7 +125,7 @@ type MCPServer struct {
 	cancelFunc context.CancelFunc
 }
 
-// NewServer creates a new MCP server instance
+// NewServer creates a new MCP server instance using the mcp-go SDK
 func NewServer(app ServerInterface, config MCPConfigData) (*MCPServer, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid MCP configuration: %w", err)
@@ -131,14 +138,114 @@ func NewServer(app ServerInterface, config MCPConfigData) (*MCPServer, error) {
 		resources: make(map[string]*ResourceDefinition),
 	}
 
-	// Register all tools and resources
+	// Create the mcp-go SDK server
+	server.sdkServer = mcpserver.NewMCPServer(
+		"kubedevbench",
+		"1.0.0",
+		mcpserver.WithToolCapabilities(false),
+		mcpserver.WithResourceCapabilities(true, false),
+	)
+
+	// Register tools with both our internal registry and the SDK
 	server.registerTools()
 	server.registerResources()
+
+	// Register SDK tools from our internal registry
+	server.registerSDKTools()
+	server.registerSDKResources()
 
 	return server, nil
 }
 
-// Start starts the MCP server with HTTP transport
+// registerSDKTools registers all tools with the mcp-go SDK server
+func (s *MCPServer) registerSDKTools() {
+	for _, tool := range s.tools {
+		sdkTool := mcpsdk.Tool{
+			Name:        tool.Name,
+			Description: tool.Description,
+			InputSchema: buildSDKInputSchema(tool.InputSchema),
+		}
+
+		// Capture tool for closure
+		t := tool
+		handler := func(ctx context.Context, req mcpsdk.CallToolRequest) (*mcpsdk.CallToolResult, error) {
+			args := req.GetArguments()
+
+			// Check security before executing
+			if err := s.checkSecurity(t, args); err != nil {
+				return mcpsdk.NewToolResultError(err.Error()), nil
+			}
+
+			result, err := t.Handler(ctx, args)
+			if err != nil {
+				return mcpsdk.NewToolResultError(err.Error()), nil
+			}
+
+			resultText, marshalErr := json.Marshal(result)
+			if marshalErr != nil {
+				resultText = []byte(fmt.Sprintf("%v", result))
+			}
+
+			return mcpsdk.NewToolResultText(string(resultText)), nil
+		}
+
+		s.sdkServer.AddTool(sdkTool, handler)
+	}
+}
+
+// buildSDKInputSchema converts our map-based schema to the SDK's ToolInputSchema
+func buildSDKInputSchema(schema map[string]interface{}) mcpsdk.ToolInputSchema {
+	result := mcpsdk.ToolInputSchema{
+		Type: "object",
+	}
+
+	if props, ok := schema["properties"].(map[string]interface{}); ok {
+		result.Properties = props
+	}
+
+	if required, ok := schema["required"].([]string); ok {
+		result.Required = required
+	}
+
+	return result
+}
+
+// registerSDKResources registers all resources with the mcp-go SDK server
+func (s *MCPServer) registerSDKResources() {
+	for _, res := range s.resources {
+		sdkResource := mcpsdk.Resource{
+			URI:         res.URI,
+			Name:        res.Name,
+			Description: res.Description,
+			MIMEType:    res.MimeType,
+		}
+
+		r := res
+		handler := func(ctx context.Context, req mcpsdk.ReadResourceRequest) ([]mcpsdk.ResourceContents, error) {
+			result, err := r.Handler(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			resultText, marshalErr := json.Marshal(result)
+			if marshalErr != nil {
+				resultText = []byte(fmt.Sprintf("%v", result))
+			}
+
+			return []mcpsdk.ResourceContents{
+				mcpsdk.TextResourceContents{
+					URI:      r.URI,
+					MIMEType: r.MimeType,
+					Text:     string(resultText),
+				},
+			}, nil
+		}
+
+		s.sdkServer.AddResource(sdkResource, handler)
+	}
+}
+
+// Start starts the MCP server with HTTP transport (blocking)
 func (s *MCPServer) Start(ctx context.Context) error {
 	s.runningMu.Lock()
 	if s.running {
@@ -146,41 +253,38 @@ func (s *MCPServer) Start(ctx context.Context) error {
 		return ErrServerAlreadyRunning
 	}
 
-	// Create HTTP server with routes
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.handleRoot)
-	mux.HandleFunc("/mcp", s.handleMCP)
-	mux.HandleFunc("/health", s.handleHealth)
+	ctx, s.cancelFunc = context.WithCancel(ctx)
+	s.running = true
+	s.runningMu.Unlock()
 
 	addr := s.config.GetAddress()
-	s.httpServer = &http.Server{
+	fmt.Printf("MCP server started on http://%s\n", addr)
+
+	s.httpServer = mcpserver.NewStreamableHTTPServer(s.sdkServer,
+		mcpserver.WithEndpointPath("/mcp"),
+		mcpserver.WithStateLess(true),
+	)
+
+	// Wrap to add health endpoint
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/", s.handleRoot)
+	mux.Handle("/mcp", s.httpServer)
+
+	s.httpBaseServer = &http.Server{
 		Addr:              addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// Create listener
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		s.runningMu.Unlock()
-		return fmt.Errorf("failed to listen on %s: %w", addr, err)
-	}
-	s.listener = listener
-
-	ctx, s.cancelFunc = context.WithCancel(ctx)
-	s.running = true
-	s.runningMu.Unlock()
-
-	fmt.Printf("MCP server started on http://%s\n", addr)
-
-	// Run server in goroutine
+	// Run in goroutine
 	go func() {
-		if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+		if err := s.httpBaseServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("MCP server error: %v\n", err)
 		}
 	}()
 
-	// Wait for context cancellation
+	// Wait for cancellation
 	<-ctx.Done()
 	return s.shutdown()
 }
@@ -193,38 +297,33 @@ func (s *MCPServer) StartAsync() error {
 		return ErrServerAlreadyRunning
 	}
 
-	// Create HTTP server with routes
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.handleRoot)
-	mux.HandleFunc("/mcp", s.handleMCP)
-	mux.HandleFunc("/health", s.handleHealth)
+	s.httpServer = mcpserver.NewStreamableHTTPServer(s.sdkServer,
+		mcpserver.WithEndpointPath("/mcp"),
+		mcpserver.WithStateLess(true),
+	)
 
 	addr := s.config.GetAddress()
-	s.httpServer = &http.Server{
+
+	// Wrap to add health endpoint
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/", s.handleRoot)
+	mux.Handle("/mcp", s.httpServer)
+
+	s.httpBaseServer = &http.Server{
 		Addr:              addr,
 		Handler:           mux,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 
-	// Create listener
-	listener, err := net.Listen("tcp", addr)
-	if err != nil {
-		s.runningMu.Unlock()
-		return fmt.Errorf("failed to listen on %s: %w", addr, err)
-	}
-	s.listener = listener
-
-	var ctx context.Context
-	ctx, s.cancelFunc = context.WithCancel(context.Background())
-	_ = ctx // suppress unused warning
+	_, s.cancelFunc = context.WithCancel(context.Background())
 	s.running = true
 	s.runningMu.Unlock()
 
 	fmt.Printf("MCP server started on http://%s\n", addr)
 
-	// Run server in goroutine
 	go func() {
-		if err := s.httpServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+		if err := s.httpBaseServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("MCP server error: %v\n", err)
 		}
 	}()
@@ -235,7 +334,10 @@ func (s *MCPServer) StartAsync() error {
 func (s *MCPServer) shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	return s.httpServer.Shutdown(ctx)
+	if s.httpBaseServer != nil {
+		return s.httpBaseServer.Shutdown(ctx)
+	}
+	return nil
 }
 
 // Stop stops the MCP server
@@ -251,10 +353,10 @@ func (s *MCPServer) Stop() {
 		s.cancelFunc()
 	}
 
-	if s.httpServer != nil {
+	if s.httpBaseServer != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := s.httpServer.Shutdown(ctx); err != nil {
+		if err := s.httpBaseServer.Shutdown(ctx); err != nil {
 			fmt.Printf("MCP server shutdown error: %v\n", err)
 		}
 	}
@@ -278,11 +380,41 @@ func (s *MCPServer) GetStatus() MCPStatus {
 	return MCPStatus{
 		Running:   s.running,
 		Enabled:   s.config.Enabled,
-		Transport: fmt.Sprintf("http://%s", s.config.GetAddress()),
+		Transport: s.config.TransportMode,
+		Address:   s.config.GetAddress(),
 	}
 }
 
-// HTTP Handlers
+// StartStdio starts the MCP server in stdio transport mode (blocking).
+// This is used when the binary is launched as a subprocess by Claude Desktop or similar.
+// It reads JSON-RPC messages from stdin and writes responses to stdout.
+func (s *MCPServer) StartStdio() error {
+	s.runningMu.Lock()
+	if s.running {
+		s.runningMu.Unlock()
+		return ErrServerAlreadyRunning
+	}
+	s.running = true
+	s.runningMu.Unlock()
+
+	defer func() {
+		s.runningMu.Lock()
+		s.running = false
+		s.runningMu.Unlock()
+	}()
+
+	fmt.Println("MCP server started in stdio mode")
+	return mcpserver.ServeStdio(s.sdkServer)
+}
+
+// handleMessage processes an incoming JSON-RPC message via the SDK
+// This is used by tests and internal callers.
+func (s *MCPServer) handleMessage(ctx context.Context, data []byte) (interface{}, error) {
+	response := s.sdkServer.HandleMessage(ctx, data)
+	return response, nil
+}
+
+// HTTP Handlers (supplementary endpoints alongside SDK's /mcp)
 
 func (s *MCPServer) handleRoot(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -290,6 +422,7 @@ func (s *MCPServer) handleRoot(w http.ResponseWriter, _ *http.Request) {
 		"name":        "KubeDevBench MCP Server",
 		"version":     "1.0.0",
 		"description": "Model Context Protocol server for Kubernetes and Docker Swarm management",
+		"protocol":    "mcp-go SDK v0.43",
 		"endpoints": map[string]string{
 			"mcp":    "/mcp",
 			"health": "/health",
@@ -307,316 +440,4 @@ func (s *MCPServer) handleHealth(w http.ResponseWriter, _ *http.Request) {
 	}); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
 	}
-}
-
-func (s *MCPServer) handleMCP(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Read request body
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		s.sendHTTPError(w, -1, fmt.Errorf("failed to read request body: %w", err))
-		return
-	}
-	defer r.Body.Close()
-
-	// Handle the MCP message
-	response, err := s.handleMessage(r.Context(), body)
-	if err != nil {
-		s.sendHTTPError(w, -1, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
-	}
-}
-
-func (s *MCPServer) sendHTTPError(w http.ResponseWriter, id interface{}, err error) {
-	w.Header().Set("Content-Type", "application/json")
-	if encErr := json.NewEncoder(w).Encode(&jsonRPCResponse{
-		JSONRPC: "2.0",
-		ID:      id,
-		Error: &rpcError{
-			Code:    -32603,
-			Message: err.Error(),
-		},
-	}); encErr != nil {
-		http.Error(w, "failed to encode error", http.StatusInternalServerError)
-	}
-}
-
-// JSON-RPC structures
-type jsonRPCRequest struct {
-	JSONRPC string          `json:"jsonrpc"`
-	ID      interface{}     `json:"id"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
-}
-
-type jsonRPCResponse struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      interface{} `json:"id"`
-	Result  interface{} `json:"result,omitempty"`
-	Error   *rpcError   `json:"error,omitempty"`
-}
-
-type rpcError struct {
-	Code    int         `json:"code"`
-	Message string      `json:"message"`
-	Data    interface{} `json:"data,omitempty"`
-}
-
-// handleMessage processes an incoming JSON-RPC message
-func (s *MCPServer) handleMessage(ctx context.Context, data []byte) (*jsonRPCResponse, error) {
-	var req jsonRPCRequest
-	if err := json.Unmarshal(data, &req); err != nil {
-		return nil, fmt.Errorf("invalid JSON-RPC request: %w", err)
-	}
-
-	if req.JSONRPC != "2.0" {
-		return nil, fmt.Errorf("invalid JSON-RPC version: %s", req.JSONRPC)
-	}
-
-	switch req.Method {
-	case "initialize":
-		return s.handleInitialize(req)
-	case "tools/list":
-		return s.handleToolsList(req)
-	case "tools/call":
-		return s.handleToolsCall(ctx, req)
-	case "resources/list":
-		return s.handleResourcesList(req)
-	case "resources/read":
-		return s.handleResourcesRead(ctx, req)
-	case "ping":
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Result:  map[string]string{"status": "ok"},
-		}, nil
-	default:
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32601,
-				Message: fmt.Sprintf("method not found: %s", req.Method),
-			},
-		}, nil
-	}
-}
-
-// handleInitialize handles the MCP initialize request
-func (s *MCPServer) handleInitialize(req jsonRPCRequest) (*jsonRPCResponse, error) {
-	result := map[string]interface{}{
-		"protocolVersion": "2024-11-05",
-		"serverInfo": map[string]string{
-			"name":    "kubedevbench",
-			"version": "1.0.0",
-		},
-		"capabilities": map[string]interface{}{
-			"tools": map[string]interface{}{
-				"listChanged": false,
-			},
-			"resources": map[string]interface{}{
-				"subscribe":   false,
-				"listChanged": false,
-			},
-		},
-	}
-
-	return &jsonRPCResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result:  result,
-	}, nil
-}
-
-// handleToolsList returns the list of available tools
-func (s *MCPServer) handleToolsList(req jsonRPCRequest) (*jsonRPCResponse, error) {
-	tools := make([]map[string]interface{}, 0, len(s.tools))
-
-	for _, tool := range s.tools {
-		tools = append(tools, map[string]interface{}{
-			"name":        tool.Name,
-			"description": tool.Description,
-			"inputSchema": tool.InputSchema,
-		})
-	}
-
-	return &jsonRPCResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result: map[string]interface{}{
-			"tools": tools,
-		},
-	}, nil
-}
-
-// handleToolsCall handles a tool invocation
-func (s *MCPServer) handleToolsCall(ctx context.Context, req jsonRPCRequest) (*jsonRPCResponse, error) {
-	var params struct {
-		Name      string                 `json:"name"`
-		Arguments map[string]interface{} `json:"arguments"`
-	}
-
-	if err := json.Unmarshal(req.Params, &params); err != nil {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32602,
-				Message: "invalid params",
-			},
-		}, nil
-	}
-
-	tool, ok := s.tools[params.Name]
-	if !ok {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32602,
-				Message: fmt.Sprintf("tool not found: %s", params.Name),
-			},
-		}, nil
-	}
-
-	// Check security
-	if err := s.checkSecurity(tool, params.Arguments); err != nil {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32000,
-				Message: err.Error(),
-			},
-		}, nil
-	}
-
-	// Execute the tool
-	result, err := tool.Handler(ctx, params.Arguments)
-	if err != nil {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Result: map[string]interface{}{
-				"content": []map[string]interface{}{
-					{
-						"type": "text",
-						"text": fmt.Sprintf("Error: %s", err.Error()),
-					},
-				},
-				"isError": true,
-			},
-		}, nil
-	}
-
-	// Format result as text content
-	resultText, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		resultText = []byte(fmt.Sprintf("%v", result))
-	}
-
-	return &jsonRPCResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result: map[string]interface{}{
-			"content": []map[string]interface{}{
-				{
-					"type": "text",
-					"text": string(resultText),
-				},
-			},
-		},
-	}, nil
-}
-
-// handleResourcesList returns the list of available resources
-func (s *MCPServer) handleResourcesList(req jsonRPCRequest) (*jsonRPCResponse, error) {
-	resources := make([]map[string]interface{}, 0, len(s.resources))
-
-	for _, res := range s.resources {
-		resources = append(resources, map[string]interface{}{
-			"uri":         res.URI,
-			"name":        res.Name,
-			"description": res.Description,
-			"mimeType":    res.MimeType,
-		})
-	}
-
-	return &jsonRPCResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result: map[string]interface{}{
-			"resources": resources,
-		},
-	}, nil
-}
-
-// handleResourcesRead reads a specific resource
-func (s *MCPServer) handleResourcesRead(ctx context.Context, req jsonRPCRequest) (*jsonRPCResponse, error) {
-	var params struct {
-		URI string `json:"uri"`
-	}
-
-	if err := json.Unmarshal(req.Params, &params); err != nil {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32602,
-				Message: "invalid params",
-			},
-		}, nil
-	}
-
-	res, ok := s.resources[params.URI]
-	if !ok {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32602,
-				Message: fmt.Sprintf("resource not found: %s", params.URI),
-			},
-		}, nil
-	}
-
-	result, err := res.Handler(ctx)
-	if err != nil {
-		return &jsonRPCResponse{
-			JSONRPC: "2.0",
-			ID:      req.ID,
-			Error: &rpcError{
-				Code:    -32000,
-				Message: err.Error(),
-			},
-		}, nil
-	}
-
-	resultText, err := json.MarshalIndent(result, "", "  ")
-	if err != nil {
-		resultText = []byte(fmt.Sprintf("%v", result))
-	}
-
-	return &jsonRPCResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result: map[string]interface{}{
-			"contents": []map[string]interface{}{
-				{
-					"uri":      res.URI,
-					"mimeType": res.MimeType,
-					"text":     string(resultText),
-				},
-			},
-		},
-	}, nil
 }

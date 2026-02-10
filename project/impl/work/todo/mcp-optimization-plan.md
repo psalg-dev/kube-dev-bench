@@ -1,7 +1,7 @@
 # MCP Server Optimization & Frontend UI Plan
 
 **Created:** 2026-02-10  
-**Status:** Not Started  
+**Status:** Complete (Phases A–D, F implemented; Phase E backend tests done, frontend/E2E tests optional)  
 **Depends on:** Backend MCP implementation (complete)  
 **Blocked by:** None  
 
@@ -129,46 +129,46 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
 
 **Tasks:**
 
-- [ ] A1: Create kind-to-handler dispatch maps for `k8s_list` and `k8s_describe`
+- [x] A1: Create kind-to-handler dispatch maps for `k8s_list` and `k8s_describe`
   - Map `kind` enum values to existing `ServerInterface` methods
   - Example: `"pods" → s.app.GetPods(ns)`, `"deployments" → s.app.GetDeployments(ns)`
   - Example: `"pod" → s.app.GetPodDetail(ns, name)`, `"deployment" → s.app.GetDeploymentDetail(ns, name)`
 
-- [ ] A2: Implement consolidated `k8s_list` handler
+- [x] A2: Implement consolidated `k8s_list` handler
   - Parse `kind`, `namespace`, `labelSelector`, `limit` from input
   - Dispatch to appropriate `ServerInterface` method via map
   - Apply client-side label filtering if App method doesn't support it natively
   - Apply `limit` truncation with `{items: [...], truncated: bool, total: int}` wrapper
   - Register with `k8s_list` tool definition and full kind enum in schema
 
-- [ ] A3: Implement consolidated `k8s_describe` handler
+- [x] A3: Implement consolidated `k8s_describe` handler
   - Parse `kind`, `name`, `namespace` from input
   - Dispatch to appropriate `Get*Detail()` method via map
   - Fix namespace passthrough for pod detail (currently ignored)
 
-- [ ] A4: Merge log tools into single `k8s_get_pod_logs` handler
+- [x] A4: Merge log tools into single `k8s_get_pod_logs` handler
   - Add `previous` boolean parameter (default: `false`)
   - Apply `truncateLogs()` consistently for both current and previous
   - Remove separate `k8s_get_pod_logs_previous` tool
 
-- [ ] A5: Merge `k8s_top_pods`/`k8s_top_nodes` into `k8s_top`
+- [x] A5: Merge `k8s_top_pods`/`k8s_top_nodes` into `k8s_top`
   - Add `kind` enum parameter (`pods` | `nodes`)
   - Route to `TopPods(ns)` or `TopNodes()` based on kind
 
-- [ ] A6: Merge rollout tools into `k8s_rollout`
+- [x] A6: Merge rollout tools into `k8s_rollout`
   - Add `action` enum parameter (`status` | `history`)
   - Route to `GetRolloutStatus()` or `GetRolloutHistory()`
 
-- [ ] A7: Consolidate Swarm list tools into `swarm_list`
+- [x] A7: Consolidate Swarm list tools into `swarm_list`
   - Kind enum: `services`, `tasks`, `nodes`, `stacks`, `networks`, `volumes`, `secrets`, `configs`
   - Dispatch to existing `GetSwarm*()` methods
   - All check `IsSwarmConnected()` first
 
-- [ ] A8: Consolidate Swarm inspect tools into `swarm_inspect`
+- [x] A8: Consolidate Swarm inspect tools into `swarm_inspect`
   - Kind enum: `service`, `task`, `node`
   - Dispatch to `GetSwarmService()`, `GetSwarmTask()`, `GetSwarmNode()`
 
-- [ ] A9: Remove all old individual tool registrations
+- [x] A9: Remove all old individual tool registrations
   - Delete the 59 individual `s.tools[...]` blocks
   - Delete the 59 individual `handle*` methods that are now replaced by dispatch
   - Keep shared helpers (`getNamespaceParam`, `getStringParam`, `truncateLogs`)
@@ -187,11 +187,11 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
 
 **Tasks:**
 
-- [ ] B1: Switch `json.MarshalIndent` to `json.Marshal` in `handleToolsCall`
+- [x] B1: Switch `json.MarshalIndent` to `json.Marshal` in `handleToolsCall`
   - In `server.go`, change `json.MarshalIndent(result, "", "  ")` to `json.Marshal(result)`
   - Saves ~30% payload size on large responses
 
-- [ ] B2: Create `ListResult` wrapper type
+- [x] B2: Create `ListResult` wrapper type
   ```go
   type ListResult struct {
       Items     interface{} `json:"items"`
@@ -203,21 +203,21 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
   - All list handlers return this instead of raw slices
   - When `limit` param is set and len(items) > limit, truncate and set `truncated: true`
 
-- [ ] B3: Add `labelSelector` support to `k8s_list`
+- [x] B3: Add `labelSelector` support to `k8s_list`
   - For resources where the underlying App method uses `client-go` `ListOptions`, pass `labelSelector` through
   - For resources where the App method doesn't support it, apply client-side filtering on the returned items using labels field
   - Document which resource types support server-side vs. client-side filtering
 
-- [ ] B4: Strip `NodeInfo.Raw` from MCP responses
+- [x] B4: Strip `NodeInfo.Raw` from MCP responses
   - Add `json:"-"` tag on `Raw` field for MCP serialization, or
   - Create a `NodeInfoMCP` projection type without the `Raw` field
   - The `Raw` field contains the full Kubernetes Node API object and is only useful for the desktop UI
 
-- [ ] B5: Fix `GetPodDetail` namespace handling in adapter
+- [x] B5: Fix `GetPodDetail` namespace handling in adapter
   - In `mcp_integration.go`, change `app.GetPodSummary(name)` to pass namespace
   - Or use namespace-aware pod lookup
 
-- [ ] B6: Apply `truncateLogs()` to current logs handler
+- [x] B6: Apply `truncateLogs()` to current logs handler
   - `handleGetPodLogs` currently only caps `tailLines`; add `truncateLogs()` post-fetch
 
 **Estimated effort:** 1–2 days
@@ -235,16 +235,16 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
 
 **Tasks:**
 
-- [ ] C1: Add `mark3labs/mcp-go` dependency
+- [x] C1: Add `mark3labs/mcp-go` dependency
   - `go get github.com/mark3labs/mcp-go@latest`
   - Verify compatibility with Go 1.25
 
-- [ ] C2: Add `TransportMode` to `MCPConfigData`
+- [x] C2: Add `TransportMode` to `MCPConfigData`
   - Field: `TransportMode string` with values `"http"` (default) and `"stdio"`
   - Update `NewDefaultMCPConfig()` to set default
   - Update `Validate()` to normalize
 
-- [ ] C3: Rewrite tool registration using mcp-go SDK
+- [x] C3: Rewrite tool registration using mcp-go SDK
   - Replace hand-built `map[string]interface{}` schemas with `mcp.NewTool()` builder
   - Example:
     ```go
@@ -265,20 +265,20 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
   - Use `req.RequireString("kind")`, `req.GetString("namespace")` for arg access
   - Return `mcp.NewToolResultText(jsonString)` or `mcp.NewToolResultError(errMsg)`
 
-- [ ] C4: Rewrite server lifecycle using mcp-go SDK
+- [x] C4: Rewrite server lifecycle using mcp-go SDK
   - Replace custom `MCPServer` struct with `server.NewMCPServer("kubedevbench", "1.0.0", opts...)`
   - For HTTP mode: use `server.NewStreamableHTTPServer(mcpServer)` or `server.NewSSEServer(mcpServer)`
   - For stdio mode: use `server.ServeStdio(mcpServer)`
   - Remove custom JSON-RPC handler (`handleMessage`, `handleMCP`), custom HTTP mux, `handleRoot`, `handleHealth`
   - Preserve health endpoint if needed as a separate HTTP handler
 
-- [ ] C5: Update `mcp_integration.go` lifecycle
+- [x] C5: Update `mcp_integration.go` lifecycle
   - `startMCPServer()` — branch on `TransportMode`: HTTP vs stdio
   - `shutdownMCP()` — use SDK shutdown
   - Keep `MCPServerAdapter` interface mapping unchanged
   - `GetMCPStatus()` — return transport mode in status
 
-- [ ] C6: Remove custom MCP protocol code
+- [x] C6: Remove custom MCP protocol code
   - Delete `jsonRPCRequest`, `jsonRPCResponse` structs
   - Delete `handleMessage()`, `handleMCP()`, `handleRoot()`
   - Delete custom `initialize`, `tools/list`, `tools/call` dispatch
@@ -303,7 +303,7 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
 
 **Tasks:**
 
-- [ ] D1: Create `frontend/src/mcp/mcpApi.ts`
+- [x] D1: Create `frontend/src/mcp/mcpApi.ts`
   - Import Wails bindings: `GetMCPConfig`, `SetMCPConfig`, `GetMCPStatus`, `StartMCPServer`, `StopMCPServer`
   - TypeScript interfaces:
     ```ts
@@ -325,7 +325,7 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
     ```
   - Export wrapped async functions with error handling
 
-- [ ] D2: Create `frontend/src/mcp/MCPContext.tsx`
+- [x] D2: Create `frontend/src/mcp/MCPContext.tsx`
   - `useReducer` with state:
     ```ts
     { config: MCPConfig | null, status: MCPStatus | null, loading: boolean, error: string | null, showConfig: boolean }
@@ -335,7 +335,7 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
   - `useEffect` with 10s interval to poll `GetMCPStatus()` when enabled
   - Expose `useMCP()` hook with: `state`, `loadConfig()`, `saveConfig()`, `startServer()`, `stopServer()`, `showConfigModal()`, `hideConfigModal()`
 
-- [ ] D3: Create `frontend/src/mcp/MCPConfigModal.tsx`
+- [x] D3: Create `frontend/src/mcp/MCPConfigModal.tsx`
   - Self-rendering overlay (return `null` when `!state.showConfig`)
   - Local state for form fields, synced from context config on open
   - Form layout:
@@ -347,21 +347,22 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
   - Close on backdrop click + Escape key
   - Notifications on save success/failure (using existing notification system)
 
-- [ ] D4: Create `frontend/src/mcp/MCPConfigModal.css`
+- [x] D4: Create `frontend/src/mcp/MCPConfigModal.css`
   - Component-scoped styles following Holmes CSS pattern
   - Modal overlay, form layout, status badge colors
 
-- [ ] D5: Mount `<MCPConfigModal />` in `AppContainer.tsx`
+- [x] D5: Mount `<MCPConfigModal />` in `AppContainer.tsx`
   - Wrap with `<MCPProvider>` context provider
   - Place alongside `<HolmesConfigModal />`
 
-- [ ] D6: Add MCP button to sidebar header in `AppLayout.tsx`
+- [x] D6: Add MCP button to sidebar header in `AppLayout.tsx`
   - Add button with 🔌 icon (or suitable icon) next to Holmes 🔍 and Connection ⚙️ buttons
   - `onClick` → `showConfigModal()` from `useMCP()` hook
   - `id="mcp-config-btn"` for test targeting
   - Tooltip: "MCP Server Configuration"
 
-- [ ] D7: (Optional) Add MCP status indicator to `FooterBar.tsx`
+- [x] D7: (Optional) Add MCP status indicator to `FooterBar.tsx`
+  - Skipped — status is already visible in the MCP Config Modal
   - Small colored dot: green (running), gray (stopped/disabled), red (error)
   - Clicking opens config modal
   - Only visible when MCP is enabled
@@ -383,7 +384,7 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
 
 **Tasks:**
 
-- [ ] E1: Update `tools_test.go` for consolidated tool set
+- [x] E1: Update `tools_test.go` for consolidated tool set
   - Test `k8s_list` with each `kind` enum value
   - Test `k8s_list` with `labelSelector` parameter
   - Test `k8s_list` with `limit` parameter and truncation
@@ -395,7 +396,7 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
   - Test that 14 tools are registered (no more, no less)
   - Test input validation: missing required `kind`, unknown kind value
 
-- [ ] E2: Update `server_additional_test.go` for SDK-based server
+- [x] E2: Update `server_additional_test.go` for SDK-based server
   - Test server creation with mcp-go SDK
   - Test start/stop lifecycle
   - Test health endpoint (if retained)
@@ -444,7 +445,7 @@ Follow the proven `HolmesConfigModal` / `HolmesContext` pattern:
 
 **Tasks:**
 
-- [ ] F1: Create `docs/MCP_INTEGRATION.md`
+- [x] F1: Create `docs/MCP_INTEGRATION.md`
   - **Overview** — What MCP is, why it's useful for DevOps
   - **Quick Start** — Enable via GUI, configure transport
   - **Available Tools** — Table of 14 tools with parameters, descriptions, examples

@@ -3703,6 +3703,7 @@ export namespace mcp {
 	    enabled: boolean;
 	    host: string;
 	    port: number;
+	    transportMode: string;
 	    allowDestructive: boolean;
 	    requireConfirm: boolean;
 	    maxLogLines: number;
@@ -3716,6 +3717,7 @@ export namespace mcp {
 	        this.enabled = source["enabled"];
 	        this.host = source["host"];
 	        this.port = source["port"];
+	        this.transportMode = source["transportMode"];
 	        this.allowDestructive = source["allowDestructive"];
 	        this.requireConfirm = source["requireConfirm"];
 	        this.maxLogLines = source["maxLogLines"];
@@ -3725,6 +3727,7 @@ export namespace mcp {
 	    running: boolean;
 	    enabled: boolean;
 	    transport: string;
+	    address?: string;
 	    error?: string;
 	
 	    static createFrom(source: any = {}) {
@@ -3736,6 +3739,7 @@ export namespace mcp {
 	        this.running = source["running"];
 	        this.enabled = source["enabled"];
 	        this.transport = source["transport"];
+	        this.address = source["address"];
 	        this.error = source["error"];
 	    }
 	}

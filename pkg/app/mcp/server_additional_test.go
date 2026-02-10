@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -20,13 +19,41 @@ func newTestServer(t *testing.T, app ServerInterface, cfg MCPConfigData) *MCPSer
 	return server
 }
 
-func mustMarshalJSON(t *testing.T, req jsonRPCRequest) []byte {
+// buildJSONRPCRequest constructs a JSON-RPC 2.0 request as raw bytes.
+// This replaces the old mustMarshalJSON helper that depended on the removed jsonRPCRequest type.
+func buildJSONRPCRequest(t *testing.T, id interface{}, method string, params ...json.RawMessage) []byte {
 	t.Helper()
+	req := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      id,
+		"method":  method,
+	}
+	if len(params) > 0 && params[0] != nil {
+		req["params"] = json.RawMessage(params[0])
+	}
 	data, err := json.Marshal(req)
 	if err != nil {
 		t.Fatalf("json.Marshal error: %v", err)
 	}
 	return data
+}
+
+// parseSDKResponse marshals the SDK response interface{} back to JSON
+// and unmarshals into a generic map for test assertions.
+func parseSDKResponse(t *testing.T, resp interface{}) map[string]interface{} {
+	t.Helper()
+	if resp == nil {
+		t.Fatal("response is nil")
+	}
+	data, err := json.Marshal(resp)
+	if err != nil {
+		t.Fatalf("marshal response error: %v", err)
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatalf("unmarshal response error: %v", err)
+	}
+	return result
 }
 
 func containsString(list []string, value string) bool {
@@ -138,8 +165,11 @@ func TestMCPSecurity_CheckSecurity(t *testing.T) {
 }
 
 func TestMCPSecurity_LevelsAndAllowances(t *testing.T) {
-	if got := GetSecurityLevel("k8s_list_pods", nil); got != SecuritySafe {
+	if got := GetSecurityLevel("k8s_list", nil); got != SecuritySafe {
 		t.Fatalf("GetSecurityLevel safe = %v, want %v", got, SecuritySafe)
+	}
+	if got := GetSecurityLevel("k8s_describe", nil); got != SecuritySafe {
+		t.Fatalf("GetSecurityLevel describe = %v, want %v", got, SecuritySafe)
 	}
 	if got := GetSecurityLevel("k8s_scale_deployment", map[string]interface{}{"replicas": float64(0)}); got != SecurityDestructive {
 		t.Fatalf("GetSecurityLevel scale-to-zero = %v, want %v", got, SecurityDestructive)
@@ -268,6 +298,8 @@ func TestMCPResources_Handlers(t *testing.T) {
 	}
 }
 
+// TestMCPServer_HTTPHandlers tests the supplementary HTTP endpoints.
+// The /mcp endpoint is handled by the mcp-go SDK's StreamableHTTPServer.
 func TestMCPServer_HTTPHandlers(t *testing.T) {
 	server := newTestServer(t, &mockServerInterface{}, DefaultConfig())
 	server.running = true
@@ -290,143 +322,195 @@ func TestMCPServer_HTTPHandlers(t *testing.T) {
 		}
 	})
 
-	t.Run("mcp method not allowed", func(t *testing.T) {
+	t.Run("health not running", func(t *testing.T) {
+		server.running = false
 		recorder := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodGet, "/mcp", nil)
-		server.handleMCP(recorder, req)
-		if recorder.Code != http.StatusMethodNotAllowed {
-			t.Fatalf("handleMCP status = %d, want %d", recorder.Code, http.StatusMethodNotAllowed)
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		server.handleHealth(recorder, req)
+		if !strings.Contains(recorder.Body.String(), "\"running\":false") {
+			t.Fatalf("health response missing running false: %s", recorder.Body.String())
 		}
-	})
-
-	t.Run("mcp invalid json", func(t *testing.T) {
-		recorder := httptest.NewRecorder()
-		req := httptest.NewRequest(http.MethodPost, "/mcp", bytes.NewBufferString("{"))
-		server.handleMCP(recorder, req)
-		var resp jsonRPCResponse
-		if err := json.NewDecoder(recorder.Body).Decode(&resp); err != nil {
-			t.Fatalf("decode error response: %v", err)
-		}
-		if resp.Error == nil || !strings.Contains(resp.Error.Message, "invalid JSON-RPC request") {
-			t.Fatalf("unexpected error response: %+v", resp.Error)
-		}
+		server.running = true
 	})
 }
 
+// TestMCPServer_HandleMessage tests the handleMessage wrapper around the SDK.
 func TestMCPServer_HandleMessage(t *testing.T) {
 	server := newTestServer(t, &mockServerInterface{}, DefaultConfig())
 	ctx := context.Background()
 
-	_, err := server.handleMessage(ctx, []byte("{"))
-	if err == nil {
-		t.Fatal("expected invalid JSON error")
-	}
+	t.Run("invalid JSON returns error response", func(t *testing.T) {
+		resp, err := server.handleMessage(ctx, []byte("{"))
+		if err != nil {
+			t.Fatalf("handleMessage should not return Go error (SDK returns errors in response): %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] == nil {
+			t.Fatal("expected error in response for invalid JSON")
+		}
+		errObj := parsed["error"].(map[string]interface{})
+		code := errObj["code"].(float64)
+		if code != -32700 { // Parse error
+			t.Fatalf("error code = %v, want -32700 (parse error)", code)
+		}
+	})
 
-	invalidVersion := jsonRPCRequest{JSONRPC: "1.0", ID: 1, Method: "ping"}
-	_, err = server.handleMessage(ctx, mustMarshalJSON(t, invalidVersion))
-	if err == nil {
-		t.Fatal("expected invalid JSON-RPC version error")
-	}
+	t.Run("unknown method returns method not found", func(t *testing.T) {
+		data := buildJSONRPCRequest(t, 2, "unknown_method")
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] == nil {
+			t.Fatal("expected error for unknown method")
+		}
+		errObj := parsed["error"].(map[string]interface{})
+		code := errObj["code"].(float64)
+		if code != -32601 { // Method not found
+			t.Fatalf("error code = %v, want -32601 (method not found)", code)
+		}
+	})
 
-	pingReq := jsonRPCRequest{JSONRPC: "2.0", ID: 1, Method: "ping"}
-	resp, err := server.handleMessage(ctx, mustMarshalJSON(t, pingReq))
-	if err != nil {
-		t.Fatalf("ping handleMessage error: %v", err)
-	}
-	result := resp.Result.(map[string]string)
-	if result["status"] != "ok" {
-		t.Fatalf("ping result = %v, want ok", result["status"])
-	}
-
-	unknownReq := jsonRPCRequest{JSONRPC: "2.0", ID: 2, Method: "unknown"}
-	resp, err = server.handleMessage(ctx, mustMarshalJSON(t, unknownReq))
-	if err != nil {
-		t.Fatalf("unknown handleMessage error: %v", err)
-	}
-	if resp.Error == nil || resp.Error.Code != -32601 {
-		t.Fatalf("unknown method error = %+v, want code -32601", resp.Error)
-	}
+	t.Run("initialize succeeds", func(t *testing.T) {
+		params := json.RawMessage(`{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}`)
+		data := buildJSONRPCRequest(t, 1, "initialize", params)
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] != nil {
+			t.Fatalf("initialize error: %v", parsed["error"])
+		}
+		result, ok := parsed["result"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("initialize result is not a map: %T", parsed["result"])
+		}
+		serverInfo, ok := result["serverInfo"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("missing serverInfo in initialize result: %v", result)
+		}
+		if serverInfo["name"] != "kubedevbench" {
+			t.Fatalf("serverInfo name = %v, want kubedevbench", serverInfo["name"])
+		}
+	})
 }
 
+// TestMCPServer_ToolsAndResources tests tool listing, tool calling, resource listing,
+// and resource reading through the SDK handleMessage wrapper.
 func TestMCPServer_ToolsAndResources(t *testing.T) {
 	server := newTestServer(t, &mockServerInterface{}, DefaultConfig())
 	ctx := context.Background()
 
-	toolsReq := jsonRPCRequest{JSONRPC: "2.0", ID: 1, Method: "tools/list"}
-	resp, err := server.handleMessage(ctx, mustMarshalJSON(t, toolsReq))
-	if err != nil {
-		t.Fatalf("tools/list error: %v", err)
-	}
-	tools := resp.Result.(map[string]interface{})["tools"].([]map[string]interface{})
-	if len(tools) == 0 {
-		t.Fatal("tools/list returned empty tool list")
-	}
+	t.Run("tools/list returns registered tools", func(t *testing.T) {
+		data := buildJSONRPCRequest(t, 1, "tools/list")
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] != nil {
+			t.Fatalf("tools/list error: %v", parsed["error"])
+		}
+		result := parsed["result"].(map[string]interface{})
+		tools := result["tools"].([]interface{})
+		if len(tools) == 0 {
+			t.Fatal("tools/list returned empty tool list")
+		}
+		// Verify tools have expected structure
+		firstTool := tools[0].(map[string]interface{})
+		if firstTool["name"] == nil {
+			t.Fatal("tool missing name field")
+		}
+		if firstTool["description"] == nil {
+			t.Fatal("tool missing description field")
+		}
+	})
 
-	invalidToolCall := jsonRPCRequest{
-		JSONRPC: "2.0",
-		ID:      2,
-		Method:  "tools/call",
-		Params:  json.RawMessage("[]"),
-	}
-	resp, err = server.handleMessage(ctx, mustMarshalJSON(t, invalidToolCall))
-	if err != nil {
-		t.Fatalf("invalid tools/call error: %v", err)
-	}
-	if resp.Error == nil || resp.Error.Code != -32602 {
-		t.Fatalf("invalid tools/call response = %+v, want code -32602", resp.Error)
-	}
+	t.Run("tools/call with valid tool", func(t *testing.T) {
+		// Use k8s_list which is registered by default; it calls GetPods on the mock
+		params := json.RawMessage(`{"name":"k8s_list","arguments":{"kind":"pods"}}`)
+		data := buildJSONRPCRequest(t, 2, "tools/call", params)
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] != nil {
+			t.Fatalf("tools/call error: %v", parsed["error"])
+		}
+		// SDK returns result with content array
+		result := parsed["result"].(map[string]interface{})
+		content := result["content"].([]interface{})
+		if len(content) == 0 {
+			t.Fatal("tools/call returned empty content")
+		}
+		firstContent := content[0].(map[string]interface{})
+		if firstContent["type"] != "text" {
+			t.Fatalf("content type = %v, want text", firstContent["type"])
+		}
+	})
 
-	server.tools["unit_test_tool"] = &ToolDefinition{
-		Name:     "unit_test_tool",
-		Security: SecuritySafe,
-		Handler: func(ctx context.Context, input map[string]interface{}) (any, error) {
-			return map[string]string{"status": "ok"}, nil
-		},
-	}
-	toolCall := jsonRPCRequest{
-		JSONRPC: "2.0",
-		ID:      3,
-		Method:  "tools/call",
-		Params:  json.RawMessage(`{"name":"unit_test_tool","arguments":{"key":"value"}}`),
-	}
-	resp, err = server.handleMessage(ctx, mustMarshalJSON(t, toolCall))
-	if err != nil {
-		t.Fatalf("tools/call error: %v", err)
-	}
-	if resp.Error != nil {
-		t.Fatalf("tools/call response error = %+v", resp.Error)
-	}
+	t.Run("tools/call with unknown tool", func(t *testing.T) {
+		params := json.RawMessage(`{"name":"nonexistent_tool","arguments":{}}`)
+		data := buildJSONRPCRequest(t, 3, "tools/call", params)
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] == nil {
+			t.Fatal("expected error for unknown tool")
+		}
+	})
 
-	resourceListReq := jsonRPCRequest{JSONRPC: "2.0", ID: 4, Method: "resources/list"}
-	resp, err = server.handleMessage(ctx, mustMarshalJSON(t, resourceListReq))
-	if err != nil {
-		t.Fatalf("resources/list error: %v", err)
-	}
-	resources := resp.Result.(map[string]interface{})["resources"].([]map[string]interface{})
-	if len(resources) == 0 {
-		t.Fatal("resources/list returned empty list")
-	}
+	t.Run("resources/list returns registered resources", func(t *testing.T) {
+		data := buildJSONRPCRequest(t, 4, "resources/list")
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] != nil {
+			t.Fatalf("resources/list error: %v", parsed["error"])
+		}
+		result := parsed["result"].(map[string]interface{})
+		resources := result["resources"].([]interface{})
+		if len(resources) == 0 {
+			t.Fatal("resources/list returned empty list")
+		}
+		// Verify resources have expected structure
+		firstResource := resources[0].(map[string]interface{})
+		if firstResource["uri"] == nil {
+			t.Fatal("resource missing uri field")
+		}
+		if firstResource["name"] == nil {
+			t.Fatal("resource missing name field")
+		}
+	})
 
-	resourceReadReq := jsonRPCRequest{
-		JSONRPC: "2.0",
-		ID:      5,
-		Method:  "resources/read",
-		Params:  json.RawMessage(`{"uri":"resource://cluster/connection"}`),
-	}
-	resp, err = server.handleMessage(ctx, mustMarshalJSON(t, resourceReadReq))
-	if err != nil {
-		t.Fatalf("resources/read error: %v", err)
-	}
-	if resp.Error != nil {
-		t.Fatalf("resources/read response error = %+v", resp.Error)
-	}
-	contents := resp.Result.(map[string]interface{})["contents"].([]map[string]interface{})
-	if len(contents) != 1 {
-		t.Fatalf("resources/read contents length = %d, want 1", len(contents))
-	}
-	if contents[0]["uri"].(string) != "resource://cluster/connection" {
-		t.Fatalf("resources/read uri = %v, want resource://cluster/connection", contents[0]["uri"])
-	}
+	t.Run("resources/read cluster connection", func(t *testing.T) {
+		params := json.RawMessage(`{"uri":"resource://cluster/connection"}`)
+		data := buildJSONRPCRequest(t, 5, "resources/read", params)
+		resp, err := server.handleMessage(ctx, data)
+		if err != nil {
+			t.Fatalf("handleMessage error: %v", err)
+		}
+		parsed := parseSDKResponse(t, resp)
+		if parsed["error"] != nil {
+			t.Fatalf("resources/read error: %v", parsed["error"])
+		}
+		result := parsed["result"].(map[string]interface{})
+		contents := result["contents"].([]interface{})
+		if len(contents) == 0 {
+			t.Fatal("resources/read returned empty contents")
+		}
+		firstContent := contents[0].(map[string]interface{})
+		if firstContent["uri"].(string) != "resource://cluster/connection" {
+			t.Fatalf("content uri = %v, want resource://cluster/connection", firstContent["uri"])
+		}
+	})
 }
 
 func TestMCPServer_StartAsyncAndStop(t *testing.T) {

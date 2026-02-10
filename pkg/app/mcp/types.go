@@ -8,7 +8,8 @@ import "context"
 type MCPStatus struct {
 	Running   bool   `json:"running"`
 	Enabled   bool   `json:"enabled"`
-	Transport string `json:"transport"` // "stdio" or future transports
+	Transport string `json:"transport"`         // transport mode: "http" or "stdio"
+	Address   string `json:"address,omitempty"` // listen address when running in HTTP mode
 	Error     string `json:"error,omitempty"`
 }
 
