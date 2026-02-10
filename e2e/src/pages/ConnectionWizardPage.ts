@@ -13,6 +13,20 @@ export class ConnectionWizardPage {
   constructor(private readonly page: Page) {}
 
   /**
+   * Ensure Wails Go bindings are available before triggering a connect action.
+   * This prevents silent failures when `window.go.main.App` is not yet populated.
+   */
+  private async ensureWailsReady(timeout = 30_000): Promise<void> {
+    await this.page.waitForFunction(
+      () => {
+        const app = (window as any)?.go?.main?.App;
+        return app != null && typeof app.SetKubeConfigPath === 'function';
+      },
+      { timeout, polling: 200 },
+    );
+  }
+
+  /**
    * Check if the connection wizard layout is visible
    * The new wizard uses AppLayout-style structure with #layout.connection-wizard-layout
    */
@@ -154,6 +168,8 @@ export class ConnectionWizardPage {
       if (hasConfigs) {
         // Click the first config item to select it
         await configItems.first().click();
+        // Ensure Wails IPC bindings are ready before triggering connect
+        await this.ensureWailsReady();
         // Click the Connect button on that item
         const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
         await expect(connectBtn).toBeVisible({ timeout: 10_000 });
@@ -207,6 +223,8 @@ export class ConnectionWizardPage {
       const newConfigItems = this.page.locator('.config-item');
       if ((await newConfigItems.count()) > 0) {
         await newConfigItems.first().click();
+        // Ensure Wails IPC bindings are ready before triggering connect
+        await this.ensureWailsReady();
         const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
         await expect(connectBtn).toBeVisible({ timeout: 10_000 });
         await connectBtn.click();

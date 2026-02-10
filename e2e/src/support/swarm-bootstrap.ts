@@ -108,6 +108,16 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   // Wait for page to be fully loaded before checking connection state
   // This prevents race conditions where the page is still initializing
   await page.waitForLoadState('domcontentloaded', { timeout: 30_000 });
+
+  // Ensure Wails IPC bindings are ready before any Go-bound interactions
+  await page.waitForFunction(
+    () => {
+      const app = (window as any)?.go?.main?.App;
+      return app != null && typeof app.ConnectDockerHost === 'function';
+    },
+    { timeout: 30_000, polling: 200 },
+  );
+
   await page.waitForTimeout(1000); // Allow UI to settle
 
   // If the Swarm sidebar is already present, we're effectively "in Swarm mode".

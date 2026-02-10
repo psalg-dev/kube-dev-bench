@@ -3,6 +3,31 @@ import { ConnectionWizardPage } from '../pages/ConnectionWizardPage.js';
 import { SidebarPage } from '../pages/SidebarPage.js';
 import { readRunState } from './run-state.js';
 
+/**
+ * Wait for Wails IPC bindings to be available on `window.go.main.App`.
+ *
+ * In dev mode the Wails runtime loads asynchronously via WebSocket and
+ * populates `window.go.main.App.*` with Go-bound functions. Under fast
+ * E2E automation the page can render before the bindings are injected,
+ * causing silent failures when the test clicks "Connect" (which calls
+ * `SetKubeConfigPath`, `GetKubeContexts`, etc.).
+ *
+ * This gate ensures bindings are ready before any wizard interaction.
+ */
+async function waitForWailsBindings(page: Page, timeout = 30_000): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const app = (window as any)?.go?.main?.App;
+      return (
+        app != null &&
+        typeof app.SetKubeConfigPath === 'function' &&
+        typeof app.GetKubeContexts === 'function'
+      );
+    },
+    { timeout, polling: 200 },
+  );
+}
+
 export async function bootstrapApp(opts: {
   page: Page;
   contextName: string;
@@ -39,6 +64,10 @@ export async function bootstrapApp(opts: {
   };
 
   await gotoWithRetry();
+
+  // Gate on Wails IPC readiness — the Go-bound functions must be injected
+  // into `window.go.main.App` before we try to connect to a cluster.
+  await waitForWailsBindings(page);
 
   const wizard = new ConnectionWizardPage(page);
   await wizard.openWizardIfHidden();
