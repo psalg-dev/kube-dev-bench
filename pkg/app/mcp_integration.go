@@ -150,9 +150,12 @@ func (m *MCPServerAdapter) GetEndpoints(namespace string) (interface{}, error) {
 // Detail methods
 
 func (m *MCPServerAdapter) GetPodDetail(namespace, name string) (interface{}, error) {
-	// GetPodSummary takes only podName - we need to set the namespace first
-	// For MCP, just return the pod summary; the caller should ensure proper namespace context
-	return m.app.GetPodSummary(name)
+	// Use the app's current namespace for pod lookup
+	ns := m.app.currentNamespace
+	if ns == "" {
+		ns = namespace
+	}
+	return m.app.GetPodDetailInNamespace(ns, name)
 }
 
 func (m *MCPServerAdapter) GetDeploymentDetail(namespace, name string) (interface{}, error) {
@@ -284,10 +287,20 @@ func (a *App) startMCPServer() error {
 
 	mcpServer = server
 
-	// Start the HTTP server (non-blocking)
-	if err := mcpServer.StartAsync(); err != nil {
-		mcpServer = nil
-		return err
+	switch mcpConfig.TransportMode {
+	case "stdio":
+		// Stdio mode: run in goroutine since ServeStdio blocks.
+		// Used when launched as a subprocess by Claude Desktop.
+		go func() {
+			if err := mcpServer.StartStdio(); err != nil {
+				fmt.Printf("MCP stdio server error: %v\n", err)
+			}
+		}()
+	default: // "http" or empty
+		if err := mcpServer.StartAsync(); err != nil {
+			mcpServer = nil
+			return err
+		}
 	}
 
 	return nil
@@ -341,7 +354,8 @@ func (a *App) GetMCPStatus() mcp.MCPStatus {
 	return mcp.MCPStatus{
 		Running:   false,
 		Enabled:   mcpConfig.Enabled,
-		Transport: fmt.Sprintf("http://%s (stopped)", mcpConfig.GetAddress()),
+		Transport: mcpConfig.TransportMode,
+		Address:   mcpConfig.GetAddress(),
 	}
 }
 
@@ -367,55 +381,55 @@ func (a *App) StopMCPServer() error {
 // Phase 3: K8s Diagnostics methods
 
 func (m *MCPServerAdapter) GetPodLogsPrevious(namespace, podName, container string, lines int) (string, error) {
-return m.app.GetPodLogsPrevious(namespace, podName, container, lines)
+	return m.app.GetPodLogsPrevious(namespace, podName, container, lines)
 }
 
 func (m *MCPServerAdapter) TopPods(namespace string) (interface{}, error) {
-return m.app.TopPods(namespace)
+	return m.app.TopPods(namespace)
 }
 
 func (m *MCPServerAdapter) TopNodes() (interface{}, error) {
-return m.app.TopNodes()
+	return m.app.TopNodes()
 }
 
 func (m *MCPServerAdapter) GetRolloutStatus(kind, namespace, name string) (interface{}, error) {
-return m.app.GetRolloutStatus(kind, namespace, name)
+	return m.app.GetRolloutStatus(kind, namespace, name)
 }
 
 func (m *MCPServerAdapter) GetRolloutHistory(kind, namespace, name string) (interface{}, error) {
-return m.app.GetRolloutHistory(kind, namespace, name)
+	return m.app.GetRolloutHistory(kind, namespace, name)
 }
 
 // Phase 4: Docker Swarm detail methods
 
 func (m *MCPServerAdapter) GetSwarmService(serviceID string) (interface{}, error) {
-return m.app.GetSwarmService(serviceID)
+	return m.app.GetSwarmService(serviceID)
 }
 
 func (m *MCPServerAdapter) GetSwarmTask(taskID string) (interface{}, error) {
-return m.app.GetSwarmTask(taskID)
+	return m.app.GetSwarmTask(taskID)
 }
 
 func (m *MCPServerAdapter) GetSwarmNode(nodeID string) (interface{}, error) {
-return m.app.GetSwarmNode(nodeID)
+	return m.app.GetSwarmNode(nodeID)
 }
 
 func (m *MCPServerAdapter) GetSwarmStacks() (interface{}, error) {
-return m.app.GetSwarmStacks()
+	return m.app.GetSwarmStacks()
 }
 
 func (m *MCPServerAdapter) GetSwarmNetworks() (interface{}, error) {
-return m.app.GetSwarmNetworks()
+	return m.app.GetSwarmNetworks()
 }
 
 func (m *MCPServerAdapter) GetSwarmVolumes() (interface{}, error) {
-return m.app.GetSwarmVolumes()
+	return m.app.GetSwarmVolumes()
 }
 
 func (m *MCPServerAdapter) GetSwarmSecrets() (interface{}, error) {
-return m.app.GetSwarmSecrets()
+	return m.app.GetSwarmSecrets()
 }
 
 func (m *MCPServerAdapter) GetSwarmConfigs() (interface{}, error) {
-return m.app.GetSwarmConfigs()
+	return m.app.GetSwarmConfigs()
 }

@@ -274,6 +274,159 @@ export async function startWailsDev(opts: {
   return { port, baseURL, process: child, resSysoInterval };
 }
 
+/**
+ * Start a pre-built Wails dev binary directly, bypassing the Wails CLI.
+ *
+ * The Wails dev binary reads its configuration from environment variables
+ * (`assetdir`, `devserver`, `loglevel`, `frontenddevserverurl`) instead of
+ * CLI flags. By spawning the binary directly we avoid the 90+ second Go
+ * recompilation that `wails dev` performs on every invocation.
+ *
+ * This is used in CI where the binary is built once and reused across all
+ * E2E shards, but can also be used locally by setting E2E_PREBUILT_BINARY.
+ */
+export async function startPrebuiltApp(opts: {
+  binaryPath: string;
+  repoRoot: string;
+  logRepoRoot?: string;
+  port: number;
+  homeDir: string;
+  assetDir: string;
+  readyTimeoutMs?: number;
+}): Promise<WailsDevInstance> {
+  const { binaryPath, repoRoot, port, homeDir, assetDir } = opts;
+  const logRepoRoot = opts.logRepoRoot ?? repoRoot;
+  const readyTimeoutMs = opts.readyTimeoutMs ?? 30_000;
+  const baseURL = `http://127.0.0.1:${port}`;
+
+  console.log(
+    `[e2e][prebuilt] ${isoNow()} starting prebuilt binary port=${port} baseURL=${baseURL} ` +
+      `binary=${binaryPath} assets=${assetDir}`
+  );
+
+  const platform = process.platform as unknown as string;
+  const isWin32 = platform === 'win32';
+
+  // Per-worker isolation (same as startWailsDev)
+  const appDataDir = path.join(homeDir, 'AppData', 'Roaming');
+  const localAppDataDir = path.join(homeDir, 'AppData', 'Local');
+  const tmpDir = path.join(homeDir, 'tmp');
+  const e2eDialogDir = path.join(tmpDir, 'kdb-e2e-dialogs');
+  const kubeDir = path.join(homeDir, '.kube');
+  const kubeConfigPath = path.join(kubeDir, 'config');
+  const viteCacheDir = path.join(tmpDir, 'vite-cache');
+  await Promise.all([
+    fsp.mkdir(appDataDir, { recursive: true }),
+    fsp.mkdir(localAppDataDir, { recursive: true }),
+    fsp.mkdir(tmpDir, { recursive: true }),
+    fsp.mkdir(viteCacheDir, { recursive: true }),
+    fsp.mkdir(e2eDialogDir, { recursive: true }),
+    fsp.mkdir(kubeDir, { recursive: true }),
+  ]);
+
+  try {
+    await fsp.writeFile(path.join(e2eDialogDir, 'enabled.txt'), `port=${port}\n`, 'utf-8');
+  } catch { /* ignore */ }
+
+  try {
+    const mappingDir = path.join(repoRoot, 'e2e', '.run', 'dialog-dirs');
+    await fsp.mkdir(mappingDir, { recursive: true });
+    await fsp.writeFile(path.join(mappingDir, `${port}.txt`), e2eDialogDir, 'utf-8');
+  } catch { /* ignore */ }
+
+  // Ensure minimal kubeconfig
+  try {
+    await fsp.stat(kubeConfigPath);
+  } catch {
+    const minimalKubeconfig = [
+      'apiVersion: v1', 'kind: Config', 'clusters: []', 'contexts: []',
+      'current-context: ""', 'users: []', '',
+    ].join('\n');
+    await fsp.writeFile(kubeConfigPath, minimalKubeconfig, 'utf-8');
+  }
+
+  const logDir = path.join(logRepoRoot, 'e2e', 'test-results', 'wails-logs');
+  await fsp.mkdir(logDir, { recursive: true });
+  const logPath = path.join(logDir, `prebuilt-${port}.log`);
+  const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+
+  console.log(`[e2e][prebuilt] ${isoNow()} logs -> ${logPath}`);
+  logStream.write(`\n=== prebuilt (port=${port}) ${isoNow()} ===\n`);
+  logStream.write(`binary: ${binaryPath}\ncwd: ${repoRoot}\n`);
+
+  const dockerHostOverride = process.env.E2E_DOCKER_HOST;
+
+  // The Wails dev binary reads configuration from these env vars
+  // (see wailsapp/wails v2/internal/app/app_dev.go).
+  const child = spawn(binaryPath, [], {
+    cwd: repoRoot,
+    env: {
+      ...process.env,
+      // Wails dev-mode env var contract
+      assetdir: assetDir,
+      devserver: `127.0.0.1:${port}`,
+      loglevel: 'Info',
+      frontenddevserverurl: '',
+      // Per-worker isolation
+      KDB_E2E_DIALOG_DIR: e2eDialogDir,
+      ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
+      HOME: homeDir,
+      USERPROFILE: homeDir,
+      APPDATA: appDataDir,
+      LOCALAPPDATA: localAppDataDir,
+      TEMP: tmpDir,
+      TMP: tmpDir,
+      XDG_CONFIG_HOME: path.join(homeDir, '.config'),
+      XDG_DATA_HOME: path.join(homeDir, '.local', 'share'),
+      VITE_CACHE_DIR: viteCacheDir,
+      E2E_VITE_ALLOW_OUTSIDE_ROOT: '1',
+      VITE_FS_STRICT: '0',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+
+  logStream.write(`\nspawned binary pid=${child.pid ?? 'unknown'}\n`);
+
+  wireTimestampedStream(child.stdout, (line) => logStream.write(line));
+  wireTimestampedStream(child.stderr, (line) => logStream.write(line));
+
+  const exited = new Promise<never>((_, reject) => {
+    child.once('close', (code, signal) => {
+      try {
+        logStream.write(`\n=== prebuilt exited (port=${port}) code=${code ?? 'null'} signal=${signal ?? 'null'} ===\n`);
+      } catch { /* ignore */ }
+      reject(new Error(
+        `Prebuilt binary exited before becoming ready (port=${port}, code=${code ?? 'null'}, signal=${signal ?? 'null'}). See ${logPath}`
+      ));
+    });
+  });
+
+  const waitStart = Date.now();
+  const heartbeatEveryMs = Number(process.env.E2E_WAILS_HEARTBEAT_MS || 15_000);
+  const heartbeat = setInterval(() => {
+    const elapsed = Date.now() - waitStart;
+    console.log(
+      `[e2e][prebuilt] ${isoNow()} waiting for ready ${baseURL} ` +
+        `(${Math.round(elapsed / 1000)}s elapsed, timeout=${Math.round(readyTimeoutMs / 1000)}s)`
+    );
+  }, heartbeatEveryMs);
+
+  try {
+    await Promise.race([waitForHttpOk(`${baseURL}/`, readyTimeoutMs), exited]);
+    await Promise.race([waitForHttpOk(`${baseURL}/wails/runtime.js`, readyTimeoutMs), exited]);
+  } catch (err) {
+    clearInterval(heartbeat);
+    killProcessTreeBestEffort(child);
+    try { logStream.end(`\n=== prebuilt failed to become ready (port=${port}) ===\n`); } catch { /* ignore */ }
+    throw err;
+  }
+
+  clearInterval(heartbeat);
+  console.log(`[e2e][prebuilt] ${isoNow()} ready ${baseURL}`);
+
+  return { port, baseURL, process: child };
+}
+
 export async function stopWailsDev(instance: WailsDevInstance) {
   const child = instance.process;
 

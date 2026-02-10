@@ -3,55 +3,156 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 )
 
-// registerTools registers all available MCP tools
+// ListResult wraps list responses with pagination metadata
+type ListResult struct {
+	Items     interface{} `json:"items"`
+	Total     int         `json:"total"`
+	Truncated bool        `json:"truncated,omitempty"`
+	Namespace string      `json:"namespace,omitempty"`
+	Kind      string      `json:"kind,omitempty"`
+}
+
+// k8s_list kind enum values
+var k8sListKinds = []string{
+	"pods", "deployments", "statefulsets", "daemonsets", "jobs", "cronjobs",
+	"configmaps", "secrets", "services", "endpoints", "ingresses",
+	"network_policies", "replicasets", "persistent_volumes",
+	"persistent_volume_claims", "storage_classes", "nodes",
+	"service_accounts", "roles", "role_bindings", "cluster_roles",
+	"cluster_role_bindings", "crds",
+}
+
+// k8s_describe kind enum values
+var k8sDescribeKinds = []string{
+	"pod", "deployment", "service", "ingress", "node", "pvc", "pv",
+	"statefulset", "daemonset", "replicaset", "job", "cronjob",
+}
+
+// registerTools registers the 14 consolidated MCP tools
 func (s *MCPServer) registerTools() {
 	// =====================
-	// Kubernetes Read-Only Tools
+	// 1. k8s_list — List Kubernetes resources by kind
 	// =====================
-
-	// k8s_list_pods - List pods in namespace(s)
-	s.tools["k8s_list_pods"] = &ToolDefinition{
-		Name:        "k8s_list_pods",
-		Description: "List pods in a Kubernetes namespace. Returns pod name, status, restarts, and uptime. If namespace is omitted, uses the currently selected namespace.",
+	s.tools["k8s_list"] = &ToolDefinition{
+		Name:        "k8s_list",
+		Description: "List Kubernetes resources by kind. Returns a summary of resources in the specified namespace. Supports filtering by label selector and limiting the number of results.",
 		Security:    SecuritySafe,
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "Resource kind to list.",
+					"enum":        k8sListKinds,
+				},
 				"namespace": map[string]interface{}{
 					"type":        "string",
-					"description": "Namespace to list pods from. Omit to use current namespace.",
+					"description": "Namespace to list resources from. Omit to use current namespace. Ignored for cluster-scoped resources (nodes, persistent_volumes, storage_classes, cluster_roles, cluster_role_bindings, crds).",
+				},
+				"labelSelector": map[string]interface{}{
+					"type":        "string",
+					"description": "Label selector to filter resources (e.g. 'app=nginx'). Applied client-side.",
+				},
+				"limit": map[string]interface{}{
+					"type":        "integer",
+					"description": "Maximum number of items to return. When results exceed limit, response includes truncated=true and total count.",
 				},
 			},
+			"required": []string{"kind"},
 		},
-		Handler: s.handleListPods,
+		Handler: s.handleK8sList,
 	}
 
-	// k8s_get_pod_logs - Retrieve pod logs
-	s.tools["k8s_get_pod_logs"] = &ToolDefinition{
-		Name:        "k8s_get_pod_logs",
-		Description: "Retrieve logs from a specific pod. Optionally specify a container name for multi-container pods.",
+	// =====================
+	// 2. k8s_describe — Get detailed info about a specific resource
+	// =====================
+	s.tools["k8s_describe"] = &ToolDefinition{
+		Name:        "k8s_describe",
+		Description: "Get detailed information about a specific Kubernetes resource including spec, status, and related objects.",
 		Security:    SecuritySafe,
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
+				"kind": map[string]interface{}{
 					"type":        "string",
-					"description": "Namespace of the pod. Omit to use current namespace.",
+					"description": "Resource kind to describe.",
+					"enum":        k8sDescribeKinds,
 				},
 				"name": map[string]interface{}{
 					"type":        "string",
+					"description": "Name of the resource.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the resource. Omit to use current namespace. Ignored for cluster-scoped resources (node, pv).",
+				},
+			},
+			"required": []string{"kind", "name"},
+		},
+		Handler: s.handleK8sDescribe,
+	}
+
+	// =====================
+	// 3. k8s_get_resource_yaml — Get YAML manifest
+	// =====================
+	s.tools["k8s_get_resource_yaml"] = &ToolDefinition{
+		Name:        "k8s_get_resource_yaml",
+		Description: "Get the YAML manifest for any Kubernetes resource.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "Resource kind (e.g., Pod, Deployment, Service, Node, PV, PVC, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, ConfigMap, Secret, Ingress).",
+				},
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the resource.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the resource. Omit for cluster-scoped resources or to use current namespace.",
+				},
+			},
+			"required": []string{"kind", "name"},
+		},
+		Handler: s.handleGetResourceYAML,
+	}
+
+	// =====================
+	// 4. k8s_get_pod_logs — Retrieve pod logs (current or previous)
+	// =====================
+	s.tools["k8s_get_pod_logs"] = &ToolDefinition{
+		Name:        "k8s_get_pod_logs",
+		Description: "Retrieve logs from a pod. Supports current and previous container instances, optional container selection for multi-container pods, and line limits.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
 					"description": "Name of the pod.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the pod. Omit to use current namespace.",
 				},
 				"container": map[string]interface{}{
 					"type":        "string",
 					"description": "Container name (optional, for multi-container pods).",
 				},
-				"tailLines": map[string]interface{}{
+				"lines": map[string]interface{}{
 					"type":        "integer",
 					"description": "Number of lines to retrieve from the end of the log. Default: 100.",
+				},
+				"previous": map[string]interface{}{
+					"type":        "boolean",
+					"description": "If true, retrieve logs from the previous container instance (after crash/restart). Default: false.",
 				},
 			},
 			"required": []string{"name"},
@@ -59,7 +160,9 @@ func (s *MCPServer) registerTools() {
 		Handler: s.handleGetPodLogs,
 	}
 
-	// k8s_get_events - Get Kubernetes events
+	// =====================
+	// 5. k8s_get_events — Get Kubernetes events
+	// =====================
 	s.tools["k8s_get_events"] = &ToolDefinition{
 		Name:        "k8s_get_events",
 		Description: "Get Kubernetes events for a specific resource or namespace. Useful for debugging issues.",
@@ -84,419 +187,9 @@ func (s *MCPServer) registerTools() {
 		Handler: s.handleGetEvents,
 	}
 
-	// k8s_describe_pod - Get detailed pod information
-	s.tools["k8s_describe_pod"] = &ToolDefinition{
-		Name:        "k8s_describe_pod",
-		Description: "Get detailed information about a specific pod, including spec, status, and containers.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the pod. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the pod.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribePod,
-	}
-
-	// k8s_list_deployments - List deployments
-	s.tools["k8s_list_deployments"] = &ToolDefinition{
-		Name:        "k8s_list_deployments",
-		Description: "List deployments in a namespace. Returns deployment name, replicas, and status.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list deployments from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListDeployments,
-	}
-
-	// k8s_describe_deployment - Get detailed deployment info
-	s.tools["k8s_describe_deployment"] = &ToolDefinition{
-		Name:        "k8s_describe_deployment",
-		Description: "Get detailed information about a specific deployment, including spec and rollout status.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the deployment. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the deployment.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeDeployment,
-	}
-
-	// k8s_list_statefulsets
-	s.tools["k8s_list_statefulsets"] = &ToolDefinition{
-		Name:        "k8s_list_statefulsets",
-		Description: "List StatefulSets in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list StatefulSets from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListStatefulSets,
-	}
-
-	// k8s_list_daemonsets
-	s.tools["k8s_list_daemonsets"] = &ToolDefinition{
-		Name:        "k8s_list_daemonsets",
-		Description: "List DaemonSets in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list DaemonSets from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListDaemonSets,
-	}
-
-	// k8s_list_jobs
-	s.tools["k8s_list_jobs"] = &ToolDefinition{
-		Name:        "k8s_list_jobs",
-		Description: "List Jobs in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list Jobs from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListJobs,
-	}
-
-	// k8s_list_cronjobs
-	s.tools["k8s_list_cronjobs"] = &ToolDefinition{
-		Name:        "k8s_list_cronjobs",
-		Description: "List CronJobs in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list CronJobs from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListCronJobs,
-	}
-
-	// k8s_list_configmaps
-	s.tools["k8s_list_configmaps"] = &ToolDefinition{
-		Name:        "k8s_list_configmaps",
-		Description: "List ConfigMaps in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list ConfigMaps from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListConfigMaps,
-	}
-
-	// k8s_list_secrets
-	s.tools["k8s_list_secrets"] = &ToolDefinition{
-		Name:        "k8s_list_secrets",
-		Description: "List Secrets in a namespace (metadata only, values are not exposed).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list Secrets from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListSecrets,
-	}
-
 	// =====================
-	// Phase 1 Networking Resources
+	// 6. k8s_get_resource_counts — Get aggregated resource counts
 	// =====================
-
-	// k8s_list_services
-	s.tools["k8s_list_services"] = &ToolDefinition{
-		Name:        "k8s_list_services",
-		Description: "List Services in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list Services from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListServices,
-	}
-
-	// k8s_list_endpoints
-	s.tools["k8s_list_endpoints"] = &ToolDefinition{
-		Name:        "k8s_list_endpoints",
-		Description: "List Endpoints in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list Endpoints from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListEndpoints,
-	}
-
-	// k8s_list_ingresses
-	s.tools["k8s_list_ingresses"] = &ToolDefinition{
-		Name:        "k8s_list_ingresses",
-		Description: "List Ingresses in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list Ingresses from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListIngresses,
-	}
-
-	// k8s_list_network_policies
-	s.tools["k8s_list_network_policies"] = &ToolDefinition{
-		Name:        "k8s_list_network_policies",
-		Description: "List NetworkPolicies in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list NetworkPolicies from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListNetworkPolicies,
-	}
-
-	// =====================
-	// Phase 1 Workload Resources
-	// =====================
-
-	// k8s_list_replicasets
-	s.tools["k8s_list_replicasets"] = &ToolDefinition{
-		Name:        "k8s_list_replicasets",
-		Description: "List ReplicaSets in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list ReplicaSets from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListReplicaSets,
-	}
-
-	// =====================
-	// Phase 1 Storage Resources
-	// =====================
-
-	// k8s_list_persistent_volumes
-	s.tools["k8s_list_persistent_volumes"] = &ToolDefinition{
-		Name:        "k8s_list_persistent_volumes",
-		Description: "List PersistentVolumes (cluster-scoped resource).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleListPersistentVolumes,
-	}
-
-	// k8s_list_persistent_volume_claims
-	s.tools["k8s_list_persistent_volume_claims"] = &ToolDefinition{
-		Name:        "k8s_list_persistent_volume_claims",
-		Description: "List PersistentVolumeClaims in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list PersistentVolumeClaims from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListPersistentVolumeClaims,
-	}
-
-	// k8s_list_storage_classes
-	s.tools["k8s_list_storage_classes"] = &ToolDefinition{
-		Name:        "k8s_list_storage_classes",
-		Description: "List StorageClasses (cluster-scoped resource).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleListStorageClasses,
-	}
-
-	// =====================
-	// Phase 1 Cluster Resources
-	// =====================
-
-	// k8s_list_nodes
-	s.tools["k8s_list_nodes"] = &ToolDefinition{
-		Name:        "k8s_list_nodes",
-		Description: "List Nodes (cluster-scoped resource).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleListNodes,
-	}
-
-	// =====================
-	// Phase 1 RBAC Resources
-	// =====================
-
-	// k8s_list_service_accounts
-	s.tools["k8s_list_service_accounts"] = &ToolDefinition{
-		Name:        "k8s_list_service_accounts",
-		Description: "List ServiceAccounts in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list ServiceAccounts from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListServiceAccounts,
-	}
-
-	// k8s_list_roles
-	s.tools["k8s_list_roles"] = &ToolDefinition{
-		Name:        "k8s_list_roles",
-		Description: "List Roles in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list Roles from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListRoles,
-	}
-
-	// k8s_list_role_bindings
-	s.tools["k8s_list_role_bindings"] = &ToolDefinition{
-		Name:        "k8s_list_role_bindings",
-		Description: "List RoleBindings in a namespace.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to list RoleBindings from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleListRoleBindings,
-	}
-
-	// k8s_list_cluster_roles
-	s.tools["k8s_list_cluster_roles"] = &ToolDefinition{
-		Name:        "k8s_list_cluster_roles",
-		Description: "List ClusterRoles (cluster-scoped resource).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleListClusterRoles,
-	}
-
-	// k8s_list_cluster_role_bindings
-	s.tools["k8s_list_cluster_role_bindings"] = &ToolDefinition{
-		Name:        "k8s_list_cluster_role_bindings",
-		Description: "List ClusterRoleBindings (cluster-scoped resource).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleListClusterRoleBindings,
-	}
-
-	// =====================
-	// Phase 1 CRD Resources
-	// =====================
-
-	// k8s_list_crds
-	s.tools["k8s_list_crds"] = &ToolDefinition{
-		Name:        "k8s_list_crds",
-		Description: "List CustomResourceDefinitions (cluster-scoped resource).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleListCRDs,
-	}
-
-	// k8s_get_resource_counts - Get resource counts
 	s.tools["k8s_get_resource_counts"] = &ToolDefinition{
 		Name:        "k8s_get_resource_counts",
 		Description: "Get aggregated counts of all Kubernetes resource types in the current namespace(s).",
@@ -509,270 +202,81 @@ func (s *MCPServer) registerTools() {
 	}
 
 	// =====================
-	// Phase 2 Describe Tools (K8s resources)
+	// 7. k8s_top — Get CPU/memory metrics for pods or nodes
 	// =====================
-
-	// k8s_describe_service
-	s.tools["k8s_describe_service"] = &ToolDefinition{
-		Name:        "k8s_describe_service",
-		Description: "Get detailed information about a specific Kubernetes service including endpoints.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the service. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the service.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeService,
-	}
-
-	// k8s_describe_ingress
-	s.tools["k8s_describe_ingress"] = &ToolDefinition{
-		Name:        "k8s_describe_ingress",
-		Description: "Get detailed information about a specific Kubernetes ingress including rules and TLS configuration.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the ingress. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the ingress.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeIngress,
-	}
-
-	// k8s_describe_node
-	s.tools["k8s_describe_node"] = &ToolDefinition{
-		Name:        "k8s_describe_node",
-		Description: "Get detailed information about a specific Kubernetes node (cluster-scoped).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the node.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeNode,
-	}
-
-	// k8s_describe_pvc
-	s.tools["k8s_describe_pvc"] = &ToolDefinition{
-		Name:        "k8s_describe_pvc",
-		Description: "Get detailed information about a specific PersistentVolumeClaim.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the PVC. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the PVC.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribePVC,
-	}
-
-	// k8s_describe_pv
-	s.tools["k8s_describe_pv"] = &ToolDefinition{
-		Name:        "k8s_describe_pv",
-		Description: "Get detailed information about a specific PersistentVolume (cluster-scoped).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the PV.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribePV,
-	}
-
-	// k8s_describe_statefulset
-	s.tools["k8s_describe_statefulset"] = &ToolDefinition{
-		Name:        "k8s_describe_statefulset",
-		Description: "Get detailed information about a specific StatefulSet including pods and PVCs.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the StatefulSet. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the StatefulSet.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeStatefulSet,
-	}
-
-	// k8s_describe_daemonset
-	s.tools["k8s_describe_daemonset"] = &ToolDefinition{
-		Name:        "k8s_describe_daemonset",
-		Description: "Get detailed information about a specific DaemonSet including pods.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the DaemonSet. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the DaemonSet.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeDaemonSet,
-	}
-
-	// k8s_describe_replicaset
-	s.tools["k8s_describe_replicaset"] = &ToolDefinition{
-		Name:        "k8s_describe_replicaset",
-		Description: "Get detailed information about a specific ReplicaSet including pods and owner information.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the ReplicaSet. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the ReplicaSet.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeReplicaSet,
-	}
-
-	// k8s_describe_job
-	s.tools["k8s_describe_job"] = &ToolDefinition{
-		Name:        "k8s_describe_job",
-		Description: "Get detailed information about a specific Job including pods and conditions.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the Job. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the Job.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeJob,
-	}
-
-	// k8s_describe_cronjob
-	s.tools["k8s_describe_cronjob"] = &ToolDefinition{
-		Name:        "k8s_describe_cronjob",
-		Description: "Get detailed information about a specific CronJob including job history and next run times.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the CronJob. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the CronJob.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleDescribeCronJob,
-	}
-
-	// =====================
-	// Phase 2 Manifest Tool (K8s YAML retrieval)
-	// =====================
-
-	// k8s_get_resource_yaml
-	s.tools["k8s_get_resource_yaml"] = &ToolDefinition{
-		Name:        "k8s_get_resource_yaml",
-		Description: "Get the YAML manifest for any Kubernetes resource. Supports pods, deployments, services, and more.",
+	s.tools["k8s_top"] = &ToolDefinition{
+		Name:        "k8s_top",
+		Description: "Get CPU and memory usage metrics for pods or nodes. Requires metrics-server to be installed in the cluster.",
 		Security:    SecuritySafe,
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"kind": map[string]interface{}{
 					"type":        "string",
-					"description": "Resource kind (e.g., Pod, Deployment, Service, Node, PV, PVC, StatefulSet, DaemonSet, ReplicaSet, Job, CronJob, ConfigMap, Secret, Ingress).",
+					"description": "Resource kind to get metrics for.",
+					"enum":        []string{"pods", "nodes"},
 				},
 				"namespace": map[string]interface{}{
 					"type":        "string",
-					"description": "Namespace of the resource (omit for cluster-scoped resources like Node, PV). Omit for namespaced resources to use current namespace.",
+					"description": "Namespace for pod metrics. Omit to use current namespace. Ignored for nodes.",
+				},
+			},
+			"required": []string{"kind"},
+		},
+		Handler: s.handleK8sTop,
+	}
+
+	// =====================
+	// 8. k8s_rollout — Get rollout status or history
+	// =====================
+	s.tools["k8s_rollout"] = &ToolDefinition{
+		Name:        "k8s_rollout",
+		Description: "Get the rollout status or revision history of a Deployment, StatefulSet, or DaemonSet.",
+		Security:    SecuritySafe,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"action": map[string]interface{}{
+					"type":        "string",
+					"description": "Rollout action to perform.",
+					"enum":        []string{"status", "history"},
+				},
+				"kind": map[string]interface{}{
+					"type":        "string",
+					"description": "Resource kind.",
+					"enum":        []string{"Deployment", "StatefulSet", "DaemonSet"},
 				},
 				"name": map[string]interface{}{
 					"type":        "string",
 					"description": "Name of the resource.",
 				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the resource. Omit to use current namespace.",
+				},
 			},
-			"required": []string{"kind", "name"},
+			"required": []string{"action", "kind", "name"},
 		},
-		Handler: s.handleGetResourceYAML,
+		Handler: s.handleK8sRollout,
 	}
 
 	// =====================
-	// Kubernetes Mutation Tools
+	// 9. k8s_scale_deployment — Scale deployment replicas
 	// =====================
-
-	// k8s_scale_deployment - Scale deployment replicas
 	s.tools["k8s_scale_deployment"] = &ToolDefinition{
 		Name:        "k8s_scale_deployment",
 		Description: "Scale a deployment to a specified number of replicas. Scaling to 0 requires confirmation.",
-		Security:    SecurityWrite, // Changes to destructive for scale-to-zero
+		Security:    SecurityWrite,
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the deployment. Omit to use current namespace.",
-				},
 				"name": map[string]interface{}{
 					"type":        "string",
 					"description": "Name of the deployment to scale.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the deployment. Omit to use current namespace.",
 				},
 				"replicas": map[string]interface{}{
 					"type":        "integer",
@@ -788,7 +292,9 @@ func (s *MCPServer) registerTools() {
 		Handler: s.handleScaleDeployment,
 	}
 
-	// k8s_restart_deployment - Restart deployment
+	// =====================
+	// 10. k8s_restart_deployment — Restart deployment
+	// =====================
 	s.tools["k8s_restart_deployment"] = &ToolDefinition{
 		Name:        "k8s_restart_deployment",
 		Description: "Trigger a rolling restart of a deployment by updating the pod template.",
@@ -796,13 +302,13 @@ func (s *MCPServer) registerTools() {
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the deployment. Omit to use current namespace.",
-				},
 				"name": map[string]interface{}{
 					"type":        "string",
 					"description": "Name of the deployment to restart.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the deployment. Omit to use current namespace.",
 				},
 			},
 			"required": []string{"name"},
@@ -811,168 +317,54 @@ func (s *MCPServer) registerTools() {
 	}
 
 	// =====================
-	// Phase 3: Kubernetes Diagnostics Tools
+	// 11. swarm_list — List Docker Swarm resources by kind
 	// =====================
-
-	// k8s_get_pod_logs_previous - Get logs from previous container instance
-	s.tools["k8s_get_pod_logs_previous"] = &ToolDefinition{
-		Name:        "k8s_get_pod_logs_previous",
-		Description: "Retrieve logs from a pod's previous container instance (after crash/restart). Useful for debugging crashed containers.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the pod. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the pod.",
-				},
-				"container": map[string]interface{}{
-					"type":        "string",
-					"description": "Container name (optional, for multi-container pods).",
-				},
-				"tailLines": map[string]interface{}{
-					"type":        "integer",
-					"description": "Number of lines to retrieve from the end of the log. Default: 100.",
-				},
-			},
-			"required": []string{"name"},
-		},
-		Handler: s.handleGetPodLogsPrevious,
-	}
-
-	// k8s_top_pods - Get pod metrics (CPU/memory)
-	s.tools["k8s_top_pods"] = &ToolDefinition{
-		Name:        "k8s_top_pods",
-		Description: "Get CPU and memory usage metrics for pods in a namespace. Requires metrics-server to be installed in the cluster.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace to get metrics from. Omit to use current namespace.",
-				},
-			},
-		},
-		Handler: s.handleTopPods,
-	}
-
-	// k8s_top_nodes - Get node metrics (CPU/memory)
-	s.tools["k8s_top_nodes"] = &ToolDefinition{
-		Name:        "k8s_top_nodes",
-		Description: "Get CPU and memory usage metrics for all nodes in the cluster. Requires metrics-server to be installed.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleTopNodes,
-	}
-
-	// k8s_get_rollout_status - Get rollout status
-	s.tools["k8s_get_rollout_status"] = &ToolDefinition{
-		Name:        "k8s_get_rollout_status",
-		Description: "Get the rollout status of a Deployment, StatefulSet, or DaemonSet. Shows if rollout is in progress, complete, or failed.",
+	s.tools["swarm_list"] = &ToolDefinition{
+		Name:        "swarm_list",
+		Description: "List Docker Swarm resources by kind.",
 		Security:    SecuritySafe,
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"kind": map[string]interface{}{
 					"type":        "string",
-					"description": "Resource kind: Deployment, StatefulSet, or DaemonSet.",
-					"enum":        []string{"Deployment", "StatefulSet", "DaemonSet"},
-				},
-				"namespace": map[string]interface{}{
-					"type":        "string",
-					"description": "Namespace of the resource. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the resource.",
+					"description": "Swarm resource kind to list.",
+					"enum":        []string{"services", "tasks", "nodes", "stacks", "networks", "volumes", "secrets", "configs"},
 				},
 			},
-			"required": []string{"kind", "name"},
+			"required": []string{"kind"},
 		},
-		Handler: s.handleGetRolloutStatus,
+		Handler: s.handleSwarmList,
 	}
 
-	// k8s_get_rollout_history - Get rollout history
-	s.tools["k8s_get_rollout_history"] = &ToolDefinition{
-		Name:        "k8s_get_rollout_history",
-		Description: "Get the rollout history (revisions) of a Deployment, StatefulSet, or DaemonSet. Shows past revisions with timestamps.",
+	// =====================
+	// 12. swarm_inspect — Inspect a specific Swarm resource
+	// =====================
+	s.tools["swarm_inspect"] = &ToolDefinition{
+		Name:        "swarm_inspect",
+		Description: "Get detailed information about a specific Docker Swarm resource.",
 		Security:    SecuritySafe,
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
 				"kind": map[string]interface{}{
 					"type":        "string",
-					"description": "Resource kind: Deployment, StatefulSet, or DaemonSet.",
-					"enum":        []string{"Deployment", "StatefulSet", "DaemonSet"},
+					"description": "Swarm resource kind to inspect.",
+					"enum":        []string{"service", "task", "node"},
 				},
-				"namespace": map[string]interface{}{
+				"id": map[string]interface{}{
 					"type":        "string",
-					"description": "Namespace of the resource. Omit to use current namespace.",
-				},
-				"name": map[string]interface{}{
-					"type":        "string",
-					"description": "Name of the resource.",
+					"description": "Resource ID or name.",
 				},
 			},
-			"required": []string{"kind", "name"},
+			"required": []string{"kind", "id"},
 		},
-		Handler: s.handleGetRolloutHistory,
+		Handler: s.handleSwarmInspect,
 	}
 
 	// =====================
-	// Docker Swarm Read-Only Tools
+	// 13. swarm_get_service_logs — Retrieve service logs
 	// =====================
-
-	// swarm_list_services - List Swarm services
-	s.tools["swarm_list_services"] = &ToolDefinition{
-		Name:        "swarm_list_services",
-		Description: "List Docker Swarm services with replicas and status.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListServices,
-	}
-
-	// swarm_list_tasks - List Swarm tasks
-	s.tools["swarm_list_tasks"] = &ToolDefinition{
-		Name:        "swarm_list_tasks",
-		Description: "List Docker Swarm tasks (containers) for all or a specific service.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"service": map[string]interface{}{
-					"type":        "string",
-					"description": "Service name or ID to filter tasks. Omit to list all tasks.",
-				},
-			},
-		},
-		Handler: s.handleSwarmListTasks,
-	}
-
-	// swarm_list_nodes - List Swarm nodes
-	s.tools["swarm_list_nodes"] = &ToolDefinition{
-		Name:        "swarm_list_nodes",
-		Description: "List Docker Swarm nodes with status and availability.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListNodes,
-	}
-
-	// swarm_get_service_logs - Retrieve service logs
 	s.tools["swarm_get_service_logs"] = &ToolDefinition{
 		Name:        "swarm_get_service_logs",
 		Description: "Retrieve logs from a Docker Swarm service.",
@@ -980,25 +372,23 @@ func (s *MCPServer) registerTools() {
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"service": map[string]interface{}{
+				"serviceId": map[string]interface{}{
 					"type":        "string",
 					"description": "Service name or ID.",
 				},
-				"tailLines": map[string]interface{}{
+				"tail": map[string]interface{}{
 					"type":        "integer",
 					"description": "Number of lines to retrieve. Default: 100.",
 				},
 			},
-			"required": []string{"service"},
+			"required": []string{"serviceId"},
 		},
 		Handler: s.handleSwarmGetServiceLogs,
 	}
 
 	// =====================
-	// Docker Swarm Mutation Tools
+	// 14. swarm_scale_service — Scale Swarm service
 	// =====================
-
-	// swarm_scale_service - Scale Swarm service
 	s.tools["swarm_scale_service"] = &ToolDefinition{
 		Name:        "swarm_scale_service",
 		Description: "Scale a Docker Swarm service to a specified number of replicas.",
@@ -1006,7 +396,7 @@ func (s *MCPServer) registerTools() {
 		InputSchema: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
-				"service": map[string]interface{}{
+				"serviceId": map[string]interface{}{
 					"type":        "string",
 					"description": "Service name or ID to scale.",
 				},
@@ -1019,151 +409,162 @@ func (s *MCPServer) registerTools() {
 					"description": "Set to true to confirm scale-to-zero operation.",
 				},
 			},
-			"required": []string{"service", "replicas"},
+			"required": []string{"serviceId", "replicas"},
 		},
 		Handler: s.handleSwarmScaleService,
 	}
-
-	// =====================
-	// Phase 4: Docker Swarm Detail/Inspect Tools
-	// =====================
-
-	// swarm_list_stacks - List Docker Stacks
-	s.tools["swarm_list_stacks"] = &ToolDefinition{
-		Name:        "swarm_list_stacks",
-		Description: "List all Docker Stacks deployed in the Swarm cluster.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListStacks,
-	}
-
-	// swarm_list_networks - List Swarm networks
-	s.tools["swarm_list_networks"] = &ToolDefinition{
-		Name:        "swarm_list_networks",
-		Description: "List all Docker networks in the Swarm cluster.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListNetworks,
-	}
-
-	// swarm_list_volumes - List Swarm volumes
-	s.tools["swarm_list_volumes"] = &ToolDefinition{
-		Name:        "swarm_list_volumes",
-		Description: "List all Docker volumes in the Swarm cluster.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListVolumes,
-	}
-
-	// swarm_list_secrets - List Swarm secrets
-	s.tools["swarm_list_secrets"] = &ToolDefinition{
-		Name:        "swarm_list_secrets",
-		Description: "List all Docker Swarm secrets (metadata only, secret values are not exposed).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListSecrets,
-	}
-
-	// swarm_list_configs - List Swarm configs
-	s.tools["swarm_list_configs"] = &ToolDefinition{
-		Name:        "swarm_list_configs",
-		Description: "List all Docker Swarm configs.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type":       "object",
-			"properties": map[string]interface{}{},
-		},
-		Handler: s.handleSwarmListConfigs,
-	}
-
-	// swarm_inspect_service - Inspect service details
-	s.tools["swarm_inspect_service"] = &ToolDefinition{
-		Name:        "swarm_inspect_service",
-		Description: "Get detailed information about a specific Docker Swarm service.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"id": map[string]interface{}{
-					"type":        "string",
-					"description": "Service ID or name.",
-				},
-			},
-			"required": []string{"id"},
-		},
-		Handler: s.handleSwarmInspectService,
-	}
-
-	// swarm_inspect_task - Inspect task details
-	s.tools["swarm_inspect_task"] = &ToolDefinition{
-		Name:        "swarm_inspect_task",
-		Description: "Get detailed information about a specific Docker Swarm task (container).",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"id": map[string]interface{}{
-					"type":        "string",
-					"description": "Task ID.",
-				},
-			},
-			"required": []string{"id"},
-		},
-		Handler: s.handleSwarmInspectTask,
-	}
-
-	// swarm_inspect_node - Inspect node details
-	s.tools["swarm_inspect_node"] = &ToolDefinition{
-		Name:        "swarm_inspect_node",
-		Description: "Get detailed information about a specific Docker Swarm node.",
-		Security:    SecuritySafe,
-		InputSchema: map[string]interface{}{
-			"type": "object",
-			"properties": map[string]interface{}{
-				"id": map[string]interface{}{
-					"type":        "string",
-					"description": "Node ID or hostname.",
-				},
-			},
-			"required": []string{"id"},
-		},
-		Handler: s.handleSwarmInspectNode,
-	}
 }
 
 // =====================
-// Tool Handlers
+// Consolidated K8s Handlers
 // =====================
 
-func (s *MCPServer) handleListPods(ctx context.Context, input map[string]interface{}) (any, error) {
+// handleK8sList dispatches to the appropriate list method based on kind
+func (s *MCPServer) handleK8sList(ctx context.Context, input map[string]interface{}) (any, error) {
+	kind := getStringParam(input, "kind")
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
 	namespace := s.getNamespaceParam(input)
-	return s.app.GetPods(namespace)
+	limitParam := getIntParam(input, "limit")
+
+	var result interface{}
+	var err error
+
+	// Dispatch based on kind
+	switch kind {
+	// Namespaced resources
+	case "pods":
+		result, err = s.app.GetPods(namespace)
+	case "deployments":
+		result, err = s.app.GetDeployments(namespace)
+	case "statefulsets":
+		result, err = s.app.GetStatefulSets(namespace)
+	case "daemonsets":
+		result, err = s.app.GetDaemonSets(namespace)
+	case "jobs":
+		result, err = s.app.GetJobs(namespace)
+	case "cronjobs":
+		result, err = s.app.GetCronJobs(namespace)
+	case "configmaps":
+		result, err = s.app.GetConfigMaps(namespace)
+	case "secrets":
+		result, err = s.app.GetSecrets(namespace)
+	case "services":
+		result, err = s.app.GetServices(namespace)
+	case "endpoints":
+		result, err = s.app.GetEndpoints(namespace)
+	case "ingresses":
+		result, err = s.app.GetIngresses(namespace)
+	case "network_policies":
+		result, err = s.app.GetNetworkPolicies(namespace)
+	case "replicasets":
+		result, err = s.app.GetReplicaSets(namespace)
+	case "persistent_volume_claims":
+		result, err = s.app.GetPersistentVolumeClaims(namespace)
+	case "service_accounts":
+		result, err = s.app.GetServiceAccounts(namespace)
+	case "roles":
+		result, err = s.app.GetRoles(namespace)
+	case "role_bindings":
+		result, err = s.app.GetRoleBindings(namespace)
+	// Cluster-scoped resources (namespace ignored)
+	case "nodes":
+		result, err = s.app.GetNodes()
+	case "persistent_volumes":
+		result, err = s.app.GetPersistentVolumes()
+	case "storage_classes":
+		result, err = s.app.GetStorageClasses()
+	case "cluster_roles":
+		result, err = s.app.GetClusterRoles()
+	case "cluster_role_bindings":
+		result, err = s.app.GetClusterRoleBindings()
+	case "crds":
+		result, err = s.app.GetCustomResourceDefinitions()
+	default:
+		return nil, fmt.Errorf("unknown resource kind: %s", kind)
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Strip heavy Raw fields from node responses to reduce MCP payload size
+	result = stripRawFields(result)
+
+	// Apply client-side label filtering if requested
+	labelSelector := getStringParam(input, "labelSelector")
+	if labelSelector != "" {
+		result = filterByLabels(result, labelSelector)
+	}
+
+	// Wrap in ListResult with optional truncation
+	return wrapListResult(result, kind, namespace, limitParam), nil
 }
 
+// handleK8sDescribe dispatches to the appropriate detail method based on kind
+func (s *MCPServer) handleK8sDescribe(ctx context.Context, input map[string]interface{}) (any, error) {
+	kind := getStringParam(input, "kind")
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
+	name := getStringParam(input, "name")
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	namespace := s.getNamespaceParam(input)
+
+	switch kind {
+	case "pod":
+		return s.app.GetPodDetail(namespace, name)
+	case "deployment":
+		return s.app.GetDeploymentDetail(namespace, name)
+	case "service":
+		return s.app.GetServiceDetail(namespace, name)
+	case "ingress":
+		return s.app.GetIngressDetail(namespace, name)
+	case "node":
+		return s.app.GetNodeDetail(name)
+	case "pvc":
+		return s.app.GetPersistentVolumeClaimDetail(namespace, name)
+	case "pv":
+		return s.app.GetPersistentVolumeDetail(name)
+	case "statefulset":
+		return s.app.GetStatefulSetDetail(namespace, name)
+	case "daemonset":
+		return s.app.GetDaemonSetDetail(namespace, name)
+	case "replicaset":
+		return s.app.GetReplicaSetDetail(namespace, name)
+	case "job":
+		return s.app.GetJobDetail(namespace, name)
+	case "cronjob":
+		return s.app.GetCronJobDetail(namespace, name)
+	default:
+		return nil, fmt.Errorf("unknown resource kind: %s", kind)
+	}
+}
+
+// handleGetPodLogs retrieves logs from current or previous container instance
 func (s *MCPServer) handleGetPodLogs(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
+	name := getStringParam(input, "name")
 	if name == "" {
 		return nil, fmt.Errorf("pod name is required")
 	}
 
-	container, _ := input["container"].(string)
+	namespace := s.getNamespaceParam(input)
+	container := getStringParam(input, "container")
+	previous := getBoolParam(input, "previous")
 
 	tailLines := 100
-	if tl, ok := input["tailLines"].(float64); ok {
-		tailLines = int(tl)
+	if tl := getIntParam(input, "lines"); tl > 0 {
+		tailLines = tl
+	}
+	// Also support legacy "tailLines" parameter
+	if tl := getIntParam(input, "tailLines"); tl > 0 {
+		tailLines = tl
 	}
 
 	// Respect MaxLogLines config
@@ -1171,410 +572,97 @@ func (s *MCPServer) handleGetPodLogs(ctx context.Context, input map[string]inter
 		tailLines = s.config.MaxLogLines
 	}
 
-	logs, err := s.app.GetPodLogs(namespace, name, container, tailLines)
+	var logs string
+	var err error
+
+	if previous {
+		logs, err = s.app.GetPodLogsPrevious(namespace, name, container, tailLines)
+	} else {
+		logs, err = s.app.GetPodLogs(namespace, name, container, tailLines)
+	}
+
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply truncation consistently for both current and previous logs
+	logs = s.truncateLogs(logs)
 
 	return map[string]interface{}{
 		"pod":       name,
 		"namespace": namespace,
 		"container": container,
 		"lines":     tailLines,
+		"previous":  previous,
 		"logs":      logs,
 	}, nil
 }
 
 func (s *MCPServer) handleGetEvents(ctx context.Context, input map[string]interface{}) (any, error) {
 	namespace := s.getNamespaceParam(input)
-	kind, _ := input["kind"].(string)
-	name, _ := input["name"].(string)
-
+	kind := getStringParam(input, "kind")
+	name := getStringParam(input, "name")
 	return s.app.GetResourceEvents(namespace, kind, name)
-}
-
-func (s *MCPServer) handleDescribePod(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("pod name is required")
-	}
-
-	return s.app.GetPodDetail(namespace, name)
-}
-
-func (s *MCPServer) handleListDeployments(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetDeployments(namespace)
-}
-
-func (s *MCPServer) handleDescribeDeployment(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("deployment name is required")
-	}
-
-	return s.app.GetDeploymentDetail(namespace, name)
-}
-
-func (s *MCPServer) handleListStatefulSets(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetStatefulSets(namespace)
-}
-
-func (s *MCPServer) handleListDaemonSets(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetDaemonSets(namespace)
-}
-
-func (s *MCPServer) handleListJobs(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetJobs(namespace)
-}
-
-func (s *MCPServer) handleListCronJobs(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetCronJobs(namespace)
-}
-
-func (s *MCPServer) handleListConfigMaps(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetConfigMaps(namespace)
-}
-
-func (s *MCPServer) handleListSecrets(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetSecrets(namespace)
 }
 
 func (s *MCPServer) handleGetResourceCounts(ctx context.Context, input map[string]interface{}) (any, error) {
 	return s.app.GetResourceCounts(), nil
 }
 
-// =====================
-// Phase 1 Resource Handlers - Networking
-// =====================
-
-func (s *MCPServer) handleListServices(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetServices(namespace)
-}
-
-func (s *MCPServer) handleListEndpoints(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetEndpoints(namespace)
-}
-
-func (s *MCPServer) handleListIngresses(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetIngresses(namespace)
-}
-
-func (s *MCPServer) handleListNetworkPolicies(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetNetworkPolicies(namespace)
-}
-
-// =====================
-// Phase 1 Resource Handlers - Workload
-// =====================
-
-func (s *MCPServer) handleListReplicaSets(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetReplicaSets(namespace)
-}
-
-// =====================
-// Phase 1 Resource Handlers - Storage
-// =====================
-
-func (s *MCPServer) handleListPersistentVolumes(ctx context.Context, input map[string]interface{}) (any, error) {
-	return s.app.GetPersistentVolumes()
-}
-
-func (s *MCPServer) handleListPersistentVolumeClaims(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetPersistentVolumeClaims(namespace)
-}
-
-func (s *MCPServer) handleListStorageClasses(ctx context.Context, input map[string]interface{}) (any, error) {
-	return s.app.GetStorageClasses()
-}
-
-// =====================
-// Phase 1 Resource Handlers - Cluster
-// =====================
-
-func (s *MCPServer) handleListNodes(ctx context.Context, input map[string]interface{}) (any, error) {
-	return s.app.GetNodes()
-}
-
-// =====================
-// Phase 1 Resource Handlers - RBAC
-// =====================
-
-func (s *MCPServer) handleListServiceAccounts(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetServiceAccounts(namespace)
-}
-
-func (s *MCPServer) handleListRoles(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetRoles(namespace)
-}
-
-func (s *MCPServer) handleListRoleBindings(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	return s.app.GetRoleBindings(namespace)
-}
-
-func (s *MCPServer) handleListClusterRoles(ctx context.Context, input map[string]interface{}) (any, error) {
-	return s.app.GetClusterRoles()
-}
-
-func (s *MCPServer) handleListClusterRoleBindings(ctx context.Context, input map[string]interface{}) (any, error) {
-	return s.app.GetClusterRoleBindings()
-}
-
-// =====================
-// Phase 1 Resource Handlers - CRDs
-// =====================
-
-func (s *MCPServer) handleListCRDs(ctx context.Context, input map[string]interface{}) (any, error) {
-	return s.app.GetCustomResourceDefinitions()
-}
-
-func (s *MCPServer) handleScaleDeployment(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("deployment name is required")
-	}
-
-	replicas := 0
-	if r, ok := input["replicas"].(float64); ok {
-		replicas = int(r)
-	}
-
-	if err := s.app.ScaleResource("Deployment", namespace, name, replicas); err != nil {
-		return nil, err
-	}
-
-	return map[string]interface{}{
-		"success":   true,
-		"message":   fmt.Sprintf("Deployment %s/%s scaled to %d replicas", namespace, name, replicas),
-		"namespace": namespace,
-		"name":      name,
-		"replicas":  replicas,
-	}, nil
-}
-
-func (s *MCPServer) handleRestartDeployment(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("deployment name is required")
-	}
-
-	if err := s.app.RestartDeployment(namespace, name); err != nil {
-		return nil, err
-	}
-
-	return map[string]interface{}{
-		"success":   true,
-		"message":   fmt.Sprintf("Deployment %s/%s restart initiated", namespace, name),
-		"namespace": namespace,
-		"name":      name,
-	}, nil
-}
-
-// =====================
-// Swarm Tool Handlers
-// =====================
-
-func (s *MCPServer) handleSwarmListServices(ctx context.Context, input map[string]interface{}) (any, error) {
-	if !s.app.IsSwarmConnected() {
-		return nil, fmt.Errorf("Docker Swarm is not connected")
-	}
-	return s.app.GetSwarmServices()
-}
-
-func (s *MCPServer) handleSwarmListTasks(ctx context.Context, input map[string]interface{}) (any, error) {
-	if !s.app.IsSwarmConnected() {
-		return nil, fmt.Errorf("Docker Swarm is not connected")
-	}
-	return s.app.GetSwarmTasks()
-}
-
-func (s *MCPServer) handleSwarmListNodes(ctx context.Context, input map[string]interface{}) (any, error) {
-	if !s.app.IsSwarmConnected() {
-		return nil, fmt.Errorf("Docker Swarm is not connected")
-	}
-	return s.app.GetSwarmNodes()
-}
-
-func (s *MCPServer) handleSwarmGetServiceLogs(ctx context.Context, input map[string]interface{}) (any, error) {
-	if !s.app.IsSwarmConnected() {
-		return nil, fmt.Errorf("Docker Swarm is not connected")
-	}
-
-	service, _ := input["service"].(string)
-	if service == "" {
-		return nil, fmt.Errorf("service name/ID is required")
-	}
-
-	tailLines := 100
-	if tl, ok := input["tailLines"].(float64); ok {
-		tailLines = int(tl)
-	}
-
-	if tailLines > s.config.MaxLogLines {
-		tailLines = s.config.MaxLogLines
-	}
-
-	logs, err := s.app.GetSwarmServiceLogs(service, tailLines)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]interface{}{
-		"service": service,
-		"lines":   tailLines,
-		"logs":    logs,
-	}, nil
-}
-
-func (s *MCPServer) handleSwarmScaleService(ctx context.Context, input map[string]interface{}) (any, error) {
-	if !s.app.IsSwarmConnected() {
-		return nil, fmt.Errorf("Docker Swarm is not connected")
-	}
-
-	service, _ := input["service"].(string)
-	if service == "" {
-		return nil, fmt.Errorf("service name/ID is required")
-	}
-
-	replicas := 0
-	if r, ok := input["replicas"].(float64); ok {
-		replicas = int(r)
-	}
-
-	if err := s.app.ScaleSwarmService(service, replicas); err != nil {
-		return nil, err
-	}
-
-	return map[string]interface{}{
-		"success":  true,
-		"message":  fmt.Sprintf("Service %s scaled to %d replicas", service, replicas),
-		"service":  service,
-		"replicas": replicas,
-	}, nil
-}
-
-// =====================
-// Phase 2 Describe Handlers
-// =====================
-
-func (s *MCPServer) handleDescribeService(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetServiceDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribeIngress(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetIngressDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribeNode(ctx context.Context, input map[string]interface{}) (any, error) {
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetNodeDetail(name)
-}
-
-func (s *MCPServer) handleDescribePVC(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetPersistentVolumeClaimDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribePV(ctx context.Context, input map[string]interface{}) (any, error) {
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetPersistentVolumeDetail(name)
-}
-
-func (s *MCPServer) handleDescribeStatefulSet(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetStatefulSetDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribeDaemonSet(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetDaemonSetDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribeReplicaSet(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetReplicaSetDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribeJob(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetJobDetail(namespace, name)
-}
-
-func (s *MCPServer) handleDescribeCronJob(ctx context.Context, input map[string]interface{}) (any, error) {
-	namespace := s.getNamespaceParam(input)
-	name, _ := input["name"].(string)
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-	return s.app.GetCronJobDetail(namespace, name)
-}
-
-// =====================
-// Phase 2 YAML Handler
-// =====================
-
-func (s *MCPServer) handleGetResourceYAML(ctx context.Context, input map[string]interface{}) (any, error) {
-	kind, _ := input["kind"].(string)
+// handleK8sTop dispatches to TopPods or TopNodes based on kind
+func (s *MCPServer) handleK8sTop(ctx context.Context, input map[string]interface{}) (any, error) {
+	kind := getStringParam(input, "kind")
 	if kind == "" {
 		return nil, fmt.Errorf("missing required parameter: kind")
 	}
 
-	name, _ := input["name"].(string)
+	switch kind {
+	case "pods":
+		namespace := s.getNamespaceParam(input)
+		return s.app.TopPods(namespace)
+	case "nodes":
+		return s.app.TopNodes()
+	default:
+		return nil, fmt.Errorf("unknown kind for top: %s (expected 'pods' or 'nodes')", kind)
+	}
+}
+
+// handleK8sRollout dispatches to status or history based on action
+func (s *MCPServer) handleK8sRollout(ctx context.Context, input map[string]interface{}) (any, error) {
+	action := getStringParam(input, "action")
+	if action == "" {
+		return nil, fmt.Errorf("missing required parameter: action")
+	}
+
+	kind := getStringParam(input, "kind")
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
+	name := getStringParam(input, "name")
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	namespace := s.getNamespaceParam(input)
+
+	switch action {
+	case "status":
+		return s.app.GetRolloutStatus(kind, namespace, name)
+	case "history":
+		return s.app.GetRolloutHistory(kind, namespace, name)
+	default:
+		return nil, fmt.Errorf("unknown rollout action: %s (expected 'status' or 'history')", action)
+	}
+}
+
+func (s *MCPServer) handleGetResourceYAML(ctx context.Context, input map[string]interface{}) (any, error) {
+	kind := getStringParam(input, "kind")
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
+	name := getStringParam(input, "name")
 	if name == "" {
 		return nil, fmt.Errorf("missing required parameter: name")
 	}
@@ -1594,6 +682,167 @@ func (s *MCPServer) handleGetResourceYAML(ctx context.Context, input map[string]
 	}, nil
 }
 
+func (s *MCPServer) handleScaleDeployment(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name := getStringParam(input, "name")
+	if name == "" {
+		return nil, fmt.Errorf("deployment name is required")
+	}
+
+	replicas := getIntParam(input, "replicas")
+
+	if err := s.app.ScaleResource("Deployment", namespace, name, replicas); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"success":   true,
+		"message":   fmt.Sprintf("Deployment %s/%s scaled to %d replicas", namespace, name, replicas),
+		"namespace": namespace,
+		"name":      name,
+		"replicas":  replicas,
+	}, nil
+}
+
+func (s *MCPServer) handleRestartDeployment(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name := getStringParam(input, "name")
+	if name == "" {
+		return nil, fmt.Errorf("deployment name is required")
+	}
+
+	if err := s.app.RestartDeployment(namespace, name); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"success":   true,
+		"message":   fmt.Sprintf("Deployment %s/%s restart initiated", namespace, name),
+		"namespace": namespace,
+		"name":      name,
+	}, nil
+}
+
+// =====================
+// Consolidated Swarm Handlers
+// =====================
+
+func (s *MCPServer) handleSwarmList(ctx context.Context, input map[string]interface{}) (any, error) {
+	if !s.app.IsSwarmConnected() {
+		return nil, fmt.Errorf("Docker Swarm is not connected")
+	}
+
+	kind := getStringParam(input, "kind")
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
+	switch kind {
+	case "services":
+		return s.app.GetSwarmServices()
+	case "tasks":
+		return s.app.GetSwarmTasks()
+	case "nodes":
+		return s.app.GetSwarmNodes()
+	case "stacks":
+		return s.app.GetSwarmStacks()
+	case "networks":
+		return s.app.GetSwarmNetworks()
+	case "volumes":
+		return s.app.GetSwarmVolumes()
+	case "secrets":
+		return s.app.GetSwarmSecrets()
+	case "configs":
+		return s.app.GetSwarmConfigs()
+	default:
+		return nil, fmt.Errorf("unknown swarm resource kind: %s", kind)
+	}
+}
+
+func (s *MCPServer) handleSwarmInspect(ctx context.Context, input map[string]interface{}) (any, error) {
+	if !s.app.IsSwarmConnected() {
+		return nil, fmt.Errorf("Docker Swarm is not connected")
+	}
+
+	kind := getStringParam(input, "kind")
+	if kind == "" {
+		return nil, fmt.Errorf("missing required parameter: kind")
+	}
+
+	id := getStringParam(input, "id")
+	if id == "" {
+		return nil, fmt.Errorf("missing required parameter: id")
+	}
+
+	switch kind {
+	case "service":
+		return s.app.GetSwarmService(id)
+	case "task":
+		return s.app.GetSwarmTask(id)
+	case "node":
+		return s.app.GetSwarmNode(id)
+	default:
+		return nil, fmt.Errorf("unknown swarm resource kind: %s (expected 'service', 'task', or 'node')", kind)
+	}
+}
+
+func (s *MCPServer) handleSwarmGetServiceLogs(ctx context.Context, input map[string]interface{}) (any, error) {
+	if !s.app.IsSwarmConnected() {
+		return nil, fmt.Errorf("Docker Swarm is not connected")
+	}
+
+	serviceID := getStringParam(input, "serviceId")
+	if serviceID == "" {
+		return nil, fmt.Errorf("serviceId is required")
+	}
+
+	tailLines := 100
+	if tl := getIntParam(input, "tail"); tl > 0 {
+		tailLines = tl
+	}
+
+	if tailLines > s.config.MaxLogLines {
+		tailLines = s.config.MaxLogLines
+	}
+
+	logs, err := s.app.GetSwarmServiceLogs(serviceID, tailLines)
+	if err != nil {
+		return nil, err
+	}
+
+	logs = s.truncateLogs(logs)
+
+	return map[string]interface{}{
+		"serviceId": serviceID,
+		"lines":     tailLines,
+		"logs":      logs,
+	}, nil
+}
+
+func (s *MCPServer) handleSwarmScaleService(ctx context.Context, input map[string]interface{}) (any, error) {
+	if !s.app.IsSwarmConnected() {
+		return nil, fmt.Errorf("Docker Swarm is not connected")
+	}
+
+	serviceID := getStringParam(input, "serviceId")
+	if serviceID == "" {
+		return nil, fmt.Errorf("serviceId is required")
+	}
+
+	replicas := getIntParam(input, "replicas")
+
+	if err := s.app.ScaleSwarmService(serviceID, replicas); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"success":   true,
+		"message":   fmt.Sprintf("Service %s scaled to %d replicas", serviceID, replicas),
+		"serviceId": serviceID,
+		"replicas":  replicas,
+	}, nil
+}
+
 // =====================
 // Helpers
 // =====================
@@ -1603,6 +852,30 @@ func (s *MCPServer) getNamespaceParam(input map[string]interface{}) string {
 		return ns
 	}
 	return s.app.GetCurrentNamespace()
+}
+
+// getStringParam extracts a string parameter from input
+func getStringParam(input map[string]interface{}, key string) string {
+	if v, ok := input[key].(string); ok {
+		return v
+	}
+	return ""
+}
+
+// getIntParam extracts an integer parameter from input (JSON numbers come as float64)
+func getIntParam(input map[string]interface{}, key string) int {
+	if v, ok := input[key].(float64); ok {
+		return int(v)
+	}
+	return 0
+}
+
+// getBoolParam extracts a boolean parameter from input
+func getBoolParam(input map[string]interface{}, key string) bool {
+	if v, ok := input[key].(bool); ok {
+		return v
+	}
+	return false
 }
 
 // truncateLogs truncates log output to the configured maximum
@@ -1615,155 +888,181 @@ func (s *MCPServer) truncateLogs(logs string) string {
 	return logs
 }
 
-// =====================
-// Phase 3: K8s Diagnostics Handlers
-// =====================
+// wrapListResult wraps a list result with metadata and optional truncation
+func wrapListResult(items interface{}, kind, namespace string, limit int) *ListResult {
+	total := sliceLen(items)
 
-func (s *MCPServer) handleGetPodLogsPrevious(ctx context.Context, input map[string]interface{}) (any, error) {
-namespace := s.getNamespaceParam(input)
-name, _ := input["name"].(string)
-if name == "" {
-return nil, fmt.Errorf("missing required parameter: name")
-}
+	lr := &ListResult{
+		Items:     items,
+		Total:     total,
+		Kind:      kind,
+		Namespace: namespace,
+	}
 
-container, _ := input["container"].(string)
-tailLines := 100
-if tl, ok := input["tailLines"].(float64); ok {
-tailLines = int(tl)
-}
+	if limit > 0 && total > limit {
+		lr.Items = sliceTruncate(items, limit)
+		lr.Truncated = true
+	}
 
-if tailLines > s.config.MaxLogLines {
-tailLines = s.config.MaxLogLines
+	return lr
 }
 
-logs, err := s.app.GetPodLogsPrevious(namespace, name, container, tailLines)
-if err != nil {
-return nil, err
+// sliceLen returns the length of a slice via reflection, or 1 for non-slice values
+func sliceLen(v interface{}) int {
+	if v == nil {
+		return 0
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+		return rv.Len()
+	}
+	return 1
 }
 
-return map[string]interface{}{
-"namespace": namespace,
-"pod":       name,
-"container": container,
-"lines":     tailLines,
-"previous":  true,
-"logs":      s.truncateLogs(logs),
-}, nil
+// sliceTruncate truncates a slice to the given limit via reflection
+func sliceTruncate(v interface{}, limit int) interface{} {
+	if v == nil {
+		return v
+	}
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
+		if rv.Len() > limit {
+			return rv.Slice(0, limit).Interface()
+		}
+	}
+	return v
 }
 
-func (s *MCPServer) handleTopPods(ctx context.Context, input map[string]interface{}) (any, error) {
-namespace := s.getNamespaceParam(input)
-return s.app.TopPods(namespace)
+// filterByLabels applies client-side label filtering to a list result.
+// It attempts to match labels on items that have a Labels map field.
+// For items without labels, they are excluded from filtered results.
+func filterByLabels(items interface{}, selector string) interface{} {
+	if items == nil || selector == "" {
+		return items
+	}
+
+	// Parse label selector into key=value pairs
+	selectorParts := parseLabelSelector(selector)
+	if len(selectorParts) == 0 {
+		return items
+	}
+
+	rv := reflect.ValueOf(items)
+	if rv.Kind() != reflect.Slice {
+		return items
+	}
+
+	// Create a new slice of the same type
+	resultSlice := reflect.MakeSlice(rv.Type(), 0, rv.Len())
+
+	for i := 0; i < rv.Len(); i++ {
+		item := rv.Index(i)
+
+		// Try to get labels from the item
+		labels := extractLabels(item)
+		if labels == nil {
+			continue
+		}
+
+		if matchesSelector(labels, selectorParts) {
+			resultSlice = reflect.Append(resultSlice, item)
+		}
+	}
+
+	return resultSlice.Interface()
 }
 
-func (s *MCPServer) handleTopNodes(ctx context.Context, input map[string]interface{}) (any, error) {
-return s.app.TopNodes()
+// parseLabelSelector parses "key1=value1,key2=value2" into key-value pairs
+func parseLabelSelector(selector string) map[string]string {
+	result := make(map[string]string)
+	parts := strings.Split(selector, ",")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if eqIdx := strings.Index(part, "="); eqIdx > 0 {
+			key := strings.TrimSpace(part[:eqIdx])
+			value := strings.TrimSpace(part[eqIdx+1:])
+			result[key] = value
+		}
+	}
+	return result
 }
 
-func (s *MCPServer) handleGetRolloutStatus(ctx context.Context, input map[string]interface{}) (any, error) {
-kind, _ := input["kind"].(string)
-if kind == "" {
-return nil, fmt.Errorf("missing required parameter: kind")
+// extractLabels tries to extract a labels map from a struct or map
+func extractLabels(v reflect.Value) map[string]string {
+	// Dereference pointers
+	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil
+		}
+		v = v.Elem()
+	}
+
+	// Try map type
+	if v.Kind() == reflect.Map {
+		labelsVal := v.MapIndex(reflect.ValueOf("Labels"))
+		if !labelsVal.IsValid() {
+			labelsVal = v.MapIndex(reflect.ValueOf("labels"))
+		}
+		if labelsVal.IsValid() {
+			if labels, ok := labelsVal.Interface().(map[string]string); ok {
+				return labels
+			}
+		}
+		return nil
+	}
+
+	// Try struct type
+	if v.Kind() == reflect.Struct {
+		labelsField := v.FieldByName("Labels")
+		if labelsField.IsValid() {
+			if labels, ok := labelsField.Interface().(map[string]string); ok {
+				return labels
+			}
+		}
+	}
+
+	return nil
 }
 
-namespace := s.getNamespaceParam(input)
-name, _ := input["name"].(string)
-if name == "" {
-return nil, fmt.Errorf("missing required parameter: name")
+// matchesSelector checks if labels match all selector requirements
+func matchesSelector(labels, selector map[string]string) bool {
+	for key, value := range selector {
+		if labelVal, ok := labels[key]; !ok || labelVal != value {
+			return false
+		}
+	}
+	return true
 }
 
-return s.app.GetRolloutStatus(kind, namespace, name)
-}
+// stripRawFields nils out "Raw" fields in slice items to reduce MCP payload size.
+// This specifically targets structs with a Raw interface{} field (e.g., NodeInfo)
+// without affecting the original data used by the frontend.
+func stripRawFields(items interface{}) interface{} {
+	if items == nil {
+		return items
+	}
 
-func (s *MCPServer) handleGetRolloutHistory(ctx context.Context, input map[string]interface{}) (any, error) {
-kind, _ := input["kind"].(string)
-if kind == "" {
-return nil, fmt.Errorf("missing required parameter: kind")
-}
+	rv := reflect.ValueOf(items)
+	if rv.Kind() != reflect.Slice {
+		return items
+	}
 
-namespace := s.getNamespaceParam(input)
-name, _ := input["name"].(string)
-if name == "" {
-return nil, fmt.Errorf("missing required parameter: name")
-}
+	for i := 0; i < rv.Len(); i++ {
+		item := rv.Index(i)
+		// Dereference pointers
+		for item.Kind() == reflect.Ptr {
+			if item.IsNil() {
+				break
+			}
+			item = item.Elem()
+		}
+		if item.Kind() == reflect.Struct {
+			rawField := item.FieldByName("Raw")
+			if rawField.IsValid() && rawField.CanSet() {
+				rawField.Set(reflect.Zero(rawField.Type()))
+			}
+		}
+	}
 
-return s.app.GetRolloutHistory(kind, namespace, name)
-}
-
-// =====================
-// Phase 4: Swarm Detail Handlers
-// =====================
-
-func (s *MCPServer) handleSwarmListStacks(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-return s.app.GetSwarmStacks()
-}
-
-func (s *MCPServer) handleSwarmListNetworks(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-return s.app.GetSwarmNetworks()
-}
-
-func (s *MCPServer) handleSwarmListVolumes(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-return s.app.GetSwarmVolumes()
-}
-
-func (s *MCPServer) handleSwarmListSecrets(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-return s.app.GetSwarmSecrets()
-}
-
-func (s *MCPServer) handleSwarmListConfigs(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-return s.app.GetSwarmConfigs()
-}
-
-func (s *MCPServer) handleSwarmInspectService(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-
-id, _ := input["id"].(string)
-if id == "" {
-return nil, fmt.Errorf("missing required parameter: id")
-}
-
-return s.app.GetSwarmService(id)
-}
-
-func (s *MCPServer) handleSwarmInspectTask(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-
-id, _ := input["id"].(string)
-if id == "" {
-return nil, fmt.Errorf("missing required parameter: id")
-}
-
-return s.app.GetSwarmTask(id)
-}
-
-func (s *MCPServer) handleSwarmInspectNode(ctx context.Context, input map[string]interface{}) (any, error) {
-if !s.app.IsSwarmConnected() {
-return nil, fmt.Errorf("Docker Swarm is not connected")
-}
-
-id, _ := input["id"].(string)
-if id == "" {
-return nil, fmt.Errorf("missing required parameter: id")
-}
-
-return s.app.GetSwarmNode(id)
+	return items
 }

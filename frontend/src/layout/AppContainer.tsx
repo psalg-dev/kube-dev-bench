@@ -13,6 +13,9 @@ import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
 import { HolmesPanel } from '../holmes/HolmesPanel';
 import { HolmesConfigModal } from '../holmes/HolmesConfigModal';
 import { HolmesOnboardingWizard } from '../holmes/HolmesOnboardingWizard';
+// MCP server provider and components
+import { MCPProvider, useMCP } from '../mcp/MCPContext';
+import { MCPConfigModal } from '../mcp/MCPConfigModal';
 
 type MainContentBinderProps = {
   selectedSection: string;
@@ -110,6 +113,7 @@ function LayoutOrWizard({
   } = useClusterState();
   const swarmState = useSwarmState();
   const holmes = useHolmes();
+  const mcpCtx = useMCP();
 
   // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs detected),
   // ensure we land on a Swarm view so the main content isn't blank.
@@ -159,6 +163,7 @@ function LayoutOrWizard({
         }}
         onToggleHolmes={holmes.togglePanel}
         holmesPanelVisible={holmes.state.showPanel}
+        onToggleMCP={mcpCtx.showConfigModal}
         contextSelectEl={
           <ContextSelect
             value={selectedContext}
@@ -187,6 +192,7 @@ function LayoutOrWizard({
       <HolmesPanel />
       <HolmesConfigModal />
       <HolmesOnboardingWizard />
+      <MCPConfigModal />
     </>
   );
 }
@@ -290,6 +296,7 @@ export default function AppContainer() {
         <SwarmStateProvider>
           <SwarmResourceCountsProvider>
             <HolmesProvider>
+              <MCPProvider>
               <LayoutOrWizard
                 onWizardComplete={handleWizardComplete}
                 selectedSection={selectedSection}
@@ -301,6 +308,7 @@ export default function AppContainer() {
                 selectedSection={selectedSection}
                 setConnectionWizardInitialSection={setConnectionWizardInitialSection}
               />
+              </MCPProvider>
             </HolmesProvider>
           </SwarmResourceCountsProvider>
         </SwarmStateProvider>

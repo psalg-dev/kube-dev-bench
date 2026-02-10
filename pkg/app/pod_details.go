@@ -60,6 +60,24 @@ func (a *App) GetPodContainers(podName string) ([]string, error) {
 	return names, nil
 }
 
+// GetPodDetailInNamespace fetches a pod in the given namespace and returns a concise summary.
+// This is used by the MCP server which always specifies the namespace explicitly.
+func (a *App) GetPodDetailInNamespace(namespace, podName string) (PodSummary, error) {
+	var out PodSummary
+	if namespace == "" {
+		return out, fmt.Errorf("no namespace specified")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return out, err
+	}
+	pod, err := clientset.CoreV1().Pods(namespace).Get(a.ctx, podName, metav1.GetOptions{})
+	if err != nil {
+		return out, err
+	}
+	return buildPodSummary(pod), nil
+}
+
 // GetPodSummary fetches a pod and returns a concise summary
 func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 	var out PodSummary
@@ -74,6 +92,11 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 	if err != nil {
 		return out, err
 	}
+	return buildPodSummary(pod), nil
+}
+
+// buildPodSummary constructs a PodSummary from a raw Pod object
+func buildPodSummary(pod *v1.Pod) PodSummary {
 	ports := []int{}
 	for _, c := range pod.Spec.Containers {
 		for _, p := range c.Ports {
@@ -87,10 +110,9 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 		created = pod.CreationTimestamp.Time.UTC().Format(time.RFC3339Nano)
 	}
 
-	// Build init container info
 	initContainers := buildInitContainerInfo(pod)
 
-	out = PodSummary{
+	return PodSummary{
 		Name:           pod.Name,
 		Namespace:      pod.Namespace,
 		Created:        created,
@@ -99,7 +121,6 @@ func (a *App) GetPodSummary(podName string) (PodSummary, error) {
 		Ports:          ports,
 		InitContainers: initContainers,
 	}
-	return out, nil
 }
 
 // extractContainerState extracts state information from a container status

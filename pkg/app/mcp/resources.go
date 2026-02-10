@@ -110,9 +110,11 @@ func (s *MCPServer) handleSwarmConnection(ctx context.Context) (any, error) {
 func (s *MCPServer) handleMCPConfig(ctx context.Context) (any, error) {
 	return map[string]interface{}{
 		"enabled":          s.config.Enabled,
+		"host":             s.config.Host,
+		"port":             s.config.Port,
+		"transportMode":    s.config.TransportMode,
 		"allowDestructive": s.config.AllowDestructive,
 		"requireConfirm":   s.config.RequireConfirm,
 		"maxLogLines":      s.config.MaxLogLines,
-		"transport":        "stdio",
 	}, nil
 }

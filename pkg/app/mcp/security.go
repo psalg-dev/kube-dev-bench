@@ -60,13 +60,10 @@ func GetSecurityLevel(toolName string, input map[string]interface{}) OperationSe
 	// Default levels for known tools
 	switch toolName {
 	// Read-only tools
-	case "k8s_list_pods", "k8s_get_pod_logs", "k8s_get_events",
-		"k8s_describe_pod", "k8s_list_deployments", "k8s_describe_deployment",
-		"k8s_list_statefulsets", "k8s_list_daemonsets", "k8s_list_jobs",
-		"k8s_list_cronjobs", "k8s_list_configmaps", "k8s_list_secrets",
-		"k8s_get_resource_counts",
-		"swarm_list_services", "swarm_list_tasks", "swarm_list_nodes",
-		"swarm_get_service_logs":
+	case "k8s_list", "k8s_describe", "k8s_get_resource_yaml",
+		"k8s_get_pod_logs", "k8s_get_events", "k8s_get_resource_counts",
+		"k8s_top", "k8s_rollout",
+		"swarm_list", "swarm_inspect", "swarm_get_service_logs":
 		return SecuritySafe
 
 	// Write operations

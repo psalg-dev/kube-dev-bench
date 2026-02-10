@@ -17,27 +17,28 @@ type mockServerInterface struct {
 	swarmConnected      bool
 
 	// Track method calls for verification
-	lastGetPodsNamespace         string
-	lastGetServicesNamespace     string
-	lastGetNodesCall             bool
-	lastGetPVsCall               bool
-	lastGetStorageClassesCall    bool
-	lastGetClusterRolesCall      bool
+	lastGetPodsNamespace           string
+	lastGetServicesNamespace       string
+	lastGetNodesCall               bool
+	lastGetPVsCall                 bool
+	lastGetStorageClassesCall      bool
+	lastGetClusterRolesCall        bool
 	lastGetClusterRoleBindingsCall bool
-	lastGetCRDsCall              bool
-	lastGetPodDetailNS           string
-	lastGetPodDetailName         string
-	lastScaleResourceKind        string
-	lastScaleResourceNS          string
-	lastScaleResourceName        string
-	lastScaleResourceReplicas    int
-	lastGetPodLogsNS             string
-	lastGetPodLogsName           string
-	lastGetPodLogsContainer      string
-	lastGetPodLogsLines          int
-	lastGetSwarmServiceID        string
-	lastScaleSwarmServiceID      string
-	lastScaleSwarmServiceReplicas int
+	lastGetCRDsCall                bool
+	lastGetPodDetailNS             string
+	lastGetPodDetailName           string
+	lastScaleResourceKind          string
+	lastScaleResourceNS            string
+	lastScaleResourceName          string
+	lastScaleResourceReplicas      int
+	lastGetPodLogsNS               string
+	lastGetPodLogsName             string
+	lastGetPodLogsContainer        string
+	lastGetPodLogsLines            int
+	lastGetPodLogsPrevious         bool
+	lastGetSwarmServiceID          string
+	lastScaleSwarmServiceID        string
+	lastScaleSwarmServiceReplicas  int
 }
 
 // Kubernetes context methods
@@ -57,7 +58,10 @@ func (m *mockServerInterface) GetConnectionStatus() map[string]interface{} {
 // Resource listing methods
 func (m *mockServerInterface) GetPods(namespace string) (interface{}, error) {
 	m.lastGetPodsNamespace = namespace
-	return []string{"pod1", "pod2"}, nil
+	return []map[string]interface{}{
+		{"name": "pod1", "Labels": map[string]string{"app": "web"}},
+		{"name": "pod2", "Labels": map[string]string{"app": "api"}},
+	}, nil
 }
 
 func (m *mockServerInterface) GetDeployments(namespace string) (interface{}, error) {
@@ -96,7 +100,6 @@ func (m *mockServerInterface) GetResourceCounts() interface{} {
 	return map[string]int{"pods": 10, "services": 5}
 }
 
-// Phase 1 resources
 func (m *mockServerInterface) GetServices(namespace string) (interface{}, error) {
 	m.lastGetServicesNamespace = namespace
 	return []string{"service1"}, nil
@@ -226,14 +229,20 @@ func (m *mockServerInterface) GetPodLogs(namespace, podName, container string, l
 	m.lastGetPodLogsName = podName
 	m.lastGetPodLogsContainer = container
 	m.lastGetPodLogsLines = lines
+	m.lastGetPodLogsPrevious = false
 	return "log line 1\nlog line 2", nil
 }
 
 func (m *mockServerInterface) GetPodLogsPrevious(namespace, podName, container string, lines int) (string, error) {
+	m.lastGetPodLogsNS = namespace
+	m.lastGetPodLogsName = podName
+	m.lastGetPodLogsContainer = container
+	m.lastGetPodLogsLines = lines
+	m.lastGetPodLogsPrevious = true
 	return "previous log line 1", nil
 }
 
-// Phase 3: K8s Diagnostics methods
+// Diagnostics methods
 func (m *mockServerInterface) TopPods(namespace string) (interface{}, error) {
 	return map[string]interface{}{"pods": []string{"pod1"}}, nil
 }
@@ -291,7 +300,6 @@ func (m *mockServerInterface) IsSwarmConnected() bool {
 	return m.swarmConnected
 }
 
-// Phase 4: Docker Swarm detail methods
 func (m *mockServerInterface) GetSwarmService(serviceID string) (interface{}, error) {
 	return map[string]string{"id": serviceID, "name": "test-service"}, nil
 }
@@ -345,74 +353,26 @@ func createTestServer() *MCPServer {
 	return server
 }
 
-// Test: Tool Registration
+// =====================
+// Tool Registration Tests
+// =====================
+
 func TestToolRegistration(t *testing.T) {
 	server := createTestServer()
 
-	// Test that all expected tools are registered
 	expectedTools := []string{
-		// Phase 1 - Kubernetes List Tools (15)
-		"k8s_list_pods",
-		"k8s_list_deployments",
-		"k8s_list_services",
-		"k8s_list_endpoints",
-		"k8s_list_ingresses",
-		"k8s_list_network_policies",
-		"k8s_list_replicasets",
-		"k8s_list_persistent_volumes",
-		"k8s_list_persistent_volume_claims",
-		"k8s_list_storage_classes",
-		"k8s_list_nodes",
-		"k8s_list_service_accounts",
-		"k8s_list_roles",
-		"k8s_list_cluster_roles",
-		"k8s_list_role_bindings",
-		"k8s_list_cluster_role_bindings",
-		"k8s_list_crds",
-		"k8s_list_statefulsets",
-		"k8s_list_daemonsets",
-		"k8s_list_jobs",
-		"k8s_list_cronjobs",
-		"k8s_list_configmaps",
-		"k8s_list_secrets",
-		"k8s_get_resource_counts",
-		// Phase 2 - Describe/Detail Tools (11)
-		"k8s_describe_pod",
-		"k8s_describe_deployment",
-		"k8s_describe_service",
-		"k8s_describe_ingress",
-		"k8s_describe_node",
-		"k8s_describe_pvc",
-		"k8s_describe_pv",
-		"k8s_describe_statefulset",
-		"k8s_describe_daemonset",
-		"k8s_describe_replicaset",
-		"k8s_describe_job",
-		"k8s_describe_cronjob",
+		"k8s_list",
+		"k8s_describe",
 		"k8s_get_resource_yaml",
-		// Phase 3 - Diagnostics Tools (5)
-		"k8s_get_pod_logs_previous",
-		"k8s_top_pods",
-		"k8s_top_nodes",
-		"k8s_get_rollout_status",
-		"k8s_get_rollout_history",
-		// Phase 4 - Swarm Tools (8)
-		"swarm_list_stacks",
-		"swarm_list_networks",
-		"swarm_list_volumes",
-		"swarm_list_secrets",
-		"swarm_list_configs",
-		"swarm_inspect_service",
-		"swarm_inspect_task",
-		"swarm_inspect_node",
-		// Existing tools
 		"k8s_get_pod_logs",
 		"k8s_get_events",
+		"k8s_get_resource_counts",
+		"k8s_top",
+		"k8s_rollout",
 		"k8s_scale_deployment",
 		"k8s_restart_deployment",
-		"swarm_list_services",
-		"swarm_list_tasks",
-		"swarm_list_nodes",
+		"swarm_list",
+		"swarm_inspect",
 		"swarm_get_service_logs",
 		"swarm_scale_service",
 	}
@@ -437,305 +397,645 @@ func TestToolRegistration(t *testing.T) {
 	}
 }
 
-// Test: Input Schema Validation
-func TestInputSchemaValidation(t *testing.T) {
+func TestToolCount(t *testing.T) {
 	server := createTestServer()
+	expectedCount := 14
+	if len(server.tools) != expectedCount {
+		t.Errorf("Expected %d tools, got %d", expectedCount, len(server.tools))
+		for name := range server.tools {
+			t.Logf("  registered: %s", name)
+		}
+	}
+}
 
-	tests := []struct {
-		toolName         string
-		requiredParams   []string
-		optionalParams   []string
-		hasNamespace     bool
-		namespaceInProps bool
-	}{
-		{
-			toolName:         "k8s_list_pods",
-			requiredParams:   []string{},
-			optionalParams:   []string{"namespace"},
-			hasNamespace:     false,
-			namespaceInProps: true,
-		},
-		{
-			toolName:         "k8s_get_pod_logs",
-			requiredParams:   []string{"name"},
-			optionalParams:   []string{"namespace", "container", "tailLines"},
-			hasNamespace:     false,
-			namespaceInProps: true,
-		},
-		{
-			toolName:         "k8s_describe_pod",
-			requiredParams:   []string{"name"},
-			optionalParams:   []string{"namespace"},
-			hasNamespace:     false,
-			namespaceInProps: true,
-		},
-		{
-			toolName:         "k8s_list_nodes",
-			requiredParams:   []string{},
-			optionalParams:   []string{},
-			hasNamespace:     false,
-			namespaceInProps: false,
-		},
-		{
-			toolName:         "k8s_get_rollout_status",
-			requiredParams:   []string{"kind", "name"},
-			optionalParams:   []string{"namespace"},
-			hasNamespace:     false,
-			namespaceInProps: true,
-		},
-		{
-			toolName:         "swarm_inspect_service",
-			requiredParams:   []string{"id"},
-			optionalParams:   []string{},
-			hasNamespace:     false,
-			namespaceInProps: false,
-		},
+// =====================
+// k8s_list Tests
+// =====================
+
+func TestK8sList_AllKinds(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+
+	namespacedKinds := []string{
+		"pods", "deployments", "statefulsets", "daemonsets", "jobs", "cronjobs",
+		"configmaps", "secrets", "services", "endpoints", "ingresses",
+		"network_policies", "replicasets", "persistent_volume_claims",
+		"service_accounts", "roles", "role_bindings",
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.toolName+"_schema", func(t *testing.T) {
-			tool, exists := server.tools[tt.toolName]
-			if !exists {
-				t.Fatalf("Tool %s not found", tt.toolName)
+	for _, kind := range namespacedKinds {
+		t.Run(kind, func(t *testing.T) {
+			tool := server.tools["k8s_list"]
+			result, err := tool.Handler(ctx, map[string]interface{}{"kind": kind})
+			if err != nil {
+				t.Fatalf("Handler error for kind %s: %v", kind, err)
 			}
-
-			schema := tool.InputSchema
-			if schema == nil {
-				t.Fatal("InputSchema is nil")
-			}
-
-			// Check required parameters
-			required, ok := schema["required"].([]string)
-			if !ok && len(tt.requiredParams) > 0 {
-				t.Errorf("Expected required params but found none")
-			}
-
-			if len(required) != len(tt.requiredParams) {
-				t.Errorf("Expected %d required params, got %d", len(tt.requiredParams), len(required))
-			}
-
-			for _, param := range tt.requiredParams {
-				found := false
-				for _, r := range required {
-					if r == param {
-						found = true
-						break
-					}
-				}
-				if !found {
-					t.Errorf("Required parameter %s not found in schema", param)
-				}
-			}
-
-			// Check properties
-			props, ok := schema["properties"].(map[string]interface{})
+			lr, ok := result.(*ListResult)
 			if !ok {
-				t.Fatal("Properties not found in schema")
+				t.Fatalf("Expected *ListResult, got %T", result)
 			}
+			if lr.Kind != kind {
+				t.Errorf("Expected kind %s, got %s", kind, lr.Kind)
+			}
+		})
+	}
 
-			// Verify namespace property existence
-			if tt.namespaceInProps {
-				if _, exists := props["namespace"]; !exists {
-					t.Error("Namespace property should exist but doesn't")
-				}
-			} else {
-				if _, exists := props["namespace"]; exists {
-					t.Error("Namespace property should not exist but does")
-				}
+	clusterKinds := []string{
+		"nodes", "persistent_volumes", "storage_classes",
+		"cluster_roles", "cluster_role_bindings", "crds",
+	}
+
+	for _, kind := range clusterKinds {
+		t.Run(kind+"_cluster_scoped", func(t *testing.T) {
+			tool := server.tools["k8s_list"]
+			result, err := tool.Handler(ctx, map[string]interface{}{"kind": kind})
+			if err != nil {
+				t.Fatalf("Handler error for kind %s: %v", kind, err)
+			}
+			lr, ok := result.(*ListResult)
+			if !ok {
+				t.Fatalf("Expected *ListResult, got %T", result)
+			}
+			if lr.Total == 0 {
+				t.Error("Expected non-zero total for cluster-scoped resource")
 			}
 		})
 	}
 }
 
-// Test: Namespace Defaulting
-func TestNamespaceDefaulting(t *testing.T) {
+func TestK8sList_MissingKind(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_list"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{})
+	if err == nil || err.Error() != "missing required parameter: kind" {
+		t.Errorf("Expected 'missing required parameter: kind', got %v", err)
+	}
+}
+
+func TestK8sList_UnknownKind(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_list"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{"kind": "widgets"})
+	if err == nil || !strings.Contains(err.Error(), "unknown resource kind") {
+		t.Errorf("Expected unknown resource kind error, got %v", err)
+	}
+}
+
+func TestK8sList_NamespaceDefaulting(t *testing.T) {
 	server := createTestServer()
 	ctx := context.Background()
 	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_list"]
 
 	tests := []struct {
 		name              string
-		toolName          string
 		input             map[string]interface{}
 		expectedNamespace string
-		checkField        string
 	}{
-		{
-			name:              "namespace_provided",
-			toolName:          "k8s_list_pods",
-			input:             map[string]interface{}{"namespace": "kube-system"},
-			expectedNamespace: "kube-system",
-			checkField:        "lastGetPodsNamespace",
-		},
-		{
-			name:              "namespace_omitted",
-			toolName:          "k8s_list_pods",
-			input:             map[string]interface{}{},
-			expectedNamespace: "default",
-			checkField:        "lastGetPodsNamespace",
-		},
-		{
-			name:              "namespace_empty_string",
-			toolName:          "k8s_list_pods",
-			input:             map[string]interface{}{"namespace": ""},
-			expectedNamespace: "default",
-			checkField:        "lastGetPodsNamespace",
-		},
-		{
-			name:              "service_namespace_provided",
-			toolName:          "k8s_list_services",
-			input:             map[string]interface{}{"namespace": "production"},
-			expectedNamespace: "production",
-			checkField:        "lastGetServicesNamespace",
-		},
-		{
-			name:              "service_namespace_omitted",
-			toolName:          "k8s_list_services",
-			input:             map[string]interface{}{},
-			expectedNamespace: "default",
-			checkField:        "lastGetServicesNamespace",
-		},
+		{"namespace_provided", map[string]interface{}{"kind": "pods", "namespace": "kube-system"}, "kube-system"},
+		{"namespace_omitted", map[string]interface{}{"kind": "pods"}, "default"},
+		{"namespace_empty", map[string]interface{}{"kind": "pods", "namespace": ""}, "default"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools[tt.toolName]
 			_, err := tool.Handler(ctx, tt.input)
 			if err != nil {
 				t.Fatalf("Handler error: %v", err)
 			}
-
-			// Check the namespace that was used
-			switch tt.checkField {
-			case "lastGetPodsNamespace":
-				if mock.lastGetPodsNamespace != tt.expectedNamespace {
-					t.Errorf("Expected namespace %s, got %s", tt.expectedNamespace, mock.lastGetPodsNamespace)
-				}
-			case "lastGetServicesNamespace":
-				if mock.lastGetServicesNamespace != tt.expectedNamespace {
-					t.Errorf("Expected namespace %s, got %s", tt.expectedNamespace, mock.lastGetServicesNamespace)
-				}
+			if mock.lastGetPodsNamespace != tt.expectedNamespace {
+				t.Errorf("Expected namespace %s, got %s", tt.expectedNamespace, mock.lastGetPodsNamespace)
 			}
 		})
 	}
 }
 
-// Test: Cluster-scoped Resources
-func TestClusterScopedResources(t *testing.T) {
+func TestK8sList_WithLimit(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_list"]
+
+	result, err := tool.Handler(ctx, map[string]interface{}{
+		"kind":  "pods",
+		"limit": float64(1),
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+
+	lr := result.(*ListResult)
+	if lr.Total != 2 {
+		t.Errorf("Expected total 2, got %d", lr.Total)
+	}
+	if !lr.Truncated {
+		t.Error("Expected truncated=true when limit < total")
+	}
+}
+
+func TestK8sList_ClusterScopedIgnoresNamespace(t *testing.T) {
 	server := createTestServer()
 	ctx := context.Background()
 	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_list"]
 
-	clusterScopedTools := []struct {
-		toolName  string
-		checkFlag string
-	}{
-		{"k8s_list_nodes", "lastGetNodesCall"},
-		{"k8s_list_persistent_volumes", "lastGetPVsCall"},
-		{"k8s_list_storage_classes", "lastGetStorageClassesCall"},
-		{"k8s_list_cluster_roles", "lastGetClusterRolesCall"},
-		{"k8s_list_cluster_role_bindings", "lastGetClusterRoleBindingsCall"},
-		{"k8s_list_crds", "lastGetCRDsCall"},
-		{"k8s_top_nodes", ""},
+	clusterKinds := map[string]*bool{
+		"nodes":                 &mock.lastGetNodesCall,
+		"persistent_volumes":    &mock.lastGetPVsCall,
+		"storage_classes":       &mock.lastGetStorageClassesCall,
+		"cluster_roles":         &mock.lastGetClusterRolesCall,
+		"cluster_role_bindings": &mock.lastGetClusterRoleBindingsCall,
+		"crds":                  &mock.lastGetCRDsCall,
 	}
 
-	for _, tt := range clusterScopedTools {
-		t.Run(tt.toolName+"_ignores_namespace", func(t *testing.T) {
-			// Reset flags
-			mock.lastGetNodesCall = false
-			mock.lastGetPVsCall = false
-			mock.lastGetStorageClassesCall = false
-			mock.lastGetClusterRolesCall = false
-			mock.lastGetClusterRoleBindingsCall = false
-			mock.lastGetCRDsCall = false
-
-			tool := server.tools[tt.toolName]
-			if tool == nil {
-				t.Fatalf("Tool %s not found", tt.toolName)
-			}
-
-			// Try with namespace parameter (should be ignored)
-			input := map[string]interface{}{"namespace": "should-be-ignored"}
-			_, err := tool.Handler(ctx, input)
+	for kind, flag := range clusterKinds {
+		t.Run(kind+"_ignores_namespace", func(t *testing.T) {
+			*flag = false
+			_, err := tool.Handler(ctx, map[string]interface{}{
+				"kind":      kind,
+				"namespace": "should-be-ignored",
+			})
 			if err != nil {
 				t.Fatalf("Handler error: %v", err)
 			}
-
-			// Verify the appropriate method was called
-			switch tt.checkFlag {
-			case "lastGetNodesCall":
-				if !mock.lastGetNodesCall {
-					t.Error("GetNodes was not called")
-				}
-			case "lastGetPVsCall":
-				if !mock.lastGetPVsCall {
-					t.Error("GetPersistentVolumes was not called")
-				}
-			case "lastGetStorageClassesCall":
-				if !mock.lastGetStorageClassesCall {
-					t.Error("GetStorageClasses was not called")
-				}
-			case "lastGetClusterRolesCall":
-				if !mock.lastGetClusterRolesCall {
-					t.Error("GetClusterRoles was not called")
-				}
-			case "lastGetClusterRoleBindingsCall":
-				if !mock.lastGetClusterRoleBindingsCall {
-					t.Error("GetClusterRoleBindings was not called")
-				}
-			case "lastGetCRDsCall":
-				if !mock.lastGetCRDsCall {
-					t.Error("GetCustomResourceDefinitions was not called")
-				}
+			if !*flag {
+				t.Errorf("Expected %s method to be called", kind)
 			}
 		})
 	}
 }
 
-// Test: Handler Delegation
-func TestHandlerDelegation(t *testing.T) {
+// =====================
+// k8s_describe Tests
+// =====================
+
+func TestK8sDescribe_AllKinds(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_describe"]
+
+	kinds := []string{
+		"pod", "deployment", "service", "ingress", "node", "pvc", "pv",
+		"statefulset", "daemonset", "replicaset", "job", "cronjob",
+	}
+
+	for _, kind := range kinds {
+		t.Run(kind, func(t *testing.T) {
+			result, err := tool.Handler(ctx, map[string]interface{}{
+				"kind": kind,
+				"name": "test-resource",
+			})
+			if err != nil {
+				t.Fatalf("Handler error for kind %s: %v", kind, err)
+			}
+			if result == nil {
+				t.Error("Expected result, got nil")
+			}
+		})
+	}
+}
+
+func TestK8sDescribe_MissingParameters(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_describe"]
+
+	tests := []struct {
+		name        string
+		input       map[string]interface{}
+		errContains string
+	}{
+		{"missing_kind", map[string]interface{}{"name": "pod1"}, "missing required parameter: kind"},
+		{"missing_name", map[string]interface{}{"kind": "pod"}, "missing required parameter: name"},
+		{"unknown_kind", map[string]interface{}{"kind": "widget", "name": "w1"}, "unknown resource kind"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tool.Handler(ctx, tt.input)
+			if err == nil {
+				t.Fatal("Expected error")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+			}
+		})
+	}
+}
+
+func TestK8sDescribe_DelegatesToCorrectDetail(t *testing.T) {
 	server := createTestServer()
 	ctx := context.Background()
 	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_describe"]
 
-	t.Run("describe_pod_delegates_correctly", func(t *testing.T) {
-		tool := server.tools["k8s_describe_pod"]
-		input := map[string]interface{}{
-			"namespace": "test-ns",
-			"name":      "test-pod",
-		}
+	_, err := tool.Handler(ctx, map[string]interface{}{
+		"kind":      "pod",
+		"name":      "test-pod",
+		"namespace": "test-ns",
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if mock.lastGetPodDetailNS != "test-ns" {
+		t.Errorf("Expected namespace test-ns, got %s", mock.lastGetPodDetailNS)
+	}
+	if mock.lastGetPodDetailName != "test-pod" {
+		t.Errorf("Expected name test-pod, got %s", mock.lastGetPodDetailName)
+	}
+}
 
-		result, err := tool.Handler(ctx, input)
+// =====================
+// k8s_get_resource_yaml Tests
+// =====================
+
+func TestGetResourceYAML(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_get_resource_yaml"]
+
+	tests := []struct {
+		name  string
+		input map[string]interface{}
+	}{
+		{"with_namespace", map[string]interface{}{"kind": "Pod", "name": "my-pod", "namespace": "prod"}},
+		{"without_namespace", map[string]interface{}{"kind": "Deployment", "name": "my-deploy"}},
+		{"cluster_resource", map[string]interface{}{"kind": "Node", "name": "node1"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := tool.Handler(ctx, tt.input)
+			if err != nil {
+				t.Fatalf("Handler error: %v", err)
+			}
+			resultMap, ok := result.(map[string]interface{})
+			if !ok {
+				t.Fatalf("Result is not a map, got type: %T", result)
+			}
+			if resultMap["yaml"] == nil || resultMap["yaml"] == "" {
+				t.Error("Expected YAML content")
+			}
+		})
+	}
+}
+
+func TestGetResourceYAML_MissingParams(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_get_resource_yaml"]
+
+	tests := []struct {
+		name        string
+		input       map[string]interface{}
+		errContains string
+	}{
+		{"missing_kind", map[string]interface{}{"name": "pod1"}, "missing required parameter: kind"},
+		{"missing_name", map[string]interface{}{"kind": "Pod"}, "missing required parameter: name"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tool.Handler(ctx, tt.input)
+			if err == nil {
+				t.Fatal("Expected error")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+			}
+		})
+	}
+}
+
+// =====================
+// k8s_get_pod_logs Tests
+// =====================
+
+func TestGetPodLogs_Current(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_get_pod_logs"]
+
+	result, err := tool.Handler(ctx, map[string]interface{}{
+		"name": "my-pod",
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+
+	if mock.lastGetPodLogsNS != "default" {
+		t.Errorf("Expected namespace default, got %s", mock.lastGetPodLogsNS)
+	}
+	if mock.lastGetPodLogsName != "my-pod" {
+		t.Errorf("Expected pod my-pod, got %s", mock.lastGetPodLogsName)
+	}
+	if mock.lastGetPodLogsLines != 100 {
+		t.Errorf("Expected default 100 lines, got %d", mock.lastGetPodLogsLines)
+	}
+	if mock.lastGetPodLogsPrevious {
+		t.Error("Expected current logs, not previous")
+	}
+
+	resultMap := result.(map[string]interface{})
+	if resultMap["pod"] != "my-pod" {
+		t.Errorf("Result pod mismatch")
+	}
+}
+
+func TestGetPodLogs_Previous(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_get_pod_logs"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{
+		"name":     "my-pod",
+		"previous": true,
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+
+	if !mock.lastGetPodLogsPrevious {
+		t.Error("Expected previous logs to be requested")
+	}
+}
+
+func TestGetPodLogs_Container(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_get_pod_logs"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{
+		"name":      "pod1",
+		"container": "sidecar",
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if mock.lastGetPodLogsContainer != "sidecar" {
+		t.Errorf("Expected container 'sidecar', got '%s'", mock.lastGetPodLogsContainer)
+	}
+}
+
+func TestGetPodLogs_CustomLines(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_get_pod_logs"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{
+		"name":  "pod1",
+		"lines": float64(500),
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if mock.lastGetPodLogsLines != 500 {
+		t.Errorf("Expected 500 lines, got %d", mock.lastGetPodLogsLines)
+	}
+}
+
+func TestGetPodLogs_LegacyTailLines(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_get_pod_logs"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{
+		"name":      "pod1",
+		"tailLines": float64(200),
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if mock.lastGetPodLogsLines != 200 {
+		t.Errorf("Expected 200 lines via legacy tailLines, got %d", mock.lastGetPodLogsLines)
+	}
+}
+
+func TestGetPodLogs_MaxLogLinesEnforced(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_get_pod_logs"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{
+		"name":  "pod1",
+		"lines": float64(5000),
+	})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if mock.lastGetPodLogsLines != 1000 {
+		t.Errorf("Expected lines capped at 1000, got %d", mock.lastGetPodLogsLines)
+	}
+}
+
+func TestGetPodLogs_MissingName(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_get_pod_logs"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{})
+	if err == nil || err.Error() != "pod name is required" {
+		t.Errorf("Expected 'pod name is required', got %v", err)
+	}
+}
+
+// =====================
+// k8s_get_events Tests
+// =====================
+
+func TestGetEvents(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_get_events"]
+
+	result, err := tool.Handler(ctx, map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if result == nil {
+		t.Error("Expected result")
+	}
+}
+
+// =====================
+// k8s_get_resource_counts Tests
+// =====================
+
+func TestGetResourceCounts(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_get_resource_counts"]
+
+	result, err := tool.Handler(ctx, map[string]interface{}{})
+	if err != nil {
+		t.Fatalf("Handler error: %v", err)
+	}
+	if result == nil {
+		t.Error("Expected result")
+	}
+}
+
+// =====================
+// k8s_top Tests
+// =====================
+
+func TestK8sTop(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_top"]
+
+	t.Run("pods", func(t *testing.T) {
+		result, err := tool.Handler(ctx, map[string]interface{}{"kind": "pods"})
 		if err != nil {
 			t.Fatalf("Handler error: %v", err)
 		}
-
-		if mock.lastGetPodDetailNS != "test-ns" {
-			t.Errorf("Expected namespace test-ns, got %s", mock.lastGetPodDetailNS)
-		}
-		if mock.lastGetPodDetailName != "test-pod" {
-			t.Errorf("Expected name test-pod, got %s", mock.lastGetPodDetailName)
-		}
-
-		// Verify result structure
-		resultMap, ok := result.(map[string]string)
-		if !ok {
-			t.Fatal("Result is not a map")
-		}
-		if resultMap["name"] != "test-pod" {
-			t.Errorf("Result name mismatch: expected test-pod, got %s", resultMap["name"])
+		if result == nil {
+			t.Error("Expected result")
 		}
 	})
 
-	t.Run("scale_deployment_delegates_correctly", func(t *testing.T) {
-		tool := server.tools["k8s_scale_deployment"]
-		input := map[string]interface{}{
+	t.Run("nodes", func(t *testing.T) {
+		result, err := tool.Handler(ctx, map[string]interface{}{"kind": "nodes"})
+		if err != nil {
+			t.Fatalf("Handler error: %v", err)
+		}
+		if result == nil {
+			t.Error("Expected result")
+		}
+	})
+
+	t.Run("missing_kind", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{})
+		if err == nil || !strings.Contains(err.Error(), "missing required parameter") {
+			t.Errorf("Expected missing kind error, got %v", err)
+		}
+	})
+
+	t.Run("unknown_kind", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{"kind": "widgets"})
+		if err == nil || !strings.Contains(err.Error(), "unknown kind for top") {
+			t.Errorf("Expected unknown kind error, got %v", err)
+		}
+	})
+}
+
+// =====================
+// k8s_rollout Tests
+// =====================
+
+func TestK8sRollout(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["k8s_rollout"]
+
+	t.Run("status", func(t *testing.T) {
+		result, err := tool.Handler(ctx, map[string]interface{}{
+			"action": "status",
+			"kind":   "Deployment",
+			"name":   "my-deploy",
+		})
+		if err != nil {
+			t.Fatalf("Handler error: %v", err)
+		}
+		if result == nil {
+			t.Error("Expected result")
+		}
+	})
+
+	t.Run("history", func(t *testing.T) {
+		result, err := tool.Handler(ctx, map[string]interface{}{
+			"action": "history",
+			"kind":   "Deployment",
+			"name":   "my-deploy",
+		})
+		if err != nil {
+			t.Fatalf("Handler error: %v", err)
+		}
+		if result == nil {
+			t.Error("Expected result")
+		}
+	})
+
+	t.Run("missing_action", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
+			"kind": "Deployment",
+			"name": "my-deploy",
+		})
+		if err == nil || !strings.Contains(err.Error(), "missing required parameter: action") {
+			t.Errorf("Expected missing action error, got %v", err)
+		}
+	})
+
+	t.Run("missing_kind", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
+			"action": "status",
+			"name":   "my-deploy",
+		})
+		if err == nil || !strings.Contains(err.Error(), "missing required parameter: kind") {
+			t.Errorf("Expected missing kind error, got %v", err)
+		}
+	})
+
+	t.Run("missing_name", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
+			"action": "status",
+			"kind":   "Deployment",
+		})
+		if err == nil || !strings.Contains(err.Error(), "missing required parameter: name") {
+			t.Errorf("Expected missing name error, got %v", err)
+		}
+	})
+
+	t.Run("unknown_action", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
+			"action": "undo",
+			"kind":   "Deployment",
+			"name":   "my-deploy",
+		})
+		if err == nil || !strings.Contains(err.Error(), "unknown rollout action") {
+			t.Errorf("Expected unknown action error, got %v", err)
+		}
+	})
+
+	for _, kind := range []string{"Deployment", "StatefulSet", "DaemonSet"} {
+		t.Run("status_"+kind, func(t *testing.T) {
+			_, err := tool.Handler(ctx, map[string]interface{}{
+				"action": "status",
+				"kind":   kind,
+				"name":   "my-resource",
+			})
+			if err != nil {
+				t.Fatalf("Handler error: %v", err)
+			}
+		})
+	}
+}
+
+// =====================
+// k8s_scale_deployment Tests
+// =====================
+
+func TestScaleDeployment(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_scale_deployment"]
+
+	t.Run("basic_scale", func(t *testing.T) {
+		result, err := tool.Handler(ctx, map[string]interface{}{
 			"namespace": "prod",
 			"name":      "my-deployment",
-			"replicas":  float64(5), // JSON numbers are float64
-		}
-
-		_, err := tool.Handler(ctx, input)
+			"replicas":  float64(5),
+		})
 		if err != nil {
 			t.Fatalf("Handler error: %v", err)
 		}
@@ -752,850 +1052,45 @@ func TestHandlerDelegation(t *testing.T) {
 		if mock.lastScaleResourceReplicas != 5 {
 			t.Errorf("Expected replicas 5, got %d", mock.lastScaleResourceReplicas)
 		}
-	})
 
-	t.Run("get_pod_logs_delegates_with_defaults", func(t *testing.T) {
-		tool := server.tools["k8s_get_pod_logs"]
-		input := map[string]interface{}{
-			"name": "my-pod",
-		}
-
-		result, err := tool.Handler(ctx, input)
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-
-		if mock.lastGetPodLogsNS != "default" {
-			t.Errorf("Expected namespace default, got %s", mock.lastGetPodLogsNS)
-		}
-		if mock.lastGetPodLogsName != "my-pod" {
-			t.Errorf("Expected name my-pod, got %s", mock.lastGetPodLogsName)
-		}
-		if mock.lastGetPodLogsLines != 100 {
-			t.Errorf("Expected default 100 lines, got %d", mock.lastGetPodLogsLines)
-		}
-
-		// Verify result contains expected fields
-		resultMap, ok := result.(map[string]interface{})
-		if !ok {
-			t.Fatal("Result is not a map")
-		}
-		if resultMap["pod"] != "my-pod" {
-			t.Errorf("Result pod mismatch")
+		resultMap := result.(map[string]interface{})
+		if resultMap["success"] != true {
+			t.Error("Expected success: true")
 		}
 	})
 
-	t.Run("swarm_inspect_service_delegates", func(t *testing.T) {
-		tool := server.tools["swarm_inspect_service"]
-		input := map[string]interface{}{
-			"id": "service123",
-		}
-
-		result, err := tool.Handler(ctx, input)
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-
-		resultMap, ok := result.(map[string]string)
-		if !ok {
-			t.Fatal("Result is not a map")
-		}
-		if resultMap["id"] != "service123" {
-			t.Errorf("Expected id service123, got %s", resultMap["id"])
-		}
-	})
-}
-
-// Test: Error Handling
-func TestErrorHandling(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	tests := []struct {
-		name          string
-		toolName      string
-		input         map[string]interface{}
-		expectedError string
-	}{
-		{
-			name:          "describe_pod_missing_name",
-			toolName:      "k8s_describe_pod",
-			input:         map[string]interface{}{"namespace": "default"},
-			expectedError: "pod name is required",
-		},
-		{
-			name:          "get_pod_logs_missing_name",
-			toolName:      "k8s_get_pod_logs",
-			input:         map[string]interface{}{"namespace": "default"},
-			expectedError: "pod name is required",
-		},
-		{
-			name:          "scale_deployment_missing_name",
-			toolName:      "k8s_scale_deployment",
-			input:         map[string]interface{}{"replicas": float64(3)},
-			expectedError: "deployment name is required",
-		},
-		{
-			name:          "get_resource_yaml_missing_kind",
-			toolName:      "k8s_get_resource_yaml",
-			input:         map[string]interface{}{"name": "my-resource"},
-			expectedError: "missing required parameter: kind",
-		},
-		{
-			name:          "get_resource_yaml_missing_name",
-			toolName:      "k8s_get_resource_yaml",
-			input:         map[string]interface{}{"kind": "Pod"},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "rollout_status_missing_kind",
-			toolName:      "k8s_get_rollout_status",
-			input:         map[string]interface{}{"name": "my-deployment"},
-			expectedError: "missing required parameter: kind",
-		},
-		{
-			name:          "rollout_status_missing_name",
-			toolName:      "k8s_get_rollout_status",
-			input:         map[string]interface{}{"kind": "Deployment"},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "swarm_inspect_service_missing_id",
-			toolName:      "swarm_inspect_service",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: id",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools[tt.toolName]
-			if tool == nil {
-				t.Fatalf("Tool %s not found", tt.toolName)
-			}
-
-			_, err := tool.Handler(ctx, tt.input)
-			if err == nil {
-				t.Fatal("Expected error but got none")
-			}
-
-			if err.Error() != tt.expectedError {
-				t.Errorf("Expected error '%s', got '%s'", tt.expectedError, err.Error())
-			}
+	t.Run("scale_to_zero", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
+			"name":     "deploy1",
+			"replicas": float64(0),
 		})
-	}
-}
-
-// Test: Security Levels
-func TestSecurityLevels(t *testing.T) {
-	server := createTestServer()
-
-	tests := []struct {
-		toolName         string
-		expectedSecurity OperationSecurity
-	}{
-		{"k8s_list_pods", SecuritySafe},
-		{"k8s_get_pod_logs", SecuritySafe},
-		{"k8s_describe_pod", SecuritySafe},
-		{"k8s_top_nodes", SecuritySafe},
-		{"swarm_list_services", SecuritySafe},
-		{"k8s_scale_deployment", SecurityWrite},
-		{"k8s_restart_deployment", SecurityWrite},
-		{"swarm_scale_service", SecurityWrite},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.toolName+"_security", func(t *testing.T) {
-			tool := server.tools[tt.toolName]
-			if tool == nil {
-				t.Fatalf("Tool %s not found", tt.toolName)
-			}
-
-			if tool.Security != tt.expectedSecurity {
-				t.Errorf("Expected security %s, got %s", tt.expectedSecurity, tool.Security)
-			}
-		})
-	}
-}
-
-// Test: Phase 1 Tools Coverage
-func TestPhase1ToolsCoverage(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	phase1Tools := []string{
-		"k8s_list_services",
-		"k8s_list_endpoints",
-		"k8s_list_ingresses",
-		"k8s_list_network_policies",
-		"k8s_list_replicasets",
-		"k8s_list_persistent_volumes",
-		"k8s_list_persistent_volume_claims",
-		"k8s_list_storage_classes",
-		"k8s_list_nodes",
-		"k8s_list_service_accounts",
-		"k8s_list_roles",
-		"k8s_list_cluster_roles",
-		"k8s_list_role_bindings",
-		"k8s_list_cluster_role_bindings",
-		"k8s_list_crds",
-	}
-
-	for _, toolName := range phase1Tools {
-		t.Run(toolName, func(t *testing.T) {
-			tool := server.tools[toolName]
-			if tool == nil {
-				t.Fatalf("Tool %s not registered", toolName)
-			}
-
-			// Test execution
-			input := map[string]interface{}{}
-			_, err := tool.Handler(ctx, input)
-			if err != nil {
-				t.Fatalf("Handler failed: %v", err)
-			}
-		})
-	}
-}
-
-// Test: Phase 2 Tools Coverage
-func TestPhase2ToolsCoverage(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	phase2Tools := []struct {
-		name  string
-		input map[string]interface{}
-	}{
-		{"k8s_describe_service", map[string]interface{}{"name": "svc1"}},
-		{"k8s_describe_node", map[string]interface{}{"name": "node1"}},
-		{"k8s_describe_pvc", map[string]interface{}{"name": "pvc1"}},
-		{"k8s_describe_pv", map[string]interface{}{"name": "pv1"}},
-		{"k8s_describe_statefulset", map[string]interface{}{"name": "sts1"}},
-		{"k8s_describe_daemonset", map[string]interface{}{"name": "ds1"}},
-		{"k8s_describe_replicaset", map[string]interface{}{"name": "rs1"}},
-		{"k8s_describe_job", map[string]interface{}{"name": "job1"}},
-		{"k8s_describe_cronjob", map[string]interface{}{"name": "cj1"}},
-		{"k8s_get_resource_yaml", map[string]interface{}{"kind": "Pod", "name": "pod1"}},
-	}
-
-	for _, tt := range phase2Tools {
-		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools[tt.name]
-			if tool == nil {
-				t.Fatalf("Tool %s not registered", tt.name)
-			}
-
-			_, err := tool.Handler(ctx, tt.input)
-			if err != nil {
-				t.Fatalf("Handler failed: %v", err)
-			}
-		})
-	}
-}
-
-// Test: Phase 3 Tools Coverage
-func TestPhase3ToolsCoverage(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	phase3Tools := []struct {
-		name  string
-		input map[string]interface{}
-	}{
-		{"k8s_get_pod_logs_previous", map[string]interface{}{"name": "pod1"}},
-		{"k8s_top_pods", map[string]interface{}{}},
-		{"k8s_top_nodes", map[string]interface{}{}},
-		{"k8s_get_rollout_status", map[string]interface{}{"kind": "Deployment", "name": "deploy1"}},
-		{"k8s_get_rollout_history", map[string]interface{}{"kind": "Deployment", "name": "deploy1"}},
-	}
-
-	for _, tt := range phase3Tools {
-		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools[tt.name]
-			if tool == nil {
-				t.Fatalf("Tool %s not registered", tt.name)
-			}
-
-			_, err := tool.Handler(ctx, tt.input)
-			if err != nil {
-				t.Fatalf("Handler failed: %v", err)
-			}
-		})
-	}
-}
-
-// Test: Phase 4 Tools Coverage
-func TestPhase4ToolsCoverage(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	phase4Tools := []struct {
-		name  string
-		input map[string]interface{}
-	}{
-		{"swarm_list_stacks", map[string]interface{}{}},
-		{"swarm_list_networks", map[string]interface{}{}},
-		{"swarm_list_volumes", map[string]interface{}{}},
-		{"swarm_list_secrets", map[string]interface{}{}},
-		{"swarm_list_configs", map[string]interface{}{}},
-		{"swarm_inspect_service", map[string]interface{}{"id": "svc1"}},
-		{"swarm_inspect_task", map[string]interface{}{"id": "task1"}},
-		{"swarm_inspect_node", map[string]interface{}{"id": "node1"}},
-	}
-
-	for _, tt := range phase4Tools {
-		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools[tt.name]
-			if tool == nil {
-				t.Fatalf("Tool %s not registered", tt.name)
-			}
-
-			_, err := tool.Handler(ctx, tt.input)
-			if err != nil {
-				t.Fatalf("Handler failed: %v", err)
-			}
-		})
-	}
-}
-
-// Test: Log Line Limiting
-func TestLogLineLimiting(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-	mock := server.app.(*mockServerInterface)
-
-	t.Run("respects_max_log_lines", func(t *testing.T) {
-		tool := server.tools["k8s_get_pod_logs"]
-		input := map[string]interface{}{
-			"name":      "pod1",
-			"tailLines": float64(5000), // Request more than max
-		}
-
-		_, err := tool.Handler(ctx, input)
 		if err != nil {
 			t.Fatalf("Handler error: %v", err)
 		}
-
-		// Should be capped at config.MaxLogLines (1000)
-		if mock.lastGetPodLogsLines != 1000 {
-			t.Errorf("Expected lines to be capped at 1000, got %d", mock.lastGetPodLogsLines)
-		}
 	})
 
-	t.Run("allows_within_limit", func(t *testing.T) {
-		tool := server.tools["k8s_get_pod_logs"]
-		input := map[string]interface{}{
-			"name":      "pod1",
-			"tailLines": float64(500),
-		}
-
-		_, err := tool.Handler(ctx, input)
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-
-		if mock.lastGetPodLogsLines != 500 {
-			t.Errorf("Expected 500 lines, got %d", mock.lastGetPodLogsLines)
-		}
-	})
-}
-
-// Test: Additional Handler Coverage
-func TestAdditionalHandlersCoverage(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	t.Run("k8s_list_deployments", func(t *testing.T) {
-		tool := server.tools["k8s_list_deployments"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_list_statefulsets", func(t *testing.T) {
-		tool := server.tools["k8s_list_statefulsets"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_list_daemonsets", func(t *testing.T) {
-		tool := server.tools["k8s_list_daemonsets"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_list_jobs", func(t *testing.T) {
-		tool := server.tools["k8s_list_jobs"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_list_cronjobs", func(t *testing.T) {
-		tool := server.tools["k8s_list_cronjobs"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_list_configmaps", func(t *testing.T) {
-		tool := server.tools["k8s_list_configmaps"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_list_secrets", func(t *testing.T) {
-		tool := server.tools["k8s_list_secrets"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_get_resource_counts", func(t *testing.T) {
-		tool := server.tools["k8s_get_resource_counts"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_get_events", func(t *testing.T) {
-		tool := server.tools["k8s_get_events"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("k8s_restart_deployment", func(t *testing.T) {
-		tool := server.tools["k8s_restart_deployment"]
-		result, err := tool.Handler(ctx, map[string]interface{}{"name": "my-deploy"})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("swarm_list_services", func(t *testing.T) {
-		tool := server.tools["swarm_list_services"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("swarm_list_tasks", func(t *testing.T) {
-		tool := server.tools["swarm_list_tasks"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("swarm_list_nodes", func(t *testing.T) {
-		tool := server.tools["swarm_list_nodes"]
-		result, err := tool.Handler(ctx, map[string]interface{}{})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("swarm_get_service_logs", func(t *testing.T) {
-		tool := server.tools["swarm_get_service_logs"]
-		result, err := tool.Handler(ctx, map[string]interface{}{"service": "svc1"})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
-		}
-	})
-
-	t.Run("swarm_scale_service", func(t *testing.T) {
-		tool := server.tools["swarm_scale_service"]
-		result, err := tool.Handler(ctx, map[string]interface{}{
-			"service":  "svc1",
+	t.Run("missing_name", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
 			"replicas": float64(3),
 		})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result, got nil")
+		if err == nil || err.Error() != "deployment name is required" {
+			t.Errorf("Expected 'deployment name is required', got %v", err)
 		}
 	})
 }
 
-// Test: Swarm Connection Check
-func TestSwarmConnectionCheck(t *testing.T) {
+// =====================
+// k8s_restart_deployment Tests
+// =====================
+
+func TestRestartDeployment(t *testing.T) {
 	server := createTestServer()
 	ctx := context.Background()
-	mock := server.app.(*mockServerInterface)
+	tool := server.tools["k8s_restart_deployment"]
 
-	swarmTools := []string{
-		"swarm_list_stacks",
-		"swarm_list_networks",
-		"swarm_list_volumes",
-		"swarm_list_secrets",
-		"swarm_list_configs",
-	}
-
-	for _, toolName := range swarmTools {
-		t.Run(toolName+"_connected", func(t *testing.T) {
-			mock.swarmConnected = true
-			tool := server.tools[toolName]
-			_, err := tool.Handler(ctx, map[string]interface{}{})
-			if err != nil {
-				t.Fatalf("Expected no error when swarm connected, got: %v", err)
-			}
-		})
-
-		t.Run(toolName+"_not_connected", func(t *testing.T) {
-			mock.swarmConnected = false
-			tool := server.tools[toolName]
-			_, err := tool.Handler(ctx, map[string]interface{}{})
-			if err == nil {
-				t.Error("Expected error when swarm not connected")
-			}
-			expectedError := "Docker Swarm is not connected"
-			if err.Error() != expectedError {
-				t.Errorf("Expected error '%s', got '%s'", expectedError, err.Error())
-			}
-		})
-	}
-}
-
-// Test: Resource YAML Handler
-func TestResourceYAMLHandler(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	tests := []struct {
-		name  string
-		input map[string]interface{}
-	}{
-		{
-			name:  "with_namespace",
-			input: map[string]interface{}{"kind": "Pod", "name": "my-pod", "namespace": "prod"},
-		},
-		{
-			name:  "without_namespace",
-			input: map[string]interface{}{"kind": "Deployment", "name": "my-deploy"},
-		},
-		{
-			name:  "cluster_resource",
-			input: map[string]interface{}{"kind": "Node", "name": "node1"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools["k8s_get_resource_yaml"]
-			result, err := tool.Handler(ctx, tt.input)
-			if err != nil {
-				t.Fatalf("Handler error: %v", err)
-			}
-			resultMap, ok := result.(map[string]interface{})
-			if !ok {
-				t.Fatalf("Result is not a map, got type: %T", result)
-			}
-			if resultMap["yaml"] == nil || resultMap["yaml"] == "" {
-				t.Error("Expected YAML content")
-			}
-		})
-	}
-}
-
-// Test: Rollout Handlers
-func TestRolloutHandlers(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	kinds := []string{"Deployment", "StatefulSet", "DaemonSet"}
-
-	for _, kind := range kinds {
-		t.Run("rollout_status_"+kind, func(t *testing.T) {
-			tool := server.tools["k8s_get_rollout_status"]
-			result, err := tool.Handler(ctx, map[string]interface{}{
-				"kind": kind,
-				"name": "test-resource",
-			})
-			if err != nil {
-				t.Fatalf("Handler error: %v", err)
-			}
-			if result == nil {
-				t.Error("Expected result")
-			}
-		})
-
-		t.Run("rollout_history_"+kind, func(t *testing.T) {
-			tool := server.tools["k8s_get_rollout_history"]
-			result, err := tool.Handler(ctx, map[string]interface{}{
-				"kind": kind,
-				"name": "test-resource",
-			})
-			if err != nil {
-				t.Fatalf("Handler error: %v", err)
-			}
-			if result == nil {
-				t.Error("Expected result")
-			}
-		})
-	}
-}
-
-// Test: All Describe Handlers
-func TestAllDescribeHandlers(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	tests := []struct {
-		toolName string
-		input    map[string]interface{}
-	}{
-		{"k8s_describe_deployment", map[string]interface{}{"name": "deploy1"}},
-		{"k8s_describe_ingress", map[string]interface{}{"name": "ingress1"}},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.toolName, func(t *testing.T) {
-			tool := server.tools[tt.toolName]
-			result, err := tool.Handler(ctx, tt.input)
-			if err != nil {
-				t.Fatalf("Handler error: %v", err)
-			}
-			if result == nil {
-				t.Error("Expected result")
-			}
-		})
-	}
-}
-
-// Test: Describe Handlers Error Cases
-func TestDescribeHandlersErrors(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	tests := []struct {
-		name          string
-		toolName      string
-		input         map[string]interface{}
-		expectedError string
-	}{
-		{
-			name:          "describe_deployment_missing_name",
-			toolName:      "k8s_describe_deployment",
-			input:         map[string]interface{}{},
-			expectedError: "deployment name is required",
-		},
-		{
-			name:          "describe_ingress_missing_name",
-			toolName:      "k8s_describe_ingress",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_service_missing_name",
-			toolName:      "k8s_describe_service",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_node_missing_name",
-			toolName:      "k8s_describe_node",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_pvc_missing_name",
-			toolName:      "k8s_describe_pvc",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_pv_missing_name",
-			toolName:      "k8s_describe_pv",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_statefulset_missing_name",
-			toolName:      "k8s_describe_statefulset",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_daemonset_missing_name",
-			toolName:      "k8s_describe_daemonset",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_replicaset_missing_name",
-			toolName:      "k8s_describe_replicaset",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_job_missing_name",
-			toolName:      "k8s_describe_job",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-		{
-			name:          "describe_cronjob_missing_name",
-			toolName:      "k8s_describe_cronjob",
-			input:         map[string]interface{}{},
-			expectedError: "missing required parameter: name",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tool := server.tools[tt.toolName]
-			_, err := tool.Handler(ctx, tt.input)
-			if err == nil {
-				t.Fatal("Expected error but got none")
-			}
-			if err.Error() != tt.expectedError {
-				t.Errorf("Expected error '%s', got '%s'", tt.expectedError, err.Error())
-			}
-		})
-	}
-}
-
-// Test: Swarm Error Cases
-func TestSwarmErrorCases(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	t.Run("swarm_get_service_logs_missing_service", func(t *testing.T) {
-		tool := server.tools["swarm_get_service_logs"]
-		_, err := tool.Handler(ctx, map[string]interface{}{})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "service name/ID is required" {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	})
-
-	t.Run("swarm_scale_service_missing_service", func(t *testing.T) {
-		tool := server.tools["swarm_scale_service"]
-		_, err := tool.Handler(ctx, map[string]interface{}{"replicas": float64(3)})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "service name/ID is required" {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	})
-
-	t.Run("restart_deployment_missing_name", func(t *testing.T) {
-		tool := server.tools["k8s_restart_deployment"]
-		_, err := tool.Handler(ctx, map[string]interface{}{})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "deployment name is required" {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	})
-
-	t.Run("swarm_inspect_service_missing_id", func(t *testing.T) {
-		tool := server.tools["swarm_inspect_service"]
-		_, err := tool.Handler(ctx, map[string]interface{}{})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "missing required parameter: id" {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	})
-
-	t.Run("swarm_inspect_task_missing_id", func(t *testing.T) {
-		tool := server.tools["swarm_inspect_task"]
-		_, err := tool.Handler(ctx, map[string]interface{}{})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "missing required parameter: id" {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	})
-
-	t.Run("swarm_inspect_node_missing_id", func(t *testing.T) {
-		tool := server.tools["swarm_inspect_node"]
-		_, err := tool.Handler(ctx, map[string]interface{}{})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "missing required parameter: id" {
-			t.Errorf("Unexpected error: %v", err)
-		}
-	})
-}
-
-// Test: Previous Logs Handler
-func TestPreviousLogsHandler(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-
-	t.Run("with_all_params", func(t *testing.T) {
-		tool := server.tools["k8s_get_pod_logs_previous"]
+	t.Run("basic_restart", func(t *testing.T) {
 		result, err := tool.Handler(ctx, map[string]interface{}{
-			"name":      "pod1",
-			"container": "app",
-			"tailLines": float64(200),
+			"name": "my-deploy",
 		})
 		if err != nil {
 			t.Fatalf("Handler error: %v", err)
@@ -1606,64 +1101,196 @@ func TestPreviousLogsHandler(t *testing.T) {
 	})
 
 	t.Run("missing_name", func(t *testing.T) {
-		tool := server.tools["k8s_get_pod_logs_previous"]
 		_, err := tool.Handler(ctx, map[string]interface{}{})
-		if err == nil {
-			t.Fatal("Expected error")
-		}
-		if err.Error() != "missing required parameter: name" {
-			t.Errorf("Unexpected error: %v", err)
+		if err == nil || err.Error() != "deployment name is required" {
+			t.Errorf("Expected 'deployment name is required', got %v", err)
 		}
 	})
 }
 
-// Test: Tool Count
-func TestToolCount(t *testing.T) {
-	server := createTestServer()
+// =====================
+// swarm_list Tests
+// =====================
 
-	// Verify we have all expected tools
-	expectedCount := 59 // Total number of tools registered
-	if len(server.tools) != expectedCount {
-		t.Errorf("Expected %d tools, got %d", expectedCount, len(server.tools))
+func TestSwarmList_AllKinds(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["swarm_list"]
+
+	kinds := []string{"services", "tasks", "nodes", "stacks", "networks", "volumes", "secrets", "configs"}
+
+	for _, kind := range kinds {
+		t.Run(kind, func(t *testing.T) {
+			result, err := tool.Handler(ctx, map[string]interface{}{"kind": kind})
+			if err != nil {
+				t.Fatalf("Handler error for kind %s: %v", kind, err)
+			}
+			if result == nil {
+				t.Error("Expected result")
+			}
+		})
 	}
 }
 
-// Test: Scale Deployment Edge Cases
-func TestScaleDeploymentEdgeCases(t *testing.T) {
+func TestSwarmList_MissingKind(t *testing.T) {
 	server := createTestServer()
 	ctx := context.Background()
+	tool := server.tools["swarm_list"]
 
-	t.Run("scale_to_zero", func(t *testing.T) {
-		tool := server.tools["k8s_scale_deployment"]
+	_, err := tool.Handler(ctx, map[string]interface{}{})
+	if err == nil || !strings.Contains(err.Error(), "missing required parameter: kind") {
+		t.Errorf("Expected missing kind error, got %v", err)
+	}
+}
+
+func TestSwarmList_UnknownKind(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["swarm_list"]
+
+	_, err := tool.Handler(ctx, map[string]interface{}{"kind": "widgets"})
+	if err == nil || !strings.Contains(err.Error(), "unknown swarm resource kind") {
+		t.Errorf("Expected unknown kind error, got %v", err)
+	}
+}
+
+// =====================
+// swarm_inspect Tests
+// =====================
+
+func TestSwarmInspect_AllKinds(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["swarm_inspect"]
+
+	tests := []struct {
+		kind string
+		id   string
+	}{
+		{"service", "svc1"},
+		{"task", "task1"},
+		{"node", "node1"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.kind, func(t *testing.T) {
+			result, err := tool.Handler(ctx, map[string]interface{}{
+				"kind": tt.kind,
+				"id":   tt.id,
+			})
+			if err != nil {
+				t.Fatalf("Handler error: %v", err)
+			}
+			if result == nil {
+				t.Error("Expected result")
+			}
+		})
+	}
+}
+
+func TestSwarmInspect_MissingParams(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["swarm_inspect"]
+
+	tests := []struct {
+		name        string
+		input       map[string]interface{}
+		errContains string
+	}{
+		{"missing_kind", map[string]interface{}{"id": "svc1"}, "missing required parameter: kind"},
+		{"missing_id", map[string]interface{}{"kind": "service"}, "missing required parameter: id"},
+		{"unknown_kind", map[string]interface{}{"kind": "widget", "id": "w1"}, "unknown swarm resource kind"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := tool.Handler(ctx, tt.input)
+			if err == nil {
+				t.Fatal("Expected error")
+			}
+			if !strings.Contains(err.Error(), tt.errContains) {
+				t.Errorf("Expected error containing '%s', got '%s'", tt.errContains, err.Error())
+			}
+		})
+	}
+}
+
+// =====================
+// swarm_get_service_logs Tests
+// =====================
+
+func TestSwarmGetServiceLogs(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	tool := server.tools["swarm_get_service_logs"]
+
+	t.Run("basic", func(t *testing.T) {
 		result, err := tool.Handler(ctx, map[string]interface{}{
-			"name":     "deploy1",
-			"replicas": float64(0),
+			"serviceId": "my-service",
 		})
 		if err != nil {
 			t.Fatalf("Handler error: %v", err)
 		}
-		if result == nil {
-			t.Error("Expected result")
+		resultMap := result.(map[string]interface{})
+		if resultMap["serviceId"] != "my-service" {
+			t.Errorf("Expected serviceId my-service, got %v", resultMap["serviceId"])
 		}
 	})
 
-	t.Run("scale_large_number", func(t *testing.T) {
-		tool := server.tools["k8s_scale_deployment"]
-		result, err := tool.Handler(ctx, map[string]interface{}{
-			"name":     "deploy1",
-			"replicas": float64(100),
-		})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if result == nil {
-			t.Error("Expected result")
+	t.Run("missing_serviceId", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{})
+		if err == nil || err.Error() != "serviceId is required" {
+			t.Errorf("Expected 'serviceId is required', got %v", err)
 		}
 	})
 }
 
-// Test: Swarm Not Connected Error Paths
-func TestSwarmNotConnectedPaths(t *testing.T) {
+// =====================
+// swarm_scale_service Tests
+// =====================
+
+func TestSwarmScaleService(t *testing.T) {
+	server := createTestServer()
+	ctx := context.Background()
+	mock := server.app.(*mockServerInterface)
+	tool := server.tools["swarm_scale_service"]
+
+	t.Run("basic_scale", func(t *testing.T) {
+		result, err := tool.Handler(ctx, map[string]interface{}{
+			"serviceId": "my-svc",
+			"replicas":  float64(3),
+		})
+		if err != nil {
+			t.Fatalf("Handler error: %v", err)
+		}
+		if mock.lastScaleSwarmServiceID != "my-svc" {
+			t.Errorf("Expected serviceId my-svc, got %s", mock.lastScaleSwarmServiceID)
+		}
+		if mock.lastScaleSwarmServiceReplicas != 3 {
+			t.Errorf("Expected replicas 3, got %d", mock.lastScaleSwarmServiceReplicas)
+		}
+		resultMap := result.(map[string]interface{})
+		if resultMap["success"] != true {
+			t.Error("Expected success: true")
+		}
+	})
+
+	t.Run("missing_serviceId", func(t *testing.T) {
+		_, err := tool.Handler(ctx, map[string]interface{}{
+			"replicas": float64(3),
+		})
+		if err == nil || err.Error() != "serviceId is required" {
+			t.Errorf("Expected 'serviceId is required', got %v", err)
+		}
+	})
+}
+
+// =====================
+// Swarm Connection Checks
+// =====================
+
+func TestSwarmNotConnectedAllTools(t *testing.T) {
 	server := createTestServer()
 	ctx := context.Background()
 	mock := server.app.(*mockServerInterface)
@@ -1673,14 +1300,10 @@ func TestSwarmNotConnectedPaths(t *testing.T) {
 		name  string
 		input map[string]interface{}
 	}{
-		{"swarm_list_services", map[string]interface{}{}},
-		{"swarm_list_tasks", map[string]interface{}{}},
-		{"swarm_list_nodes", map[string]interface{}{}},
-		{"swarm_get_service_logs", map[string]interface{}{"service": "svc1"}},
-		{"swarm_scale_service", map[string]interface{}{"service": "svc1", "replicas": float64(3)}},
-		{"swarm_inspect_service", map[string]interface{}{"id": "svc1"}},
-		{"swarm_inspect_task", map[string]interface{}{"id": "task1"}},
-		{"swarm_inspect_node", map[string]interface{}{"id": "node1"}},
+		{"swarm_list", map[string]interface{}{"kind": "services"}},
+		{"swarm_inspect", map[string]interface{}{"kind": "service", "id": "svc1"}},
+		{"swarm_get_service_logs", map[string]interface{}{"serviceId": "svc1"}},
+		{"swarm_scale_service", map[string]interface{}{"serviceId": "svc1", "replicas": float64(3)}},
 	}
 
 	for _, tt := range swarmTools {
@@ -1697,13 +1320,53 @@ func TestSwarmNotConnectedPaths(t *testing.T) {
 	}
 }
 
-// Test: Log Truncation
+// =====================
+// Security Level Tests
+// =====================
+
+func TestSecurityLevels(t *testing.T) {
+	server := createTestServer()
+
+	safeTools := []string{
+		"k8s_list", "k8s_describe", "k8s_get_resource_yaml",
+		"k8s_get_pod_logs", "k8s_get_events", "k8s_get_resource_counts",
+		"k8s_top", "k8s_rollout",
+		"swarm_list", "swarm_inspect", "swarm_get_service_logs",
+	}
+
+	for _, toolName := range safeTools {
+		t.Run(toolName+"_is_safe", func(t *testing.T) {
+			tool := server.tools[toolName]
+			if tool.Security != SecuritySafe {
+				t.Errorf("Expected %s to be SecuritySafe, got %s", toolName, tool.Security)
+			}
+		})
+	}
+
+	writeTools := []string{
+		"k8s_scale_deployment", "k8s_restart_deployment", "swarm_scale_service",
+	}
+
+	for _, toolName := range writeTools {
+		t.Run(toolName+"_is_write", func(t *testing.T) {
+			tool := server.tools[toolName]
+			if tool.Security != SecurityWrite {
+				t.Errorf("Expected %s to be SecurityWrite, got %s", toolName, tool.Security)
+			}
+		})
+	}
+}
+
+// =====================
+// Log Truncation Tests
+// =====================
+
 func TestLogTruncation(t *testing.T) {
 	config := MCPConfigData{
 		Enabled:     true,
 		Host:        "localhost",
 		Port:        3000,
-		MaxLogLines: 10, // Minimum allowed by Validate()
+		MaxLogLines: 10,
 	}
 
 	mock := &mockServerInterface{
@@ -1712,7 +1375,7 @@ func TestLogTruncation(t *testing.T) {
 
 	server, _ := NewServer(mock, config)
 
-	t.Run("logs_under_limit", func(t *testing.T) {
+	t.Run("under_limit", func(t *testing.T) {
 		logs := "line1\nline2\nline3"
 		result := server.truncateLogs(logs)
 		if result != logs {
@@ -1720,75 +1383,297 @@ func TestLogTruncation(t *testing.T) {
 		}
 	})
 
-	t.Run("logs_over_limit", func(t *testing.T) {
-		// Create more than 10 lines (11 lines total)
+	t.Run("over_limit", func(t *testing.T) {
 		logs := "line1\nline2\nline3\nline4\nline5\nline6\nline7\nline8\nline9\nline10\nline11"
 		result := server.truncateLogs(logs)
 		if !strings.Contains(result, "... (truncated to last 10 lines)") {
 			t.Errorf("Expected truncation message, got: %s", result)
 		}
-		// Verify we have the last 10 lines
 		if !strings.Contains(result, "line11") {
 			t.Error("Expected to keep last line (line11)")
 		}
-		if !strings.Contains(result, "line2") {
-			t.Error("Expected to keep line2 (part of last 10)")
+	})
+}
+
+// =====================
+// ListResult / wrapListResult Tests
+// =====================
+
+func TestWrapListResult(t *testing.T) {
+	t.Run("no_limit", func(t *testing.T) {
+		items := []string{"a", "b", "c"}
+		lr := wrapListResult(items, "pods", "default", 0)
+		if lr.Total != 3 {
+			t.Errorf("Expected total 3, got %d", lr.Total)
 		}
-		if strings.Contains(result, "line1") && !strings.Contains(result, "line11") {
-			t.Error("line1 should be truncated")
+		if lr.Truncated {
+			t.Error("Expected truncated=false with no limit")
+		}
+	})
+
+	t.Run("with_limit_under_total", func(t *testing.T) {
+		items := []string{"a", "b", "c"}
+		lr := wrapListResult(items, "pods", "default", 2)
+		if lr.Total != 3 {
+			t.Errorf("Expected total 3, got %d", lr.Total)
+		}
+		if !lr.Truncated {
+			t.Error("Expected truncated=true when limit < total")
+		}
+		truncated := lr.Items.([]string)
+		if len(truncated) != 2 {
+			t.Errorf("Expected 2 items after truncation, got %d", len(truncated))
+		}
+	})
+
+	t.Run("with_limit_over_total", func(t *testing.T) {
+		items := []string{"a", "b"}
+		lr := wrapListResult(items, "pods", "default", 10)
+		if lr.Truncated {
+			t.Error("Expected truncated=false when limit >= total")
+		}
+	})
+
+	t.Run("nil_items", func(t *testing.T) {
+		lr := wrapListResult(nil, "pods", "default", 0)
+		if lr.Total != 0 {
+			t.Errorf("Expected total 0 for nil items, got %d", lr.Total)
 		}
 	})
 }
 
-// Test: Rollout History Missing Name
-func TestRolloutHistoryMissingName(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
+// =====================
+// Label Filtering Tests
+// =====================
 
-	tool := server.tools["k8s_get_rollout_history"]
-	_, err := tool.Handler(ctx, map[string]interface{}{"kind": "Deployment"})
-	if err == nil {
-		t.Fatal("Expected error for missing name")
+func TestLabelFiltering(t *testing.T) {
+	type labeled struct {
+		Name   string
+		Labels map[string]string
 	}
-	if err.Error() != "missing required parameter: name" {
-		t.Errorf("Unexpected error: %v", err)
+
+	items := []labeled{
+		{Name: "a", Labels: map[string]string{"app": "web", "env": "prod"}},
+		{Name: "b", Labels: map[string]string{"app": "api", "env": "prod"}},
+		{Name: "c", Labels: map[string]string{"app": "web", "env": "staging"}},
+	}
+
+	t.Run("single_label", func(t *testing.T) {
+		result := filterByLabels(items, "app=web")
+		filtered := result.([]labeled)
+		if len(filtered) != 2 {
+			t.Errorf("Expected 2 matches for app=web, got %d", len(filtered))
+		}
+	})
+
+	t.Run("multiple_labels", func(t *testing.T) {
+		result := filterByLabels(items, "app=web,env=prod")
+		filtered := result.([]labeled)
+		if len(filtered) != 1 {
+			t.Errorf("Expected 1 match for app=web,env=prod, got %d", len(filtered))
+		}
+		if filtered[0].Name != "a" {
+			t.Errorf("Expected match 'a', got '%s'", filtered[0].Name)
+		}
+	})
+
+	t.Run("no_match", func(t *testing.T) {
+		result := filterByLabels(items, "app=missing")
+		filtered := result.([]labeled)
+		if len(filtered) != 0 {
+			t.Errorf("Expected 0 matches, got %d", len(filtered))
+		}
+	})
+
+	t.Run("empty_selector", func(t *testing.T) {
+		result := filterByLabels(items, "")
+		filtered := result.([]labeled)
+		if len(filtered) != 3 {
+			t.Errorf("Expected all 3 items with empty selector, got %d", len(filtered))
+		}
+	})
+
+	t.Run("nil_input", func(t *testing.T) {
+		result := filterByLabels(nil, "app=web")
+		if result != nil {
+			t.Error("Expected nil for nil input")
+		}
+	})
+}
+
+func TestParseLabelSelector(t *testing.T) {
+	tests := []struct {
+		selector string
+		expected map[string]string
+	}{
+		{"app=web", map[string]string{"app": "web"}},
+		{"app=web,env=prod", map[string]string{"app": "web", "env": "prod"}},
+		{" app = web , env = prod ", map[string]string{"app": "web", "env": "prod"}},
+		{"", map[string]string{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.selector, func(t *testing.T) {
+			result := parseLabelSelector(tt.selector)
+			if len(result) != len(tt.expected) {
+				t.Errorf("Expected %d entries, got %d", len(tt.expected), len(result))
+			}
+			for k, v := range tt.expected {
+				if result[k] != v {
+					t.Errorf("Expected %s=%s, got %s=%s", k, v, k, result[k])
+				}
+			}
+		})
 	}
 }
 
-// Test: Pod Logs Container Parameter
-func TestPodLogsContainerParameter(t *testing.T) {
-	server := createTestServer()
-	ctx := context.Background()
-	mock := server.app.(*mockServerInterface)
+// =====================
+// Helper Function Tests
+// =====================
 
-	t.Run("with_container", func(t *testing.T) {
-		tool := server.tools["k8s_get_pod_logs"]
-		_, err := tool.Handler(ctx, map[string]interface{}{
-			"name":      "pod1",
-			"container": "sidecar",
+func TestSliceLen(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected int
+	}{
+		{"nil", nil, 0},
+		{"empty_slice", []string{}, 0},
+		{"slice_with_items", []string{"a", "b"}, 2},
+		{"non_slice", "hello", 1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := sliceLen(tt.input); got != tt.expected {
+				t.Errorf("sliceLen = %d, want %d", got, tt.expected)
+			}
 		})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
-		}
-		if mock.lastGetPodLogsContainer != "sidecar" {
-			t.Errorf("Expected container 'sidecar', got '%s'", mock.lastGetPodLogsContainer)
+	}
+}
+
+func TestSliceTruncate(t *testing.T) {
+	t.Run("truncate", func(t *testing.T) {
+		input := []string{"a", "b", "c", "d"}
+		result := sliceTruncate(input, 2).([]string)
+		if len(result) != 2 {
+			t.Errorf("Expected 2 items, got %d", len(result))
 		}
 	})
 
-	t.Run("without_container", func(t *testing.T) {
-		mock.lastGetPodLogsContainer = ""
-		tool := server.tools["k8s_get_pod_logs"]
-		_, err := tool.Handler(ctx, map[string]interface{}{
-			"name": "pod1",
-		})
-		if err != nil {
-			t.Fatalf("Handler error: %v", err)
+	t.Run("under_limit", func(t *testing.T) {
+		input := []string{"a", "b"}
+		result := sliceTruncate(input, 5).([]string)
+		if len(result) != 2 {
+			t.Errorf("Expected 2 items, got %d", len(result))
 		}
-		if mock.lastGetPodLogsContainer != "" {
-			t.Errorf("Expected empty container, got '%s'", mock.lastGetPodLogsContainer)
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		result := sliceTruncate(nil, 5)
+		if result != nil {
+			t.Error("Expected nil")
 		}
 	})
 }
 
+func TestGetStringParam(t *testing.T) {
+	input := map[string]interface{}{
+		"name":  "my-pod",
+		"count": float64(5),
+	}
 
+	if got := getStringParam(input, "name"); got != "my-pod" {
+		t.Errorf("Expected 'my-pod', got '%s'", got)
+	}
+	if got := getStringParam(input, "missing"); got != "" {
+		t.Errorf("Expected empty string, got '%s'", got)
+	}
+	if got := getStringParam(input, "count"); got != "" {
+		t.Errorf("Expected empty string for non-string type, got '%s'", got)
+	}
+}
 
+func TestGetIntParam(t *testing.T) {
+	input := map[string]interface{}{
+		"count": float64(42),
+		"name":  "text",
+	}
+
+	if got := getIntParam(input, "count"); got != 42 {
+		t.Errorf("Expected 42, got %d", got)
+	}
+	if got := getIntParam(input, "missing"); got != 0 {
+		t.Errorf("Expected 0, got %d", got)
+	}
+	if got := getIntParam(input, "name"); got != 0 {
+		t.Errorf("Expected 0 for non-number, got %d", got)
+	}
+}
+
+func TestGetBoolParam(t *testing.T) {
+	input := map[string]interface{}{
+		"confirmed": true,
+		"name":      "text",
+	}
+
+	if got := getBoolParam(input, "confirmed"); !got {
+		t.Error("Expected true")
+	}
+	if got := getBoolParam(input, "missing"); got {
+		t.Error("Expected false for missing key")
+	}
+	if got := getBoolParam(input, "name"); got {
+		t.Error("Expected false for non-bool type")
+	}
+}
+
+// =====================
+// stripRawFields Tests
+// =====================
+
+func TestStripRawFields(t *testing.T) {
+	type WithRaw struct {
+		Name string
+		Raw  interface{}
+	}
+
+	t.Run("strips_raw_from_slice", func(t *testing.T) {
+		items := []WithRaw{
+			{Name: "a", Raw: "big-payload"},
+			{Name: "b", Raw: map[string]string{"key": "val"}},
+		}
+		result := stripRawFields(items)
+		stripped := result.([]WithRaw)
+		for _, item := range stripped {
+			if item.Raw != nil {
+				t.Errorf("Expected Raw to be nil for %s, got %v", item.Name, item.Raw)
+			}
+		}
+	})
+
+	t.Run("no_raw_field", func(t *testing.T) {
+		type NoRaw struct {
+			Name string
+		}
+		items := []NoRaw{{Name: "a"}}
+		result := stripRawFields(items)
+		if result == nil {
+			t.Error("Expected non-nil result")
+		}
+	})
+
+	t.Run("non_slice", func(t *testing.T) {
+		result := stripRawFields("hello")
+		if result != "hello" {
+			t.Error("Expected non-slice to pass through unchanged")
+		}
+	})
+
+	t.Run("nil", func(t *testing.T) {
+		result := stripRawFields(nil)
+		if result != nil {
+			t.Error("Expected nil")
+		}
+	})
+}
