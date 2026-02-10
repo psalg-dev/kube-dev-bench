@@ -1,6 +1,6 @@
 ---
 title: "Implementation Plan: K8s RBAC Resources"
-status: todo
+status: wip
 priority: medium
 ---
 # Implementation Plan: K8s RBAC Resources
