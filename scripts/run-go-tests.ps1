@@ -1,24 +1,23 @@
-Param(
-    [string[]]$Packages = @('./...'),
-    [string]$Run = '',
-    [int]$Count = 1,
-    [string]$CoverProfile = '',
-    [string[]]$ExtraArgs = @()
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+param(
+    [Parameter()]
+    [string]$PackagePath = './pkg/app/...'
+
+    [Parameter()]
+    [string]$OutputPath = './test-results.txt'
 )
 
-$ErrorActionPreference = 'Stop'
-$repoRoot = Split-Path -Parent $PSScriptRoot
-Set-Location $repoRoot
+try {
+    go test -v $PackagePath 2>&1 | Out-File -FilePath $OutputPath -Encoding UTF8
+    $exitCode = $LASTEXITCODE
+    if ($exitCode -ne 0) {
+        throw "go test failed. See $OutputPath"
+    }
 
-$flags = @()
-if ($Run) {
-    $flags += @('-run', $Run)
+    Write-Output "Tests passed. Output saved to $OutputPath"
+} catch {
+    Write-Error "go test failed: $($_.Exception.Message)"
+    exit 1
 }
-if ($Count -ge 0) {
-    $flags += "-count=$Count"
-}
-if ($CoverProfile) {
-    $flags += "-coverprofile=$CoverProfile"
-}
-
-& go test @flags @ExtraArgs @Packages

@@ -130,12 +130,24 @@ func (a *App) aggregateResourceCounts(ns string, agg *ResourceCounts) {
 	if helmReleases, err := a.GetHelmReleases(ns); err == nil {
 		agg.HelmReleases += len(helmReleases)
 	}
+	if roles, err := a.GetRoles(ns); err == nil {
+		agg.Roles += len(roles)
+	}
+	if rbs, err := a.GetRoleBindings(ns); err == nil {
+		agg.RoleBindings += len(rbs)
+	}
 }
 
 // aggregateClusterWideCounts adds cluster-wide resource counts
 func (a *App) aggregateClusterWideCounts(agg *ResourceCounts) {
 	if pvs, err := a.GetPersistentVolumes(); err == nil {
 		agg.PersistentVolumes = len(pvs)
+	}
+	if crs, err := a.GetClusterRoles(); err == nil {
+		agg.ClusterRoles = len(crs)
+	}
+	if crbs, err := a.GetClusterRoleBindings(); err == nil {
+		agg.ClusterRoleBindings = len(crbs)
 	}
 }
 
@@ -189,7 +201,11 @@ func resourceCountsEqual(aCnt, bCnt ResourceCounts) bool {
 		aCnt.Ingresses == bCnt.Ingresses &&
 		aCnt.PersistentVolumeClaims == bCnt.PersistentVolumeClaims &&
 		aCnt.PersistentVolumes == bCnt.PersistentVolumes &&
-		aCnt.HelmReleases == bCnt.HelmReleases
+		aCnt.HelmReleases == bCnt.HelmReleases &&
+		aCnt.Roles == bCnt.Roles &&
+		aCnt.ClusterRoles == bCnt.ClusterRoles &&
+		aCnt.RoleBindings == bCnt.RoleBindings &&
+		aCnt.ClusterRoleBindings == bCnt.ClusterRoleBindings
 }
 
 // GetResourceCounts returns the latest cached snapshot (no recomputation).

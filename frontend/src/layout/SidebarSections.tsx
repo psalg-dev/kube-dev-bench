@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useResourceCounts } from '../state/ResourceCountsContext';
@@ -9,6 +9,13 @@ type ResourceSection = {
   label: string;
   podCounts?: boolean;
 };
+type ResourceGroupSection = {
+  key: string;
+  label: string;
+  group: true;
+  children: ResourceSection[];
+};
+type AnySection = ResourceSection | ResourceGroupSection;
 
 type PodStatus = {
   running?: number;
@@ -20,7 +27,7 @@ type PodStatus = {
 };
 
 // Resource sections list with id suffix & label
-const resourceSections: ResourceSection[] = [
+const resourceSections: AnySection[] = [
   { key: 'pods', label: 'Pods', podCounts: true },
   { key: 'deployments', label: 'Deployments' },
   { key: 'services', label: 'Services' },
@@ -35,6 +42,17 @@ const resourceSections: ResourceSection[] = [
   { key: 'persistentvolumeclaims', label: 'Persistent Volume Claims' },
   { key: 'persistentvolumes', label: 'Persistent Volumes' },
   { key: 'helmreleases', label: 'Helm Releases' },
+  {
+    key: 'rbac',
+    label: 'RBAC',
+    group: true,
+    children: [
+      { key: 'roles', label: 'Roles' },
+      { key: 'clusterroles', label: 'Cluster Roles' },
+      { key: 'rolebindings', label: 'Role Bindings' },
+      { key: 'clusterrolebindings', label: 'Cluster Role Bindings' },
+    ],
+  },
 ];
 
 function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
@@ -88,32 +106,84 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
     counts: (Record<string, number> & { podStatus?: PodStatus; PodStatus?: PodStatus }) | null;
   };
   const safeCounts = counts || undefined;
+  const [rbacExpanded, setRbacExpanded] = useState(false);
   return (
     <div>
       {resourceSections.map((sec) => {
-        const isSel = selected === sec.key;
-        const value = safeCounts?.[sec.key];
+        if ((sec as ResourceGroupSection).group) {
+          const group = sec as ResourceGroupSection;
+          const childKeys = group.children.map((c) => c.key);
+          const autoExpand = childKeys.includes(selected);
+          const expanded = rbacExpanded || autoExpand;
+          const aggCount = childKeys.reduce((sum, k) => sum + (Number(safeCounts?.[k]) || 0), 0);
+          const isActive = aggCount > 0;
+          return (
+            <div key={group.key} className="sidebar-section">
+              <div
+                id={`section-${group.key}`}
+                className={`sidebar-group-header${expanded ? ' selected' : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setRbacExpanded((v) => !v);
+                }}
+              >
+                <span className="sidebar-section-label">
+                  <span className="chevron" aria-hidden>{expanded ? '▾' : '▸'}</span>
+                  <span>{group.label}</span>
+                </span>
+                <span className={`sidebar-section-count${isActive ? ' is-active' : ''}`}>{aggCount}</span>
+              </div>
+              <div className={`sidebar-group-children${expanded ? '' : ' collapsed'}`}>
+                {group.children.map((child) => {
+                  const isSel = selected === child.key;
+                  const value = safeCounts?.[child.key];
+                  const isNumber = typeof value === 'number';
+                  return (
+                    <Link
+                      key={child.key}
+                      to={`/${child.key}`}
+                      id={`section-${child.key}`}
+                      className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelect(child.key);
+                      }}
+                    >
+                      <span className="sidebar-section-label">
+                        <span>{child.label}</span>
+                      </span>
+                      <span className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}>
+                        {isNumber ? value : '-'}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+        const leaf = sec as ResourceSection;
+        const isSel = selected === leaf.key;
+        const value = safeCounts?.[leaf.key];
         const isNumber = typeof value === 'number';
         return (
           <Link
-            key={sec.key}
-            to={`/${sec.key}`}
-            id={`section-${sec.key}`}
+            key={leaf.key}
+            to={`/${leaf.key}`}
+            id={`section-${leaf.key}`}
             className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
             onClick={(event) => {
               event.stopPropagation();
-              onSelect(sec.key);
+              onSelect(leaf.key);
             }}
           >
             <span className="sidebar-section-label">
-              <span>{sec.label}</span>
+              <span>{leaf.label}</span>
             </span>
-            {sec.podCounts ? (
+            {leaf.podCounts ? (
               <PodCountsDisplay podStatus={counts?.podStatus || counts?.PodStatus} />
             ) : (
-              <span
-                className={`sidebar-section-count${isNumber && value > 0 ? ' is-active' : ''}`}
-              >
+              <span className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}>
                 {isNumber ? value : '-'}
               </span>
             )}

@@ -37,15 +37,32 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       if (!c) return 'none';
       const ps = c.podStatus || c.PodStatus || {}; // pod status signature prominent
       return [
+        // Pod status
         ps.running || ps.Running || 0,
         ps.pending || ps.Pending || 0,
         ps.failed || ps.Failed || 0,
         ps.succeeded || ps.Succeeded || 0,
         ps.unknown || ps.Unknown || 0,
         ps.total || ps.Total || 0,
+        // Core resources
         c.services || c.Services || 0,
-        c.deployments, c.jobs, c.cronjobs, c.daemonsets, c.statefulsets, c.replicasets,
-        c.configmaps, c.secrets, c.ingresses, c.persistentvolumeclaims, c.persistentvolumes,
+        c.deployments || c.Deployments || 0,
+        c.jobs || c.Jobs || 0,
+        c.cronjobs || c.CronJobs || 0,
+        c.daemonsets || c.DaemonSets || 0,
+        c.statefulsets || c.StatefulSets || 0,
+        c.replicasets || c.ReplicaSets || 0,
+        c.configmaps || c.ConfigMaps || 0,
+        c.secrets || c.Secrets || 0,
+        c.ingresses || c.Ingresses || 0,
+        c.persistentvolumeclaims || c.PersistentVolumeClaims || 0,
+        c.persistentvolumes || c.PersistentVolumes || 0,
+        c.helmreleases || c.HelmReleases || 0,
+        // RBAC resources
+        c.roles || c.Roles || 0,
+        c.clusterroles || c.ClusterRoles || 0,
+        c.rolebindings || c.RoleBindings || 0,
+        c.clusterrolebindings || c.ClusterRoleBindings || 0,
       ].join('-');
     };
     const normalize = (raw: any) => {
@@ -53,6 +70,11 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       // Ensure camelCase keys (keep original too in case UI references uppercase elsewhere)
       if (raw.PodStatus && !raw.podStatus) raw.podStatus = raw.PodStatus;
       if (raw.Services && !raw.services) raw.services = raw.Services;
+      // RBAC camelCase normalization
+      if (raw.Roles && !raw.roles) raw.roles = raw.Roles;
+      if (raw.ClusterRoles && !raw.clusterroles) raw.clusterroles = raw.ClusterRoles;
+      if (raw.RoleBindings && !raw.rolebindings) raw.rolebindings = raw.RoleBindings;
+      if (raw.ClusterRoleBindings && !raw.clusterrolebindings) raw.clusterrolebindings = raw.ClusterRoleBindings;
       return raw;
     };
     const applyCounts = (data: any) => {

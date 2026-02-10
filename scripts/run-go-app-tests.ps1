@@ -1,11 +1,19 @@
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
 param(
-    [string[]]$ExtraArgs = @()
+    [Parameter()]
+    [string]$Package = "./pkg/app/..."
 )
 
-$ErrorActionPreference = "Stop"
+try {
+    go test -v $Package
+    if ($LASTEXITCODE -ne 0) {
+        throw "go test failed with exit code $LASTEXITCODE"
+    }
+} catch {
+    Write-Error "Failed: $_"
+    exit 1
+}
 
-$repoRoot = Split-Path $PSScriptRoot -Parent
-Set-Location $repoRoot
-
-$argsList = @("test", "./pkg/app/...") + $ExtraArgs
-& go @argsList
+exit 0
