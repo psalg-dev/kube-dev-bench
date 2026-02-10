@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import Button from '../../../components/ui/Button';
 import './CronJobActionsTab.css';
 
 type CronJobActionsTabProps = {
@@ -88,13 +89,14 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }: C
 					<div className="action-content">
 						<h4>Trigger Now</h4>
 						<p>Manually create a Job from this CronJob immediately, regardless of the schedule.</p>
-						<button
+						<Button
 							className="action-btn primary"
+							variant="primary"
 							onClick={handleTriggerNow}
 							disabled={loading !== null}
 						>
 							{loading === 'trigger' ? 'Triggering...' : 'Trigger Job Now'}
-						</button>
+						</Button>
 					</div>
 				</div>
 
@@ -114,7 +116,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }: C
 								{suspend ? 'Suspended' : 'Active'}
 							</span>
 						</div>
-						<button
+						<Button
 							className={`action-btn ${suspend ? 'success' : 'warning'}`}
 							onClick={handleSuspendResume}
 							disabled={loading !== null}
@@ -123,7 +125,7 @@ export default function CronJobActionsTab({ namespace, cronJobName, suspend }: C
 								? (suspend ? 'Resuming...' : 'Suspending...')
 								: (suspend ? 'Resume' : 'Suspend')
 							}
-						</button>
+						</Button>
 					</div>
 				</div>
 			</div>

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime';
 import { useSwarmState } from '../../SwarmStateContext';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection from '../../../QuickInfoSection';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import SwarmResourceActions from '../SwarmResourceActions';
+import Button from '../../../components/ui/Button';
 import SecretEditModal from './SecretEditModal';
 import SecretCloneModal from './SecretCloneModal';
 import SecretUsedBySection from './SecretUsedBySection';
@@ -103,17 +104,6 @@ function SecretSummaryPanel({ row, onRefresh }: SecretSummaryPanelProps) {
 		},
 	];
 
-	const buttonStyle: CSSProperties = {
-		padding: '6px 12px',
-		borderRadius: 4,
-		border: '1px solid var(--gh-border, #30363d)',
-		backgroundColor: 'var(--gh-button-bg, #21262d)',
-		color: 'var(--gh-text, #c9d1d9)',
-		cursor: 'pointer',
-		fontSize: 12,
-		fontWeight: 500,
-	};
-
 	return (
 		<div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 			<SummaryTabHeader
@@ -121,15 +111,15 @@ function SecretSummaryPanel({ row, onRefresh }: SecretSummaryPanelProps) {
 				labels={row.labels}
 				actions={(
 					<div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-						<button id="swarm-secret-edit-btn" style={buttonStyle} onClick={() => setShowEdit(true)}>
+						<Button id="swarm-secret-edit-btn" size="sm" onClick={() => setShowEdit(true)}>
 							Edit
-						</button>
-						<button id="swarm-secret-rotate-btn" style={buttonStyle} onClick={() => setShowRotate(true)}>
+						</Button>
+						<Button id="swarm-secret-rotate-btn" size="sm" onClick={() => setShowRotate(true)}>
 							Rotate
-						</button>
-						<button id="swarm-secret-clone-btn" style={buttonStyle} onClick={() => setShowClone(true)}>
+						</Button>
+						<Button id="swarm-secret-clone-btn" size="sm" onClick={() => setShowClone(true)}>
 							Clone
-						</button>
+						</Button>
 						<SwarmResourceActions
 							resourceType="secret"
 							name={row.name}

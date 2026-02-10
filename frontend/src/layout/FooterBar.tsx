@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useClusterState } from '../state/ClusterStateContext';
 import { EventsOn } from '../../wailsjs/runtime/runtime.js';
 import MonitorPanel from './MonitorPanel';
+import './FooterBar.css';
 
 type MonitorIssue = {
   holmesAnalyzed?: boolean;
@@ -50,24 +51,12 @@ export function FooterBar() {
   return (
     <>
       {/* Monitor badges on the left */}
-      <div style={{ display: 'flex', gap: '8px', marginRight: 'auto' }}>
+      <div className="footer-bar__monitor-badges">
         {monitorInfo.errorCount > 0 && (
           <button
             id="monitor-error-badge"
             onClick={() => setShowPanel(true)}
-            style={{
-              background: '#d73a49',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 0,
-              padding: '4px 12px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
+            className="footer-bar__badge footer-bar__badge--error"
             title={`${monitorInfo.errorCount} error${monitorInfo.errorCount > 1 ? 's' : ''} detected${
               hasHolmesAnalysis ? ' (Holmes analysis available)' : ''
             }`}
@@ -81,19 +70,7 @@ export function FooterBar() {
           <button
             id="monitor-warning-badge"
             onClick={() => setShowPanel(true)}
-            style={{
-              background: '#dbab09',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 0,
-              padding: '4px 12px',
-              fontSize: '12px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
+            className="footer-bar__badge footer-bar__badge--warning"
             title={`${monitorInfo.warningCount} warning${monitorInfo.warningCount > 1 ? 's' : ''} detected${
               hasHolmesAnalysis ? ' (Holmes analysis available)' : ''
             }`}
@@ -109,18 +86,7 @@ export function FooterBar() {
       {isProxyEnabled && (
         <span
           id="proxy-indicator"
-          style={{
-            background: '#0366d6',
-            color: '#fff',
-            borderRadius: 0,
-            padding: '4px 12px',
-            fontSize: '12px',
-            fontWeight: '600',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            marginRight: '8px',
-          }}
+          className="footer-bar__proxy-indicator"
           title={`Proxy: ${proxyURL || 'System proxy'}`}
         >
           <span>🌐</span>

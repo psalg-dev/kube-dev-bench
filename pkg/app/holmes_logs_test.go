@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"gowails/pkg/app/holmesgpt"
@@ -36,6 +38,18 @@ func TestDetectLogPatterns(t *testing.T) {
 	}
 	if counts["panic"] != 1 {
 		t.Fatalf("expected panic occurrences=1, got %d", counts["panic"])
+	}
+}
+
+func TestDetectLogPatterns_EmptyInput(t *testing.T) {
+	app := &App{}
+
+	patterns, err := app.DetectLogPatterns("")
+	if err != nil {
+		t.Fatalf("DetectLogPatterns failed: %v", err)
+	}
+	if len(patterns) != 0 {
+		t.Fatalf("expected zero patterns, got %d", len(patterns))
 	}
 }
 
@@ -79,4 +93,24 @@ func TestAnalyzeLogs_WithPodLogs(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
+}
+
+func TestAnalyzeLogs_LogFetchError(t *testing.T) {
+	app := &App{
+		ctx: context.Background(),
+		testPodLogsFetcher: func(namespace, podName, containerName string, lines int) (string, error) {
+			return "", fmt.Errorf("log read failed")
+		},
+	}
+
+	resp, err := app.AnalyzeLogs("default", "test-pod", "", 50)
+	if err == nil {
+		t.Fatal("expected error when log fetch fails")
+	}
+	if !strings.Contains(err.Error(), "failed to get logs") {
+		t.Fatalf("expected wrapped error, got %v", err)
+	}
+	if resp != nil {
+		t.Fatalf("expected nil response, got %+v", resp)
+	}
 }

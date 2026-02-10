@@ -8,6 +8,8 @@ import {
   DismissMonitorIssue,
   ScanClusterHealth,
 } from './monitorApi';
+import './MonitorPanel.css';
+
 type MonitorIssue = {
   issueID?: string;
   type?: 'error' | 'warning' | string;
@@ -254,129 +256,51 @@ export function MonitorPanel({ monitorInfo, open, onClose }: MonitorPanelProps) 
   return (
     <div
       id="monitor-panel"
-      className="bottom-panel"
+      className="bottom-panel monitor-panel"
       style={{
-        position: 'fixed',
-        left: 0,
-        right: 0,
-        bottom: 0,
         height,
-        background: 'var(--gh-bg, #0d1117)',
-        color: 'var(--gh-text, #c9d1d9)',
-        borderTop: '1px solid var(--gh-border, #30363d)',
-        boxShadow: '0 -4px 20px rgba(0,0,0,0.35)',
-        zIndex: 200,
-        display: 'flex',
-        flexDirection: 'column',
         transition: resizeRef.current.resizing ? 'none' : 'height 0.12s ease-out',
-        animation: 'slideUpPanel 0.2s ease-out',
       }}
     >
-      <style>{`
-        @keyframes slideUpPanel {
-          from {
-            transform: translateY(100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-      `}</style>
-
       {/* Drag handle */}
       <div
         onMouseDown={startResize}
         title="Drag to resize"
         data-resizing="true"
-        style={{
-          height: 6,
-          cursor: 'ns-resize',
-          background: 'transparent',
-          borderTop: '2px solid var(--gh-border, #30363d)',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-        }}
+        className="monitor-panel__resize-handle"
       />
 
       {/* Tabs header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px 10px',
-          background: 'var(--gh-bg-sidebar, #161b22)',
-          borderBottom: '1px solid var(--gh-border, #30363d)',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 6 }}>
+      <div className="monitor-panel__tabs">
+        <div className="monitor-panel__tab-list">
           <button
             id="monitor-tab-errors"
             onClick={() => setActiveTab('errors')}
-            style={{
-              border: '1px solid var(--gh-border, #30363d)',
-              borderBottom:
-                activeTab === 'errors' ? '2px solid var(--gh-accent, #238636)' : '1px solid var(--gh-border, #30363d)',
-              background: activeTab === 'errors' ? 'rgba(56, 139, 253, 0.08)' : 'transparent',
-              color: 'var(--gh-text, #c9d1d9)',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              borderRadius: 0,
-            }}
+            className={`monitor-panel__tab-button monitor-panel__tab-button--errors${activeTab === 'errors' ? ' is-active' : ''}`}
           >
             Errors ({panelInfo.errorCount || 0})
           </button>
           <button
             id="monitor-tab-warnings"
             onClick={() => setActiveTab('warnings')}
-            style={{
-              border: '1px solid var(--gh-border, #30363d)',
-              borderBottom:
-                activeTab === 'warnings'
-                  ? '2px solid var(--gh-accent, #238636)'
-                  : '1px solid var(--gh-border, #30363d)',
-              background: activeTab === 'warnings' ? 'rgba(219, 171, 9, 0.08)' : 'transparent',
-              color: 'var(--gh-text, #c9d1d9)',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              borderRadius: 0,
-            }}
+            className={`monitor-panel__tab-button monitor-panel__tab-button--warnings${activeTab === 'warnings' ? ' is-active' : ''}`}
           >
             Warnings ({panelInfo.warningCount || 0})
           </button>
           <button
             id="monitor-tab-prometheus"
             onClick={() => setActiveTab('prometheus')}
-            style={{
-              border: '1px solid var(--gh-border, #30363d)',
-              borderBottom:
-                activeTab === 'prometheus'
-                  ? '2px solid var(--gh-accent, #238636)'
-                  : '1px solid var(--gh-border, #30363d)',
-              background: activeTab === 'prometheus' ? 'rgba(46, 160, 67, 0.08)' : 'transparent',
-              color: 'var(--gh-text, #c9d1d9)',
-              padding: '6px 10px',
-              cursor: 'pointer',
-              borderRadius: 0,
-            }}
+            className={`monitor-panel__tab-button monitor-panel__tab-button--prometheus${activeTab === 'prometheus' ? ' is-active' : ''}`}
           >
             Prometheus
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="monitor-panel__actions">
           <button
             type="button"
             onClick={handleScan}
             disabled={scanLoading}
-            style={{
-              background: '#1f6feb',
-              color: '#fff',
-              border: '1px solid #1f6feb',
-              borderRadius: 0,
-              padding: '6px 10px',
-              cursor: scanLoading ? 'not-allowed' : 'pointer',
-              fontSize: 12,
-              opacity: scanLoading ? 0.7 : 1,
-            }}
+            className="monitor-panel__action-button monitor-panel__action-button--scan"
           >
             {scanLoading ? 'Scanning…' : 'Rescan'}
           </button>
@@ -384,31 +308,14 @@ export function MonitorPanel({ monitorInfo, open, onClose }: MonitorPanelProps) 
             type="button"
             onClick={handleAnalyzeAll}
             disabled={analyzeAllLoading}
-            style={{
-              background: '#238636',
-              color: '#fff',
-              border: '1px solid #238636',
-              borderRadius: 0,
-              padding: '6px 10px',
-              cursor: analyzeAllLoading ? 'not-allowed' : 'pointer',
-              fontSize: 12,
-              opacity: analyzeAllLoading ? 0.7 : 1,
-            }}
+            className="monitor-panel__action-button monitor-panel__action-button--analyze"
           >
             {analyzeAllLoading ? 'Analyzing…' : 'Analyze all'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              color: '#fff',
-              border: '1px solid var(--gh-border, #30363d)',
-              borderRadius: 0,
-              padding: '6px 10px',
-              cursor: 'pointer',
-              fontSize: 12,
-            }}
+            className="monitor-panel__action-button monitor-panel__action-button--close"
           >
             Close
           </button>
@@ -416,13 +323,13 @@ export function MonitorPanel({ monitorInfo, open, onClose }: MonitorPanelProps) 
       </div>
 
       {/* Panel content */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div className="monitor-panel__content">
         {activeTab === 'prometheus' ? (
           <PrometheusAlertsTab />
         ) : issues.length === 0 ? (
-          <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No issues found.</div>
+          <div className="monitor-panel__empty">No issues found.</div>
         ) : (
-          <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="monitor-panel__issues">
             {uniqueIssues.map((issue, idx) => (
               <MonitorIssueCard
                 key={issue.issueID || `${issue.resource || 'issue'}-${issue.name || 'unknown'}-${idx}`}

@@ -1,24 +1,13 @@
 package app
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
-
-// getCronJobImage extracts the first container image from a cronjob
-func getCronJobImage(cj *batchv1.CronJob) string {
-	containers := cj.Spec.JobTemplate.Spec.Template.Spec.Containers
-	if len(containers) > 0 {
-		return containers[0].Image
-	}
-	return ""
-}
 
 // getCronJobNextRun calculates the next run time string
 func getCronJobNextRun(cj *batchv1.CronJob, now time.Time) string {
@@ -32,29 +21,8 @@ func getCronJobNextRun(cj *batchv1.CronJob, now time.Time) string {
 	return "-"
 }
 
-// mergeCronJobLabels merges cronjob and template labels
-func mergeCronJobLabels(cj *batchv1.CronJob) map[string]string {
-	labels := make(map[string]string)
-	for k, v := range cj.Labels {
-		labels[k] = v
-	}
-	if tmpl := cj.Spec.JobTemplate.Spec.Template; tmpl.Labels != nil {
-		for k, v := range tmpl.Labels {
-			if _, exists := labels[k]; !exists {
-				labels[k] = v
-			}
-		}
-	}
-	return labels
-}
-
 // buildCronJobInfo creates a CronJobInfo from a cronjob resource
-func buildCronJobInfo(cj batchv1.CronJob, now time.Time) CronJobInfo {
-	age := "-"
-	if cj.CreationTimestamp.Time != (time.Time{}) {
-		age = formatDuration(now.Sub(cj.CreationTimestamp.Time))
-	}
-
+func buildCronJobInfo(cj *batchv1.CronJob, now time.Time) CronJobInfo {
 	suspend := cj.Spec.Suspend != nil && *cj.Spec.Suspend
 
 	return CronJobInfo{
@@ -62,52 +30,25 @@ func buildCronJobInfo(cj batchv1.CronJob, now time.Time) CronJobInfo {
 		Namespace: cj.Namespace,
 		Schedule:  cj.Spec.Schedule,
 		Suspend:   suspend,
-		Age:       age,
-		Image:     getCronJobImage(&cj),
-		NextRun:   getCronJobNextRun(&cj, now),
-		Labels:    mergeCronJobLabels(&cj),
+		Age:       FormatAge(cj.CreationTimestamp, now),
+		Image:     ExtractFirstContainerImage(cj.Spec.JobTemplate.Spec.Template.Spec),
+		NextRun:   getCronJobNextRun(cj, now),
+		Labels:    MergeLabels(cj.Labels, cj.Spec.JobTemplate.Spec.Template.Labels),
 	}
 }
 
 // GetCronJobs returns all cronjobs in a namespace
 func (a *App) GetCronJobs(namespace string) ([]CronJobInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		configPath := a.getKubeConfigPath()
-		config, err := clientcmd.LoadFromFile(configPath)
-		if err != nil {
-			return nil, err
-		}
-		if a.currentKubeContext == "" {
-			return nil, fmt.Errorf("Kein Kontext gewählt")
-		}
-		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-		restConfig, err := clientConfig.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		clientset, err = kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	list, err := clientset.BatchV1().CronJobs(namespace).List(a.ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	result := make([]CronJobInfo, 0, len(list.Items))
-	for _, cj := range list.Items {
-		result = append(result, buildCronJobInfo(cj, now))
-	}
-
-	return result, nil
+	return listResources(a, namespace,
+		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]batchv1.CronJob, error) {
+			list, err := cs.BatchV1().CronJobs(ns).List(a.ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+			return list.Items, nil
+		},
+		buildCronJobInfo,
+	)
 }
 
 // computeNextRunString parses a standard 5-field cron schedule and returns the next occurrence as a formatted string.
@@ -140,30 +81,4 @@ func computeNextRuns(schedule string, base time.Time, count int) []string {
 		out = append(out, t.Local().Format(time.RFC3339))
 	}
 	return out
-}
-
-// StartCronJobPolling emits cronjobs:update events periodically with the current cronjob list
-func (a *App) StartCronJobPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectCronJobs(nsList)
-				emitEvent(a.ctx, "cronjobs:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectCronJobs(nsList []string) []CronJobInfo {
-	var all []CronJobInfo
-	for _, ns := range nsList {
-		if cjs, err := a.GetCronJobs(ns); err == nil {
-			all = append(all, cjs...)
-		}
-	}
-	return all
 }

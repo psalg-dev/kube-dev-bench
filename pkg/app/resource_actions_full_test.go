@@ -524,30 +524,110 @@ func TestStartJob(t *testing.T) {
 	}
 }
 
-// Tests for patchControllerAnnotation
-func TestPatchControllerAnnotation(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	// Test with successful patch function
-	called := false
-	err := app.patchControllerAnnotation("Deployment", "default", "test", func() error {
-		called = true
-		return nil
-	})
-	if err != nil {
-		t.Errorf("patchControllerAnnotation failed: %v", err)
+// Tests for RestartWorkload (generic)
+func TestRestartWorkload(t *testing.T) {
+	tests := []struct {
+		name        string
+		kind        string
+		setupFunc   func(*fake.Clientset)
+		expectError bool
+	}{
+		{
+			name: "restart deployment via RestartWorkload",
+			kind: "deployment",
+			setupFunc: func(cs *fake.Clientset) {
+				deploy := &appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-wl", Namespace: "default"},
+					Spec: appsv1.DeploymentSpec{
+						Replicas: int32Ptr(1),
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "test"}},
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "test"}},
+							Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}}},
+						},
+					},
+				}
+				cs.AppsV1().Deployments("default").Create(context.Background(), deploy, metav1.CreateOptions{})
+			},
+		},
+		{
+			name: "restart statefulset via RestartWorkload",
+			kind: "statefulset",
+			setupFunc: func(cs *fake.Clientset) {
+				sts := &appsv1.StatefulSet{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-wl", Namespace: "default"},
+					Spec: appsv1.StatefulSetSpec{
+						Replicas: int32Ptr(1),
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "test"}},
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "test"}},
+							Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}}},
+						},
+					},
+				}
+				cs.AppsV1().StatefulSets("default").Create(context.Background(), sts, metav1.CreateOptions{})
+			},
+		},
+		{
+			name: "restart daemonset via RestartWorkload",
+			kind: "daemonset",
+			setupFunc: func(cs *fake.Clientset) {
+				ds := &appsv1.DaemonSet{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-wl", Namespace: "default"},
+					Spec: appsv1.DaemonSetSpec{
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "test"}},
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "test"}},
+							Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}}},
+						},
+					},
+				}
+				cs.AppsV1().DaemonSets("default").Create(context.Background(), ds, metav1.CreateOptions{})
+			},
+		},
+		{
+			name:        "restart unsupported kind returns error",
+			kind:        "configmap",
+			setupFunc:   nil,
+			expectError: true,
+		},
+		{
+			name: "restart with plural kind",
+			kind: "Deployments",
+			setupFunc: func(cs *fake.Clientset) {
+				deploy := &appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-wl", Namespace: "default"},
+					Spec: appsv1.DeploymentSpec{
+						Replicas: int32Ptr(1),
+						Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "test"}},
+						Template: corev1.PodTemplateSpec{
+							ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "test"}},
+							Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}}},
+						},
+					},
+				}
+				cs.AppsV1().Deployments("default").Create(context.Background(), deploy, metav1.CreateOptions{})
+			},
+		},
 	}
-	if !called {
-		t.Error("patch function was not called")
-	}
 
-	// Test with error-returning patch function
-	testErr := fmt.Errorf("test error")
-	err = app.patchControllerAnnotation("Deployment", "default", "test", func() error {
-		return testErr
-	})
-	if err != testErr {
-		t.Errorf("expected error %v, got %v", testErr, err)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			clientset := fake.NewSimpleClientset()
+			if tc.setupFunc != nil {
+				tc.setupFunc(clientset)
+			}
+
+			app := &App{ctx: context.Background(), testClientset: clientset}
+			err := app.RestartWorkload(tc.kind, "default", "test-wl")
+
+			if tc.expectError && err == nil {
+				t.Error("expected error but got none")
+			}
+			if !tc.expectError && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+		})
 	}
 }
 

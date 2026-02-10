@@ -451,13 +451,13 @@ export default function OverviewTableWithPanel({
         </div>
       </div>
 
-      <table className="gh-table" data-testid={tableTestId} style={{ width: '100%', tableLayout: 'fixed' }}>
+      <table className="gh-table" data-testid={tableTestId}>
         <colgroup>
           {bulkEnabled && <col className="bulk-checkbox-col" />}
           {columns.map((col, idx) => (
             <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
           ))}
-          <col style={{ width: '100px' }} />
+          <col className="overview-actions-col" />
         </colgroup>
         <thead>
           <tr>
@@ -501,7 +501,6 @@ export default function OverviewTableWithPanel({
               <tr
                 key={getRowKey(row, idx)}
                 className={bulkEnabled && selection.isSelected(getRowKey(row, idx)) ? 'bulk-selected' : undefined}
-                style={{ cursor: 'pointer' }}
                 onClick={(e) => {
                   if (bulkEnabled && e.shiftKey) {
                     e.preventDefault();
@@ -539,7 +538,7 @@ export default function OverviewTableWithPanel({
                     })()}
                   </td>
                 ))}
-                <td style={{ position: 'relative', textAlign: 'right', overflow: 'visible' }}>
+                <td className="row-actions-cell">
                   <button
                     type="button"
                     className="row-actions-button"
@@ -556,18 +555,6 @@ export default function OverviewTableWithPanel({
                   {openMenuKey === getRowKey(row, idx) && (
                     <div
                       className="menu-content row-actions-menu"
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: '100%',
-                        background: 'var(--gh-table-header-bg, #2d323b)',
-                        border: '1px solid #353a42',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                        zIndex: 1200,
-                        minWidth: 180,
-                        textAlign: 'left',
-                        padding: '4px 0',
-                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       {(() => {
@@ -575,20 +562,11 @@ export default function OverviewTableWithPanel({
                         return menuActions.map((a: RowAction, i: number) => {
                         const disabled = Boolean(a?.disabled);
                         const danger = Boolean(a?.danger);
+                        const itemClassName = `context-menu-item${disabled ? ' is-disabled' : ''}${danger ? ' is-danger' : ''}`;
                         return (
                           <div
                             key={`${a?.label || 'action'}-${i}`}
-                            className="context-menu-item"
-                            style={{
-                              padding: '8px 16px',
-                              cursor: disabled ? 'not-allowed' : 'pointer',
-                              color: danger ? '#f85149' : '#fff',
-                              opacity: disabled ? 0.55 : 1,
-                              fontSize: 15,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 8,
-                            }}
+                            className={itemClassName}
                             onClick={() => {
                               if (disabled) return;
                               try {
@@ -599,9 +577,9 @@ export default function OverviewTableWithPanel({
                             }}
                           >
                             {a?.icon ? (
-                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block', textAlign: 'center' }}>{a.icon}</span>
+                              <span aria-hidden="true" className="context-menu-icon">{a.icon}</span>
                             ) : (
-                              <span aria-hidden="true" style={{ width: 18, display: 'inline-block' }} />
+                              <span aria-hidden="true" className="context-menu-icon" />
                             )}
                             <span>{a?.label}</span>
                           </div>

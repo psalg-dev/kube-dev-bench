@@ -500,8 +500,8 @@ func (a *App) AnalyzeMonitorIssue(issueID string) (*MonitorIssue, error) {
 	}
 
 	if a.ctx != nil {
-		emitEvent(a.ctx, "holmes:analysis:update", found)
-		emitEvent(a.ctx, "monitor:update", a.collectMonitorInfo(nsList))
+		emitEvent(a.ctx, EventHolmesAnalysisUpdate, found)
+		emitEvent(a.ctx, EventMonitorUpdate, a.collectMonitorInfo(nsList))
 	}
 
 	return found, nil
@@ -525,7 +525,7 @@ func (a *App) AnalyzeAllMonitorIssues() error {
 		_ = issue
 		_, _ = a.AnalyzeMonitorIssue(issue.IssueID)
 		if a.ctx != nil {
-			emitEvent(a.ctx, "holmes:analysis:progress", map[string]int{
+			emitEvent(a.ctx, EventHolmesAnalysisProgress, map[string]int{
 				"total":     total,
 				"completed": i + 1,
 			})
@@ -556,7 +556,7 @@ func (a *App) DismissMonitorIssue(issueID string) error {
 			nsList = []string{a.currentNamespace}
 		}
 		info := a.collectMonitorInfo(nsList)
-		emitEvent(a.ctx, "monitor:update", info)
+		emitEvent(a.ctx, EventMonitorUpdate, info)
 	}
 	return nil
 }

@@ -2,8 +2,10 @@ package app
 
 import (
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestExtractFirstContainerImage(t *testing.T) {
@@ -189,5 +191,106 @@ func TestInt32Ptr(t *testing.T) {
 	}
 	if *ptr != 5 {
 		t.Errorf("Int32Ptr(5) = %d, want 5", *ptr)
+	}
+}
+
+func TestFormatAge(t *testing.T) {
+	now := time.Date(2026, 2, 6, 12, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name     string
+		ts       metav1.Time
+		expected string
+	}{
+		{
+			name:     "zero timestamp returns dash",
+			ts:       metav1.Time{},
+			expected: "-",
+		},
+		{
+			name:     "seconds ago",
+			ts:       metav1.NewTime(now.Add(-30 * time.Second)),
+			expected: "30s",
+		},
+		{
+			name:     "minutes ago",
+			ts:       metav1.NewTime(now.Add(-5 * time.Minute)),
+			expected: "5m",
+		},
+		{
+			name:     "hours ago",
+			ts:       metav1.NewTime(now.Add(-3 * time.Hour)),
+			expected: "3h",
+		},
+		{
+			name:     "days ago",
+			ts:       metav1.NewTime(now.Add(-48 * time.Hour)),
+			expected: "2d",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatAge(tt.ts, now)
+			if result != tt.expected {
+				t.Errorf("FormatAge() = %q, want %q", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestFormatAccessModes(t *testing.T) {
+	tests := []struct {
+		name     string
+		modes    []corev1.PersistentVolumeAccessMode
+		expected string
+	}{
+		{
+			name:     "empty returns dash",
+			modes:    nil,
+			expected: "-",
+		},
+		{
+			name:     "ReadWriteOnce",
+			modes:    []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			expected: "RWO",
+		},
+		{
+			name:     "ReadOnlyMany",
+			modes:    []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+			expected: "ROX",
+		},
+		{
+			name:     "ReadWriteMany",
+			modes:    []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+			expected: "RWX",
+		},
+		{
+			name:     "ReadWriteOncePod",
+			modes:    []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOncePod},
+			expected: "RWOP",
+		},
+		{
+			name: "multiple modes",
+			modes: []corev1.PersistentVolumeAccessMode{
+				corev1.ReadWriteOnce,
+				corev1.ReadOnlyMany,
+			},
+			expected: "RWO,ROX",
+		},
+		{
+			name:     "unknown mode passthrough",
+			modes:    []corev1.PersistentVolumeAccessMode{"CustomMode"},
+			expected: "CustomMode",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatAccessModes(tt.modes)
+			if result != tt.expected {
+				t.Errorf("FormatAccessModes() = %q, want %q", result, tt.expected)
+			}
+		})
 	}
 }

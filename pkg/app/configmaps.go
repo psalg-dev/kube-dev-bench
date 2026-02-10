@@ -4,78 +4,45 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
+
+// buildConfigMapInfo constructs a ConfigMapInfo from a ConfigMap
+func buildConfigMapInfo(cm *corev1.ConfigMap, now time.Time) ConfigMapInfo {
+	keys := len(cm.Data) + len(cm.BinaryData)
+
+	totalSize := 0
+	for _, v := range cm.Data {
+		totalSize += len(v)
+	}
+	for _, v := range cm.BinaryData {
+		totalSize += len(v)
+	}
+
+	return ConfigMapInfo{
+		Name:      cm.Name,
+		Namespace: cm.Namespace,
+		Age:       FormatAge(cm.CreationTimestamp, now),
+		Keys:      keys,
+		Size:      formatBytes(totalSize),
+		Labels:    cm.Labels,
+	}
+}
 
 // GetConfigMaps returns all configmaps in a namespace
 func (a *App) GetConfigMaps(namespace string) ([]ConfigMapInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		configPath := a.getKubeConfigPath()
-		config, err := clientcmd.LoadFromFile(configPath)
-		if err != nil {
-			return nil, err
-		}
-		if a.currentKubeContext == "" {
-			return nil, fmt.Errorf("Kein Kontext gewählt")
-		}
-		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-		restConfig, err := clientConfig.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		clientset, err = kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	configMaps, err := clientset.CoreV1().ConfigMaps(namespace).List(a.ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	result := make([]ConfigMapInfo, 0, len(configMaps.Items))
-	now := time.Now()
-
-	for _, cm := range configMaps.Items {
-		age := "-"
-		if cm.CreationTimestamp.Time != (time.Time{}) {
-			dur := now.Sub(cm.CreationTimestamp.Time)
-			age = formatDuration(dur)
-		}
-
-		// Count the number of keys in the configmap
-		keys := len(cm.Data) + len(cm.BinaryData)
-
-		// Calculate total size of data
-		totalSize := 0
-		for _, v := range cm.Data {
-			totalSize += len(v)
-		}
-		for _, v := range cm.BinaryData {
-			totalSize += len(v)
-		}
-
-		size := formatBytes(totalSize)
-
-		result = append(result, ConfigMapInfo{
-			Name:      cm.Name,
-			Namespace: cm.Namespace,
-			Age:       age,
-			Keys:      keys,
-			Size:      size,
-			Labels:    cm.Labels,
-		})
-	}
-
-	return result, nil
+	return listResources(a, namespace,
+		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]corev1.ConfigMap, error) {
+			list, err := cs.CoreV1().ConfigMaps(ns).List(a.ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+			return list.Items, nil
+		},
+		buildConfigMapInfo,
+	)
 }
 
 // formatBytes converts bytes to human readable format

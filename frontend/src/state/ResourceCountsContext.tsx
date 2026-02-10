@@ -13,6 +13,7 @@ const ResourceCountsContext = createContext<ResourceCountsContextValue>({ counts
 
 export function ResourceCountsProvider({ children }: { children: React.ReactNode }) {
   const [counts, setCounts] = useState<ResourceCounts>(null);
+  const [lastUpdated, setLastUpdated] = useState(0);
   const lastSigRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -60,6 +61,7 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       if (sig !== lastSigRef.current) {
         lastSigRef.current = sig;
         if (active) setCounts(norm);
+        if (active) setLastUpdated(Date.now());
       }
     };
     (async () => {
@@ -79,7 +81,7 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
   }, []);
 
   return (
-    <ResourceCountsContext.Provider value={{ counts, lastUpdated: Date.now() }}>
+    <ResourceCountsContext.Provider value={{ counts, lastUpdated }}>
       {children}
     </ResourceCountsContext.Provider>
   );

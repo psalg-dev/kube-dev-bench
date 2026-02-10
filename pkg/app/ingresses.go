@@ -1,14 +1,12 @@
 package app
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // getIngressClass extracts the ingress class from spec or annotations
@@ -51,12 +49,7 @@ func getIngressAddress(ingress *networkingv1.Ingress) string {
 }
 
 // buildIngressInfo creates an IngressInfo from an ingress resource
-func buildIngressInfo(ingress networkingv1.Ingress, now time.Time) IngressInfo {
-	age := "-"
-	if ingress.CreationTimestamp.Time != (time.Time{}) {
-		age = formatDuration(now.Sub(ingress.CreationTimestamp.Time))
-	}
-
+func buildIngressInfo(ingress *networkingv1.Ingress, now time.Time) IngressInfo {
 	ports := "80"
 	if len(ingress.Spec.TLS) > 0 {
 		ports = "80,443"
@@ -65,52 +58,25 @@ func buildIngressInfo(ingress networkingv1.Ingress, now time.Time) IngressInfo {
 	return IngressInfo{
 		Name:      ingress.Name,
 		Namespace: ingress.Namespace,
-		Class:     getIngressClass(&ingress),
-		Hosts:     collectIngressHosts(&ingress),
-		Address:   getIngressAddress(&ingress),
+		Class:     getIngressClass(ingress),
+		Hosts:     collectIngressHosts(ingress),
+		Address:   getIngressAddress(ingress),
 		Ports:     ports,
-		Age:       age,
+		Age:       FormatAge(ingress.CreationTimestamp, now),
 		Labels:    ingress.Labels,
 	}
 }
 
 // GetIngresses returns all ingresses in a namespace
 func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		configPath := a.getKubeConfigPath()
-		config, err := clientcmd.LoadFromFile(configPath)
-		if err != nil {
-			return nil, err
-		}
-		if a.currentKubeContext == "" {
-			return nil, fmt.Errorf("Kein Kontext gewählt")
-		}
-		clientConfig := clientcmd.NewNonInteractiveClientConfig(*config, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
-		restConfig, err := clientConfig.ClientConfig()
-		if err != nil {
-			return nil, err
-		}
-		clientset, err = kubernetes.NewForConfig(restConfig)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	ingresses, err := clientset.NetworkingV1().Ingresses(namespace).List(a.ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	result := make([]IngressInfo, 0, len(ingresses.Items))
-	for _, ingress := range ingresses.Items {
-		result = append(result, buildIngressInfo(ingress, now))
-	}
-
-	return result, nil
+	return listResources(a, namespace,
+		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]networkingv1.Ingress, error) {
+			list, err := cs.NetworkingV1().Ingresses(ns).List(a.ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+			return list.Items, nil
+		},
+		buildIngressInfo,
+	)
 }

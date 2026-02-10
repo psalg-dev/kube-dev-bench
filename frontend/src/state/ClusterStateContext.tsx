@@ -121,6 +121,42 @@ const ClusterStateContext = createContext<ClusterStateContextValue | null>(null)
 export function ClusterStateProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
 
+  const trySetCurrentContext = useCallback(async (ctx: string) => {
+    try {
+      await SetCurrentKubeContext(ctx);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const trySetCurrentNamespace = useCallback(async (name: string) => {
+    try {
+      await SetCurrentNamespace(name);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const trySetPreferredNamespaces = useCallback(async (names: string[]) => {
+    try {
+      await SetPreferredNamespaces(names);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const persistNamespaces = useCallback(async (names: string[]) => {
+    if (names[0]) {
+      await trySetCurrentNamespace(names[0]);
+    }
+    if (names.length > 0) {
+      await trySetPreferredNamespaces(names);
+    }
+  }, [trySetCurrentNamespace, trySetPreferredNamespaces]);
+
   const refreshConnectionStatus = useCallback(async () => {
     try {
       const status = await GetConnectionStatus();
@@ -157,7 +193,7 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
           : contexts[0];
         if (!config.currentContext || !contexts.includes(config.currentContext)) {
           showSuccess(`Auto-selected context '${selectedContext}'.`);
-          try { await SetCurrentKubeContext(selectedContext); } catch {}
+          await trySetCurrentContext(selectedContext);
         }
         dispatch({ type: 'SET_SELECTED_CONTEXT', value: selectedContext });
 
@@ -176,8 +212,7 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
         let selNs = Array.isArray(pref) ? pref.filter((n: string) => namespaces.includes(n)) : [];
         if (selNs.length === 0) selNs = [namespaces[0]];
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: selNs });
-        try { await SetCurrentNamespace(selNs[0]); } catch {}
-        try { await SetPreferredNamespaces(selNs); } catch {}
+        await persistNamespaces(selNs);
         await refreshConnectionStatus();
       } catch (err) {
         showError('Initialization error: ' + String(err));
@@ -187,14 +222,14 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
         dispatch({ type: 'SET_LOADING', loading: false });
       }
     })();
-  }, [refreshConnectionStatus]);
+  }, [refreshConnectionStatus, trySetCurrentContext, persistNamespaces]);
 
   const selectContext = useCallback(async (ctx: string) => {
     if (!ctx || ctx === state.selectedContext) return;
     dispatch({ type: 'SET_SELECTED_CONTEXT', value: ctx });
     dispatch({ type: 'DISABLE_NAMESPACES' });
     try {
-      await SetCurrentKubeContext(ctx);
+      await trySetCurrentContext(ctx);
       const namespaces = await GetNamespaces();
       if (!namespaces || namespaces.length === 0) {
         showWarning('No namespaces found.');
@@ -205,14 +240,13 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
       dispatch({ type: 'SET_NAMESPACES', namespaces });
       const selNs = [namespaces[0]];
       dispatch({ type: 'SET_SELECTED_NAMESPACES', values: selNs });
-      try { await SetCurrentNamespace(selNs[0]); } catch {}
-      try { await SetPreferredNamespaces(selNs); } catch {}
+      await persistNamespaces(selNs);
       showSuccess(`Context switched to '${ctx}'.`);
       await refreshConnectionStatus();
     } catch (err) {
       showError('Failed to switch context: ' + String(err));
     }
-  }, [state.selectedContext, refreshConnectionStatus]);
+  }, [state.selectedContext, refreshConnectionStatus, trySetCurrentContext, persistNamespaces]);
 
   const selectNamespaces = useCallback(async (names: string[]) => {
     if (!Array.isArray(names) || names.length === 0) {
@@ -220,10 +254,13 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
       return;
     }
     dispatch({ type: 'SET_SELECTED_NAMESPACES', values: names });
-    try { await SetCurrentNamespace(names[0]); showSuccess(`Namespaces saved: ${names.join(', ')}`); } catch {}
-    try { await SetPreferredNamespaces(names); } catch {}
+    const didSet = await trySetCurrentNamespace(names[0]);
+    if (didSet) {
+      showSuccess(`Namespaces saved: ${names.join(', ')}`);
+    }
+    await trySetPreferredNamespaces(names);
     await refreshConnectionStatus();
-  }, [refreshConnectionStatus]);
+  }, [refreshConnectionStatus, trySetCurrentNamespace, trySetPreferredNamespaces]);
 
   const reloadContexts = useCallback(async () => {
     try {
@@ -236,18 +273,18 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
       if (!latest.includes(state.selectedContext)) {
         const next = latest[0];
         dispatch({ type: 'SET_SELECTED_CONTEXT', value: next });
-        try { await SetCurrentKubeContext(next); } catch {}
+        await trySetCurrentContext(next);
         const namespaces = await GetNamespaces();
         dispatch({ type: 'SET_NAMESPACES', namespaces });
         const selNs = namespaces && namespaces.length > 0 ? [namespaces[0]] : [];
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: selNs });
-        if (selNs[0]) { try { await SetCurrentNamespace(selNs[0]); } catch {} }
+        await persistNamespaces(selNs);
         showSuccess(`Auto-selected context '${next}'.`);
       }
     } catch {
       // silent
     }
-  }, [state.selectedContext]);
+  }, [state.selectedContext, trySetCurrentContext, persistNamespaces]);
 
   const reloadNamespaces = useCallback(async () => {
     if (!state.selectedContext) return;
@@ -258,18 +295,16 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
       const still = state.selectedNamespaces.filter((ns) => latest.includes(ns));
       if (still.length === 0 && latest.length > 0) {
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: [latest[0]] });
-        try { await SetCurrentNamespace(latest[0]); } catch {}
-        try { await SetPreferredNamespaces([latest[0]]); } catch {}
+        await persistNamespaces([latest[0]]);
         showSuccess(`Namespaces list updated. Auto-selected '${latest[0]}'.`);
       } else if (still.length !== state.selectedNamespaces.length) {
         dispatch({ type: 'SET_SELECTED_NAMESPACES', values: still });
-        if (still[0]) { try { await SetCurrentNamespace(still[0]); } catch {} }
-        try { if (still.length > 0) await SetPreferredNamespaces(still); } catch {}
+        await persistNamespaces(still);
       }
     } catch {
       // silent
     }
-  }, [state.selectedContext, state.selectedNamespaces]);
+  }, [state.selectedContext, state.selectedNamespaces, persistNamespaces]);
 
   const value: ClusterStateContextValue = {
     ...state,

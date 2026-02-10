@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConnectionsState, type ProxyConfig } from './ConnectionsStateContext';
+import './ConnectionProxySettings.css';
 
 type ConnectionProxySettingsProps = {
   onClose: () => void;
@@ -9,104 +10,6 @@ type SystemProxyConfig = {
   HTTP_PROXY?: string;
   HTTPS_PROXY?: string;
   NO_PROXY?: string;
-};
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle: React.CSSProperties = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '500px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '24px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle: React.CSSProperties = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1,
-};
-
-const footerStyle: React.CSSProperties = {
-  padding: '16px 24px',
-  borderTop: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 12,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px 12px',
-  backgroundColor: 'var(--gh-input-bg, #0d1117)',
-  border: '1px solid var(--gh-border, #30363d)',
-  color: 'var(--gh-text, #c9d1d9)',
-  fontSize: 14,
-  boxSizing: 'border-box',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 6,
-  color: 'var(--gh-text, #fff)',
-  fontWeight: 500,
-};
-
-const radioGroupStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '12px 16px',
-  backgroundColor: 'var(--gh-card-bg, #161b22)',
-  border: '1px solid var(--gh-border, #30363d)',
-  borderRadius: 6,
-  cursor: 'pointer',
-  marginBottom: 8,
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
 };
 
 function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
@@ -156,56 +59,36 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
 
   return (
     <div
-      style={overlayStyle}
+      className="proxy-settings-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={handleKeyDown}
-      className="proxy-settings-overlay"
     >
-      <div style={dialogStyle}>
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>{title}</h2>
+      <div className="proxy-settings-dialog">
+        <div className="proxy-settings-header">
+          <h2 className="proxy-settings-title">{title}</h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
+            className="proxy-settings-close"
           >
             ✕
           </button>
         </div>
 
-        <div style={contentStyle}>
+        <div className="proxy-settings-content">
           {(error || localError) && (
-            <div
-              style={{
-                background: 'rgba(248, 81, 73, 0.1)',
-                border: '1px solid #f85149',
-                color: '#f85149',
-                padding: '12px',
-                marginBottom: '16px',
-                fontSize: 14,
-              }}
-            >
+            <div className="proxy-settings-alert">
               {localError || error}
             </div>
           )}
 
-          <p style={{ margin: '0 0 20px', color: 'var(--gh-text-secondary, #ccc)', fontSize: 14 }}>
+          <p className="proxy-settings-description">
             Configure HTTP/HTTPS proxy for API connections.
           </p>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Proxy Mode</label>
+          <div className="proxy-settings-section">
+            <label className="proxy-settings-label">Proxy Mode</label>
             <div
-              style={{
-                ...radioGroupStyle,
-                borderColor: authType === 'none' ? '#238636' : 'var(--gh-border, #30363d)',
-              }}
+              className={`proxy-settings-radio${authType === 'none' ? ' is-active' : ''}`}
               onClick={() => setAuthType('none')}
             >
               <input
@@ -216,17 +99,14 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
                 onChange={() => setAuthType('none')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>No Proxy</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div className="proxy-settings-radio-title">No Proxy</div>
+                <div className="proxy-settings-radio-description">
                   Connect directly without a proxy
                 </div>
               </div>
             </div>
             <div
-              style={{
-                ...radioGroupStyle,
-                borderColor: authType === 'system' ? '#238636' : 'var(--gh-border, #30363d)',
-              }}
+              className={`proxy-settings-radio${authType === 'system' ? ' is-active' : ''}`}
               onClick={() => setAuthType('system')}
             >
               <input
@@ -237,17 +117,14 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
                 onChange={() => setAuthType('system')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>Use System Proxy</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div className="proxy-settings-radio-title">Use System Proxy</div>
+                <div className="proxy-settings-radio-description">
                   Use proxy settings from environment
                 </div>
               </div>
             </div>
             <div
-              style={{
-                ...radioGroupStyle,
-                borderColor: authType === 'basic' ? '#238636' : 'var(--gh-border, #30363d)',
-              }}
+              className={`proxy-settings-radio${authType === 'basic' ? ' is-active' : ''}`}
               onClick={() => setAuthType('basic')}
             >
               <input
@@ -258,8 +135,8 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
                 onChange={() => setAuthType('basic')}
               />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>Manual Configuration</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div className="proxy-settings-radio-title">Manual Configuration</div>
+                <div className="proxy-settings-radio-description">
                   Specify proxy URL and credentials
                 </div>
               </div>
@@ -267,16 +144,9 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
           </div>
 
           {authType === 'system' && (
-            <div
-              style={{
-                background: 'var(--bg-secondary, #21262d)',
-                padding: '12px',
-                borderRadius: 4,
-                marginBottom: 16,
-              }}
-            >
-              <label style={{ ...labelStyle, marginBottom: 8 }}>Detected System Proxy:</label>
-              <div style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--gh-text, #ccc)' }}>
+            <div className="proxy-settings-system">
+              <label className="proxy-settings-label proxy-settings-label--spaced">Detected System Proxy:</label>
+              <div className="proxy-settings-system-values">
                 <div>HTTP_PROXY: {(systemProxy as SystemProxyConfig).HTTP_PROXY || '(not set)'}</div>
                 <div>HTTPS_PROXY: {(systemProxy as SystemProxyConfig).HTTPS_PROXY || '(not set)'}</div>
                 <div>NO_PROXY: {(systemProxy as SystemProxyConfig).NO_PROXY || '(not set)'}</div>
@@ -286,8 +156,8 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
 
           {authType === 'basic' && (
             <>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle} htmlFor="proxyURL">
+              <div className="proxy-settings-field">
+                <label className="proxy-settings-label" htmlFor="proxyURL">
                   Proxy URL
                 </label>
                 <input
@@ -296,11 +166,11 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="http://proxy.example.com:8080"
-                  style={inputStyle}
+                  className="proxy-settings-input"
                 />
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle} htmlFor="proxyUsername">
+              <div className="proxy-settings-field">
+                <label className="proxy-settings-label" htmlFor="proxyUsername">
                   Username (optional)
                 </label>
                 <input
@@ -309,11 +179,11 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="username"
-                  style={inputStyle}
+                  className="proxy-settings-input"
                 />
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle} htmlFor="proxyPassword">
+              <div className="proxy-settings-field">
+                <label className="proxy-settings-label" htmlFor="proxyPassword">
                   Password (optional)
                 </label>
                 <input
@@ -322,23 +192,20 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  style={inputStyle}
+                  className="proxy-settings-input"
                 />
               </div>
             </>
           )}
         </div>
 
-        <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose} disabled={loading}>
+        <div className="proxy-settings-footer">
+          <button className="proxy-settings-button proxy-settings-button--secondary" onClick={onClose} disabled={loading}>
             Cancel
           </button>
           <button
             id="save-proxy-btn"
-            style={{
-              ...primaryButtonStyle,
-              opacity: loading || (authType === 'basic' && !url.trim()) ? 0.5 : 1,
-            }}
+            className="proxy-settings-button proxy-settings-button--primary"
             onClick={handleSave}
             disabled={loading || (authType === 'basic' && !url.trim())}
           >

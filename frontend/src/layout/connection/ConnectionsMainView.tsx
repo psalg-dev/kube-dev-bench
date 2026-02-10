@@ -5,6 +5,7 @@ import AddKubeConfigOverlay from './AddKubeConfigOverlay';
 import AddSwarmConnectionOverlay from './AddSwarmConnectionOverlay';
 import ConnectionProxySettings from './ConnectionProxySettings';
 import ConnectionHooksSettings from './ConnectionHooksSettings';
+import './ConnectionsMainView.css';
 
 type ConnectionsMainViewProps = {
   onConnect?: () => void;
@@ -48,7 +49,7 @@ function ConnectionsMainView({ onConnect }: ConnectionsMainViewProps) {
   };
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className="connections-main-view">
       {renderContent()}
 
       {showAddKubeConfigOverlay && (

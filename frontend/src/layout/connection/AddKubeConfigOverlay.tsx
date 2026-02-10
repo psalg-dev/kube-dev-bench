@@ -1,103 +1,10 @@
 import { useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext';
+import './AddKubeConfigOverlay.css';
 
 type AddKubeConfigOverlayProps = {
   onClose: () => void;
   onSuccess: () => void;
-};
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle: React.CSSProperties = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '600px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '24px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle: React.CSSProperties = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1,
-};
-
-const footerStyle: React.CSSProperties = {
-  padding: '16px 24px',
-  borderTop: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 12,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px 12px',
-  backgroundColor: 'var(--gh-input-bg, #0d1117)',
-  border: '1px solid var(--gh-border, #30363d)',
-  color: 'var(--gh-text, #c9d1d9)',
-  fontSize: 14,
-  boxSizing: 'border-box',
-};
-
-const textareaStyle: React.CSSProperties = {
-  ...inputStyle,
-  minHeight: '300px',
-  fontFamily: 'Courier New, monospace',
-  fontSize: 12,
-  resize: 'vertical',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 6,
-  color: 'var(--gh-text, #fff)',
-  fontWeight: 500,
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
 };
 
 function AddKubeConfigOverlay({ onClose, onSuccess }: AddKubeConfigOverlayProps) {
@@ -142,52 +49,35 @@ function AddKubeConfigOverlay({ onClose, onSuccess }: AddKubeConfigOverlayProps)
 
   return (
     <div
-      style={overlayStyle}
+      className="add-kubeconfig-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={handleKeyDown}
-      className="add-kubeconfig-overlay"
     >
-      <div style={dialogStyle}>
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>
+      <div className="add-kubeconfig-dialog">
+        <div className="add-kubeconfig-header">
+          <h2 className="add-kubeconfig-title">
             {isFirstConfig ? '☸️ Create Your First Kubeconfig' : '☸️ Add Kubeconfig'}
           </h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
+            className="add-kubeconfig-close"
           >
             ✕
           </button>
         </div>
 
-        <div style={contentStyle}>
+        <div className="add-kubeconfig-content">
           {(error || localError) && (
-            <div
-              style={{
-                background: 'rgba(248, 81, 73, 0.1)',
-                border: '1px solid #f85149',
-                color: '#f85149',
-                padding: '12px',
-                marginBottom: '16px',
-                fontSize: 14,
-              }}
-            >
+            <div className="add-kubeconfig-alert">
               {localError || error}
             </div>
           )}
 
           {!isFirstConfig && (
-            <div style={{ marginBottom: 20 }}>
-              <label style={labelStyle}>Configuration Type</label>
-              <div style={{ display: 'flex', gap: 12 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+            <div className="add-kubeconfig-section">
+              <label className="add-kubeconfig-label">Configuration Type</label>
+              <div className="add-kubeconfig-radio-group">
+                <label className="add-kubeconfig-radio">
                   <input
                     type="radio"
                     name="mode"
@@ -195,9 +85,9 @@ function AddKubeConfigOverlay({ onClose, onSuccess }: AddKubeConfigOverlayProps)
                     checked={mode === 'paste'}
                     onChange={() => setMode('paste')}
                   />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Save as primary (~/.kube/kubeconfig)</span>
+                  <span className="add-kubeconfig-radio-text">Save as primary (~/.kube/kubeconfig)</span>
                 </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+                <label className="add-kubeconfig-radio">
                   <input
                     type="radio"
                     name="mode"
@@ -205,15 +95,15 @@ function AddKubeConfigOverlay({ onClose, onSuccess }: AddKubeConfigOverlayProps)
                     checked={mode === 'named'}
                     onChange={() => setMode('named')}
                   />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Save with custom name</span>
+                  <span className="add-kubeconfig-radio-text">Save with custom name</span>
                 </label>
               </div>
             </div>
           )}
 
           {mode === 'named' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle} htmlFor="configName">
+            <div className="add-kubeconfig-field">
+              <label className="add-kubeconfig-label" htmlFor="configName">
                 Configuration Name
               </label>
               <input
@@ -222,13 +112,13 @@ function AddKubeConfigOverlay({ onClose, onSuccess }: AddKubeConfigOverlayProps)
                 value={configName}
                 onChange={(e) => setConfigName(e.target.value)}
                 placeholder="e.g., my-cluster"
-                style={inputStyle}
+                className="add-kubeconfig-input"
               />
             </div>
           )}
 
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle} htmlFor="primaryConfigContent">
+          <div className="add-kubeconfig-field">
+            <label className="add-kubeconfig-label" htmlFor="primaryConfigContent">
               Kubeconfig Content (YAML)
             </label>
             <textarea
@@ -252,11 +142,11 @@ users:
 - name: my-user
   user:
     token: ...`}
-              style={textareaStyle}
+              className="add-kubeconfig-textarea"
             />
           </div>
 
-          <p style={{ margin: 0, color: 'var(--gh-text-tertiary, #999)', fontSize: 12 }}>
+          <p className="add-kubeconfig-help">
             {isFirstConfig
               ? 'Paste your kubeconfig YAML content above. This will be saved as your primary kubeconfig.'
               : mode === 'paste'
@@ -265,16 +155,12 @@ users:
           </p>
         </div>
 
-        <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose} disabled={loading}>
+        <div className="add-kubeconfig-footer">
+          <button className="add-kubeconfig-button add-kubeconfig-button--secondary" onClick={onClose} disabled={loading}>
             Cancel
           </button>
           <button
-            style={{
-              ...primaryButtonStyle,
-              opacity: loading || !configContent.trim() ? 0.5 : 1,
-              cursor: loading || !configContent.trim() ? 'not-allowed' : 'pointer',
-            }}
+            className="add-kubeconfig-button add-kubeconfig-button--primary"
             onClick={handleSave}
             disabled={loading || !configContent.trim()}
           >

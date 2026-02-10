@@ -116,7 +116,7 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 	}
 
 	if a.currentKubeContext == "" {
-		return fmt.Errorf("Kein Kontext gewählt")
+		return fmt.Errorf("no kube context selected")
 	}
 
 	restCfg, err := a.getRESTConfig()
@@ -177,7 +177,7 @@ func (a *App) emitResourceUpdateEvents(ns, kind string) {
 
 	// Always emit pods snapshot for now (existing behavior)
 	if pods, err := a.GetRunningPods(ns); err == nil {
-		emitEvent(a.ctx, "pods:update", pods)
+		emitEvent(a.ctx, EventPodsUpdate, pods)
 	}
 
 	// Emit resource-specific event based on kind
@@ -194,15 +194,15 @@ func (a *App) emitKindSpecificUpdate(ns, kind string) {
 	}
 
 	fetchers := map[string]resourceFetcher{
-		"deployment":  {"deployments:update", func() (interface{}, error) { return a.GetDeployments(ns) }},
-		"statefulset": {"statefulsets:update", func() (interface{}, error) { return a.GetStatefulSets(ns) }},
-		"daemonset":   {"daemonsets:update", func() (interface{}, error) { return a.GetDaemonSets(ns) }},
-		"replicaset":  {"replicasets:update", func() (interface{}, error) { return a.GetReplicaSets(ns) }},
-		"job":         {"jobs:update", func() (interface{}, error) { return a.GetJobs(ns) }},
-		"cronjob":     {"cronjobs:update", func() (interface{}, error) { return a.GetCronJobs(ns) }},
-		"ingress":     {"ingresses:update", func() (interface{}, error) { return a.GetIngresses(ns) }},
-		"secret":      {"secrets:update", func() (interface{}, error) { return a.GetSecrets(ns) }},
-		"configmap":   {"configmaps:update", func() (interface{}, error) { return a.GetConfigMaps(ns) }},
+		"deployment":  {EventDeploymentsUpdate, func() (interface{}, error) { return a.GetDeployments(ns) }},
+		"statefulset": {EventStatefulSetsUpdate, func() (interface{}, error) { return a.GetStatefulSets(ns) }},
+		"daemonset":   {EventDaemonSetsUpdate, func() (interface{}, error) { return a.GetDaemonSets(ns) }},
+		"replicaset":  {EventReplicaSetsUpdate, func() (interface{}, error) { return a.GetReplicaSets(ns) }},
+		"job":         {EventJobsUpdate, func() (interface{}, error) { return a.GetJobs(ns) }},
+		"cronjob":     {EventCronJobsUpdate, func() (interface{}, error) { return a.GetCronJobs(ns) }},
+		"ingress":     {EventIngressesUpdate, func() (interface{}, error) { return a.GetIngresses(ns) }},
+		"secret":      {EventSecretsUpdate, func() (interface{}, error) { return a.GetSecrets(ns) }},
+		"configmap":   {EventConfigMapsUpdate, func() (interface{}, error) { return a.GetConfigMaps(ns) }},
 	}
 
 	if fetcher, ok := fetchers[kindLower]; ok {

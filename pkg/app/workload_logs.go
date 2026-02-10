@@ -15,12 +15,21 @@ import (
 const defaultLogTailLines int64 = 200
 
 func (a *App) getPodLogsInNamespace(namespace, podName string, tailLines int64) (string, error) {
+	if tailLines <= 0 {
+		tailLines = defaultLogTailLines
+	}
+
+	if a.testPodLogsFetcher != nil {
+		logs, err := a.testPodLogsFetcher(namespace, podName, "", int(tailLines))
+		if err != nil {
+			return "", err
+		}
+		return logs, nil
+	}
+
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return "", err
-	}
-	if tailLines <= 0 {
-		tailLines = defaultLogTailLines
 	}
 	ctx := a.ctx
 	if ctx == nil {

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useConnectionsState, type KubeConfigEntry, type PinnedConnection } from './ConnectionsStateContext';
+import './ConnectionsList.css';
 
 type KubernetesConnectionsListProps = {
   onConnect?: () => void;
@@ -10,60 +11,6 @@ type HookEntry = {
   scope?: string;
   connectionType?: string;
   connectionId?: string;
-};
-
-const cardStyle: React.CSSProperties = {
-  border: '2px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  padding: '16px',
-  marginBottom: '12px',
-  cursor: 'pointer',
-  transition: 'all 0.2s',
-  background: 'var(--gh-input-bg, #2a2a2a)',
-};
-
-const cardHoverStyle: React.CSSProperties = {
-  ...cardStyle,
-  borderColor: 'var(--gh-accent, #0969da)',
-  background: 'var(--gh-input-bg-hover, #333)',
-};
-
-const selectedCardStyle: React.CSSProperties = {
-  ...cardStyle,
-  borderColor: 'var(--gh-accent, #0969da)',
-  background: 'rgba(9, 105, 218, 0.1)',
-};
-
-const headerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  marginBottom: '24px',
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 6,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
 };
 
 function KubernetesConnectionsList({ onConnect, filterConfig }: KubernetesConnectionsListProps) {
@@ -117,128 +64,89 @@ function KubernetesConnectionsList({ onConnect, filterConfig }: KubernetesConnec
   };
 
   return (
-    <div style={{ padding: '24px', height: '100%', overflowY: 'auto' }}>
-      <div style={headerStyle}>
-        <div>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 24 }}>☸️ Kubernetes Connections</h2>
-          <p style={{ margin: '8px 0 0', color: 'var(--gh-text-secondary, #ccc)', fontSize: 14 }}>
-            Select a kubeconfig to connect to your cluster
-          </p>
+    <div className="connections-list">
+      <div className="connections-header">
+        <div className="connections-header-text">
+          <h2>☸️ Kubernetes Connections</h2>
+          <p>Select a kubeconfig to connect to your cluster</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <button id="browse-kubeconfig-btn" style={secondaryButtonStyle} onClick={() => actions.browseKubeConfigFile()}>
+        <div className="connections-header-actions">
+          <button
+            id="browse-kubeconfig-btn"
+            className="connections-button secondary"
+            onClick={() => actions.browseKubeConfigFile()}
+          >
             📁 Browse
           </button>
-          <button id="add-kubeconfig-btn" style={primaryButtonStyle} onClick={() => actions.showAddKubeConfigOverlay(true)}>
+          <button
+            id="add-kubeconfig-btn"
+            className="connections-button primary"
+            onClick={() => actions.showAddKubeConfigOverlay(true)}
+          >
             ➕ Add Config
           </button>
         </div>
       </div>
 
-      {error && (
-        <div
-          style={{
-            background: 'rgba(248, 81, 73, 0.1)',
-            border: '1px solid #f85149',
-            color: '#f85149',
-            padding: '12px',
-            marginBottom: '16px',
-            fontSize: 14,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <div className="connections-alert">{error}</div>}
 
-      {loading && (
-        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gh-text-secondary, #ccc)' }}>
-          Loading kubeconfig files...
-        </div>
-      )}
+      {loading && <div className="connections-loading">Loading kubeconfig files...</div>}
 
       {!loading && displayConfigs.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--gh-text-secondary, #ccc)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>☸️</div>
-          <h3 style={{ margin: '0 0 12px', color: 'var(--gh-text, #fff)' }}>No Kubeconfig Files Found</h3>
-          <p style={{ margin: '0 0 24px' }}>Add a kubeconfig to connect to your Kubernetes clusters</p>
-          <button style={primaryButtonStyle} onClick={() => actions.showAddKubeConfigOverlay(true)}>
+        <div className="connections-empty">
+          <div className="connections-empty-icon">☸️</div>
+          <h3 className="connections-empty-title">No Kubeconfig Files Found</h3>
+          <p>Add a kubeconfig to connect to your Kubernetes clusters</p>
+          <button className="connections-button primary" onClick={() => actions.showAddKubeConfigOverlay(true)}>
             ➕ Add Your First Kubeconfig
           </button>
         </div>
       )}
 
       {!loading && displayConfigs.length > 0 && (
-        <div className="config-list">
+        <div className="connections-card-list">
           {displayConfigs.map((config: KubeConfigEntry, index: number) => {
             const isSelected = selectedKubeConfig?.path === config.path;
             const isHovered = hoveredIndex === index;
             const pinned = isPinned(config);
+            const cardClassName = [
+              'connections-card',
+              isSelected ? 'is-selected' : '',
+              !isSelected && isHovered ? 'is-hovered' : '',
+            ]
+              .filter(Boolean)
+              .join(' ');
 
             return (
               <div
                 key={config.path}
-                className={`config-item${isSelected ? ' selected' : ''}`}
-                style={isSelected ? selectedCardStyle : isHovered ? cardHoverStyle : cardStyle}
+                className={cardClassName}
                 onClick={() => actions.selectKubeConfig(config)}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        fontWeight: 'bold',
-                        color: 'var(--gh-text, #fff)',
-                        marginBottom: 4,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
+                <div className="connections-card-row">
+                  <div className="connections-card-main">
+                    <div className="connections-card-title">
                       {config.name}
-                      {pinned && <span style={{ fontSize: 12 }}>📌</span>}
+                      {pinned && <span>📌</span>}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--gh-text-secondary, #ccc)',
-                        fontFamily: 'monospace',
-                        marginBottom: 4,
-                      }}
-                    >
-                      {config.path}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--gh-text-tertiary, #999)' }}>
+                    <div className="connections-card-path">{config.path}</div>
+                    <div className="connections-card-meta">
                       Contexts: {(config.contexts || []).join(', ') || 'None'}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div className="connections-card-actions">
                     <button
                       onClick={(e) => handleTogglePin(e, config)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--gh-border, #444)',
-                        color: pinned ? '#f0c674' : 'var(--gh-text-secondary, #ccc)',
-                        padding: '4px 8px',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                      }}
+                      className={`connections-icon-button${pinned ? ' pinned' : ''}`}
                       title={pinned ? 'Unpin' : 'Pin to sidebar'}
                     >
                       📌
                     </button>
                     <button
                       onClick={(e) => handleProxySettings(e, config)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--gh-border, #444)',
-                        color: 'var(--gh-text-secondary, #ccc)',
-                        padding: '4px 8px',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                      }}
+                      className="connections-icon-button"
                       title="Proxy settings"
                     >
                       🌐
@@ -247,40 +155,12 @@ function KubernetesConnectionsList({ onConnect, filterConfig }: KubernetesConnec
                     <button
                       id={`kube-hooks-btn-${String(config.path).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40)}`}
                       onClick={(e) => handleHooksSettings(e, config)}
-                      style={{
-                        background: 'transparent',
-                        border: '1px solid var(--gh-border, #444)',
-                        color: 'var(--gh-text-secondary, #ccc)',
-                        padding: '4px 8px',
-                        borderRadius: 0,
-                        cursor: 'pointer',
-                        fontSize: 12,
-                        position: 'relative',
-                      }}
+                      className="connections-icon-button"
                       title="Hooks"
                     >
                       🪝
                       {hookCountFor(config) > 0 && (
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: -6,
-                            right: -6,
-                            background: 'var(--gh-accent, #0969da)',
-                            color: '#fff',
-                            fontSize: 10,
-                            lineHeight: '14px',
-                            minWidth: 14,
-                            height: 14,
-                            borderRadius: 0,
-                            padding: '0 4px',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {hookCountFor(config)}
-                        </span>
+                        <span className="connections-badge">{hookCountFor(config)}</span>
                       )}
                     </button>
                     <button
@@ -288,11 +168,7 @@ function KubernetesConnectionsList({ onConnect, filterConfig }: KubernetesConnec
                         e.stopPropagation();
                         handleConnect(config);
                       }}
-                      style={{
-                        ...primaryButtonStyle,
-                        padding: '6px 12px',
-                        fontSize: 12,
-                      }}
+                      className="connections-button primary small"
                     >
                       Connect
                     </button>

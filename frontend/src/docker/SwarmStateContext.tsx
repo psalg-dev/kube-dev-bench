@@ -186,6 +186,24 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
   const [state, dispatch] = useReducer(reducer, initialState);
   const refreshingRef = useRef<Record<string, boolean>>({});
 
+  const runRefresh = useCallback(async <T,>(
+    key: string,
+    fetcher: () => Promise<T>,
+    onData: (data: T) => void,
+    label: string
+  ) => {
+    if (refreshingRef.current[key]) return;
+    refreshingRef.current[key] = true;
+    try {
+      const data = await fetcher();
+      onData(data);
+    } catch (err) {
+      console.error(`Failed to fetch ${label}:`, err);
+    } finally {
+      refreshingRef.current[key] = false;
+    }
+  }, []);
+
   const refreshConnectionStatus = useCallback(async () => {
     try {
       const status = await GetDockerConnectionStatus();
@@ -196,108 +214,36 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   const refreshServices = useCallback(async () => {
-    if (refreshingRef.current.services) return;
-    refreshingRef.current.services = true;
-    try {
-      const data = await GetSwarmServices();
-      dispatch({ type: 'SET_SERVICES', data });
-    } catch (err) {
-      console.error('Failed to fetch services:', err);
-    } finally {
-      refreshingRef.current.services = false;
-    }
-  }, []);
+    await runRefresh('services', GetSwarmServices, (data) => dispatch({ type: 'SET_SERVICES', data }), 'services');
+  }, [runRefresh]);
 
   const refreshTasks = useCallback(async () => {
-    if (refreshingRef.current.tasks) return;
-    refreshingRef.current.tasks = true;
-    try {
-      const data = await GetSwarmTasks();
-      dispatch({ type: 'SET_TASKS', data });
-    } catch (err) {
-      console.error('Failed to fetch tasks:', err);
-    } finally {
-      refreshingRef.current.tasks = false;
-    }
-  }, []);
+    await runRefresh('tasks', GetSwarmTasks, (data) => dispatch({ type: 'SET_TASKS', data }), 'tasks');
+  }, [runRefresh]);
 
   const refreshNodes = useCallback(async () => {
-    if (refreshingRef.current.nodes) return;
-    refreshingRef.current.nodes = true;
-    try {
-      const data = await GetSwarmNodes();
-      dispatch({ type: 'SET_NODES', data });
-    } catch (err) {
-      console.error('Failed to fetch nodes:', err);
-    } finally {
-      refreshingRef.current.nodes = false;
-    }
-  }, []);
+    await runRefresh('nodes', GetSwarmNodes, (data) => dispatch({ type: 'SET_NODES', data }), 'nodes');
+  }, [runRefresh]);
 
   const refreshNetworks = useCallback(async () => {
-    if (refreshingRef.current.networks) return;
-    refreshingRef.current.networks = true;
-    try {
-      const data = await GetSwarmNetworks();
-      dispatch({ type: 'SET_NETWORKS', data });
-    } catch (err) {
-      console.error('Failed to fetch networks:', err);
-    } finally {
-      refreshingRef.current.networks = false;
-    }
-  }, []);
+    await runRefresh('networks', GetSwarmNetworks, (data) => dispatch({ type: 'SET_NETWORKS', data }), 'networks');
+  }, [runRefresh]);
 
   const refreshConfigs = useCallback(async () => {
-    if (refreshingRef.current.configs) return;
-    refreshingRef.current.configs = true;
-    try {
-      const data = await GetSwarmConfigs();
-      dispatch({ type: 'SET_CONFIGS', data });
-    } catch (err) {
-      console.error('Failed to fetch configs:', err);
-    } finally {
-      refreshingRef.current.configs = false;
-    }
-  }, []);
+    await runRefresh('configs', GetSwarmConfigs, (data) => dispatch({ type: 'SET_CONFIGS', data }), 'configs');
+  }, [runRefresh]);
 
   const refreshSecrets = useCallback(async () => {
-    if (refreshingRef.current.secrets) return;
-    refreshingRef.current.secrets = true;
-    try {
-      const data = await GetSwarmSecrets();
-      dispatch({ type: 'SET_SECRETS', data });
-    } catch (err) {
-      console.error('Failed to fetch secrets:', err);
-    } finally {
-      refreshingRef.current.secrets = false;
-    }
-  }, []);
+    await runRefresh('secrets', GetSwarmSecrets, (data) => dispatch({ type: 'SET_SECRETS', data }), 'secrets');
+  }, [runRefresh]);
 
   const refreshStacks = useCallback(async () => {
-    if (refreshingRef.current.stacks) return;
-    refreshingRef.current.stacks = true;
-    try {
-      const data = await GetSwarmStacks();
-      dispatch({ type: 'SET_STACKS', data });
-    } catch (err) {
-      console.error('Failed to fetch stacks:', err);
-    } finally {
-      refreshingRef.current.stacks = false;
-    }
-  }, []);
+    await runRefresh('stacks', GetSwarmStacks, (data) => dispatch({ type: 'SET_STACKS', data }), 'stacks');
+  }, [runRefresh]);
 
   const refreshVolumes = useCallback(async () => {
-    if (refreshingRef.current.volumes) return;
-    refreshingRef.current.volumes = true;
-    try {
-      const data = await GetSwarmVolumes();
-      dispatch({ type: 'SET_VOLUMES', data });
-    } catch (err) {
-      console.error('Failed to fetch volumes:', err);
-    } finally {
-      refreshingRef.current.volumes = false;
-    }
-  }, []);
+    await runRefresh('volumes', GetSwarmVolumes, (data) => dispatch({ type: 'SET_VOLUMES', data }), 'volumes');
+  }, [runRefresh]);
 
   useEffect(() => {
     (async () => {

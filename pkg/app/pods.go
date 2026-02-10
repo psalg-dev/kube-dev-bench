@@ -86,8 +86,8 @@ func safeUint16FromInt(v int) (uint16, error) {
 
 var shellSessions sync.Map // sessionID -> *ShellSession
 
-func termOutputEvent(sessionID string) string { return fmt.Sprintf("terminal:%s:output", sessionID) }
-func termExitEvent(sessionID string) string   { return fmt.Sprintf("terminal:%s:exit", sessionID) }
+func termOutputEvent(sessionID string) string { return TerminalOutputEvent(sessionID) }
+func termExitEvent(sessionID string) string   { return TerminalExitEvent(sessionID) }
 
 // StartShellSession starts a local shell (cmd.exe or bash) with PTY for xterm.js
 func (a *App) StartShellSession(sessionID, shellCmd string) error {
@@ -338,7 +338,7 @@ func (a *App) emitPortForwardsUpdate() {
 		list = append(list, PortForwardInfo{Namespace: p[0], Pod: p[1], Local: local, Remote: remote})
 		return true
 	})
-	emitEvent(a.ctx, "portforwards:update", list)
+	emitEvent(a.ctx, EventPortForwardsUpdate, list)
 }
 
 // ListPortForwards returns current active port forward sessions
@@ -424,17 +424,17 @@ func checkForwardingReady(line string, localPort int) bool {
 func (a *App) streamPortForwardOutput(cmd *exec.Cmd, stdout, stderr io.ReadCloser, key string, localPort int) {
 	defer func() {
 		_ = cmd.Wait()
-		emitEvent(a.ctx, "portforward:"+key+":exit", 0)
+		emitEvent(a.ctx, PortForwardEvent(key, "exit"), 0)
 		portForwardSessions.Delete(key)
 		a.emitPortForwardsUpdate()
 	}()
 
 	readyEmitted := false
 	emitLine := func(line string) {
-		emitEvent(a.ctx, "portforward:"+key+":output", line)
+		emitEvent(a.ctx, PortForwardEvent(key, "output"), line)
 		if !readyEmitted && checkForwardingReady(line, localPort) {
 			readyEmitted = true
-			emitEvent(a.ctx, "portforward:"+key+":ready", localPort)
+			emitEvent(a.ctx, PortForwardEvent(key, "ready"), localPort)
 		}
 	}
 
@@ -460,10 +460,10 @@ func (a *App) streamPortForwardOutput(cmd *exec.Cmd, stdout, stderr io.ReadClose
 	<-stderrDone
 
 	if err := stdoutScanner.Err(); err != nil {
-		emitEvent(a.ctx, "portforward:"+key+":error", err.Error())
+		emitEvent(a.ctx, PortForwardEvent(key, "error"), err.Error())
 	}
 	if err := stderrScanner.Err(); err != nil {
-		emitEvent(a.ctx, "portforward:"+key+":error", err.Error())
+		emitEvent(a.ctx, PortForwardEvent(key, "error"), err.Error())
 	}
 }
 
@@ -476,7 +476,7 @@ func (a *App) PortForwardPodWith(namespace, podName string, localPort, remotePor
 
 	key := portForwardKeyLR(namespace, podName, localPort, remotePort)
 	if _, exists := portForwardSessions.Load(key); exists {
-		emitEvent(a.ctx, "portforward:"+key+":ready", localPort)
+		emitEvent(a.ctx, PortForwardEvent(key, "ready"), localPort)
 		a.emitPortForwardsUpdate()
 		return fmt.Sprintf("http://127.0.0.1:%d", localPort), nil
 	}
@@ -633,15 +633,9 @@ func shouldIncludePod(pod *v1.Pod) bool {
 // GetRunningPods returns all running (and pending) pods (name, restarts, uptime) in a namespace
 // Pending pods are included so the UI can show pods while they are in 'Creating' state.
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.createKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return nil, err
 	}
 
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
@@ -657,32 +651,6 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 		}
 	}
 	return result, nil
-}
-
-// StartPodPolling emits pods:update events every second with the current pod list
-func (a *App) StartPodPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectPods(nsList)
-				emitEvent(a.ctx, "pods:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectPods(nsList []string) []PodInfo {
-	var all []PodInfo
-	for _, ns := range nsList {
-		if pods, err := a.GetRunningPods(ns); err == nil {
-			all = append(all, pods...)
-		}
-	}
-	return all
 }
 
 // RestartPod restarts a pod by deleting it (Kubernetes will recreate it if part of a deployment)
@@ -738,13 +706,13 @@ func (a *App) ExecCommand(cmdline string) error {
 	go func() {
 		scanner := bufio.NewScanner(stdout)
 		for scanner.Scan() {
-			emitEvent(ctx, "console:output", scanner.Text())
+			emitEvent(ctx, EventConsoleOutput, scanner.Text())
 		}
 	}()
 	go func() {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
-			emitEvent(ctx, "console:output", scanner.Text())
+			emitEvent(ctx, EventConsoleOutput, scanner.Text())
 		}
 	}()
 	return cmd.Wait()
@@ -752,15 +720,9 @@ func (a *App) ExecCommand(cmdline string) error {
 
 // GetPodStatusCounts returns counts of pods by phase for the given namespace
 func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return PodStatusCounts{}, err
-		}
+	clientset, err := a.getClient()
+	if err != nil {
+		return PodStatusCounts{}, err
 	}
 	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
 	if err != nil {

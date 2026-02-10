@@ -27,7 +27,7 @@ func (a *App) emitHolmesContextProgress(kind, namespace, name, step, status, det
 		"status":    status,
 		"detail":    detail,
 	}
-	emitEvent(a.ctx, "holmes:context:progress", payload)
+	emitEvent(a.ctx, EventHolmesContextProgress, payload)
 }
 
 func (a *App) getPodContext(namespace, name string) (string, error) {
@@ -117,6 +117,9 @@ func (a *App) getDeploymentContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get deployment: %w", err)
 	}
 	a.emitHolmesContextProgress("Deployment", namespace, name, "Fetching deployment details", "done", "")
+	if deploy.Spec.Selector == nil {
+		return "", fmt.Errorf("deployment has no selector")
+	}
 
 	var desired int32 = 0
 	if deploy.Spec.Replicas != nil {
@@ -174,6 +177,9 @@ func (a *App) getStatefulSetContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get statefulset: %w", err)
 	}
 	a.emitHolmesContextProgress("StatefulSet", namespace, name, "Fetching statefulset details", "done", "")
+	if sts.Spec.Selector == nil {
+		return "", fmt.Errorf("statefulset has no selector")
+	}
 
 	var desired int32 = 0
 	if sts.Spec.Replicas != nil {
@@ -231,6 +237,9 @@ func (a *App) getDaemonSetContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get daemonset: %w", err)
 	}
 	a.emitHolmesContextProgress("DaemonSet", namespace, name, "Fetching daemonset details", "done", "")
+	if ds.Spec.Selector == nil {
+		return "", fmt.Errorf("daemonset has no selector")
+	}
 
 	sb.WriteString(fmt.Sprintf("DaemonSet: %s/%s\n", namespace, name))
 	sb.WriteString(fmt.Sprintf("Desired: %d, Current: %d, Ready: %d\n",
@@ -422,6 +431,9 @@ func (a *App) getJobContext(namespace, name string) (string, error) {
 		return "", fmt.Errorf("failed to get job: %w", err)
 	}
 	a.emitHolmesContextProgress("Job", namespace, name, "Fetching job details", "done", "")
+	if job.Spec.Selector == nil {
+		return "", fmt.Errorf("job has no selector")
+	}
 
 	sb.WriteString(fmt.Sprintf("Job: %s/%s\n", namespace, name))
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useConnectionsState, type SwarmConnectionEntry } from './ConnectionsStateContext';
+import './AddSwarmConnectionOverlay.css';
 
 type AddSwarmConnectionOverlayProps = {
   onClose: () => void;
@@ -11,112 +12,6 @@ type TestResult = {
   error?: string;
   serverVersion?: string;
   swarmActive?: boolean;
-};
-
-const overlayStyle: React.CSSProperties = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  background: 'rgba(0, 0, 0, 0.8)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-};
-
-const dialogStyle: React.CSSProperties = {
-  background: 'var(--gh-sidebar-bg, #1a1a1a)',
-  border: '1px solid var(--gh-border, #444)',
-  borderRadius: 0,
-  maxWidth: '600px',
-  width: '90%',
-  maxHeight: '80vh',
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
-
-const headerStyle: React.CSSProperties = {
-  padding: '24px',
-  borderBottom: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-};
-
-const contentStyle: React.CSSProperties = {
-  padding: '24px',
-  overflowY: 'auto',
-  flex: 1,
-};
-
-const footerStyle: React.CSSProperties = {
-  padding: '16px 24px',
-  borderTop: '1px solid var(--gh-border, #444)',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: 12,
-};
-
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '10px 12px',
-  backgroundColor: 'var(--gh-input-bg, #0d1117)',
-  border: '1px solid var(--gh-border, #30363d)',
-  color: 'var(--gh-text, #c9d1d9)',
-  fontSize: 14,
-  boxSizing: 'border-box',
-};
-
-const textareaStyle: React.CSSProperties = {
-  ...inputStyle,
-  minHeight: '120px',
-  fontFamily: 'Courier New, monospace',
-  fontSize: 12,
-  resize: 'vertical',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: 6,
-  color: 'var(--gh-text, #fff)',
-  fontWeight: 500,
-};
-
-const radioGroupStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '12px 16px',
-  backgroundColor: 'var(--gh-card-bg, #161b22)',
-  border: '1px solid var(--gh-border, #30363d)',
-  borderRadius: 6,
-  cursor: 'pointer',
-  marginBottom: 8,
-};
-
-const buttonStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: 'none',
-  borderRadius: 0,
-  cursor: 'pointer',
-  fontSize: 14,
-  fontWeight: 500,
-};
-
-const primaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-accent, #0969da)',
-  color: '#fff',
-};
-
-const secondaryButtonStyle: React.CSSProperties = {
-  ...buttonStyle,
-  background: 'var(--gh-button-secondary-bg, #444)',
-  color: 'var(--gh-text, #fff)',
-  border: '1px solid var(--gh-border, #555)',
 };
 
 function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOverlayProps) {
@@ -202,47 +97,30 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
 
   return (
     <div
-      style={overlayStyle}
+      className="add-swarm-overlay"
       onClick={(e) => e.target === e.currentTarget && onClose()}
       onKeyDown={handleKeyDown}
-      className="add-swarm-overlay"
     >
-      <div style={dialogStyle}>
-        <div style={headerStyle}>
-          <h2 style={{ margin: 0, color: 'var(--gh-text, #fff)', fontSize: 20 }}>🐳 Add Docker Connection</h2>
+      <div className="add-swarm-dialog">
+        <div className="add-swarm-header">
+          <h2 className="add-swarm-title">🐳 Add Docker Connection</h2>
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--gh-text-secondary, #ccc)',
-              fontSize: 20,
-              cursor: 'pointer',
-              padding: 4,
-            }}
+            className="add-swarm-close"
           >
             ✕
           </button>
         </div>
 
-        <div style={contentStyle}>
+        <div className="add-swarm-content">
           {error && (
-            <div
-              style={{
-                background: 'rgba(248, 81, 73, 0.1)',
-                border: '1px solid #f85149',
-                color: '#f85149',
-                padding: '12px',
-                marginBottom: '16px',
-                fontSize: 14,
-              }}
-            >
+            <div className="add-swarm-alert">
               {error}
             </div>
           )}
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle} htmlFor="connectionName">
+          <div className="add-swarm-field">
+            <label className="add-swarm-label" htmlFor="connectionName">
               Connection Name
             </label>
             <input
@@ -251,61 +129,52 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Remote Docker Host"
-              style={inputStyle}
+              className="add-swarm-input"
             />
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle}>Connection Type</label>
+          <div className="add-swarm-field">
+            <label className="add-swarm-label">Connection Type</label>
             <div
-              style={{
-                ...radioGroupStyle,
-                borderColor: connectionType === 'local' ? '#238636' : 'var(--gh-border, #30363d)',
-              }}
+              className={`add-swarm-radio${connectionType === 'local' ? ' is-active' : ''}`}
               onClick={() => setConnectionType('local')}
             >
               <input type="radio" checked={connectionType === 'local'} onChange={() => setConnectionType('local')} />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>Local Socket</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div className="add-swarm-radio-title">Local Socket</div>
+                <div className="add-swarm-radio-desc">
                   Connect to Docker on this machine
                 </div>
               </div>
             </div>
             <div
-              style={{
-                ...radioGroupStyle,
-                borderColor: connectionType === 'tcp' ? '#238636' : 'var(--gh-border, #30363d)',
-              }}
+              className={`add-swarm-radio${connectionType === 'tcp' ? ' is-active' : ''}`}
               onClick={() => setConnectionType('tcp')}
             >
               <input type="radio" checked={connectionType === 'tcp'} onChange={() => setConnectionType('tcp')} />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>TCP (Unencrypted)</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div className="add-swarm-radio-title">TCP (Unencrypted)</div>
+                <div className="add-swarm-radio-desc">
                   Connect over TCP without encryption
                 </div>
               </div>
             </div>
             <div
-              style={{
-                ...radioGroupStyle,
-                borderColor: connectionType === 'tls' ? '#238636' : 'var(--gh-border, #30363d)',
-              }}
+              className={`add-swarm-radio${connectionType === 'tls' ? ' is-active' : ''}`}
               onClick={() => setConnectionType('tls')}
             >
               <input type="radio" checked={connectionType === 'tls'} onChange={() => setConnectionType('tls')} />
               <div>
-                <div style={{ fontWeight: 500, color: 'var(--gh-text, #fff)' }}>TCP with TLS</div>
-                <div style={{ fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>
+                <div className="add-swarm-radio-title">TCP with TLS</div>
+                <div className="add-swarm-radio-desc">
                   Secure connection with certificates
                 </div>
               </div>
             </div>
           </div>
 
-          <div style={{ marginBottom: 20 }}>
-            <label style={labelStyle} htmlFor="dockerHost">
+          <div className="add-swarm-field">
+            <label className="add-swarm-label" htmlFor="dockerHost">
               Docker Host
             </label>
             <input
@@ -314,14 +183,14 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
               value={host}
               onChange={(e) => setHost(e.target.value)}
               placeholder="tcp://host:port or unix:///path/to/socket"
-              style={inputStyle}
+              className="add-swarm-input"
             />
           </div>
 
           {connectionType === 'tls' && (
             <>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle} htmlFor="tlsCert">
+              <div className="add-swarm-field">
+                <label className="add-swarm-label" htmlFor="tlsCert">
                   Client Certificate (PEM)
                 </label>
                 <textarea
@@ -329,11 +198,11 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
                   value={tlsCert}
                   onChange={(e) => setTlsCert(e.target.value)}
                   placeholder="-----BEGIN CERTIFICATE-----\n..."
-                  style={textareaStyle}
+                  className="add-swarm-textarea"
                 />
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle} htmlFor="tlsKey">
+              <div className="add-swarm-field">
+                <label className="add-swarm-label" htmlFor="tlsKey">
                   Client Key (PEM)
                 </label>
                 <textarea
@@ -341,11 +210,11 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
                   value={tlsKey}
                   onChange={(e) => setTlsKey(e.target.value)}
                   placeholder="-----BEGIN PRIVATE KEY-----\n..."
-                  style={textareaStyle}
+                  className="add-swarm-textarea"
                 />
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={labelStyle} htmlFor="tlsCA">
+              <div className="add-swarm-field">
+                <label className="add-swarm-label" htmlFor="tlsCA">
                   CA Certificate (PEM)
                 </label>
                 <textarea
@@ -353,13 +222,13 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
                   value={tlsCA}
                   onChange={(e) => setTlsCA(e.target.value)}
                   placeholder="-----BEGIN CERTIFICATE-----\n..."
-                  style={textareaStyle}
+                  className="add-swarm-textarea"
                 />
               </div>
-              <div style={{ marginBottom: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <div className="add-swarm-field">
+                <label className="add-swarm-checkbox">
                   <input type="checkbox" checked={tlsVerify} onChange={(e) => setTlsVerify(e.target.checked)} />
-                  <span style={{ color: 'var(--gh-text, #fff)' }}>Verify server certificate</span>
+                  <span className="add-swarm-checkbox-text">Verify server certificate</span>
                 </label>
               </div>
             </>
@@ -367,14 +236,7 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
 
           {testResult && (
             <div
-              style={{
-                padding: '12px',
-                borderRadius: 4,
-                marginBottom: 16,
-                background: testResult.connected ? 'rgba(46, 164, 79, 0.1)' : 'rgba(248, 81, 73, 0.1)',
-                border: `1px solid ${testResult.connected ? '#2ea44f' : '#f85149'}`,
-                color: testResult.connected ? '#2ea44f' : '#f85149',
-              }}
+              className={`add-swarm-test-result${testResult.connected ? ' is-success' : ' is-error'}`}
             >
               {testResult.connected
                 ? `✓ Connection successful${testResult.serverVersion ? ` - Docker ${testResult.serverVersion}` : ''}${testResult.swarmActive ? ' (Swarm active)' : ''}`
@@ -383,26 +245,19 @@ function AddSwarmConnectionOverlay({ onClose, onSuccess }: AddSwarmConnectionOve
           )}
         </div>
 
-        <div style={footerStyle}>
-          <button style={secondaryButtonStyle} onClick={onClose}>
+        <div className="add-swarm-footer">
+          <button className="add-swarm-button add-swarm-button--secondary" onClick={onClose}>
             Cancel
           </button>
           <button
-            style={{
-              ...secondaryButtonStyle,
-              opacity: testing ? 0.5 : 1,
-            }}
+            className={`add-swarm-button add-swarm-button--secondary${testing ? ' is-loading' : ''}`}
             onClick={handleTest}
             disabled={testing}
           >
             {testing ? 'Testing...' : 'Test Connection'}
           </button>
           <button
-            style={{
-              ...primaryButtonStyle,
-              opacity: !name.trim() ? 0.5 : 1,
-              cursor: !name.trim() ? 'not-allowed' : 'pointer',
-            }}
+            className={`add-swarm-button add-swarm-button--primary${!name.trim() ? ' is-disabled' : ''}`}
             onClick={handleSave}
             disabled={!name.trim()}
           >

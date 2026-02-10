@@ -37,7 +37,7 @@ type NodeTaint struct {
 
 // GetNodes returns all Kubernetes nodes
 func (a *App) GetNodes() ([]NodeInfo, error) {
-	clientset, err := a.getKubernetesInterface()
+	clientset, err := a.getClient()
 	if err != nil {
 		return nil, err
 	}

@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 // Tests for GetConfigMaps function
@@ -191,5 +194,20 @@ func TestGetConfigMaps_EmptyConfigMap(t *testing.T) {
 
 	if result[0].Keys != 0 {
 		t.Errorf("expected 0 keys for empty configmap, got %d", result[0].Keys)
+	}
+}
+
+func TestGetConfigMaps_ListError(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	cs.PrependReactor("list", "configmaps", func(action ktesting.Action) (bool, runtime.Object, error) {
+		return true, nil, fmt.Errorf("simulated list error")
+	})
+	app := &App{ctx: context.Background(), testClientset: cs}
+	result, err := app.GetConfigMaps("default")
+	if err == nil {
+		t.Fatal("expected error from GetConfigMaps when list fails")
+	}
+	if result != nil && len(result) != 0 {
+		t.Errorf("expected empty result on list error, got %d", len(result))
 	}
 }

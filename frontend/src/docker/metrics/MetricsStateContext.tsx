@@ -33,6 +33,14 @@ export function MetricsStateProvider({ children, maxPoints = 720 }: { children: 
     maxRef.current = maxPoints;
   }, [maxPoints]);
 
+  const normalizeList = useCallback((value: unknown) => (Array.isArray(value) ? value : []), []);
+
+  const applyBreakdown = useCallback((b: any) => {
+    if (!b) return;
+    setServices(normalizeList(b?.services));
+    setNodes(normalizeList(b?.nodes));
+  }, [normalizeList]);
+
   const applyAppend = useCallback((p: any) => {
     if (!p) return;
     setHistory((prev) => {
@@ -47,7 +55,7 @@ export function MetricsStateProvider({ children, maxPoints = 720 }: { children: 
     setError('');
     try {
       const h = await GetSwarmMetricsHistory();
-      setHistory(Array.isArray(h) ? h : []);
+      setHistory(normalizeList(h));
     } catch (err: any) {
       setError(err?.message || String(err || 'Failed to load metrics history'));
       setHistory([]);
@@ -68,9 +76,8 @@ export function MetricsStateProvider({ children, maxPoints = 720 }: { children: 
         applyAppend(p);
       });
       offBreakdown = EventsOn('swarm:metrics:breakdown', (b: any) => {
-        if (!active || !b) return;
-        setServices(Array.isArray(b?.services) ? b.services : []);
-        setNodes(Array.isArray(b?.nodes) ? b.nodes : []);
+        if (!active) return;
+        applyBreakdown(b);
       });
     } catch (_) {
       // Not running inside Wails.
@@ -81,7 +88,7 @@ export function MetricsStateProvider({ children, maxPoints = 720 }: { children: 
       if (typeof offPoint === 'function') offPoint();
       if (typeof offBreakdown === 'function') offBreakdown();
     };
-  }, [applyAppend, refetch]);
+  }, [applyAppend, refetch, applyBreakdown]);
 
   const latest = useMemo(() => {
     const arr = Array.isArray(history) ? history : [];

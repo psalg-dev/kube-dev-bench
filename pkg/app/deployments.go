@@ -9,81 +9,32 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// getDeploymentImage returns the first container image from the deployment spec
-func getDeploymentImage(d *appsv1.Deployment) string {
-	if len(d.Spec.Template.Spec.Containers) > 0 {
-		return d.Spec.Template.Spec.Containers[0].Image
-	}
-	return ""
-}
-
-// getDeploymentReplicas returns the desired replica count
-func getDeploymentReplicas(d *appsv1.Deployment) int32 {
-	if d.Spec.Replicas != nil {
-		return *d.Spec.Replicas
-	}
-	return 0
-}
-
-// mergeDeploymentLabels merges deployment and template labels, with deployment labels taking precedence
-func mergeDeploymentLabels(d *appsv1.Deployment) map[string]string {
-	labels := make(map[string]string)
-	for k, v := range d.Labels {
-		labels[k] = v
-	}
-	if tpl := d.Spec.Template; tpl.Labels != nil {
-		for k, v := range tpl.Labels {
-			if _, exists := labels[k]; !exists {
-				labels[k] = v
-			}
-		}
-	}
-	return labels
-}
-
 // buildDeploymentInfo constructs a DeploymentInfo from a Deployment
 func buildDeploymentInfo(d *appsv1.Deployment, now time.Time) DeploymentInfo {
-	age := "-"
-	if !d.CreationTimestamp.Time.IsZero() {
-		age = formatDuration(now.Sub(d.CreationTimestamp.Time))
-	}
-
 	return DeploymentInfo{
 		Name:      d.Name,
 		Namespace: d.Namespace,
-		Replicas:  getDeploymentReplicas(d),
+		Replicas:  SafeReplicaCount(d.Spec.Replicas),
 		Ready:     d.Status.ReadyReplicas,
 		Available: d.Status.AvailableReplicas,
-		Age:       age,
-		Image:     getDeploymentImage(d),
-		Labels:    mergeDeploymentLabels(d),
+		Age:       FormatAge(d.CreationTimestamp, now),
+		Image:     ExtractFirstContainerImage(d.Spec.Template.Spec),
+		Labels:    MergeLabels(d.Labels, d.Spec.Template.Labels),
 	}
 }
 
 // GetDeployments returns all deployments in a namespace
 func (a *App) GetDeployments(namespace string) ([]DeploymentInfo, error) {
-	var clientset kubernetes.Interface
-	var err error
-	if a.testClientset != nil {
-		clientset = a.testClientset.(kubernetes.Interface)
-	} else {
-		clientset, err = a.getKubernetesClient()
-		if err != nil {
-			return nil, err
-		}
-	}
-	deployments, err := clientset.AppsV1().Deployments(namespace).List(a.ctx, metav1.ListOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	now := time.Now()
-	result := make([]DeploymentInfo, 0, len(deployments.Items))
-	for _, deployment := range deployments.Items {
-		result = append(result, buildDeploymentInfo(&deployment, now))
-	}
-
-	return result, nil
+	return listResources(a, namespace,
+		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]appsv1.Deployment, error) {
+			list, err := cs.AppsV1().Deployments(ns).List(a.ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+			return list.Items, nil
+		},
+		buildDeploymentInfo,
+	)
 }
 
 // formatDuration formats a duration into a human-readable string
@@ -106,30 +57,4 @@ func formatDuration(d time.Duration) string {
 	} else {
 		return fmt.Sprintf("%ds", int(d.Seconds()))
 	}
-}
-
-// StartDeploymentPolling emits deployments:update events every second with the current deployment list
-func (a *App) StartDeploymentPolling() {
-	go func() {
-		for {
-			time.Sleep(time.Second)
-			if a.ctx == nil {
-				continue
-			}
-			if nsList := a.getPollingNamespaces(); len(nsList) > 0 {
-				all := a.collectDeployments(nsList)
-				emitEvent(a.ctx, "deployments:update", all)
-			}
-		}
-	}()
-}
-
-func (a *App) collectDeployments(nsList []string) []DeploymentInfo {
-	var all []DeploymentInfo
-	for _, ns := range nsList {
-		if deploys, err := a.GetDeployments(ns); err == nil {
-			all = append(all, deploys...)
-		}
-	}
-	return all
 }

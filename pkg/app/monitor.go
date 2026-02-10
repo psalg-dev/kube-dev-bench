@@ -42,7 +42,7 @@ func (a *App) StartMonitorPolling() {
 			}
 
 			info := a.collectMonitorInfo(nsList)
-			emitEvent(a.ctx, "monitor:update", info)
+			emitEvent(a.ctx, EventMonitorUpdate, info)
 		}
 	}()
 }

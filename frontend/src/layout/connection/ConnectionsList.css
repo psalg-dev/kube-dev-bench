@@ -1,0 +1,231 @@
+.connections-list {
+  padding: 24px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.connections-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.connections-header-text h2 {
+  margin: 0;
+  color: var(--gh-text, #fff);
+  font-size: 24px;
+}
+
+.connections-header-text p {
+  margin: 8px 0 0;
+  color: var(--gh-text-secondary, #ccc);
+  font-size: 14px;
+}
+
+.connections-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.connections-alert {
+  background: rgba(248, 81, 73, 0.1);
+  border: 1px solid #f85149;
+  color: #f85149;
+  padding: 12px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.connections-loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--gh-text-secondary, #ccc);
+}
+
+.connections-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--gh-text-secondary, #ccc);
+}
+
+.connections-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.connections-empty-title {
+  margin: 0 0 12px;
+  color: var(--gh-text, #fff);
+}
+
+.connections-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.connections-button.primary {
+  background: var(--gh-accent, #0969da);
+  color: #fff;
+}
+
+.connections-button.secondary {
+  background: var(--gh-button-secondary-bg, #444);
+  color: var(--gh-text, #fff);
+  border: 1px solid var(--gh-border, #555);
+}
+
+.connections-button.small {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.connections-button.dimmed {
+  opacity: 0.5;
+}
+
+.connections-card-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.connections-card {
+  border: 2px solid var(--gh-border, #444);
+  border-radius: 0;
+  padding: 16px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--gh-input-bg, #2a2a2a);
+}
+
+.connections-card.is-hovered {
+  border-color: var(--gh-accent, #0969da);
+  background: var(--gh-input-bg-hover, #333);
+}
+
+.connections-card.is-selected {
+  border-color: var(--gh-accent, #0969da);
+  background: rgba(9, 105, 218, 0.1);
+}
+
+.connections-card.is-connected {
+  border-color: #2ea44f;
+  background: rgba(46, 164, 79, 0.1);
+}
+
+.connections-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.connections-card-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.connections-card-title {
+  font-weight: bold;
+  color: var(--gh-text, #fff);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.connections-card-path {
+  font-size: 12px;
+  color: var(--gh-text-secondary, #ccc);
+  font-family: monospace;
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.connections-card-meta {
+  font-size: 12px;
+  color: var(--gh-text-tertiary, #999);
+}
+
+.connections-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.connections-icon-button {
+  background: transparent;
+  border: 1px solid var(--gh-border, #444);
+  color: var(--gh-text-secondary, #ccc);
+  padding: 4px 8px;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 12px;
+  position: relative;
+}
+
+.connections-icon-button.pinned {
+  color: #f0c674;
+}
+
+.connections-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--gh-accent, #0969da);
+  color: #fff;
+  font-size: 10px;
+  line-height: 14px;
+  min-width: 14px;
+  height: 14px;
+  border-radius: 0;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.connections-status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.connections-status-connected {
+  background: rgba(46, 164, 79, 0.2);
+  color: #2ea44f;
+}
+
+.connections-status-swarm {
+  background: rgba(56, 139, 253, 0.2);
+  color: #388bfd;
+}
+
+.connections-test-result {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.connections-test-result.success {
+  background: rgba(46, 164, 79, 0.1);
+  color: #2ea44f;
+  border: 1px solid #2ea44f;
+}
+
+.connections-test-result.error {
+  background: rgba(248, 81, 73, 0.1);
+  color: #f85149;
+  border: 1px solid #f85149;
+}

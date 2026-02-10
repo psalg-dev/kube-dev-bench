@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useResourceCounts } from '../state/ResourceCountsContext';
+import './SidebarSections.css';
 
 type ResourceSection = {
   key: string;
@@ -40,19 +41,19 @@ function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
   const parts = useMemo<ReactNode[]>(() => {
     if (!podStatus) return [];
     const { running = 0, pending = 0, failed = 0, succeeded = 0, unknown = 0, total = 0 } = podStatus;
-    if (total === 0) return [<span key="zero" style={{ color: '#9aa0a6', fontWeight: 700 }}>0</span>];
+    if (total === 0) return [<span key="zero" className="sidebar-pod-count sidebar-pod-count--muted">0</span>];
     const segs: ReactNode[] = [];
-    const push = (val: number, color: string, title: string, k: string) => {
-      if (val) segs.push(<span key={k} title={title} style={{ color, fontWeight: 700 }}>{val}</span>);
+    const push = (val: number, className: string, title: string, k: string) => {
+      if (val) segs.push(<span key={k} title={title} className={className}>{val}</span>);
     };
-    push(running, '#2ea44f', 'Running', 'r');
-    push(pending, '#e6b800', 'Pending/Creating', 'p');
-    push(failed, '#d73a49', 'Failed', 'f');
-    push(succeeded, '#9aa0a6', 'Succeeded', 's');
-    push(unknown, '#9aa0a6', 'Unknown', 'u');
+    push(running, 'sidebar-pod-count sidebar-pod-count--running', 'Running', 'r');
+    push(pending, 'sidebar-pod-count sidebar-pod-count--pending', 'Pending/Creating', 'p');
+    push(failed, 'sidebar-pod-count sidebar-pod-count--failed', 'Failed', 'f');
+    push(succeeded, 'sidebar-pod-count sidebar-pod-count--muted', 'Succeeded', 's');
+    push(unknown, 'sidebar-pod-count sidebar-pod-count--muted', 'Unknown', 'u');
     if (segs.length === 0) {
       return [
-        <span key="running" style={{ color: '#2ea44f', fontWeight: 700 }}>
+        <span key="running" className="sidebar-pod-count sidebar-pod-count--running">
           {running || 0}
         </span>,
       ];
@@ -62,7 +63,7 @@ function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
       withSeps.push(el);
       if (i < segs.length - 1) {
         withSeps.push(
-          <span key={`sep${i}`} style={{ color: '#666' }}>
+          <span key={`sep${i}`} className="sidebar-pod-count-sep">
             /
           </span>
         );
@@ -71,10 +72,7 @@ function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
     return withSeps;
   }, [podStatus]);
   return (
-    <span
-      className="sidebar-pod-counts"
-      style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: '2em', justifyContent: 'flex-end' }}
-    >
+    <span className="sidebar-pod-counts">
       {parts}
     </span>
   );
@@ -94,21 +92,6 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
     <div>
       {resourceSections.map((sec) => {
         const isSel = selected === sec.key;
-        const commonStyle: React.CSSProperties = {
-          padding: '8px 16px',
-          cursor: 'pointer',
-          color: 'var(--gh-table-header-text, #fff)',
-          fontSize: 15,
-          margin: 0,
-          borderRadius: 4,
-          transition: 'background 0.15s',
-          textAlign: 'left',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          justifyContent: 'space-between',
-          textDecoration: 'none',
-        };
         const value = safeCounts?.[sec.key];
         const isNumber = typeof value === 'number';
         return (
@@ -116,26 +99,20 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
             key={sec.key}
             to={`/${sec.key}`}
             id={`section-${sec.key}`}
-            className={`sidebar-section${isSel ? ' selected' : ''}`}
-            style={commonStyle}
+            className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
             onClick={(event) => {
               event.stopPropagation();
               onSelect(sec.key);
             }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span className="sidebar-section-label">
               <span>{sec.label}</span>
             </span>
             {sec.podCounts ? (
               <PodCountsDisplay podStatus={counts?.podStatus || counts?.PodStatus} />
             ) : (
               <span
-                style={{
-                  minWidth: '2em',
-                  textAlign: 'right',
-                  color: isNumber && value > 0 ? '#8ecfff' : '#9aa0a6',
-                  fontWeight: 700,
-                }}
+                className={`sidebar-section-count${isNumber && value > 0 ? ' is-active' : ''}`}
               >
                 {isNumber ? value : '-'}
               </span>
