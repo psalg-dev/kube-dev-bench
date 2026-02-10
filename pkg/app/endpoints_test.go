@@ -19,7 +19,7 @@ func TestGetEndpoints_ReturnsEndpoints(t *testing.T) {
 				Namespace: "default",
 				Labels: map[string]string{
 					discoveryv1.LabelServiceName: "my-service",
-					"app":                       "myapp",
+					"app":                        "myapp",
 				},
 				Annotations: map[string]string{
 					"description": "test endpoint",
@@ -30,7 +30,7 @@ func TestGetEndpoints_ReturnsEndpoints(t *testing.T) {
 				{Addresses: []string{"10.0.0.1"}},
 				{Addresses: []string{"10.0.0.2"}},
 			},
-			Ports: []discoveryv1.EndpointSlicePort{
+			Ports: []discoveryv1.EndpointPort{
 				{Port: &port},
 			},
 		},
@@ -121,14 +121,14 @@ func TestGetEndpointDetail_ReturnsEndpoint(t *testing.T) {
 				Namespace: "default",
 				Labels: map[string]string{
 					discoveryv1.LabelServiceName: "my-service",
-					"app":                       "myapp",
+					"app":                        "myapp",
 				},
 			},
 			AddressType: discoveryv1.AddressTypeIPv4,
 			Endpoints: []discoveryv1.Endpoint{
 				{Addresses: []string{"10.0.0.1"}},
 			},
-			Ports: []discoveryv1.EndpointSlicePort{
+			Ports: []discoveryv1.EndpointPort{
 				{Port: &port},
 			},
 		},
@@ -192,7 +192,7 @@ func TestBuildEndpointInfo_MultiplePortsAndAddresses(t *testing.T) {
 				{Addresses: []string{"10.0.0.1"}},
 				{Addresses: []string{"10.0.0.2"}},
 			},
-			Ports: []discoveryv1.EndpointSlicePort{
+			Ports: []discoveryv1.EndpointPort{
 				{Port: &port8080},
 				{Port: &port9090},
 			},
