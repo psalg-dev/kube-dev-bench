@@ -53,7 +53,7 @@ test.describe('Docker Swarm Connection', () => {
 
     await page.locator('#connection-section-docker-swarm').click();
 
-    const first = page.locator('.connection-item').first();
+    const first = page.locator('.connections-card').first();
     await expect(first).toBeVisible({ timeout: 30_000 });
 
     await first.getByRole('button', { name: /^test$/i }).click();
@@ -65,7 +65,7 @@ test.describe('Docker Swarm Connection', () => {
 
     await page.locator('#connection-section-docker-swarm').click();
 
-    const first = page.locator('.connection-item').first();
+    const first = page.locator('.connections-card').first();
     await expect(first).toBeVisible({ timeout: 30_000 });
 
     await first.getByRole('button', { name: /^connect$/i }).click();

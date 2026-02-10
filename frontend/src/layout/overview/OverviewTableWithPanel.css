@@ -169,6 +169,13 @@ table.gh-table tbody td:last-child {
 .row-actions-cell {
   position: relative;
   overflow: visible;
+  z-index: 1;
+}
+
+/* When the dropdown menu is open, elevate the entire cell's stacking context
+   so it paints above adjacent table rows whose cells would otherwise overlap. */
+.row-actions-cell:has(.row-actions-menu) {
+  z-index: 1200;
 }
 
 .row-actions-menu {

@@ -28,13 +28,13 @@ test.describe.serial('connection hooks', () => {
     await expect(page.locator('.connection-wizard-layout')).toBeVisible({ timeout: 30_000 });
 
     // Ensure we have at least one kubeconfig entry (add via overlay if needed).
-    const configItems = page.locator('.config-item');
+    const configItems = page.locator('.connections-card');
     if ((await configItems.count()) === 0) {
       await page.locator('#add-kubeconfig-btn').click();
       await expect(page.locator('#primaryConfigContent')).toBeVisible({ timeout: 10_000 });
       await page.locator('#primaryConfigContent').fill(state.kubeconfigYaml);
       await page.getByRole('button', { name: /save & continue/i }).click();
-      await expect(page.locator('.config-item').first()).toBeVisible({ timeout: 30_000 });
+      await expect(page.locator('.connections-card').first()).toBeVisible({ timeout: 30_000 });
     }
 
     // Open hooks overlay for the first config.
@@ -61,7 +61,7 @@ test.describe.serial('connection hooks', () => {
     await page.locator('#hooks-settings-close-btn').click();
 
     // Attempt to connect; it should be aborted by the hook.
-    const firstConfig = page.locator('.config-item').first();
+    const firstConfig = page.locator('.connections-card').first();
     await firstConfig.getByRole('button', { name: /^connect$/i }).click();
 
     const notifications = new Notifications(page);

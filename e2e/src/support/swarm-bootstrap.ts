@@ -113,7 +113,7 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   await page.waitForFunction(
     () => {
       const app = (window as any)?.go?.main?.App;
-      return app != null && typeof app.ConnectDockerHost === 'function';
+      return app != null && typeof app.ConnectToDocker === 'function';
     },
     { timeout: 30_000, polling: 200 },
   );
@@ -164,7 +164,7 @@ export async function bootstrapSwarm(opts: SwarmBootstrapOptions): Promise<Swarm
   const swarmHeading = page.getByRole('heading', { name: /docker swarm connections/i });
   const addSwarmBtn = page.locator('#add-swarm-btn');
   const detectingText = page.getByText(/detecting docker connections\.{3}/i);
-  const connectionItems = page.locator('.connection-item');
+  const connectionItems = page.locator('.connections-card');
   const wizardLayout = page.locator('.connection-wizard-layout, .connection-wizard-overlay').first();
 
   await expect(swarmSection).toBeVisible({ timeout: 30_000 });

@@ -45,7 +45,7 @@ test.describe.serial('proxy settings', () => {
       });
 
       // Connect to proceed to main app
-      const configItems = page.locator('.config-item');
+      const configItems = page.locator('.connections-card');
       if ((await configItems.count()) > 0) {
         await configItems.first().click();
         await page.getByRole('button', { name: /connect/i }).first().click();

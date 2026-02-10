@@ -162,7 +162,7 @@ export class ConnectionWizardPage {
 
     if (isNewWizard) {
       // New wizard flow - check if there are existing configs
-      const configItems = this.page.locator('.config-item');
+      const configItems = this.page.locator('.connections-card');
       const hasConfigs = (await configItems.count()) > 0;
 
       if (hasConfigs) {
@@ -220,7 +220,7 @@ export class ConnectionWizardPage {
       await this.page.waitForTimeout(1000);
 
       // Now click Connect on the newly added config
-      const newConfigItems = this.page.locator('.config-item');
+      const newConfigItems = this.page.locator('.connections-card');
       if ((await newConfigItems.count()) > 0) {
         await newConfigItems.first().click();
         // Ensure Wails IPC bindings are ready before triggering connect
