@@ -162,6 +162,10 @@ export function CancelHolmesStream(arg1) {
   return window['go']['main']['App']['CancelHolmesStream'](arg1);
 }
 
+export function CancelKindCluster() {
+  return window['go']['main']['App']['CancelKindCluster']();
+}
+
 export function CheckHolmesDeployment() {
   return window['go']['main']['App']['CheckHolmesDeployment']();
 }
@@ -192,6 +196,10 @@ export function CloneSwarmVolume(arg1, arg2) {
 
 export function ConnectToDocker(arg1) {
   return window['go']['main']['App']['ConnectToDocker'](arg1);
+}
+
+export function CreateKindCluster(arg1) {
+  return window['go']['main']['App']['CreateKindCluster'](arg1);
 }
 
 export function CreateResource(arg1, arg2) {

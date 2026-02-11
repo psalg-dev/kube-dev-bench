@@ -206,6 +206,14 @@ function getDefaultManifest(kind: string, namespace?: string) {
     case 'persistentvolume':
       // PersistentVolume is cluster-scoped; no namespace field
       return 'apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\n  labels:\n    type: local\nspec:\n  storageClassName: manual\n  capacity:\n    storage: 10Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: "/mnt/data"\n  # Alternative volume sources:\n  # nfs:\n  #   server: nfs-server.example.com\n  #   path: /path/to/nfs/share\n  # awsElasticBlockStore:\n  #   volumeID: vol-12345678\n  #   fsType: ext4\n  # gcePersistentDisk:\n  #   pdName: my-data-disk\n  #   fsType: ext4\n';
+    case 'role':
+      return `apiVersion: rbac.authorization.k8s.io/v1\nkind: Role\nmetadata:\n  name: my-role\n  namespace: ${ns}\nrules:\n  - apiGroups: [""]\n    resources: ["pods"]\n    verbs: ["get", "list"]\n`;
+    case 'clusterrole':
+      return 'apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nmetadata:\n  name: my-cluster-role\nrules:\n  - apiGroups: [""]\n    resources: ["pods"]\n    verbs: ["get", "list"]\n';
+    case 'rolebinding':
+      return `apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: my-rolebinding\n  namespace: ${ns}\nsubjects:\n  - kind: User\n    name: jane\n    apiGroup: rbac.authorization.k8s.io\nroleRef:\n  kind: Role\n  name: my-role\n  apiGroup: rbac.authorization.k8s.io\n`;
+    case 'clusterrolebinding':
+      return 'apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRoleBinding\nmetadata:\n  name: my-clusterrolebinding\nsubjects:\n  - kind: User\n    name: jane\n    apiGroup: rbac.authorization.k8s.io\nroleRef:\n  kind: ClusterRole\n  name: my-cluster-role\n  apiGroup: rbac.authorization.k8s.io\n';
     default:
       return `# Unknown kind: ${kind || 'Resource'}\n# Edit as needed\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example\n  namespace: ${ns}\ndata:\n  key: value\n`;
   }

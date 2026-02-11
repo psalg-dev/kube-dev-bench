@@ -175,6 +175,8 @@ function LayoutOrWizard({ onWizardComplete, selectedSection, onSelectSection, co
           disabled={namespaceDisabled}
           onChange={(vals) => actions.selectNamespaces(vals)}
           onMenuOpen={() => actions.reloadNamespaces()}
+          allowAddNamespace={!!selectedContext && !namespaceDisabled && Array.isArray(namespaces) && namespaces.length === 0}
+          onAddNamespace={(name: string) => actions.createNamespace(name)}
         />}
         selectedSection={selectedSection}
         onSelectSection={(section) => {

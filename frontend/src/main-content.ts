@@ -14,6 +14,10 @@ import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewT
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
 import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
+import RolesOverviewTable from './k8s/resources/roles/RolesOverviewTable';
+import ClusterRolesOverviewTable from './k8s/resources/clusterroles/ClusterRolesOverviewTable';
+import RoleBindingsOverviewTable from './k8s/resources/rolebindings/RoleBindingsOverviewTable';
+import ClusterRoleBindingsOverviewTable from './k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable';
 // Docker Swarm imports
 import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
 import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
@@ -215,6 +219,30 @@ export function renderResourceMainContent(
             section: 'helmreleases',
             table: HelmReleasesOverviewTable,
             props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'roles-overview-react',
+            section: 'roles',
+            table: RolesOverviewTable,
+            props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'clusterroles-overview-react',
+            section: 'clusterroles',
+            table: ClusterRolesOverviewTable,
+            props: { namespace: firstNs }
+        },
+        {
+            id: 'rolebindings-overview-react',
+            section: 'rolebindings',
+            table: RoleBindingsOverviewTable,
+            props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'clusterrolebindings-overview-react',
+            section: 'clusterrolebindings',
+            table: ClusterRoleBindingsOverviewTable,
+            props: { namespace: firstNs }
         },
         // Docker Swarm sections
         {

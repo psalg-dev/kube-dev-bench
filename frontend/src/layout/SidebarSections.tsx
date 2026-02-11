@@ -9,7 +9,7 @@ type ResourceSection = {
   label: string;
   podCounts?: boolean;
   group?: boolean;
-  children?: Array<{ key: string; label: string }>;
+  children?: Array<ResourceSection>;
 };
 
 type PodStatus = {
@@ -23,20 +23,55 @@ type PodStatus = {
 
 // Resource sections list with id suffix & label
 const resourceSections: ResourceSection[] = [
-  { key: 'pods', label: 'Pods', podCounts: true },
-  { key: 'deployments', label: 'Deployments' },
-  { key: 'services', label: 'Services' },
-  { key: 'jobs', label: 'Jobs' },
-  { key: 'cronjobs', label: 'Cron Jobs' },
-  { key: 'daemonsets', label: 'Daemon Sets' },
-  { key: 'statefulsets', label: 'Stateful Sets' },
-  { key: 'replicasets', label: 'Replica Sets' },
-  { key: 'configmaps', label: 'Config Maps' },
-  { key: 'secrets', label: 'Secrets' },
-  { key: 'ingresses', label: 'Ingresses' },
-  { key: 'persistentvolumeclaims', label: 'Persistent Volume Claims' },
-  { key: 'persistentvolumes', label: 'Persistent Volumes' },
-  { key: 'helmreleases', label: 'Helm Releases' },
+  {
+    key: 'workloads',
+    label: 'Workloads',
+    group: true,
+    children: [
+      { key: 'pods', label: 'Pods', podCounts: true },
+      { key: 'deployments', label: 'Deployments' },
+      { key: 'daemonsets', label: 'Daemon Sets' },
+      { key: 'statefulsets', label: 'Stateful Sets' },
+      { key: 'replicasets', label: 'Replica Sets' },
+      { key: 'jobs', label: 'Jobs' },
+      { key: 'cronjobs', label: 'Cron Jobs' },
+    ],
+  },
+  {
+    key: 'networking',
+    label: 'Networking',
+    group: true,
+    children: [
+      { key: 'services', label: 'Services' },
+      { key: 'ingresses', label: 'Ingresses' },
+    ],
+  },
+  {
+    key: 'config',
+    label: 'Config',
+    group: true,
+    children: [
+      { key: 'configmaps', label: 'Config Maps' },
+      { key: 'secrets', label: 'Secrets' },
+    ],
+  },
+  {
+    key: 'storage',
+    label: 'Storage',
+    group: true,
+    children: [
+      { key: 'persistentvolumeclaims', label: 'Persistent Volume Claims' },
+      { key: 'persistentvolumes', label: 'Persistent Volumes' },
+    ],
+  },
+  {
+    key: 'packaging',
+    label: 'Packaging',
+    group: true,
+    children: [
+      { key: 'helmreleases', label: 'Helm Releases' },
+    ],
+  },
   {
     key: 'rbac',
     label: 'RBAC',
@@ -50,7 +85,26 @@ const resourceSections: ResourceSection[] = [
   },
 ];
 
-const rbacChildKeys = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'];
+const groupSections = resourceSections.filter((sec) => sec.group);
+const groupByChildKey = new Map<string, string>();
+groupSections.forEach((sec) => {
+  sec.children?.forEach((child) => {
+    groupByChildKey.set(child.key, sec.key);
+  });
+});
+
+function getPodTotal(counts?: Record<string, any> | null) {
+  const podStatus = counts?.podStatus || counts?.PodStatus;
+  const total = podStatus?.total ?? podStatus?.Total;
+  return typeof total === 'number' ? total : undefined;
+}
+
+function getSectionCount(section: ResourceSection, counts?: Record<string, any> | null) {
+  if (!counts) return undefined;
+  if (section.podCounts) return getPodTotal(counts);
+  const value = counts?.[section.key];
+  return typeof value === 'number' ? value : undefined;
+}
 
 function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
   const parts = useMemo<ReactNode[]>(() => {
@@ -103,38 +157,41 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
     counts: (Record<string, number> & { podStatus?: PodStatus; PodStatus?: PodStatus }) | null;
   };
   const safeCounts = counts || undefined;
-  const [rbacCollapsed, setRbacCollapsed] = useState(true);
-  const isRbacChildSelected = rbacChildKeys.includes(selected);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(groupSections.map((sec) => [sec.key, true]))
+  );
+  const selectedGroup = groupByChildKey.get(selected);
 
   useEffect(() => {
-    if (isRbacChildSelected) {
-      setRbacCollapsed(false);
+    if (selectedGroup) {
+      setCollapsedGroups((prev) => (prev[selectedGroup] ? { ...prev, [selectedGroup]: false } : prev));
     }
-  }, [isRbacChildSelected]);
+  }, [selectedGroup]);
   return (
     <div>
       {resourceSections.map((sec) => {
         if (sec.group) {
-          const isExpanded = !rbacCollapsed;
-          const agg = (safeCounts?.roles ?? 0)
-            + (safeCounts?.clusterroles ?? 0)
-            + (safeCounts?.rolebindings ?? 0)
-            + (safeCounts?.clusterrolebindings ?? 0);
+          const isExpanded = !collapsedGroups[sec.key];
+          const isGroupSelected = selectedGroup === sec.key;
+          const agg = sec.children?.reduce((sum, child) => {
+            const childValue = getSectionCount(child, safeCounts);
+            return sum + (childValue ?? 0);
+          }, 0) ?? 0;
           const hasAggregate = agg > 0;
           return (
             <div key={sec.key} className="sidebar-group">
               <div
                 id={`section-${sec.key}`}
-                className={`sidebar-section sidebar-group-header${isExpanded ? ' selected' : ''}`}
+                className={`sidebar-section sidebar-group-header${isExpanded || isGroupSelected ? ' selected' : ''}`}
                 role="button"
                 aria-expanded={isExpanded}
                 aria-controls={`section-${sec.key}-children`}
                 aria-label={`${sec.label} section`}
                 tabIndex={0}
-                data-testid="rbac-group-header"
+                data-testid={`${sec.key}-group-header`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setRbacCollapsed((v) => !v);
+                  setCollapsedGroups((prev) => ({ ...prev, [sec.key]: !prev[sec.key] }));
                 }}
                 onKeyDown={(event) => {
                   const isToggleKey =
@@ -146,7 +203,7 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                   if (isToggleKey) {
                     event.preventDefault();
                     event.stopPropagation();
-                    setRbacCollapsed((v) => !v);
+                    setCollapsedGroups((prev) => ({ ...prev, [sec.key]: !prev[sec.key] }));
                   }
                 }}
               >
@@ -163,16 +220,15 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
               </div>
               <div
                 id={`section-${sec.key}-children`}
-                className={`sidebar-group-children${rbacCollapsed ? ' collapsed' : ''}`}
-                aria-hidden={rbacCollapsed}
+                className={`sidebar-group-children${!isExpanded ? ' collapsed' : ''}`}
+                aria-hidden={!isExpanded}
                 aria-label={`${sec.label} resources`}
                 aria-labelledby={`section-${sec.key}`}
-                data-testid="rbac-group-children"
+                data-testid={`${sec.key}-group-children`}
               >
                 {sec.children?.map((child) => {
                   const isSel = selected === child.key;
-                  const value = safeCounts?.[child.key];
-                  const numericValue = typeof value === 'number' ? value : undefined;
+                  const numericValue = getSectionCount(child, safeCounts);
                   const countLabel = numericValue ?? 'unknown';
                   return (
                     <Link
@@ -180,7 +236,7 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                       to={`/${child.key}`}
                       id={`section-${child.key}`}
                       className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
-                      data-testid={`rbac-child-${child.key}`}
+                      data-testid={`${sec.key}-child-${child.key}`}
                       aria-current={isSel ? 'page' : undefined}
                       onClick={(event) => {
                         event.stopPropagation();
@@ -190,12 +246,16 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                       <span className="sidebar-section-label">
                         <span>{child.label}</span>
                       </span>
-                      <span
-                        className={`sidebar-section-count${numericValue !== undefined && numericValue > 0 ? ' is-active' : ''}`}
-                        aria-label={`${child.label} count ${countLabel}`}
-                      >
-                        {numericValue ?? '-'}
-                      </span>
+                      {child.podCounts ? (
+                        <PodCountsDisplay podStatus={counts?.podStatus || counts?.PodStatus} />
+                      ) : (
+                        <span
+                          className={`sidebar-section-count${numericValue !== undefined && numericValue > 0 ? ' is-active' : ''}`}
+                          aria-label={`${child.label} count ${countLabel}`}
+                        >
+                          {numericValue ?? '-'}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}
@@ -205,7 +265,7 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
         }
         const leaf = sec as ResourceSection;
         const isSel = selected === leaf.key;
-        const value = safeCounts?.[leaf.key];
+        const value = getSectionCount(leaf, safeCounts);
         const isNumber = typeof value === 'number';
         const countLabel = isNumber ? value : 'unknown';
         return (

@@ -8,6 +8,7 @@ import {
   SetCurrentNamespace,
   GetConnectionStatus,
   SetPreferredNamespaces,
+  CreateResource,
 } from '../k8s/resources/kubeApi';
 import { showError, showSuccess, showWarning } from '../notification';
 
@@ -104,6 +105,7 @@ export { reducer as clusterStateReducer };
 interface ClusterStateActions {
   selectContext: (ctx: string) => Promise<void>;
   selectNamespaces: (names: string[]) => Promise<void>;
+  createNamespace: (name: string) => Promise<boolean>;
   reloadContexts: () => Promise<void>;
   reloadNamespaces: () => Promise<void>;
   openWizard: () => void;
@@ -117,6 +119,24 @@ export interface ClusterStateContextValue extends ClusterState {
 }
 
 const ClusterStateContext = createContext<ClusterStateContextValue | null>(null);
+
+const noopAsync = async () => {};
+const noopBoolAsync = async () => false;
+const noop = () => {};
+const fallbackContext: ClusterStateContextValue = {
+  ...initialState,
+  clusterConnected: false,
+  actions: {
+    selectContext: noopAsync,
+    selectNamespaces: noopAsync,
+    createNamespace: noopBoolAsync,
+    reloadContexts: noopAsync,
+    reloadNamespaces: noopAsync,
+    openWizard: noop,
+    closeWizard: noop,
+    refreshConnectionStatus: noopAsync,
+  },
+};
 
 export function ClusterStateProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
@@ -306,12 +326,48 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
     }
   }, [state.selectedContext, state.selectedNamespaces, persistNamespaces]);
 
+  const createNamespace = useCallback(async (rawName: string) => {
+    const name = String(rawName || '').trim();
+    if (!name) {
+      showWarning('Namespace name is required.');
+      return false;
+    }
+    if (!state.selectedContext) {
+      showWarning('Select a context before creating a namespace.');
+      return false;
+    }
+    if (state.namespaces.includes(name)) {
+      showWarning(`Namespace '${name}' already exists.`);
+      return false;
+    }
+    const yaml = `apiVersion: v1\nkind: Namespace\nmetadata:\n  name: ${name}\n`;
+    try {
+      await CreateResource('', yaml);
+      showSuccess(`Namespace '${name}' created.`);
+      const latest = await GetNamespaces();
+      if (Array.isArray(latest)) {
+        dispatch({ type: 'SET_NAMESPACES', namespaces: latest });
+        const nextSelected = latest.includes(name)
+          ? [name]
+          : (latest.length > 0 ? [latest[0]] : []);
+        dispatch({ type: 'SET_SELECTED_NAMESPACES', values: nextSelected });
+        await persistNamespaces(nextSelected);
+      }
+      await refreshConnectionStatus();
+      return true;
+    } catch (err) {
+      showError('Failed to create namespace: ' + String(err));
+      return false;
+    }
+  }, [state.selectedContext, state.namespaces, persistNamespaces, refreshConnectionStatus]);
+
   const value: ClusterStateContextValue = {
     ...state,
     clusterConnected: !!(state.selectedContext && state.selectedNamespaces.length > 0),
     actions: {
       selectContext,
       selectNamespaces,
+      createNamespace,
       reloadContexts,
       reloadNamespaces,
       openWizard: () => dispatch({ type: 'SET_SHOW_WIZARD', value: true }),
@@ -329,6 +385,11 @@ export function ClusterStateProvider({ children }: { children: React.ReactNode }
 
 export function useClusterState() {
   const ctx = useContext(ClusterStateContext);
-  if (!ctx) throw new Error('useClusterState must be used within ClusterStateProvider');
+  if (!ctx) {
+    if (typeof console !== 'undefined') {
+      console.error('useClusterState must be used within ClusterStateProvider');
+    }
+    return fallbackContext;
+  }
   return ctx;
 }

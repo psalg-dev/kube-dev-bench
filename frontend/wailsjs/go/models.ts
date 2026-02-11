@@ -1113,6 +1113,24 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class KindClusterResult {
+	    name: string;
+	    kubeconfigPath: string;
+	    context: string;
+	    created: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new KindClusterResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.kubeconfigPath = source["kubeconfigPath"];
+	        this.context = source["context"];
+	        this.created = source["created"];
+	    }
+	}
 	export class KubeConfigInfo {
 	    path: string;
 	    name: string;

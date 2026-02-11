@@ -180,6 +180,8 @@ function LayoutOrWizard({
             disabled={namespaceDisabled}
             onChange={(vals: string[]) => actions.selectNamespaces(vals)}
             onMenuOpen={() => actions.reloadNamespaces()}
+            allowAddNamespace={!!selectedContext && !namespaceDisabled && Array.isArray(namespaces) && namespaces.length === 0}
+            onAddNamespace={(name: string) => actions.createNamespace(name)}
           />
         }
         selectedSection={selectedSection}

@@ -48,6 +48,22 @@ type KubeConfigInfo struct {
 	Contexts []string `json:"contexts"`
 }
 
+// KindClusterResult describes the outcome of creating a KinD cluster.
+type KindClusterResult struct {
+	Name           string `json:"name"`
+	KubeconfigPath string `json:"kubeconfigPath"`
+	Context        string `json:"context"`
+	Created        bool   `json:"created"`
+}
+
+// KindProgressUpdate reports KinD cluster setup progress for the UI.
+type KindProgressUpdate struct {
+	Percent int    `json:"percent"`
+	Message string `json:"message"`
+	Stage   string `json:"stage"`
+	Done    bool   `json:"done"`
+}
+
 // EventInfo is a simplified event record for UI display
 type EventInfo struct {
 	Type           string `json:"type"`

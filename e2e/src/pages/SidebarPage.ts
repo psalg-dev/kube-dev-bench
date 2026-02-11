@@ -98,4 +98,32 @@ export class SidebarPage {
     // check the main view title.
     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
   }
+
+  async goToRbacSection(key: 'roles' | 'clusterroles' | 'rolebindings' | 'clusterrolebindings') {
+    const overlay = this.page.locator('[data-testid="create-manifest-overlay"]').first();
+    if (await overlay.isVisible().catch(() => false)) {
+      const closeBtn = overlay.getByRole('button', { name: /close|cancel/i }).first();
+      if (await closeBtn.isVisible().catch(() => false)) {
+        await closeBtn.click().catch(() => undefined);
+      } else {
+        await this.page.keyboard.press('Escape').catch(() => undefined);
+      }
+      await overlay.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => undefined);
+    }
+
+    const group = this.page.locator('#section-rbac');
+    await expect(group).toBeVisible({ timeout: 30_000 });
+    await group.scrollIntoViewIfNeeded();
+
+    const expanded = await group.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      await group.click({ timeout: 30_000 });
+    }
+
+    const section = this.page.locator(`#section-${key}`);
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    await section.scrollIntoViewIfNeeded();
+    await section.click({ timeout: 30_000 });
+    await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
+  }
 }

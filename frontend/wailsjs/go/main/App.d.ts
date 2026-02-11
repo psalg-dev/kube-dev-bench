@@ -89,6 +89,8 @@ export function BackupSwarmVolume(arg1:string):Promise<string>;
 
 export function CancelHolmesStream(arg1:string):Promise<void>;
 
+export function CancelKindCluster():Promise<boolean>;
+
 export function CheckHolmesDeployment():Promise<holmesgpt.HolmesDeploymentStatus>;
 
 export function CheckServiceImageUpdates(arg1:Array<string>):Promise<Record<string, docker.ImageUpdateInfo>>;
@@ -104,6 +106,8 @@ export function CloneSwarmSecret(arg1:string,arg2:string,arg3:string):Promise<st
 export function CloneSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function ConnectToDocker(arg1:docker.DockerConfig):Promise<docker.DockerConnectionStatus>;
+
+export function CreateKindCluster(arg1:string):Promise<app.KindClusterResult>;
 
 export function CreateResource(arg1:string,arg2:string):Promise<void>;
 

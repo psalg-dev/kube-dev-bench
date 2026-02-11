@@ -190,6 +190,14 @@ describe('ConnectionWizard', () => {
       });
     });
 
+    it('shows Spin up KinD button', async () => {
+      render(<ConnectionWizard onComplete={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Spin up KinD/i })).toBeInTheDocument();
+      });
+    });
+
     it('opens Add Kubeconfig overlay when clicking Add Config button', async () => {
       render(<ConnectionWizard onComplete={vi.fn()} />);
 

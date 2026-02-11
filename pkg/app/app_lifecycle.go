@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 )
@@ -37,6 +38,12 @@ type App struct {
 
 	logMu      sync.Mutex
 	logCancels map[string]context.CancelFunc
+
+	kindMu       sync.Mutex
+	kindCancel   context.CancelFunc
+	kindCancelID uint64
+	kindCmd      *exec.Cmd
+	kindPullCmd  *exec.Cmd
 
 	// Aggregated resource counts (for sidebar counters)
 	resourceCountsMu   sync.RWMutex
