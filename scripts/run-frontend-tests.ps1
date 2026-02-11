@@ -1,21 +1,20 @@
+param(
+    [Parameter()]
+    [string]$WorkingDirectory = 'frontend',
+
+    [Parameter()]
+    [string[]]$NpmArgs = @('--', '--run', '--silent')
+)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-param(
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$Args
-)
-
 try {
-    $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-    $frontendPath = Join-Path $projectRoot 'frontend'
-    Set-Location $frontendPath
-    if ($Args.Count -gt 0) {
-        npm test -- --run @Args
-    } else {
-        npm test -- --run
-    }
+    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+    $targetPath = Join-Path $repoRoot $WorkingDirectory
+    Set-Location $targetPath
+    npm test @NpmArgs
 } catch {
-    Write-Error "Failed to run frontend tests: $_"
+    Write-Error "Frontend tests failed: $($_.Exception.Message)"
     exit 1
 }

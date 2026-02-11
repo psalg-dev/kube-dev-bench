@@ -1,9 +1,9 @@
+param(
+    [string]$FrontendPath = (Join-Path -Path $PSScriptRoot -ChildPath '../frontend')
+)
+
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
-
-param(
-    [string]$FrontendPath = (Join-Path $PSScriptRoot '..' 'frontend')
-)
 
 try {
     $resolvedFrontendPath = (Resolve-Path -Path $FrontendPath).Path -replace '\\', '/'

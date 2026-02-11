@@ -2,13 +2,10 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 param(
-    [string]$CoverProfile = 'go-cover.out'
+    [string]$PackagePath = './pkg/app/...'
 )
 
-try {
-    go test -v ./pkg/app/...
-    go test -coverprofile $CoverProfile ./pkg/app/...
-} catch {
-    Write-Error "Tests failed: $_"
-    exit 1
+& go test -v $PackagePath
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
 }

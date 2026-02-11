@@ -98,12 +98,12 @@ vi.mock('../../wailsjs/runtime/runtime.js', () => ({
 
 // Provide a minimal Wails binding for tests that gate on window.go.* availability.
 if (typeof window !== 'undefined') {
-  const win = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
-  if (!win.go) win.go = { main: { App: {} } };
-  if (!win.go.main) win.go.main = { App: {} };
-  if (!win.go.main.App) win.go.main.App = {};
-  if (!('GetResourceCounts' in win.go.main.App)) {
-    win.go.main.App.GetResourceCounts = vi.fn(() => Promise.resolve(undefined));
+  const win = window as unknown as { go?: { main?: { App?: Record<string, unknown> } } };
+  const go = win.go ?? (win.go = { main: { App: {} as Record<string, unknown> } });
+  const main = go.main ?? (go.main = { App: {} as Record<string, unknown> });
+  const app = main.App ?? (main.App = {} as Record<string, unknown>);
+  if (!('GetResourceCounts' in app)) {
+    app.GetResourceCounts = vi.fn(() => Promise.resolve(undefined));
   }
 }
 

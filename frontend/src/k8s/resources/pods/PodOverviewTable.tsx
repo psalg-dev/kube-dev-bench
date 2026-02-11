@@ -584,7 +584,7 @@ export default function PodOverviewTable({
   const getRowKey = useCallback((row: PodRow, idx: number) => {
     // Use UID for unique keys, fallback to namespace + name + status plus index
     // to guarantee uniqueness when UIDs are unavailable.
-    const uid = row?.uid ?? row?.UID ?? '';
+    const uid = row?.uid ?? (row as { UID?: string }).UID ?? '';
     if (uid) {
       return uid;
     }

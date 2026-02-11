@@ -1,13 +1,13 @@
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-
 param(
     [Parameter()]
-    [string]$PackagePath = './pkg/app/...'
+    [string]$PackagePath = './pkg/app/...',
 
     [Parameter()]
     [string]$OutputPath = './test-results.txt'
 )
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
 try {
     go test -v $PackagePath 2>&1 | Out-File -FilePath $OutputPath -Encoding UTF8
