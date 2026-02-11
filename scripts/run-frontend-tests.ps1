@@ -13,7 +13,7 @@ Set-StrictMode -Version Latest
 
 try {
     if (-not $ProjectRoot) {
-        $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+        $ProjectRoot = Split-Path -Parent $PSScriptRoot
     }
     $frontendPath = Join-Path $ProjectRoot 'frontend'
     if (-not $OutputPath) {
