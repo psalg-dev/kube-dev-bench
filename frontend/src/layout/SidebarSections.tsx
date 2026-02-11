@@ -149,7 +149,12 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                   <span>{sec.label}</span>
                   <span className="chevron" aria-hidden>{isExpanded ? '⌄' : '›'}</span>
                 </span>
-                <span className={`sidebar-section-count${isActive ? ' is-active' : ''}`}>{agg}</span>
+                <span
+                  className={`sidebar-section-count${isActive ? ' is-active' : ''}`}
+                  aria-label={`${sec.label} total count ${agg}`}
+                >
+                  {agg}
+                </span>
               </div>
               <div
                 id={`section-${sec.key}-children`}
