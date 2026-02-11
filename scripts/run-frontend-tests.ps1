@@ -1,14 +1,18 @@
 param(
-    [string[]]$TestArgs = @('--verbose')
+    [Parameter()]
+    [string[]]$Args
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$frontendPath = Join-Path -Path $PSScriptRoot -ChildPath '..\\frontend'
-Push-Location $frontendPath
+Push-Location -Path frontend
 try {
-    npm test -- @TestArgs 2>&1 | Tee-Object -FilePath test-results.txt
+    if ($Args -and $Args.Length -gt 0) {
+        npm test -- $Args
+    } else {
+        npm test -- --verbose
+    }
 } finally {
     Pop-Location
 }
