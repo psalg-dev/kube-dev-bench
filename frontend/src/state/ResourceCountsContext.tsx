@@ -35,7 +35,7 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
     };
     const computeSig = (c: any) => {
       if (!c) return 'none';
-      const podStatus = c.podStatus || c.PodStatus || {}; // pod status signature prominent
+      const podStatus = c.podStatus ?? c.PodStatus ?? {}; // pod status signature prominent
       const getCount = (lower: any, upper: any) => {
         if (typeof lower === 'number') return lower;
         if (typeof upper === 'number') return upper;
@@ -75,7 +75,7 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       // Ensure camelCase keys (keep original too in case UI references uppercase elsewhere)
       if (raw.PodStatus && !raw.podStatus) raw.podStatus = raw.PodStatus;
       if (raw.Services && !raw.services) raw.services = raw.Services;
-      // RBAC camelCase normalization
+      // RBAC counts normalization ensures camelCase keys for UI and signature tracking
       if (raw.Roles && !raw.roles) raw.roles = raw.Roles;
       if (raw.ClusterRoles && !raw.clusterroles) raw.clusterroles = raw.ClusterRoles;
       if (raw.RoleBindings && !raw.rolebindings) raw.rolebindings = raw.RoleBindings;
