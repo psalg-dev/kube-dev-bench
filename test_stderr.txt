@@ -1,0 +1,8 @@
+Der Wert "go-cover.out" vom Typ "System.String" kann nicht in den Typ "System.Management.Automation.SwitchParameter" 
+konvertiert werden.
+In Z:\development\git\psalg-dev\kube-dev-bench\scripts\run-app-tests.ps1:5 Zeichen:5
++     [switch]$WithCoverage,
++     ~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : ConvertToFinalInvalidCastException
+ 
