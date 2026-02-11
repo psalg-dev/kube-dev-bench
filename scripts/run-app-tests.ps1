@@ -1,12 +1,15 @@
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$repoRoot = Resolve-Path (Join-Path $scriptDir '..')
+param(
+    [switch]$WithCoverage,
+    [string]$CoverProfile = 'go-cover.out'
+)
 
-Push-Location $repoRoot
-try {
-    go test -v ./pkg/app/...
-} finally {
-    Pop-Location
+if ($WithCoverage) {
+    go test '-coverprofile=' + $CoverProfile ./pkg/app/...
+    go tool cover -func $CoverProfile
+    return
 }
+
+go test -v ./pkg/app/...

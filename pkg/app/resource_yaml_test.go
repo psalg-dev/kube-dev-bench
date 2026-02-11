@@ -7,6 +7,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -128,5 +129,102 @@ func TestResourceYAML_ValidationErrors(t *testing.T) {
 	}
 	if _, err := app.GetResourceYAML("Widget", "default", "name"); err == nil {
 		t.Fatal("expected error for unsupported kind")
+	}
+}
+
+func TestResourceYAML_KindNormalization_RoleBindingsPlural(t *testing.T) {
+	ctx := context.Background()
+	ns := "default"
+	cs := fake.NewSimpleClientset()
+	_, _ = cs.RbacV1().RoleBindings(ns).Create(ctx, &rbacv1.RoleBinding{
+		TypeMeta:   metav1.TypeMeta{Kind: "RoleBinding", APIVersion: "rbac.authorization.k8s.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "rb-plural", Namespace: ns},
+		RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: "r1", APIGroup: "rbac.authorization.k8s.io"},
+	}, metav1.CreateOptions{})
+	app := newTestAppWithClientset(cs)
+	app.currentNamespace = ns
+	yamlStr, err := app.GetResourceYAML("RoleBindings", ns, "rb-plural")
+	if err != nil {
+		t.Fatalf("GetResourceYAML RoleBindings error: %v", err)
+	}
+	if !strings.Contains(yamlStr, "kind: RoleBinding") || !strings.Contains(yamlStr, "name: rb-plural") {
+		t.Fatalf("unexpected YAML for RoleBindings: %s", yamlStr)
+	}
+}
+
+func TestResourceYAML_KindNormalization_ClusterRolesPlural(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset()
+	_, _ = cs.RbacV1().ClusterRoles().Create(ctx, &rbacv1.ClusterRole{
+		TypeMeta:   metav1.TypeMeta{Kind: "ClusterRole", APIVersion: "rbac.authorization.k8s.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "cr-plural"},
+	}, metav1.CreateOptions{})
+	app := newTestAppWithClientset(cs)
+	yamlStr, err := app.GetResourceYAML("ClusterRoles", "", "cr-plural")
+	if err != nil {
+		t.Fatalf("GetResourceYAML ClusterRoles error: %v", err)
+	}
+	if !strings.Contains(yamlStr, "kind: ClusterRole") || !strings.Contains(yamlStr, "name: cr-plural") {
+		t.Fatalf("unexpected YAML for ClusterRoles: %s", yamlStr)
+	}
+}
+
+func TestRBACYAML_OmitsManagedFields_Namespaced(t *testing.T) {
+	ctx := context.Background()
+	ns := "default"
+	cs := fake.NewSimpleClientset()
+	_, _ = cs.RbacV1().Roles(ns).Create(ctx, &rbacv1.Role{
+		TypeMeta:   metav1.TypeMeta{Kind: "Role", APIVersion: "rbac.authorization.k8s.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "role-mf", Namespace: ns},
+	}, metav1.CreateOptions{})
+	_, _ = cs.RbacV1().RoleBindings(ns).Create(ctx, &rbacv1.RoleBinding{
+		TypeMeta:   metav1.TypeMeta{Kind: "RoleBinding", APIVersion: "rbac.authorization.k8s.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "rb-mf", Namespace: ns},
+		RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: "role-mf", APIGroup: "rbac.authorization.k8s.io"},
+	}, metav1.CreateOptions{})
+	app := newTestAppWithClientset(cs)
+	app.currentNamespace = ns
+	roleYAML, err := app.GetRoleYAML(ns, "role-mf")
+	if err != nil {
+		t.Fatalf("GetRoleYAML error: %v", err)
+	}
+	if strings.Contains(roleYAML, "managedFields:") {
+		t.Fatalf("managedFields present in role YAML: %s", roleYAML)
+	}
+	rbYAML, err := app.GetRoleBindingYAML(ns, "rb-mf")
+	if err != nil {
+		t.Fatalf("GetRoleBindingYAML error: %v", err)
+	}
+	if strings.Contains(rbYAML, "managedFields:") {
+		t.Fatalf("managedFields present in rolebinding YAML: %s", rbYAML)
+	}
+}
+
+func TestRBACYAML_OmitsManagedFields_Cluster(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset()
+	_, _ = cs.RbacV1().ClusterRoles().Create(ctx, &rbacv1.ClusterRole{
+		TypeMeta:   metav1.TypeMeta{Kind: "ClusterRole", APIVersion: "rbac.authorization.k8s.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "cr-mf"},
+	}, metav1.CreateOptions{})
+	_, _ = cs.RbacV1().ClusterRoleBindings().Create(ctx, &rbacv1.ClusterRoleBinding{
+		TypeMeta:   metav1.TypeMeta{Kind: "ClusterRoleBinding", APIVersion: "rbac.authorization.k8s.io/v1"},
+		ObjectMeta: metav1.ObjectMeta{Name: "crb-mf"},
+		RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr-mf", APIGroup: "rbac.authorization.k8s.io"},
+	}, metav1.CreateOptions{})
+	app := newTestAppWithClientset(cs)
+	crYAML, err := app.GetClusterRoleYAML("cr-mf")
+	if err != nil {
+		t.Fatalf("GetClusterRoleYAML error: %v", err)
+	}
+	if strings.Contains(crYAML, "managedFields:") {
+		t.Fatalf("managedFields present in clusterrole YAML: %s", crYAML)
+	}
+	crbYAML, err := app.GetClusterRoleBindingYAML("crb-mf")
+	if err != nil {
+		t.Fatalf("GetClusterRoleBindingYAML error: %v", err)
+	}
+	if strings.Contains(crbYAML, "managedFields:") {
+		t.Fatalf("managedFields present in clusterrolebinding YAML: %s", crbYAML)
 	}
 }

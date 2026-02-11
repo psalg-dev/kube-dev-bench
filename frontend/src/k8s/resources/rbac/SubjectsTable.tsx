@@ -1,43 +1,49 @@
-import { useMemo } from 'react';
-import type { app } from '../../../../wailsjs/go/models';
-import EmptyTabContent from '../../../components/EmptyTabContent';
-import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import React from 'react';
 
-type SubjectsTableProps = { subjects?: app.Subject[] | null };
+type Subject = {
+  kind?: string;
+  Kind?: string;
+  name?: string;
+  Name?: string;
+  namespace?: string;
+  Namespace?: string;
+};
 
-export default function SubjectsTable({ subjects }: SubjectsTableProps) {
-  const items = useMemo<app.Subject[]>(() => (Array.isArray(subjects) ? subjects.filter(Boolean) : []), [subjects]);
-  if (items.length === 0) {
-    const emptyMsg = getEmptyTabMessage('subjects');
+function normalize(sub: Subject) {
+  return {
+    kind: sub.kind ?? sub.Kind ?? '-',
+    name: sub.name ?? sub.Name ?? '-',
+    namespace: sub.namespace ?? sub.Namespace ?? '-',
+  };
+}
+
+export default function SubjectsTable({ subjects }: { subjects?: Subject[] }) {
+  const items = (subjects || []).map(normalize);
+  if (!items.length) {
     return (
-      <EmptyTabContent
-        icon={emptyMsg.icon}
-        title={emptyMsg.title}
-        description={emptyMsg.description}
-        tip={emptyMsg.tip}
-      />
+      <div style={{ padding: '12px', color: 'var(--gh-text-muted)' }}>
+        No subjects
+      </div>
     );
   }
   return (
-    <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table className="panel-table">
-        <thead>
-          <tr>
-            <th>Kind</th>
-            <th>Name</th>
-            <th>Namespace</th>
+    <table className="gh-table">
+      <thead>
+        <tr>
+          <th>Kind</th>
+          <th>Name</th>
+          <th>Namespace</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((s, idx) => (
+          <tr key={`subject-${idx}`}>
+            <td>{s.kind}</td>
+            <td>{s.name}</td>
+            <td>{s.namespace}</td>
           </tr>
-        </thead>
-        <tbody>
-          {items.map((subject, idx) => (
-            <tr key={`${subject.kind}-${subject.name}-${idx}`}>
-              <td>{subject.kind || '-'}</td>
-              <td>{subject.name || '-'}</td>
-              <td>{subject.namespace || '-'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }

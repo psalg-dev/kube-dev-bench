@@ -418,3 +418,47 @@ func TestGetClusterRoleBindingSubjects_Validation(t *testing.T) {
 		t.Fatal("expected name error")
 	}
 }
+
+func TestGetRoleBindings_RawFieldList(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "rb1", Namespace: "default"}, RoleRef: rbacv1.RoleRef{Kind: "Role", Name: "r1", APIGroup: "rbac.authorization.k8s.io"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "rb2", Namespace: "default"}, RoleRef: rbacv1.RoleRef{Kind: "Role", Name: "r2", APIGroup: "rbac.authorization.k8s.io"}},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	list, err := app.GetRoleBindings("default")
+	if err != nil {
+		t.Fatalf("GetRoleBindings error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("want 2, got %d", len(list))
+	}
+	if list[0].Raw == nil {
+		t.Fatal("expected Raw set")
+	}
+	if _, ok := list[0].Raw.(*rbacv1.RoleBinding); !ok {
+		t.Fatalf("Raw type = %T, want *rbacv1.RoleBinding", list[0].Raw)
+	}
+}
+
+func TestGetClusterRoleBindings_RawFieldList(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crb1"}, RoleRef: rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr1", APIGroup: "rbac.authorization.k8s.io"}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crb2"}, RoleRef: rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr2", APIGroup: "rbac.authorization.k8s.io"}},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	list, err := app.GetClusterRoleBindings()
+	if err != nil {
+		t.Fatalf("GetClusterRoleBindings error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("want 2, got %d", len(list))
+	}
+	if list[0].Raw == nil {
+		t.Fatal("expected Raw set")
+	}
+	if _, ok := list[0].Raw.(*rbacv1.ClusterRoleBinding); !ok {
+		t.Fatalf("Raw type = %T, want *rbacv1.ClusterRoleBinding", list[0].Raw)
+	}
+}

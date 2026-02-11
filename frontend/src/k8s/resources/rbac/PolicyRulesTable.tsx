@@ -1,49 +1,67 @@
-import { useMemo } from 'react';
-import type { app } from '../../../../wailsjs/go/models';
-import EmptyTabContent from '../../../components/EmptyTabContent';
-import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import React from 'react';
 
-type PolicyRulesTableProps = { rules?: app.PolicyRule[] | null };
+type PolicyRule = {
+  verbs?: string[] | string;
+  apiGroups?: string[] | string;
+  resources?: string[] | string;
+  resourceNames?: string[] | string;
+  Verbs?: string[] | string;
+  APIGroups?: string[] | string;
+  Resources?: string[] | string;
+  ResourceNames?: string[] | string;
+};
 
-export default function PolicyRulesTable({ rules }: PolicyRulesTableProps) {
-  const items = useMemo<app.PolicyRule[]>(() => (Array.isArray(rules) ? rules.filter(Boolean) : []), [rules]);
-  if (items.length === 0) {
-    const emptyMsg = getEmptyTabMessage('policy-rules');
+function normalizeList(val?: string[] | string): string[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val.filter(Boolean).map(String);
+  return String(val)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function normalize(rule: PolicyRule) {
+  const verbs = normalizeList(rule.verbs ?? rule.Verbs);
+  const apiGroups = normalizeList(rule.apiGroups ?? rule.APIGroups);
+  const resources = normalizeList(rule.resources ?? rule.Resources);
+  const resourceNames = normalizeList(rule.resourceNames ?? rule.ResourceNames);
+  return {
+    verbs: verbs.sort(),
+    apiGroups: apiGroups.length ? apiGroups : ['-'],
+    resources: resources.length ? resources : ['-'],
+    resourceNames: resourceNames.length ? resourceNames : ['-'],
+  };
+}
+
+export default function PolicyRulesTable({ rules }: { rules?: PolicyRule[] }) {
+  const items = (rules || []).map(normalize);
+  if (!items.length) {
     return (
-      <EmptyTabContent
-        icon={emptyMsg.icon}
-        title={emptyMsg.title}
-        description={emptyMsg.description}
-        tip={emptyMsg.tip}
-      />
+      <div style={{ padding: '12px', color: 'var(--gh-text-muted)' }}>
+        No policy rules
+      </div>
     );
   }
   return (
-    <div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
-      <table className="panel-table">
-        <thead>
-          <tr>
-            <th>Verbs</th>
-            <th>API Groups</th>
-            <th>Resources</th>
-            <th>Resource Names</th>
+    <table className="gh-table">
+      <thead>
+        <tr>
+          <th>Verbs</th>
+          <th>API Groups</th>
+          <th>Resources</th>
+          <th>Resource Names</th>
+        </tr>
+      </thead>
+      <tbody>
+        {items.map((r, idx) => (
+          <tr key={`rule-${idx}`}>
+            <td>{r.verbs.join(', ')}</td>
+            <td>{r.apiGroups.join(', ')}</td>
+            <td>{r.resources.join(', ')}</td>
+            <td>{r.resourceNames.join(', ')}</td>
           </tr>
-        </thead>
-        <tbody>
-          {items.map((rule, idx) => (
-            <tr key={idx}>
-              <td>{Array.isArray(rule.verbs) ? rule.verbs.join(', ') : '-'}</td>
-              <td>{Array.isArray(rule.apiGroups) ? rule.apiGroups.join(', ') : '-'}</td>
-              <td>{Array.isArray(rule.resources) ? rule.resources.join(', ') : '-'}</td>
-              <td>
-                {Array.isArray(rule.resourceNames) && rule.resourceNames.length > 0
-                  ? rule.resourceNames.join(', ')
-                  : '-'}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   );
 }
