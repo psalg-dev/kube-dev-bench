@@ -6,15 +6,15 @@ import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 type PolicyRulesTableProps = { rules?: app.PolicyRule[] | null };
 
 export default function PolicyRulesTable({ rules }: PolicyRulesTableProps) {
-  const items = useMemo(() => (Array.isArray(rules) ? rules.filter(Boolean) : []), [rules]);
+  const items = useMemo<app.PolicyRule[]>(() => (Array.isArray(rules) ? rules.filter(Boolean) : []), [rules]);
   if (items.length === 0) {
-    const emptyMsg = getEmptyTabMessage('rules');
+    const emptyMsg = getEmptyTabMessage('policy-rules');
     return (
       <EmptyTabContent
         icon={emptyMsg.icon}
-        title="No RBAC rules"
-        description="No policy rules are defined."
-        tip="Add rules to restrict or grant permissions."
+        title={emptyMsg.title}
+        description={emptyMsg.description}
+        tip={emptyMsg.tip}
       />
     );
   }

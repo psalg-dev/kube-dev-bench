@@ -54,6 +54,12 @@ export const emptyTabMessages: Record<string, EmptyTabMessage> = {
     description: 'No routing rules are configured for this ingress.',
     tip: 'Add rules to define how traffic should be routed to your services.',
   },
+  'policy-rules': {
+    icon: 'rules',
+    title: 'No policy rules',
+    description: 'No RBAC policy rules are defined for this resource.',
+    tip: 'Add verbs, API groups and resources to grant permissions.',
+  },
   pvcs: {
     icon: 'pvcs',
     title: 'No volume claims',
