@@ -123,6 +123,50 @@ func (a *App) GetConfigMapConsumers(namespace, configMapName string) ([]ConfigMa
 		}
 	}
 
+	// Scan StatefulSets
+	stsList, err := clientset.AppsV1().StatefulSets(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, sts := range stsList.Items {
+		if ok, why := podSpecUsesConfigMap(sts.Spec.Template.Spec, configMapName); ok {
+			consumers = append(consumers, ConfigMapConsumer{Kind: "StatefulSet", Name: sts.Name, Namespace: sts.Namespace, RefType: why})
+		}
+	}
+
+	// Scan DaemonSets
+	dsList, err := clientset.AppsV1().DaemonSets(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, ds := range dsList.Items {
+		if ok, why := podSpecUsesConfigMap(ds.Spec.Template.Spec, configMapName); ok {
+			consumers = append(consumers, ConfigMapConsumer{Kind: "DaemonSet", Name: ds.Name, Namespace: ds.Namespace, RefType: why})
+		}
+	}
+
+	// Scan Jobs
+	jobs, err := clientset.BatchV1().Jobs(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, job := range jobs.Items {
+		if ok, why := podSpecUsesConfigMap(job.Spec.Template.Spec, configMapName); ok {
+			consumers = append(consumers, ConfigMapConsumer{Kind: "Job", Name: job.Name, Namespace: job.Namespace, RefType: why})
+		}
+	}
+
+	// Scan CronJobs
+	cronJobs, err := clientset.BatchV1().CronJobs(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, cj := range cronJobs.Items {
+		if ok, why := podSpecUsesConfigMap(cj.Spec.JobTemplate.Spec.Template.Spec, configMapName); ok {
+			consumers = append(consumers, ConfigMapConsumer{Kind: "CronJob", Name: cj.Name, Namespace: cj.Namespace, RefType: why})
+		}
+	}
+
 	return dedupAndSortConsumers(consumers), nil
 }
 

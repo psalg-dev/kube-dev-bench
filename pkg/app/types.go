@@ -163,6 +163,7 @@ type ServiceInfo struct {
 	Ports     string            `json:"ports"`
 	Age       string            `json:"age"`
 	Labels    map[string]string `json:"labels,omitempty"`
+	Selector  map[string]string `json:"selector,omitempty"`
 }
 
 // JobInfo describes a job's basic info — reuse the type from the jobs package to avoid duplication
