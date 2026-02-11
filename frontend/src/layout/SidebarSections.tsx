@@ -50,6 +50,8 @@ const resourceSections: ResourceSection[] = [
   },
 ];
 
+const rbacChildKeys = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'];
+
 function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
   const parts = useMemo<ReactNode[]>(() => {
     if (!podStatus) return [];
@@ -102,13 +104,13 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
   };
   const safeCounts = counts || undefined;
   const [rbacCollapsed, setRbacCollapsed] = useState(true);
+  const isRbacChildSelected = rbacChildKeys.includes(selected);
 
   useEffect(() => {
-    const rbacChildren = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'];
-    if (rbacChildren.includes(selected)) {
+    if (isRbacChildSelected) {
       setRbacCollapsed(false);
     }
-  }, [selected]);
+  }, [isRbacChildSelected]);
   return (
     <div>
       {resourceSections.map((sec) => {
@@ -126,6 +128,10 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
               <div
                 id={`section-${sec.key}`}
                 className={`sidebar-section sidebar-group-header${isExpanded ? ' selected' : ''}`}
+                role="button"
+                aria-expanded={isExpanded}
+                aria-controls={`section-${sec.key}-children`}
+                aria-label={`${sec.label} section`}
                 onClick={(event) => {
                   event.stopPropagation();
                   setRbacCollapsed((v) => !v);
@@ -137,7 +143,11 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                 </span>
                 <span className={`sidebar-section-count${isActive ? ' is-active' : ''}`}>{agg}</span>
               </div>
-              <div className={`sidebar-group-children${rbacCollapsed ? ' collapsed' : ''}`}>
+              <div
+                id={`section-${sec.key}-children`}
+                className={`sidebar-group-children${rbacCollapsed ? ' collapsed' : ''}`}
+                aria-hidden={rbacCollapsed}
+              >
                 {sec.children?.map((child) => {
                   const isSel = selected === child.key;
                   const value = safeCounts?.[child.key];
