@@ -2,18 +2,18 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 param(
-    [string[]]$TestArgs
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$Args
 )
 
 try {
-    $frontendPath = Join-Path $PSScriptRoot '..' 'frontend'
-    Set-Location -Path $frontendPath
-
-    npm test -- --verbose @TestArgs
-
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        throw "npm test failed with exit code $exitCode."
+    $projectRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
+    $frontendPath = Join-Path $projectRoot 'frontend'
+    Set-Location $frontendPath
+    if ($Args.Count -gt 0) {
+        npm test -- --run @Args
+    } else {
+        npm test -- --run
     }
 } catch {
     Write-Error "Failed to run frontend tests: $_"

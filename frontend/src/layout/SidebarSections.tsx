@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useResourceCounts } from '../state/ResourceCountsContext';
@@ -8,14 +8,9 @@ type ResourceSection = {
   key: string;
   label: string;
   podCounts?: boolean;
+  group?: boolean;
+  children?: Array<{ key: string; label: string }>;
 };
-type ResourceGroupSection = {
-  key: string;
-  label: string;
-  group: true;
-  children: ResourceSection[];
-};
-type AnySection = ResourceSection | ResourceGroupSection;
 
 type PodStatus = {
   running?: number;
@@ -27,7 +22,7 @@ type PodStatus = {
 };
 
 // Resource sections list with id suffix & label
-const resourceSections: AnySection[] = [
+const resourceSections: ResourceSection[] = [
   { key: 'pods', label: 'Pods', podCounts: true },
   { key: 'deployments', label: 'Deployments' },
   { key: 'services', label: 'Services' },
@@ -106,35 +101,44 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
     counts: (Record<string, number> & { podStatus?: PodStatus; PodStatus?: PodStatus }) | null;
   };
   const safeCounts = counts || undefined;
-  const [rbacExpanded, setRbacExpanded] = useState(false);
+  const [rbacCollapsed, setRbacCollapsed] = useState(true);
+
+  useEffect(() => {
+    const rbacChildren = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'];
+    if (rbacChildren.includes(selected)) {
+      setRbacCollapsed(false);
+    }
+  }, [selected]);
   return (
     <div>
       {resourceSections.map((sec) => {
-        if ((sec as ResourceGroupSection).group) {
-          const group = sec as ResourceGroupSection;
-          const childKeys = group.children.map((c) => c.key);
-          const autoExpand = childKeys.includes(selected);
-          const expanded = rbacExpanded || autoExpand;
-          const aggCount = childKeys.reduce((sum, k) => sum + (Number(safeCounts?.[k]) || 0), 0);
-          const isActive = aggCount > 0;
+        if (sec.group) {
+          const isExpanded = !rbacCollapsed;
+          const agg = (
+            (safeCounts?.roles ?? 0) +
+            (safeCounts?.clusterroles ?? 0) +
+            (safeCounts?.rolebindings ?? 0) +
+            (safeCounts?.clusterrolebindings ?? 0)
+          );
+          const isActive = agg > 0;
           return (
-            <div key={group.key} className="sidebar-section">
+            <div key={sec.key} className="sidebar-group">
               <div
-                id={`section-${group.key}`}
-                className={`sidebar-group-header${expanded ? ' selected' : ''}`}
+                id={`section-${sec.key}`}
+                className={`sidebar-section sidebar-group-header${isExpanded ? ' selected' : ''}`}
                 onClick={(event) => {
                   event.stopPropagation();
-                  setRbacExpanded((v) => !v);
+                  setRbacCollapsed((v) => !v);
                 }}
               >
                 <span className="sidebar-section-label">
-                  <span className="chevron" aria-hidden>{expanded ? '▾' : '▸'}</span>
-                  <span>{group.label}</span>
+                  <span>{sec.label}</span>
+                  <span className="chevron" aria-hidden>{isExpanded ? '⌄' : '›'}</span>
                 </span>
-                <span className={`sidebar-section-count${isActive ? ' is-active' : ''}`}>{aggCount}</span>
+                <span className={`sidebar-section-count${isActive ? ' is-active' : ''}`}>{agg}</span>
               </div>
-              <div className={`sidebar-group-children${expanded ? '' : ' collapsed'}`}>
-                {group.children.map((child) => {
+              <div className={`sidebar-group-children${rbacCollapsed ? ' collapsed' : ''}`}>
+                {sec.children?.map((child) => {
                   const isSel = selected === child.key;
                   const value = safeCounts?.[child.key];
                   const isNumber = typeof value === 'number';

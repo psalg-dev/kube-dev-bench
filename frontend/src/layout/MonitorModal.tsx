@@ -122,7 +122,6 @@ export function MonitorModal({ monitorInfo, onClose }: MonitorModalProps) {
                 return (
                   <div
                     key={index}
-                    className="monitor-issue-item"
                     onClick={() => handleIssueClick(issue)}
                     className={`monitor-issue-item monitor-issue-item--${issueTone}`}
                   >

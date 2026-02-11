@@ -2,16 +2,21 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 param(
-    [switch]$SkipTypecheck,
-    [switch]$SkipTests
+    [string]$FrontendPath = (Join-Path $PSScriptRoot '..' 'frontend')
 )
 
-Set-Location -Path 'frontend'
+try {
+    $resolvedFrontendPath = (Resolve-Path -Path $FrontendPath).Path -replace '\\', '/'
+    if (-not (Test-Path -Path $resolvedFrontendPath)) {
+        throw "Frontend path not found: $resolvedFrontendPath"
+    }
 
-if (-not $SkipTypecheck) {
-    npm run typecheck
-}
+    Write-Host 'Running frontend typecheck...'
+    npm --prefix $resolvedFrontendPath run typecheck
 
-if (-not $SkipTests) {
-    npm test -- --verbose
+    Write-Host 'Running frontend tests...'
+    npm --prefix $resolvedFrontendPath test
+} catch {
+    Write-Error "Frontend checks failed: $_"
+    exit 1
 }
