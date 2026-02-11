@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
@@ -339,8 +339,8 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     const key = `${row.namespace}/${row.name}`;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [
-      { label: isAnalyzing ? 'Analyzing...' : 'Ask Holmes', icon: '🧠', disabled: isAnalyzing, onClick: () => { analyzeRole(row); api?.openDetails?.('holmes'); } },
-      { label: 'Delete', icon: '🗑️', danger: true, onClick: async () => { try { await AppAPI.DeleteResource('role', row.namespace, row.name); showSuccess(`Role '${row.name}' deleted`); } catch (err: unknown) { const message = err instanceof Error ? err.message : String(err); showError(`Failed to delete role '${row.name}': ${message}`); } } },
+      { label: isAnalyzing ? 'Analyzing...' : 'Ask Holmes', icon: 'ðŸ§ ', disabled: isAnalyzing, onClick: () => { analyzeRole(row); api?.openDetails?.('holmes'); } },
+      { label: 'Delete', icon: 'ðŸ—‘ï¸', danger: true, onClick: async () => { try { await AppAPI.DeleteResource('role', row.namespace, row.name); showSuccess(`Role '${row.name}' deleted`); } catch (err: unknown) { const message = err instanceof Error ? err.message : String(err); showError(`Failed to delete role '${row.name}': ${message}`); } } },
     ];
   };
 
@@ -357,3 +357,4 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     />
   );
 }
+

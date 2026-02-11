@@ -64,14 +64,23 @@
   color: #666;
 }
 
+.chevron {
+  font-size: 13px;
+  color: var(--gh-text-muted);
+}
+
 /* RBAC group header & children */
 .sidebar-group {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .sidebar-group-header {
   padding: 8px 16px;
   cursor: pointer;
+  user-select: none;
   color: var(--gh-table-header-text, #fff);
   font-size: 15px;
   margin: 0;
@@ -80,7 +89,6 @@
   text-align: left;
   display: flex;
   align-items: center;
-  gap: 8px;
   justify-content: space-between;
 }
 
@@ -93,10 +101,10 @@
 .sidebar-group-children {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-left: 14px; /* indent children */
-  padding-left: 8px;
-  border-left: 1px solid var(--gh-border);
+  gap: 2px;
+  margin-left: 10px;
+  padding-left: 6px;
+  border-left: 1px solid rgba(56, 139, 253, 0.15);
 }
 
 .sidebar-group-children.collapsed {

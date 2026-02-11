@@ -27,7 +27,7 @@ Types are defined in separate files:
 
 **Note:** Types are in dedicated files rather than `types.go` (cleaner organization).
 
-- [ ] Add to `ResourceCounts` — ❌ NOT YET ADDED to counts.go
+- [x] Add to `ResourceCounts` — ❌ NOT YET ADDED to counts.go
 
 ### 1.2 Resource Getters ✅ PARTIALLY IMPLEMENTED
 
@@ -54,10 +54,10 @@ Implemented in `pkg/app/roles.go` and `pkg/app/rolebindings.go`:
 ### 1.3 YAML Getters — append to `pkg/app/resource_yaml.go` ❌ NOT IMPLEMENTED
 
 Follow existing pattern (`GetServiceYAML` etc.):
-- [ ] `GetRoleYAML(namespace, name) (string, error)`
-- [ ] `GetClusterRoleYAML(name) (string, error)`
-- [ ] `GetRoleBindingYAML(namespace, name) (string, error)`
-- [ ] `GetClusterRoleBindingYAML(name) (string, error)`
+- [x] `GetRoleYAML(namespace, name) (string, error)`
+- [x] `GetClusterRoleYAML(name) (string, error)`
+- [x] `GetRoleBindingYAML(namespace, name) (string, error)`
+- [x] `GetClusterRoleBindingYAML(name) (string, error)`
 
 ### 1.4 Delete Support — `pkg/app/delete_resource.go` ❌ NOT IMPLEMENTED
 
@@ -71,12 +71,12 @@ case "clusterrolebinding": clientset.RbacV1().ClusterRoleBindings().Delete(...)
 
 ### 1.5 Counts — `pkg/app/counts.go` ❌ NOT IMPLEMENTED
 
-- [ ] Add RBAC to `refreshResourceCounts()`: Roles/RoleBindings inside namespace loop; ClusterRoles/ClusterRoleBindings outside (like PersistentVolumes)
-- [ ] Update `resourceCountsEqual()` to compare new fields
+- [x] Add RBAC to `refreshResourceCounts()`: Roles/RoleBindings inside namespace loop; ClusterRoles/ClusterRoleBindings outside (like PersistentVolumes)
+- [x] Update `resourceCountsEqual()` to compare new fields
 
 ### 1.6 Register Polling — `main.go` ❌ NOT IMPLEMENTED
 
-- [ ] Add `app.StartRBACPolling()` after existing polling registrations.
+- [x] Add `app.StartRBACPolling()` after existing polling registrations.
 
 ---
 
@@ -126,23 +126,23 @@ Add group entry to `resourceSections`:
 ```
 
 Rendering changes:
-- [ ] When `sec.group === true`, render a clickable header with collapse chevron + summed count badge
-- [ ] `useState` for collapsed state (default: collapsed)
-- [ ] When expanded, render indented children with individual counts
-- [ ] Auto-expand when a child is the `selected` section
-- [ ] Stable DOM ids: `#section-rbac` (group header), `#section-roles`, etc.
+- [x] When `sec.group === true`, render a clickable header with collapse chevron + summed count badge
+- [x] `useState` for collapsed state (default: collapsed)
+- [x] When expanded, render indented children with individual counts
+- [x] Auto-expand when a child is the `selected` section
+- [x] Stable DOM ids: `#section-rbac` (group header), `#section-roles`, etc.
 
 Accessibility follow-ups:
-- [ ] RBAC group header supports keyboard toggle (Enter/Space).
-- [ ] Sidebar links expose aria-current and count labels.
+- [x] RBAC group header supports keyboard toggle (Enter/Space).
+- [x] Sidebar links expose aria-current and count labels.
 
 ### Modify: `frontend/src/app.css`
 
-- [ ] Add styles for `.sidebar-group-header`, `.sidebar-group-children`, `.sidebar-group-children.collapsed`.
+- [x] Add styles for `.sidebar-group-header`, `.sidebar-group-children`, `.sidebar-group-children.collapsed`.
 
 ### Modify: `frontend/src/state/ResourceCountsContext.tsx`
 
-- [ ] Add `roles`, `clusterroles`, `rolebindings`, `clusterrolebindings` to signature computation.
+- [x] Add `roles`, `clusterroles`, `rolebindings`, `clusterrolebindings` to signature computation.
 
 ---
 

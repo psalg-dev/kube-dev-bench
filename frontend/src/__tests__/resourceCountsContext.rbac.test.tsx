@@ -1,13 +1,13 @@
-import { describe, it, expect, vi, act, waitFor, beforeAll, afterAll } from 'vitest';
-import { render } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { render, act, waitFor } from '@testing-library/react';
 import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext';
 
 vi.mock('../../wailsjs/runtime', () => {
-  let handler: ((payload: unknown) => void) | null = null;
+  let handler: ((payload: unknown) => void) | undefined;
   return {
     EventsOn: (event: string, cb: (payload: unknown) => void) => {
       if (event === 'resourcecounts:update') handler = cb;
-      return () => { handler = null; };
+      return () => { handler = undefined; };
     },
     __emit: (payload: unknown) => { if (handler) handler(payload); },
   };

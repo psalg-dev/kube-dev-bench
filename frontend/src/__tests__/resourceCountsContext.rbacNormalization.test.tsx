@@ -31,7 +31,7 @@ describe('ResourceCountsProvider RBAC normalization', () => {
   beforeEach(() => {
     getResourceCounts.mockClear();
     onCallback.handler = undefined;
-    (window as Window & { go?: unknown }).go = { main: { App: { GetResourceCounts: vi.fn() } } };
+    (window as any).go = { main: { App: { GetResourceCounts: vi.fn() } } };
   });
 
   it('normalizes uppercase RBAC keys to camelCase and updates on events', async () => {

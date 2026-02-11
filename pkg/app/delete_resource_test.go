@@ -8,6 +8,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -308,6 +309,56 @@ func TestDeleteResource(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{Name: "test-sa", Namespace: "default"},
 				}
 				clientset.CoreV1().ServiceAccounts("default").Create(context.Background(), sa, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
+			name:         "delete role",
+			resourceType: "role",
+			namespace:    "default",
+			resourceName: "test-role",
+			setupFunc: func(clientset *fake.Clientset) {
+				role := &rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "test-role", Namespace: "default"}}
+				clientset.RbacV1().Roles("default").Create(context.Background(), role, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
+			name:         "delete clusterrole",
+			resourceType: "clusterrole",
+			namespace:    "",
+			resourceName: "test-cr",
+			setupFunc: func(clientset *fake.Clientset) {
+				cr := &rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "test-cr"}}
+				clientset.RbacV1().ClusterRoles().Create(context.Background(), cr, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
+			name:         "delete rolebinding",
+			resourceType: "rolebinding",
+			namespace:    "default",
+			resourceName: "test-rb",
+			setupFunc: func(clientset *fake.Clientset) {
+				rb := &rbacv1.RoleBinding{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-rb", Namespace: "default"},
+					RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: "test-role", APIGroup: "rbac.authorization.k8s.io"},
+				}
+				clientset.RbacV1().RoleBindings("default").Create(context.Background(), rb, metav1.CreateOptions{})
+			},
+			expectError: false,
+		},
+		{
+			name:         "delete clusterrolebinding",
+			resourceType: "clusterrolebinding",
+			namespace:    "",
+			resourceName: "test-crb",
+			setupFunc: func(clientset *fake.Clientset) {
+				crb := &rbacv1.ClusterRoleBinding{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-crb"},
+					RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "test-cr", APIGroup: "rbac.authorization.k8s.io"},
+				}
+				clientset.RbacV1().ClusterRoleBindings().Create(context.Background(), crb, metav1.CreateOptions{})
 			},
 			expectError: false,
 		},

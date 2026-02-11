@@ -1,18 +1,20 @@
 import { useMemo } from 'react';
 import type { app } from '../../../../wailsjs/go/models';
 import EmptyTabContent from '../../../components/EmptyTabContent';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 
 type SubjectsTableProps = { subjects?: app.Subject[] | null };
 
 export default function SubjectsTable({ subjects }: SubjectsTableProps) {
   const items = useMemo(() => (Array.isArray(subjects) ? subjects.filter(Boolean) : []), [subjects]);
   if (items.length === 0) {
+    const emptyMsg = getEmptyTabMessage('subjects');
     return (
       <EmptyTabContent
-        icon="default"
-        title="No subjects"
-        description="No subjects are bound to this role."
-        tip="Bind users, groups, or service accounts to grant permissions."
+        icon={emptyMsg.icon}
+        title={emptyMsg.title}
+        description={emptyMsg.description}
+        tip={emptyMsg.tip}
       />
     );
   }

@@ -130,6 +130,7 @@ func (a *App) aggregateResourceCounts(ns string, agg *ResourceCounts) {
 	if helmReleases, err := a.GetHelmReleases(ns); err == nil {
 		agg.HelmReleases += len(helmReleases)
 	}
+
 	if roles, err := a.GetRoles(ns); err == nil {
 		agg.Roles += len(roles)
 	}

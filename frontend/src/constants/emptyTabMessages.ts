@@ -30,6 +30,12 @@ export const emptyTabMessages: Record<string, EmptyTabMessage> = {
     description: 'This resource is not currently used by any workloads.',
     tip: 'Workloads (Deployments, StatefulSets, etc.) that reference this resource will appear here.',
   },
+  subjects: {
+    icon: 'default',
+    title: 'No subjects',
+    description: 'No subjects are bound to this role.',
+    tip: 'Bind users, groups, or service accounts to grant permissions.',
+  },
   endpoints: {
     icon: 'endpoints',
     title: 'No endpoints available',

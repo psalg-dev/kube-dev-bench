@@ -50,7 +50,7 @@ const resourceSections: ResourceSection[] = [
   },
 ];
 
-const rbacChildKeys = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'] as const;
+const rbacChildKeys = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'];
 
 function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
   const parts = useMemo<ReactNode[]>(() => {

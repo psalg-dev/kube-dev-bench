@@ -8,7 +8,7 @@ const mockCounts = vi.hoisted(() => ({
     clusterroles: 2,
     rolebindings: 4,
     clusterrolebindings: 1,
-  },
+  } as Record<string, number | undefined>,
 }));
 
 vi.mock('../state/ResourceCountsContext', () => ({
@@ -29,8 +29,8 @@ describe('SidebarSections RBAC', () => {
         <SidebarSections selected="pods" onSelect={() => {}} />
       </MemoryRouter>
     );
-    const group = container.querySelector('#section-rbac');
-    const children = container.querySelector('#section-rbac-children');
+    const group = container.querySelector('#section-rbac') as HTMLElement | undefined;
+    const children = container.querySelector('#section-rbac-children') as HTMLElement | undefined;
     if (!group || !children) throw new Error('Missing RBAC group elements');
 
     expect(within(group).getByText('10')).toBeTruthy();

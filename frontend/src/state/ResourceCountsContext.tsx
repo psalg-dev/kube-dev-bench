@@ -36,35 +36,39 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
     const computeSig = (c: any) => {
       if (!c) return 'none';
       const podStatus = c.podStatus || c.PodStatus || {}; // pod status signature prominent
-      const sigParts = [
+      const getCount = (lower: any, upper: any) => {
+        if (typeof lower === 'number') return lower;
+        if (typeof upper === 'number') return upper;
+        return 0;
+      };
+      return [
         // Pod status
-        podStatus.running || podStatus.Running || 0,
-        podStatus.pending || podStatus.Pending || 0,
-        podStatus.failed || podStatus.Failed || 0,
-        podStatus.succeeded || podStatus.Succeeded || 0,
-        podStatus.unknown || podStatus.Unknown || 0,
-        podStatus.total || podStatus.Total || 0,
+        getCount(podStatus.running, podStatus.Running),
+        getCount(podStatus.pending, podStatus.Pending),
+        getCount(podStatus.failed, podStatus.Failed),
+        getCount(podStatus.succeeded, podStatus.Succeeded),
+        getCount(podStatus.unknown, podStatus.Unknown),
+        getCount(podStatus.total, podStatus.Total),
         // Core resources
-        c.services || c.Services || 0,
-        c.deployments || c.Deployments || 0,
-        c.jobs || c.Jobs || 0,
-        c.cronjobs || c.CronJobs || 0,
-        c.daemonsets || c.DaemonSets || 0,
-        c.statefulsets || c.StatefulSets || 0,
-        c.replicasets || c.ReplicaSets || 0,
-        c.configmaps || c.ConfigMaps || 0,
-        c.secrets || c.Secrets || 0,
-        c.ingresses || c.Ingresses || 0,
-        c.persistentvolumeclaims || c.PersistentVolumeClaims || 0,
-        c.persistentvolumes || c.PersistentVolumes || 0,
-        c.helmreleases || c.HelmReleases || 0,
+        getCount(c.services, c.Services),
+        getCount(c.deployments, c.Deployments),
+        getCount(c.jobs, c.Jobs),
+        getCount(c.cronjobs, c.CronJobs),
+        getCount(c.daemonsets, c.DaemonSets),
+        getCount(c.statefulsets, c.StatefulSets),
+        getCount(c.replicasets, c.ReplicaSets),
+        getCount(c.configmaps, c.ConfigMaps),
+        getCount(c.secrets, c.Secrets),
+        getCount(c.ingresses, c.Ingresses),
+        getCount(c.persistentvolumeclaims, c.PersistentVolumeClaims),
+        getCount(c.persistentvolumes, c.PersistentVolumes),
+        getCount(c.helmreleases, c.HelmReleases),
         // RBAC resources
-        c.roles || c.Roles || 0,
-        c.clusterroles || c.ClusterRoles || 0,
-        c.rolebindings || c.RoleBindings || 0,
-        c.clusterrolebindings || c.ClusterRoleBindings || 0,
-      ];
-      return sigParts.join('-');
+        getCount(c.roles, c.Roles),
+        getCount(c.clusterroles, c.ClusterRoles),
+        getCount(c.rolebindings, c.RoleBindings),
+        getCount(c.clusterrolebindings, c.ClusterRoleBindings),
+      ].join('-');
     };
     const normalize = (raw: any) => {
       if (!raw) return raw;
@@ -76,8 +80,6 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       if (raw.ClusterRoles && !raw.clusterroles) raw.clusterroles = raw.ClusterRoles;
       if (raw.RoleBindings && !raw.rolebindings) raw.rolebindings = raw.RoleBindings;
       if (raw.ClusterRoleBindings && !raw.clusterrolebindings) raw.clusterrolebindings = raw.ClusterRoleBindings;
-      // NOTE: RBAC counts (roles, clusterroles, rolebindings, clusterrolebindings)
-      // are normalized to camelCase above and included in computeSig. Keep in sync with backend ResourceCounts.
       return raw;
     };
     const applyCounts = (data: any) => {
