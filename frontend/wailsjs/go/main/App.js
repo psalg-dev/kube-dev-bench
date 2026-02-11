@@ -330,12 +330,24 @@ export function GetClusterRoleBindingDetail(arg1) {
   return window['go']['main']['App']['GetClusterRoleBindingDetail'](arg1);
 }
 
+export function GetClusterRoleBindingSubjects(arg1) {
+  return window['go']['main']['App']['GetClusterRoleBindingSubjects'](arg1);
+}
+
+export function GetClusterRoleBindingYAML(arg1) {
+  return window['go']['main']['App']['GetClusterRoleBindingYAML'](arg1);
+}
+
 export function GetClusterRoleBindings() {
   return window['go']['main']['App']['GetClusterRoleBindings']();
 }
 
 export function GetClusterRoleDetail(arg1) {
   return window['go']['main']['App']['GetClusterRoleDetail'](arg1);
+}
+
+export function GetClusterRoleYAML(arg1) {
+  return window['go']['main']['App']['GetClusterRoleYAML'](arg1);
 }
 
 export function GetClusterRoles() {
@@ -762,12 +774,24 @@ export function GetRoleBindingDetail(arg1, arg2) {
   return window['go']['main']['App']['GetRoleBindingDetail'](arg1, arg2);
 }
 
+export function GetRoleBindingSubjects(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleBindingSubjects'](arg1, arg2);
+}
+
+export function GetRoleBindingYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleBindingYAML'](arg1, arg2);
+}
+
 export function GetRoleBindings(arg1) {
   return window['go']['main']['App']['GetRoleBindings'](arg1);
 }
 
 export function GetRoleDetail(arg1, arg2) {
   return window['go']['main']['App']['GetRoleDetail'](arg1, arg2);
+}
+
+export function GetRoleYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleYAML'](arg1, arg2);
 }
 
 export function GetRoles(arg1) {
@@ -1316,6 +1340,10 @@ export function StartMonitorPolling() {
 
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
+}
+
+export function StartRBACPolling() {
+  return window['go']['main']['App']['StartRBACPolling']();
 }
 
 export function StartShellSession(arg1, arg2) {

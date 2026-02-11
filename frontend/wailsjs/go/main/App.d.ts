@@ -173,9 +173,15 @@ export function GetAllTabCounts(arg1:string,arg2:string,arg3:string):Promise<app
 
 export function GetClusterRoleBindingDetail(arg1:string):Promise<app.RoleBindingInfo>;
 
+export function GetClusterRoleBindingSubjects(arg1:string):Promise<Array<app.Subject>>;
+
+export function GetClusterRoleBindingYAML(arg1:string):Promise<string>;
+
 export function GetClusterRoleBindings():Promise<Array<app.RoleBindingInfo>>;
 
 export function GetClusterRoleDetail(arg1:string):Promise<app.RoleInfo>;
+
+export function GetClusterRoleYAML(arg1:string):Promise<string>;
 
 export function GetClusterRoles():Promise<Array<app.RoleInfo>>;
 
@@ -389,9 +395,15 @@ export function GetResourceYAML(arg1:string,arg2:string,arg3:string):Promise<str
 
 export function GetRoleBindingDetail(arg1:string,arg2:string):Promise<app.RoleBindingInfo>;
 
+export function GetRoleBindingSubjects(arg1:string,arg2:string):Promise<Array<app.Subject>>;
+
+export function GetRoleBindingYAML(arg1:string,arg2:string):Promise<string>;
+
 export function GetRoleBindings(arg1:string):Promise<Array<app.RoleBindingInfo>>;
 
 export function GetRoleDetail(arg1:string,arg2:string):Promise<app.RoleInfo>;
+
+export function GetRoleYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetRoles(arg1:string):Promise<Array<app.RoleInfo>>;
 
@@ -666,6 +678,8 @@ export function StartMCPServer():Promise<void>;
 export function StartMonitorPolling():Promise<void>;
 
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function StartRBACPolling():Promise<void>;
 
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
 

@@ -2091,6 +2091,10 @@ export namespace app {
 	    persistentvolumeclaims: number;
 	    persistentvolumes: number;
 	    helmreleases: number;
+	    roles: number;
+	    clusterroles: number;
+	    rolebindings: number;
+	    clusterrolebindings: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ResourceCounts(source);
@@ -2112,6 +2116,10 @@ export namespace app {
 	        this.persistentvolumeclaims = source["persistentvolumeclaims"];
 	        this.persistentvolumes = source["persistentvolumes"];
 	        this.helmreleases = source["helmreleases"];
+	        this.roles = source["roles"];
+	        this.clusterroles = source["clusterroles"];
+	        this.rolebindings = source["rolebindings"];
+	        this.clusterrolebindings = source["clusterrolebindings"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
