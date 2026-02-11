@@ -1,0 +1,1 @@
+frontend/src/k8s/resources/rbac/PolicyRulesTable.tsx
