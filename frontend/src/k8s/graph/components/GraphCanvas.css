@@ -1,0 +1,83 @@
+.graph-canvas {
+  width: 100%;
+  height: 100%;
+  background: #f8fafc;
+  position: relative;
+}
+
+.graph-canvas-loading,
+.graph-canvas-error,
+.graph-canvas-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 40px;
+  text-align: center;
+}
+
+.graph-canvas-loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.graph-canvas-loading p {
+  color: #64748b;
+  font-size: 14px;
+}
+
+.graph-canvas-error {
+  color: #dc2626;
+}
+
+.error-message {
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.retry-button {
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.retry-button:hover {
+  background: #2563eb;
+}
+
+.graph-canvas-empty {
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* React Flow overrides */
+.react-flow__node.selected {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 3;
+}
+
+.edge-label {
+  user-select: none;
+}
