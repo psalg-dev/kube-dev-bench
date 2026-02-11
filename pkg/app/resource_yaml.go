@@ -278,6 +278,84 @@ func (a *App) GetNodeYAML(name string) (string, error) {
 	return string(data), nil
 }
 
+// GetRoleYAML retrieves the YAML manifest for a Role
+func (a *App) GetRoleYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	role, err := clientset.RbacV1().Roles(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get role: %w", err)
+	}
+	role.ManagedFields = nil
+	data, err := yaml.Marshal(role)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal role: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetClusterRoleYAML retrieves the YAML manifest for a ClusterRole (cluster-scoped)
+func (a *App) GetClusterRoleYAML(name string) (string, error) {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	clusterRole, err := clientset.RbacV1().ClusterRoles().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get cluster role: %w", err)
+	}
+	clusterRole.ManagedFields = nil
+	data, err := yaml.Marshal(clusterRole)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal cluster role: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetRoleBindingYAML retrieves the YAML manifest for a RoleBinding
+func (a *App) GetRoleBindingYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	roleBinding, err := clientset.RbacV1().RoleBindings(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get role binding: %w", err)
+	}
+	roleBinding.ManagedFields = nil
+	data, err := yaml.Marshal(roleBinding)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal role binding: %w", err)
+	}
+	return string(data), nil
+}
+
+// GetClusterRoleBindingYAML retrieves the YAML manifest for a ClusterRoleBinding (cluster-scoped)
+func (a *App) GetClusterRoleBindingYAML(name string) (string, error) {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	clusterRoleBinding, err := clientset.RbacV1().ClusterRoleBindings().Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get cluster role binding: %w", err)
+	}
+	clusterRoleBinding.ManagedFields = nil
+	data, err := yaml.Marshal(clusterRoleBinding)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal cluster role binding: %w", err)
+	}
+	return string(data), nil
+}
+
 // GetResourceYAML is a generic method that delegates to specific Get*YAML methods based on kind
 func (a *App) GetResourceYAML(kind, namespace, name string) (string, error) {
 	if kind == "" {
@@ -296,6 +374,10 @@ func (a *App) GetResourceYAML(kind, namespace, name string) (string, error) {
 		return a.GetNodeYAML(name)
 	case "persistentvolume", "persistentvolumes", "pv":
 		return a.GetPersistentVolumeYAML(name)
+	case "clusterrole", "clusterroles":
+		return a.GetClusterRoleYAML(name)
+	case "clusterrolebinding", "clusterrolebindings":
+		return a.GetClusterRoleBindingYAML(name)
 	}
 
 	// Namespaced resources require namespace
@@ -334,6 +416,10 @@ func (a *App) GetResourceYAML(kind, namespace, name string) (string, error) {
 		return a.GetSecretYAML(namespace, name)
 	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc":
 		return a.GetPersistentVolumeClaimYAML(namespace, name)
+	case "role", "roles":
+		return a.GetRoleYAML(namespace, name)
+	case "rolebinding", "rolebindings":
+		return a.GetRoleBindingYAML(namespace, name)
 	default:
 		return "", fmt.Errorf("unsupported resource kind: %s", kind)
 	}

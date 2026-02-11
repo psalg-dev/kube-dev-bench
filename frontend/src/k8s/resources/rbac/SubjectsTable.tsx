@@ -6,7 +6,7 @@ import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 type SubjectsTableProps = { subjects?: app.Subject[] | null };
 
 export default function SubjectsTable({ subjects }: SubjectsTableProps) {
-  const items = useMemo(() => (Array.isArray(subjects) ? subjects.filter(Boolean) : []), [subjects]);
+  const items = useMemo<app.Subject[]>(() => (Array.isArray(subjects) ? subjects.filter(Boolean) : []), [subjects]);
   if (items.length === 0) {
     const emptyMsg = getEmptyTabMessage('subjects');
     return (

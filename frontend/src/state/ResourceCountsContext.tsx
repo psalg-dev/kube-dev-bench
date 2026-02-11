@@ -87,8 +87,10 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       const sig = computeSig(norm);
       if (sig !== lastSigRef.current) {
         lastSigRef.current = sig;
-        if (active) setCounts(norm);
-        if (active) setLastUpdated(Date.now());
+        if (active) {
+          setCounts(norm);
+          setLastUpdated(Date.now());
+        }
       }
     };
     (async () => {
