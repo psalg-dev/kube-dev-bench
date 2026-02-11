@@ -4,7 +4,8 @@ param(
 
     [string[]]$AdditionalArgs = @(),
     [switch]$VerboseOutput,
-    [string]$ProjectRoot
+    [string]$ProjectRoot,
+    [string]$OutputPath
 )
 
 $ErrorActionPreference = 'Stop'
@@ -33,7 +34,11 @@ try {
 
     Push-Location $frontendPath
     try {
-        node @argsList
+        if ($OutputPath) {
+            & node.exe @argsList 2>&1 | Tee-Object -FilePath $OutputPath
+        } else {
+            & node.exe @argsList
+        }
     } finally {
         Pop-Location
     }
