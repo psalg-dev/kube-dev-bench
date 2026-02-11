@@ -172,8 +172,8 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                 {sec.children?.map((child) => {
                   const isSel = selected === child.key;
                   const value = safeCounts?.[child.key];
-                  const isNumber = typeof value === 'number';
-                  const countLabel = isNumber ? value : 'unknown';
+                  const numericValue = typeof value === 'number' ? value : undefined;
+                  const countLabel = numericValue ?? 'unknown';
                   return (
                     <Link
                       key={child.key}
@@ -191,10 +191,10 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                         <span>{child.label}</span>
                       </span>
                       <span
-                        className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}
+                        className={`sidebar-section-count${numericValue !== undefined && numericValue > 0 ? ' is-active' : ''}`}
                         aria-label={`${child.label} count ${countLabel}`}
                       >
-                        {isNumber ? value : '-'}
+                        {numericValue ?? '-'}
                       </span>
                     </Link>
                   );
