@@ -30,9 +30,9 @@ func TestGetRoleBindings_ReturnsRoleBindings(t *testing.T) {
 			},
 			Subjects: []rbacv1.Subject{
 				{
-					Kind:      "User",
-					Name:      "john",
-					APIGroup:  "rbac.authorization.k8s.io",
+					Kind:     "User",
+					Name:     "john",
+					APIGroup: "rbac.authorization.k8s.io",
 				},
 				{
 					Kind:      "ServiceAccount",

@@ -36,10 +36,10 @@ func TestResourceYAML_WorkloadKinds(t *testing.T) {
 	app := newTestAppWithClientset(cs)
 
 	tests := []struct {
-		name      string
-		getYAML   func() (string, error)
-		wantKind  string
-		wantName  string
+		name     string
+		getYAML  func() (string, error)
+		wantKind string
+		wantName string
 	}{
 		{
 			name:     "deployment",
