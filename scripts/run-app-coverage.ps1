@@ -1,20 +1,13 @@
-param(
-    [Parameter()]
-    [string]$PackagePath = './pkg/app',
-
-    [Parameter()]
-    [string]$ProfilePath = 'coverage_profiles/app_mcp_wrappers.cov'
-)
-
 $ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
-New-Item -ItemType Directory -Force (Split-Path $ProfilePath) | Out-Null
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Resolve-Path (Join-Path $scriptDir '..')
 
-go test $PackagePath -coverprofile=$ProfilePath
-
-$legacyPath = Join-Path (Split-Path $ProfilePath) ([System.IO.Path]::GetFileNameWithoutExtension($ProfilePath))
-if ((Test-Path $legacyPath) -and -not (Test-Path $ProfilePath)) {
-    Move-Item -Force $legacyPath $ProfilePath
+Push-Location $repoRoot
+try {
+    go test -v ./pkg/app/... '-coverprofile=go-cover.out'
+    go tool cover -func go-cover.out
+} finally {
+    Pop-Location
 }
-
-go tool cover -func $ProfilePath | Select-String -Pattern 'total:'
