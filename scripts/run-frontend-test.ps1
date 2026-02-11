@@ -2,19 +2,21 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 param(
-  [Parameter(Mandatory = $true)]
-  [string]$TestPath,
+    [Parameter(Mandatory = $true)]
+    [string]$TestPath,
 
-  [Parameter()]
-  [string]$OutputPath = 'frontend/test-results.txt'
+    [Parameter(ValueFromRemainingArguments = $true)]
+    [string[]]$ExtraArgs
 )
 
 try {
-  npm --prefix frontend test -- --runTestsByPath $TestPath --verbose 2>&1 | Tee-Object -FilePath $OutputPath
-  if ($LASTEXITCODE -ne 0) {
-    throw "npm test exited with code $LASTEXITCODE"
-  }
+    $argsList = @('--prefix', 'frontend', 'test', '--', $TestPath)
+    if ($ExtraArgs) {
+        $argsList += $ExtraArgs
+    }
+
+    npm @argsList
 } catch {
-  Write-Error "Frontend test failed: $($_.Exception.Message)"
-  exit 1
+    Write-Error "Failed to run frontend tests: $_"
+    exit 1
 }
