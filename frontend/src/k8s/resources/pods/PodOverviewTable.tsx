@@ -1169,46 +1169,56 @@ export default function PodOverviewTable({
                     />
                   </th>
                 )}
-                {headerGroup.headers.map(header => (
+                {headerGroup.headers.map(header => {
+                  const isSorted = header.column.getIsSorted();
+                  const canSort = header.column.getCanSort();
+                  return (
                     <th
                         key={header.id}
-                        onClick={header.column.getToggleSortingHandler()}
-                        style={{
-                          background: 'var(--gh-bg)',
-                          color: 'var(--gh-table-header-text, #fff)',
-                          borderBottom: '2px solid #353a42',
-                          fontWeight: 600,
-                          // fontSize removed to use global CSS for uniform height
-                          textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
-                          userSelect: 'none',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-                        }}
-                  >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
+                        aria-sort={isSorted === 'asc' ? 'ascending' : isSorted === 'desc' ? 'descending' : 'none'}
+                    >
+                      {canSort ? (
+                        <button
+                          type="button"
+                          className="sortable-header"
+                          onClick={header.column.getToggleSortingHandler()}
+                          style={{
+                            textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
+                          }}
+                        >
+                          <span>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
+                          <span className="sortable-indicator" aria-hidden="true">
+                            {isSorted ? (isSorted === 'asc' ? '▲' : '▼') : '↕'}
+                          </span>
+                        </button>
+                      ) : (
+                        <span>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
+                      )}
                   </th>
-                ))}
-                <th
-                    style={{
-                      background: 'var(--gh-bg)',
-                      color: 'var(--gh-table-header-text, #fff)',
-                      borderBottom: '2px solid #353a42',
-                      fontWeight: 600,
-                      // fontSize removed to use global CSS for uniform height
-                      textAlign: 'right',
-                      userSelect: 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-                    }}
-                    aria-label="Actions"
-                    title="Actions"
-                >
-                  Actions
-                </th>
+                  );
+                })}
+                <th>Actions</th>
               </tr>
           ))}
           </thead>
+          <tbody>
+            {tableData.length === 0 && !loading && (
+              <tr>
+                <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                  No Pods deployed in this namespace
+                </td>
+              </tr>
+            )}
+            {tableData.length > 0 && table.getRowModel().rows.length === 0 && !loading && (
+              <tr>
+                <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                  No rows match the filter.
+                </td>
+              </tr>
+            )}
+          </tbody>
         </table>
-        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
+        {tableData.length > 0 && <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <colgroup>
               {bulkEnabled && <col className="bulk-checkbox-col" />}
@@ -1241,7 +1251,6 @@ export default function PodOverviewTable({
                     }}
                     className={bulkEnabled && selection.isSelected(getRowKey(row.original, row.index)) ? 'bulk-selected' : undefined}
                     style={{
-                      borderBottom: '1px solid #353a42',
                       transition: 'background 0.2s',
                       height: ROW_HEIGHT
                     }}
@@ -1264,21 +1273,13 @@ export default function PodOverviewTable({
                       <td
                           key={cell.id}
                           style={{
-                            // padding handled by CSS .gh-table tbody td
-                            fontSize: 14,
-                            color: 'var(--gh-table-text, #e0e0e0)',
-                            borderBottom: '1px solid #353a42',
                             textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
-                            background: 'inherit',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
                           }}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                   ))}
-                  <td style={{position: 'relative', textAlign: 'right'}}>
+                  <td className="row-actions-cell">
                     <button
                       className="row-actions-button"
                       onClick={(e) => {
@@ -1437,7 +1438,7 @@ export default function PodOverviewTable({
             )}
             </tbody>
           </table>
-        </div>
+        </div>}
         {data.length >= 20 && (
           <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
             <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>

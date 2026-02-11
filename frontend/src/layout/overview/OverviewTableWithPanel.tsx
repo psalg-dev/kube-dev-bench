@@ -496,6 +496,13 @@ export default function OverviewTableWithPanel({
           </tr>
         </thead>
         <tbody>
+          {data.length === 0 && !loading && (
+            <tr>
+              <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                No {title || resourceKind} deployed in this namespace
+              </td>
+            </tr>
+          )}
           {sortedData.map((row: any, idx: number) => (
             !row ? null : (
               <tr
@@ -592,7 +599,7 @@ export default function OverviewTableWithPanel({
               </tr>
             )
           ))}
-          {filteredData.length === 0 && (
+          {filteredData.length === 0 && data.length > 0 && (
             <tr>
               <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading">No rows match the filter.</td>
             </tr>

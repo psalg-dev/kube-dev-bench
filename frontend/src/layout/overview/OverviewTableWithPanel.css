@@ -62,6 +62,15 @@ table.gh-table {
   border-collapse: collapse;
   width: 100%;
   table-layout: fixed;
+  border-spacing: 0;
+}
+
+table.gh-table thead {
+  border-bottom: none;
+}
+
+table.gh-table thead tr {
+  border-bottom: none;
 }
 
 .overview-actions-col {
@@ -82,7 +91,6 @@ table.gh-table tbody td:last-child {
   padding: 10px var(--gh-table-padding-x, 16px);
   background: var(--gh-bg);
   color: var(--gh-table-header-text, #d4d4d4);
-  border-bottom: 2px solid var(--gh-border, #3c3c3c);
   font-weight: 600;
   font-size: 15px;
   line-height: 1.4;          /* unify header text line height */
@@ -91,6 +99,18 @@ table.gh-table tbody td:last-child {
   vertical-align: middle;    /* align content vertically */
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.gh-table tbody {
+  border-top: none;
+}
+
+.gh-table tbody tr:first-child {
+  border-top: none;
+}
+
+.gh-table tbody tr:first-child td {
+  border-top: none;
 }
 
 .gh-table .sortable-header {
