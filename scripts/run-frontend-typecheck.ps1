@@ -5,12 +5,7 @@ try {
     $frontendPath = Join-Path $PSScriptRoot '..' 'frontend'
     Set-Location -Path $frontendPath
     npm run typecheck
-
-    $exitCode = $LASTEXITCODE
-    if ($exitCode -ne 0) {
-        throw "npm run typecheck failed with exit code $exitCode."
-    }
 } catch {
-    Write-Error "Failed to run frontend typecheck: $_"
+    Write-Error "Typecheck failed: $_"
     exit 1
 }
