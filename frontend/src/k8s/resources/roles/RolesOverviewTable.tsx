@@ -83,6 +83,14 @@ const normalizeRole = (r: RoleInfoRaw): RoleRow => ({
 
 const normalizeRoles = (arr: RoleInfoRaw[] | null | undefined): RoleRow[] => (arr || []).filter(Boolean).map(normalizeRole);
 
+const fetchRoleYaml = (namespace?: string, name?: string) => {
+  if (!namespace || !name) return Promise.resolve('');
+  const hasSpecific = typeof (AppAPI as any).GetRoleYAML === 'function';
+  return hasSpecific
+    ? (AppAPI as any).GetRoleYAML(namespace, name)
+    : AppAPI.GetResourceYAML('Role', namespace, name);
+};
+
 function renderPanelContent(
   row: RoleRow,
   tab: string,
@@ -330,10 +338,7 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     try { await CancelHolmesStream(currentStreamId); } catch (err) { console.error('Failed to cancel Holmes stream:', err); }
   };
 
-  const yamlLoader = async (ns: string, name: string) => {
-    // Prefer generic GetResourceYAML for frontend; backend must support kind 'role'.
-    return AppAPI.GetResourceYAML('role', ns, name);
-  };
+  const yamlLoader = (ns: string, name: string) => fetchRoleYaml(ns, name);
 
   const getRowActions = (row: RoleRow, api?: { openDetails?: (tabKey: string) => void }) => {
     const key = `${row.namespace}/${row.name}`;
