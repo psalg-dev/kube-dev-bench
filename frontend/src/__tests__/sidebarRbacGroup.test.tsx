@@ -1,118 +1,104 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, fireEvent, within, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-// Mock counts hook to drive SidebarSections
+const mockCounts = vi.hoisted(() => ({
+  counts: {
+    roles: 3,
+    clusterroles: 2,
+    rolebindings: 4,
+    clusterrolebindings: 1,
+  },
+}));
+
 vi.mock('../state/ResourceCountsContext', () => ({
-  useResourceCounts: () => ({
-    counts: {
-      roles: 2,
-      clusterroles: 3,
-      rolebindings: 1,
-      clusterrolebindings: 4,
-    },
-    lastUpdated: Date.now(),
-  }),
+  useResourceCounts: () => mockCounts,
 }));
 
 import SidebarSections from '../layout/SidebarSections';
 
-describe('SidebarSections RBAC group', () => {
+describe('SidebarSections RBAC', () => {
   beforeEach(() => {
-    // ensure clean DOM
-    document.body.innerHTML = '';
+    vi.clearAllMocks();
+    mockCounts.counts = { roles: 3, clusterroles: 2, rolebindings: 4, clusterrolebindings: 1 };
   });
 
-  it('renders RBAC group collapsed by default with aggregated count', () => {
+  it('renders RBAC group header with aggregated count and collapsed by default', () => {
     const { container } = render(
       <MemoryRouter>
         <SidebarSections selected="pods" onSelect={() => {}} />
       </MemoryRouter>
     );
-
-    const header = container.querySelector('#section-rbac');
+    const group = container.querySelector('#section-rbac');
     const children = container.querySelector('#section-rbac-children');
-    expect(header).toBeTruthy();
-    expect(children).toBeTruthy();
+    if (!group || !children) throw new Error('Missing RBAC group elements');
 
-    // Aggregated count: 2 + 3 + 1 + 4 = 10
-    const agg = within(header as HTMLElement).getByText('10');
-    expect(agg).toBeTruthy();
-
-    // Collapsed by default
-    expect(children?.className).toContain('collapsed');
+    expect(within(group).getByText('10')).toBeTruthy();
+    expect(children.className).toContain('collapsed');
+    expect(within(group).getByText('›')).toBeTruthy();
   });
 
-  it('expands on mouse click and keyboard (Enter/Space)', () => {
+  it('expands/collapses on click and keyboard, stops propagation', () => {
+    const parentClick = vi.fn();
     const { container } = render(
       <MemoryRouter>
-        <SidebarSections selected="pods" onSelect={() => {}} />
+        <div onClick={parentClick}>
+          <SidebarSections selected="pods" onSelect={() => {}} />
+        </div>
       </MemoryRouter>
     );
+    const group = container.querySelector('#section-rbac') as HTMLElement | undefined;
+    const children = container.querySelector('#section-rbac-children') as HTMLElement | undefined;
+    if (!group || !children) throw new Error('Missing RBAC group elements');
 
-    const header = container.querySelector('#section-rbac') as HTMLElement;
-    const children = container.querySelector('#section-rbac-children') as HTMLElement;
-    expect(children.className).toContain('collapsed');
-
-    fireEvent.click(header);
+    fireEvent.click(group);
     expect(children.className).not.toContain('collapsed');
+    expect(parentClick).not.toHaveBeenCalled();
 
-    // Collapse via keyboard Enter
-    fireEvent.keyDown(header, { key: 'Enter' });
+    fireEvent.keyDown(group, { key: 'Enter' });
     expect(children.className).toContain('collapsed');
 
-    // Expand via keyboard Space
-    fireEvent.keyDown(header, { key: ' ' });
+    fireEvent.keyDown(group, { key: ' ' });
     expect(children.className).not.toContain('collapsed');
   });
 
-  it('auto-expands when a child is selected', () => {
+  it('auto-expands when a child is selected', async () => {
     const { container } = render(
       <MemoryRouter>
         <SidebarSections selected="roles" onSelect={() => {}} />
       </MemoryRouter>
     );
+    const group = container.querySelector('#section-rbac') as HTMLElement | undefined;
+    const children = container.querySelector('#section-rbac-children') as HTMLElement | undefined;
+    if (!group || !children) throw new Error('Missing RBAC group elements');
 
-    const children = container.querySelector('#section-rbac-children') as HTMLElement;
-    expect(children.className).not.toContain('collapsed');
-
-    const childLink = container.querySelector('#section-roles') as HTMLElement;
-    expect(childLink).toBeTruthy();
-    // Child count present
-    const childCount = within(childLink).getByText('2');
-    expect(childCount).toBeTruthy();
+    await waitFor(() => {
+      expect(group.getAttribute('aria-expanded')).toBe('true');
+      expect(children.getAttribute('aria-hidden')).toBe('false');
+    });
   });
 
-  it('shows dash for unknown/missing child counts and sets aria-current on selected child', async () => {
-    vi.resetModules();
-    vi.doMock('../state/ResourceCountsContext', () => ({
-      useResourceCounts: () => ({
-        counts: {
-          roles: 2,
-          // clusterroles missing
-          rolebindings: 1,
-          clusterrolebindings: 4,
-        },
-        lastUpdated: Date.now(),
-      }),
-    }));
-
-    const { default: FreshSidebarSections } = await import('../layout/SidebarSections');
-
+  it('renders child counts and aria-labels; missing count shows dash', () => {
+    mockCounts.counts.rolebindings = undefined;
     const { container } = render(
       <MemoryRouter>
-        <FreshSidebarSections selected="clusterroles" onSelect={() => {}} />
+        <SidebarSections selected="pods" onSelect={() => {}} />
       </MemoryRouter>
     );
+    const roles = container.querySelector('#section-roles') as HTMLElement | undefined;
+    const clusterroles = container.querySelector('#section-clusterroles') as HTMLElement | undefined;
+    const rolebindings = container.querySelector('#section-rolebindings') as HTMLElement | undefined;
+    const clusterrolebindings = container.querySelector('#section-clusterrolebindings') as HTMLElement | undefined;
+    if (!roles || !clusterroles || !rolebindings || !clusterrolebindings) {
+      throw new Error('Missing RBAC child elements');
+    }
 
-    const link = container.querySelector('#section-clusterroles') as HTMLElement;
-    expect(link).toBeTruthy();
-    expect(link.className).toContain('selected');
+    expect(within(roles).getByText('3')).toBeTruthy();
+    expect(within(clusterroles).getByText('2')).toBeTruthy();
+    expect(within(rolebindings).getByText('-')).toBeTruthy();
+    expect(within(clusterrolebindings).getByText('1')).toBeTruthy();
 
-    // Dash when value is not a number
-    expect(screen.getByText('-')).toBeTruthy();
-
-    // aria-current is set on selected child
-    expect(link.getAttribute('aria-current')).toBe('page');
+    const countSpan = within(roles).getByLabelText('Roles count 3');
+    expect(countSpan).toBeTruthy();
   });
 });

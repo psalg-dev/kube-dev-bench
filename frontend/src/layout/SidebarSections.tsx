@@ -50,7 +50,7 @@ const resourceSections: ResourceSection[] = [
   },
 ];
 
-const rbacChildKeys = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'];
+const rbacChildKeys = ['roles', 'clusterroles', 'rolebindings', 'clusterrolebindings'] as const;
 
 function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
   const parts = useMemo<ReactNode[]>(() => {
@@ -116,13 +116,11 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
       {resourceSections.map((sec) => {
         if (sec.group) {
           const isExpanded = !rbacCollapsed;
-          const agg = (
-            (safeCounts?.roles ?? 0) +
-            (safeCounts?.clusterroles ?? 0) +
-            (safeCounts?.rolebindings ?? 0) +
-            (safeCounts?.clusterrolebindings ?? 0)
-          );
-          const isActive = agg > 0;
+          const agg = (safeCounts?.roles ?? 0)
+            + (safeCounts?.clusterroles ?? 0)
+            + (safeCounts?.rolebindings ?? 0)
+            + (safeCounts?.clusterrolebindings ?? 0);
+          const hasAggregate = agg > 0;
           return (
             <div key={sec.key} className="sidebar-group">
               <div
@@ -133,12 +131,19 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                 aria-controls={`section-${sec.key}-children`}
                 aria-label={`${sec.label} section`}
                 tabIndex={0}
+                data-testid="rbac-group-header"
                 onClick={(event) => {
                   event.stopPropagation();
                   setRbacCollapsed((v) => !v);
                 }}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
+                  const isToggleKey =
+                    event.key === 'Enter' ||
+                    event.key === ' ' ||
+                    event.key === 'Space' ||
+                    event.key === 'Spacebar' ||
+                    event.code === 'Space';
+                  if (isToggleKey) {
                     event.preventDefault();
                     event.stopPropagation();
                     setRbacCollapsed((v) => !v);
@@ -150,7 +155,7 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                   <span className="chevron" aria-hidden>{isExpanded ? '⌄' : '›'}</span>
                 </span>
                 <span
-                  className={`sidebar-section-count${isActive ? ' is-active' : ''}`}
+                  className={`sidebar-section-count${hasAggregate ? ' is-active' : ''}`}
                   aria-label={`${sec.label} total count ${agg}`}
                 >
                   {agg}
@@ -161,6 +166,8 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                 className={`sidebar-group-children${rbacCollapsed ? ' collapsed' : ''}`}
                 aria-hidden={rbacCollapsed}
                 aria-label={`${sec.label} resources`}
+                aria-labelledby={`section-${sec.key}`}
+                data-testid="rbac-group-children"
               >
                 {sec.children?.map((child) => {
                   const isSel = selected === child.key;
@@ -173,6 +180,7 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                       to={`/${child.key}`}
                       id={`section-${child.key}`}
                       className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
+                      data-testid={`rbac-child-${child.key}`}
                       aria-current={isSel ? 'page' : undefined}
                       onClick={(event) => {
                         event.stopPropagation();

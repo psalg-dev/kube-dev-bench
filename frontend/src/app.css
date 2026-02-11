@@ -997,3 +997,27 @@ input[type="text"]:focus, input[type="search"]:focus {
 .panel-table td.text-muted {
   color: var(--gh-text-muted, #8b949e);
 }
+
+/* RBAC sidebar group styles */
+.sidebar-group {
+  margin-top: 1rem;
+}
+
+.sidebar-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.sidebar-group-children {
+  margin-left: 12px;            /* indent children */
+  padding-left: 8px;
+  border-left: 1px solid var(--gh-border);
+}
+
+.sidebar-group-children.collapsed {
+  display: none;
+}

@@ -304,6 +304,7 @@ type ResourceCounts struct {
 	PersistentVolumeClaims int             `json:"persistentvolumeclaims"`
 	PersistentVolumes      int             `json:"persistentvolumes"`
 	HelmReleases           int             `json:"helmreleases"`
+
 	Roles                  int             `json:"roles"`
 	ClusterRoles           int             `json:"clusterroles"`
 	RoleBindings           int             `json:"rolebindings"`

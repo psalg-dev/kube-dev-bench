@@ -35,15 +35,15 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
     };
     const computeSig = (c: any) => {
       if (!c) return 'none';
-      const ps = c.podStatus || c.PodStatus || {}; // pod status signature prominent
-      return [
+      const podStatus = c.podStatus || c.PodStatus || {}; // pod status signature prominent
+      const sigParts = [
         // Pod status
-        ps.running || ps.Running || 0,
-        ps.pending || ps.Pending || 0,
-        ps.failed || ps.Failed || 0,
-        ps.succeeded || ps.Succeeded || 0,
-        ps.unknown || ps.Unknown || 0,
-        ps.total || ps.Total || 0,
+        podStatus.running || podStatus.Running || 0,
+        podStatus.pending || podStatus.Pending || 0,
+        podStatus.failed || podStatus.Failed || 0,
+        podStatus.succeeded || podStatus.Succeeded || 0,
+        podStatus.unknown || podStatus.Unknown || 0,
+        podStatus.total || podStatus.Total || 0,
         // Core resources
         c.services || c.Services || 0,
         c.deployments || c.Deployments || 0,
@@ -63,7 +63,8 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
         c.clusterroles || c.ClusterRoles || 0,
         c.rolebindings || c.RoleBindings || 0,
         c.clusterrolebindings || c.ClusterRoleBindings || 0,
-      ].join('-');
+      ];
+      return sigParts.join('-');
     };
     const normalize = (raw: any) => {
       if (!raw) return raw;
@@ -75,6 +76,8 @@ export function ResourceCountsProvider({ children }: { children: React.ReactNode
       if (raw.ClusterRoles && !raw.clusterroles) raw.clusterroles = raw.ClusterRoles;
       if (raw.RoleBindings && !raw.rolebindings) raw.rolebindings = raw.RoleBindings;
       if (raw.ClusterRoleBindings && !raw.clusterrolebindings) raw.clusterrolebindings = raw.ClusterRoleBindings;
+      // NOTE: RBAC counts (roles, clusterroles, rolebindings, clusterrolebindings)
+      // are normalized to camelCase above and included in computeSig. Keep in sync with backend ResourceCounts.
       return raw;
     };
     const applyCounts = (data: any) => {

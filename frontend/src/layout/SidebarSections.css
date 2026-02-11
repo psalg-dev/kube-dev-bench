@@ -1,3 +1,4 @@
+/* RBAC group styles are defined here; chevron color/font-size provided by .sidebar-section .chevron in app.css */
 .sidebar-section-link {
   padding: 8px 16px;
   cursor: pointer;
@@ -61,4 +62,43 @@
 
 .sidebar-pod-count-sep {
   color: #666;
+}
+
+/* RBAC group header & children */
+.sidebar-group {
+  margin-top: 1rem;
+}
+
+.sidebar-group-header {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--gh-table-header-text, #fff);
+  font-size: 15px;
+  margin: 0;
+  border-radius: 4px;
+  transition: background 0.15s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+/* reuse selected hover background from .sidebar-section */
+.sidebar-group-header .chevron {
+  font-size: 13px;
+  color: var(--gh-text-muted);
+}
+
+.sidebar-group-children {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 14px; /* indent children */
+  padding-left: 8px;
+  border-left: 1px solid var(--gh-border);
+}
+
+.sidebar-group-children.collapsed {
+  display: none;
 }

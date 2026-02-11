@@ -1,20 +1,14 @@
-param(
-    [Parameter()]
-    [string]$WorkingDirectory = 'frontend',
-
-    [Parameter()]
-    [string[]]$NpmArgs = @('--', '--run', '--silent')
-)
-
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
+param(
+    [string[]]$TestArgs = @('--verbose')
+)
+
+$frontendPath = Join-Path $PSScriptRoot '..' 'frontend'
+Push-Location $frontendPath
 try {
-    $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..')
-    $targetPath = Join-Path $repoRoot $WorkingDirectory
-    Set-Location $targetPath
-    npm test @NpmArgs
-} catch {
-    Write-Error "Frontend tests failed: $($_.Exception.Message)"
-    exit 1
+    npm test -- @TestArgs 2>&1 | Tee-Object -FilePath test-results.txt
+} finally {
+    Pop-Location
 }
