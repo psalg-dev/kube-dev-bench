@@ -132,9 +132,17 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                 aria-expanded={isExpanded}
                 aria-controls={`section-${sec.key}-children`}
                 aria-label={`${sec.label} section`}
+                tabIndex={0}
                 onClick={(event) => {
                   event.stopPropagation();
                   setRbacCollapsed((v) => !v);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setRbacCollapsed((v) => !v);
+                  }
                 }}
               >
                 <span className="sidebar-section-label">
@@ -147,17 +155,20 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                 id={`section-${sec.key}-children`}
                 className={`sidebar-group-children${rbacCollapsed ? ' collapsed' : ''}`}
                 aria-hidden={rbacCollapsed}
+                aria-label={`${sec.label} resources`}
               >
                 {sec.children?.map((child) => {
                   const isSel = selected === child.key;
                   const value = safeCounts?.[child.key];
                   const isNumber = typeof value === 'number';
+                  const countLabel = isNumber ? value : 'unknown';
                   return (
                     <Link
                       key={child.key}
                       to={`/${child.key}`}
                       id={`section-${child.key}`}
                       className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
+                      aria-current={isSel ? 'page' : undefined}
                       onClick={(event) => {
                         event.stopPropagation();
                         onSelect(child.key);
@@ -166,7 +177,10 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
                       <span className="sidebar-section-label">
                         <span>{child.label}</span>
                       </span>
-                      <span className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}>
+                      <span
+                        className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}
+                        aria-label={`${child.label} count ${countLabel}`}
+                      >
                         {isNumber ? value : '-'}
                       </span>
                     </Link>
@@ -180,12 +194,14 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
         const isSel = selected === leaf.key;
         const value = safeCounts?.[leaf.key];
         const isNumber = typeof value === 'number';
+        const countLabel = isNumber ? value : 'unknown';
         return (
           <Link
             key={leaf.key}
             to={`/${leaf.key}`}
             id={`section-${leaf.key}`}
             className={`sidebar-section sidebar-section-link${isSel ? ' selected' : ''}`}
+            aria-current={isSel ? 'page' : undefined}
             onClick={(event) => {
               event.stopPropagation();
               onSelect(leaf.key);
@@ -197,7 +213,10 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
             {leaf.podCounts ? (
               <PodCountsDisplay podStatus={counts?.podStatus || counts?.PodStatus} />
             ) : (
-              <span className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}>
+              <span
+                className={`sidebar-section-count${isNumber && (value as number) > 0 ? ' is-active' : ''}`}
+                aria-label={`${leaf.label} count ${countLabel}`}
+              >
                 {isNumber ? value : '-'}
               </span>
             )}

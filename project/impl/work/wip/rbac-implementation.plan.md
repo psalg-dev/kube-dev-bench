@@ -132,6 +132,10 @@ Rendering changes:
 - [x] Auto-expand when a child is the `selected` section
 - [x] Stable DOM ids: `#section-rbac` (group header), `#section-roles`, etc.
 
+Accessibility follow-ups:
+- [x] RBAC group header supports keyboard toggle (Enter/Space).
+- [x] Sidebar links expose aria-current and count labels.
+
 ### Modify: `frontend/src/app.css`
 
 - [x] Add styles for `.sidebar-group-header`, `.sidebar-group-children`, `.sidebar-group-children.collapsed`.
