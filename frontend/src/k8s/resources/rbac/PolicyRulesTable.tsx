@@ -1,4 +1,6 @@
 import React from 'react';
+import EmptyTabContent from '../../../components/EmptyTabContent';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
 
 type PolicyRule = {
   verbs?: string[] | string;
@@ -36,10 +38,14 @@ function normalize(rule: PolicyRule) {
 export default function PolicyRulesTable({ rules }: { rules?: PolicyRule[] }) {
   const items = (rules || []).map(normalize);
   if (!items.length) {
+    const emptyMessage = getEmptyTabMessage('policy-rules');
     return (
-      <div style={{ padding: '12px', color: 'var(--gh-text-muted)' }}>
-        No policy rules
-      </div>
+      <EmptyTabContent
+        icon={emptyMessage.icon}
+        title={emptyMessage.title}
+        description={emptyMessage.description}
+        tip={emptyMessage.tip}
+      />
     );
   }
   return (

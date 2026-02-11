@@ -307,6 +307,24 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
 
   useEffect(() => { fetchRoles(); }, [namespaces, namespace]);
 
+  // Subscribe to live roles updates from backend (already aggregated)
+  useEffect(() => {
+    const onUpdate = (list: RoleInfoRaw[] | null | undefined) => {
+      try {
+        const arr = Array.isArray(list) ? list : [];
+        setData(normalizeRoles(arr));
+      } catch (_e) {
+        setData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    EventsOn('roles:update', onUpdate);
+    return () => {
+      try { EventsOff('roles:update'); } catch (_) {}
+    };
+  }, []);
+
   // Subscribe to generic resource-updated events (from CreateManifestOverlay)
   useEffect(() => {
     const onUpdate = (eventData: any) => {
