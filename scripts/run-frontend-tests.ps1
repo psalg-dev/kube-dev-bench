@@ -16,6 +16,9 @@ try {
         $ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     }
     $frontendPath = Join-Path $ProjectRoot 'frontend'
+    if (-not $OutputPath) {
+        $OutputPath = Join-Path $ProjectRoot 'frontend-test-results.txt'
+    }
     $vitestModule = Join-Path $frontendPath 'node_modules' 'vitest' 'vitest.mjs'
     if (-not (Test-Path $vitestModule)) {
         throw "Vitest module not found at $vitestModule"
@@ -32,13 +35,10 @@ try {
         $argsList += '--verbose'
     }
 
+    New-Item -ItemType File -Path $OutputPath -Force | Out-Null
     Push-Location $frontendPath
     try {
-        if ($OutputPath) {
-            & node.exe @argsList 2>&1 | Tee-Object -FilePath $OutputPath
-        } else {
-            & node.exe @argsList
-        }
+        & node.exe @argsList 2>&1 | Tee-Object -FilePath $OutputPath
     } finally {
         Pop-Location
     }
