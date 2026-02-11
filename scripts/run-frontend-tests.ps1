@@ -1,10 +1,10 @@
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-
 param(
     [string]$Filter,
     [string[]]$ExtraArgs
 )
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
 
 try {
     $rootPath = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
