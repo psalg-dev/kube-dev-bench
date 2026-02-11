@@ -2,10 +2,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 param(
-    [string]$PackagePath = './pkg/app/...'
+    [Parameter()]
+    [string]$WorktreePath = (Join-Path $PSScriptRoot '..' '.agent-worktrees' 'agent-cad4e1e728c2c9703f98aa46c04d2e42-1770804479916')
 )
 
-& go test -v $PackagePath
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
+Set-Location $WorktreePath
+go test -v ./pkg/app/...
