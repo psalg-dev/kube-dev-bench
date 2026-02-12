@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
 import type { CSSProperties, MouseEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useSwarmResourceCounts } from './SwarmResourceCountsContext';
 
 type SwarmSectionKey =
@@ -35,9 +35,8 @@ interface SwarmSection {
 
 interface SwarmSidebarSectionsProps {
   selected: string;
-  onSelect: (section: string) => void;
+  onSelect: (_section: string) => void;
 }
-
 interface SwarmCounts {
   services: number;
   tasks: number;

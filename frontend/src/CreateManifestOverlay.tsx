@@ -1,24 +1,26 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { yaml as yamlLang } from '@codemirror/lang-yaml';
-import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle, indentOnInput, indentUnit } from '@codemirror/language';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { yaml as yamlLang } from '@codemirror/lang-yaml';
+import { defaultHighlightStyle, foldGutter, foldKeymap, indentOnInput, indentUnit, syntaxHighlighting } from '@codemirror/language';
+import { EditorState } from '@codemirror/state';
+import { EditorView, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../wailsjs/go/main/App';
 import { EventsEmit } from '../wailsjs/runtime';
-import { showSuccess, showError } from './notification';
-import ViewToggle from './components/forms/ViewToggle';
 import ServiceForm from './components/forms/ServiceForm';
+import ViewToggle from './components/forms/ViewToggle';
 import useSwarmServiceForm, { getDefaultServiceForm } from './hooks/useSwarmServiceForm';
+import { showError, showSuccess } from './notification';
 import {
-  validateServiceForm,
-  yamlToServiceForm,
-  yamlToConfigForm,
-  configFormToYaml,
-  yamlToSecretForm,
-  secretFormToYaml,
-  yamlToNodeForm,
-  nodeFormToYaml,
+    configFormToYaml,
+    nodeFormToYaml,
+    secretFormToYaml,
+    validateServiceForm,
+    yamlToConfigForm,
+    yamlToNodeForm,
+    yamlToSecretForm,
+    yamlToServiceForm,
 } from './utils/swarmYamlUtils';
 
 type KeyValueRow = { id: string; key: string; value: string };
@@ -100,7 +102,6 @@ function keyValueRowsToObject(rows: KeyValueRow[]) {
   }
   return out;
 }
-
 function objectToKeyValueRows(obj: Record<string, any>) {
   const o = obj || {};
   return Object.keys(o).sort().map((k) => ({ id: `kv_${k}`, key: k, value: (o[k] ?? '').toString() }));
@@ -117,7 +118,7 @@ function KeyValueEditor({
 }: {
   title: string;
   rows: KeyValueRow[];
-  onChange: (next: KeyValueRow[]) => void;
+  onChange: (_next: KeyValueRow[]) => void;
   keyPlaceholder: string;
   valuePlaceholder: string;
   addButtonLabel: string;

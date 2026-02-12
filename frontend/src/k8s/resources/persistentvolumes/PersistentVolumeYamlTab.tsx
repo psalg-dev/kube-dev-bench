@@ -18,7 +18,7 @@ export default function PersistentVolumeYamlTab({ name }: PersistentVolumeYamlTa
 		try {
 			const res = await GetPersistentVolumeYAML(name);
 			setYaml(res || '');
-		} catch (e: any) {
+		} catch (e: unknown) {
 			setError(String(e));
 		} finally {
 			setLoading(false);

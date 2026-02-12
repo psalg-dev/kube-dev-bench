@@ -9,7 +9,7 @@ type JobPodsTabProps = {
 };
 
 export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
-	const [detail, setDetail] = useState<any | null>(null);
+	const [detail, setDetail] = useState<unknown | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -24,7 +24,7 @@ export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
 	]), []);
 	const defaultPodSortKey = useMemo(() => pickDefaultSortKey(podColumns), [podColumns]);
 	const [podSortState, setPodSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(() => ({ key: defaultPodSortKey, direction: 'asc' }));
-	const pods = detail?.pods || [];
+	const pods = useMemo(() => detail?.pods || [], [detail?.pods]);
 	const sortedPods = useMemo(() => sortRows(pods, podSortState.key, podSortState.direction), [pods, podSortState]);
 
 	const conditionColumns = useMemo(() => ([
@@ -35,24 +35,38 @@ export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
 	]), []);
 	const defaultConditionSortKey = useMemo(() => pickDefaultSortKey(conditionColumns), [conditionColumns]);
 	const [conditionSortState, setConditionSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(() => ({ key: defaultConditionSortKey, direction: 'asc' }));
-	const conditions = detail?.conditions || [];
+	const conditions = useMemo(() => detail?.conditions || [], [detail?.conditions]);
 	const sortedConditions = useMemo(() => sortRows(conditions, conditionSortState.key, conditionSortState.direction), [conditions, conditionSortState]);
 
 	useEffect(() => {
-		if (!namespace || !jobName) return;
-
-		setLoading(true);
-		setError(null);
-
-		AppAPI.GetJobDetail(namespace, jobName)
-			.then(data => {
+		let active = true;
+		const loadDetail = async () => {
+			if (!namespace || !jobName) {
+				if (active) {
+					setDetail(null);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError(null);
+			}
+			try {
+				const data = await AppAPI.GetJobDetail(namespace, jobName);
+				if (!active) return;
 				setDetail(data);
 				setLoading(false);
-			})
-			.catch(err => {
-				setError(err.message || 'Failed to fetch job details');
+			} catch (err) {
+				if (!active) return;
+				setError((err as Error)?.message || 'Failed to fetch job details');
 				setLoading(false);
-			});
+			}
+		};
+		loadDetail();
+		return () => {
+			active = false;
+		};
 	}, [namespace, jobName]);
 
 	if (loading) {
@@ -126,7 +140,7 @@ export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
 					</tr>
 				</thead>
 				<tbody>
-					{sortedPods.map((pod: any, idx: number) => (
+					{sortedPods.map((pod: unknown, idx: number) => (
 						<tr key={pod.name || idx}>
 							<td>{pod.name}</td>
 							<td>
@@ -174,7 +188,7 @@ export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
 							</tr>
 						</thead>
 						<tbody>
-							{sortedConditions.map((cond: any, idx: number) => (
+							{sortedConditions.map((cond: unknown, idx: number) => (
 								<tr key={idx}>
 									<td>{cond.type}</td>
 									<td>

@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { docker, topology } from '../../wailsjs/go/models';
 
 vi.mock('../docker/swarmApi', () => ({
@@ -9,12 +10,34 @@ vi.mock('../docker/swarmApi', () => ({
   GetSwarmServiceLogs: vi.fn(),
 }));
 
+type ReactFlowProps = {
+  nodes?: unknown[];
+  onNodeClick?: (_: unknown, _node: unknown) => void;
+  children?: ReactNode;
+};
+vi.mock('@xyflow/react', () => ({
+  ReactFlow: ({ nodes = [], onNodeClick, children }: ReactFlowProps) => (
+    <div data-testid="reactflow">
+      {nodes.map((node) => (
+        <button key={node.id} type="button" onClick={() => onNodeClick?.({}, node)}>
+          {node.data?.label}
+        </button>
+      ))}
+      {children}
+    </div>
+  ),
+  Background: () => <div data-testid="graph-bg" />,
+  Controls: () => <div data-testid="graph-controls" />,
+  MiniMap: () => <div data-testid="graph-minimap" />,
+  MarkerType: { ArrowClosed: 'arrowclosed' },
+}));
+
 vi.mock('../layout/bottompanel/BottomPanel', () => ({
   default: ({ open, tabs, activeTab, onTabChange, onClose, children }: {
     open: boolean;
     tabs?: Array<{ key: string; label: string }>;
     activeTab?: string;
-    onTabChange: (key: string) => void;
+    onTabChange: (_key: string) => void;
     onClose: () => void;
     children?: React.ReactNode;
   }) => {
@@ -39,7 +62,6 @@ vi.mock('../layout/bottompanel/BottomPanel', () => ({
     );
   },
 }));
-
 vi.mock('../layout/bottompanel/TextViewerTab', () => ({
   default: ({ content, loading, error, loadingLabel }: {
     content?: string | null;
@@ -124,10 +146,11 @@ describe('TopologyView', () => {
     expect(await screen.findAllByTestId('topology-node-item')).not.toHaveLength(0);
     expect(await screen.findAllByTestId('topology-service-item')).not.toHaveLength(0);
 
-    // SVG node color mapping (Ready / Down)
-    const circles = Array.from(container.querySelectorAll('circle'));
-    expect(circles.some((c) => c.getAttribute('fill') === '#2ea44f')).toBe(true);
-    expect(circles.some((c) => c.getAttribute('fill') === '#ff7b72')).toBe(true);
+    // Graph node markers include state classes (Ready / Down).
+    const readyMarkers = container.querySelectorAll('.topologyGraphNodeDot--ready');
+    const downMarkers = container.querySelectorAll('.topologyGraphNodeDot--down');
+    expect(readyMarkers.length).toBeGreaterThan(0);
+    expect(downMarkers.length).toBeGreaterThan(0);
 
     const nodeButtons = screen.getAllByTestId('topology-node-item');
     fireEvent.click(nodeButtons[0]);

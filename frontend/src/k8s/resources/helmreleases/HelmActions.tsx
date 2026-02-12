@@ -251,7 +251,7 @@ type HelmUpgradeDialogProps = {
   onSuccess: () => void;
 };
 
-function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onClose, onSuccess }: HelmUpgradeDialogProps) {
+function HelmUpgradeDialog({ releaseName, namespace, onClose, onSuccess }: HelmUpgradeDialogProps) {
   const [chartRef, setChartRef] = useState('');
   const [version, setVersion] = useState('');
   const [valuesYaml, setValuesYaml] = useState('');
@@ -405,7 +405,7 @@ function HelmUpgradeDialog({ releaseName, namespace, chartName: _chartName, onCl
             <div style={{ marginBottom: 12, color: 'var(--gh-text, #c9d1d9)', fontSize: 13, fontWeight: 500 }}>
               Advanced Options (Helm v4)
             </div>
-            
+
             <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 200px' }}>
                 <label style={{ display: 'block', marginBottom: 6, color: 'var(--gh-text-muted, #8b949e)', fontSize: 12 }}>

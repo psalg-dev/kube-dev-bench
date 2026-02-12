@@ -64,6 +64,8 @@ Registry suite (Artifactory/JFrog):
 Optional knobs:
 - Override workers: `PW_WORKERS=2`
 - Override KinD cluster name: `KIND_CLUSTER_NAME=kdb-e2e`
+- Override KinD node image: `KIND_NODE_IMAGE=kindest/node:v1.29.4`
+- On Windows, E2E defaults to `kindest/node:v1.29.4` if `KIND_NODE_IMAGE` is not set.
 
 ## CI
 

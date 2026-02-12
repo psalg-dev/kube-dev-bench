@@ -1,48 +1,49 @@
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ContextSelect, NamespaceMultiSelect } from './Dropdowns';
 import { AppLayout } from './layout/AppLayout';
 import ConnectionWizard from './layout/connection/ConnectionWizard';
-import { ContextSelect, NamespaceMultiSelect } from './Dropdowns';
+import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext';
 import { ResourceCountsProvider } from './state/ResourceCountsContext';
 // Docker Swarm providers
-import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext';
-import { SwarmResourceCountsProvider } from './docker/SwarmResourceCountsContext';
 import SwarmConnectionWizard from './docker/SwarmConnectionWizard';
+import { SwarmResourceCountsProvider } from './docker/SwarmResourceCountsContext';
+import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext';
 // Holmes AI provider
+import { HolmesConfigModal } from './holmes/HolmesConfigModal';
 import { HolmesProvider, useHolmes } from './holmes/HolmesContext';
 import { HolmesPanel } from './holmes/HolmesPanel';
-import { HolmesConfigModal } from './holmes/HolmesConfigModal';
 // Resource overview tables
-import PodOverviewTable from './k8s/resources/pods/PodOverviewTable';
-import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
-import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
-import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
+import ConfigMapsOverviewTable from './k8s/resources/configmaps/ConfigMapsOverviewTable';
 import CronJobsOverviewTable from './k8s/resources/cronjobs/CronJobsOverviewTable';
 import DaemonSetsOverviewTable from './k8s/resources/daemonsets/DaemonSetsOverviewTable';
-import StatefulSetsOverviewTable from './k8s/resources/statefulsets/StatefulSetsOverviewTable';
-import ReplicaSetsOverviewTable from './k8s/resources/replicasets/ReplicaSetsOverviewTable';
-import ConfigMapsOverviewTable from './k8s/resources/configmaps/ConfigMapsOverviewTable';
-import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable';
+import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
+import HelmInstallDialog from './k8s/resources/helmreleases/HelmInstallDialog';
+import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
+import HelmRepositoriesDialog from './k8s/resources/helmreleases/HelmRepositoriesDialog';
 import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewTable';
+import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
-import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
-import HelmInstallDialog from './k8s/resources/helmreleases/HelmInstallDialog';
-import HelmRepositoriesDialog from './k8s/resources/helmreleases/HelmRepositoriesDialog';
+import PodOverviewTable from './k8s/resources/pods/PodOverviewTable';
+import ReplicaSetsOverviewTable from './k8s/resources/replicasets/ReplicaSetsOverviewTable';
+import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable';
+import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
+import StatefulSetsOverviewTable from './k8s/resources/statefulsets/StatefulSetsOverviewTable';
 // Docker Swarm resource views
-import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
-import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
-import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable';
-import SwarmNetworksOverviewTable from './docker/resources/networks/SwarmNetworksOverviewTable';
 import SwarmConfigsOverviewTable from './docker/resources/configs/SwarmConfigsOverviewTable';
+import SwarmNetworksOverviewTable from './docker/resources/networks/SwarmNetworksOverviewTable';
+import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable';
 import SwarmSecretsOverviewTable from './docker/resources/secrets/SwarmSecretsOverviewTable';
+import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
 import SwarmStacksOverviewTable from './docker/resources/stacks/SwarmStacksOverviewTable';
+import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
 import SwarmVolumesOverviewTable from './docker/resources/volumes/SwarmVolumesOverviewTable';
 import { showResourceOverlay } from './resource-overlay';
-
 type MainAppProps = {
   selectedSection: string;
-  setSelectedSection: (section: string) => void;
+  setSelectedSection: (_section: string) => void;
 };
 
 function MainApp({ selectedSection, setSelectedSection }: MainAppProps) {

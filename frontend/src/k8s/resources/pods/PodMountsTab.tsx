@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
 type PodMountsTabProps = {
@@ -119,7 +120,7 @@ export default function PodMountsTab({ podName }: PodMountsTabProps) {
 			for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
 			const td = new TextDecoder('utf-8', { fatal: false });
 			return td.decode(bytes);
-		} catch (_e) {
+		} catch {
 			// Fallback: return original
 			return b64;
 		}

@@ -2,9 +2,9 @@
  * Tests for BaseModal component
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
-import { BaseModal, ModalButton, ModalPrimaryButton, ModalDangerButton } from '../components/BaseModal';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { BaseModal, ModalButton, ModalDangerButton, ModalPrimaryButton } from '../components/BaseModal';
 
 describe('BaseModal', () => {
   afterEach(() => {

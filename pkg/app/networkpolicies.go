@@ -10,16 +10,16 @@ import (
 
 // NetworkPolicyInfo represents summary information about a Kubernetes network policy
 type NetworkPolicyInfo struct {
-	Name         string                   `json:"name"`
-	Namespace    string                   `json:"namespace"`
-	Age          string                   `json:"age"`
-	PodSelector  map[string]string        `json:"podSelector"`
-	PolicyTypes  []string                 `json:"policyTypes"`
-	Ingress      []NetworkPolicyIngressRule `json:"ingress,omitempty"`
-	Egress       []NetworkPolicyEgressRule  `json:"egress,omitempty"`
-	Labels       map[string]string        `json:"labels"`
-	Annotations  map[string]string        `json:"annotations"`
-	Raw          interface{}              `json:"raw,omitempty"`
+	Name        string                     `json:"name"`
+	Namespace   string                     `json:"namespace"`
+	Age         string                     `json:"age"`
+	PodSelector map[string]string          `json:"podSelector"`
+	PolicyTypes []string                   `json:"policyTypes"`
+	Ingress     []NetworkPolicyIngressRule `json:"ingress,omitempty"`
+	Egress      []NetworkPolicyEgressRule  `json:"egress,omitempty"`
+	Labels      map[string]string          `json:"labels"`
+	Annotations map[string]string          `json:"annotations"`
+	Raw         interface{}                `json:"raw,omitempty"`
 }
 
 // NetworkPolicyIngressRule represents an ingress rule
@@ -44,6 +44,12 @@ type NetworkPolicyPort struct {
 type NetworkPolicyPeer struct {
 	PodSelector       map[string]string `json:"podSelector,omitempty"`
 	NamespaceSelector map[string]string `json:"namespaceSelector,omitempty"`
+	IPBlock           *IPBlockRule      `json:"ipBlock,omitempty"`
+}
+
+type IPBlockRule struct {
+	CIDR   string   `json:"cidr"`
+	Except []string `json:"except,omitempty"`
 }
 
 // GetNetworkPolicies returns all network policies in the specified namespace
@@ -181,6 +187,12 @@ func convertPeer(peer networkingv1.NetworkPolicyPeer) NetworkPolicyPeer {
 	}
 	if peer.NamespaceSelector != nil {
 		result.NamespaceSelector = peer.NamespaceSelector.MatchLabels
+	}
+	if peer.IPBlock != nil {
+		result.IPBlock = &IPBlockRule{
+			CIDR:   peer.IPBlock.CIDR,
+			Except: peer.IPBlock.Except,
+		}
 	}
 	return result
 }

@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import './ServiceEndpointsTab.css';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
+import './ServiceEndpointsTab.css';
 
 type ServiceEndpointsTabProps = {
 	namespace?: string;
@@ -9,7 +9,7 @@ type ServiceEndpointsTabProps = {
 };
 
 export default function ServiceEndpointsTab({ namespace, serviceName }: ServiceEndpointsTabProps) {
-	const [endpoints, setEndpoints] = useState<any[]>([]);
+	const [endpoints, setEndpoints] = useState<unknown[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -49,7 +49,7 @@ export default function ServiceEndpointsTab({ namespace, serviceName }: ServiceE
 				if (!cancelled) {
 					setEndpoints(data || []);
 				}
-			} catch (err: any) {
+			} catch (err: unknown) {
 				if (!cancelled) {
 					setError(err?.message || 'Failed to load endpoints');
 					setEndpoints([]);

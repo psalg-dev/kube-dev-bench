@@ -1,24 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import AggregateLogsTab from '../../../components/AggregateLogsTab';
-import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
-import EmptyTabContent from '../../../components/EmptyTabContent';
-import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import { AnalyzeSwarmTaskStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress, type HolmesResponse, type HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import {
-  GetSwarmTasks,
-  GetSwarmTaskLogs,
-  GetSwarmTaskHealthLogs,
-} from '../../swarmApi';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import HealthStatusBadge from './HealthStatusBadge';
-import { showError } from '../../../notification';
-import StatusBadge from '../../../components/StatusBadge';
 import type { docker } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import QuickInfoSection from '../../../QuickInfoSection';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
+import EmptyTabContent from '../../../components/EmptyTabContent';
+import StatusBadge from '../../../components/StatusBadge';
+import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import { AnalyzeSwarmTaskStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress, type HolmesContextProgressEvent, type HolmesResponse } from '../../../holmes/holmesApi';
+import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError } from '../../../notification';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import {
+    GetSwarmTaskHealthLogs,
+    GetSwarmTaskLogs,
+    GetSwarmTasks,
+} from '../../swarmApi';
+import HealthStatusBadge from './HealthStatusBadge';
 
 type SwarmTaskRow = docker.SwarmTaskInfo;
 type HealthLogEntry = docker.SwarmHealthLogEntry;
@@ -78,7 +78,7 @@ function HealthCheckSection({ row }: HealthCheckSectionProps) {
         const data = await GetSwarmTaskHealthLogs(row.id);
         if (!active) return;
         setLogs(Array.isArray(data) ? (data as HealthLogEntry[]) : []);
-      } catch (_e) {
+      } catch {
         if (!active) return;
         setLogs([]);
       } finally {
@@ -200,7 +200,7 @@ function TaskInfoPanel({ row }: TaskInfoPanelProps) {
         const data = await GetSwarmTaskHealthLogs(row.id);
         if (!active) return;
         setLogs(Array.isArray(data) ? (data as HealthLogEntry[]) : []);
-      } catch (_e) {
+      } catch {
         if (!active) return;
         setLogs([]);
       } finally {
@@ -398,7 +398,7 @@ function renderPanelContent(
   row: SwarmTaskRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze?: (task: SwarmTaskRow) => void,
+  onAnalyze?: (_task: SwarmTaskRow) => void,
   onCancel?: () => void
 ) {
   if (tab === 'summary') {
@@ -454,7 +454,6 @@ function renderPanelContent(
 
   return null;
 }
-
 export default function SwarmTasksOverviewTable() {
   const [tasks, setTasks] = useState<SwarmTaskRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -603,7 +602,7 @@ export default function SwarmTasksOverviewTable() {
       }
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -631,7 +630,7 @@ export default function SwarmTasksOverviewTable() {
       });
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -693,5 +692,4 @@ export default function SwarmTasksOverviewTable() {
 }
 
 export { SwarmTasksOverviewTable };
-
 

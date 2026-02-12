@@ -1,34 +1,34 @@
-import { useState, useEffect, useCallback } from 'react';
 import {
-  ReactFlow,
-  Background,
-  Controls,
-  MiniMap,
-  NodeTypes,
-  EdgeTypes,
-  Node,
-  OnNodesChange,
-  OnEdgesChange,
-  applyNodeChanges,
-  applyEdgeChanges
+    Background,
+    Controls,
+    EdgeTypes,
+    MiniMap,
+    Node,
+    NodeTypes,
+    OnEdgesChange,
+    OnNodesChange,
+    ReactFlow,
+    applyEdgeChanges,
+    applyNodeChanges
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { ResourceNode } from './nodes/ResourceNode';
-import { RelationshipEdge } from './edges/RelationshipEdge';
+import { useCallback, useEffect, useState } from 'react';
 import { useGraphNavigation } from '../hooks/useGraphNavigation';
+import { RelationshipEdge } from './edges/RelationshipEdge';
 import './GraphCanvas.css';
+import { ResourceNode } from './nodes/ResourceNode';
 
 const nodeTypes: NodeTypes = {
-  resourceNode: ResourceNode as any
+  resourceNode: ResourceNode as unknown
 };
 
 const edgeTypes: EdgeTypes = {
-  relationshipEdge: RelationshipEdge as any
+  relationshipEdge: RelationshipEdge as unknown
 };
 
 export interface GraphCanvasProps {
   nodes: Node[];
-  edges: any[];
+  edges: unknown[];
   loading?: boolean;
   error?: string | null;
   onRefresh?: () => void;
@@ -39,14 +39,19 @@ export interface GraphCanvasProps {
  */
 export function GraphCanvas({ nodes, edges, loading, error, onRefresh }: GraphCanvasProps) {
   const { handleNodeClick } = useGraphNavigation();
-  
+
   const [localNodes, setLocalNodes] = useState(nodes);
   const [localEdges, setLocalEdges] = useState(edges);
 
   // Update local state when props change
   useEffect(() => {
-    setLocalNodes(nodes);
-    setLocalEdges(edges);
+    const frameId = window.requestAnimationFrame(() => {
+      setLocalNodes(nodes);
+      setLocalEdges(edges);
+    });
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
   }, [nodes, edges]);
 
   const onNodesChange: OnNodesChange = useCallback(
@@ -60,7 +65,7 @@ export function GraphCanvas({ nodes, edges, loading, error, onRefresh }: GraphCa
   );
 
   const onNodeClick = useCallback(
-    (_: any, node: Node) => {
+    (_: unknown, node: Node) => {
       handleNodeClick(node.data);
     },
     [handleNodeClick]
@@ -113,11 +118,12 @@ export function GraphCanvas({ nodes, edges, loading, error, onRefresh }: GraphCa
           animated: false
         }}
       >
-        <Background />
+        <Background color="#30363d" gap={16} />
         <Controls />
         <MiniMap
           nodeColor={(node) => {
-            const kind = node.data?.kind?.toLowerCase() || '';
+            const kindRaw = node.data?.kind;
+            const kind = typeof kindRaw === 'string' ? kindRaw.toLowerCase() : '';
             if (kind.includes('pod')) return '#4ade80';
             if (kind.includes('service')) return '#f97316';
             if (kind.includes('deployment')) return '#3b82f6';

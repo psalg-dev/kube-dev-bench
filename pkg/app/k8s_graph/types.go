@@ -17,7 +17,10 @@ const (
 	EdgeTypeProvides      EdgeType = "provides"       // StorageClass provides PV
 	EdgeTypeRunsOn        EdgeType = "runs_on"        // Pod runs on Node
 	EdgeTypeBinds         EdgeType = "binds"          // RoleBinding binds Role/Subject
+	EdgeTypeScales        EdgeType = "scales"         // HPA scales a workload target
 	EdgeTypeNetworkPolicy EdgeType = "network_policy" // NetworkPolicy targets Pod
+	EdgeTypeNPIngress     EdgeType = "network_policy_ingress"
+	EdgeTypeNPEgress      EdgeType = "network_policy_egress"
 )
 
 // ResourceGroup represents a logical grouping of resource kinds
@@ -30,6 +33,7 @@ const (
 	GroupStorage        ResourceGroup = "storage"
 	GroupRBAC           ResourceGroup = "rbac"
 	GroupInfrastructure ResourceGroup = "infrastructure"
+	GroupExternal       ResourceGroup = "external"
 )
 
 // GraphNode represents a single Kubernetes resource in the graph
@@ -76,7 +80,7 @@ func EdgeID(source, target string, edgeType EdgeType) string {
 func KindToGroup(kind string) ResourceGroup {
 	kind = strings.ToLower(kind)
 	switch kind {
-	case "pod", "deployment", "statefulset", "daemonset", "replicaset", "job", "cronjob":
+	case "pod", "deployment", "statefulset", "daemonset", "replicaset", "job", "cronjob", "horizontalpodautoscaler", "hpa":
 		return GroupWorkload
 	case "service", "ingress", "networkpolicy", "endpoints":
 		return GroupNetworking
@@ -86,8 +90,12 @@ func KindToGroup(kind string) ResourceGroup {
 		return GroupStorage
 	case "role", "clusterrole", "rolebinding", "clusterrolebinding":
 		return GroupRBAC
+	case "user", "group":
+		return GroupRBAC
 	case "node":
 		return GroupInfrastructure
+	case "external", "cidr", "ipblock":
+		return GroupExternal
 	default:
 		return GroupWorkload // Default to workload
 	}

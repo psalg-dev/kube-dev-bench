@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';

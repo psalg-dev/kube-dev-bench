@@ -4,13 +4,12 @@ type NumberFieldProps = {
   id: string;
   label?: string;
   value: number | string;
-  onChange: (value: string) => void;
+  onChange: (_value: string) => void;
   min?: number;
   max?: number;
   required?: boolean;
   error?: string;
 };
-
 export default function NumberField({
   id,
   label,

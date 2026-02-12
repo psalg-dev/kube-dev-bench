@@ -1,17 +1,16 @@
-import { useContext } from 'react';
 import type { ReactNode } from 'react';
-import FooterBar from './FooterBar';
-import SidebarSections from './SidebarSections';
+import { useContext } from 'react';
 import { SwarmSidebarSections } from '../docker/SwarmSidebarSections';
 import SwarmStateContext from '../docker/SwarmStateContext';
 import { useMCP } from '../mcp/MCPContext';
+import FooterBar from './FooterBar';
+import SidebarSections from './SidebarSections';
 
 type DockerSwarmSidebarProps = {
   selectedSection: string;
-  onSelectSection: (section: string) => void;
+  onSelectSection: (_section: string) => void;
   onOpenConnectionsWizard?: () => void;
 };
-
 function DockerSwarmSidebar({
   selectedSection,
   onSelectSection,
@@ -86,7 +85,7 @@ export function AppLayout({
   contextSelectEl?: ReactNode;
   namespaceSelectEl?: ReactNode;
   selectedSection: string;
-  onSelectSection: (section: string) => void;
+  onSelectSection: (_section: string) => void;
   mainContentEl?: ReactNode;
   onOpenConnectionsWizard?: () => void;
   onOpenSwarmConnectionsWizard?: () => void;
@@ -208,5 +207,4 @@ export function AppLayout({
     </div>
   );
 }
-
 export default AppLayout;

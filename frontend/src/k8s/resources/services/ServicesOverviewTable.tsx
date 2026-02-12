@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import ServiceYamlTab from './ServiceYamlTab';
-import ServiceEndpointsTab from './ServiceEndpointsTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeServiceStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
 import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import ResourceActions from '../../../components/ResourceActions';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import ServiceEndpointsTab from './ServiceEndpointsTab';
+import ServiceYamlTab from './ServiceYamlTab';
 
 const columns = [
 	{ key: 'name', label: 'Name' },
@@ -28,14 +29,14 @@ const bottomTabs = [
 	{ key: 'endpoints', label: 'Endpoints', countKey: 'endpoints' },
 	{ key: 'events', label: 'Events', countKey: 'events' },
 	{ key: 'yaml', label: 'YAML', countable: false },
+	{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 	{ key: 'holmes', label: 'Holmes', countable: false },
 ];
-
 function renderPanelContent(
 	row: ServiceRow,
 	tab: string,
 	holmesState: HolmesState,
-	onAnalyze: (row: ServiceRow) => void,
+	onAnalyze: (_row: ServiceRow) => void,
 	onCancel: () => void
 ) {
 	if (tab === 'summary') {
@@ -101,6 +102,10 @@ function renderPanelContent(
 
 	if (tab === 'yaml') {
 		return <ServiceYamlTab namespace={row.namespace} name={row.name} />;
+	}
+
+	if (tab === 'relationships') {
+		return <ResourceGraphTab namespace={row.namespace} kind="Service" name={row.name} />;
 	}
 
 	if (tab === 'holmes') {
@@ -312,7 +317,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -339,7 +344,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -351,7 +356,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 			const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetServices(ns).catch(() => [])));
 			const flat = lists.flat().map((svc) => normalizeService(svc as ServiceInfoRaw));
 			setServices(flat);
-		} catch (_) {
+		} catch {
 			setServices([]);
 		} finally {
 			setLoading(false);
@@ -376,7 +381,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 		};
 
 		EventsOn('resource-updated', onUpdate);
-		return () => { try { EventsOff('resource-updated'); } catch (_) { /* ignore */ } };
+		return () => { try { EventsOff('resource-updated'); } catch { /* ignore */ } };
 	}, [namespaces, namespace]);
 	/* eslint-enable react-hooks/exhaustive-deps */
 
@@ -386,7 +391,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 				const arr = Array.isArray(list) ? list : [];
 				const norm = arr.map((svc) => normalizeService(svc as ServiceInfoRaw));
 				setServices(norm);
-			} catch (_) {
+			} catch {
 				setServices([]);
 			} finally {
 				setLoading(false);
@@ -394,7 +399,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 		};
 
 		EventsOn('services:update', onUpdate);
-		return () => { try { EventsOff('services:update'); } catch (_) { /* ignore */ } };
+		return () => { try { EventsOff('services:update'); } catch { /* ignore */ } };
 	}, []);
 
 	const analyzeService = async (row: ServiceRow) => {
@@ -433,7 +438,7 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 		}
 	};
 
-	const getRowActions = (row: ServiceRow, api: { openDetails?: (tabKey?: string) => void }) => {
+	const getRowActions = (row: ServiceRow, api: { openDetails?: (_tabKey?: string) => void }) => {
 		const key = `${row.namespace}/${row.name}`;
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [

@@ -543,8 +543,9 @@ export default function LogViewerTab({
       setHolmesError(message);
       showError(`Failed to analyze logs: ${message}`);
     } finally {
-      if (analysisRequestIdRef.current !== requestId) return;
-      setHolmesLoading(false);
+      if (analysisRequestIdRef.current === requestId) {
+        setHolmesLoading(false);
+      }
     }
   };
 
@@ -1066,7 +1067,9 @@ export default function LogViewerTab({
           <button
             onClick={() => {
               if (podName) StopPodLogs(podName);
-              onClose && onClose();
+              if (onClose) {
+                onClose();
+              }
             }}
             style={{ background: 'transparent', border: 'none', color: '#e0e0e0', fontSize: 18, cursor: 'pointer' }}
           >

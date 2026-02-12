@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getResourceGraph } from '../utils/graphApi';
 
 export interface ResourceGraphHook {
-  graph: any | null;
+  graph: unknown | null;
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -22,7 +22,7 @@ export function useResourceGraph(
   name: string,
   depth: number = 2
 ): ResourceGraphHook {
-  const [graph, setGraph] = useState<any | null>(null);
+  const [graph, setGraph] = useState<unknown | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 

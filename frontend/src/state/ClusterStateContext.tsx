@@ -1,14 +1,14 @@
-import { createContext, useContext, useEffect, useReducer, useCallback } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import {
-  GetKubeConfigs,
-  GetKubeContexts,
-  GetNamespaces,
-  GetCurrentConfig,
-  SetCurrentKubeContext,
-  SetCurrentNamespace,
-  GetConnectionStatus,
-  SetPreferredNamespaces,
-  CreateResource,
+    CreateResource,
+    GetConnectionStatus,
+    GetCurrentConfig,
+    GetKubeConfigs,
+    GetKubeContexts,
+    GetNamespaces,
+    SetCurrentKubeContext,
+    SetCurrentNamespace,
+    SetPreferredNamespaces,
 } from '../k8s/resources/kubeApi';
 import { showError, showSuccess, showWarning } from '../notification';
 
@@ -103,22 +103,22 @@ function reducer(state: ClusterState, action: ClusterAction): ClusterState {
 export { reducer as clusterStateReducer };
 
 interface ClusterStateActions {
-  selectContext: (ctx: string) => Promise<void>;
-  selectNamespaces: (names: string[]) => Promise<void>;
-  createNamespace: (name: string) => Promise<boolean>;
+  selectContext: (_ctx: string) => Promise<void>;
+  selectNamespaces: (_names: string[]) => Promise<void>;
+  createNamespace: (_name: string) => Promise<boolean>;
   reloadContexts: () => Promise<void>;
   reloadNamespaces: () => Promise<void>;
   openWizard: () => void;
   closeWizard: () => void;
   refreshConnectionStatus: () => Promise<void>;
 }
-
 export interface ClusterStateContextValue extends ClusterState {
   clusterConnected: boolean;
   actions: ClusterStateActions;
 }
 
 const ClusterStateContext = createContext<ClusterStateContextValue | null>(null);
+export { ClusterStateContext };
 
 const noopAsync = async () => {};
 const noopBoolAsync = async () => false;

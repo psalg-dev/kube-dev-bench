@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
-import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { app } from '../../wailsjs/go/models';
+import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext';
 
 // ---- Mocks ----
 // Notification mocks (must match import path in provider: '../notification')
@@ -25,7 +25,7 @@ vi.mock('../k8s/resources/kubeApi', () => ({
 
 // Import mocks after they are defined
 import * as kubeApi from '../k8s/resources/kubeApi';
-import { showSuccess, showError as _showError, showWarning } from '../notification';
+import { showSuccess, showWarning } from '../notification';
 
 const kubeApiMocks = vi.mocked(kubeApi);
 
@@ -113,7 +113,6 @@ describe('ClusterStateProvider initialization', () => {
       expect(st.selectedContext).toBe('ctxA');
       expect(st.selectedNamespaces).toEqual(['ns2']);
     }, { timeout: 3000 });
-    const st = parseState();
     expect(showSuccess).toHaveBeenCalledWith(expect.stringContaining("Auto-selected context 'ctxA'"));
     expect(kubeApi.SetCurrentKubeContext).toHaveBeenCalledWith('ctxA');
     expect(kubeApi.SetCurrentNamespace).toHaveBeenCalledWith('ns2');

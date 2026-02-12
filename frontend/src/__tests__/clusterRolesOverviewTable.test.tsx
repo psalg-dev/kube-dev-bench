@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import './wailsMocks';
-import { genericAPIMock, resetAllMocks, eventsOnMock } from './wailsMocks';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import ClusterRolesOverviewTable from '../k8s/resources/clusterroles/ClusterRolesOverviewTable';
+import './wailsMocks';
+import { eventsOnMock, genericAPIMock, resetAllMocks } from './wailsMocks';
 
 const toUndefined = <T,>(value: T) => Promise.resolve(value as unknown as undefined);
 
@@ -19,7 +19,7 @@ describe('ClusterRolesOverviewTable', () => {
       { Name: 'edit', Age: '2h', RulesCount: 2, Rules: [{ verbs: ['list'], apiGroups: [''], resources: ['pods'] }] },
     ];
 
-    genericAPIMock.mockImplementation((name, ..._args) => {
+    genericAPIMock.mockImplementation((name) => {
       if (name === 'GetClusterRoles') return toUndefined(roles);
       return toUndefined(undefined);
     });
@@ -38,7 +38,7 @@ describe('ClusterRolesOverviewTable', () => {
     // Events subscription
     const evt = eventsOnMock.mock.calls.find(([event]) => event === 'clusterroles:update');
     expect(evt).toBeTruthy();
-    const cb = evt?.[1] as (payload: unknown) => void;
+    const cb = evt?.[1] as (_payload: unknown) => void;
     cb?.([{ name: 'updated-clusterrole', Age: '-', Rules: [] }]);
 
     await waitFor(() => {
@@ -49,7 +49,7 @@ describe('ClusterRolesOverviewTable', () => {
   it('calls DeleteResource when Delete row action is clicked', async () => {
     const roles = [{ name: 'deleteme', Age: '-', Rules: [] }];
 
-    genericAPIMock.mockImplementation((name, ..._args) => {
+    genericAPIMock.mockImplementation((name) => {
       if (name === 'GetClusterRoles') return toUndefined(roles);
       if (name === 'DeleteResource') return toUndefined(undefined);
       return toUndefined(undefined);

@@ -15,46 +15,7 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }: DaemonSet
   const [detail, setDetail] = useState<app.DaemonSetDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!namespace || !daemonSetName) return;
-
-    setLoading(true);
-    setError(null);
-
-    AppAPI.GetDaemonSetDetail(namespace, daemonSetName)
-      .then((data) => {
-        setDetail(data);
-        setLoading(false);
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        setError(message || 'Failed to fetch daemonset details');
-        setLoading(false);
-      });
-  }, [namespace, daemonSetName]);
-
-  if (loading) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
-  }
-
-  if (error) {
-    return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
-  }
-
-  if (!detail || !detail.pods || detail.pods.length === 0) {
-    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No pods found for this DaemonSet.</div>;
-  }
-
-  // Group pods by node for visualization
-  const podsByNode: Record<string, app.ResourcePodInfo[]> = {};
-  detail.pods.forEach((pod) => {
-    const node = pod.node || 'Unknown';
-    if (!podsByNode[node]) {
-      podsByNode[node] = [];
-    }
-    podsByNode[node].push(pod);
-  });
+  const pods = useMemo(() => detail?.pods || [], [detail?.pods]);
 
   const columns = useMemo(() => ([
     { key: 'node', label: 'Node' },
@@ -68,9 +29,64 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }: DaemonSet
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
   const [sortState, setSortState] = useState<SortState>(() => ({ key: defaultSortKey, direction: 'asc' }));
   const sortedPods = useMemo<app.ResourcePodInfo[]>(
-    () => sortRows(detail.pods, sortState.key, sortState.direction),
-    [detail.pods, sortState]
+    () => sortRows(pods, sortState.key, sortState.direction),
+    [pods, sortState]
   );
+  const podsByNode = useMemo(() => {
+    const grouped: Record<string, app.ResourcePodInfo[]> = {};
+    pods.forEach((pod) => {
+      const node = pod.node || 'Unknown';
+      if (!grouped[node]) {
+        grouped[node] = [];
+      }
+      grouped[node].push(pod);
+    });
+    return grouped;
+  }, [pods]);
+
+  useEffect(() => {
+    let active = true;
+    const loadDetail = async () => {
+      if (!namespace || !daemonSetName) {
+        if (active) {
+          setDetail(null);
+          setLoading(false);
+        }
+        return;
+      }
+      if (active) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const data = await AppAPI.GetDaemonSetDetail(namespace, daemonSetName);
+        if (!active) return;
+        setDetail(data);
+        setLoading(false);
+      } catch (err: unknown) {
+        if (!active) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setError(message || 'Failed to fetch daemonset details');
+        setLoading(false);
+      }
+    };
+    loadDetail();
+    return () => {
+      active = false;
+    };
+  }, [namespace, daemonSetName]);
+
+  if (loading) {
+    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+  }
+
+  if (error) {
+    return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
+  }
+
+  if (!detail || pods.length === 0) {
+    return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No pods found for this DaemonSet.</div>;
+  }
 
   const headerButtonStyle: CSSProperties = {
     width: '100%',
@@ -100,7 +116,7 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }: DaemonSet
           backgroundColor: '#238636',
           color: '#fff'
         }}>
-          {detail.pods.length} pods on {Object.keys(podsByNode).length} nodes
+          {pods.length} pods on {Object.keys(podsByNode).length} nodes
         </span>
       </div>
 
@@ -189,5 +205,4 @@ export default function DaemonSetPodsTab({ namespace, daemonSetName }: DaemonSet
     </div>
   );
 }
-
 

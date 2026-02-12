@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ReactNode } from 'react';
 import type { HolmesAnalysisState } from '../hooks/useHolmesAnalysis';
 

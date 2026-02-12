@@ -1,18 +1,21 @@
-﻿import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import PolicyRulesTable from '../rbac/PolicyRulesTable';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/rules-of-hooks */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeResourceStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import YamlTab from '../../../layout/bottompanel/YamlTab';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
 import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import ResourceActions from '../../../components/ResourceActions';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeResourceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import YamlTab from '../../../layout/bottompanel/YamlTab';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import PolicyRulesTable from '../rbac/PolicyRulesTable';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -26,6 +29,7 @@ const bottomTabs = [
   { key: 'rules', label: 'Rules', countKey: 'rules' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -80,7 +84,6 @@ const normalizeRole = (r: RoleInfoRaw): RoleRow => ({
   annotations: normalizeLabels(r.annotations ?? r.Annotations ?? r.metadata?.annotations),
   rules: (Array.isArray(r.rules) ? r.rules : Array.isArray(r.Rules) ? (r.Rules as app.PolicyRule[]) : []) as app.PolicyRule[],
 });
-
 const normalizeRoles = (arr: RoleInfoRaw[] | null | undefined): RoleRow[] => (arr || []).filter(Boolean).map(normalizeRole);
 
 const fetchRoleYaml = (namespace?: string, name?: string) => {
@@ -95,9 +98,9 @@ function renderPanelContent(
   row: RoleRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze: (row: RoleRow) => void,
+  onAnalyze: (_row: RoleRow) => void,
   onCancel: () => void,
-  yamlLoader: (ns: string, name: string) => Promise<string>
+  yamlLoader: (_ns: string, _name: string) => Promise<string>
 ) {
   if (tab === 'summary') {
     const quickInfoFields: QuickInfoField[] = [
@@ -175,8 +178,11 @@ function renderPanelContent(
       };
       load();
       return () => { mounted = false; };
-    }, [row.namespace, row.name]);
+    }, [row.namespace, row.name, yamlLoader]);
     return <YamlTab content={yaml} loading={loading} error={error} />;
+  }
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="Role" name={row.name} />;
   }
   if (tab === 'holmes') {
     const key = `${row.namespace}/${row.name}`;
@@ -205,7 +211,11 @@ type RolesOverviewTableProps = { namespaces?: string[]; namespace?: string };
 
 export default function RolesOverviewTable({ namespaces, namespace }: RolesOverviewTableProps) {
   const [data, setData] = useState<RoleRow[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
+  const namespaceList = useMemo(
+    () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+    [namespaces, namespace]
+  );
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -271,7 +281,7 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
         setHolmesState((prev) => { if (prev.streamingText) return { ...prev, loading: false, response: { response: prev.streamingText } }; return { ...prev, loading: false }; });
       }
     });
-    return () => { try { unsubscribe?.(); } catch (_) {} };
+    return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
   useEffect(() => {
@@ -287,15 +297,14 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
         return { ...prev, contextSteps: nextSteps };
       });
     });
-    return () => { try { unsubscribe?.(); } catch (_) {} };
+    return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
-  const fetchRoles = async () => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
+  const fetchRoles = useCallback(async () => {
+    if (namespaceList.length === 0) return;
     setLoading(true);
     try {
-      const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetRoles(ns).catch(() => [] as app.RoleInfo[])));
+      const lists = await Promise.all(namespaceList.map((ns) => AppAPI.GetRoles(ns).catch(() => [] as app.RoleInfo[])));
       setData(normalizeRoles(lists.flat()));
     } catch (err) {
       console.error('Error fetching roles:', err);
@@ -303,9 +312,9 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     } finally {
       setLoading(false);
     }
-  };
+  }, [namespaceList]);
 
-  useEffect(() => { fetchRoles(); }, [namespaces, namespace]);
+  useEffect(() => { fetchRoles(); }, [fetchRoles]);
 
   // Subscribe to live roles updates from backend (already aggregated)
   useEffect(() => {
@@ -313,7 +322,7 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
       try {
         const arr = Array.isArray(list) ? list : [];
         setData(normalizeRoles(arr));
-      } catch (_e) {
+      } catch {
         setData([]);
       } finally {
         setLoading(false);
@@ -321,22 +330,20 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     };
     EventsOn('roles:update', onUpdate);
     return () => {
-      try { EventsOff('roles:update'); } catch (_) {}
+      try { EventsOff('roles:update'); } catch {}
     };
   }, []);
 
   // Subscribe to generic resource-updated events (from CreateManifestOverlay)
   useEffect(() => {
     const onUpdate = (eventData: any) => {
-      const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-      if (eventData?.resource === 'role' && nsArr.includes(eventData?.namespace)) {
+      if (eventData?.resource === 'role' && namespaceList.includes(eventData?.namespace)) {
         fetchRoles();
       }
     };
     EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated'); } catch (_) {} };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(namespaces), namespace]);
+    return () => { try { EventsOff('resource-updated'); } catch {} };
+  }, [fetchRoles, namespaceList]);
 
   const analyzeRole = async (row: RoleRow) => {
     const key = `${row.namespace}/${row.name}`;
@@ -348,7 +355,6 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
       showError(`Holmes analysis failed: ${message}`);
     }
   };
-
   const cancelHolmesAnalysis = async () => {
     const currentStreamId = holmesState.streamId;
     if (!currentStreamId) return;
@@ -358,7 +364,7 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
 
   const yamlLoader = (ns: string, name: string) => fetchRoleYaml(ns, name);
 
-  const getRowActions = (row: RoleRow, api?: { openDetails?: (tabKey: string) => void }) => {
+  const getRowActions = (row: RoleRow, api?: { openDetails?: (_tabKey: string) => void }) => {
     const key = `${row.namespace}/${row.name}`;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [
@@ -380,5 +386,4 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     />
   );
 }
-
 

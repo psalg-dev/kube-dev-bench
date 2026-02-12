@@ -12,6 +12,7 @@ export function RelationshipEdge({
   targetY,
   sourcePosition,
   targetPosition,
+  markerEnd,
   data
 }: EdgeProps) {
   const [edgePath, labelX, labelY] = getSmoothStepPath({
@@ -23,20 +24,26 @@ export function RelationshipEdge({
     targetPosition
   });
 
-  const style = getEdgeStyle(data?.edgeType || '');
+  const edgeType = typeof data?.edgeType === 'string' ? data.edgeType : '';
+  const edgeLabel = typeof data?.label === 'string' ? data.label : '';
+  const style = getEdgeStyle(edgeType);
+  const isDimmed = Boolean(data?.dimmed);
 
   return (
     <>
       <BaseEdge
         id={id}
         path={edgePath}
+        markerEnd={markerEnd}
+        className={`graph-edge graph-edge--${edgeType || 'unknown'}`}
         style={{
           stroke: style.stroke,
           strokeWidth: style.strokeWidth,
-          strokeDasharray: style.strokeDasharray
+          strokeDasharray: style.strokeDasharray,
+          opacity: isDimmed ? 0.25 : 1
         }}
       />
-      {data?.label && (
+      {edgeLabel && (
         <EdgeLabelRenderer>
           <div
             style={{
@@ -49,11 +56,12 @@ export function RelationshipEdge({
               borderRadius: 3,
               border: `1px solid ${style.stroke}`,
               color: style.stroke,
+              opacity: isDimmed ? 0.35 : 1,
               pointerEvents: 'all'
             }}
             className="edge-label"
           >
-            {data.label}
+            {edgeLabel}
           </div>
         </EdgeLabelRenderer>
       )}

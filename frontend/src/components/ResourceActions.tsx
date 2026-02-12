@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { showError, showSuccess, showWarning } from '../notification';
 import {
-  ResizePersistentVolumeClaim,
-  ResumeCronJob,
-  ScaleResource,
-  StartJob,
-  StartJobFromCronJob,
-  SuspendCronJob,
+    ResizePersistentVolumeClaim,
+    ResumeCronJob,
+    ScaleResource,
+    StartJob,
+    StartJobFromCronJob,
+    SuspendCronJob,
 } from '../k8s/resources/kubeApi';
+import { showError, showSuccess, showWarning } from '../notification';
 
 const SCALE_VISIBLE = new Set(['deployment', 'statefulset', 'replicaset', 'daemonset']);
 const SCALE_EDITABLE = new Set(['deployment', 'statefulset', 'replicaset']);
@@ -30,12 +30,11 @@ type ResourceActionsProps = {
   resourceType: string;
   name: string;
   namespace?: string;
-  onRestart?: (name: string, namespace?: string) => Promise<void> | void;
-  onDelete?: (name: string, namespace?: string) => Promise<void> | void;
+  onRestart?: (_name: string, _namespace?: string) => Promise<void> | void;
+  onDelete?: (_name: string, _namespace?: string) => Promise<void> | void;
   disabled?: boolean;
   replicaCount?: number;
 };
-
 export default function ResourceActions({
   resourceType,
   name,

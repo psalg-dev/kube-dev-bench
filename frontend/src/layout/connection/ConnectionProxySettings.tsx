@@ -22,9 +22,14 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
   const [localError, setLocalError] = useState('');
 
   useEffect(() => {
-    setAuthType(proxyConfig.authType || 'none');
-    setUrl(proxyConfig.url || '');
-    setUsername(proxyConfig.username || '');
+    const timerId = window.setTimeout(() => {
+      setAuthType(proxyConfig.authType || 'none');
+      setUrl(proxyConfig.url || '');
+      setUsername(proxyConfig.username || '');
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+    };
   }, [proxyConfig]);
 
   const handleSave = async () => {

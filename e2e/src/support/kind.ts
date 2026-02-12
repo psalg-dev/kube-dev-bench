@@ -2,6 +2,19 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec } from './exec.js';
 
+const defaultWindowsKindNodeImage = 'kindest/node:v1.29.4';
+
+function resolveKindNodeImage(): string | null {
+  const explicitImage = process.env.KIND_NODE_IMAGE?.trim();
+  if (explicitImage) return explicitImage;
+
+  if (process.platform === 'win32') {
+    return defaultWindowsKindNodeImage;
+  }
+
+  return null;
+}
+
 export type KindInfo = {
   clusterName: string;
   kubeconfigYaml: string;
@@ -17,6 +30,8 @@ function isRecoverableKubeconfigError(output: string): boolean {
 }
 
 export async function ensureKindCluster(clusterName: string): Promise<KindInfo> {
+  const kindNodeImage = resolveKindNodeImage();
+
   for (let attempt = 1; attempt <= 2; attempt++) {
     console.log(`[e2e][kind] ${new Date().toISOString()} ensureKindCluster name=${clusterName} attempt=${attempt}`);
     // Check cluster exists
@@ -31,8 +46,15 @@ export async function ensureKindCluster(clusterName: string): Promise<KindInfo> 
       .filter(Boolean);
 
     if (!clusters.includes(clusterName)) {
-      console.log(`[e2e][kind] ${new Date().toISOString()} creating cluster '${clusterName}' (wait=120s)`);
-      const created = await exec('kind', ['create', 'cluster', '--name', clusterName, '--wait', '120s'], {
+      console.log(
+        `[e2e][kind] ${new Date().toISOString()} creating cluster '${clusterName}' (wait=120s` +
+          `${kindNodeImage ? `, image=${kindNodeImage}` : ''})`
+      );
+      const createArgs = ['create', 'cluster', '--name', clusterName, '--wait', '120s'];
+      if (kindNodeImage) {
+        createArgs.push('--image', kindNodeImage);
+      }
+      const created = await exec('kind', createArgs, {
         timeoutMs: 5 * 60_000,
       });
       if (created.code !== 0) {

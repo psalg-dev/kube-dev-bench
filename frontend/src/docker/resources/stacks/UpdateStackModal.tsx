@@ -5,14 +5,19 @@ type UpdateStackModalProps = {
 	stackName: string;
 	initialComposeYAML?: string;
 	onClose: () => void;
-	onConfirm?: (yaml: string) => void;
+	onConfirm?: (_yaml: string) => void;
 };
-
 export default function UpdateStackModal({ open, stackName, initialComposeYAML, onClose, onConfirm }: UpdateStackModalProps) {
 	const [yaml, setYaml] = useState(initialComposeYAML || '');
 
 	useEffect(() => {
-		if (open) setYaml(initialComposeYAML || '');
+		if (!open) return;
+		const timerId = window.setTimeout(() => {
+			setYaml(initialComposeYAML || '');
+		}, 0);
+		return () => {
+			window.clearTimeout(timerId);
+		};
 	}, [open, initialComposeYAML]);
 
 	const canSave = useMemo(() => {

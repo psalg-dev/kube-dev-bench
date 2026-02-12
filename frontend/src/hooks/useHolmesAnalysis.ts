@@ -3,8 +3,8 @@
  * Consolidates duplicated Holmes streaming logic from ~16 OverviewTable components.
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { onHolmesChatStream, onHolmesContextProgress, CancelHolmesStream } from '../holmes/holmesApi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../holmes/holmesApi';
 
 interface HolmesToolEvent {
   id: string;
@@ -61,10 +61,9 @@ export interface HolmesAnalysisState {
 
 interface UseHolmesAnalysisOptions {
   kind: string;
-  analyzeFn: (...args: string[]) => Promise<void>;
+  analyzeFn: (..._args: string[]) => Promise<void>;
   keyPrefix?: string;
 }
-
 interface AnalyzeResult {
   ok: boolean;
   error?: string;

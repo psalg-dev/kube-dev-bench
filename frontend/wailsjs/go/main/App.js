@@ -526,6 +526,10 @@ export function GetHooksConfig() {
   return window['go']['main']['App']['GetHooksConfig']();
 }
 
+export function GetHorizontalPodAutoscalers(arg1) {
+  return window['go']['main']['App']['GetHorizontalPodAutoscalers'](arg1);
+}
+
 export function GetImageDigest(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetImageDigest'](arg1, arg2, arg3);
 }
@@ -590,6 +594,10 @@ export function GetMCPStatus() {
   return window['go']['main']['App']['GetMCPStatus']();
 }
 
+export function GetNamespaceGraph(arg1, arg2) {
+  return window['go']['main']['App']['GetNamespaceGraph'](arg1, arg2);
+}
+
 export function GetNamespaces() {
   return window['go']['main']['App']['GetNamespaces']();
 }
@@ -600,6 +608,10 @@ export function GetNetworkPolicies(arg1) {
 
 export function GetNetworkPolicyDetail(arg1, arg2) {
   return window['go']['main']['App']['GetNetworkPolicyDetail'](arg1, arg2);
+}
+
+export function GetNetworkPolicyGraph(arg1, arg2) {
+  return window['go']['main']['App']['GetNetworkPolicyGraph'](arg1, arg2);
 }
 
 export function GetNodeDetail(arg1) {
@@ -730,6 +742,10 @@ export function GetProxyDisplayURL() {
   return window['go']['main']['App']['GetProxyDisplayURL']();
 }
 
+export function GetRBACGraph(arg1) {
+  return window['go']['main']['App']['GetRBACGraph'](arg1);
+}
+
 export function GetRegistries() {
   return window['go']['main']['App']['GetRegistries']();
 }
@@ -772,6 +788,10 @@ export function GetResourceEvents(arg1, arg2, arg3) {
 
 export function GetResourceEventsCount(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceEventsCount'](arg1, arg2, arg3);
+}
+
+export function GetResourceGraph(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetResourceGraph'](arg1, arg2, arg3, arg4);
 }
 
 export function GetResourceYAML(arg1, arg2, arg3) {
@@ -904,6 +924,10 @@ export function GetStorageClassDetail(arg1) {
 
 export function GetStorageClasses() {
   return window['go']['main']['App']['GetStorageClasses']();
+}
+
+export function GetStorageGraph(arg1, arg2) {
+  return window['go']['main']['App']['GetStorageGraph'](arg1, arg2);
 }
 
 export function GetSwarmConfig(arg1) {

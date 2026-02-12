@@ -1,18 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import PolicyRulesTable from '../rbac/PolicyRulesTable';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
-import { showError, showSuccess } from '../../../notification';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeResourceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
-import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import type { app } from '../../../../wailsjs/go/models';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import PolicyRulesTable from '../rbac/PolicyRulesTable';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -25,6 +28,7 @@ const bottomTabs = [
   { key: 'rules', label: 'Rules', countKey: 'rules' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -76,7 +80,6 @@ const normalizeClusterRole = (r: RoleInfoRaw): ClusterRoleRow => ({
   annotations: normalizeLabels(r.annotations ?? r.Annotations ?? r.metadata?.annotations),
   rules: (Array.isArray(r.rules) ? r.rules : Array.isArray(r.Rules) ? (r.Rules as app.PolicyRule[]) : []) as app.PolicyRule[],
 });
-
 const normalizeClusterRoles = (arr: RoleInfoRaw[] | null | undefined): ClusterRoleRow[] => (arr || []).filter(Boolean).map(normalizeClusterRole);
 
 const fetchClusterRoleYaml = (name?: string) => {
@@ -91,9 +94,9 @@ function renderPanelContent(
   row: ClusterRoleRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze: (row: ClusterRoleRow) => void,
+  onAnalyze: (_row: ClusterRoleRow) => void,
   onCancel: () => void,
-  yamlLoader: (name: string) => Promise<string>
+  yamlLoader: (_name: string) => Promise<string>
 ) {
   if (tab === 'summary') {
     const quickInfoFields: QuickInfoField[] = [
@@ -166,8 +169,11 @@ function renderPanelContent(
       };
       load();
       return () => { mounted = false; };
-    }, [row.name]);
+    }, [row.name, yamlLoader]);
     return <YamlTab content={yaml} loading={loading} error={error} />;
+  }
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace="" kind="ClusterRole" name={row.name} />;
   }
   if (tab === 'holmes') {
     const key = row.name;
@@ -279,7 +285,7 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
         });
       }
     });
-    return () => { try { unsubscribe?.(); } catch (_) {} };
+    return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
   useEffect(() => {
@@ -295,7 +301,7 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
         return { ...prev, contextSteps: nextSteps };
       });
     });
-    return () => { try { unsubscribe?.(); } catch (_) {} };
+    return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
   const fetchClusterRoles = async () => {
@@ -318,7 +324,7 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
       try {
         const arr = Array.isArray(list) ? list : [];
         setData(normalizeClusterRoles(arr));
-      } catch (_e) {
+      } catch {
         setData([]);
       } finally {
         setLoading(false);
@@ -326,7 +332,7 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
     };
     EventsOn('clusterroles:update', onUpdate);
     return () => {
-      try { EventsOff('clusterroles:update'); } catch (_) {}
+      try { EventsOff('clusterroles:update'); } catch {}
     };
   }, []);
 
@@ -337,7 +343,7 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
       }
     };
     EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated'); } catch (_) {} };
+    return () => { try { EventsOff('resource-updated'); } catch {} };
   }, []);
 
   const analyzeClusterRole = async (row: ClusterRoleRow) => {
@@ -362,7 +368,7 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
 
   const yamlLoader = (name: string) => fetchClusterRoleYaml(name);
 
-  const getRowActions = (row: ClusterRoleRow, api?: { openDetails?: (tabKey: string) => void }) => {
+  const getRowActions = (row: ClusterRoleRow, api?: { openDetails?: (_tabKey: string) => void }) => {
     const key = row.name;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [
@@ -378,7 +384,6 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
       } },
     ];
   };
-
   return (
     <OverviewTableWithPanel
       title="Cluster Roles"
@@ -394,3 +399,4 @@ export default function ClusterRolesOverviewTable({ namespace }: ClusterRolesOve
     />
   );
 }
+

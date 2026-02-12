@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import StatusBadge from '../../../components/StatusBadge';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 type CronJobHistoryTabProps = {
 	namespace: string;
@@ -9,25 +9,39 @@ type CronJobHistoryTabProps = {
 };
 
 export default function CronJobHistoryTab({ namespace, cronJobName }: CronJobHistoryTabProps) {
-	const [detail, setDetail] = useState<any | null>(null);
+	const [detail, setDetail] = useState<unknown | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (!namespace || !cronJobName) return;
-
-		setLoading(true);
-		setError(null);
-
-		AppAPI.GetCronJobDetail(namespace, cronJobName)
-			.then(data => {
+		let active = true;
+		const loadDetail = async () => {
+			if (!namespace || !cronJobName) {
+				if (active) {
+					setDetail(null);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError(null);
+			}
+			try {
+				const data = await AppAPI.GetCronJobDetail(namespace, cronJobName);
+				if (!active) return;
 				setDetail(data);
 				setLoading(false);
-			})
-			.catch(err => {
-				setError(err.message || 'Failed to fetch cronjob details');
+			} catch (err) {
+				if (!active) return;
+				setError((err as Error)?.message || 'Failed to fetch cronjob details');
 				setLoading(false);
-			});
+			}
+		};
+		loadDetail();
+		return () => {
+			active = false;
+		};
 	}, [namespace, cronJobName]);
 
 	if (loading) {
@@ -67,7 +81,7 @@ export default function CronJobHistoryTab({ namespace, cronJobName }: CronJobHis
 					</tr>
 				</thead>
 				<tbody>
-					{detail.jobs.map((job: any, idx: number) => (
+					{detail.jobs.map((job: unknown, idx: number) => (
 						<tr key={job.name || idx}>
 							<td>{job.name}</td>
 							<td>

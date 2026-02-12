@@ -7,7 +7,7 @@ type DaemonSetNodeCoverageTabProps = {
 };
 
 export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: DaemonSetNodeCoverageTabProps) {
-	const [data, setData] = useState<any>(null);
+	const [data, setData] = useState<unknown>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: D
 			try {
 				const res = await AppAPI.GetDaemonSetNodeCoverage(namespace, daemonSetName);
 				if (!cancelled) setData(res);
-			} catch (e: any) {
+			} catch (e: unknown) {
 				if (!cancelled) setError(e?.message || String(e));
 			} finally {
 				if (!cancelled) setLoading(false);
@@ -56,7 +56,7 @@ export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: D
 						</tr>
 					</thead>
 					<tbody>
-						{nodes.map((n: any, idx: number) => {
+						{nodes.map((n: unknown, idx: number) => {
 							const node = n.node ?? n.Node;
 							const hasPod = !!(n.hasPod ?? n.HasPod);
 							const podName = n.podName ?? n.PodName;

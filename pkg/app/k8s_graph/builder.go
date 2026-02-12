@@ -4,13 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
-	appsv1 "k8s.io/api/apps/v1"
-	batchv1 "k8s.io/api/batch/v1"
+	"golang.org/x/sync/errgroup"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -95,6 +94,629 @@ func (b *Builder) BuildForResource(namespace, kind, name string, depth int) (*Re
 	return graph, nil
 }
 
+// BuildForNamespace builds a relationship graph for all resources in a namespace.
+func (b *Builder) BuildForNamespace(namespace string, depth int) (*ResourceGraph, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+	if depth < 1 {
+		depth = DefaultDepth
+	}
+	if depth > MaxDepth {
+		depth = MaxDepth
+	}
+
+	graph := &ResourceGraph{
+		Nodes: []GraphNode{},
+		Edges: []GraphEdge{},
+	}
+
+	type resourceSeed struct {
+		kind      string
+		namespace string
+		name      string
+	}
+
+	seeds := make([]resourceSeed, 0, 128)
+	var seedsMu sync.Mutex
+	addSeeds := func(kind string, names []string) {
+		if len(names) == 0 {
+			return
+		}
+		seedsMu.Lock()
+		defer seedsMu.Unlock()
+		for _, name := range names {
+			seeds = append(seeds, resourceSeed{kind: kind, namespace: namespace, name: name})
+		}
+	}
+
+	fetchGroup, _ := errgroup.WithContext(b.ctx)
+
+	fetchGroup.Go(func() error {
+		pods, err := b.clientset.CoreV1().Pods(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(pods.Items))
+		for _, pod := range pods.Items {
+			names = append(names, pod.Name)
+		}
+		addSeeds("pod", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		deployments, err := b.clientset.AppsV1().Deployments(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(deployments.Items))
+		for _, deploy := range deployments.Items {
+			names = append(names, deploy.Name)
+		}
+		addSeeds("deployment", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		statefulSets, err := b.clientset.AppsV1().StatefulSets(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(statefulSets.Items))
+		for _, sts := range statefulSets.Items {
+			names = append(names, sts.Name)
+		}
+		addSeeds("statefulset", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		daemonSets, err := b.clientset.AppsV1().DaemonSets(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(daemonSets.Items))
+		for _, ds := range daemonSets.Items {
+			names = append(names, ds.Name)
+		}
+		addSeeds("daemonset", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		replicaSets, err := b.clientset.AppsV1().ReplicaSets(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(replicaSets.Items))
+		for _, rs := range replicaSets.Items {
+			names = append(names, rs.Name)
+		}
+		addSeeds("replicaset", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		jobs, err := b.clientset.BatchV1().Jobs(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(jobs.Items))
+		for _, job := range jobs.Items {
+			names = append(names, job.Name)
+		}
+		addSeeds("job", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		cronJobs, err := b.clientset.BatchV1().CronJobs(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(cronJobs.Items))
+		for _, cronJob := range cronJobs.Items {
+			names = append(names, cronJob.Name)
+		}
+		addSeeds("cronjob", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		hpas, err := b.clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(hpas.Items))
+		for _, hpa := range hpas.Items {
+			names = append(names, hpa.Name)
+		}
+		addSeeds("horizontalpodautoscaler", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		services, err := b.clientset.CoreV1().Services(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(services.Items))
+		for _, svc := range services.Items {
+			names = append(names, svc.Name)
+		}
+		addSeeds("service", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		ingresses, err := b.clientset.NetworkingV1().Ingresses(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(ingresses.Items))
+		for _, ing := range ingresses.Items {
+			names = append(names, ing.Name)
+		}
+		addSeeds("ingress", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		configMaps, err := b.clientset.CoreV1().ConfigMaps(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(configMaps.Items))
+		for _, cm := range configMaps.Items {
+			names = append(names, cm.Name)
+		}
+		addSeeds("configmap", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		secrets, err := b.clientset.CoreV1().Secrets(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(secrets.Items))
+		for _, secret := range secrets.Items {
+			names = append(names, secret.Name)
+		}
+		addSeeds("secret", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		pvcs, err := b.clientset.CoreV1().PersistentVolumeClaims(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(pvcs.Items))
+		for _, pvc := range pvcs.Items {
+			names = append(names, pvc.Name)
+		}
+		addSeeds("persistentvolumeclaim", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		roles, err := b.clientset.RbacV1().Roles(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(roles.Items))
+		for _, role := range roles.Items {
+			names = append(names, role.Name)
+		}
+		addSeeds("role", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		roleBindings, err := b.clientset.RbacV1().RoleBindings(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(roleBindings.Items))
+		for _, rb := range roleBindings.Items {
+			names = append(names, rb.Name)
+		}
+		addSeeds("rolebinding", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		serviceAccounts, err := b.clientset.CoreV1().ServiceAccounts(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(serviceAccounts.Items))
+		for _, sa := range serviceAccounts.Items {
+			names = append(names, sa.Name)
+		}
+		addSeeds("serviceaccount", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		networkPolicies, err := b.clientset.NetworkingV1().NetworkPolicies(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(networkPolicies.Items))
+		for _, np := range networkPolicies.Items {
+			names = append(names, np.Name)
+		}
+		addSeeds("networkpolicy", names)
+		return nil
+	})
+
+	fetchGroup.Go(func() error {
+		endpoints, err := b.clientset.CoreV1().Endpoints(namespace).List(b.ctx, metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+		names := make([]string, 0, len(endpoints.Items))
+		for _, ep := range endpoints.Items {
+			names = append(names, ep.Name)
+		}
+		addSeeds("endpoints", names)
+		return nil
+	})
+
+	_ = fetchGroup.Wait()
+
+	for _, seed := range seeds {
+		node, err := b.createNode(seed.namespace, seed.kind, seed.name)
+		if err != nil {
+			node = fallbackNode(seed.kind, seed.namespace, seed.name)
+		}
+		graph.AddNode(node)
+	}
+
+	currentLevel := make([]GraphNode, 0, len(graph.Nodes))
+	visited := make(map[string]bool)
+	for _, node := range graph.Nodes {
+		currentLevel = append(currentLevel, node)
+		visited[node.ID] = true
+	}
+
+	includeNode := func(node GraphNode) bool {
+		return node.Namespace == "" || node.Namespace == namespace
+	}
+
+	for level := 0; level < depth; level++ {
+		nextLevel := []GraphNode{}
+		for _, node := range currentLevel {
+			neighbors, edges, err := b.expandNode(node, graph)
+			if err != nil {
+				continue
+			}
+
+			for _, neighbor := range neighbors {
+				if !includeNode(neighbor) {
+					continue
+				}
+				if !visited[neighbor.ID] {
+					graph.AddNode(neighbor)
+					visited[neighbor.ID] = true
+					nextLevel = append(nextLevel, neighbor)
+				}
+			}
+
+			for _, edge := range edges {
+				if graph.HasNode(edge.Source) && graph.HasNode(edge.Target) {
+					graph.AddEdge(edge)
+				}
+			}
+		}
+		currentLevel = nextLevel
+		if len(currentLevel) == 0 {
+			break
+		}
+	}
+
+	return graph, nil
+}
+
+// BuildStorageGraph builds a storage-focused relationship graph for a namespace.
+func (b *Builder) BuildStorageGraph(namespace string, depth int) (*ResourceGraph, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+	if depth < 1 {
+		depth = DefaultDepth
+	}
+	if depth > MaxDepth {
+		depth = MaxDepth
+	}
+
+	graph := &ResourceGraph{
+		Nodes: []GraphNode{},
+		Edges: []GraphEdge{},
+	}
+
+	mergeSubgraph := func(sub *ResourceGraph) {
+		if sub == nil {
+			return
+		}
+		for _, node := range sub.Nodes {
+			if node.Namespace == "" || node.Namespace == namespace {
+				graph.AddNode(node)
+			}
+		}
+		for _, edge := range sub.Edges {
+			if graph.HasNode(edge.Source) && graph.HasNode(edge.Target) {
+				graph.AddEdge(edge)
+			}
+		}
+	}
+
+	pvcs, err := b.clientset.CoreV1().PersistentVolumeClaims(namespace).List(b.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	var graphMu sync.Mutex
+	buildGroup, _ := errgroup.WithContext(b.ctx)
+	for _, pvc := range pvcs.Items {
+		pvcName := pvc.Name
+		buildGroup.Go(func() error {
+			sub, buildErr := b.BuildForResource(namespace, "persistentvolumeclaim", pvcName, depth)
+			if buildErr != nil {
+				return nil
+			}
+			graphMu.Lock()
+			mergeSubgraph(sub)
+			graphMu.Unlock()
+			return nil
+		})
+	}
+
+	_ = buildGroup.Wait()
+
+	return graph, nil
+}
+
+// BuildNetworkPolicyGraph builds a network-policy-focused graph for a namespace.
+func (b *Builder) BuildNetworkPolicyGraph(namespace string) (*ResourceGraph, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	graph := &ResourceGraph{
+		Nodes: []GraphNode{},
+		Edges: []GraphEdge{},
+	}
+
+	networkPolicies, err := b.clientset.NetworkingV1().NetworkPolicies(namespace).List(b.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, policy := range networkPolicies.Items {
+		policyNode, nodeErr := b.createNode(policy.Namespace, "networkpolicy", policy.Name)
+		if nodeErr != nil {
+			policyNode = fallbackNode("networkpolicy", policy.Namespace, policy.Name)
+		}
+		graph.AddNode(policyNode)
+
+		targetPods, targetErr := b.resolvePolicyTargetPods(policy)
+		if targetErr != nil {
+			continue
+		}
+
+		for _, podNode := range targetPods {
+			graph.AddNode(podNode)
+			graph.AddEdge(GraphEdge{
+				ID:     EdgeID(policyNode.ID, podNode.ID, EdgeTypeNetworkPolicy),
+				Source: policyNode.ID,
+				Target: podNode.ID,
+				Type:   EdgeTypeNetworkPolicy,
+				Label:  "targets",
+			})
+		}
+
+		for _, ingressRule := range policy.Spec.Ingress {
+			sources, sourceErr := b.resolveIngressSources(policy.Namespace, ingressRule)
+			if sourceErr != nil {
+				continue
+			}
+
+			label := formatPolicyPortsLabel("ingress", ingressRule.Ports)
+			for _, sourceNode := range sources {
+				graph.AddNode(sourceNode)
+				for _, targetNode := range targetPods {
+					graph.AddEdge(GraphEdge{
+						ID:     EdgeID(sourceNode.ID, targetNode.ID, EdgeTypeNPIngress),
+						Source: sourceNode.ID,
+						Target: targetNode.ID,
+						Type:   EdgeTypeNPIngress,
+						Label:  label,
+					})
+				}
+			}
+		}
+
+		for _, egressRule := range policy.Spec.Egress {
+			destinations, destErr := b.resolveEgressDestinations(policy.Namespace, egressRule)
+			if destErr != nil {
+				continue
+			}
+
+			label := formatPolicyPortsLabel("egress", egressRule.Ports)
+			for _, targetNode := range targetPods {
+				for _, destNode := range destinations {
+					graph.AddNode(destNode)
+					graph.AddEdge(GraphEdge{
+						ID:     EdgeID(targetNode.ID, destNode.ID, EdgeTypeNPEgress),
+						Source: targetNode.ID,
+						Target: destNode.ID,
+						Type:   EdgeTypeNPEgress,
+						Label:  label,
+					})
+				}
+			}
+		}
+	}
+
+	return graph, nil
+}
+
+// BuildRBACGraph builds an RBAC-focused relationship graph for a namespace.
+func (b *Builder) BuildRBACGraph(namespace string) (*ResourceGraph, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("namespace is required")
+	}
+
+	graph := &ResourceGraph{
+		Nodes: []GraphNode{},
+		Edges: []GraphEdge{},
+	}
+
+	addNode := func(node GraphNode, err error, fallbackKind, fallbackNamespace, fallbackName string) GraphNode {
+		if err != nil {
+			node = fallbackNode(fallbackKind, fallbackNamespace, fallbackName)
+		}
+		graph.AddNode(node)
+		return node
+	}
+
+	addSubjectToBinding := func(subject rbacv1.Subject, bindingNode GraphNode) {
+		subjectKind := strings.ToLower(subject.Kind)
+		subjectNamespace := subject.Namespace
+		if subjectKind == "serviceaccount" {
+			if subjectNamespace == "" {
+				subjectNamespace = namespace
+			}
+			saNode, err := b.createNode(subjectNamespace, "serviceaccount", subject.Name)
+			saNode = addNode(saNode, err, "serviceaccount", subjectNamespace, subject.Name)
+			graph.AddEdge(GraphEdge{
+				ID:     EdgeID(saNode.ID, bindingNode.ID, EdgeTypeBinds),
+				Source: saNode.ID,
+				Target: bindingNode.ID,
+				Type:   EdgeTypeBinds,
+				Label:  "subject",
+			})
+			return
+		}
+
+		subjectNode := createRBACSubjectNode(subject)
+		graph.AddNode(subjectNode)
+		graph.AddEdge(GraphEdge{
+			ID:     EdgeID(subjectNode.ID, bindingNode.ID, EdgeTypeBinds),
+			Source: subjectNode.ID,
+			Target: bindingNode.ID,
+			Type:   EdgeTypeBinds,
+			Label:  "subject",
+		})
+	}
+
+	serviceAccounts, err := b.clientset.CoreV1().ServiceAccounts(namespace).List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, sa := range serviceAccounts.Items {
+			saNode, nodeErr := b.createNode(sa.Namespace, "serviceaccount", sa.Name)
+			addNode(saNode, nodeErr, "serviceaccount", sa.Namespace, sa.Name)
+		}
+	}
+
+	pods, err := b.clientset.CoreV1().Pods(namespace).List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, pod := range pods.Items {
+			podNode, podErr := b.createNode(pod.Namespace, "pod", pod.Name)
+			podNode = addNode(podNode, podErr, "pod", pod.Namespace, pod.Name)
+
+			saName := pod.Spec.ServiceAccountName
+			if saName == "" {
+				saName = "default"
+			}
+			saNode, saErr := b.createNode(namespace, "serviceaccount", saName)
+			saNode = addNode(saNode, saErr, "serviceaccount", namespace, saName)
+			graph.AddEdge(GraphEdge{
+				ID:     EdgeID(podNode.ID, saNode.ID, EdgeTypeBinds),
+				Source: podNode.ID,
+				Target: saNode.ID,
+				Type:   EdgeTypeBinds,
+				Label:  "uses",
+			})
+		}
+	}
+
+	roleBindings, err := b.clientset.RbacV1().RoleBindings(namespace).List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, rb := range roleBindings.Items {
+			rbNode, rbErr := b.createNode(rb.Namespace, "rolebinding", rb.Name)
+			rbNode = addNode(rbNode, rbErr, "rolebinding", rb.Namespace, rb.Name)
+
+			roleKind := strings.ToLower(rb.RoleRef.Kind)
+			roleNamespace := namespace
+			if roleKind == "clusterrole" {
+				roleNamespace = ""
+			}
+			roleNode, roleErr := b.createNode(roleNamespace, roleKind, rb.RoleRef.Name)
+			roleNode = addNode(roleNode, roleErr, roleKind, roleNamespace, rb.RoleRef.Name)
+
+			graph.AddEdge(GraphEdge{
+				ID:     EdgeID(rbNode.ID, roleNode.ID, EdgeTypeBinds),
+				Source: rbNode.ID,
+				Target: roleNode.ID,
+				Type:   EdgeTypeBinds,
+				Label:  "binds to",
+			})
+
+			for _, subject := range rb.Subjects {
+				addSubjectToBinding(subject, rbNode)
+			}
+		}
+	}
+
+	clusterRoleBindings, err := b.clientset.RbacV1().ClusterRoleBindings().List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, crb := range clusterRoleBindings.Items {
+			includeBinding := false
+			for _, subject := range crb.Subjects {
+				subjectKind := strings.ToLower(subject.Kind)
+				if subjectKind == "serviceaccount" {
+					if subject.Namespace == namespace {
+						includeBinding = true
+						break
+					}
+					continue
+				}
+				if subjectKind == "user" || subjectKind == "group" {
+					includeBinding = true
+					break
+				}
+			}
+			if !includeBinding {
+				continue
+			}
+
+			crbNode, crbErr := b.createNode("", "clusterrolebinding", crb.Name)
+			crbNode = addNode(crbNode, crbErr, "clusterrolebinding", "", crb.Name)
+
+			roleNode, roleErr := b.createNode("", "clusterrole", crb.RoleRef.Name)
+			roleNode = addNode(roleNode, roleErr, "clusterrole", "", crb.RoleRef.Name)
+
+			graph.AddEdge(GraphEdge{
+				ID:     EdgeID(crbNode.ID, roleNode.ID, EdgeTypeBinds),
+				Source: crbNode.ID,
+				Target: roleNode.ID,
+				Type:   EdgeTypeBinds,
+				Label:  "binds to",
+			})
+
+			for _, subject := range crb.Subjects {
+				addSubjectToBinding(subject, crbNode)
+			}
+		}
+	}
+
+	return graph, nil
+}
+
 // createNode creates a graph node for a resource
 func (b *Builder) createNode(namespace, kind, name string) (GraphNode, error) {
 	kind = strings.ToLower(kind)
@@ -108,6 +730,8 @@ func (b *Builder) createNode(namespace, kind, name string) (GraphNode, error) {
 		Group:     KindToGroup(kind),
 		Metadata:  make(map[string]string),
 	}
+
+	node.Metadata["fullName"] = name
 
 	// Fetch resource to get status and metadata
 	switch kind {
@@ -132,7 +756,35 @@ func (b *Builder) createNode(namespace, kind, name string) (GraphNode, error) {
 		}
 		node.Status = string(svc.Spec.Type)
 		node.Metadata["clusterIP"] = svc.Spec.ClusterIP
-	case "configmap", "secret", "pvc", "ingress", "statefulset", "daemonset", "replicaset", "job", "cronjob":
+	case "role":
+		role, err := b.clientset.RbacV1().Roles(namespace).Get(b.ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return node, err
+		}
+		node.Status = "Active"
+		node.Metadata["rules"] = summarizePolicyRules(role.Rules)
+	case "clusterrole":
+		clusterRole, err := b.clientset.RbacV1().ClusterRoles().Get(b.ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return node, err
+		}
+		node.Status = "Active"
+		node.Metadata["rules"] = summarizePolicyRules(clusterRole.Rules)
+	case "horizontalpodautoscaler", "hpa":
+		hpa, err := b.clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(b.ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return node, err
+		}
+		node.Kind = "horizontalpodautoscaler"
+		node.ID = NodeID(node.Kind, namespace, name)
+		node.Status = fmt.Sprintf("%d/%d", hpa.Status.CurrentReplicas, hpa.Status.DesiredReplicas)
+		node.Metadata["targetKind"] = hpa.Spec.ScaleTargetRef.Kind
+		node.Metadata["targetName"] = hpa.Spec.ScaleTargetRef.Name
+		node.Metadata["fullName"] = name
+		node.Metadata["age"] = hpa.CreationTimestamp.Time.String()
+	case "configmap", "secret", "pvc", "ingress", "statefulset", "daemonset", "replicaset", "job", "cronjob",
+		"serviceaccount", "networkpolicy", "persistentvolumeclaim", "persistentvolume", "endpoints",
+		"rolebinding", "clusterrolebinding", "storageclass":
 		// Generic handling for other types
 		node.Status = "Active"
 	case "node":
@@ -151,6 +803,20 @@ func (b *Builder) createNode(namespace, kind, name string) (GraphNode, error) {
 	}
 
 	return node, nil
+}
+
+func fallbackNode(kind, namespace, name string) GraphNode {
+	return GraphNode{
+		ID:        NodeID(kind, namespace, name),
+		Kind:      strings.ToLower(kind),
+		Name:      name,
+		Namespace: namespace,
+		Group:     KindToGroup(kind),
+		Status:    "Unknown",
+		Metadata: map[string]string{
+			"fullName": name,
+		},
+	}
 }
 
 // expandNode expands relationships for a node
@@ -197,6 +863,12 @@ func (b *Builder) expandNode(node GraphNode, graph *ResourceGraph) ([]GraphNode,
 		}
 	case "cronjob":
 		n, e, err := b.expandCronJob(node)
+		if err == nil {
+			neighbors = append(neighbors, n...)
+			edges = append(edges, e...)
+		}
+	case "horizontalpodautoscaler", "hpa":
+		n, e, err := b.expandHPA(node)
 		if err == nil {
 			neighbors = append(neighbors, n...)
 			edges = append(edges, e...)
@@ -257,6 +929,30 @@ func (b *Builder) expandNode(node GraphNode, graph *ResourceGraph) ([]GraphNode,
 		}
 	case "clusterrole":
 		n, e, err := b.expandClusterRole(node)
+		if err == nil {
+			neighbors = append(neighbors, n...)
+			edges = append(edges, e...)
+		}
+	case "serviceaccount":
+		n, e, err := b.expandServiceAccount(node)
+		if err == nil {
+			neighbors = append(neighbors, n...)
+			edges = append(edges, e...)
+		}
+	case "networkpolicy":
+		n, e, err := b.expandNetworkPolicy(node)
+		if err == nil {
+			neighbors = append(neighbors, n...)
+			edges = append(edges, e...)
+		}
+	case "storageclass":
+		n, e, err := b.expandStorageClass(node)
+		if err == nil {
+			neighbors = append(neighbors, n...)
+			edges = append(edges, e...)
+		}
+	case "endpoints":
+		n, e, err := b.expandEndpoints(node)
 		if err == nil {
 			neighbors = append(neighbors, n...)
 			edges = append(edges, e...)
@@ -352,6 +1048,8 @@ func (b *Builder) expandDeployment(node GraphNode) ([]GraphNode, []GraphEdge, er
 		}
 	}
 
+	b.appendHPATargetingWorkload(node, &neighbors, &edges)
+
 	return neighbors, edges, nil
 }
 
@@ -434,6 +1132,8 @@ func (b *Builder) expandStatefulSet(node GraphNode) ([]GraphNode, []GraphEdge, e
 			}
 		}
 	}
+
+	b.appendHPATargetingWorkload(node, &neighbors, &edges)
 
 	return neighbors, edges, nil
 }
@@ -518,6 +1218,8 @@ func (b *Builder) expandDaemonSet(node GraphNode) ([]GraphNode, []GraphEdge, err
 		}
 	}
 
+	b.appendHPATargetingWorkload(node, &neighbors, &edges)
+
 	return neighbors, edges, nil
 }
 
@@ -568,6 +1270,8 @@ func (b *Builder) expandReplicaSet(node GraphNode) ([]GraphNode, []GraphEdge, er
 		}
 	}
 
+	b.appendHPATargetingWorkload(node, &neighbors, &edges)
+
 	return neighbors, edges, nil
 }
 
@@ -610,6 +1314,22 @@ func (b *Builder) expandPod(node GraphNode) ([]GraphNode, []GraphEdge, error) {
 				Label:  "runs on",
 			})
 		}
+	}
+
+	saName := pod.Spec.ServiceAccountName
+	if saName == "" {
+		saName = "default"
+	}
+	saNode, err := b.createNode(node.Namespace, "serviceaccount", saName)
+	if err == nil {
+		neighbors = append(neighbors, saNode)
+		edges = append(edges, GraphEdge{
+			ID:     EdgeID(node.ID, saNode.ID, EdgeTypeBinds),
+			Source: node.ID,
+			Target: saNode.ID,
+			Type:   EdgeTypeBinds,
+			Label:  "uses",
+		})
 	}
 
 	// Extract ConfigMap/Secret refs
@@ -660,6 +1380,8 @@ func (b *Builder) expandPod(node GraphNode) ([]GraphNode, []GraphEdge, error) {
 			}
 		}
 	}
+
+	b.appendHPATargetingWorkload(node, &neighbors, &edges)
 
 	return neighbors, edges, nil
 }
@@ -771,6 +1493,8 @@ func (b *Builder) expandCronJob(node GraphNode) ([]GraphNode, []GraphEdge, error
 		}
 	}
 
+	b.appendHPATargetingWorkload(node, &neighbors, &edges)
+
 	return neighbors, edges, nil
 }
 
@@ -835,6 +1559,22 @@ func (b *Builder) expandService(node GraphNode) ([]GraphNode, []GraphEdge, error
 					})
 				}
 			}
+		}
+	}
+
+	// Find Endpoints for this Service
+	ep, err := b.clientset.CoreV1().Endpoints(node.Namespace).Get(b.ctx, node.Name, metav1.GetOptions{})
+	if err == nil {
+		epNode, err := b.createNode(ep.Namespace, "endpoints", ep.Name)
+		if err == nil {
+			neighbors = append(neighbors, epNode)
+			edges = append(edges, GraphEdge{
+				ID:     EdgeID(node.ID, epNode.ID, EdgeTypeOwns),
+				Source: node.ID,
+				Target: epNode.ID,
+				Type:   EdgeTypeOwns,
+				Label:  "owns",
+			})
 		}
 	}
 
@@ -1250,7 +1990,485 @@ func (b *Builder) expandNode_k8s(node GraphNode) ([]GraphNode, []GraphEdge, erro
 	return neighbors, edges, nil
 }
 
+// expandServiceAccount expands relationships for a ServiceAccount
+func (b *Builder) expandServiceAccount(node GraphNode) ([]GraphNode, []GraphEdge, error) {
+	neighbors := []GraphNode{}
+	edges := []GraphEdge{}
+
+	// Find Pods using this ServiceAccount
+	pods, err := b.clientset.CoreV1().Pods(node.Namespace).List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, pod := range pods.Items {
+			saName := pod.Spec.ServiceAccountName
+			if saName == "" {
+				saName = "default"
+			}
+			if saName == node.Name {
+				podNode, err := b.createNode(pod.Namespace, "pod", pod.Name)
+				if err == nil {
+					neighbors = append(neighbors, podNode)
+					edges = append(edges, GraphEdge{
+						ID:     EdgeID(node.ID, podNode.ID, EdgeTypeBinds),
+						Source: node.ID,
+						Target: podNode.ID,
+						Type:   EdgeTypeBinds,
+						Label:  "used by",
+					})
+				}
+			}
+		}
+	}
+
+	// Find RoleBindings that reference this ServiceAccount as a subject
+	rbs, err := b.clientset.RbacV1().RoleBindings(node.Namespace).List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, rb := range rbs.Items {
+			for _, subject := range rb.Subjects {
+				if subject.Kind == "ServiceAccount" && subject.Name == node.Name &&
+					(subject.Namespace == "" || subject.Namespace == node.Namespace) {
+					rbNode, err := b.createNode(rb.Namespace, "rolebinding", rb.Name)
+					if err == nil {
+						neighbors = append(neighbors, rbNode)
+						edges = append(edges, GraphEdge{
+							ID:     EdgeID(rbNode.ID, node.ID, EdgeTypeBinds),
+							Source: rbNode.ID,
+							Target: node.ID,
+							Type:   EdgeTypeBinds,
+							Label:  "grants to",
+						})
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Find ClusterRoleBindings that reference this ServiceAccount as a subject
+	crbs, err := b.clientset.RbacV1().ClusterRoleBindings().List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, crb := range crbs.Items {
+			for _, subject := range crb.Subjects {
+				if subject.Kind == "ServiceAccount" && subject.Name == node.Name &&
+					(subject.Namespace == "" || subject.Namespace == node.Namespace) {
+					crbNode, err := b.createNode("", "clusterrolebinding", crb.Name)
+					if err == nil {
+						neighbors = append(neighbors, crbNode)
+						edges = append(edges, GraphEdge{
+							ID:     EdgeID(crbNode.ID, node.ID, EdgeTypeBinds),
+							Source: crbNode.ID,
+							Target: node.ID,
+							Type:   EdgeTypeBinds,
+							Label:  "grants to",
+						})
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Find Secrets associated with this ServiceAccount (token secrets)
+	secrets, err := b.clientset.CoreV1().Secrets(node.Namespace).List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, secret := range secrets.Items {
+			if secret.Type == "kubernetes.io/service-account-token" {
+				if saRef, ok := secret.Annotations["kubernetes.io/service-account.name"]; ok && saRef == node.Name {
+					secretNode, err := b.createNode(secret.Namespace, "secret", secret.Name)
+					if err == nil {
+						neighbors = append(neighbors, secretNode)
+						edges = append(edges, GraphEdge{
+							ID:     EdgeID(node.ID, secretNode.ID, EdgeTypeMounts),
+							Source: node.ID,
+							Target: secretNode.ID,
+							Type:   EdgeTypeMounts,
+							Label:  "token",
+						})
+					}
+				}
+			}
+		}
+	}
+
+	return neighbors, edges, nil
+}
+
+// expandNetworkPolicy expands relationships for a NetworkPolicy
+func (b *Builder) expandNetworkPolicy(node GraphNode) ([]GraphNode, []GraphEdge, error) {
+	neighbors := []GraphNode{}
+	edges := []GraphEdge{}
+
+	np, err := b.clientset.NetworkingV1().NetworkPolicies(node.Namespace).Get(b.ctx, node.Name, metav1.GetOptions{})
+	if err != nil {
+		return neighbors, edges, err
+	}
+
+	// Find pods matching the podSelector
+	if len(np.Spec.PodSelector.MatchLabels) > 0 {
+		selector := labels.SelectorFromSet(np.Spec.PodSelector.MatchLabels)
+		pods, err := b.clientset.CoreV1().Pods(node.Namespace).List(b.ctx, metav1.ListOptions{
+			LabelSelector: selector.String(),
+		})
+		if err == nil {
+			for _, pod := range pods.Items {
+				podNode, err := b.createNode(pod.Namespace, "pod", pod.Name)
+				if err == nil {
+					neighbors = append(neighbors, podNode)
+					edges = append(edges, GraphEdge{
+						ID:     EdgeID(node.ID, podNode.ID, EdgeTypeNetworkPolicy),
+						Source: node.ID,
+						Target: podNode.ID,
+						Type:   EdgeTypeNetworkPolicy,
+						Label:  "targets",
+					})
+				}
+			}
+		}
+	}
+
+	return neighbors, edges, nil
+}
+
+// expandStorageClass expands relationships for a StorageClass
+func (b *Builder) expandStorageClass(node GraphNode) ([]GraphNode, []GraphEdge, error) {
+	neighbors := []GraphNode{}
+	edges := []GraphEdge{}
+
+	// Find PVCs using this StorageClass
+	pvcs, err := b.clientset.CoreV1().PersistentVolumeClaims("").List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, pvc := range pvcs.Items {
+			if pvc.Spec.StorageClassName != nil && *pvc.Spec.StorageClassName == node.Name {
+				pvcNode, err := b.createNode(pvc.Namespace, "persistentvolumeclaim", pvc.Name)
+				if err == nil {
+					neighbors = append(neighbors, pvcNode)
+					edges = append(edges, GraphEdge{
+						ID:     EdgeID(node.ID, pvcNode.ID, EdgeTypeProvides),
+						Source: node.ID,
+						Target: pvcNode.ID,
+						Type:   EdgeTypeProvides,
+						Label:  "provides",
+					})
+				}
+			}
+		}
+	}
+
+	// Find PVs using this StorageClass
+	pvs, err := b.clientset.CoreV1().PersistentVolumes().List(b.ctx, metav1.ListOptions{})
+	if err == nil {
+		for _, pv := range pvs.Items {
+			if pv.Spec.StorageClassName == node.Name {
+				pvNode, err := b.createNode("", "persistentvolume", pv.Name)
+				if err == nil {
+					neighbors = append(neighbors, pvNode)
+					edges = append(edges, GraphEdge{
+						ID:     EdgeID(node.ID, pvNode.ID, EdgeTypeProvides),
+						Source: node.ID,
+						Target: pvNode.ID,
+						Type:   EdgeTypeProvides,
+						Label:  "provides",
+					})
+				}
+			}
+		}
+	}
+
+	return neighbors, edges, nil
+}
+
+// expandEndpoints expands relationships for Endpoints
+func (b *Builder) expandEndpoints(node GraphNode) ([]GraphNode, []GraphEdge, error) {
+	neighbors := []GraphNode{}
+	edges := []GraphEdge{}
+
+	// Endpoints share the same name as their Service
+	svcNode, err := b.createNode(node.Namespace, "service", node.Name)
+	if err == nil {
+		neighbors = append(neighbors, svcNode)
+		edges = append(edges, GraphEdge{
+			ID:     EdgeID(svcNode.ID, node.ID, EdgeTypeOwns),
+			Source: svcNode.ID,
+			Target: node.ID,
+			Type:   EdgeTypeOwns,
+			Label:  "owns",
+		})
+	}
+
+	return neighbors, edges, nil
+}
+
+// expandHPA expands relationships for a HorizontalPodAutoscaler.
+func (b *Builder) expandHPA(node GraphNode) ([]GraphNode, []GraphEdge, error) {
+	neighbors := []GraphNode{}
+	edges := []GraphEdge{}
+
+	hpa, err := b.clientset.AutoscalingV2().HorizontalPodAutoscalers(node.Namespace).Get(b.ctx, node.Name, metav1.GetOptions{})
+	if err != nil {
+		return neighbors, edges, err
+	}
+
+	targetKind := strings.ToLower(hpa.Spec.ScaleTargetRef.Kind)
+	targetName := hpa.Spec.ScaleTargetRef.Name
+	if targetKind == "" || targetName == "" {
+		return neighbors, edges, nil
+	}
+
+	targetNode, targetErr := b.createNode(node.Namespace, targetKind, targetName)
+	if targetErr != nil {
+		targetNode = fallbackNode(targetKind, node.Namespace, targetName)
+	}
+
+	neighbors = append(neighbors, targetNode)
+	edges = append(edges, GraphEdge{
+		ID:     EdgeID(node.ID, targetNode.ID, EdgeTypeScales),
+		Source: node.ID,
+		Target: targetNode.ID,
+		Type:   EdgeTypeScales,
+		Label:  "scales",
+	})
+
+	return neighbors, edges, nil
+}
+
+func (b *Builder) appendHPATargetingWorkload(node GraphNode, neighbors *[]GraphNode, edges *[]GraphEdge) {
+	targetKind := workloadKindForHPATarget(node.Kind)
+	if targetKind == "" {
+		return
+	}
+
+	hpas, err := b.clientset.AutoscalingV2().HorizontalPodAutoscalers(node.Namespace).List(b.ctx, metav1.ListOptions{})
+	if err != nil {
+		return
+	}
+
+	for _, hpa := range hpas.Items {
+		if hpa.Spec.ScaleTargetRef.Name != node.Name {
+			continue
+		}
+		if !strings.EqualFold(hpa.Spec.ScaleTargetRef.Kind, targetKind) {
+			continue
+		}
+
+		hpaNode, hpaErr := b.createNode(hpa.Namespace, "horizontalpodautoscaler", hpa.Name)
+		if hpaErr != nil {
+			hpaNode = fallbackNode("horizontalpodautoscaler", hpa.Namespace, hpa.Name)
+		}
+
+		*neighbors = append(*neighbors, hpaNode)
+		*edges = append(*edges, GraphEdge{
+			ID:     EdgeID(hpaNode.ID, node.ID, EdgeTypeScales),
+			Source: hpaNode.ID,
+			Target: node.ID,
+			Type:   EdgeTypeScales,
+			Label:  "scales",
+		})
+	}
+}
+
+func workloadKindForHPATarget(kind string) string {
+	switch strings.ToLower(kind) {
+	case "deployment":
+		return "Deployment"
+	case "statefulset":
+		return "StatefulSet"
+	case "daemonset":
+		return "DaemonSet"
+	case "replicaset":
+		return "ReplicaSet"
+	case "job":
+		return "Job"
+	case "cronjob":
+		return "CronJob"
+	default:
+		return ""
+	}
+}
+
 // Helper functions
+
+func (b *Builder) resolvePolicyTargetPods(policy networkingv1.NetworkPolicy) ([]GraphNode, error) {
+	selector := labels.Everything()
+	if len(policy.Spec.PodSelector.MatchLabels) > 0 {
+		selector = labels.SelectorFromSet(policy.Spec.PodSelector.MatchLabels)
+	}
+
+	pods, err := b.clientset.CoreV1().Pods(policy.Namespace).List(b.ctx, metav1.ListOptions{LabelSelector: selector.String()})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]GraphNode, 0, len(pods.Items))
+	for _, pod := range pods.Items {
+		podNode, nodeErr := b.createNode(pod.Namespace, "pod", pod.Name)
+		if nodeErr != nil {
+			continue
+		}
+		result = append(result, podNode)
+	}
+	return result, nil
+}
+
+func (b *Builder) resolveIngressSources(policyNamespace string, rule networkingv1.NetworkPolicyIngressRule) ([]GraphNode, error) {
+	if len(rule.From) == 0 {
+		return []GraphNode{externalNode("ingress:any", "Any source")}, nil
+	}
+
+	sources := []GraphNode{}
+	for _, peer := range rule.From {
+		peerNodes, err := b.resolveNetworkPolicyPeer(policyNamespace, peer)
+		if err != nil {
+			continue
+		}
+		sources = append(sources, peerNodes...)
+	}
+
+	return sources, nil
+}
+
+func (b *Builder) resolveEgressDestinations(policyNamespace string, rule networkingv1.NetworkPolicyEgressRule) ([]GraphNode, error) {
+	if len(rule.To) == 0 {
+		return []GraphNode{externalNode("egress:any", "Any destination")}, nil
+	}
+
+	destinations := []GraphNode{}
+	for _, peer := range rule.To {
+		peerNodes, err := b.resolveNetworkPolicyPeer(policyNamespace, peer)
+		if err != nil {
+			continue
+		}
+		destinations = append(destinations, peerNodes...)
+	}
+
+	return destinations, nil
+}
+
+func (b *Builder) resolveNetworkPolicyPeer(policyNamespace string, peer networkingv1.NetworkPolicyPeer) ([]GraphNode, error) {
+	result := []GraphNode{}
+
+	if peer.IPBlock != nil {
+		node := externalNode(peer.IPBlock.CIDR, peer.IPBlock.CIDR)
+		if len(peer.IPBlock.Except) > 0 {
+			node.Metadata["except"] = strings.Join(peer.IPBlock.Except, ",")
+		}
+		result = append(result, node)
+	}
+
+	namespaces := []string{policyNamespace}
+	if peer.NamespaceSelector != nil {
+		namespaces = []string{}
+		nsSelector := labels.Everything()
+		if len(peer.NamespaceSelector.MatchLabels) > 0 {
+			nsSelector = labels.SelectorFromSet(peer.NamespaceSelector.MatchLabels)
+		}
+		nsList, err := b.clientset.CoreV1().Namespaces().List(b.ctx, metav1.ListOptions{LabelSelector: nsSelector.String()})
+		if err != nil {
+			return result, err
+		}
+		for _, ns := range nsList.Items {
+			namespaces = append(namespaces, ns.Name)
+		}
+	}
+
+	podSelector := labels.Everything()
+	if peer.PodSelector != nil && len(peer.PodSelector.MatchLabels) > 0 {
+		podSelector = labels.SelectorFromSet(peer.PodSelector.MatchLabels)
+	}
+
+	for _, ns := range namespaces {
+		pods, err := b.clientset.CoreV1().Pods(ns).List(b.ctx, metav1.ListOptions{LabelSelector: podSelector.String()})
+		if err != nil {
+			continue
+		}
+		for _, pod := range pods.Items {
+			podNode, nodeErr := b.createNode(pod.Namespace, "pod", pod.Name)
+			if nodeErr != nil {
+				continue
+			}
+			result = append(result, podNode)
+		}
+	}
+
+	if len(result) == 0 && peer.IPBlock == nil && peer.PodSelector == nil && peer.NamespaceSelector == nil {
+		result = append(result, externalNode("peer:any", "Any peer"))
+	}
+
+	return result, nil
+}
+
+func externalNode(name, label string) GraphNode {
+	node := fallbackNode("external", "", name)
+	node.Status = "External"
+	node.Metadata["fullName"] = label
+	return node
+}
+
+func createRBACSubjectNode(subject rbacv1.Subject) GraphNode {
+	kind := strings.ToLower(subject.Kind)
+	node := fallbackNode(kind, "", subject.Name)
+	node.Status = "Subject"
+	node.Group = GroupRBAC
+	node.Metadata["fullName"] = fmt.Sprintf("%s: %s", subject.Kind, subject.Name)
+	if subject.APIGroup != "" {
+		node.Metadata["apiGroup"] = subject.APIGroup
+	}
+	return node
+}
+
+func summarizePolicyRules(rules []rbacv1.PolicyRule) string {
+	if len(rules) == 0 {
+		return "No policy rules"
+	}
+
+	parts := make([]string, 0, len(rules))
+	for _, rule := range rules {
+		verbs := strings.Join(rule.Verbs, ",")
+		if verbs == "" {
+			verbs = "*"
+		}
+
+		apiGroups := strings.Join(rule.APIGroups, ",")
+		if apiGroups == "" {
+			apiGroups = "core"
+		}
+
+		resources := strings.Join(rule.Resources, ",")
+		if resources == "" {
+			resources = strings.Join(rule.NonResourceURLs, ",")
+		}
+		if resources == "" {
+			resources = "*"
+		}
+
+		ruleSummary := fmt.Sprintf("%s %s/%s", verbs, apiGroups, resources)
+		if len(rule.ResourceNames) > 0 {
+			ruleSummary = fmt.Sprintf("%s (names:%s)", ruleSummary, strings.Join(rule.ResourceNames, ","))
+		}
+		parts = append(parts, ruleSummary)
+	}
+
+	return strings.Join(parts, "; ")
+}
+
+func formatPolicyPortsLabel(direction string, ports []networkingv1.NetworkPolicyPort) string {
+	if len(ports) == 0 {
+		return direction
+	}
+
+	parts := make([]string, 0, len(ports))
+	for _, port := range ports {
+		protocol := "ANY"
+		if port.Protocol != nil {
+			protocol = string(*port.Protocol)
+		}
+		if port.Port == nil {
+			parts = append(parts, protocol)
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s/%s", port.Port.String(), protocol))
+	}
+
+	return fmt.Sprintf("%s %s", direction, strings.Join(parts, ","))
+}
 
 func isOwnedBy(refs []metav1.OwnerReference, kind, name string) bool {
 	for _, ref := range refs {

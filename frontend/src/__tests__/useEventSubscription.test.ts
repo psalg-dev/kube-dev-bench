@@ -2,12 +2,12 @@
  * Tests for useEventSubscription hook
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEventSubscription } from '../hooks/useEventSubscription';
 
 describe('useEventSubscription', () => {
-  type SubscribeFn<TArgs extends unknown[] = unknown[]> = (handler: (...args: TArgs) => void) => (() => void) | void;
+  type SubscribeFn<TArgs extends unknown[] = unknown[]> = (_handler: (..._args: TArgs) => void) => (() => void) | void;
   let mockUnsubscribe: ReturnType<typeof vi.fn>;
   let mockSubscribeFn: ReturnType<typeof vi.fn>;
 
@@ -108,7 +108,7 @@ describe('useEventSubscription', () => {
     renderHook(() => useEventSubscription(mockSubscribeFn as unknown as SubscribeFn<[number]>, handler, []));
 
     // Get the handler that was passed to subscribeFn
-    const passedHandler = mockSubscribeFn.mock.calls[0][0] as (value: number) => number;
+    const passedHandler = mockSubscribeFn.mock.calls[0][0] as (_value: number) => number;
 
     // Verify it's the same handler
     expect(passedHandler(5)).toBe(10);

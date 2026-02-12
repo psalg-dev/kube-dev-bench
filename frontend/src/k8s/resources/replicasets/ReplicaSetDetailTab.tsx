@@ -27,31 +27,7 @@ export default function ReplicaSetDetailTab({ namespace, replicaSetName }: Repli
 	const [detail, setDetail] = useState<ReplicaSetDetail | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-
-	useEffect(() => {
-		if (!namespace || !replicaSetName) return;
-
-		setLoading(true);
-		setError(null);
-
-		AppAPI.GetReplicaSetDetail(namespace, replicaSetName)
-			.then((data) => {
-				setDetail(data as ReplicaSetDetail);
-				setLoading(false);
-			})
-			.catch((err) => {
-				setError(err instanceof Error ? err.message : 'Failed to fetch replicaset details');
-				setLoading(false);
-			});
-	}, [namespace, replicaSetName]);
-
-	if (loading) {
-		return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
-	}
-
-	if (error) {
-		return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
-	}
+	const pods = useMemo(() => detail?.pods || [], [detail?.pods]);
 
 	const columns = useMemo(() => ([
 		{ key: 'name', label: 'Name' },
@@ -65,7 +41,46 @@ export default function ReplicaSetDetailTab({ namespace, replicaSetName }: Repli
 	const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(
 		() => ({ key: defaultSortKey, direction: 'asc' })
 	);
-	const sortedPods = useMemo(() => sortRows(detail?.pods || [], sortState.key, sortState.direction), [detail?.pods, sortState]);
+	const sortedPods = useMemo(() => sortRows(pods, sortState.key, sortState.direction), [pods, sortState]);
+
+	useEffect(() => {
+		let active = true;
+		const loadDetail = async () => {
+			if (!namespace || !replicaSetName) {
+				if (active) {
+					setDetail(null);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError(null);
+			}
+			try {
+				const data = await AppAPI.GetReplicaSetDetail(namespace, replicaSetName);
+				if (!active) return;
+				setDetail(data as ReplicaSetDetail);
+				setLoading(false);
+			} catch (err) {
+				if (!active) return;
+				setError(err instanceof Error ? err.message : 'Failed to fetch replicaset details');
+				setLoading(false);
+			}
+		};
+		loadDetail();
+		return () => {
+			active = false;
+		};
+	}, [namespace, replicaSetName]);
+
+	if (loading) {
+		return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+	}
+
+	if (error) {
+		return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
+	}
 
 	const headerButtonStyle: CSSProperties = {
 		width: '100%',
@@ -123,10 +138,10 @@ export default function ReplicaSetDetailTab({ namespace, replicaSetName }: Repli
 
 			{/* Pods section */}
 			<h4 style={{ color: 'var(--gh-text, #c9d1d9)', marginBottom: 12 }}>
-				Pods ({detail?.pods?.length || 0})
+				Pods ({pods.length})
 			</h4>
 
-			{!detail?.pods || detail.pods.length === 0 ? (
+			{pods.length === 0 ? (
 				<div style={{ color: 'var(--gh-text-muted, #8b949e)' }}>No pods found for this ReplicaSet.</div>
 			) : (
 				<table className="panel-table">

@@ -179,6 +179,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       /Failed to load hooks config/i,  // Hooks config file may not exist yet or be mid-write
       /ScanClusterHealth failed/i,  // Transient K8s API connectivity during parallel testing
       /dial tcp.*connectex:/i,  // Windows socket connection errors during parallel testing
+      /Failed to load Swarm services: Error response from daemon: This node is not a swarm manager/i,
     ];
     const filteredErrors = consoleErrors.filter((err) => {
       return !ignoredPatterns.some((pattern) => pattern.test(err));

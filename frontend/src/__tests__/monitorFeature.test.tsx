@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { eventsOnMock, resetAllMocks, appApiMocks } from './wailsMocks';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FooterBar from '../layout/FooterBar';
 import MonitorPanel from '../layout/MonitorPanel';
+import { appApiMocks, eventsOnMock, resetAllMocks } from './wailsMocks';
 
 // Mock ClusterStateContext
 vi.mock('../state/ClusterStateContext', () => ({
@@ -62,10 +62,10 @@ describe('FooterBar monitoring badges', () => {
   });
 
   it('displays error badge when errors present', async () => {
-    let updateCallback: ((data: MonitorInfo) => void) | undefined;
+    let updateCallback: ((_data: MonitorInfo) => void) | undefined;
     eventsOnMock.mockImplementation((eventName, callback) => {
       if (eventName === 'monitor:update') {
-        updateCallback = callback as (data: MonitorInfo) => void;
+        updateCallback = callback as (_data: MonitorInfo) => void;
       }
       return () => {};
     });
@@ -92,10 +92,10 @@ describe('FooterBar monitoring badges', () => {
   });
 
   it('displays warning badge when warnings present', async () => {
-    let updateCallback: ((data: MonitorInfo) => void) | undefined;
+    let updateCallback: ((_data: MonitorInfo) => void) | undefined;
     eventsOnMock.mockImplementation((eventName, callback) => {
       if (eventName === 'monitor:update') {
-        updateCallback = callback as (data: MonitorInfo) => void;
+        updateCallback = callback as (_data: MonitorInfo) => void;
       }
       return () => {};
     });
@@ -121,10 +121,10 @@ describe('FooterBar monitoring badges', () => {
   });
 
   it('displays both error and warning badges', async () => {
-    let updateCallback: ((data: MonitorInfo) => void) | undefined;
+    let updateCallback: ((_data: MonitorInfo) => void) | undefined;
     eventsOnMock.mockImplementation((eventName, callback) => {
       if (eventName === 'monitor:update') {
-        updateCallback = callback as (data: MonitorInfo) => void;
+        updateCallback = callback as (_data: MonitorInfo) => void;
       }
       return () => {};
     });
@@ -159,10 +159,10 @@ describe('FooterBar monitoring badges', () => {
   });
 
   it('opens panel when badge is clicked', async () => {
-    let updateCallback: ((data: MonitorInfo) => void) | undefined;
+    let updateCallback: ((_data: MonitorInfo) => void) | undefined;
     eventsOnMock.mockImplementation((eventName, callback) => {
       if (eventName === 'monitor:update') {
-        updateCallback = callback as (data: MonitorInfo) => void;
+        updateCallback = callback as (_data: MonitorInfo) => void;
       }
       return () => {};
     });

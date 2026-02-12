@@ -6,7 +6,7 @@ import { useCallback } from 'react';
  * @returns Click handler function
  */
 export function useGraphNavigation() {
-  const handleNodeClick = useCallback((nodeData: any) => {
+  const handleNodeClick = useCallback((nodeData: unknown) => {
     // Dispatch navigate-to-resource event (existing pattern in AppContainer.tsx)
     const event = new CustomEvent('navigate-to-resource', {
       detail: {

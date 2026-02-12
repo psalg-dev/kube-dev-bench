@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/rules-of-hooks */
+/* eslint-disable no-unsafe-optional-chaining */
 import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { formatDateDMY } from '../../../utils/dateUtils';

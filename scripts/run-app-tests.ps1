@@ -1,9 +1,0 @@
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-
-try {
-    go test -v ./pkg/app/...
-} catch {
-    Write-Error "Failed: $_"
-    exit 1
-}

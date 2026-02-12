@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { EventsOn } from '../../../wailsjs/runtime/runtime.js';
 import { GetSwarmMetricsHistory } from '../swarmApi';
@@ -62,7 +63,7 @@ export function MetricsStateProvider({ children, maxPoints = 720 }: { children: 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [normalizeList]);
 
   useEffect(() => {
     let active = true;
@@ -79,7 +80,7 @@ export function MetricsStateProvider({ children, maxPoints = 720 }: { children: 
         if (!active) return;
         applyBreakdown(b);
       });
-    } catch (_) {
+    } catch {
       // Not running inside Wails.
     }
 

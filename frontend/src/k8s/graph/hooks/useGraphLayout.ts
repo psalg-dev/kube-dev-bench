@@ -1,5 +1,5 @@
+import { Edge, Node } from '@xyflow/react';
 import { useMemo } from 'react';
-import { Node, Edge } from '@xyflow/react';
 import { computeLayout, LayoutOptions } from '../utils/layoutEngine';
 
 /**
@@ -9,7 +9,7 @@ import { computeLayout, LayoutOptions } from '../utils/layoutEngine';
  * @returns React Flow nodes and edges with computed positions
  */
 export function useGraphLayout(
-  graphData: any | null,
+  graphData: unknown | null,
   layoutOptions?: LayoutOptions
 ): { nodes: Node[]; edges: Edge[] } {
   return useMemo(() => {

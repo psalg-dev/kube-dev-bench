@@ -1,15 +1,14 @@
 import { createRoot } from 'react-dom/client';
-import PodOverviewTable from './PodOverviewTable';
-import '../../../style.css';
 import '../../../app.css';
+import '../../../style.css';
+import PodOverviewTable from './PodOverviewTable';
 
 type RenderPodOverviewTableArgs = {
 	container: Element | null;
 	namespace?: string;
 	namespaces?: string[];
-	onCreateResource?: (type?: string) => void;
+	onCreateResource?: (_type?: string) => void;
 };
-
 const rootByContainer = new WeakMap<Element, ReturnType<typeof createRoot>>();
 
 export function renderPodOverviewTable({ container, namespace, namespaces, onCreateResource }: RenderPodOverviewTableArgs) {

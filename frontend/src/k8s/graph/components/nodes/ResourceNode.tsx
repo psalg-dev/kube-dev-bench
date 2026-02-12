@@ -10,6 +10,7 @@ export interface ResourceNodeProps {
     status: string;
     group: string;
     metadata: Record<string, string>;
+    dimmed?: boolean;
   };
 }
 
@@ -18,21 +19,29 @@ export interface ResourceNodeProps {
  */
 export function ResourceNode({ data }: ResourceNodeProps) {
   const color = getNodeColor(data.kind, data.status);
-  const truncatedName = data.name.length > 20 ? data.name.substring(0, 17) + '...' : data.name;
+  const kindClass = data.kind ? `graph-node--${data.kind.toLowerCase()}` : 'graph-node--unknown';
+  const displayName = data.metadata?.fullName || data.name;
+  const lowerKind = data.kind?.toLowerCase();
+  const isExternal = lowerKind === 'external';
+  const isUser = lowerKind === 'user';
+  const isGroup = lowerKind === 'group';
+  const roleRules = lowerKind === 'role' || lowerKind === 'clusterrole' ? data.metadata?.rules : '';
+  const nameTitle = roleRules ? `${displayName}\n${roleRules}` : displayName;
+  const kindLabel = isExternal ? '☁ External' : isUser ? '👤 User' : isGroup ? '👥 Group' : data.kind;
 
   return (
-    <div className="resource-node" style={{ borderColor: color }}>
+    <div className={`resource-node graph-node ${kindClass}${data.dimmed ? ' graph-node--dimmed' : ''}`} style={{ borderColor: color }}>
       <Handle type="target" position={Position.Top} />
-      
+
       <div className="resource-node-header">
         <div className="resource-node-kind" style={{ backgroundColor: color }}>
-          {data.kind}
+          {kindLabel}
         </div>
       </div>
-      
+
       <div className="resource-node-content">
-        <div className="resource-node-name" title={data.name}>
-          {truncatedName}
+        <div className="resource-node-name" title={nameTitle}>
+          {displayName}
         </div>
         {data.namespace && (
           <div className="resource-node-namespace">{data.namespace}</div>
@@ -45,7 +54,7 @@ export function ResourceNode({ data }: ResourceNodeProps) {
           </div>
         )}
       </div>
-      
+
       <Handle type="source" position={Position.Bottom} />
     </div>
   );

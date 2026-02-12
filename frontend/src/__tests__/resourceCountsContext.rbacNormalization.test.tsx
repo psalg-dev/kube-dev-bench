@@ -1,6 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext';
+
+vi.mock('../state/ClusterStateContext', () => ({
+  useClusterState: () => ({ selectedNamespaces: ['default'] }),
+}));
 
 const getResourceCounts = vi.hoisted(() =>
   vi.fn(() => Promise.resolve({
@@ -13,25 +17,23 @@ const getResourceCounts = vi.hoisted(() =>
 );
 
 const onCallback = vi.hoisted(() => ({
-  handler: undefined as ((data: any) => void) | undefined,
+  handler: undefined as ((_data: unknown) => void) | undefined,
 }));
-
 vi.mock('../k8s/resources/kubeApi', () => ({
   GetResourceCounts: getResourceCounts,
 }));
 
 vi.mock('../../wailsjs/runtime', () => ({
-  EventsOn: vi.fn((eventName: string, cb: (data: any) => void) => {
+  EventsOn: vi.fn((eventName: string, cb: (_data: unknown) => void) => {
     onCallback.handler = cb;
     return () => {};
   }),
 }));
-
 describe('ResourceCountsProvider RBAC normalization', () => {
   beforeEach(() => {
     getResourceCounts.mockClear();
     onCallback.handler = undefined;
-    (window as any).go = { main: { App: { GetResourceCounts: vi.fn() } } };
+    (window as unknown).go = { main: { App: { GetResourceCounts: vi.fn() } } };
   });
 
   it('normalizes uppercase RBAC keys to camelCase and updates on events', async () => {
@@ -41,7 +43,7 @@ describe('ResourceCountsProvider RBAC normalization', () => {
 
     await waitFor(() => expect(result.current.counts).toBeTruthy());
 
-    const counts = result.current.counts as any;
+    const counts = result.current.counts as unknown;
     expect(counts.roles).toBe(2);
     expect(counts.clusterroles).toBe(3);
     expect(counts.rolebindings).toBe(4);
@@ -53,7 +55,7 @@ describe('ResourceCountsProvider RBAC normalization', () => {
     }
 
     await waitFor(() => {
-      const updated = result.current.counts as any;
+      const updated = result.current.counts as unknown;
       expect(updated.roles).toBe(7);
       expect(updated.clusterroles).toBe(0);
       expect(updated.rolebindings).toBe(1);

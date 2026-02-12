@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../docker/swarmApi', () => ({
   GetSwarmVolumeInspectJSON: vi.fn(),
@@ -24,8 +24,8 @@ vi.mock('../layout/bottompanel/TextViewerTab', () => ({
 }));
 
 function deferred<T>() {
-  let resolve: (value: T) => void;
-  let reject: (reason?: unknown) => void;
+  let resolve: (_value: T) => void;
+  let reject: (_reason?: unknown) => void;
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;

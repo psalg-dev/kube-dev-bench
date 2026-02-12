@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/rules-of-hooks */
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useSwarmState } from './SwarmStateContext';

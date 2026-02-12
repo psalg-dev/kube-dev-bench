@@ -1,11 +1,15 @@
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { render, act, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext';
 
+vi.mock('../state/ClusterStateContext', () => ({
+  useClusterState: () => ({ selectedNamespaces: ['default'] }),
+}));
+
 vi.mock('../../wailsjs/runtime', () => {
-  let handler: ((payload: unknown) => void) | undefined;
+  let handler: ((_payload: unknown) => void) | undefined;
   return {
-    EventsOn: (event: string, cb: (payload: unknown) => void) => {
+    EventsOn: (event: string, cb: (_payload: unknown) => void) => {
       if (event === 'resourcecounts:update') handler = cb;
       return () => { handler = undefined; };
     },
@@ -26,13 +30,13 @@ vi.mock('../k8s/resources/kubeApi', () => ({
 
 // Expose fake Wails binding for waitForWailsBinding
 beforeAll(() => {
-  (window as any).go = { main: { App: { GetResourceCounts: () => Promise.resolve({}) } } };
+  (window as unknown).go = { main: { App: { GetResourceCounts: () => Promise.resolve({}) } } };
 });
-afterAll(() => { delete (window as any).go; });
+afterAll(() => { delete (window as unknown).go; });
 
 function Probe() {
   const { counts, lastUpdated } = useResourceCounts();
-  return <pre data-testid="counts">{JSON.stringify({ counts, lastUpdated })}</pre> as any;
+  return <pre data-testid="counts">{JSON.stringify({ counts, lastUpdated })}</pre> as unknown;
 }
 
 describe('ResourceCountsContext RBAC updates', () => {
@@ -55,8 +59,7 @@ describe('ResourceCountsContext RBAC updates', () => {
     const initialUpdated = initial.lastUpdated;
 
     const runtime = await import('../../wailsjs/runtime');
-    const emitter = runtime as unknown as { __emit: (payload: unknown) => void };
-
+    const emitter = runtime as unknown as { __emit: (_payload: unknown) => void };
     await act(async () => {
       emitter.__emit({ roles: 2 });
     });

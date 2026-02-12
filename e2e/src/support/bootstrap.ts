@@ -45,15 +45,16 @@ export async function bootstrapApp(opts: {
   }
 
   const gotoWithRetry = async () => {
+    const navigationTimeoutMs = Number(process.env.E2E_GOTO_TIMEOUT_MS || 30_000);
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        await page.goto('/', { waitUntil: 'load' });
+        await page.goto('/', { waitUntil: 'domcontentloaded', timeout: navigationTimeoutMs });
         return;
       } catch (error) {
         lastError = error;
-        const message = String(error);
-        const shouldRetry = /ERR_HTTP_RESPONSE_CODE_FAILURE|HTTP ERROR 502|net::ERR/i.test(message);
+        const message = error instanceof Error ? error.message : String(error);
+        const shouldRetry = /ERR_HTTP_RESPONSE_CODE_FAILURE|HTTP ERROR 502|net::ERR|Timeout .* exceeded/i.test(message);
         if (!shouldRetry || attempt === 2) {
           throw error;
         }

@@ -1,17 +1,16 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
-import { GetSwarmConfigData, UpdateSwarmConfigData } from '../../swarmApi';
 import TextEditorTab from '../../../layout/bottompanel/TextEditorTab';
 import { showError, showSuccess } from '../../../notification';
+import { GetSwarmConfigData, UpdateSwarmConfigData } from '../../swarmApi';
 
 type ConfigEditModalProps = {
 	open: boolean;
 	configId?: string;
 	configName?: string;
 	onClose?: () => void;
-	onSaved?: (result: unknown) => void;
+	onSaved?: (_result: unknown) => void;
 };
-
 export default function ConfigEditModal({ open, configId, configName, onClose, onSaved }: ConfigEditModalProps) {
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
@@ -195,5 +194,4 @@ export default function ConfigEditModal({ open, configId, configName, onClose, o
 		</div>
 	);
 }
-
 

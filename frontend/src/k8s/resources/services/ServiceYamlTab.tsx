@@ -19,7 +19,7 @@ export default function ServiceYamlTab({ namespace, name }: ServiceYamlTabProps)
 		try {
 			const res = await GetServiceYAML(namespace, name);
 			setYaml(res || '');
-		} catch (e: any) {
+		} catch (e: unknown) {
 			setError(String(e));
 		} finally {
 			setLoading(false);

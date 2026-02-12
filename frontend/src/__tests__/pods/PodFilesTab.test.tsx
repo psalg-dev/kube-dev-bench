@@ -10,7 +10,7 @@ declare global {
     go?: {
       main: {
         App: {
-          SetPreferredNamespaces?: (namespaces: string[]) => Promise<void>;
+          SetPreferredNamespaces?: (_namespaces: string[]) => Promise<void>;
           GetPodFileContent: ReturnType<typeof vi.fn>;
           GetPodContainers: ReturnType<typeof vi.fn>;
           GetPodFiles: ReturnType<typeof vi.fn>;

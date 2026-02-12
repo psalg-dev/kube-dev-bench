@@ -14,35 +14,40 @@ export const KIND_COLORS = {
   replicaset: '#60a5fa',
   job: '#8b5cf6',
   cronjob: '#7c3aed',
-  
+  horizontalpodautoscaler: '#0ea5e9',
+  hpa: '#0ea5e9',
+
   // Networking - orange tones
   service: '#f97316',
   ingress: '#fb923c',
   networkpolicy: '#6366f1',
   endpoints: '#fdba74',
-  
+
   // Config - green/red tones
   configmap: '#10b981',
   secret: '#dc2626',
   serviceaccount: '#059669',
-  
+
   // Storage - teal tones
   persistentvolumeclaim: '#14b8a6',
   pvc: '#14b8a6',
   persistentvolume: '#0d9488',
   pv: '#0d9488',
   storageclass: '#6b7280',
-  
+
   // RBAC - gold tones
   role: '#f59e0b',
   clusterrole: '#d97706',
   rolebinding: '#fbbf24',
   clusterrolebinding: '#f59e0b',
-  
+  user: '#ca8a04',
+  group: '#a16207',
+
   // Infrastructure - gray tones
   node: '#475569',
   namespace: '#64748b',
-  
+  external: '#64748b',
+
   // Default
   default: '#94a3b8'
 };
@@ -56,6 +61,8 @@ export const NODE_SHAPES = {
   replicaset: 'rect',
   job: 'diamond',
   cronjob: 'diamond',
+  horizontalpodautoscaler: 'hexagon',
+  hpa: 'hexagon',
   service: 'hexagon',
   ingress: 'pentagon',
   configmap: 'square',
@@ -70,6 +77,8 @@ export const NODE_SHAPES = {
   clusterrole: 'shield',
   rolebinding: 'arrow',
   clusterrolebinding: 'arrow',
+  user: 'rect',
+  group: 'rect',
   networkpolicy: 'octagon',
   default: 'rect'
 };
@@ -132,11 +141,32 @@ export const EDGE_STYLES = {
     label: 'binds',
     animated: false
   },
+  scales: {
+    strokeDasharray: '0',
+    strokeWidth: 2,
+    stroke: '#0ea5e9',
+    label: 'scales',
+    animated: false
+  },
   network_policy: {
     strokeDasharray: '0',
     strokeWidth: 2,
     stroke: '#6366f1',
     label: 'policy',
+    animated: false
+  },
+  network_policy_ingress: {
+    strokeDasharray: '0',
+    strokeWidth: 2,
+    stroke: '#10b981',
+    label: 'ingress',
+    animated: false
+  },
+  network_policy_egress: {
+    strokeDasharray: '0',
+    strokeWidth: 2,
+    stroke: '#ef4444',
+    label: 'egress',
     animated: false
   }
 };
@@ -144,7 +174,7 @@ export const EDGE_STYLES = {
 // Get color for a node based on kind and status
 export function getNodeColor(kind: string, status?: string): string {
   const lowerKind = kind.toLowerCase();
-  
+
   if (lowerKind === 'pod' && status) {
     const lowerStatus = status.toLowerCase();
     if (lowerStatus === 'running') return KIND_COLORS.pod.running;
@@ -153,8 +183,9 @@ export function getNodeColor(kind: string, status?: string): string {
     if (lowerStatus === 'succeeded') return KIND_COLORS.pod.succeeded;
     return KIND_COLORS.pod.unknown;
   }
-  
-  return KIND_COLORS[lowerKind as keyof typeof KIND_COLORS] || KIND_COLORS.default;
+
+  const color = KIND_COLORS[lowerKind as keyof typeof KIND_COLORS];
+  return typeof color === 'string' ? color : KIND_COLORS.default;
 }
 
 // Get edge style for an edge type

@@ -1,19 +1,18 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
-import { Compartment, EditorState } from '@codemirror/state';
 import { foldGutter, foldKeymap } from '@codemirror/language';
+import { Compartment, EditorState } from '@codemirror/state';
+import { EditorView, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
+import { useEffect, useMemo, useRef } from 'react';
 import { getCodeMirrorLanguageExtensions } from '../../utils/codeMirrorLanguage';
 
 type TextEditorTabProps = {
   content?: string;
   filename?: string;
-  onChange?: (nextValue: string) => void;
+  onChange?: (_nextValue: string) => void;
   disabled?: boolean;
   loading?: boolean;
   error?: string | Error | null;
   loadingLabel?: string;
 };
-
 export default function TextEditorTab({
   content,
   filename,

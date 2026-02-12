@@ -1,7 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import ConfigMapDataTab from '../k8s/resources/configmaps/ConfigMapDataTab';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { app } from '../../wailsjs/go/models';
+import ConfigMapDataTab from '../k8s/resources/configmaps/ConfigMapDataTab';
+import * as AppAPI from '../../wailsjs/go/main/App';
 
 // Mock notification module
 vi.mock('../notification', () => ({
@@ -14,10 +15,6 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   GetConfigMapDataByName: vi.fn(),
   UpdateConfigMapDataKey: vi.fn(),
 }));
-
-import * as AppAPI from '../../wailsjs/go/main/App';
-import { showError, showSuccess } from '../notification';
-
 const getConfigMapDataMock = vi.mocked(AppAPI.GetConfigMapDataByName);
 const updateConfigMapDataKeyMock = vi.mocked(AppAPI.UpdateConfigMapDataKey);
 const toConfigMapData = (data: unknown) => data as app.ConfigMapDataInfo[];

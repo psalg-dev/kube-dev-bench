@@ -1,36 +1,35 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import {
-  GetKubeConfigs,
-  GetKubeContextsFromFile,
-  SaveCustomKubeConfig,
-  SetKubeConfigPath,
-  SavePrimaryKubeConfig,
-  SelectKubeConfigFile,
-  GetKubeContexts,
-  GetNamespaces,
-  SetCurrentKubeContext,
-  SetCurrentNamespace,
-  GetCurrentConfig,
-  GetProxyConfig,
-  SetProxyConfig,
-  DetectSystemProxy,
-  GetHooksConfig,
-  SaveHook,
-  DeleteHook,
-  TestHook,
-  SelectHookScript,
+    DeleteHook,
+    DetectSystemProxy,
+    GetCurrentConfig,
+    GetHooksConfig,
+    GetKubeConfigs,
+    GetKubeContexts,
+    GetKubeContextsFromFile,
+    GetNamespaces,
+    GetProxyConfig,
+    SaveCustomKubeConfig,
+    SaveHook,
+    SavePrimaryKubeConfig,
+    SelectHookScript,
+    SelectKubeConfigFile,
+    SetCurrentKubeContext,
+    SetCurrentNamespace,
+    SetKubeConfigPath,
+    SetProxyConfig,
+    TestHook,
 } from '../../../wailsjs/go/main/App';
 import {
-  GetDockerConnectionStatus,
-  TestDockerConnection,
-  AutoConnectDocker as _AutoConnectDocker,
-  ConnectToDocker,
-  GetDefaultDockerHost,
+    ConnectToDocker,
+    GetDefaultDockerHost,
+    GetDockerConnectionStatus,
+    TestDockerConnection,
 } from '../../docker/swarmApi';
 
+import type { app, docker } from '../../../wailsjs/go/models';
 import { EventsOn } from '../../../wailsjs/runtime/runtime';
 import { showError, showSuccess, showWarning } from '../../notification';
-import type { app, docker } from '../../../wailsjs/go/models';
 
 type KubeConfigEntry = app.KubeConfigInfo;
 
@@ -71,13 +70,12 @@ type KindClusterWails = {
   go?: {
     main?: {
       App?: {
-        CreateKindCluster?: (name: string) => Promise<KindClusterResult>;
+        CreateKindCluster?: (_name: string) => Promise<KindClusterResult>;
         CancelKindCluster?: () => Promise<boolean>;
       };
     };
   };
 };
-
 interface PinnedConnection {
   type: 'kubernetes' | 'swarm';
   id: string;
@@ -269,15 +267,9 @@ function reducer(state: ConnectionsState, action: ConnectionsAction): Connection
 
 export { reducer as connectionsStateReducer };
 
-export type {
-  KubeConfigEntry,
-  SwarmConnectionEntry,
-  PinnedConnection,
-  ConnectionHook,
-  ConnectionEntry,
-  SelectedSection,
-  ProxyConfig,
-};
+    export type {
+        ConnectionEntry, ConnectionHook, KubeConfigEntry, PinnedConnection, ProxyConfig, SelectedSection, SwarmConnectionEntry
+    };
 
 function loadPinnedConnections(): PinnedConnection[] {
   try {
@@ -313,34 +305,33 @@ interface ConnectionsStateProviderProps {
 }
 
 interface ConnectionsActions {
-  selectSection: (section: ConnectionsState['selectedSection']) => void;
-  selectKubeConfig: (config: KubeConfigEntry) => void;
-  togglePin: (connectionType: PinnedConnection['type'], connectionId: string, connectionData: Omit<PinnedConnection, 'type' | 'id'>) => void;
-  isPinned: (connectionType: PinnedConnection['type'], connectionId: string) => boolean;
-  showAddKubeConfigOverlay: (show: boolean) => void;
-  showAddSwarmOverlay: (show: boolean) => void;
-  showProxySettings: (show: boolean, connection?: ConnectionEntry | null) => void;
-  showHooksSettings: (show: boolean, connection?: ConnectionEntry | null) => void;
-  setEditingHook: (hook: ConnectionHook | null) => void;
+  selectSection: (_section: ConnectionsState['selectedSection']) => void;
+  selectKubeConfig: (_config: KubeConfigEntry) => void;
+  togglePin: (_connectionType: PinnedConnection['type'], _connectionId: string, _connectionData: Omit<PinnedConnection, 'type' | 'id'>) => void;
+  isPinned: (_connectionType: PinnedConnection['type'], _connectionId: string) => boolean;
+  showAddKubeConfigOverlay: (_show: boolean) => void;
+  showAddSwarmOverlay: (_show: boolean) => void;
+  showProxySettings: (_show: boolean, _connection?: ConnectionEntry | null) => void;
+  showHooksSettings: (_show: boolean, _connection?: ConnectionEntry | null) => void;
+  setEditingHook: (_hook: ConnectionHook | null) => void;
   loadKubeConfigs: () => Promise<KubeConfigEntry[]>;
-  createKindCluster: (name?: string) => Promise<KindClusterResult | null>;
+  createKindCluster: (_name?: string) => Promise<KindClusterResult | null>;
   cancelKindCluster: () => Promise<boolean>;
   detectSwarmConnections: () => Promise<void>;
   loadHooks: () => Promise<ConnectionHook[]>;
   browseHookScript: () => Promise<string>;
-  saveHook: (hook: ConnectionHook) => Promise<ConnectionHook | null>;
-  deleteHook: (hookId: string) => Promise<boolean>;
-  testHook: (hookId: string) => Promise<HookExecutionResult | null>;
+  saveHook: (_hook: ConnectionHook) => Promise<ConnectionHook | null>;
+  deleteHook: (_hookId: string) => Promise<boolean>;
+  testHook: (_hookId: string) => Promise<HookExecutionResult | null>;
   browseKubeConfigFile: () => Promise<KubeConfigEntry | null>;
-  saveCustomKubeConfig: (name: string, content: string) => Promise<boolean>;
-  savePrimaryKubeConfig: (content: string) => Promise<string | null>;
-  connectKubeConfig: (config: KubeConfigEntry) => Promise<boolean>;
-  saveProxyConfig: (config: ProxyConfig) => Promise<boolean>;
-  testSwarmConnection: (config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
-  connectSwarm: (config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
-  addSwarmConnection: (connection: SwarmConnectionEntry) => void;
+  saveCustomKubeConfig: (_name: string, _content: string) => Promise<boolean>;
+  savePrimaryKubeConfig: (_content: string) => Promise<string | null>;
+  connectKubeConfig: (_config: KubeConfigEntry) => Promise<boolean>;
+  saveProxyConfig: (_config: ProxyConfig) => Promise<boolean>;
+  testSwarmConnection: (_config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
+  connectSwarm: (_config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
+  addSwarmConnection: (_connection: SwarmConnectionEntry) => void;
 }
-
 export interface ConnectionsStateContextValue extends ConnectionsState {
   kubeConfigCount: number;
   swarmConnectionCount: number;

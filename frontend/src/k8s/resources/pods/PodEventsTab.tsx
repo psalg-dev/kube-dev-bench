@@ -9,7 +9,7 @@ type PodEventsTabProps = {
 };
 
 export default function PodEventsTab({ namespace, podName }: PodEventsTabProps) {
-	const [events, setEvents] = useState<any[]>([]);
+	const [events, setEvents] = useState<unknown[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 

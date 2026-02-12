@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { useResourceGraph } from './hooks/useResourceGraph';
-import { useGraphLayout } from './hooks/useGraphLayout';
+import { useMemo, useState } from 'react';
 import { GraphCanvas } from './components/GraphCanvas';
+import { GraphLegend } from './components/GraphLegend';
+import { GraphToolbar } from './components/GraphToolbar';
+import { useGraphLayout } from './hooks/useGraphLayout';
+import { useResourceGraph } from './hooks/useResourceGraph';
 import './ResourceGraphTab.css';
 
 export interface ResourceGraphTabProps {
@@ -16,42 +18,79 @@ export interface ResourceGraphTabProps {
  */
 export function ResourceGraphTab({ namespace, kind, name }: ResourceGraphTabProps) {
   const [depth, setDepth] = useState(2);
-  
+  const [kindFilters, setKindFilters] = useState<Record<string, boolean>>({
+    pod: true,
+    configmap: true,
+    secret: true,
+    service: true,
+    storage: true,
+  });
+
   // Fetch graph data
   const { graph, loading, error, refresh } = useResourceGraph(namespace, kind, name, depth);
-  
+
+  const filteredGraph = useMemo(() => {
+    if (!graph?.nodes || !graph?.edges) {
+      return graph;
+    }
+
+    const isStorageKind = (resourceKind: string): boolean => {
+      const value = resourceKind.toLowerCase();
+      return value === 'persistentvolume' || value === 'persistentvolumeclaim' || value === 'storageclass' || value === 'pv' || value === 'pvc';
+    };
+
+    const shouldKeepNode = (resourceKind: string): boolean => {
+      const value = resourceKind.toLowerCase();
+      if (value === 'pod') {
+        return kindFilters.pod;
+      }
+      if (value === 'configmap') {
+        return kindFilters.configmap;
+      }
+      if (value === 'secret') {
+        return kindFilters.secret;
+      }
+      if (value === 'service') {
+        return kindFilters.service;
+      }
+      if (isStorageKind(value)) {
+        return kindFilters.storage;
+      }
+      return true;
+    };
+
+    const filteredNodes = graph.nodes.filter((node: unknown) => shouldKeepNode(node.kind || ''));
+    const allowedNodeIds = new Set(filteredNodes.map((node: unknown) => node.id));
+    const filteredEdges = graph.edges.filter((edge: unknown) => allowedNodeIds.has(edge.source) && allowedNodeIds.has(edge.target));
+
+    return {
+      ...graph,
+      nodes: filteredNodes,
+      edges: filteredEdges,
+    };
+  }, [graph, kindFilters]);
+
   // Compute layout
-  const { nodes, edges } = useGraphLayout(graph);
+  const { nodes, edges } = useGraphLayout(filteredGraph);
+
+  const toggleKindFilter = (filterKey: string) => {
+    setKindFilters((current) => ({
+      ...current,
+      [filterKey]: !current[filterKey],
+    }));
+  };
 
   return (
     <div className="resource-graph-tab">
-      <div className="graph-toolbar" id="graph-toolbar">
-        <div className="toolbar-left">
-          <span className="toolbar-label">Depth:</span>
-          <select
-            value={depth}
-            onChange={(e) => setDepth(Number(e.target.value))}
-            className="depth-selector"
-          >
-            <option value={1}>1 level</option>
-            <option value={2}>2 levels</option>
-            <option value={3}>3 levels</option>
-          </select>
-        </div>
-        
-        <div className="toolbar-right">
-          <button
-            id="graph-refresh-btn"
-            onClick={refresh}
-            className="refresh-button"
-            disabled={loading}
-          >
-            <span className="refresh-icon">↻</span>
-            Refresh
-          </button>
-        </div>
-      </div>
-      
+      <GraphToolbar
+        depth={depth}
+        onDepthChange={setDepth}
+        loading={loading}
+        onRefresh={refresh}
+        filters={kindFilters}
+        onToggleFilter={toggleKindFilter}
+      />
+
       <div className="graph-content">
         <GraphCanvas
           nodes={nodes}
@@ -61,33 +100,9 @@ export function ResourceGraphTab({ namespace, kind, name }: ResourceGraphTabProp
           onRefresh={refresh}
         />
       </div>
-      
+
       {!loading && !error && nodes.length > 0 && (
-        <div className="graph-legend" id="graph-legend">
-          <div className="legend-title">Legend</div>
-          <div className="legend-items">
-            <div className="legend-item">
-              <div className="legend-line" style={{ borderTop: '2px solid #64748b' }}></div>
-              <span>owns</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line" style={{ borderTop: '2px dashed #3b82f6' }}></div>
-              <span>selects</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line" style={{ borderTop: '2px dotted #10b981' }}></div>
-              <span>mounts</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line" style={{ borderTop: '3px solid #f97316' }}></div>
-              <span>routes to</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-line" style={{ borderTop: '2px solid #14b8a6' }}></div>
-              <span>bound to</span>
-            </div>
-          </div>
-        </div>
+        <GraphLegend />
       )}
     </div>
   );

@@ -25,7 +25,7 @@ type ServiceTasksTabProps = {
 	serviceName?: string;
 };
 
-export default function ServiceTasksTab({ serviceId, serviceName: _serviceName }: ServiceTasksTabProps) {
+export default function ServiceTasksTab({ serviceId }: ServiceTasksTabProps) {
 	const [tasks, setTasks] = useState<SwarmServiceTask[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [hoveredRow, setHoveredRow] = useState<string | null>(null);
@@ -211,6 +211,4 @@ export default function ServiceTasksTab({ serviceId, serviceName: _serviceName }
 		</div>
 	);
 }
-
-
 

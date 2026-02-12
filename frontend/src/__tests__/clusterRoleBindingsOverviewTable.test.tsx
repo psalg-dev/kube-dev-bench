@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import './wailsMocks';
-import { genericAPIMock, resetAllMocks, eventsOnMock } from './wailsMocks';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
 import ClusterRoleBindingsOverviewTable from '../k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable';
+import './wailsMocks';
+import { eventsOnMock, genericAPIMock, resetAllMocks } from './wailsMocks';
 
 const toUndefined = <T,>(value: T) => Promise.resolve(value as unknown as undefined);
 
@@ -19,7 +19,7 @@ describe('ClusterRoleBindingsOverviewTable', () => {
       { Name: 'binding-b', Age: '2h', RoleRef: { Kind: 'ClusterRole', Name: 'edit' }, Subjects: [] },
     ];
 
-    genericAPIMock.mockImplementation((name, ..._args) => {
+    genericAPIMock.mockImplementation((name) => {
       if (name === 'GetClusterRoleBindings') return toUndefined(bindings);
       return toUndefined(undefined);
     });
@@ -36,7 +36,7 @@ describe('ClusterRoleBindingsOverviewTable', () => {
 
     const evt = eventsOnMock.mock.calls.find(([event]) => event === 'clusterrolebindings:update');
     expect(evt).toBeTruthy();
-    const cb = evt?.[1] as (payload: unknown) => void;
+    const cb = evt?.[1] as (_payload: unknown) => void;
     cb?.([{ name: 'binding-c', Age: '-', RoleRef: { Kind: 'ClusterRole', Name: 'admin' }, Subjects: [] }]);
 
     await waitFor(() => {
@@ -47,7 +47,7 @@ describe('ClusterRoleBindingsOverviewTable', () => {
   it('calls DeleteResource when Delete row action is clicked', async () => {
     const bindings = [{ name: 'deleteme', Age: '-', RoleRef: { Kind: 'ClusterRole', Name: 'view' }, Subjects: [] }];
 
-    genericAPIMock.mockImplementation((name, ..._args) => {
+    genericAPIMock.mockImplementation((name) => {
       if (name === 'GetClusterRoleBindings') return toUndefined(bindings);
       if (name === 'DeleteResource') return toUndefined(undefined);
       return toUndefined(undefined);

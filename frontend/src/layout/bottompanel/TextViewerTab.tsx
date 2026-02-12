@@ -110,7 +110,7 @@ export default function TextViewerTab({
     if (!view) return;
     try {
       view.dispatch({ effects: languageCompartmentRef.current.reconfigure(languageExtensions) });
-    } catch (_e) {
+    } catch {
       // Best-effort; keep viewer functional even if language reconfigure fails.
     }
   }, [languageExtensions]);
@@ -158,3 +158,4 @@ export default function TextViewerTab({
     </div>
   );
 }
+

@@ -15,6 +15,7 @@ import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
 import ReplicaSetOwnerTab from '../../k8s/resources/replicasets/ReplicaSetOwnerTab';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import type {
   RenderPanelContent,
   ResourceColumn,
@@ -47,6 +48,7 @@ export const replicasetTabs: ResourceTab[] = [
   { key: 'owner', label: 'Owner', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -184,6 +186,10 @@ spec:
         image: ${row.image}`;
 
     return <YamlTab content={yamlContent} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="ReplicaSet" name={row.name} />;
   }
 
   if (tab === 'holmes') {

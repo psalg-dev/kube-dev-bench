@@ -1,12 +1,11 @@
 // New tests for CreateManifestOverlay component
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 // Mocks -------------------------------------------------------------
 type EditorDoc = {
   toString: () => string;
   length: number;
-  __set: (value: string) => void;
+  __set: (_value: string) => void;
 };
 
 type EditorState = {
@@ -33,8 +32,8 @@ vi.mock('@codemirror/view', () => {
       ctorCount++;
       this.state = state;
       this._dispatches = [];
-      lastInstance = this;
       instances.push(this);
+      lastInstance = instances[instances.length - 1] ?? null;
       this.destroy = vi.fn();
     }
     dispatch(tr: { changes?: { insert?: string } }) {
@@ -84,7 +83,7 @@ vi.mock('@codemirror/language', () => ({
 }));
 
 // Centralized Wails mocks (no longer mocking notifications globally)
-import { createResourceMock, createSwarmConfigMock, createSwarmSecretMock, createSwarmServiceMock, createSwarmStackMock, updateSwarmNodeAvailabilityMock, updateSwarmNodeRoleMock, updateSwarmNodeLabelsMock, eventsEmitMock, resetAllMocks } from './wailsMocks';
+import { createResourceMock, createSwarmConfigMock, createSwarmSecretMock, createSwarmServiceMock, createSwarmStackMock, eventsEmitMock, resetAllMocks, updateSwarmNodeAvailabilityMock, updateSwarmNodeLabelsMock, updateSwarmNodeRoleMock } from './wailsMocks';
 
 // Local notification mocks for this test file
 const showSuccessMock = vi.fn();
@@ -95,8 +94,8 @@ vi.mock('../notification', () => ({
 }));
 
 // Import after mocks
-import CreateManifestOverlay from '../CreateManifestOverlay';
 import * as View from '@codemirror/view';
+import CreateManifestOverlay from '../CreateManifestOverlay';
 
 const { __getCtorCount, __getLastInstance } = View as unknown as {
   __getCtorCount: () => number;

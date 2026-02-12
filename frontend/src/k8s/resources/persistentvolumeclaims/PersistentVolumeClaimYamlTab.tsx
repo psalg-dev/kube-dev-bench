@@ -19,7 +19,7 @@ export default function PersistentVolumeClaimYamlTab({ namespace, name }: Persis
 		try {
 			const res = await GetPersistentVolumeClaimYAML(namespace, name);
 			setYaml(res || '');
-		} catch (e: any) {
+		} catch (e: unknown) {
 			setError(String(e));
 		} finally {
 			setLoading(false);

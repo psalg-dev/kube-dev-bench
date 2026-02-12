@@ -1,24 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
-import Select, { components, type SingleValue, type MultiValue, type MenuListProps } from 'react-select';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useRef, useState } from 'react';
+import Select, { components, type MenuListProps, type MultiValue, type SingleValue } from 'react-select';
 
 type SelectOption = { value: string; label: string };
-
 type ContextSelectProps = {
   value?: string;
   options?: string[];
   disabled?: boolean;
-  onChange?: (value: string) => void;
+  onChange?: (_value: string) => void;
   onMenuOpen?: () => void;
 };
-
 type NamespaceMultiSelectProps = {
   values?: string[];
   options?: string[];
   disabled?: boolean;
-  onChange?: (values: string[]) => void;
+  onChange?: (_values: string[]) => void;
   placeholder?: string;
   onMenuOpen?: () => void;
-  onAddNamespace?: (name: string) => Promise<boolean> | boolean;
+  onAddNamespace?: (_name: string) => Promise<boolean> | boolean;
   allowAddNamespace?: boolean;
 };
 
@@ -99,7 +98,6 @@ const commonStyles = {
   // Hide clear button entirely
   clearIndicator: () => ({ display: 'none' }),
 };
-
 const multiStyles = {
   ...commonStyles,
   multiValue: (b: any) => ({ ...b, backgroundColor: 'rgba(88,166,255,0.12)', borderRadius: 6 }),
@@ -115,7 +113,7 @@ type AddNamespaceSelectProps = {
   canAddNamespace: boolean;
   addingNamespace: boolean;
   newNamespace: string;
-  onNewNamespaceChange: (value: string) => void;
+  onNewNamespaceChange: (_value: string) => void;
   onAddConfirm: () => void;
   onAddCancel: () => void;
   addDisabled: boolean;
@@ -123,7 +121,7 @@ type AddNamespaceSelectProps = {
 };
 
 function NamespaceMenuList(props: MenuListProps<SelectOption, true>) {
-  const selectProps = props.selectProps as AddNamespaceSelectProps;
+  const selectProps = props.selectProps as unknown as AddNamespaceSelectProps;
   return (
     <components.MenuList {...props}>
       {props.children}
@@ -276,6 +274,16 @@ export function NamespaceMultiSelect({
   }
 
   const addDisabled = addingBusy || !newNamespace.trim() || !onAddNamespace;
+  const addNamespaceProps = {
+    canAddNamespace,
+    addingNamespace,
+    newNamespace,
+    onNewNamespaceChange: (value: string) => setNewNamespace(value),
+    onAddConfirm: () => { void handleAddConfirm(); },
+    onAddCancel: handleAddCancel,
+    addDisabled,
+    addLabel: addingBusy ? 'Creating…' : 'Confirm',
+  } as unknown as Record<string, unknown>;
 
   return (
     <Select<SelectOption, true>
@@ -295,14 +303,6 @@ export function NamespaceMultiSelect({
       isSearchable={false}
       classNamePrefix="kdv"
       menuIsOpen={menuOpen || addingNamespace}
-      canAddNamespace={canAddNamespace}
-      addingNamespace={addingNamespace}
-      newNamespace={newNamespace}
-      onNewNamespaceChange={(value: string) => setNewNamespace(value)}
-      onAddConfirm={() => { void handleAddConfirm(); }}
-      onAddCancel={handleAddCancel}
-      addDisabled={addDisabled}
-      addLabel={addingBusy ? 'Creating…' : 'Confirm'}
       onMenuOpen={() => {
         setMenuOpen(true);
         onMenuOpen?.();
@@ -313,6 +313,7 @@ export function NamespaceMultiSelect({
         setNewNamespace('');
       }}
       components={{ MenuList: NamespaceMenuList }}
+      {...(addNamespaceProps as any)}
     />
   );
 }

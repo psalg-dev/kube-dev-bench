@@ -7,6 +7,7 @@ import {docker} from '../models';
 import {topology} from '../models';
 import {jobs} from '../models';
 import {mcp} from '../models';
+import {k8s_graph} from '../models';
 import {context} from '../models';
 
 export function AddHelmRepository(arg1:string,arg2:string):Promise<void>;
@@ -271,6 +272,8 @@ export function GetHolmesLogPath():Promise<string>;
 
 export function GetHooksConfig():Promise<app.HooksConfig>;
 
+export function GetHorizontalPodAutoscalers(arg1:string):Promise<Array<app.HorizontalPodAutoscalerInfo>>;
+
 export function GetImageDigest(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function GetImageUpdateSettings():Promise<docker.ImageUpdateSettings>;
@@ -303,11 +306,15 @@ export function GetMCPConfig():Promise<mcp.MCPConfigData>;
 
 export function GetMCPStatus():Promise<mcp.MCPStatus>;
 
+export function GetNamespaceGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
+
 export function GetNamespaces():Promise<Array<string>>;
 
 export function GetNetworkPolicies(arg1:string):Promise<Array<app.NetworkPolicyInfo>>;
 
 export function GetNetworkPolicyDetail(arg1:string,arg2:string):Promise<app.NetworkPolicyInfo>;
+
+export function GetNetworkPolicyGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
 
 export function GetNodeDetail(arg1:string):Promise<app.NodeInfo>;
 
@@ -373,6 +380,8 @@ export function GetProxyConfig():Promise<app.ProxyConfig>;
 
 export function GetProxyDisplayURL():Promise<string>;
 
+export function GetRBACGraph(arg1:string):Promise<k8s_graph.ResourceGraph>;
+
 export function GetRegistries():Promise<Array<registry.RegistryConfig>>;
 
 export function GetRegistryRepositoryDetails(arg1:string,arg2:string):Promise<registry.RegistryRepoDetails>;
@@ -394,6 +403,8 @@ export function GetResourceCounts():Promise<app.ResourceCounts>;
 export function GetResourceEvents(arg1:string,arg2:string,arg3:string):Promise<Array<app.EventInfo>>;
 
 export function GetResourceEventsCount(arg1:string,arg2:string,arg3:string):Promise<number>;
+
+export function GetResourceGraph(arg1:string,arg2:string,arg3:string,arg4:number):Promise<k8s_graph.ResourceGraph>;
 
 export function GetResourceYAML(arg1:string,arg2:string,arg3:string):Promise<string>;
 
@@ -460,6 +471,8 @@ export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>
 export function GetStorageClassDetail(arg1:string):Promise<app.StorageClassInfo>;
 
 export function GetStorageClasses():Promise<Array<app.StorageClassInfo>>;
+
+export function GetStorageGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
 
 export function GetSwarmConfig(arg1:string):Promise<docker.SwarmConfigInfo>;
 

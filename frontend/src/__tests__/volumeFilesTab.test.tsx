@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
@@ -34,12 +34,11 @@ vi.mock('../layout/bottompanel/TextViewerTab', () => ({
     );
   },
 }));
-
 vi.mock('../layout/bottompanel/TextEditorTab', () => ({
   default: function TextEditorTabMock({ content, filename, onChange }: {
     content?: string;
     filename?: string;
-    onChange: (value: string) => void;
+    onChange: (_value: string) => void;
   }) {
     return (
       <div data-testid="editor">

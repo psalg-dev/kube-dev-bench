@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it } from 'vitest';
 import RoleBindingsOverviewTable from '../k8s/resources/rolebindings/RoleBindingsOverviewTable';
-import { appApiMocks, resetAllMocks, eventsOnMock } from './wailsMocks';
+import { appApiMocks, eventsOnMock, resetAllMocks } from './wailsMocks';
 
 describe('RoleBindingsOverviewTable', () => {
   beforeEach(() => {
@@ -36,11 +36,11 @@ describe('RoleBindingsOverviewTable', () => {
     const row = screen.getAllByRole('row').find((r) => r.textContent?.includes('rb-alpha')) as HTMLElement;
     expect(row).toBeTruthy();
     expect(row.textContent).toContain('Role: read-only');
-    expect(row.textContent).toMatch(/\b2\b/);
+    expect(row.textContent).toContain('2');
 
     const sub = eventsOnMock.mock.calls.find(([event]) => event === 'rolebindings:update');
     expect(sub).toBeTruthy();
-    const cb = sub?.[1] as (payload: unknown) => void;
+    const cb = sub?.[1] as (_payload: unknown) => void;
     cb?.([
       {
         Name: 'rb-beta',

@@ -1,4 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Background,
+  Controls,
+  Edge,
+  MarkerType,
+  MiniMap,
+  Node,
+  ReactFlow,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 import BottomPanel from '../../layout/bottompanel/BottomPanel';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import QuickInfoSection from '../../QuickInfoSection';
@@ -72,6 +83,11 @@ type TopologyData = {
   services?: any[];
   links?: any[];
   timestamp?: string;
+};
+
+type TopologyGraphNodeData = {
+  kind: 'node' | 'service';
+  row: any;
 };
 
 type PanelKind = 'node' | 'service' | null;
@@ -242,6 +258,99 @@ export default function TopologyView() {
     const ws = links.map((l: any) => Number(l?.weight ?? 0)).filter((x: number) => Number.isFinite(x));
     return ws.length ? Math.max(...ws) : 1;
   }, [links]);
+
+  const graphNodes = useMemo<Node<TopologyGraphNodeData>[]>(() => {
+    const out: Node<TopologyGraphNodeData>[] = [];
+
+    nodes.forEach((n: any) => {
+      const p = layout.nodePos.get(n.id);
+      if (!p) return;
+      const stateClass = String(n.state || '').toLowerCase();
+      out.push({
+        id: `node-${n.id}`,
+        type: 'default',
+        position: { x: p.x - 18, y: p.y - 14 },
+        draggable: false,
+        selectable: true,
+        data: {
+          kind: 'node',
+          row: n,
+          label: (
+            <div className="topologyGraphLabel" data-testid="topology-graph-node">
+              <div className="topologyGraphMain">
+                <span className={`topologyGraphNodeDot topologyGraphNodeDot--${stateClass}`} />
+                <span>{n.hostname || n.id}</span>
+              </div>
+              <div className="topologyGraphSub">{`${n.role || ''} • tasks: ${n.taskCount ?? 0}`}</div>
+            </div>
+          ),
+        } as any,
+      });
+    });
+
+    services.forEach((s: any) => {
+      const p = layout.svcPos.get(s.id);
+      if (!p) return;
+      out.push({
+        id: `service-${s.id}`,
+        type: 'default',
+        position: { x: p.x - 12, y: p.y - 14 },
+        draggable: false,
+        selectable: true,
+        data: {
+          kind: 'service',
+          row: s,
+          label: (
+            <div className="topologyGraphLabel" data-testid="topology-graph-service">
+              <div className="topologyGraphMain">
+                <span className="topologyGraphServiceSquare" />
+                <span>{s.name || s.id}</span>
+              </div>
+              <div className="topologyGraphSub">{`${s.mode || ''} • running: ${s.runningTasks ?? 0}`}</div>
+            </div>
+          ),
+        } as any,
+      });
+    });
+
+    return out;
+  }, [nodes, services, layout]);
+
+  const graphEdges = useMemo<Edge[]>(() => {
+    return links.map((l: any) => {
+      const w = clamp(Number(l.weight || 1), 1, linkMax);
+      const strokeW = 1 + (w / linkMax) * 6;
+      return {
+        id: `${l.from}-${l.to}`,
+        source: `service-${l.from}`,
+        target: `node-${l.to}`,
+        type: 'straight',
+        style: {
+          stroke: '#58a6ff',
+          strokeOpacity: 0.55,
+          strokeWidth: strokeW,
+        },
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          color: '#58a6ff',
+          width: 14,
+          height: 14,
+        },
+      };
+    });
+  }, [links, linkMax]);
+
+  const onGraphNodeClick = useCallback((_: unknown, rfNode: Node<TopologyGraphNodeData>) => {
+    const row = rfNode?.data?.row;
+    if (!row) return;
+    if (rfNode?.data?.kind === 'node') {
+      openNodeDetails(row);
+      return;
+    }
+    if (rfNode?.data?.kind === 'service') {
+      openServiceDetails(row);
+    }
+  }, [openNodeDetails, openServiceDetails]);
 
   const panelTabs = useMemo(() => {
     if (panelKind === 'node') {
@@ -446,67 +555,36 @@ export default function TopologyView() {
       {error ? <div className="topologyError">{error}</div> : null}
 
       <div className="topologyCanvas">
-        <svg width={layout.w} height={layout.h} viewBox={`0 0 ${layout.w} ${layout.h}`}>
-          {/* Links */}
-          {links.map((l: any) => {
-            const from = layout.svcPos.get(l.from);
-            const to = layout.nodePos.get(l.to);
-            if (!from || !to) return null;
-            const w = clamp(Number(l.weight || 1), 1, linkMax);
-            const strokeW = 1 + (w / linkMax) * 6;
-            return (
-              <g key={`${l.from}-${l.to}`}>
-                <line
-                  x1={to.x + 60}
-                  y1={to.y}
-                  x2={from.x - 60}
-                  y2={from.y}
-                  stroke="#58a6ff"
-                  strokeOpacity={0.55}
-                  strokeWidth={strokeW}
-                />
-              </g>
-            );
-          })}
-
-          {/* Node labels */}
-          {nodes.map((n: any) => {
-            const p = layout.nodePos.get(n.id);
-            if (!p) return null;
-            return (
-              <g key={n.id}>
-                <circle cx={p.x} cy={p.y} r={10} fill={nodeColorByState(n.state)} />
-                <text x={p.x + 16} y={p.y + 4} fill="#c9d1d9" fontSize="12">
-                  {n.hostname || n.id}
-                </text>
-                <text x={p.x + 16} y={p.y + 18} fill="#8b949e" fontSize="11">
-                  {`${n.role || ''} • tasks: ${n.taskCount ?? 0}`}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Service labels */}
-          {services.map((s: any) => {
-            const p = layout.svcPos.get(s.id);
-            if (!p) return null;
-            return (
-              <g key={s.id}>
-                <rect x={p.x - 14} y={p.y - 10} width={12} height={12} fill="#a371f7" />
-                <text x={p.x} y={p.y + 4} fill="#c9d1d9" fontSize="12">
-                  {s.name || s.id}
-                </text>
-                <text x={p.x} y={p.y + 18} fill="#8b949e" fontSize="11">
-                  {`${s.mode || ''} • running: ${s.runningTasks ?? 0}`}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Column headers */}
-          <text x={layout.leftX} y={22} fill="#8b949e" fontSize="12">Nodes</text>
-          <text x={layout.rightX} y={22} fill="#8b949e" fontSize="12">Services</text>
-        </svg>
+        <div className="topologyCanvasHeader">
+          <span>Nodes</span>
+          <span>Services</span>
+        </div>
+        <div className="topologyFlowWrap" style={{ height: `${Math.max(280, layout.h + 16)}px` }}>
+          <ReactFlow
+            nodes={graphNodes}
+            edges={graphEdges}
+            onNodeClick={onGraphNodeClick}
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            minZoom={0.4}
+            maxZoom={1.8}
+            nodesDraggable={false}
+            nodesConnectable={false}
+            elementsSelectable
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background color="rgba(110,118,129,0.18)" gap={18} />
+            <Controls showInteractive={false} />
+            <MiniMap
+              pannable
+              zoomable
+              nodeColor={(n) => {
+                if (n.data?.kind === 'service') return '#a371f7';
+                return nodeColorByState((n.data?.row as any)?.state || '');
+              }}
+            />
+          </ReactFlow>
+        </div>
       </div>
 
       <div className="topologyLists">

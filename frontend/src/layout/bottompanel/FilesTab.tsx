@@ -119,7 +119,7 @@ export default function FilesTab({ namespace, pvcName }: FilesTabProps) {
         if (cmViewRef.current) {
           try {
             cmViewRef.current.destroy();
-          } catch (_e) {}
+          } catch {}
           cmViewRef.current = null;
         }
       },
@@ -232,7 +232,7 @@ export default function FilesTab({ namespace, pvcName }: FilesTabProps) {
     }
   };
 
-  const downloadArchive = async (targetPath: string, _singleFile = false) => {
+  const downloadArchive = async (targetPath: string) => {
     setDownloadError(null);
     setDownloading(true);
     try {
@@ -271,7 +271,6 @@ export default function FilesTab({ namespace, pvcName }: FilesTabProps) {
     }, 0);
   };
 
-  const _currentEntry = (fileContent && entries.find((e) => e.path === fileContent.path)) || null;
   const sortedEntries = useMemo(() => {
     return sortRows(entries, sortState.key, sortState.direction, (row: FileEntry, key: string) => {
       if (key === 'size') return row?.isDir ? null : row?.size;

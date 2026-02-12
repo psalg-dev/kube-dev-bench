@@ -1,13 +1,12 @@
 type MetricsChartProps = {
-  points?: any[];
+  points?: unknown[];
   valueKey?: string;
-  valueFn?: (point: any) => number;
+  valueFn?: (_point: unknown) => number;
   width?: number;
   height?: number;
   color?: string;
   emptyText?: string;
 };
-
 export default function MetricsChart({
   points,
   valueKey,
@@ -21,7 +20,7 @@ export default function MetricsChart({
   const values = data
     .map((p) => {
       if (typeof valueFn === 'function') return Number(valueFn(p));
-      return Number((p as any)?.[valueKey as string] ?? 0);
+      return Number((p as unknown)?.[valueKey as string] ?? 0);
     })
     .filter((v) => Number.isFinite(v));
 

@@ -4,6 +4,11 @@ import router, { k8sSections, swarmSections, allSections, sectionFromPath } from
 describe('router', () => {
   describe('k8sSections', () => {
     it('contains expected kubernetes resource sections', () => {
+      expect(k8sSections).toContain('cluster');
+      expect(k8sSections).toContain('namespace-topology');
+      expect(k8sSections).toContain('storage-graph');
+      expect(k8sSections).toContain('network-graph');
+      expect(k8sSections).toContain('rbac-graph');
       expect(k8sSections).toContain('pods');
       expect(k8sSections).toContain('deployments');
       expect(k8sSections).toContain('services');
@@ -20,8 +25,8 @@ describe('router', () => {
       expect(k8sSections).toContain('helmreleases');
     });
 
-    it('has 14 kubernetes sections', () => {
-      expect(k8sSections.length).toBe(14);
+    it('has 19 kubernetes sections', () => {
+      expect(k8sSections.length).toBe(19);
     });
   });
 

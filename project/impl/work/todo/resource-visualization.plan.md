@@ -1,13 +1,13 @@
 ---
 title: "Implementation Plan: Resource Relationship Visualization"
-status: todo
+status: in_progress
 priority: high
 ---
 # Implementation Plan: Resource Relationship Visualization
 
-**Status:** Todo (0% — nothing implemented)
+**Status:** In Progress (~80% complete)
 **Created:** 2026-02-11
-**Updated:** 2026-02-11
+**Updated:** 2026-02-12
 
 Add interactive graph visualization showing "used by" / "uses" relationships between Kubernetes resources. Surfaces dependency chains, permission structures, network flows, and storage topology.
 
@@ -271,75 +271,75 @@ Files to modify (17 overview tables):
   5. Click a Pod node, verify navigation to Pods section
 - [ ] Run: `cd e2e && npx playwright test tests/110-resource-graph.spec.ts`
 
-### Phase 7: Global Topology Views ❌ NOT STARTED (Phase 2 scope)
+### Phase 7: Global Topology Views ✅ COMPLETE (Phase 2 scope)
 
 #### 7.1 Backend
-- [ ] Add `BuildForNamespace(namespace string)` to graph builder — lists all resources and builds full relationship graph
-- [ ] Add `BuildStorageGraph(namespace string)` — PVC → PV → StorageClass focused view
-- [ ] Add `GetNamespaceGraph(namespace)` and `GetStorageGraph(namespace)` Wails RPCs to `pkg/app/graph.go`
-- [ ] Unit tests for namespace and storage graph builders
+- [x] Add `BuildForNamespace(namespace string)` to graph builder — lists all resources and builds full relationship graph
+- [x] Add `BuildStorageGraph(namespace string)` — PVC → PV → StorageClass focused view
+- [x] Add `GetNamespaceGraph(namespace)` and `GetStorageGraph(namespace)` Wails RPCs to `pkg/app/graph.go`
+- [x] Unit tests for namespace and storage graph builders
 
 #### 7.2 Frontend — Global Graph View
-- [ ] Create `frontend/src/k8s/graph/GraphView.tsx` — Full-page graph view with mode selector
-- [ ] Create `frontend/src/k8s/graph/GraphView.css`
+- [x] Create `frontend/src/k8s/graph/GraphView.tsx` — Full-page graph view with mode selector
+- [x] Create `frontend/src/k8s/graph/GraphView.css`
 
 #### 7.3 Sidebar Integration
-- [ ] Modify `frontend/src/layout/SidebarSections.tsx` — Add "Topology" group:
+- [x] Modify `frontend/src/layout/SidebarSections.tsx` — Add "Topology" group:
   ```tsx
   { key: 'topology', label: 'Topology', group: true, children: [
     { key: 'namespace-topology', label: 'Namespace Graph' },
     { key: 'storage-graph', label: 'Storage' },
   ]}
   ```
-- [ ] Modify `frontend/src/main-content.ts` — Add section entries for topology views
-- [ ] Modify `frontend/src/App.tsx` if needed for routing
+- [x] Modify `frontend/src/main-content.ts` — Add section entries for topology views
+- [x] Modify routing via `frontend/src/router.tsx` (no `App.tsx` change required)
 
 #### 7.4 Performance: Large Cluster Handling
-- [ ] Filter toggles in toolbar: show/hide node kinds (hide Pods to see workload-level only)
-- [ ] Auto-collapse: if namespace has >200 nodes, collapse Pods into count badges on owner (e.g., "nginx-deploy [12 pods]")
-- [ ] Depth limiting for namespace graphs (default 1 level of ownership)
+- [x] Filter toggles in toolbar: show/hide node kinds (hide Pods to see workload-level only)
+- [x] Auto-collapse: if namespace has >200 nodes, collapse Pods into count badges on owner (e.g., "nginx-deploy [12 pods]")
+- [x] Depth limiting for namespace graphs (default 1 level of ownership)
 
 #### 7.5 E2E
-- [ ] Create `e2e/tests/111-namespace-topology.spec.ts`
+- [x] Create `e2e/tests/111-namespace-topology.spec.ts`
 
-### Phase 8: Network Policy Visualization ❌ NOT STARTED (Phase 3 scope)
+### Phase 8: Network Policy Visualization ✅ COMPLETE (Phase 3 scope)
 
 #### 8.1 Backend
-- [ ] Extend `NetworkPolicyPeer` in `pkg/app/networkpolicies.go` — Add `IPBlock *IPBlockRule` (CIDR, Except)
-- [ ] Add `BuildNetworkPolicyGraph(namespace)` to builder — resolves podSelector to actual pods, creates directed edges for ingress/egress rules with port annotations, CIDR blocks as "external" nodes
-- [ ] Add `GetNetworkPolicyGraph(namespace)` Wails RPC
-- [ ] Unit tests
+- [x] Extend `NetworkPolicyPeer` in `pkg/app/networkpolicies.go` — Add `IPBlock *IPBlockRule` (CIDR, Except)
+- [x] Add `BuildNetworkPolicyGraph(namespace)` to builder — resolves podSelector to actual pods, creates directed edges for ingress/egress rules with port annotations, CIDR blocks as "external" nodes
+- [x] Add `GetNetworkPolicyGraph(namespace)` Wails RPC
+- [x] Unit tests
 
 #### 8.2 Frontend
-- [ ] Add `network-graph` to sidebar Topology group children
-- [ ] Directed edge styling: ingress = green arrows, egress = red arrows
-- [ ] Port/protocol labels on edges
-- [ ] CIDR block nodes as external cloud icons
-- [ ] E2E test
+- [x] Add `network-graph` to sidebar Topology group children
+- [x] Directed edge styling: ingress = green arrows, egress = red arrows
+- [x] Port/protocol labels on edges
+- [x] CIDR block nodes as external cloud icons
+- [x] E2E test
 
-### Phase 9: RBAC Permission Graph ❌ NOT STARTED (Phase 3 scope)
+### Phase 9: RBAC Permission Graph 🚧 IN PROGRESS (Phase 3 scope)
 
 #### 9.1 Backend
-- [ ] Add `BuildRBACGraph(namespace)` to builder — resolves Subject → RoleBinding → Role → PolicyRules chain, cross-namespace ClusterRoleBindings
-- [ ] Add Pod → ServiceAccount link (expose `pod.Spec.ServiceAccountName`)
-- [ ] Add `GetRBACGraph(namespace)` Wails RPC
-- [ ] Unit tests
+- [x] Add `BuildRBACGraph(namespace)` to builder — resolves Subject → RoleBinding → Role → PolicyRules chain, cross-namespace ClusterRoleBindings
+- [x] Add Pod → ServiceAccount link (expose `pod.Spec.ServiceAccountName`)
+- [x] Add `GetRBACGraph(namespace)` Wails RPC
+- [x] Unit tests
 
 #### 9.2 Frontend
-- [ ] Add `rbac-graph` to sidebar Topology group children
-- [ ] Subject nodes (User, Group, ServiceAccount) on left, Roles on right, RoleBindings as connecting edges
-- [ ] Hover on Role shows permission rules in tooltip
-- [ ] Optional: "What can X do?" search — highlight subgraph for specific subject
-- [ ] E2E test
+- [x] Add `rbac-graph` to sidebar Topology group children
+- [x] Subject nodes (User, Group, ServiceAccount) on left, Roles on right, RoleBindings as connecting edges
+- [x] Hover on Role shows permission rules in tooltip
+- [x] Optional: "What can X do?" search — highlight subgraph for specific subject
+- [x] E2E test
 
-### Phase 10: Polish & Advanced Features ❌ NOT STARTED (Phase 4 scope)
+### Phase 10: Polish & Advanced Features 🚧 IN PROGRESS (Phase 4 scope)
 
-- [ ] Server-side TTL cache (5-10s) for expensive graph computations using `sync.Map`
-- [ ] Parallel resource fetching using `errgroup.Group` in builder
-- [ ] SVG/PNG graph export button
-- [ ] HPA support: add HPA types/getters to backend, HPA → target workload edges
-- [ ] Workload hierarchy: dedicated tree layout for CronJob → Job → Pod chains
-- [ ] Optional: migrate Swarm `TopologyView.tsx` to React Flow for unified codebase
+- [x] Server-side TTL cache (5-10s) for expensive graph computations using `sync.Map`
+- [x] Parallel resource fetching using `errgroup.Group` in builder
+- [ ] SVG/PNG graph export button (explicitly deferred)
+- [x] HPA support: add HPA types/getters to backend, HPA → target workload edges
+- [x] Workload hierarchy: dedicated tree layout for CronJob → Job → Pod chains
+- [x] Optional: migrate Swarm `TopologyView.tsx` to React Flow for unified codebase
 
 ---
 

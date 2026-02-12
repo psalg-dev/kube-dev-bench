@@ -5,33 +5,33 @@
  * Configuration for GenericResourceTable to display Docker Swarm Services.
  */
 
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
+import { ImageUpdateBadge } from '../../../docker/resources/services/ImageUpdateBadge';
+import ServicePlacementTab from '../../../docker/resources/services/ServicePlacementTab';
+import ServiceSummaryPanel from '../../../docker/resources/services/ServiceSummaryPanel';
+import ServiceTasksTab from '../../../docker/resources/services/ServiceTasksTab';
 import {
-  GetSwarmServices,
-  GetSwarmTasksByService,
-  ScaleSwarmService,
-  RemoveSwarmService,
-  RestartSwarmService,
+    GetSwarmServiceLogs,
+    GetSwarmServices,
+    GetSwarmTasksByService,
+    RemoveSwarmService,
+    RestartSwarmService,
+    ScaleSwarmService,
 } from '../../../docker/swarmApi';
 import { AnalyzeSwarmServiceStream } from '../../../holmes/holmesApi';
-import ServiceSummaryPanel from '../../../docker/resources/services/ServiceSummaryPanel';
-import ServicePlacementTab from '../../../docker/resources/services/ServicePlacementTab';
-import ServiceTasksTab from '../../../docker/resources/services/ServiceTasksTab';
-import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
-import { ImageUpdateBadge } from '../../../docker/resources/services/ImageUpdateBadge';
-import { GetSwarmServiceLogs } from '../../../docker/swarmApi';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import { showSuccess, showError } from '../../../notification';
+import { showError, showSuccess } from '../../../notification';
 import type {
-  HolmesHelpers,
-  PanelApi,
-  RenderPanelContent,
-  ResourceColumn,
-  ResourceConfig,
-  ResourceRow,
-  ResourceTab,
-  RowAction,
+    HolmesHelpers,
+    PanelApi,
+    RenderPanelContent,
+    ResourceColumn,
+    ResourceConfig,
+    ResourceRow,
+    ResourceTab,
+    RowAction,
 } from '../../../types/resourceConfigs';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 /**
  * Column definitions for Swarm Services table
@@ -154,11 +154,10 @@ export const fetchSwarmServiceTabCounts = async (row: ResourceRow) => {
     tasks: Array.isArray(tasks) ? tasks.length : 0,
   };
 };
-
 /**
  * Render panel content for each tab
  */
-export const renderSwarmServicePanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel, panelApi) => {
+export const renderSwarmServicePanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel) => {
   const serviceId = row?.id ?? '';
   const serviceName = row?.name ?? '';
 

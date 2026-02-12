@@ -73,10 +73,10 @@ export default function useSwarmServiceForm() {
       next:
         | Partial<SwarmServiceFormData>
         | SwarmServiceFormData
-        | ((prev: SwarmServiceFormData) => SwarmServiceFormData)
+        | ((_prev: SwarmServiceFormData) => SwarmServiceFormData)
     ) => {
       if (typeof next === 'function') {
-        setFormData(next as (prev: SwarmServiceFormData) => SwarmServiceFormData);
+        setFormData(next as (_prev: SwarmServiceFormData) => SwarmServiceFormData);
         return;
       }
       setFormData((prev) => ({ ...prev, ...next }));
@@ -164,7 +164,7 @@ export default function useSwarmServiceForm() {
     toCreateOptions,
     formToYaml,
     switchTo,
-  }), [errors, formData, formToYaml, setFormData, setViewMode, switchTo, toCreateOptions, validate, viewMode, yamlText]);
+  }), [errors, formData, formToYaml, setViewMode, switchTo, toCreateOptions, updateFormData, validate, viewMode, yamlText]);
 
   return api;
 }

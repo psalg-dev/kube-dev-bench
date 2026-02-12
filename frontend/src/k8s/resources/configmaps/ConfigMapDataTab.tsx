@@ -46,25 +46,38 @@ export default function ConfigMapDataTab({ namespace, configMapName }: ConfigMap
 	const [saving, setSaving] = useState(false);
 
 	useEffect(() => {
-		if (!namespace || !configMapName) return;
-
-		setLoading(true);
-		setError(null);
-
-		AppAPI.GetConfigMapDataByName(namespace, configMapName)
-			.then(result => {
+		let active = true;
+		const loadData = async () => {
+			if (!namespace || !configMapName) {
+				if (active) {
+					setData([]);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError(null);
+			}
+			try {
+				const result = await AppAPI.GetConfigMapDataByName(namespace, configMapName);
+				if (!active) return;
 				setData(result || []);
 				setLoading(false);
-				// Auto-expand first key if only one
 				if (result && result.length === 1) {
 					setExpandedKeys(new Set([result[0].key]));
 				}
-			})
-			.catch((err: unknown) => {
+			} catch (err: unknown) {
+				if (!active) return;
 				const message = err instanceof Error ? err.message : String(err);
 				setError(message || 'Failed to fetch configmap data');
 				setLoading(false);
-			});
+			}
+		};
+		loadData();
+		return () => {
+			active = false;
+		};
 	}, [namespace, configMapName]);
 
 	const toggleExpand = (key: string) => {

@@ -9,14 +9,13 @@ type KeyValueRow = {
 type KeyValueEditorProps = {
   title?: string;
   rows?: KeyValueRow[];
-  onChange: (rows: KeyValueRow[]) => void;
+  onChange: (_rows: KeyValueRow[]) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   addButtonLabel: string;
   ariaPrefix: string;
   addButtonId?: string;
 };
-
 export default function KeyValueEditor({
   title,
   rows,

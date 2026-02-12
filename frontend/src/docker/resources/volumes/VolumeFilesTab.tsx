@@ -143,7 +143,7 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 			try {
 				const ro = await IsSwarmVolumeReadOnly(volumeName);
 				if (active) setReadOnly(!!ro);
-			} catch (_e) {
+			} catch {
 				if (active) setReadOnly(null);
 			}
 		};
@@ -284,7 +284,7 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 			if (!isBinary) {
 				try {
 					text = atob(res?.base64 || '');
-				} catch (_e) {
+				} catch {
 					text = '[decode error]';
 				}
 			}
@@ -716,6 +716,4 @@ const thStyle: CSSProperties = {
 	fontWeight: 600,
 	borderBottom: '1px solid #30363d',
 };
-
-
 

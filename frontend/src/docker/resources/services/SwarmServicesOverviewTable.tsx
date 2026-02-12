@@ -1,31 +1,31 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import type { docker } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import QuickInfoSection from '../../../QuickInfoSection';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
-import ServiceTasksTab from './ServiceTasksTab';
-import SwarmResourceActions from '../SwarmResourceActions';
 import Button from '../../../components/ui/Button';
-import UpdateServiceImageModal from './UpdateServiceImageModal';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import { AnalyzeSwarmServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress, type HolmesContextProgressEvent, type HolmesResponse } from '../../../holmes/holmesApi';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import {
+    GetSwarmServiceLogs,
+    GetSwarmServices,
+    GetSwarmTasksByService,
+    RemoveSwarmService,
+    RestartSwarmService,
+    ScaleSwarmService,
+    UpdateSwarmServiceImage,
+} from '../../swarmApi';
+import SwarmResourceActions from '../SwarmResourceActions';
 import ImageUpdateBadge from './ImageUpdateBadge';
 import ImageUpdateModal from './ImageUpdateModal';
 import ImageUpdateSettingsModal from './ImageUpdateSettingsModal';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import { AnalyzeSwarmServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress, type HolmesResponse, type HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import {
-	GetSwarmServices,
-	GetSwarmTasksByService,
-	ScaleSwarmService,
-	RemoveSwarmService,
-	RestartSwarmService,
-	GetSwarmServiceLogs,
-	UpdateSwarmServiceImage,
-} from '../../swarmApi';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import { showSuccess, showError } from '../../../notification';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import type { docker } from '../../../../wailsjs/go/models';
-
+import ServiceTasksTab from './ServiceTasksTab';
+import UpdateServiceImageModal from './UpdateServiceImageModal';
 type SwarmServiceRow = {
 	id?: string;
 	name?: string;
@@ -54,7 +54,7 @@ type SwarmServiceRow = {
 		imageLocalDigest?: string;
 		imageRemoteDigest?: string;
 		imageCheckedAt?: string;
-		onOpenDetails?: (serviceId?: string) => void;
+		onOpenDetails?: (_serviceId?: string) => void;
 	};
 };
 
@@ -143,13 +143,6 @@ function formatNanoCPUs(nanoCpus?: number | string) {
 	return `${cores.toFixed(fixed)} cores`;
 }
 
-function _splitEnvKey(env?: string) {
-	const s = String(env || '');
-	const idx = s.indexOf('=');
-	if (idx === -1) return s;
-	return s.slice(0, idx);
-}
-
 function maskEnv(env?: string) {
 	const s = String(env || '');
 	const idx = s.indexOf('=');
@@ -232,7 +225,7 @@ function ServiceSummaryPanel({ row, onRefresh }: ServiceSummaryPanelProps) {
 			layout?: 'flex';
 			type?: 'list' | 'break-word' | 'date';
 			rightField?: { key: string; label: string; type?: 'date' };
-			getValue?: (d: Record<string, any>) => string[] | string;
+			getValue?: (_d: Record<string, any>) => string[] | string;
 		}> = [
 			{
 				key: 'mode',
@@ -333,7 +326,6 @@ function ServiceSummaryPanel({ row, onRefresh }: ServiceSummaryPanelProps) {
 			},
 			{ key: 'id', label: 'Service ID', type: 'break-word' },
 		];
-
 		const handleScale = async (newReplicas: number) => {
 			if (!row.id) {
 				showError('Service ID is missing.');
@@ -459,13 +451,12 @@ type HolmesState = {
 	contextSteps: HolmesContextStep[];
 	toolEvents: HolmesToolEvent[];
 };
-
 function renderPanelContent(
 	row: SwarmServiceRow,
 	tab: string,
 	onRefresh: () => void,
 	holmesState: HolmesState,
-	onAnalyze: (service: SwarmServiceRow) => void,
+	onAnalyze: (_service: SwarmServiceRow) => void,
 	onCancel?: () => void
 ) {
 	if (tab === 'summary') {
@@ -744,7 +735,7 @@ export default function SwarmServicesOverviewTable() {
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -771,7 +762,7 @@ export default function SwarmServicesOverviewTable() {
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -943,5 +934,4 @@ export default function SwarmServicesOverviewTable() {
 		</>
 	);
 }
-
 

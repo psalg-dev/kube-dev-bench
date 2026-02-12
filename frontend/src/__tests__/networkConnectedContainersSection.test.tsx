@@ -60,11 +60,6 @@ describe('NetworkConnectedContainersSection', () => {
   });
 
   describe('data display', () => {
-    const mockTasks: docker.SwarmTaskInfo[] = [
-      { id: 'task-1', serviceName: 'web-service', slot: 1 } as docker.SwarmTaskInfo,
-      { id: 'task-2', serviceName: 'api-service', slot: 1 } as docker.SwarmTaskInfo,
-    ];
-
     it('displays header', () => {
       getSwarmNetworkContainersMock.mockResolvedValue([]);
 

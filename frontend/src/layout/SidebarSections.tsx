@@ -1,5 +1,5 @@
-import { useMemo, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useResourceCounts } from '../state/ResourceCountsContext';
 import './SidebarSections.css';
@@ -8,6 +8,7 @@ type ResourceSection = {
   key: string;
   label: string;
   podCounts?: boolean;
+  hideCount?: boolean;
   group?: boolean;
   children?: Array<ResourceSection>;
 };
@@ -23,6 +24,22 @@ type PodStatus = {
 
 // Resource sections list with id suffix & label
 const resourceSections: ResourceSection[] = [
+  {
+    key: 'cluster',
+    label: 'Cluster',
+    hideCount: true,
+  },
+  {
+    key: 'topology',
+    label: 'Topology',
+    group: true,
+    children: [
+      { key: 'namespace-topology', label: 'Namespace Graph', hideCount: true },
+      { key: 'storage-graph', label: 'Storage', hideCount: true },
+      { key: 'network-graph', label: 'Network Policy', hideCount: true },
+      { key: 'rbac-graph', label: 'RBAC', hideCount: true },
+    ],
+  },
   {
     key: 'workloads',
     label: 'Workloads',
@@ -93,13 +110,13 @@ groupSections.forEach((sec) => {
   });
 });
 
-function getPodTotal(counts?: Record<string, any> | null) {
+function getPodTotal(counts?: Record<string, unknown> | null) {
   const podStatus = counts?.podStatus || counts?.PodStatus;
   const total = podStatus?.total ?? podStatus?.Total;
   return typeof total === 'number' ? total : undefined;
 }
 
-function getSectionCount(section: ResourceSection, counts?: Record<string, any> | null) {
+function getSectionCount(section: ResourceSection, counts?: Record<string, unknown> | null) {
   if (!counts) return undefined;
   if (section.podCounts) return getPodTotal(counts);
   const value = counts?.[section.key];
@@ -146,10 +163,9 @@ function PodCountsDisplay({ podStatus }: { podStatus?: PodStatus }) {
     </span>
   );
 }
-
 type SidebarSectionsProps = {
   selected: string;
-  onSelect: (section: string) => void;
+  onSelect: (_section: string) => void;
 };
 
 export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
@@ -164,7 +180,12 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
 
   useEffect(() => {
     if (selectedGroup) {
-      setCollapsedGroups((prev) => (prev[selectedGroup] ? { ...prev, [selectedGroup]: false } : prev));
+      const timerId = window.setTimeout(() => {
+        setCollapsedGroups((prev) => (prev[selectedGroup] ? { ...prev, [selectedGroup]: false } : prev));
+      }, 0);
+      return () => {
+        window.clearTimeout(timerId);
+      };
     }
   }, [selectedGroup]);
   return (
@@ -283,7 +304,9 @@ export function SidebarSections({ selected, onSelect }: SidebarSectionsProps) {
             <span className="sidebar-section-label">
               <span>{leaf.label}</span>
             </span>
-            {leaf.podCounts ? (
+            {leaf.hideCount ? (
+              <span style={{ minWidth: '2em' }} />
+            ) : leaf.podCounts ? (
               <PodCountsDisplay podStatus={counts?.podStatus || counts?.PodStatus} />
             ) : (
               <span

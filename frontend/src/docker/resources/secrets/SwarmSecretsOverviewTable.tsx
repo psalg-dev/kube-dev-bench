@@ -1,21 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime';
-import { useSwarmState } from '../../SwarmStateContext';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import SwarmResourceActions from '../SwarmResourceActions';
 import Button from '../../../components/ui/Button';
-import SecretEditModal from './SecretEditModal';
-import SecretCloneModal from './SecretCloneModal';
-import SecretUsedBySection from './SecretUsedBySection';
-import SecretDataSection from './SecretDataSection';
-import SecretInspectTab from './SecretInspectTab';
-import { GetSwarmSecrets, RemoveSwarmSecret } from '../../swarmApi';
-import { showSuccess, showError } from '../../../notification';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection from '../../../QuickInfoSection';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import type { docker } from '../../../../wailsjs/go/models';
-
+import { GetSwarmSecrets, RemoveSwarmSecret } from '../../swarmApi';
+import { useSwarmState } from '../../SwarmStateContext';
+import SwarmResourceActions from '../SwarmResourceActions';
+import SecretCloneModal from './SecretCloneModal';
+import SecretDataSection from './SecretDataSection';
+import SecretEditModal from './SecretEditModal';
+import SecretInspectTab from './SecretInspectTab';
+import SecretUsedBySection from './SecretUsedBySection';
 type SwarmSecretRow = {
 	id: string;
 	name: string;
@@ -24,9 +22,8 @@ type SwarmSecretRow = {
 	labels?: Record<string, string>;
 	driverName?: string;
 };
-
 type CellValueContext = {
-	getValue: () => any;
+	getValue: () => unknown;
 };
 
 const columns = [
@@ -87,7 +84,7 @@ function SecretSummaryPanel({ row, onRefresh }: SecretSummaryPanelProps) {
 		}
 	};
 
-	const quickInfoFields: Array<{ key: string; label: string; type?: 'break-word' | 'date'; getValue?: (d: Record<string, any>) => any }> = [
+	const quickInfoFields: Array<{ key: string; label: string; type?: 'break-word' | 'date'; getValue?: (_d: Record<string, unknown>) => unknown }> = [
 		{ key: 'id', label: 'ID', type: 'break-word' },
 		{ key: 'name', label: 'Name' },
 		{ key: 'createdAt', label: 'Created', type: 'date' },
@@ -103,7 +100,6 @@ function SecretSummaryPanel({ row, onRefresh }: SecretSummaryPanelProps) {
 			getValue: (d) => (d?.driverName ? 'Yes' : 'No'),
 		},
 	];
-
 	return (
 		<div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 			<SummaryTabHeader
@@ -194,15 +190,19 @@ export default function SwarmSecretsOverviewTable() {
 	}, []);
 
 	useEffect(() => {
-		if (!connected) {
-			setSecrets([]);
-			setLoading(false);
-			return;
-		}
-
 		let active = true;
 
 		const loadSecrets = async () => {
+			if (!connected) {
+				if (active) {
+					setSecrets([]);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+			}
 			try {
 				const data = await GetSwarmSecrets();
 				if (active) {
@@ -219,6 +219,12 @@ export default function SwarmSecretsOverviewTable() {
 		};
 
 		loadSecrets();
+
+		if (!connected) {
+			return () => {
+				active = false;
+			};
+		}
 
 		const off = EventsOn('swarm:secrets:update', (data) => {
 			if (!active) return;
@@ -277,5 +283,4 @@ export default function SwarmSecretsOverviewTable() {
 		/>
 	);
 }
-
 

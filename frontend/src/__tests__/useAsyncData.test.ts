@@ -2,8 +2,8 @@
  * Tests for useAsyncData hook
  */
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useAsyncData } from '../hooks/useAsyncData';
 
 describe('useAsyncData', () => {
@@ -119,7 +119,7 @@ describe('useAsyncData', () => {
   });
 
   it('should not update state after unmount', async () => {
-    let resolvePromise: ((value: string) => void) | undefined;
+    let resolvePromise: ((_value: string) => void) | undefined;
     const fetchFn = vi.fn().mockImplementation(() => {
       return new Promise<string>((resolve) => {
         resolvePromise = resolve;

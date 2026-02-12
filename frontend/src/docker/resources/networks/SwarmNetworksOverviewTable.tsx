@@ -1,23 +1,23 @@
-import { useEffect, useState, useCallback } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import type { QuickInfoField } from '../../../QuickInfoSection';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import SwarmResourceActions from '../SwarmResourceActions';
-import NetworkConnectedServicesTable from './NetworkConnectedServicesTable';
-import NetworkConnectedContainersTable from './NetworkConnectedContainersTable';
-import NetworkInspectTab from './NetworkInspectTab';
-import { NetworkIPAMSection, NetworkOptionsSection } from './NetworkDetailsSections';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import { useCallback, useEffect, useState } from 'react';
 import type { docker } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import type { QuickInfoField } from '../../../QuickInfoSection';
+import QuickInfoSection from '../../../QuickInfoSection';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 import {
-	GetSwarmNetworks,
-	GetSwarmNetworkServices,
-	GetSwarmNetworkContainers,
-	RemoveSwarmNetwork,
+    GetSwarmNetworkContainers,
+    GetSwarmNetworks,
+    GetSwarmNetworkServices,
+    RemoveSwarmNetwork,
 } from '../../swarmApi';
-import { showSuccess, showError } from '../../../notification';
+import SwarmResourceActions from '../SwarmResourceActions';
+import NetworkConnectedContainersTable from './NetworkConnectedContainersTable';
+import NetworkConnectedServicesTable from './NetworkConnectedServicesTable';
+import { NetworkIPAMSection, NetworkOptionsSection } from './NetworkDetailsSections';
+import NetworkInspectTab from './NetworkInspectTab';
 
 type NetworkRow = docker.SwarmNetworkInfo;
 
@@ -55,8 +55,8 @@ function renderPanelContent(row: NetworkRow, tab: string, onRefresh?: () => void
 		{ key: 'name', label: 'Name' },
 		{ key: 'driver', label: 'Driver' },
 		{ key: 'scope', label: 'Scope' },
-		{ key: 'attachable', label: 'Attachable', getValue: (data: Record<string, any>) => (data as NetworkRow).attachable ? 'Yes' : 'No' },
-		{ key: 'internal', label: 'Internal', getValue: (data: Record<string, any>) => (data as NetworkRow).internal ? 'Yes' : 'No' },
+		{ key: 'attachable', label: 'Attachable', getValue: (data: Record<string, unknown>) => (data as NetworkRow).attachable ? 'Yes' : 'No' },
+		{ key: 'internal', label: 'Internal', getValue: (data: Record<string, unknown>) => (data as NetworkRow).internal ? 'Yes' : 'No' },
 		{ key: 'labels', label: 'Labels', type: 'labels' },
 		{ key: 'createdAt', label: 'Created', type: 'date' },
 	];
@@ -226,5 +226,4 @@ export default function SwarmNetworksOverviewTable() {
 		/>
 	);
 }
-
 

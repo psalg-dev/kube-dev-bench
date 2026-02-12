@@ -1,18 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import SubjectsTable from '../rbac/SubjectsTable';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/rules-of-hooks */
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
-import { showError, showSuccess } from '../../../notification';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeResourceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
-import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import type { app } from '../../../../wailsjs/go/models';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import SubjectsTable from '../rbac/SubjectsTable';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -27,6 +30,7 @@ const bottomTabs = [
   { key: 'subjects', label: 'Subjects', countKey: 'subjects' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -98,7 +102,6 @@ const normalizeRoleBinding = (rb: RoleBindingInfoRaw): RoleBindingRow => {
     annotations: normalizeLabels(rb.annotations ?? rb.Annotations ?? rb.metadata?.annotations),
   };
 };
-
 const normalizeRoleBindings = (arr: RoleBindingInfoRaw[] | null | undefined): RoleBindingRow[] => (arr || []).filter(Boolean).map(normalizeRoleBinding);
 
 const fetchRoleBindingYaml = (namespace?: string, name?: string) => {
@@ -113,9 +116,9 @@ function renderPanelContent(
   row: RoleBindingRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze: (row: RoleBindingRow) => void,
+  onAnalyze: (_row: RoleBindingRow) => void,
   onCancel: () => void,
-  yamlLoader: (ns: string, name: string) => Promise<string>
+  yamlLoader: (_ns: string, _name: string) => Promise<string>
 ) {
   if (tab === 'summary') {
     const quickInfoFields: QuickInfoField[] = [
@@ -192,8 +195,11 @@ function renderPanelContent(
       };
       load();
       return () => { mounted = false; };
-    }, [row.namespace, row.name]);
+    }, [row.namespace, row.name, yamlLoader]);
     return <YamlTab content={yaml} loading={loading} error={error} />;
+  }
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="RoleBinding" name={row.name} />;
   }
   if (tab === 'holmes') {
     const key = `${row.namespace}/${row.name}`;
@@ -223,6 +229,11 @@ type RoleBindingsOverviewTableProps = { namespaces?: string[]; namespace?: strin
 export default function RoleBindingsOverviewTable({ namespaces, namespace }: RoleBindingsOverviewTableProps) {
   const [data, setData] = useState<RoleBindingRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const namespaceList = useMemo(
+    () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+    [namespaces, namespace]
+  );
+  const namespaceKey = useMemo(() => JSON.stringify(namespaceList), [namespaceList]);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -306,7 +317,7 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
         });
       }
     });
-    return () => { try { unsubscribe?.(); } catch (_) {} };
+    return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
   useEffect(() => {
@@ -322,15 +333,14 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
         return { ...prev, contextSteps: nextSteps };
       });
     });
-    return () => { try { unsubscribe?.(); } catch (_) {} };
+    return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
-  const fetchRoleBindings = async () => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
+  const fetchRoleBindings = useCallback(async () => {
+    if (namespaceList.length === 0) return;
     setLoading(true);
     try {
-      const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetRoleBindings(ns).catch(() => [] as app.RoleBindingInfo[])));
+      const lists = await Promise.all(namespaceList.map((ns) => AppAPI.GetRoleBindings(ns).catch(() => [] as app.RoleBindingInfo[])));
       setData(normalizeRoleBindings(lists.flat()));
     } catch (err) {
       console.error('Error fetching role bindings:', err);
@@ -338,35 +348,34 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
     } finally {
       setLoading(false);
     }
-  };
+  }, [namespaceList]);
 
-  useEffect(() => { fetchRoleBindings(); }, [namespaces, namespace]);
+  useEffect(() => { fetchRoleBindings(); }, [fetchRoleBindings]);
 
   useEffect(() => {
     const onUpdate = (list: RoleBindingInfoRaw[] | null | undefined) => {
       try {
         const arr = Array.isArray(list) ? list : [];
         setData(normalizeRoleBindings(arr));
-      } catch (_e) {
+      } catch {
         setData([]);
       } finally {
         setLoading(false);
       }
     };
     EventsOn('rolebindings:update', onUpdate);
-    return () => { try { EventsOff('rolebindings:update'); } catch (_) {} };
+    return () => { try { EventsOff('rolebindings:update'); } catch {} };
   }, []);
 
   useEffect(() => {
     const onUpdate = (eventData: any) => {
-      const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-      if (eventData?.resource === 'rolebinding' && nsArr.includes(eventData?.namespace)) {
+      if (eventData?.resource === 'rolebinding' && namespaceList.includes(eventData?.namespace)) {
         fetchRoleBindings();
       }
     };
     EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated'); } catch (_) {} };
-  }, [JSON.stringify(namespaces), namespace]);
+    return () => { try { EventsOff('resource-updated'); } catch {} };
+  }, [fetchRoleBindings, namespaceKey, namespaceList]);
 
   const analyzeRoleBinding = async (row: RoleBindingRow) => {
     const key = `${row.namespace}/${row.name}`;
@@ -390,7 +399,7 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
 
   const yamlLoader = (ns: string, name: string) => fetchRoleBindingYaml(ns, name);
 
-  const getRowActions = (row: RoleBindingRow, api?: { openDetails?: (tabKey: string) => void }) => {
+  const getRowActions = (row: RoleBindingRow, api?: { openDetails?: (_tabKey: string) => void }) => {
     const key = `${row.namespace}/${row.name}`;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [
@@ -406,7 +415,6 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
       } },
     ];
   };
-
   return (
     <OverviewTableWithPanel
       title="Role Bindings"
@@ -422,3 +430,4 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
     />
   );
 }
+

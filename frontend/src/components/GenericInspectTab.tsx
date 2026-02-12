@@ -28,11 +28,10 @@ import TextViewerTab from '../layout/bottompanel/TextViewerTab';
 
 type GenericInspectTabProps = {
   id: string;
-  fetchFn: (id: string) => Promise<unknown> | unknown;
+  fetchFn: (_id: string) => Promise<unknown> | unknown;
   loadingLabel?: string;
   filename?: string;
 };
-
 /**
  * Generic inspect tab component for displaying JSON inspection data.
  */

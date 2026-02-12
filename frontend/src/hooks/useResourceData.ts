@@ -3,21 +3,19 @@
  * Consolidates duplicated data loading logic from ~20 OverviewTable components.
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { EventsOn, EventsOff } from '../../wailsjs/runtime';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { EventsOff, EventsOn } from '../../wailsjs/runtime';
 
-type FetchFn<TItem> = (...args: any[]) => Promise<TItem[]>;
-
+type FetchFn<TItem> = (..._args: unknown[]) => Promise<TItem[]>;
 export interface UseResourceDataOptions<TItem, TNormalized> {
   fetchFn: FetchFn<TItem>;
   eventName: string;
   namespaces?: string[];
   namespace?: string;
-  normalize?: (item: TItem) => TNormalized;
+  normalize?: (_item: TItem) => TNormalized;
   clusterScoped?: boolean;
   enabled?: boolean;
 }
-
 export interface UseResourceDataResult<TNormalized> {
   data: TNormalized[];
   loading: boolean;

@@ -1,17 +1,22 @@
 .resource-node {
-  background: white;
+  background: var(--gh-bg-secondary, #161b22);
   border: 2px solid;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   min-width: 160px;
-  max-width: 180px;
+  max-width: 240px;
   font-family: system-ui, -apple-system, sans-serif;
   cursor: pointer;
   transition: box-shadow 0.2s, transform 0.2s;
+  overflow: visible;
+}
+
+.resource-node.graph-node--dimmed {
+  opacity: 0.3;
 }
 
 .resource-node:hover {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   transform: translateY(-1px);
 }
 
@@ -32,21 +37,23 @@
 
 .resource-node-content {
   padding: 8px;
+  overflow: visible;
 }
 
 .resource-node-name {
   font-size: 13px;
   font-weight: 500;
-  color: #1e293b;
+  color: var(--gh-text, #e6edf3);
   margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .resource-node-namespace {
   font-size: 11px;
-  color: #64748b;
+  color: var(--gh-text-secondary, #8b949e);
   margin-bottom: 4px;
   font-style: italic;
 }
@@ -69,8 +76,8 @@
 .resource-node .react-flow__handle {
   width: 8px;
   height: 8px;
-  background: #94a3b8;
-  border: 2px solid white;
+  background: #8b949e;
+  border: 2px solid var(--gh-bg-secondary, #161b22);
 }
 
 .resource-node .react-flow__handle-top {

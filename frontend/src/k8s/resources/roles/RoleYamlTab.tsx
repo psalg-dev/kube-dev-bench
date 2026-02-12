@@ -12,7 +12,7 @@ export default function RoleYamlTab({ namespace = '', name = '' }: RoleYamlTabPr
     if (!name) return;
     setLoading(true); setError(null);
     try { const res = await GetResourceYAML('role', namespace, name); setYaml(res || ''); }
-    catch (e: any) { setError(String(e)); }
+    catch (e: unknown) { setError(String(e)); }
     finally { setLoading(false); }
   };
   // eslint-disable-next-line react-hooks/exhaustive-deps

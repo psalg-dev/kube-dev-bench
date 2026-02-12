@@ -1,34 +1,35 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
-import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { SwarmResourceCountsProvider, useSwarmResourceCounts } from './docker/SwarmResourceCountsContext';
+import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext';
+import { ContextSelect, NamespaceMultiSelect } from './Dropdowns';
 import { AppLayout } from './layout/AppLayout';
 import ConnectionWizard from './layout/connection/ConnectionWizard';
-import { ContextSelect, NamespaceMultiSelect } from './Dropdowns';
 import { renderPodsMainContent, renderResourceMainContent } from './main-content';
-import { ResourceCountsProvider } from './state/ResourceCountsContext';
-import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext';
-import { SwarmResourceCountsProvider } from './docker/SwarmResourceCountsContext';
-import { useSwarmResourceCounts } from './docker/SwarmResourceCountsContext';
+import { ClusterStateProvider, useClusterState } from './state/ClusterStateContext';
+import { ResourceCountsProvider, useResourceCounts } from './state/ResourceCountsContext';
 // Holmes AI provider and components
-import { HolmesProvider, useHolmes } from './holmes/HolmesContext';
-import { HolmesPanel } from './holmes/HolmesPanel';
 import { HolmesConfigModal } from './holmes/HolmesConfigModal';
+import { HolmesProvider, useHolmes } from './holmes/HolmesContext';
 import { HolmesOnboardingWizard } from './holmes/HolmesOnboardingWizard';
+import { HolmesPanel } from './holmes/HolmesPanel';
 // MCP server provider and components
-import { MCPProvider, useMCP } from './mcp/MCPContext';
-import { MCPConfigModal } from './mcp/MCPConfigModal';
-import { sectionFromPath } from './router';
 import type { SelectedSection } from './layout/connection/ConnectionsStateContext';
-
+import { MCPConfigModal } from './mcp/MCPConfigModal';
+import { MCPProvider, useMCP } from './mcp/MCPContext';
+import { sectionFromPath } from './router';
 type MainContentBinderProps = {
   selectedSection: string;
-  setConnectionWizardInitialSection?: (section: SelectedSection) => void;
+  setConnectionWizardInitialSection?: (_section: SelectedSection) => void;
 };
 
 function MainContentBinder({ selectedSection, setConnectionWizardInitialSection }: MainContentBinderProps) {
-  const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState() as any;
+  const clusterState = useClusterState() as any;
+  const { selectedNamespaces, clusterConnected, actions, showWizard } = clusterState;
   const swarmState = useSwarmState() as any;
   const swarmCounts = useSwarmResourceCounts() as any;
+  const resourceCounts = useResourceCounts() as any;
 
   const isSwarmSection = selectedSection?.startsWith('swarm-');
 
@@ -37,9 +38,9 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
       renderPodsMainContent(selectedNamespaces);
     } else {
       // BUGFIX: pass selectedSection so correct resource renders (was defaulting to deployments)
-      renderResourceMainContent(selectedNamespaces, selectedSection, { swarmState, swarmCounts });
+      renderResourceMainContent(selectedNamespaces, selectedSection, { swarmState, swarmCounts, clusterState, resourceCounts });
     }
-  }, [selectedSection, selectedNamespaces, swarmState, swarmCounts]);
+  }, [selectedSection, selectedNamespaces, swarmState, swarmCounts, clusterState, resourceCounts]);
 
   // Render main content whenever dependencies change
   useEffect(() => {
@@ -91,9 +92,9 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
 type LayoutOrWizardProps = {
   onWizardComplete: () => void;
   selectedSection: string;
-  onSelectSection: (section: string) => void;
+  onSelectSection: (_section: string) => void;
   connectionWizardInitialSection: SelectedSection;
-  setConnectionWizardInitialSection?: (section: SelectedSection) => void;
+  setConnectionWizardInitialSection?: (_section: SelectedSection) => void;
 };
 
 function LayoutOrWizard({ onWizardComplete, selectedSection, onSelectSection, connectionWizardInitialSection, setConnectionWizardInitialSection }: LayoutOrWizardProps) {

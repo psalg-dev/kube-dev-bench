@@ -1,15 +1,11 @@
 import './BulkActionBar.css';
-import type { ReactNode } from 'react';
-import type { BulkAction } from '../constants/bulkActions';
-
 type BulkActionBarProps = {
   selectedCount: number;
   actions?: BulkAction[];
-  onAction?: (action: BulkAction) => void | Promise<void>;
+  onAction?: (_action: BulkAction) => void | Promise<void>;
   onClear?: () => void;
   className?: string;
 };
-
 export default function BulkActionBar({
   selectedCount,
   actions = [],

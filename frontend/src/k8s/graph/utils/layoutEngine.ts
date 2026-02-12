@@ -1,5 +1,5 @@
 import dagre from '@dagrejs/dagre';
-import { Node, Edge, Position } from '@xyflow/react';
+import { Node, Edge, MarkerType, Position } from '@xyflow/react';
 
 export interface GraphData {
   nodes: Array<{
@@ -10,6 +10,7 @@ export interface GraphData {
     status: string;
     group: string;
     metadata: Record<string, string>;
+    dimmed?: boolean;
   }>;
   edges: Array<{
     id: string;
@@ -17,6 +18,7 @@ export interface GraphData {
     target: string;
     type: string;
     label: string;
+    dimmed?: boolean;
   }>;
 }
 
@@ -26,15 +28,70 @@ export interface LayoutOptions {
   nodeHeight?: number;
   rankSep?: number;
   nodeSep?: number;
+  preferWorkloadHierarchy?: boolean;
 }
 
 const defaultOptions: LayoutOptions = {
   direction: 'TB',
-  nodeWidth: 180,
-  nodeHeight: 60,
+  nodeWidth: 220,
+  nodeHeight: 96,
   rankSep: 80,
-  nodeSep: 60
+  nodeSep: 60,
+  preferWorkloadHierarchy: false
 };
+
+function toStringValue(value: unknown, fallback = ''): string {
+  return typeof value === 'string' ? value : fallback;
+}
+
+function toStringRecord(value: unknown): Record<string, string> {
+  if (!value || typeof value !== 'object') {
+    return {};
+  }
+  return Object.entries(value as Record<string, unknown>).reduce<Record<string, string>>((acc, [key, v]) => {
+    acc[key] = typeof v === 'string' ? v : String(v ?? '');
+    return acc;
+  }, {});
+}
+
+function hasCronJobHierarchy(graphData: GraphData): boolean {
+  if (!graphData?.nodes || !graphData?.edges) {
+    return false;
+  }
+
+  const nodeKindByID = new Map<string, string>();
+  graphData.nodes.forEach((node) => {
+    nodeKindByID.set(node.id, (node.kind || '').toLowerCase());
+  });
+
+  let hasCronToJob = false;
+  let hasJobToPod = false;
+  graphData.edges.forEach((edge) => {
+    if (edge.type !== 'owns') {
+      return;
+    }
+    const sourceKind = nodeKindByID.get(edge.source);
+    const targetKind = nodeKindByID.get(edge.target);
+    if (sourceKind === 'cronjob' && targetKind === 'job') {
+      hasCronToJob = true;
+    }
+    if (sourceKind === 'job' && targetKind === 'pod') {
+      hasJobToPod = true;
+    }
+  });
+
+  return hasCronToJob && hasJobToPod;
+}
+
+function isCronJobHierarchyEdge(edge: GraphData['edges'][number], nodeKindByID: Map<string, string>): boolean {
+  if (edge.type !== 'owns') {
+    return false;
+  }
+
+  const sourceKind = nodeKindByID.get(edge.source);
+  const targetKind = nodeKindByID.get(edge.target);
+  return (sourceKind === 'cronjob' && targetKind === 'job') || (sourceKind === 'job' && targetKind === 'pod');
+}
 
 /**
  * Compute hierarchical layout using Dagre
@@ -47,14 +104,16 @@ export function computeLayout(
   options: LayoutOptions = {}
 ): { nodes: Node[]; edges: Edge[] } {
   const opts = { ...defaultOptions, ...options };
-  
+  const useWorkloadHierarchy = opts.preferWorkloadHierarchy || hasCronJobHierarchy(graphData);
+
   // Create new Dagre graph
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({
     rankdir: opts.direction,
-    ranksep: opts.rankSep,
-    nodesep: opts.nodeSep
+    ranksep: useWorkloadHierarchy ? Math.max(opts.rankSep || 80, 100) : opts.rankSep,
+    nodesep: useWorkloadHierarchy ? Math.max(opts.nodeSep || 60, 80) : opts.nodeSep,
+    ranker: useWorkloadHierarchy ? 'tight-tree' : undefined
   });
 
   // Add nodes to Dagre
@@ -65,9 +124,17 @@ export function computeLayout(
     });
   });
 
+  const nodeKindByID = new Map<string, string>();
+  graphData.nodes.forEach(node => {
+    nodeKindByID.set(node.id, (node.kind || '').toLowerCase());
+  });
+
   // Add edges to Dagre
   graphData.edges.forEach(edge => {
-    g.setEdge(edge.source, edge.target);
+    const edgeConfig = useWorkloadHierarchy && isCronJobHierarchyEdge(edge, nodeKindByID)
+      ? { weight: 4, minlen: 2 }
+      : {};
+    g.setEdge(edge.source, edge.target, edgeConfig);
   });
 
   // Compute layout
@@ -76,7 +143,7 @@ export function computeLayout(
   // Convert to React Flow nodes
   const nodes: Node[] = graphData.nodes.map(node => {
     const dagreNode = g.node(node.id);
-    
+
     return {
       id: node.id,
       type: 'resourceNode',
@@ -90,7 +157,8 @@ export function computeLayout(
         namespace: node.namespace,
         status: node.status,
         group: node.group,
-        metadata: node.metadata
+        metadata: node.metadata,
+        dimmed: Boolean(node.dimmed)
       },
       sourcePosition: Position.Bottom,
       targetPosition: Position.Top
@@ -98,17 +166,22 @@ export function computeLayout(
   });
 
   // Convert to React Flow edges
-  const edges: Edge[] = graphData.edges.map(edge => ({
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    type: 'relationshipEdge',
-    data: {
-      edgeType: edge.type,
-      label: edge.label
-    },
-    animated: edge.type === 'routes_to'
-  }));
+  const edges: Edge[] = graphData.edges.map(edge => {
+    const directedPolicyEdge = edge.type === 'network_policy_ingress' || edge.type === 'network_policy_egress';
+    return {
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: 'relationshipEdge',
+      data: {
+        edgeType: edge.type,
+        label: edge.label,
+        dimmed: Boolean(edge.dimmed)
+      },
+      animated: edge.type === 'routes_to',
+      markerEnd: directedPolicyEdge ? { type: MarkerType.ArrowClosed } : undefined,
+    };
+  });
 
   return { nodes, edges };
 }
@@ -126,22 +199,28 @@ export function relayout(
   options: LayoutOptions = {}
 ): Node[] {
   const graphData: GraphData = {
-    nodes: nodes.map(n => ({
+    nodes: nodes.map(n => {
+      const nodeData = (n.data ?? {}) as Record<string, unknown>;
+      return {
       id: n.id,
-      kind: n.data.kind,
-      name: n.data.name,
-      namespace: n.data.namespace || '',
-      status: n.data.status,
-      group: n.data.group,
-      metadata: n.data.metadata || {}
-    })),
-    edges: edges.map(e => ({
+      kind: toStringValue(nodeData.kind, 'unknown'),
+      name: toStringValue(nodeData.name, n.id),
+      namespace: toStringValue(nodeData.namespace, ''),
+      status: toStringValue(nodeData.status, ''),
+      group: toStringValue(nodeData.group, 'infrastructure'),
+      metadata: toStringRecord(nodeData.metadata)
+      };
+    }),
+    edges: edges.map(e => {
+      const edgeData = (e.data ?? {}) as Record<string, unknown>;
+      return {
       id: e.id,
       source: e.source,
       target: e.target,
-      type: e.data?.edgeType || '',
-      label: e.data?.label || ''
-    }))
+      type: toStringValue(edgeData.edgeType, ''),
+      label: toStringValue(edgeData.label, '')
+      };
+    })
   };
 
   const { nodes: layoutedNodes } = computeLayout(graphData, options);

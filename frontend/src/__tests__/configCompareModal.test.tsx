@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ConfigCompareModal from '../docker/resources/configs/ConfigCompareModal';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { docker } from '../../wailsjs/go/models';
+import ConfigCompareModal from '../docker/resources/configs/ConfigCompareModal';
 
 // Mock the swarmApi
 vi.mock('../docker/swarmApi', () => ({
@@ -290,9 +290,9 @@ describe('ConfigCompareModal', () => {
 
   describe('loading and error states', () => {
     it('shows loading state while fetching base config', async () => {
-      let resolvePromise: ((value: string) => void) | undefined;
+      let resolvePromise: ((_value: string) => void) | undefined;
       getSwarmConfigDataMock.mockImplementation(() => new Promise((resolve) => {
-        resolvePromise = resolve as (value: string) => void;
+        resolvePromise = resolve as (_value: string) => void;
       }));
 
       render(

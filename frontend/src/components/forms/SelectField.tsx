@@ -9,12 +9,11 @@ type SelectFieldProps = {
   id: string;
   label?: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (_value: string) => void;
   options?: SelectOption[];
   required?: boolean;
   error?: string;
 };
-
 export default function SelectField({
   id,
   label,

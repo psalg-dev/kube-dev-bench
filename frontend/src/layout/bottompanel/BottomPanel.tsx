@@ -8,6 +8,7 @@ type BottomPanelTab = {
   countKey?: string;
   countable?: boolean;
   ariaLabel?: string;
+  testId?: string;
   content?: React.ReactNode;
 };
 
@@ -16,13 +17,12 @@ type BottomPanelProps = {
   onClose?: () => void;
   tabs?: BottomPanelTab[];
   activeTab?: string;
-  onTabChange?: (tabKey: string) => void;
+  onTabChange?: (_tabKey: string) => void;
   headerRight?: React.ReactNode;
   tabCounts?: Record<string, number>;
   tabCountsLoading?: boolean;
   children?: React.ReactNode;
 };
-
 const BottomPanel = forwardRef<HTMLDivElement, BottomPanelProps>(function BottomPanel(
   {
     open,
@@ -44,6 +44,7 @@ const BottomPanel = forwardRef<HTMLDivElement, BottomPanelProps>(function Bottom
       return 360;
     }
   });
+  const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef({ startY: 0, startH: 0, resizing: false });
 
   useEffect(() => {
@@ -59,6 +60,7 @@ const BottomPanel = forwardRef<HTMLDivElement, BottomPanelProps>(function Bottom
     e.stopPropagation();
     const startY = e.clientY;
     resizeRef.current = { startY, startH: height, resizing: true };
+    setIsResizing(true);
 
     const onMove = (ev: MouseEvent) => {
       if (!resizeRef.current.resizing) return;
@@ -80,6 +82,7 @@ const BottomPanel = forwardRef<HTMLDivElement, BottomPanelProps>(function Bottom
         ev.stopPropagation();
       }
       resizeRef.current.resizing = false;
+      setIsResizing(false);
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onUp);
       document.body.style.cursor = '';
@@ -107,7 +110,7 @@ const BottomPanel = forwardRef<HTMLDivElement, BottomPanelProps>(function Bottom
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
-        transition: resizeRef.current.resizing ? 'none' : 'height 0.12s ease-out',
+        transition: isResizing ? 'none' : 'height 0.12s ease-out',
       }}
     >
       <div
@@ -154,7 +157,7 @@ const BottomPanel = forwardRef<HTMLDivElement, BottomPanelProps>(function Bottom
               <button
                 key={tabKey}
                 onClick={() => onTabChange && onTabChange(tabKey)}
-                data-testid={`tab-${tabKey}`}
+                data-testid={t.testId || `tab-${tabKey}`}
                 aria-label={t.ariaLabel || t.label}
                 style={{
                   border: '1px solid var(--gh-border, #30363d)',

@@ -23,6 +23,23 @@ export default function SecretConsumersTab({ namespace, secretName }: SecretCons
 	const [items, setItems] = useState<SecretConsumerRow[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
+	const columns = useMemo(() => ([
+		{ key: 'kind', label: 'Kind' },
+		{ key: 'name', label: 'Name' },
+		{ key: 'refType', label: 'Reference' },
+	]), []);
+	const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
+	const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(
+		() => ({ key: defaultSortKey, direction: 'asc' })
+	);
+	const sortedItems = useMemo(() => {
+		return sortRows(items, sortState.key, sortState.direction, (row, key) => {
+			if (key === 'kind') return row?.kind ?? row?.Kind;
+			if (key === 'name') return row?.name ?? row?.Name;
+			if (key === 'refType') return row?.refType ?? row?.RefType;
+			return (row as unknown as Record<string, unknown>)?.[key];
+		});
+	}, [items, sortState]);
 
 	useEffect(() => {
 		if (!namespace || !secretName) return;
@@ -70,24 +87,6 @@ export default function SecretConsumersTab({ namespace, secretName }: SecretCons
 			/>
 		);
 	}
-
-	const columns = useMemo(() => ([
-		{ key: 'kind', label: 'Kind' },
-		{ key: 'name', label: 'Name' },
-		{ key: 'refType', label: 'Reference' },
-	]), []);
-	const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-	const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(
-		() => ({ key: defaultSortKey, direction: 'asc' })
-	);
-	const sortedItems = useMemo(() => {
-		return sortRows(items, sortState.key, sortState.direction, (row, key) => {
-			if (key === 'kind') return row?.kind ?? row?.Kind;
-			if (key === 'name') return row?.name ?? row?.Name;
-			if (key === 'refType') return row?.refType ?? row?.RefType;
-			return (row as unknown as Record<string, unknown>)?.[key];
-		});
-	}, [items, sortState]);
 
 	const headerButtonStyle: CSSProperties = {
 		width: '100%',

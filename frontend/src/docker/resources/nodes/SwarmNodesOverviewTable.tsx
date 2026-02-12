@@ -1,29 +1,30 @@
-import { useEffect, useState, useCallback, useRef, useMemo, type CSSProperties } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import type { docker } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import StatusBadge from '../../../components/StatusBadge';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import SwarmResourceActions from '../SwarmResourceActions';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
-import NodeTasksTab from './NodeTasksTab';
+import StatusBadge from '../../../components/StatusBadge';
+import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
+import type { HolmesContextProgressEvent, HolmesStreamEvent } from '../../../holmes/holmesApi';
+import { AnalyzeSwarmNodeStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import type { HolmesAnalysisState } from '../../../hooks/useHolmesAnalysis';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import {
+    GetSwarmJoinTokens,
+    GetSwarmNodes,
+    GetSwarmNodeTasks,
+    GetSwarmTaskLogs,
+    RemoveSwarmNode,
+    UpdateSwarmNodeAvailability,
+    UpdateSwarmNodeRole,
+} from '../../swarmApi';
+import SwarmResourceActions from '../SwarmResourceActions';
 import NodeLabelsTab from './NodeLabelsTab';
 import NodeLogsTab from './NodeLogsTab';
-import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
-import { AnalyzeSwarmNodeStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
-import {
-	GetSwarmNodes,
-	GetSwarmNodeTasks,
-	GetSwarmTaskLogs,
-	GetSwarmJoinTokens,
-	UpdateSwarmNodeAvailability,
-	UpdateSwarmNodeRole,
-	RemoveSwarmNode,
-} from '../../swarmApi';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import { showSuccess, showError } from '../../../notification';
-import type { HolmesAnalysisState } from '../../../hooks/useHolmesAnalysis';
-import type { HolmesContextProgressEvent, HolmesStreamEvent } from '../../../holmes/holmesApi';
-import type { docker } from '../../../../wailsjs/go/models';
+import NodeTasksTab from './NodeTasksTab';
 
 type HolmesChatData = {
 	reasoning?: string;
@@ -330,13 +331,12 @@ function NodeJoinInfoPanel({ role }: NodeJoinInfoPanelProps) {
 		</div>
 	);
 }
-
 function renderPanelContent(
 	row: docker.SwarmNodeInfo,
 	tab: string,
 	onRefresh: (() => void) | undefined,
 	holmesState: HolmesAnalysisState,
-	onAnalyze: ((node: docker.SwarmNodeInfo) => void) | undefined,
+	onAnalyze: ((_node: docker.SwarmNodeInfo) => void) | undefined,
 	onCancel: (() => void) | undefined
 ) {
 	if (tab === 'summary') {
@@ -709,7 +709,7 @@ export default function SwarmNodesOverviewTable() {
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -737,7 +737,7 @@ export default function SwarmNodesOverviewTable() {
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -891,6 +891,4 @@ export default function SwarmNodesOverviewTable() {
 		/>
 	);
 }
-
-
 

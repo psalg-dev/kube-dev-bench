@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { runtimeHandlers, swarmApiMocks, notificationMocks, swarmStateMock } = vi.hoisted(() => {
   return {
-    runtimeHandlers: new Map<string, (payload: unknown) => void>(),
+    runtimeHandlers: new Map<string, (_payload: unknown) => void>(),
     swarmApiMocks: {
       GetSwarmSecrets: vi.fn(),
       RemoveSwarmSecret: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock('../notification', () => notificationMocks);
 
 // SwarmSecretsOverviewTable imports EventsOn from "../../../../wailsjs/runtime"
 vi.mock('../../wailsjs/runtime', () => ({
-  EventsOn: vi.fn((eventName: string, cb: (payload: unknown) => void) => {
+  EventsOn: vi.fn((eventName: string, cb: (_payload: unknown) => void) => {
     runtimeHandlers.set(eventName, cb);
     return vi.fn();
   }),
@@ -33,14 +33,13 @@ vi.mock('../../wailsjs/runtime', () => ({
 vi.mock('../docker/SwarmStateContext', () => ({
   useSwarmState: () => swarmStateMock,
 }));
-
 vi.mock('../layout/overview/OverviewTableWithPanel', () => ({
   default: function OverviewTableWithPanelMock(props: {
     title: string;
-    columns?: Array<{ key: string; cell?: (ctx: { getValue: () => unknown }) => React.ReactNode }>;
+    columns?: Array<{ key: string; cell?: (_ctx: { getValue: () => unknown }) => React.ReactNode }>;
     data?: Array<Record<string, unknown>>;
-    getRowActions?: (row: Record<string, unknown>) => Array<{ label: string; onClick: () => void; disabled?: boolean }>;
-    renderPanelContent?: (row: Record<string, unknown>, tab: string) => React.ReactNode;
+    getRowActions?: (_row: Record<string, unknown>) => Array<{ label: string; onClick: () => void; disabled?: boolean }>;
+    renderPanelContent?: (_row: Record<string, unknown>, _tab: string) => React.ReactNode;
   }) {
     const { title, columns, data, getRowActions, renderPanelContent } = props;
     const rows = Array.isArray(data) ? data : [];

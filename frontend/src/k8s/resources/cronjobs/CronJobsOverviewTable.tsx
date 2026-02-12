@@ -1,21 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import CronJobYamlTab from './CronJobYamlTab';
-import CronJobHistoryTab from './CronJobHistoryTab';
-import CronJobActionsTab from './CronJobActionsTab';
-import CronJobNextRunsTab from './CronJobNextRunsTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { StartJobFromCronJob, SuspendCronJob, ResumeCronJob } from '../kubeApi';
-import { AnalyzeCronJobStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
 import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import ResourceActions from '../../../components/ResourceActions';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeCronJobStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import { ResumeCronJob, StartJobFromCronJob, SuspendCronJob } from '../kubeApi';
+import CronJobActionsTab from './CronJobActionsTab';
+import CronJobHistoryTab from './CronJobHistoryTab';
+import CronJobNextRunsTab from './CronJobNextRunsTab';
+import CronJobYamlTab from './CronJobYamlTab';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -34,6 +36,7 @@ const bottomTabs = [
   { key: 'actions', label: 'Actions', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -95,12 +98,11 @@ const normalizeCronJob = (row: CronJobInfoRaw): CronJobRow => ({
 
 const normalizeCronJobs = (arr: CronJobInfoRaw[] | null | undefined): CronJobRow[] =>
   (arr || []).filter(Boolean).map(normalizeCronJob);
-
 function renderPanelContent(
   row: CronJobRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze: (row: CronJobRow) => void,
+  onAnalyze: (_row: CronJobRow) => void,
   onCancel: () => void
 ) {
   if (tab === 'summary') {
@@ -187,6 +189,9 @@ function renderPanelContent(
   }
   if (tab === 'yaml') {
     return <CronJobYamlTab namespace={row.namespace} name={row.name} />;
+  }
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="CronJob" name={row.name} />;
   }
   if (tab === 'holmes') {
     const key = `${row.namespace}/${row.name}`;
@@ -346,7 +351,7 @@ export default function CronJobsOverviewTable({ namespaces = [] }: CronJobsOverv
       }
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -373,7 +378,7 @@ export default function CronJobsOverviewTable({ namespaces = [] }: CronJobsOverv
       });
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -408,14 +413,14 @@ export default function CronJobsOverviewTable({ namespaces = [] }: CronJobsOverv
         const arr = Array.isArray(list) ? list : [];
         const filtered = namespaces ? arr.filter((d) => namespaces.includes(d?.namespace ?? d?.Namespace ?? '')) : arr;
         setCronJobs(normalizeCronJobs(filtered));
-      } catch (_) {
+      } catch {
         setCronJobs([]);
       } finally {
         setLoading(false);
       }
     };
     EventsOn('cronjobs:update', onUpdate);
-    return () => { try { EventsOff('cronjobs:update'); } catch (_) {} };
+    return () => { try { EventsOff('cronjobs:update'); } catch {} };
   }, [namespaces]);
 
   // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
@@ -426,7 +431,7 @@ export default function CronJobsOverviewTable({ namespaces = [] }: CronJobsOverv
       }
     });
     return () => {
-      try { EventsOff('resource-updated'); } catch (_) {}
+      try { EventsOff('resource-updated'); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [namespaces]);
@@ -454,7 +459,6 @@ export default function CronJobsOverviewTable({ namespaces = [] }: CronJobsOverv
       showError(`Holmes analysis failed: ${message}`);
     }
   };
-
   const cancelHolmesAnalysis = async () => {
     const currentStreamId = holmesState.streamId;
     if (!currentStreamId) return;
@@ -466,7 +470,7 @@ export default function CronJobsOverviewTable({ namespaces = [] }: CronJobsOverv
     }
   };
 
-  const getRowActions = (row: CronJobRow, api?: { openDetails?: (tabKey: string) => void }) => {
+  const getRowActions = (row: CronJobRow, api?: { openDetails?: (_tabKey: string) => void }) => {
     const key = `${row.namespace}/${row.name}`;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [

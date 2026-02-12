@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { runtimeHandlers, swarmApiMocks, holmesApiMocks, rowApis } = vi.hoisted(() => {
   return {
-    runtimeHandlers: new Map<string, (payload: unknown) => void>(),
+    runtimeHandlers: new Map<string, (_payload: unknown) => void>(),
     swarmApiMocks: {
       GetSwarmTasks: vi.fn(),
       GetSwarmTaskLogs: vi.fn(),
@@ -16,7 +16,7 @@ const { runtimeHandlers, swarmApiMocks, holmesApiMocks, rowApis } = vi.hoisted((
       onHolmesChatStream: vi.fn(() => vi.fn()),
       onHolmesContextProgress: vi.fn(() => vi.fn()),
     },
-    rowApis: new Map<string, { openDetails: (tab: string) => void; setActiveTab: (tab: string) => void }>(),
+    rowApis: new Map<string, { openDetails: (_tab: string) => void; setActiveTab: (_tab: string) => void }>(),
   };
 });
 
@@ -28,26 +28,25 @@ vi.mock('../utils/dateUtils', () => ({
 }));
 
 vi.mock('../../wailsjs/runtime/runtime', () => ({
-  EventsOn: vi.fn((eventName: string, cb: (payload: unknown) => void) => {
+  EventsOn: vi.fn((eventName: string, cb: (_payload: unknown) => void) => {
     runtimeHandlers.set(eventName, cb);
     return vi.fn();
   }),
 }));
-
 vi.mock('../layout/overview/OverviewTableWithPanel', () => ({
   default: function OverviewTableWithPanelMock(props: {
     title: string;
     columns?: Array<{
       key: string;
-      cell?: (ctx: { getValue: () => unknown; row?: { original: Record<string, unknown> } }) => React.ReactNode;
+      cell?: (_ctx: { getValue: () => unknown; row?: { original: Record<string, unknown> } }) => React.ReactNode;
     }>;
     data?: Array<Record<string, unknown>>;
-    getRowActions?: (row: Record<string, unknown>, api: { openDetails: (tab: string) => void }) =>
+    getRowActions?: (_row: Record<string, unknown>, _api: { openDetails: (_tab: string) => void }) =>
       Array<{ label: string; onClick: () => void; disabled?: boolean }>;
     renderPanelContent?: (
-      row: Record<string, unknown>,
-      tab: string,
-      api: { openDetails: (tab: string) => void; setActiveTab: (tab: string) => void }
+      _row: Record<string, unknown>,
+      _tab: string,
+      _api: { openDetails: (_tab: string) => void; setActiveTab: (_tab: string) => void }
     ) => React.ReactNode;
     tabs?: Array<{ key: string }>;
   }) {
@@ -113,9 +112,8 @@ vi.mock('../layout/overview/OverviewTableWithPanel', () => ({
     );
   },
 }));
-
 vi.mock('../QuickInfoSection', () => ({
-  default: function QuickInfoSectionMock({ fields, data }: { fields?: Array<{ key: string; label: string; getValue?: (d: unknown) => unknown }>; data?: Record<string, unknown> }) {
+  default: function QuickInfoSectionMock({ fields, data }: { fields?: Array<{ key: string; label: string; getValue?: (_d: unknown) => unknown }>; data?: Record<string, unknown> }) {
     return (
       <div data-testid="quick-info">
         {(fields || []).map((f) => {
@@ -131,7 +129,6 @@ vi.mock('../QuickInfoSection', () => ({
     );
   },
 }));
-
 vi.mock('../layout/bottompanel/SummaryTabHeader', () => ({
   default: function SummaryTabHeaderMock({ name, actions }: { name: string; actions?: React.ReactNode }) {
     return (

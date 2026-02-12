@@ -1,6 +1,6 @@
 /**
  * ReplicaSetsOverviewTableGeneric
- * 
+ *
  * Migrated ReplicaSets table using GenericResourceTable component.
  * This replaces the original ReplicaSetsOverviewTable.jsx with ~20 lines.
  */

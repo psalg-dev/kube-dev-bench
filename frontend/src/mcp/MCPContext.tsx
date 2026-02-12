@@ -1,14 +1,14 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import {
-  GetMCPConfig,
-  SetMCPConfig,
-  GetMCPStatus,
-  StartMCPServer,
-  StopMCPServer,
-} from './mcpApi';
+import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import { showError, showSuccess } from '../notification';
 import type { MCPConfig, MCPStatus } from './mcpApi';
-import { showSuccess, showError } from '../notification';
+import {
+    GetMCPConfig,
+    GetMCPStatus,
+    SetMCPConfig,
+    StartMCPServer,
+    StopMCPServer,
+} from './mcpApi';
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -37,7 +37,6 @@ type MCPAction =
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'SHOW_CONFIG' }
   | { type: 'HIDE_CONFIG' };
-
 function reducer(state: MCPState, action: MCPAction): MCPState {
   switch (action.type) {
     case 'SET_CONFIG':
@@ -62,7 +61,7 @@ function reducer(state: MCPState, action: MCPAction): MCPState {
 interface MCPContextValue {
   state: MCPState;
   loadConfig: () => Promise<void>;
-  saveConfig: (config: MCPConfig) => Promise<void>;
+  saveConfig: (_config: MCPConfig) => Promise<void>;
   startServer: () => Promise<void>;
   stopServer: () => Promise<void>;
   showConfigModal: () => void;
@@ -174,6 +173,7 @@ export function MCPProvider({ children }: { children: ReactNode }) {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useMCP(): MCPContextValue {
   const ctx = useContext(MCPContext);
   if (!ctx) {

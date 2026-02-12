@@ -1,10 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { showSuccess, showWarning, showError } from '../notification';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { showError, showSuccess, showWarning } from '../notification';
 
 const globalObj = globalThis as typeof globalThis & {
-  requestAnimationFrame?: (cb: FrameRequestCallback) => number;
+  requestAnimationFrame?: (_cb: FrameRequestCallback) => number;
 };
-
 // Provide requestAnimationFrame polyfill for JSDOM + fake timers
 if (!globalObj.requestAnimationFrame) {
   globalObj.requestAnimationFrame = (cb) => setTimeout(cb, 0) as unknown as number;

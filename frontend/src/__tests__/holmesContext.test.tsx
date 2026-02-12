@@ -1,18 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, waitFor, act } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
 import { useEffect } from 'react';
-import './wailsMocks';
-import { genericAPIMock, resetAllMocks, eventsOnMock } from './wailsMocks';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
+import './wailsMocks';
+import { eventsOnMock, genericAPIMock, resetAllMocks } from './wailsMocks';
 
 const toUndefinedPromise = <T,>(value: T) => Promise.resolve(value as unknown as undefined);
 
 type HolmesContextValue = ReturnType<typeof useHolmes>;
 
 type TestConsumerProps = {
-  onContext: (ctx: HolmesContextValue) => void;
+  onContext: (_ctx: HolmesContextValue) => void;
 };
-
 function TestConsumer({ onContext }: TestConsumerProps) {
   const context = useHolmes();
   useEffect(() => {
@@ -24,7 +23,7 @@ function TestConsumer({ onContext }: TestConsumerProps) {
 describe('HolmesContext', () => {
   beforeEach(() => {
     resetAllMocks();
-    genericAPIMock.mockImplementation((name, ..._args: unknown[]) => {
+    genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
         return toUndefinedPromise({
           enabled: false,
@@ -145,14 +144,13 @@ describe('HolmesContext', () => {
   });
 
   it('askHolmes sends question and updates state', async () => {
-    let streamCallback: ((payload: { event: string; data: string }) => void) | undefined;
-    eventsOnMock.mockImplementation((event: string, callback: (payload: { event: string; data: string }) => void) => {
+    let streamCallback: ((_payload: { event: string; data: string }) => void) | undefined;
+    eventsOnMock.mockImplementation((event: string, callback: (_payload: { event: string; data: string }) => void) => {
       if (event === 'holmes:chat:stream') {
         streamCallback = callback;
       }
       return () => {};
     });
-
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
         return toUndefinedPromise({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
@@ -219,7 +217,7 @@ describe('HolmesContext', () => {
       await act(async () => {
         await capturedContext?.askHolmes('test question');
       });
-    } catch (_e) {
+    } catch {
       // Expected error
     }
 
@@ -230,14 +228,13 @@ describe('HolmesContext', () => {
   });
 
   it('clearResponse clears state', async () => {
-    let streamCallback: ((payload: { event: string; data: string }) => void) | undefined;
-    eventsOnMock.mockImplementation((event: string, callback: (payload: { event: string; data: string }) => void) => {
+    let streamCallback: ((_payload: { event: string; data: string }) => void) | undefined;
+    eventsOnMock.mockImplementation((event: string, callback: (_payload: { event: string; data: string }) => void) => {
       if (event === 'holmes:chat:stream') {
         streamCallback = callback;
       }
       return () => {};
     });
-
     genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHolmesConfig') {
         return toUndefinedPromise({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });

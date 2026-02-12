@@ -1,20 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import ConfigMapYamlTab from './ConfigMapYamlTab';
-import ConfigMapDataTab from './ConfigMapDataTab';
-import ConfigMapConsumersTab from './ConfigMapConsumersTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeConfigMapStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
 import type { app } from '../../../../wailsjs/go/models';
-
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import ResourceActions from '../../../components/ResourceActions';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeConfigMapStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import ConfigMapConsumersTab from './ConfigMapConsumersTab';
+import ConfigMapDataTab from './ConfigMapDataTab';
+import ConfigMapYamlTab from './ConfigMapYamlTab';
 type ConfigMapsOverviewTableProps = {
 	namespaces?: string[];
 	namespace?: string;
@@ -35,6 +35,7 @@ const bottomTabs = [
 	{ key: 'consumers', label: 'Consumers', countKey: 'consumers' },
 	{ key: 'events', label: 'Events', countKey: 'events' },
 	{ key: 'yaml', label: 'YAML', countable: false },
+	{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 	{ key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -95,7 +96,7 @@ function renderPanelContent(
 	row: ConfigMapRow,
 	tab: string,
 	holmesState: HolmesState,
-	onAnalyze: (row: ConfigMapRow) => void,
+	onAnalyze: (_row: ConfigMapRow) => void,
 	onCancel: () => void
 ) {
 	if (tab === 'summary') {
@@ -170,6 +171,9 @@ function renderPanelContent(
 	if (tab === 'yaml') {
 		return <ConfigMapYamlTab namespace={row.namespace} name={row.name} />;
 	}
+	if (tab === 'relationships') {
+		return <ResourceGraphTab namespace={row.namespace} kind="ConfigMap" name={row.name} />;
+	}
 	if (tab === 'holmes') {
 		const key = `${row.namespace}/${row.name}`;
 		return (
@@ -192,8 +196,6 @@ function renderPanelContent(
 	}
 	return null;
 }
-
-
 export default function ConfigMapsOverviewTable({ namespaces = [], namespace, onConfigMapCreate }: ConfigMapsOverviewTableProps) {
 	const [data, setData] = useState<ConfigMapRow[]>([]);
 	const [loading, setLoading] = useState(false);
@@ -338,7 +340,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -365,7 +367,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -397,7 +399,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 		inFlightRef.current = true;
 		try {
 			await fetchConfigMaps();
-		} catch (_) {
+		} catch {
 			// ignore periodic errors
 		} finally {
 			inFlightRef.current = false;
@@ -449,7 +451,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 				const filtered = arr.filter((cm) => namespaces.includes(cm?.namespace ?? cm?.Namespace ?? '') || (cm?.namespace ?? cm?.Namespace) === namespace);
 				setData(normalizeConfigMaps(filtered));
 				startFastPollingWindow();
-			} catch (_) {
+			} catch {
 				// ignore malformed payloads
 			}
 		};
@@ -495,7 +497,7 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 		}
 	};
 
-	const getRowActions = (row: ConfigMapRow, api?: { openDetails?: (tabKey: string) => void }) => {
+	const getRowActions = (row: ConfigMapRow, api?: { openDetails?: (_tabKey: string) => void }) => {
 		const key = `${row.namespace}/${row.name}`;
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [

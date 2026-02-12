@@ -17,13 +17,12 @@ export const updateSwarmNodeLabelsMock = vi.fn();
 // Generic mock for other App API functions to avoid individual test failures.
 // Note: Vitest is configured with restoreMocks=true, so we must provide a stable
 // default implementation (mockResolvedValue can be wiped by restore).
-export const genericAPIMock = vi.fn((..._args: unknown[]) => Promise.resolve(undefined));
+export const genericAPIMock = vi.fn(() => Promise.resolve(undefined));
 
 // Keep a registry of all App API mocks (except CreateResource which has its own)
 export const appApiMocks: Record<string, Mock> = {};
-
 const appFunctionNames = [
-  'CreateResource','DeletePod','DeleteResource','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','GetRoles','GetClusterRoles','GetRoleBindings','GetClusterRoleBindings','ResizePersistentVolumeClaim','GetServiceSummary','GetServices','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetReplicaSets','GetResourceCounts','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
+  'CreateResource','DeletePod','DeleteResource','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','GetRoles','GetClusterRoles','GetRoleBindings','GetClusterRoleBindings','ResizePersistentVolumeClaim','GetServiceSummary','GetServices','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetReplicaSets','GetResourceCounts','GetResourceGraph','GetNamespaceGraph','GetStorageGraph','GetNetworkPolicyGraph','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
   // Proxy functions
   'GetProxyConfig','SetProxyConfig','DetectSystemProxy','ClearProxyConfig',
   // Hooks functions
@@ -59,7 +58,7 @@ const appFunctionNames = [
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {
-  const exports: Record<string, (...args: unknown[]) => unknown> = {};
+  const exports: Record<string, (..._args: unknown[]) => unknown> = {};
   for (const name of appFunctionNames) {
     if (name === 'CreateResource') {
       exports[name] = (...args: unknown[]) => createResourceMock(...args);

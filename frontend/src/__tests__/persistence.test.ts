@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { persistNamespaces } from '../utils/persistence';
 
 // Mock kubeApi SetCurrentNamespace
@@ -13,7 +13,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   // Provide window.go preferred function mock
   const windowObj = window as typeof window & {
-    go?: { main?: { App?: { SetPreferredNamespaces?: (names: string[]) => Promise<void> } } };
+    go?: { main?: { App?: { SetPreferredNamespaces?: (_names: string[]) => Promise<void> } } };
   };
   windowObj.go = {
     main: {
@@ -25,9 +25,8 @@ beforeEach(() => {
 describe('persistNamespaces', () => {
   it('calls both preferred and current namespace setters', async () => {
     const windowObj = window as typeof window & {
-      go?: { main?: { App?: { SetPreferredNamespaces?: (names: string[]) => Promise<void> } } };
+      go?: { main?: { App?: { SetPreferredNamespaces?: (_names: string[]) => Promise<void> } } };
     };
-
     await persistNamespaces(['ns1', 'ns2'], 'ns1');
     expect(windowObj.go?.main?.App?.SetPreferredNamespaces).toHaveBeenCalledWith(['ns1', 'ns2']);
     expect(setCurrentNamespaceMock).toHaveBeenCalledWith('ns1');
@@ -35,7 +34,7 @@ describe('persistNamespaces', () => {
 
   it('handles missing preferred function gracefully', async () => {
     const windowObj = window as typeof window & {
-      go?: { main?: { App?: { SetPreferredNamespaces?: (names: string[]) => Promise<void> } } };
+      go?: { main?: { App?: { SetPreferredNamespaces?: (_names: string[]) => Promise<void> } } };
     };
     if (windowObj.go?.main?.App) {
       delete windowObj.go.main.App.SetPreferredNamespaces;
@@ -46,7 +45,7 @@ describe('persistNamespaces', () => {
 
   it('swallows internal errors', async () => {
     const windowObj = window as typeof window & {
-      go?: { main?: { App?: { SetPreferredNamespaces?: (names: string[]) => Promise<void> } } };
+      go?: { main?: { App?: { SetPreferredNamespaces?: (_names: string[]) => Promise<void> } } };
     };
     if (windowObj.go?.main?.App) {
       windowObj.go.main.App.SetPreferredNamespaces = vi.fn(() => Promise.reject(new Error('fail')));

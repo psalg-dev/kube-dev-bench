@@ -1,31 +1,31 @@
 import { useCallback, useEffect, useState } from 'react';
+import { ContextSelect, NamespaceMultiSelect } from '../Dropdowns';
+import { SwarmResourceCountsProvider, useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext';
+import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext';
+import { renderPodsMainContent, renderResourceMainContent } from '../main-content';
 import { ClusterStateProvider, useClusterState } from '../state/ClusterStateContext';
+import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext';
 import { AppLayout } from './AppLayout';
 import ConnectionWizard from './connection/ConnectionWizard';
 import type { SelectedSection } from './connection/ConnectionsStateContext';
-import { ContextSelect, NamespaceMultiSelect } from '../Dropdowns';
-import { renderPodsMainContent, renderResourceMainContent } from '../main-content';
-import { ResourceCountsProvider } from '../state/ResourceCountsContext';
-import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext';
-import { SwarmResourceCountsProvider, useSwarmResourceCounts } from '../docker/SwarmResourceCountsContext';
 // Holmes AI provider and components
-import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
-import { HolmesPanel } from '../holmes/HolmesPanel';
 import { HolmesConfigModal } from '../holmes/HolmesConfigModal';
+import { HolmesProvider, useHolmes } from '../holmes/HolmesContext';
 import { HolmesOnboardingWizard } from '../holmes/HolmesOnboardingWizard';
+import { HolmesPanel } from '../holmes/HolmesPanel';
 // MCP server provider and components
-import { MCPProvider, useMCP } from '../mcp/MCPContext';
 import { MCPConfigModal } from '../mcp/MCPConfigModal';
-
+import { MCPProvider, useMCP } from '../mcp/MCPContext';
 type MainContentBinderProps = {
   selectedSection: string;
-  setConnectionWizardInitialSection?: (section: SelectedSection) => void;
+  setConnectionWizardInitialSection?: (_section: SelectedSection) => void;
 };
-
 function MainContentBinder({ selectedSection, setConnectionWizardInitialSection }: MainContentBinderProps) {
-  const { selectedNamespaces, clusterConnected, actions, showWizard } = useClusterState();
+  const clusterState = useClusterState();
+  const { selectedNamespaces, clusterConnected, actions, showWizard } = clusterState;
   const swarmState = useSwarmState();
   const swarmCounts = useSwarmResourceCounts();
+  const resourceCounts = useResourceCounts();
 
   const isSwarmSection = selectedSection?.startsWith('swarm-');
 
@@ -34,9 +34,9 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
       renderPodsMainContent(selectedNamespaces);
     } else {
       // BUGFIX: pass selectedSection so correct resource renders (was defaulting to deployments)
-      renderResourceMainContent(selectedNamespaces, selectedSection, { swarmState, swarmCounts });
+      renderResourceMainContent(selectedNamespaces, selectedSection, { swarmState, swarmCounts, clusterState, resourceCounts });
     }
-  }, [selectedSection, selectedNamespaces, swarmState, swarmCounts]);
+  }, [selectedSection, selectedNamespaces, swarmState, swarmCounts, clusterState, resourceCounts]);
 
   // Render main content whenever dependencies change
   useEffect(() => {
@@ -88,9 +88,9 @@ function MainContentBinder({ selectedSection, setConnectionWizardInitialSection 
 type LayoutOrWizardProps = {
   onWizardComplete: () => void;
   selectedSection: string;
-  setSelectedSection: (section: string) => void;
+  setSelectedSection: (_section: string) => void;
   connectionWizardInitialSection: SelectedSection;
-  setConnectionWizardInitialSection: (section: SelectedSection) => void;
+  setConnectionWizardInitialSection: (_section: SelectedSection) => void;
 };
 
 function LayoutOrWizard({

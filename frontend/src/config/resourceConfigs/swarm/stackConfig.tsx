@@ -1,26 +1,26 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { StackComposeTab } from '../../../docker/resources/stacks/StackComposeTab';
+import { StackResourcesTab } from '../../../docker/resources/stacks/StackResourcesTab';
+import { StackServicesTab } from '../../../docker/resources/stacks/StackServicesTab';
+import { StackSummaryPanel } from '../../../docker/resources/stacks/StackSummaryPanel';
 import {
-  GetSwarmStackResources,
-  GetSwarmStackServices,
-  GetSwarmStacks,
-  RemoveSwarmStack,
+    GetSwarmStackResources,
+    GetSwarmStackServices,
+    GetSwarmStacks,
+    RemoveSwarmStack,
 } from '../../../docker/swarmApi';
 import { AnalyzeSwarmStackStream } from '../../../holmes/holmesApi';
-import { showSuccess, showError } from '../../../notification';
-import { StackServicesTab } from '../../../docker/resources/stacks/StackServicesTab';
-import { StackResourcesTab } from '../../../docker/resources/stacks/StackResourcesTab';
-import { StackComposeTab } from '../../../docker/resources/stacks/StackComposeTab';
-import { StackSummaryPanel } from '../../../docker/resources/stacks/StackSummaryPanel';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
+import { showError, showSuccess } from '../../../notification';
 import type {
-  HolmesHelpers,
-  PanelApi,
-  RenderPanelContent,
-  ResourceColumn,
-  ResourceConfig,
-  ResourceRow,
-  ResourceTab,
-  RowAction,
+    HolmesHelpers,
+    PanelApi,
+    RenderPanelContent,
+    ResourceColumn,
+    ResourceConfig,
+    ResourceRow,
+    ResourceTab,
+    RowAction,
 } from '../../../types/resourceConfigs';
 
 /**
@@ -73,11 +73,10 @@ export const fetchSwarmStackTabCounts = async (row: ResourceRow) => {
     secrets: Array.isArray(res.secrets) ? res.secrets.length : 0,
   };
 };
-
 /**
  * Render panel content for each tab
  */
-export const renderSwarmStackPanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel, panelApi) => {
+export const renderSwarmStackPanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel) => {
   if (tab === 'summary') {
     return <StackSummaryPanel row={row} />;
   }

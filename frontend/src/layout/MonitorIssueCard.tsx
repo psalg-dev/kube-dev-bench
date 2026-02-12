@@ -24,13 +24,12 @@ type MonitorIssue = {
 
 type MonitorIssueCardProps = {
   issue: MonitorIssue;
-  onNavigate: (issue: MonitorIssue) => void;
-  onAnalyze: (issue: MonitorIssue) => void;
-  onDismiss: (issue: MonitorIssue) => void;
+  onNavigate: (_issue: MonitorIssue) => void;
+  onAnalyze: (_issue: MonitorIssue) => void;
+  onDismiss: (_issue: MonitorIssue) => void;
   analyzing?: boolean;
   dismissing?: boolean;
 };
-
 export function MonitorIssueCard({
   issue,
   onNavigate,
@@ -58,11 +57,8 @@ export function MonitorIssueCard({
   const analyzedAtLabel = useMemo(() => {
     if (!issue.holmesAnalyzedAt) return '';
     const ts = new Date(issue.holmesAnalyzedAt);
-    const diffMs = Date.now() - ts.getTime();
-    const minutes = Math.max(1, Math.floor(diffMs / 60000));
-    if (minutes < 60) return `Analyzed ${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    return `Analyzed ${hours}h ago`;
+    if (Number.isNaN(ts.getTime())) return '';
+    return `Analyzed at ${ts.toLocaleString()}`;
   }, [issue.holmesAnalyzedAt]);
 
   const handleAnalyze = (event: React.MouseEvent) => {

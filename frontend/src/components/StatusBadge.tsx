@@ -126,6 +126,7 @@ export function StatusBadge({
  * Get the status color for use in other components.
  * Useful when you need just the color without the full badge.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export { getStatusColor };
 
 export default StatusBadge;

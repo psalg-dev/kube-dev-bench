@@ -6,7 +6,7 @@
 
 const isDev = import.meta.env?.DEV ?? false;
 
-type LogMethod = (...args: unknown[]) => void;
+type LogMethod = (..._args: unknown[]) => void;
 type Logger = {
   log: LogMethod;
   info: LogMethod;
@@ -18,10 +18,9 @@ type Logger = {
   group: LogMethod;
   groupEnd: () => void;
   groupCollapsed: LogMethod;
-  time: (label?: string) => void;
-  timeEnd: (label?: string) => void;
+  time: (_label?: string) => void;
+  timeEnd: (_label?: string) => void;
 };
-
 /**
  * Logger object with methods matching console API.
  * Logs are only output in development mode.
@@ -33,7 +32,7 @@ export const logger: Logger = {
    */
   log: (...args: unknown[]) => {
     if (isDev) {
-      console.log(...args);
+      globalThis.console.log(...args);
     }
   },
 
@@ -43,7 +42,7 @@ export const logger: Logger = {
    */
   info: (...args: unknown[]) => {
     if (isDev) {
-      console.info(...args);
+      globalThis.console.info(...args);
     }
   },
 
@@ -53,7 +52,7 @@ export const logger: Logger = {
    */
   warn: (...args: unknown[]) => {
     if (isDev) {
-      console.warn(...args);
+      globalThis.console.warn(...args);
     }
   },
 
@@ -64,7 +63,7 @@ export const logger: Logger = {
    */
   error: (...args: unknown[]) => {
     // Always log errors, even in production
-    console.error(...args);
+    globalThis.console.error(...args);
   },
 
   /**
@@ -73,7 +72,7 @@ export const logger: Logger = {
    */
   debug: (...args: unknown[]) => {
     if (isDev) {
-      console.debug(...args);
+      globalThis.console.debug(...args);
     }
   },
 
@@ -83,7 +82,7 @@ export const logger: Logger = {
    */
   trace: (...args: unknown[]) => {
     if (isDev) {
-      console.trace(...args);
+      globalThis.console.trace(...args);
     }
   },
 
@@ -93,7 +92,7 @@ export const logger: Logger = {
    */
   table: (...args: unknown[]) => {
     if (isDev) {
-      console.table(...args);
+      globalThis.console.table(...args);
     }
   },
 
@@ -103,7 +102,7 @@ export const logger: Logger = {
    */
   group: (...args: unknown[]) => {
     if (isDev) {
-      console.group(...args);
+      globalThis.console.group(...args);
     }
   },
 
@@ -112,7 +111,7 @@ export const logger: Logger = {
    */
   groupEnd: () => {
     if (isDev) {
-      console.groupEnd();
+      globalThis.console.groupEnd();
     }
   },
 
@@ -122,7 +121,7 @@ export const logger: Logger = {
    */
   groupCollapsed: (...args: unknown[]) => {
     if (isDev) {
-      console.groupCollapsed(...args);
+      globalThis.console.groupCollapsed(...args);
     }
   },
 
@@ -132,7 +131,7 @@ export const logger: Logger = {
    */
   time: (label?: string) => {
     if (isDev) {
-      console.time(label ?? 'default');
+      globalThis.console.time(label ?? 'default');
     }
   },
 
@@ -142,7 +141,7 @@ export const logger: Logger = {
    */
   timeEnd: (label?: string) => {
     if (isDev) {
-      console.timeEnd(label ?? 'default');
+      globalThis.console.timeEnd(label ?? 'default');
     }
   },
 };

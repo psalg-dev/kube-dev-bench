@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import PodMountsTab from '../k8s/resources/pods/PodMountsTab';
-
 describe('PodMountsTab', () => {
   let mockGetPodMounts: ReturnType<typeof vi.fn>;
   let mockGetSecretData: ReturnType<typeof vi.fn>;

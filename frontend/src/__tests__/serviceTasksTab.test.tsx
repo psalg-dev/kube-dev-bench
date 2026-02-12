@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, within, waitFor, act } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { runtimeHandlers, swarmApiMocks } = vi.hoisted(() => {
   return {
-    runtimeHandlers: new Map<string, (payload: unknown) => void>(),
+    runtimeHandlers: new Map<string, (_payload: unknown) => void>(),
     swarmApiMocks: {
       GetSwarmTasksByService: vi.fn(),
     },
@@ -14,7 +14,7 @@ vi.mock('../docker/swarmApi', () => swarmApiMocks);
 
 // ServiceTasksTab imports "../../../../wailsjs/runtime" (package.json points to runtime.js)
 vi.mock('../../wailsjs/runtime', () => ({
-  EventsOn: vi.fn((eventName: string, cb: (payload: unknown) => void) => {
+  EventsOn: vi.fn((eventName: string, cb: (_payload: unknown) => void) => {
     runtimeHandlers.set(eventName, cb);
     return vi.fn();
   }),

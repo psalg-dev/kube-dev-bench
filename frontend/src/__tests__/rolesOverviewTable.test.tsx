@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import RolesOverviewTable from '../k8s/resources/roles/RolesOverviewTable';
-import { appApiMocks, resetAllMocks, eventsOnMock } from './wailsMocks';
-
+import { appApiMocks, eventsOnMock, resetAllMocks } from './wailsMocks';
 const sampleRoles = [
   {
     Name: 'reader',
@@ -48,7 +47,7 @@ describe('RolesOverviewTable', () => {
     render(<RolesOverviewTable namespace="default" />);
 
     await waitFor(() => {
-      expect(screen.getByText('No rows match the filter.')).toBeInTheDocument();
+      expect(screen.getByText('No Roles deployed in this namespace')).toBeInTheDocument();
     });
   });
 

@@ -181,6 +181,23 @@ type CronJobInfo struct {
 	Labels    map[string]string `json:"labels"` // Added
 }
 
+// HorizontalPodAutoscalerInfo describes an HPA's basic info
+type HorizontalPodAutoscalerInfo struct {
+	Name            string `json:"name"`
+	Namespace       string `json:"namespace"`
+	TargetKind      string `json:"targetKind"`
+	TargetName      string `json:"targetName"`
+	MinReplicas     int32  `json:"minReplicas"`
+	MaxReplicas     int32  `json:"maxReplicas"`
+	CurrentReplicas int32  `json:"currentReplicas"`
+	DesiredReplicas int32  `json:"desiredReplicas"`
+	CurrentCPU      string `json:"currentCPU,omitempty"`
+	CurrentMemory   string `json:"currentMemory,omitempty"`
+	TargetCPU       string `json:"targetCPU,omitempty"`
+	TargetMemory    string `json:"targetMemory,omitempty"`
+	Age             string `json:"age"`
+}
+
 // DaemonSetInfo describes a daemonset's basic info
 type DaemonSetInfo struct {
 	Name      string            `json:"name"`
@@ -322,10 +339,10 @@ type ResourceCounts struct {
 	PersistentVolumes      int             `json:"persistentvolumes"`
 	HelmReleases           int             `json:"helmreleases"`
 
-	Roles                  int             `json:"roles"`
-	ClusterRoles           int             `json:"clusterroles"`
-	RoleBindings           int             `json:"rolebindings"`
-	ClusterRoleBindings    int             `json:"clusterrolebindings"`
+	Roles               int `json:"roles"`
+	ClusterRoles        int `json:"clusterroles"`
+	RoleBindings        int `json:"rolebindings"`
+	ClusterRoleBindings int `json:"clusterrolebindings"`
 }
 
 // MonitorIssue represents a single warning or error detected in the cluster

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 /**
  * Default application settings.
@@ -27,12 +27,11 @@ const STORAGE_KEY = 'kubedevbench_settings';
 
 type SettingsContextValue = {
   settings: Settings;
-  updateSetting: <K extends keyof Settings>(key: K, value: Settings[K]) => void;
-  updateSettings: (updates: Partial<Settings>) => void;
+  updateSetting: <K extends keyof Settings>(_key: K, _value: Settings[K]) => void;
+  updateSettings: (_updates: Partial<Settings>) => void;
   resetSettings: () => void;
   defaultSettings: Settings;
 };
-
 const SettingsContext = createContext<SettingsContextValue | null>(null);
 
 /**
@@ -126,6 +125,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
  * Hook to access settings context.
  * @returns {{ settings: Object, updateSetting: Function, updateSettings: Function, resetSettings: Function }}
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSettings() {
   const context = useContext(SettingsContext);
   if (!context) {
@@ -140,6 +140,7 @@ export function useSettings() {
  * @param {string} key - Setting key
  * @returns {*} The setting value
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSetting<K extends keyof Settings>(key: K) {
   const context = useContext(SettingsContext);
   if (context) {
@@ -148,5 +149,6 @@ export function useSetting<K extends keyof Settings>(key: K) {
   return defaultSettings[key];
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { defaultSettings };
 export default SettingsContext;

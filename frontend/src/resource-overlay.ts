@@ -1,12 +1,6 @@
-import {EditorState} from '@codemirror/state';
-import {
-    crosshairCursor,
-    drawSelection, dropCursor,
-    highlightActiveLine, highlightActiveLineGutter,
-    highlightSpecialChars, keymap,
-    lineNumbers, rectangularSelection
-} from '@codemirror/view';
-import { EditorView } from '@codemirror/view';
+import { closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
+import { defaultKeymap, historyKeymap } from '@codemirror/commands';
+import { yaml } from '@codemirror/lang-yaml';
 import {
     bracketMatching,
     defaultHighlightStyle,
@@ -14,21 +8,26 @@ import {
     indentOnInput,
     syntaxHighlighting
 } from '@codemirror/language';
-import {highlightSelectionMatches, searchKeymap} from '@codemirror/search';
-import {yaml} from '@codemirror/lang-yaml';
-import {closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete';
-import {defaultKeymap, history as _history, historyKeymap} from '@codemirror/commands';
-import {lintKeymap} from '@codemirror/lint';
+import { lintKeymap } from '@codemirror/lint';
+import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
+import { EditorState } from '@codemirror/state';
+import {
+    crosshairCursor,
+    drawSelection, dropCursor,
+    EditorView,
+    highlightActiveLine, highlightActiveLineGutter,
+    highlightSpecialChars, keymap,
+    lineNumbers, rectangularSelection
+} from '@codemirror/view';
 import { CreateResource } from '../wailsjs/go/main/App';
-import { showSuccess, showError } from './notification';
+import { showError, showSuccess } from './notification';
 
 type ResourceOverlayOptions = {
   onSuccess?: () => void;
-  onError?: (err: unknown) => void;
+  onError?: (_err: unknown) => void;
   onClose?: () => void;
   namespace?: string;
 };
-
 export function showResourceOverlay(resourceType: string, options: ResourceOverlayOptions = {}) {
     console.warn('showResourceOverlay called with:', resourceType);
     const template = resourceTemplates[resourceType];

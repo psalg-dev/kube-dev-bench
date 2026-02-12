@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useEffect } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the swarm API
 vi.mock('../docker/swarmApi', () => ({
@@ -32,12 +33,11 @@ vi.mock('../notification', () => ({
   showError: vi.fn(),
 }));
 
-import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext';
-import type { SwarmStateContextValue } from '../docker/SwarmStateContext';
 import type { docker } from '../../wailsjs/go/models';
 import * as swarmApi from '../docker/swarmApi';
+import type { SwarmStateContextValue } from '../docker/SwarmStateContext';
+import { SwarmStateProvider, useSwarmState } from '../docker/SwarmStateContext';
 import * as notification from '../notification';
-
 type SwarmStateValue = SwarmStateContextValue | null;
 
 const dockerConfig: docker.DockerConfig = {
@@ -50,9 +50,13 @@ const dockerConfig: docker.DockerConfig = {
 };
 
 // Test component to access context
-function TestConsumer({ onRender }: { onRender?: (state: SwarmStateValue) => void }) {
+function TestConsumer({ onRender }: { onRender?: (_state: SwarmStateValue) => void }) {
   const state = useSwarmState();
-  onRender?.(state);
+  useEffect(() => {
+    if (onRender) {
+      onRender(state);
+    }
+  }, [onRender, state]);
   return (
     <div>
       <span data-testid="connected">{String(state?.connected)}</span>
@@ -166,16 +170,21 @@ describe('SwarmStateContext', () => {
     expect(showSuccessMock).toHaveBeenCalledWith('Disconnected from Docker');
   });
 
-  it('returns null when used outside provider', () => {
+  it('returns null when used outside provider', async () => {
     let capturedState: SwarmStateValue = 'not-set' as unknown as SwarmStateValue;
     const TestNullConsumer = () => {
-      capturedState = useSwarmState();
+      const state = useSwarmState();
+      useEffect(() => {
+        capturedState = state;
+      }, [state]);
       return <div>Test</div>;
     };
 
     render(<TestNullConsumer />);
 
-    expect(capturedState).toBeNull();
+    await waitFor(() => {
+      expect(capturedState).toBeNull();
+    });
   });
 
   it('provides resource refresh functions', async () => {
