@@ -302,8 +302,10 @@ jobs:
       - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
         if: matrix.holmes_deploy == true
         run: |
+          IMAGE_PLATFORM="linux/amd64"
           echo "Pulling ${HOLMES_MOCK_NODE_IMAGE} image..."
-          docker pull "${HOLMES_MOCK_NODE_IMAGE}"
+          docker pull --platform "${IMAGE_PLATFORM}" "${HOLMES_MOCK_NODE_IMAGE}"
+          docker image inspect "${HOLMES_MOCK_NODE_IMAGE}" --format 'Loaded image architecture: {{.Architecture}}/{{.Os}}'
           echo "Loading ${HOLMES_MOCK_NODE_IMAGE} into kind cluster..."
           kind load docker-image "${HOLMES_MOCK_NODE_IMAGE}" --name kdb-e2e
 
