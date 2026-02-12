@@ -126,6 +126,8 @@ jobs:
   e2e:
     runs-on: ubuntu-22.04
     needs: backend
+    env:
+      HOLMES_MOCK_NODE_IMAGE: node:24-alpine
     strategy:
       fail-fast: false
       matrix:
@@ -300,10 +302,10 @@ jobs:
       - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
         if: matrix.holmes_deploy == true
         run: |
-          echo "Pulling node:20-alpine image..."
-          docker pull node:20-alpine
-          echo "Loading node:20-alpine into kind cluster..."
-          kind load docker-image node:20-alpine --name kdb-e2e
+          echo "Pulling ${HOLMES_MOCK_NODE_IMAGE} image..."
+          docker pull "${HOLMES_MOCK_NODE_IMAGE}"
+          echo "Loading ${HOLMES_MOCK_NODE_IMAGE} into kind cluster..."
+          kind load docker-image "${HOLMES_MOCK_NODE_IMAGE}" --name kdb-e2e
 
       - name: Run Holmes deployment e2e tests
         if: matrix.holmes_deploy == true
