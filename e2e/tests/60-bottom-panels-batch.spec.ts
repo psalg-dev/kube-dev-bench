@@ -3,57 +3,13 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { openRowDetailsByName } from '../src/support/wait-helpers.js';
 
 test.describe.configure({ timeout: 180_000 });
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
-}
-
-async function openRowDetailsByName(page: any, name: string) {
-  await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
-  const table = page.locator('#main-panels > div:visible table.gh-table');
-  await expect(table).toBeVisible({ timeout: 60_000 });
-  const row = table.locator('tbody tr').filter({ hasText: name }).first();
-  await expect(row).toBeVisible({ timeout: 60_000 });
-  const nameCell = row.locator('td').first();
-  const detailsPanel = page
-    .locator('.bottom-panel')
-    .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
-  for (let attempt = 0; attempt < 3; attempt++) {
-    await nameCell.waitFor({ state: 'visible', timeout: 30_000 });
-    await nameCell.click({ timeout: 30_000 });
-    try {
-      await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
-      await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
-      return;
-    } catch {
-      // continue to fallback
-    }
-
-    // Fallback: open via row actions menu (Details)
-    const actionsBtn = row.getByRole('button', { name: 'Row actions' }).first();
-    if (await actionsBtn.isVisible().catch(() => false)) {
-      await actionsBtn.click({ timeout: 5_000 });
-      const menu = page.locator('.row-actions-menu').first();
-      const detailsItem = menu.getByText('Details').first();
-      if (await detailsItem.isVisible().catch(() => false)) {
-        await detailsItem.click({ force: true });
-        try {
-          await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
-          await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
-          return;
-        } catch {
-          // keep retrying
-        }
-      }
-    }
-
-    await page.waitForTimeout(250);
-  }
-
-  throw new Error(`Failed to open bottom panel for row: ${name}`);
 }
 
 async function expectAndClickTabs(panel: BottomPanel, labels: string[], reopenPanel?: () => Promise<void>) {

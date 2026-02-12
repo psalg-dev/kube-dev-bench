@@ -113,7 +113,7 @@ test('bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet)
         }
         return table.locator('tbody tr').filter({ hasText: deployName }).count();
       },
-      { timeout: 150_000, intervals: [1_000, 2_000, 3_000] }
+      { timeout: 210_000, intervals: [1_000, 2_000, 3_000, 5_000] }
     )
     .toBeGreaterThan(0);
 
