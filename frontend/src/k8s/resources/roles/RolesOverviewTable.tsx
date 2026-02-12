@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/rules-of-hooks */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
@@ -94,6 +93,42 @@ const fetchRoleYaml = (namespace?: string, name?: string) => {
     : AppAPI.GetResourceYAML('Role', namespace, name);
 };
 
+function RoleYamlTab({
+  namespace,
+  name,
+  yamlLoader,
+}: {
+  namespace: string;
+  name: string;
+  yamlLoader: (_ns: string, _name: string) => Promise<string>;
+}) {
+  const [yaml, setYaml] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const text = await yamlLoader(namespace, name);
+        if (mounted) setYaml(text || '');
+      } catch (e: any) {
+        if (mounted) setError(String(e));
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [namespace, name, yamlLoader]);
+
+  return <YamlTab content={yaml} loading={loading} error={error} />;
+}
+
 function renderPanelContent(
   row: RoleRow,
   tab: string,
@@ -157,29 +192,7 @@ function renderPanelContent(
     return <ResourceEventsTab namespace={row.namespace} kind="Role" name={row.name} />;
   }
   if (tab === 'yaml') {
-    // Inline YAML pane using generic GetResourceYAML; backend must support 'role' kind.
-    // Fallback: shows error if unsupported.
-    const [yaml, setYaml] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    useEffect(() => {
-      let mounted = true;
-      const load = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const text = await yamlLoader(row.namespace, row.name);
-          if (mounted) setYaml(text || '');
-        } catch (e: any) {
-          if (mounted) setError(String(e));
-        } finally {
-          if (mounted) setLoading(false);
-        }
-      };
-      load();
-      return () => { mounted = false; };
-    }, [row.namespace, row.name, yamlLoader]);
-    return <YamlTab content={yaml} loading={loading} error={error} />;
+    return <RoleYamlTab namespace={row.namespace} name={row.name} yamlLoader={yamlLoader} />;
   }
   if (tab === 'relationships') {
     return <ResourceGraphTab namespace={row.namespace} kind="Role" name={row.name} />;

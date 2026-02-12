@@ -86,7 +86,7 @@ test.describe('RBAC resources', () => {
       await openRowDetailsByName(page, roleBindingName);
       const panel = page.locator('.bottom-panel');
       await panel.getByRole('button', { name: /^subjects$/i }).click();
-      await expect(panel.getByText('User')).toBeVisible();
+      await expect(panel.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
     });
 
     const clusterRoleBindingName = uniqueName('e2e-crb');
@@ -106,7 +106,7 @@ test.describe('RBAC resources', () => {
       await openRowDetailsByName(page, clusterRoleBindingName);
       const panel = page.locator('.bottom-panel');
       await panel.getByRole('button', { name: /^subjects$/i }).click();
-      await expect(panel.getByText('User')).toBeVisible();
+      await expect(panel.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
     });
 
     await test.step('delete role binding and cluster role binding', async () => {

@@ -1,0 +1,235 @@
+Annotations
+14 errors and 4 notices
+e2e (e2e-shard-1, 1, 34200, false, false, false)
+Process completed with exit code 1.
+tests/10-create-deployment-and-open-details.spec.ts:11:1 › creates a Deployment via plus overlay and opens bottom panel: e2e/src/pages/SidebarPage.ts#L90
+  3) tests/10-create-deployment-and-open-details.spec.ts:11:1 › creates a Deployment via plus overlay and opens bottom panel 
+    Error: expect(locator).toBeVisible() failed
+
+    Locator:  locator('#section-deployments')
+    Expected: visible
+    Received: hidden
+    Timeout:  30000ms
+
+    Call log:
+      - Expect "toBeVisible" with timeout 30000ms
+      - waiting for locator('#section-deployments')
+        33 × locator resolved to <a href="#/deployments" data-discover="true" id="section-deployments" data-testid="workloads-child-deployments" class="sidebar-section sidebar-section-link">…</a>
+           - unexpected value "hidden"
+
+
+       at ../src/pages/SidebarPage.ts:90
+
+      88 |     const section = this.page.locator(`#section-${key}`);
+      89 |     // Wait for the section to exist
+    > 90 |     await expect(section).toBeVisible({ timeout: 30_000 });
+         |                           ^
+      91 |     await section.scrollIntoViewIfNeeded();
+      92 |
+      93 |     // Use Playwright's click so it will auto-retry if the element is briefly
+        at SidebarPage.goToSection (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:90:27)
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/10-create-deployment-and-open-details.spec.ts:14:3
+tests/110-resource-graph.spec.ts:13:1 › resource graph: deployment relationships and navigation: e2e/src/support/kind.ts#L131
+  2) tests/110-resource-graph.spec.ts:13:1 › resource graph: deployment relationships and navigation 
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: Failed creating namespace kdb-e2e-0b55eec578d0-w6: The connection to the server 127.0.0.1:46251 was refused - did you specify the right host or port?
+
+       at ../src/support/kind.ts:131
+
+      129 |     }
+      130 |
+    > 131 |     throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
+          |           ^
+      132 |   }
+      133 | }
+      134 |
+        at ensureNamespace (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/support/kind.ts:131:11)
+        at Object.base.extend.namespace.scope (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/fixtures.ts:86:5)
+tests/110-resource-graph.spec.ts:13:1 › resource graph: deployment relationships and navigation: e2e/tests/110-resource-graph.spec.ts#L43
+  2) tests/110-resource-graph.spec.ts:13:1 › resource graph: deployment relationships and navigation 
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: locator('h2.overview-title:visible')
+    Expected pattern: /pods/i
+    Received string:  "Deployments"
+    Timeout: 20000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 20000ms
+      - waiting for locator('h2.overview-title:visible')
+        24 × locator resolved to <h2 class="overview-title">Deployments</h2>
+           - unexpected value "Deployments"
+
+
+      41 |
+      42 |   await page.locator('.graph-node--pod').first().click();
+    > 43 |   await expect(page.locator('h2.overview-title:visible')).toHaveText(/pods/i, { timeout: 20_000 });
+         |                                                           ^
+      44 | });
+      45 |
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/110-resource-graph.spec.ts:43:59
+tests/110-resource-graph.spec.ts:13:1 › resource graph: deployment relationships and navigation: e2e/tests/110-resource-graph.spec.ts#L43
+  2) tests/110-resource-graph.spec.ts:13:1 › resource graph: deployment relationships and navigation 
+    Error: expect(locator).toHaveText(expected) failed
+
+    Locator: locator('h2.overview-title:visible')
+    Expected pattern: /pods/i
+    Received string:  "Deployments"
+    Timeout: 20000ms
+
+    Call log:
+      - Expect "toHaveText" with timeout 20000ms
+      - waiting for locator('h2.overview-title:visible')
+        24 × locator resolved to <h2 class="overview-title">Deployments</h2>
+           - unexpected value "Deployments"
+
+
+      41 |
+      42 |   await page.locator('.graph-node--pod').first().click();
+    > 43 |   await expect(page.locator('h2.overview-title:visible')).toHaveText(/pods/i, { timeout: 20_000 });
+         |                                                           ^
+      44 | });
+      45 |
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/110-resource-graph.spec.ts:43:59
+tests/100-rbac-resources.spec.ts:13:3 › RBAC resources › creates and deletes RBAC resources via overlay: e2e/tests/100-rbac-resources.spec.ts#L0
+1) tests/100-rbac-resources.spec.ts:13:3 › RBAC resources › creates and deletes RBAC resources via overlay › create role Retry #2 ─────────────────────────────────────────────────────────────────────────────────────── Test was interrupted.
+tests/100-rbac-resources.spec.ts:13:3 › RBAC resources › creates and deletes RBAC resources via overlay: e2e/src/pages/SidebarPage.ts#L127
+  1) tests/100-rbac-resources.spec.ts:13:3 › RBAC resources › creates and deletes RBAC resources via overlay › create role 
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: expect(locator).toHaveClass(expected) failed
+
+    Locator: locator('#section-roles')
+    Expected pattern: /\bselected\b/
+    Received string:  "sidebar-section sidebar-section-link"
+    Timeout: 30000ms
+
+    Call log:
+      - Expect "toHaveClass" with timeout 30000ms
+      - waiting for locator('#section-roles')
+        34 × locator resolved to <a href="#/roles" id="section-roles" data-discover="true" data-testid="rbac-child-roles" class="sidebar-section sidebar-section-link">…</a>
+           - unexpected value "sidebar-section sidebar-section-link"
+
+
+       at ../src/pages/SidebarPage.ts:127
+
+      125 |     await section.scrollIntoViewIfNeeded();
+      126 |     await section.click({ timeout: 30_000 });
+    > 127 |     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
+          |                           ^
+      128 |   }
+      129 | }
+      130 |
+        at SidebarPage.goToRbacSection (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:127:27)
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/100-rbac-resources.spec.ts:23:7
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/100-rbac-resources.spec.ts:22:5
+tests/100-rbac-resources.spec.ts:13:3 › RBAC resources › creates and deletes RBAC resources via overlay: e2e/src/pages/SidebarPage.ts#L127
+  1) tests/100-rbac-resources.spec.ts:13:3 › RBAC resources › creates and deletes RBAC resources via overlay › create role 
+    Error: expect(locator).toHaveClass(expected) failed
+
+    Locator: locator('#section-roles')
+    Expected pattern: /\bselected\b/
+    Received string:  "sidebar-section sidebar-section-link"
+    Timeout: 30000ms
+
+    Call log:
+      - Expect "toHaveClass" with timeout 30000ms
+      - waiting for locator('#section-roles')
+        34 × locator resolved to <a href="#/roles" id="section-roles" data-discover="true" data-testid="rbac-child-roles" class="sidebar-section sidebar-section-link">…</a>
+           - unexpected value "sidebar-section sidebar-section-link"
+
+
+       at ../src/pages/SidebarPage.ts:127
+
+      125 |     await section.scrollIntoViewIfNeeded();
+      126 |     await section.click({ timeout: 30_000 });
+    > 127 |     await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
+          |                           ^
+      128 |   }
+      129 | }
+      130 |
+        at SidebarPage.goToRbacSection (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:127:27)
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/100-rbac-resources.spec.ts:23:7
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/100-rbac-resources.spec.ts:22:5
+e2e (e2e-shard-1, 1, 34200, false, false, false)
+Testing stopped early after 1 maximum allowed failures.
+e2e (e2e-shard-2, 2, 34300, false, false, false)
+Process completed with exit code 1.
+tests/swarm/74-networks-volumes-usage.spec.ts:25:3 › Docker Swarm Networks + Volumes Usage › networks tabs render (services/containers/inspect) and summary shows IPAM + Options: e2e/tests/swarm/74-networks-volumes-usage.spec.ts#L129
+  1) tests/swarm/74-networks-volumes-usage.spec.ts:25:3 › Docker Swarm Networks + Volumes Usage › networks tabs render (services/containers/inspect) and summary shows IPAM + Options 
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.bottom-panel').first().getByText('kdb_e2e_net')
+    Expected: visible
+    Error: strict mode violation: locator('.bottom-panel').first().getByText('kdb_e2e_net') resolved to 2 elements:
+        1) <strong>kdb_e2e_net</strong> aka getByRole('strong')
+        2) <div class="quick-info__field-value">kdb_e2e_net</div> aka locator('div').filter({ hasText: /^kdb_e2e_net$/ })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for locator('.bottom-panel').first().getByText('kdb_e2e_net')
+
+
+      127 |     await panelRoot.getByRole('button', { name: 'Summary', exact: true }).click();
+      128 |     // Verify the network name appears in the Quick Info section
+    > 129 |     await expect(panelRoot.getByText(fixtureNetworkName)).toBeVisible({ timeout: 60_000 });
+          |                                                           ^
+      130 |     await expect(panelRoot.getByText('IPAM', { exact: true })).toBeVisible({ timeout: 60_000 });
+      131 |     await expect(panelRoot.getByText('Options', { exact: true })).toBeVisible({ timeout: 60_000 });
+      132 |
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/swarm/74-networks-volumes-usage.spec.ts:129:59
+tests/swarm/74-networks-volumes-usage.spec.ts:25:3 › Docker Swarm Networks + Volumes Usage › networks tabs render (services/containers/inspect) and summary shows IPAM + Options: e2e/tests/swarm/74-networks-volumes-usage.spec.ts#L129
+  1) tests/swarm/74-networks-volumes-usage.spec.ts:25:3 › Docker Swarm Networks + Volumes Usage › networks tabs render (services/containers/inspect) and summary shows IPAM + Options 
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.bottom-panel').first().getByText('kdb_e2e_net')
+    Expected: visible
+    Error: strict mode violation: locator('.bottom-panel').first().getByText('kdb_e2e_net') resolved to 2 elements:
+        1) <strong>kdb_e2e_net</strong> aka getByRole('strong')
+        2) <div class="quick-info__field-value">kdb_e2e_net</div> aka locator('div').filter({ hasText: /^kdb_e2e_net$/ })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for locator('.bottom-panel').first().getByText('kdb_e2e_net')
+
+
+      127 |     await panelRoot.getByRole('button', { name: 'Summary', exact: true }).click();
+      128 |     // Verify the network name appears in the Quick Info section
+    > 129 |     await expect(panelRoot.getByText(fixtureNetworkName)).toBeVisible({ timeout: 60_000 });
+          |                                                           ^
+      130 |     await expect(panelRoot.getByText('IPAM', { exact: true })).toBeVisible({ timeout: 60_000 });
+      131 |     await expect(panelRoot.getByText('Options', { exact: true })).toBeVisible({ timeout: 60_000 });
+      132 |
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/swarm/74-networks-volumes-usage.spec.ts:129:59
+tests/swarm/74-networks-volumes-usage.spec.ts:25:3 › Docker Swarm Networks + Volumes Usage › networks tabs render (services/containers/inspect) and summary shows IPAM + Options: e2e/tests/swarm/74-networks-volumes-usage.spec.ts#L129
+  1) tests/swarm/74-networks-volumes-usage.spec.ts:25:3 › Docker Swarm Networks + Volumes Usage › networks tabs render (services/containers/inspect) and summary shows IPAM + Options 
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: locator('.bottom-panel').first().getByText('kdb_e2e_net')
+    Expected: visible
+    Error: strict mode violation: locator('.bottom-panel').first().getByText('kdb_e2e_net') resolved to 2 elements:
+        1) <strong>kdb_e2e_net</strong> aka getByRole('strong')
+        2) <div class="quick-info__field-value">kdb_e2e_net</div> aka locator('div').filter({ hasText: /^kdb_e2e_net$/ })
+
+    Call log:
+      - Expect "toBeVisible" with timeout 60000ms
+      - waiting for locator('.bottom-panel').first().getByText('kdb_e2e_net')
+
+
+      127 |     await panelRoot.getByRole('button', { name: 'Summary', exact: true }).click();
+      128 |     // Verify the network name appears in the Quick Info section
+    > 129 |     await expect(panelRoot.getByText(fixtureNetworkName)).toBeVisible({ timeout: 60_000 });
+          |                                                           ^
+      130 |     await expect(panelRoot.getByText('IPAM', { exact: true })).toBeVisible({ timeout: 60_000 });
+      131 |     await expect(panelRoot.getByText('Options', { exact: true })).toBeVisible({ timeout: 60_000 });
+      132 |
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/swarm/74-networks-volumes-usage.spec.ts:129:59
+e2e (e2e-shard-2, 2, 34300, false, false, false)
+Testing stopped early after 1 maximum allowed failures.

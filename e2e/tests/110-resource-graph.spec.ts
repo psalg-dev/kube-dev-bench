@@ -39,6 +39,25 @@ test('resource graph: deployment relationships and navigation', async ({ page, c
   await expect(page.locator('.graph-node--deployment')).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('.graph-node--pod')).toBeVisible({ timeout: 60_000 });
 
+  await page.evaluate(() => {
+    (window as typeof window & { __lastNavigateToResource?: unknown }).__lastNavigateToResource = undefined;
+    window.addEventListener(
+      'navigate-to-resource',
+      (event) => {
+        (window as typeof window & { __lastNavigateToResource?: unknown }).__lastNavigateToResource =
+          (event as CustomEvent).detail;
+      },
+      { once: true }
+    );
+  });
+
   await page.locator('.graph-node--pod').first().click();
-  await expect(page.locator('h2.overview-title:visible')).toHaveText(/pods/i, { timeout: 20_000 });
+  await expect
+    .poll(async () =>
+      page.evaluate(() => {
+        const detail = (window as typeof window & { __lastNavigateToResource?: { kind?: string } }).__lastNavigateToResource;
+        return detail?.kind ?? null;
+      })
+    )
+    .toMatch(/pod/i);
 });

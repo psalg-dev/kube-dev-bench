@@ -9,6 +9,10 @@ describe('router', () => {
       expect(k8sSections).toContain('storage-graph');
       expect(k8sSections).toContain('network-graph');
       expect(k8sSections).toContain('rbac-graph');
+      expect(k8sSections).toContain('roles');
+      expect(k8sSections).toContain('clusterroles');
+      expect(k8sSections).toContain('rolebindings');
+      expect(k8sSections).toContain('clusterrolebindings');
       expect(k8sSections).toContain('pods');
       expect(k8sSections).toContain('deployments');
       expect(k8sSections).toContain('services');
@@ -25,8 +29,8 @@ describe('router', () => {
       expect(k8sSections).toContain('helmreleases');
     });
 
-    it('has 19 kubernetes sections', () => {
-      expect(k8sSections.length).toBe(19);
+    it('has 23 kubernetes sections', () => {
+      expect(k8sSections.length).toBe(23);
     });
   });
 
@@ -85,6 +89,10 @@ describe('router', () => {
       expect(sectionFromPath('/deployments')).toBe('deployments');
       expect(sectionFromPath('/services')).toBe('services');
       expect(sectionFromPath('/configmaps')).toBe('configmaps');
+      expect(sectionFromPath('/roles')).toBe('roles');
+      expect(sectionFromPath('/clusterroles')).toBe('clusterroles');
+      expect(sectionFromPath('/rolebindings')).toBe('rolebindings');
+      expect(sectionFromPath('/clusterrolebindings')).toBe('clusterrolebindings');
     });
 
     it('extracts swarm section from path', () => {
