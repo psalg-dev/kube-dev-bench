@@ -105,3 +105,13 @@
 ## Additional files changed (run 21962782249)
 - `e2e/src/pages/SidebarPage.ts`
 - `e2e/src/support/kind.ts`
+
+## Additional retries (same day, run 21963195421)
+
+### 13) Helm sidebar entry hidden under Packaging group
+- **What failed in CI:** `95-helm-releases-view.spec.ts` test `sidebar shows Helm Releases entry` timed out because `#section-helmreleases` was hidden while `#section-packaging` was collapsed.
+- **Successful approach:** updated the test to expand `#section-packaging` (when `aria-expanded != true`) before asserting child link visibility/text.
+- **Why this worked:** assertion now matches grouped-sidebar behavior and avoids relying on default expanded state.
+
+## Additional files changed (run 21963195421)
+- `e2e/tests/95-helm-releases-view.spec.ts`

@@ -1,183 +1,110 @@
-Annotations
-12 errors and 4 notices
+https://github.com/psalg-dev/kube-dev-bench/actions/runs/21963195421
+
 e2e (e2e-shard-1, 1, 34200, false, false, false)
 Process completed with exit code 1.
-tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph: e2e/src/support/kind.ts#L131
-  2) tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph ───────
-
-    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
-    Error: Failed creating namespace kdb-e2e-0dabb7f00f5f-w4: The connection to the server 127.0.0.1:34009 was refused - did you specify the right host or port?
-
-       at ../src/support/kind.ts:131
-
-      129 |     }
-      130 |
-    > 131 |     throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
-          |           ^
-      132 |   }
-      133 | }
-      134 |
-        at ensureNamespace (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/support/kind.ts:131:11)
-        at Object.base.extend.namespace.scope (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/fixtures.ts:86:5)
-tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph: e2e/src/support/kind.ts#L131
-  2) tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph ───────
+tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob): e2e/tests/60-bottom-panels-batch.spec.ts#L0
+2) tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob) ─────────────── Retry #2 ─────────────────────────────────────────────────────────────────────────────────────── Test was interrupted.
+tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob): e2e/src/support/kind.ts#L170
+  2) tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob) ───────────────
 
     Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
-    Error: Failed creating namespace kdb-e2e-0dabb7f00f5f-w3: The connection to the server 127.0.0.1:34009 was refused - did you specify the right host or port?
+    Error: Failed creating namespace kdb-e2e-1249cb34ff34-w3: The connection to the server 127.0.0.1:39337 was refused - did you specify the right host or port?
 
-       at ../src/support/kind.ts:131
+       at ../src/support/kind.ts:170
 
-      129 |     }
-      130 |
-    > 131 |     throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
+      168 |     }
+      169 |
+    > 170 |     throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
           |           ^
-      132 |   }
-      133 | }
-      134 |
-        at ensureNamespace (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/support/kind.ts:131:11)
+      171 |   }
+      172 | }
+      173 |
+        at ensureNamespace (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/support/kind.ts:170:11)
         at Object.base.extend.namespace.scope (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/fixtures.ts:86:5)
-tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph: e2e/src/pages/SidebarPage.ts#L68
-  2) tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph ───────
-    Error: expect(locator).toBeVisible() failed
+tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob): e2e/src/pages/BottomPanel.ts#L93
+  2) tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob) ───────────────
+    Error: expect(locator).not.toContainText(expected) failed
 
-    Locator:  locator('#section-network-graph')
-    Expected: visible
-    Received: hidden
-    Timeout:  30000ms
-
-    Call log:
-      - Expect "toBeVisible" with timeout 30000ms
-      - waiting for locator('#section-network-graph')
-        33 × locator resolved to <a data-discover="true" href="#/network-graph" id="section-network-graph" data-testid="topology-child-network-graph" class="sidebar-section sidebar-section-link">…</a>
-           - unexpected value "hidden"
-
-
-       at ../src/pages/SidebarPage.ts:68
-
-      66 |   private async clickSectionWithRetry(sectionSelector: string, key: string) {
-      67 |     const section = this.page.locator(sectionSelector);
-    > 68 |     await expect(section).toBeVisible({ timeout: 30_000 });
-         |                           ^
-      69 |     await section.scrollIntoViewIfNeeded();
-      70 |
-      71 |     for (let attempt = 0; attempt < 3; attempt += 1) {
-        at SidebarPage.clickSectionWithRetry (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:68:27)
-        at SidebarPage.goToSection (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:169:16)
-        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/112-network-policy-topology.spec.ts:9:3
-tests/111-namespace-topology.spec.ts:4:1 › namespace topology view renders graph: e2e/tests/111-namespace-topology.spec.ts#L0
-1) tests/111-namespace-topology.spec.ts:4:1 › namespace topology view renders graph ────────────── Retry #1 ─────────────────────────────────────────────────────────────────────────────────────── Test was interrupted.
-tests/111-namespace-topology.spec.ts:4:1 › namespace topology view renders graph: e2e/src/pages/SidebarPage.ts#L68
-  1) tests/111-namespace-topology.spec.ts:4:1 › namespace topology view renders graph ──────────────
-    Error: expect(locator).toBeVisible() failed
-
-    Locator:  locator('#section-namespace-topology')
-    Expected: visible
-    Received: hidden
-    Timeout:  30000ms
+    Locator: locator('.bottom-panel').filter({ has: getByRole('button', { name: 'Summary', exact: true }) })
+    Expected substring: not "Error:"
+    Received string: "SummaryPods0LogsEvents0YAMLRelationshipsHolmese2e-job-1770928748822-271afb✕e2e-job-1770928748822-271afbapp=e2e-job-1770928748822-271afbbatch.kubernetes.io/controller-uid=2800bb2f-ff59-4a7d-8ffc-6810943ead70batch.kubernetes.io/job-name=e2e-job-1770928748822-271afbcontroller-uid=2800bb2f-ff59-4a7d-8ffc-6810943ead70job-name=e2e-job-1770928748822-271afb▶Start🗑DeleteQuick infoCompletions1Age-Namespacekdb-e2e-1249cb34ff34-w1Succeeded-Active1Failed-Duration0s (running)Imagebusybox:1.36Job namee2e-job-1770928748822-271afbLogsError:Get \"https://127.0.0.1:39337/api/v1/namespaces?limit=1\": dial tcp 127.0.0.1:39337: connect: connection refused📋No events yetNo events have been recorded for this resource.Events appear when Kubernetes performs actions like scheduling, pulling images, or detecting issues."
+    Timeout: 10000ms
 
     Call log:
-      - Expect "toBeVisible" with timeout 30000ms
-      - waiting for locator('#section-namespace-topology')
-        34 × locator resolved to <a data-discover="true" href="#/namespace-topology" id="section-namespace-topology" class="sidebar-section sidebar-section-link" data-testid="topology-child-namespace-topology">…</a>
-           - unexpected value "hidden"
+      - Expect "not toContainText" with timeout 10000ms
+      - waiting for locator('.bottom-panel').filter({ has: getByRole('button', { name: 'Summary', exact: true }) })
+        14 × locator resolved to <div class="bottom-panel">…</div>
+           - unexpected value "SummaryPods0LogsEvents0YAMLRelationshipsHolmese2e-job-1770928748822-271afb✕e2e-job-1770928748822-271afbapp=e2e-job-1770928748822-271afbbatch.kubernetes.io/controller-uid=2800bb2f-ff59-4a7d-8ffc-6810943ead70batch.kubernetes.io/job-name=e2e-job-1770928748822-271afbcontroller-uid=2800bb2f-ff59-4a7d-8ffc-6810943ead70job-name=e2e-job-1770928748822-271afb▶Start🗑DeleteQuick infoCompletions1Age-Namespacekdb-e2e-1249cb34ff34-w1Succeeded-Active1Failed-Duration0s (running)Imagebusybox:1.36Job namee2e-job-1770928748822-271afbLogsError:Get "https://127.0.0.1:39337/api/v1/namespaces?limit=1": dial tcp 127.0.0.1:39337: connect: connection refused📋No events yetNo events have been recorded for this resource.Events appear when Kubernetes performs actions like scheduling, pulling images, or detecting issues."
 
 
-       at ../src/pages/SidebarPage.ts:68
+       at ../src/pages/BottomPanel.ts:93
 
-      66 |   private async clickSectionWithRetry(sectionSelector: string, key: string) {
-      67 |     const section = this.page.locator(sectionSelector);
-    > 68 |     await expect(section).toBeVisible({ timeout: 30_000 });
-         |                           ^
-      69 |     await section.scrollIntoViewIfNeeded();
-      70 |
-      71 |     for (let attempt = 0; attempt < 3; attempt += 1) {
-        at SidebarPage.clickSectionWithRetry (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:68:27)
-        at SidebarPage.goToSection (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/SidebarPage.ts:169:16)
-        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/111-namespace-topology.spec.ts:9:3
+      91 |
+      92 |   async expectNoErrorText() {
+    > 93 |     await expect(this.root).not.toContainText('Error:');
+         |                                 ^
+      94 |   }
+      95 |
+      96 |   async expectCodeMirrorVisible() {
+        at BottomPanel.expectNoErrorText (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/BottomPanel.ts:93:33)
+        at expectAndClickTabs (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/60-bottom-panels-batch.spec.ts:101:19)
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/60-bottom-panels-batch.spec.ts:126:3
+tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet): e2e/src/support/kind.ts#L170
+  1) tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet) 
+
+    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: Failed creating namespace kdb-e2e-1249cb34ff34-w4: The connection to the server 127.0.0.1:39337 was refused - did you specify the right host or port?
+
+       at ../src/support/kind.ts:170
+
+      168 |     }
+      169 |
+    > 170 |     throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
+          |           ^
+      171 |   }
+      172 | }
+      173 |
+        at ensureNamespace (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/support/kind.ts:170:11)
+        at Object.base.extend.namespace.scope (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/fixtures.ts:86:5)
+tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet): e2e/src/support/kind.ts#L170
+  1) tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet) 
+
+    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
+    Error: Failed creating namespace kdb-e2e-1249cb34ff34-w2: The connection to the server 127.0.0.1:39337 was refused - did you specify the right host or port?
+
+       at ../src/support/kind.ts:170
+
+      168 |     }
+      169 |
+    > 170 |     throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
+          |           ^
+      171 |   }
+      172 | }
+      173 |
+        at ensureNamespace (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/support/kind.ts:170:11)
+        at Object.base.extend.namespace.scope (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/fixtures.ts:86:5)
+tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet): e2e/src/pages/CreateOverlay.ts#L226
+  1) tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet) 
+    Error: Create failed: Get "https://127.0.0.1:39337/api/v1/namespaces?limit=1": dial tcp 127.0.0.1:39337: connect: connection refused
+
+       at ../src/pages/CreateOverlay.ts:226
+
+      224 |             break;
+      225 |           }
+    > 226 |           throw new Error(`Create failed: ${msg || 'Create overlay error'}`);
+          |                 ^
+      227 |         }
+      228 |
+      229 |         const apiVisible = await apiError.isVisible().catch(() => false);
+        at CreateOverlay.create (/home/runner/work/kube-dev-bench/kube-dev-bench/e2e/src/pages/CreateOverlay.ts:226:17)
+        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/50-bottom-panels-workloads.spec.ts:125:3
 e2e (e2e-shard-1, 1, 34200, false, false, false)
 Testing stopped early after 1 maximum allowed failures.
-e2e (e2e-shard-2, 2, 34300, false, false, false)
-Process completed with exit code 1.
-tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys: e2e/tests/swarm/75-nodes-services-stacks.spec.ts#L284
-  1) tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys 
-
-    Retry #2 ───────────────────────────────────────────────────────────────────────────────────────
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926866096-083464update', { exact: true })
-    Expected: visible
-    Error: strict mode violation: locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926866096-083464update', { exact: true }) resolved to 2 elements:
-        1) <strong>kdb-e2e-stack--1770926866096-083464update</strong> aka getByRole('strong')
-        2) <div class="quick-info__field-value">kdb-e2e-stack--1770926866096-083464update</div> aka locator('div').filter({ hasText: /^kdb-e2e-stack--1770926866096-083464update$/ })
-
-    Call log:
-      - Expect "toBeVisible" with timeout 60000ms
-      - waiting for locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926866096-083464update', { exact: true })
-
-
-      282 |       const panel = page.locator('.bottom-panel').first();
-      283 |       await expect(panel).toBeVisible({ timeout: 60_000 });
-    > 284 |       await expect(panel.getByText(stackName, { exact: true })).toBeVisible({ timeout: 60_000 });
-          |                                                                 ^
-      285 |
-      286 |       // Prefer the stable id-based selector.
-      287 |       // The button can briefly show "Loading..." and be disabled while compose is fetched.
-        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/swarm/75-nodes-services-stacks.spec.ts:284:65
-tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys: e2e/tests/swarm/75-nodes-services-stacks.spec.ts#L284
-  1) tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys 
-
-    Retry #1 ───────────────────────────────────────────────────────────────────────────────────────
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926859123-0380c7update', { exact: true })
-    Expected: visible
-    Error: strict mode violation: locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926859123-0380c7update', { exact: true }) resolved to 2 elements:
-        1) <strong>kdb-e2e-stack--1770926859123-0380c7update</strong> aka getByRole('strong')
-        2) <div class="quick-info__field-value">kdb-e2e-stack--1770926859123-0380c7update</div> aka locator('div').filter({ hasText: /^kdb-e2e-stack--1770926859123-0380c7update$/ })
-
-    Call log:
-      - Expect "toBeVisible" with timeout 60000ms
-      - waiting for locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926859123-0380c7update', { exact: true })
-
-
-      282 |       const panel = page.locator('.bottom-panel').first();
-      283 |       await expect(panel).toBeVisible({ timeout: 60_000 });
-    > 284 |       await expect(panel.getByText(stackName, { exact: true })).toBeVisible({ timeout: 60_000 });
-          |                                                                 ^
-      285 |
-      286 |       // Prefer the stable id-based selector.
-      287 |       // The button can briefly show "Loading..." and be disabled while compose is fetched.
-        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/swarm/75-nodes-services-stacks.spec.ts:284:65
-tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys: e2e/tests/swarm/75-nodes-services-stacks.spec.ts#L284
-  1) tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys 
-    Error: expect(locator).toBeVisible() failed
-
-    Locator: locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926852015-3ce592update', { exact: true })
-    Expected: visible
-    Error: strict mode violation: locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926852015-3ce592update', { exact: true }) resolved to 2 elements:
-        1) <strong>kdb-e2e-stack--1770926852015-3ce592update</strong> aka getByRole('strong')
-        2) <div class="quick-info__field-value">kdb-e2e-stack--1770926852015-3ce592update</div> aka locator('div').filter({ hasText: /^kdb-e2e-stack--1770926852015-3ce592update$/ })
-
-    Call log:
-      - Expect "toBeVisible" with timeout 60000ms
-      - waiting for locator('.bottom-panel').first().getByText('kdb-e2e-stack--1770926852015-3ce592update', { exact: true })
-
-
-      282 |       const panel = page.locator('.bottom-panel').first();
-      283 |       await expect(panel).toBeVisible({ timeout: 60_000 });
-    > 284 |       await expect(panel.getByText(stackName, { exact: true })).toBeVisible({ timeout: 60_000 });
-          |                                                                 ^
-      285 |
-      286 |       // Prefer the stable id-based selector.
-      287 |       // The button can briefly show "Loading..." and be disabled while compose is fetched.
-        at /home/runner/work/kube-dev-bench/kube-dev-bench/e2e/tests/swarm/75-nodes-services-stacks.spec.ts:284:65
-e2e (e2e-shard-2, 2, 34300, false, false, false)
-Testing stopped early after 1 maximum allowed failures.
 🎭 Playwright Run Summary
-1 passed (25.9s)
+1 passed (26.2s)
 🎭 Playwright Run Summary
-11 passed (44.8s)
+11 passed (47.4s)
 🎭 Playwright Run Summary
-2 failed tests/111-namespace-topology.spec.ts:4:1 › namespace topology view renders graph ─────────────── tests/112-network-policy-topology.spec.ts:4:1 › network policy graph view renders graph ──────── 57 did not run 4 passed (2.0m)
+2 skipped 61 passed (2.4m)
 🎭 Playwright Run Summary
-1 failed tests/swarm/75-nodes-services-stacks.spec.ts:191:3 › Docker Swarm Nodes/Services/Stacks › stacks: related resource tabs render; compose warning; export downloads; update redeploys 2 skipped 60 passed (2.4m)
+2 failed tests/50-bottom-panels-workloads.spec.ts:39:1 › bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet) tests/60-bottom-panels-batch.spec.ts:106:1 › bottom panels: batch (Job/CronJob) ──────────────── 50 did not run 11 passed (5.4m)

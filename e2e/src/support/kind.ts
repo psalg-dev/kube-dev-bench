@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec } from './exec.js';
+import { readRunState, writeRunState } from './run-state.js';
 
 const defaultWindowsKindNodeImage = 'kindest/node:v1.29.4';
 
@@ -27,6 +28,49 @@ function isRecoverableKubeconfigError(output: string): boolean {
     /container\s+[0-9a-f]+\s+is\s+not\s+running/i.test(output) ||
     /is not running/i.test(output)
   );
+}
+
+function isTransientConnectError(output: string): boolean {
+  return (
+    /unable to connect to the server/i.test(output) ||
+    /the connection to the server .* was refused/i.test(output) ||
+    /connectex/i.test(output) ||
+    /only one usage of each socket address/i.test(output) ||
+    /i\/o timeout/i.test(output) ||
+    /tls handshake timeout/i.test(output) ||
+    /unexpected eof/i.test(output)
+  );
+}
+
+async function refreshRunStateKubeconfig(kindInfo: KindInfo) {
+  try {
+    const state = await readRunState();
+    await writeRunState({
+      ...state,
+      clusterName: kindInfo.clusterName,
+      contextName: kindInfo.contextName,
+      kubeconfigYaml: kindInfo.kubeconfigYaml,
+    });
+  } catch {
+    // Best-effort only. Local dev runs may not have run-state yet.
+  }
+}
+
+async function recoverKubeconfigForApiAvailability(kubeconfigPath: string): Promise<boolean> {
+  const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
+  console.log(`[e2e][kind] ${new Date().toISOString()} API unavailable; attempting KinD recovery for cluster '${clusterName}'`);
+
+  try {
+    const recovered = await ensureKindCluster(clusterName);
+    await fs.writeFile(kubeconfigPath, recovered.kubeconfigYaml, 'utf-8');
+    await refreshRunStateKubeconfig(recovered);
+    console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery complete; kubeconfig refreshed`);
+    return true;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery failed: ${message}`);
+    return false;
+  }
 }
 
 export async function ensureKindCluster(clusterName: string): Promise<KindInfo> {
@@ -110,64 +154,67 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 }
 
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
-  const waitForApiReady = async () => {
-    for (let attempt = 1; attempt <= 20; attempt++) {
-      const probe = await kubectl(['get', 'ns', 'default'], {
-        kubeconfigPath,
-        timeoutMs: 15_000,
-      });
-      if (probe.code === 0) {
+  const ensureNamespaceOnce = async () => {
+    const waitForApiReady = async () => {
+      for (let attempt = 1; attempt <= 20; attempt++) {
+        const probe = await kubectl(['get', 'ns', 'default'], {
+          kubeconfigPath,
+          timeoutMs: 15_000,
+        });
+        if (probe.code === 0) {
+          return;
+        }
+
+        const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
+        if (!isTransientConnectError(output)) {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+      }
+    };
+
+    await waitForApiReady();
+
+    const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
+    if (get.code === 0) return;
+
+    const initialMessage = `${get.stderr || ''}\n${get.stdout || ''}`.trim();
+
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
+      if (create.code === 0) return;
+
+      const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
+      if (/already exists/i.test(message)) {
         return;
       }
 
-      const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
-      const apiUnavailable =
-        /unable to connect to the server/i.test(output) ||
-        /the connection to the server .* was refused/i.test(output) ||
-        /i\/o timeout/i.test(output) ||
-        /tls handshake timeout/i.test(output) ||
-        /unexpected eof/i.test(output);
-
-      if (!apiUnavailable) {
-        break;
+      const transient = isTransientConnectError(message) || (attempt === 1 && isTransientConnectError(initialMessage));
+      if (attempt < 5 && transient) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        continue;
       }
 
-      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+      throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
     }
   };
 
-  await waitForApiReady();
-
-  const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
-  if (get.code === 0) return;
-
-  const isTransientConnectError = (output: string) =>
-    /unable to connect to the server/i.test(output) ||
-    /the connection to the server .* was refused/i.test(output) ||
-    /connectex/i.test(output) ||
-    /only one usage of each socket address/i.test(output) ||
-    /i\/o timeout/i.test(output) ||
-    /tls handshake timeout/i.test(output) ||
-    /unexpected eof/i.test(output);
-
-  const initialMessage = `${get.stderr || ''}\n${get.stdout || ''}`.trim();
-
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
-    if (create.code === 0) return;
-
-    const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
-    if (/already exists/i.test(message)) {
+  for (let cycle = 1; cycle <= 2; cycle++) {
+    try {
+      await ensureNamespaceOnce();
       return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const isFinalCycle = cycle === 2;
+      if (!isFinalCycle && isTransientConnectError(message)) {
+        const recovered = await recoverKubeconfigForApiAvailability(kubeconfigPath);
+        if (recovered) {
+          continue;
+        }
+      }
+      throw err;
     }
-
-    const transient = isTransientConnectError(message) || (attempt === 1 && isTransientConnectError(initialMessage));
-    if (attempt < 5 && transient) {
-      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-      continue;
-    }
-
-    throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
   }
 }
 
