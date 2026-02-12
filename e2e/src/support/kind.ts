@@ -115,15 +115,26 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
 
   const isTransientConnectError = (output: string) =>
     /unable to connect to the server/i.test(output) ||
+    /the connection to the server .* was refused/i.test(output) ||
     /connectex/i.test(output) ||
-    /only one usage of each socket address/i.test(output);
+    /only one usage of each socket address/i.test(output) ||
+    /i\/o timeout/i.test(output) ||
+    /tls handshake timeout/i.test(output) ||
+    /unexpected eof/i.test(output);
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  const initialMessage = `${get.stderr || ''}\n${get.stdout || ''}`.trim();
+
+  for (let attempt = 1; attempt <= 5; attempt++) {
     const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
     if (create.code === 0) return;
 
     const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
-    if (attempt < 3 && isTransientConnectError(message)) {
+    if (/already exists/i.test(message)) {
+      return;
+    }
+
+    const transient = isTransientConnectError(message) || (attempt === 1 && isTransientConnectError(initialMessage));
+    if (attempt < 5 && transient) {
       await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
       continue;
     }

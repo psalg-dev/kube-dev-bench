@@ -18,6 +18,10 @@ export class SidebarPage {
   };
 
   private readonly childGroupBySection: Record<string, string> = {
+    'namespace-topology': 'topology',
+    'storage-graph': 'topology',
+    'network-graph': 'topology',
+    'rbac-graph': 'topology',
     pods: 'workloads',
     deployments: 'workloads',
     daemonsets: 'workloads',

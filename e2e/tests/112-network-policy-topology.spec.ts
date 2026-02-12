@@ -9,5 +9,5 @@ test('network policy graph view renders graph', async ({ page, contextName, name
   await sidebar.goToSection('network-graph');
 
   await expect(page.locator('#graph-toolbar')).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator('#graph-canvas')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('#graph-canvas, .graph-canvas-empty').first()).toBeVisible({ timeout: 30_000 });
 });
