@@ -94,9 +94,31 @@ test('bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet)
   await panel.closeByClickingOutside();
   await sidebar.goToSection('pods');
 
-  // Wait for at least one pod from the deployment to appear and be Running.
+  // Wait for at least one pod from the deployment to appear.
+  // During KinD API reconnect windows the table can transiently show "No Pods...".
+  await expect
+    .poll(
+      async () => {
+        await sidebar.goToSection('pods');
+        const table = page
+          .locator('#main-panels > div:visible table.gh-table')
+          .filter({ has: page.locator('tbody tr') })
+          .first();
+        if (!(await table.isVisible().catch(() => false))) {
+          return 0;
+        }
+        const tableText = await table.innerText().catch(() => '');
+        if (/No Pods deployed in this namespace/i.test(tableText)) {
+          return 0;
+        }
+        return table.locator('tbody tr').filter({ hasText: deployName }).count();
+      },
+      { timeout: 150_000, intervals: [1_000, 2_000, 3_000] }
+    )
+    .toBeGreaterThan(0);
+
   const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
-  await expect(podRow).toBeVisible({ timeout: 90_000 });
+  await expect(podRow).toBeVisible({ timeout: 30_000 });
   await waitForResourceStatus(page, new RegExp(deployName), 'Running', { timeout: 120_000 });
 
   await podRow.click();

@@ -3,6 +3,15 @@ import { expect, type Locator, type Page } from '@playwright/test';
 export class BottomPanel {
   readonly page: Page;
   readonly root: Locator;
+  private readonly transientKubeErrorPatterns: RegExp[] = [
+    /dial tcp/i,
+    /connect: connection refused/i,
+    /unable to connect to the server/i,
+    /i\/o timeout/i,
+    /tls handshake timeout/i,
+    /no route to host/i,
+    /context deadline exceeded/i,
+  ];
 
   constructor(page: Page) {
     this.page = page;
@@ -89,8 +98,28 @@ export class BottomPanel {
     }
   }
 
-  async expectNoErrorText() {
-    await expect(this.root).not.toContainText('Error:');
+  async expectNoErrorText(timeoutMs: number = 45_000) {
+    await expect
+      .poll(
+        async () => {
+          const text = await this.root.innerText().catch(() => '');
+          if (!text.includes('Error:')) {
+            return 'ok';
+          }
+
+          const isTransientKubeError = this.transientKubeErrorPatterns.some((pattern) => pattern.test(text));
+          if (isTransientKubeError) {
+            return 'transient';
+          }
+
+          return 'error';
+        },
+        {
+          timeout: timeoutMs,
+          message: 'bottom panel still shows a non-transient error',
+        }
+      )
+      .toBe('ok');
   }
 
   async expectCodeMirrorVisible() {
