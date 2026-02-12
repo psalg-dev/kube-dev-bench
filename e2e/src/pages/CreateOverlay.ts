@@ -170,7 +170,7 @@ export class CreateOverlay {
       // Overlay closes on success; on failure it shows an inline error.
       // Errors can be: YAML parse errors, REST mapping errors (connectivity), or other API errors.
       const parseError = overlayScope.getByText(/YAML parse error/i).first();
-      const apiError = overlayScope.getByText(/could not find REST mapping|dial tcp|connectex|Bad Gateway|502/i).first();
+      const apiError = overlayScope.getByText(/could not find REST mapping|dial tcp|connectex|read tcp|connection reset by peer|unexpected eof|\bEOF\b|Bad Gateway|502/i).first();
       const overlayError = overlayScope.locator('[data-testid="create-overlay-error"]').first();
       const errorToast = this.page
         .locator('#gh-notification-container .gh-notification--error .gh-notification__text')
@@ -218,7 +218,7 @@ export class CreateOverlay {
         if (overlayErrVisible) {
           const msg = await overlayError.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
           if (msg === undefined) continue; // element vanished, re-check loop
-          const transient = /Bad Gateway|502|dial tcp|connectex|proxyconnect|connection refused|timeout|timed out|deadline exceeded|i\/o timeout/i.test(msg || '');
+          const transient = /Bad Gateway|502|dial tcp|read tcp|connectex|connection reset by peer|unexpected eof|\bEOF\b|proxyconnect|connection refused|timeout|timed out|deadline exceeded|i\/o timeout/i.test(msg || '');
           if (transient && attempt < maxAttempts) {
             await this.page.waitForTimeout(1000 * attempt);
             break;
@@ -233,7 +233,7 @@ export class CreateOverlay {
           const msg = await apiError.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
           if (msg === undefined) continue; // element vanished, re-check loop
           // If the API error looks transient (network / gateway), retry a few times.
-          const transient = /Bad Gateway|502|dial tcp|connectex/i.test(msg || '');
+          const transient = /Bad Gateway|502|dial tcp|read tcp|connectex|connection reset by peer|unexpected eof|\bEOF\b/i.test(msg || '');
           if (transient && attempt < maxAttempts) {
             // Close any visible dialog before retrying to reset state
             try {
@@ -252,7 +252,7 @@ export class CreateOverlay {
         if (toastVisible) {
           const msg = await errorToast.textContent({ timeout: 2_000 }).then(t => t?.trim()).catch(() => undefined);
           if (msg === undefined) continue; // element vanished, re-check loop
-          const transient = /Bad Gateway|502|dial tcp|connectex|proxyconnect|connection refused|timeout|timed out|deadline exceeded|i\/o timeout/i.test(msg || '');
+          const transient = /Bad Gateway|502|dial tcp|read tcp|connectex|connection reset by peer|unexpected eof|\bEOF\b|proxyconnect|connection refused|timeout|timed out|deadline exceeded|i\/o timeout/i.test(msg || '');
           if (transient && attempt < maxAttempts) {
             await this.page.waitForTimeout(1000 * attempt);
             break;

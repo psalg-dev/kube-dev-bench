@@ -76,6 +76,19 @@ test('bottom panels: workloads (Deployment/ReplicaSet/Pod/StatefulSet/DaemonSet)
 
   // Find a ReplicaSet row for this deployment by label/name match.
   // (ReplicaSet name is typically ${deployName}-<hash>)
+  await expect
+    .poll(
+      async () => {
+        await sidebar.goToSection('replicasets');
+        return page
+          .locator('#main-panels > div:visible table.gh-table tbody tr')
+          .filter({ hasText: deployName })
+          .count();
+      },
+      { timeout: 120_000, intervals: [1_000, 2_000, 3_000, 5_000] }
+    )
+    .toBeGreaterThan(0);
+
   const rsRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
   await expect(rsRow).toBeVisible({ timeout: 60_000 });
   await rsRow.click();

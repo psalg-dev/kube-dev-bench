@@ -89,7 +89,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     } finally {
       await deleteNamespace(kubeconfigPath, ns);
     }
-  }, { scope: 'worker' }],
+  }, { scope: 'worker', timeout: 300_000 }],
 
   wails: [async ({ homeDir }, use: (value: WailsDevInstance | null) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
