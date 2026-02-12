@@ -89,3 +89,19 @@
 
 ## Additional files changed (local reproduction)
 - `e2e/tests/112-network-policy-topology.spec.ts`
+
+## Additional retries (same day, run 21962782249)
+
+### 11) Hidden Config section child links
+- **What failed in CI:** `20-create-configmap.spec.ts` and `40-create-secret-and-pvc.spec.ts` timed out on hidden `#section-configmaps` / `#section-secrets`.
+- **Successful approach:** expanded `SidebarPage.childGroupBySection` mapping to cover all grouped sidebar children (networking/config/storage/packaging in addition to topology/workloads/rbac).
+- **Why this worked:** `ensureSectionVisible()` can now expand the correct parent group before waiting/clicking.
+
+### 12) API server readiness race before namespace creation
+- **What failed in CI:** namespace fixture still hit `connection refused` on `kubectl create ns` even with transient retry logic.
+- **Successful approach:** added API readiness preflight in `ensureNamespace()` that probes `kubectl get ns default` with bounded retries/backoff before create/get namespace operations.
+- **Why this worked:** removes early-start race where cluster exists but API endpoint is not yet ready for namespace operations.
+
+## Additional files changed (run 21962782249)
+- `e2e/src/pages/SidebarPage.ts`
+- `e2e/src/support/kind.ts`

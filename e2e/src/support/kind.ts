@@ -110,6 +110,34 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 }
 
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
+  const waitForApiReady = async () => {
+    for (let attempt = 1; attempt <= 20; attempt++) {
+      const probe = await kubectl(['get', 'ns', 'default'], {
+        kubeconfigPath,
+        timeoutMs: 15_000,
+      });
+      if (probe.code === 0) {
+        return;
+      }
+
+      const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
+      const apiUnavailable =
+        /unable to connect to the server/i.test(output) ||
+        /the connection to the server .* was refused/i.test(output) ||
+        /i\/o timeout/i.test(output) ||
+        /tls handshake timeout/i.test(output) ||
+        /unexpected eof/i.test(output);
+
+      if (!apiUnavailable) {
+        break;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+    }
+  };
+
+  await waitForApiReady();
+
   const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
   if (get.code === 0) return;
 
