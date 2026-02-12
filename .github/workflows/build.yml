@@ -302,12 +302,24 @@ jobs:
       - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
         if: matrix.holmes_deploy == true
         run: |
+          set -euo pipefail
           IMAGE_PLATFORM="linux/amd64"
-          echo "Pulling ${HOLMES_MOCK_NODE_IMAGE} image..."
+          LOCAL_TAG="kdb-e2e/holmes-node:ci"
+          ARCHIVE_PATH="/tmp/holmes-node-image.tar"
+
+          echo "Pulling ${HOLMES_MOCK_NODE_IMAGE} image for ${IMAGE_PLATFORM}..."
           docker pull --platform "${IMAGE_PLATFORM}" "${HOLMES_MOCK_NODE_IMAGE}"
+
+          IMAGE_ID="$(docker image inspect "${HOLMES_MOCK_NODE_IMAGE}" --format '{{.Id}}')"
           docker image inspect "${HOLMES_MOCK_NODE_IMAGE}" --format 'Loaded image architecture: {{.Architecture}}/{{.Os}}'
-          echo "Loading ${HOLMES_MOCK_NODE_IMAGE} into kind cluster..."
-          kind load docker-image "${HOLMES_MOCK_NODE_IMAGE}" --name kdb-e2e
+          echo "Using concrete image ID: ${IMAGE_ID}"
+
+          docker tag "${IMAGE_ID}" "${LOCAL_TAG}"
+          echo "Saving ${LOCAL_TAG} to ${ARCHIVE_PATH}..."
+          docker save "${LOCAL_TAG}" -o "${ARCHIVE_PATH}"
+
+          echo "Loading ${LOCAL_TAG} archive into kind cluster..."
+          kind load image-archive --name kdb-e2e "${ARCHIVE_PATH}"
 
       - name: Run Holmes deployment e2e tests
         if: matrix.holmes_deploy == true
