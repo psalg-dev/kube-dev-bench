@@ -156,6 +156,7 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
   const ensureNamespaceOnce = async () => {
     const waitForApiReady = async () => {
+      let lastOutput = '';
       for (let attempt = 1; attempt <= 20; attempt++) {
         const probe = await kubectl(['get', 'ns', 'default'], {
           kubeconfigPath,
@@ -166,12 +167,15 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
         }
 
         const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
+        lastOutput = output;
         if (!isTransientConnectError(output)) {
           break;
         }
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
       }
+
+      throw new Error(`Kubernetes API not ready: ${lastOutput || 'probe failed'}`);
     };
 
     await waitForApiReady();
@@ -200,18 +204,19 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
     }
   };
 
-  for (let cycle = 1; cycle <= 2; cycle++) {
+  for (let cycle = 1; cycle <= 4; cycle++) {
     try {
       await ensureNamespaceOnce();
       return;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      const isFinalCycle = cycle === 2;
+      const isFinalCycle = cycle === 4;
       if (!isFinalCycle && isTransientConnectError(message)) {
         const recovered = await recoverKubeconfigForApiAvailability(kubeconfigPath);
-        if (recovered) {
-          continue;
-        }
+        if (recovered) continue;
+
+        await new Promise((resolve) => setTimeout(resolve, 1000 * cycle));
+        continue;
       }
       throw err;
     }
