@@ -1,5 +1,18 @@
 import { defineConfig } from '@playwright/test';
 
+const ciReportPrefix = process.env.E2E_REPORT_PREFIX?.trim();
+const ciReportDir = './test-results/ci-reports';
+
+const ciReporters = ciReportPrefix
+  ? [
+      ['github'],
+      ['html', { open: 'never' }],
+      ['list'],
+      ['json', { outputFile: `${ciReportDir}/${ciReportPrefix}.json` }],
+      ['junit', { outputFile: `${ciReportDir}/${ciReportPrefix}.xml` }],
+    ]
+  : [['github'], ['html', { open: 'never' }], ['list']];
+
 export default defineConfig({
   testDir: './tests',
   testIgnore: ['registry/**'],
@@ -18,7 +31,7 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 1,  // Enable retries for flaky tests
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI
-    ? [['github'], ['html', { open: 'never' }], ['list']]
+    ? ciReporters
     : [['html', { open: 'never' }], ['list']],
   use: {
     actionTimeout: 10_000,

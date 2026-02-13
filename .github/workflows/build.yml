@@ -285,6 +285,7 @@ jobs:
           CI: true
           PW_WORKERS: '2'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
@@ -296,6 +297,7 @@ jobs:
           CI: true
           PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
@@ -320,9 +322,18 @@ jobs:
           CI: true
           PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_HOLMES_DEPLOY: '1'
           E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
+
+      - name: Extract shard-1 failure summary
+        if: always() && matrix.name == 'e2e-shard-1'
+        working-directory: e2e
+        run: |
+          node scripts/extract-playwright-failures.mjs \
+            "./test-results/ci-reports/${{ matrix.name }}.json" \
+            "./test-results/ci-reports/${{ matrix.name }}-summary.md"
 
       - name: Run registry e2e tests
         if: matrix.registry == true
