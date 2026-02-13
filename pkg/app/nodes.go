@@ -162,3 +162,30 @@ func (a *App) GetNodeDetail(nodeName string) (*NodeInfo, error) {
 	info := buildNodeInfo(node, time.Now())
 	return &info, nil
 }
+
+// GetPodsOnNode returns running/pending pods currently scheduled on a node.
+func (a *App) GetPodsOnNode(nodeName string) ([]PodInfo, error) {
+	if nodeName == "" {
+		return nil, fmt.Errorf("missing required parameter: nodeName")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	pods, err := clientset.CoreV1().Pods("").List(a.ctx, metav1.ListOptions{FieldSelector: "spec.nodeName=" + nodeName})
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	result := make([]PodInfo, 0, len(pods.Items))
+	for _, pod := range pods.Items {
+		if shouldIncludePod(&pod) {
+			result = append(result, buildPodInfoFromPod(pod, now))
+		}
+	}
+
+	return result, nil
+}

@@ -8,6 +8,7 @@ import {
   AnalyzePodStream as _AnalyzePodStream,
   AnalyzeDeployment as _AnalyzeDeployment,
   AnalyzeDeploymentStream as _AnalyzeDeploymentStream,
+  AnalyzeHPAStream as _AnalyzeHPAStream,
   AnalyzeStatefulSet as _AnalyzeStatefulSet,
   AnalyzeStatefulSetStream as _AnalyzeStatefulSetStream,
   AnalyzeDaemonSet as _AnalyzeDaemonSet,
@@ -17,6 +18,7 @@ import {
   AnalyzeJobStream as _AnalyzeJobStream,
   AnalyzeCronJobStream as _AnalyzeCronJobStream,
   AnalyzeIngressStream as _AnalyzeIngressStream,
+  AnalyzeNodeStream as _AnalyzeNodeStream,
   AnalyzeConfigMapStream as _AnalyzeConfigMapStream,
   AnalyzeSecretStream as _AnalyzeSecretStream,
   AnalyzePersistentVolumeStream as _AnalyzePersistentVolumeStream,
@@ -274,6 +276,20 @@ export async function AnalyzeCronJobStream(namespace: string, name: string, stre
  */
 export async function AnalyzeIngressStream(namespace: string, name: string, streamId: string): Promise<void> {
   return await _AnalyzeIngressStream(namespace, name, streamId);
+}
+
+/**
+ * Analyze a node using HolmesGPT with context (streaming).
+ */
+export async function AnalyzeNodeStream(name: string, streamId: string): Promise<void> {
+  return await _AnalyzeNodeStream(name, streamId);
+}
+
+/**
+ * Analyze an HPA using HolmesGPT with context (streaming).
+ */
+export async function AnalyzeHPAStream(namespace: string, name: string, streamId: string): Promise<void> {
+  return await _AnalyzeHPAStream(namespace, name, streamId);
 }
 
 /**

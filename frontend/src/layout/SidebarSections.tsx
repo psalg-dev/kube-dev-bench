@@ -46,10 +46,12 @@ const resourceSections: ResourceSection[] = [
     group: true,
     children: [
       { key: 'pods', label: 'Pods', podCounts: true },
+      { key: 'nodes', label: 'Nodes' },
       { key: 'deployments', label: 'Deployments' },
       { key: 'daemonsets', label: 'Daemon Sets' },
       { key: 'statefulsets', label: 'Stateful Sets' },
       { key: 'replicasets', label: 'Replica Sets' },
+      { key: 'hpa', label: 'Horizontal Pod Autoscalers' },
       { key: 'jobs', label: 'Jobs' },
       { key: 'cronjobs', label: 'Cron Jobs' },
     ],

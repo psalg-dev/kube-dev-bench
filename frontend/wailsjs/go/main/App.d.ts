@@ -28,6 +28,10 @@ export function AnalyzeDeployment(arg1:string,arg2:string):Promise<holmesgpt.Hol
 
 export function AnalyzeDeploymentStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
+export function AnalyzeHPA(arg1:string,arg2:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzeHPAStream(arg1:string,arg2:string,arg3:string):Promise<void>;
+
 export function AnalyzeIngressStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
 export function AnalyzeJobStream(arg1:string,arg2:string,arg3:string):Promise<void>;
@@ -37,6 +41,10 @@ export function AnalyzeLogs(arg1:string,arg2:string,arg3:string,arg4:number):Pro
 export function AnalyzeMonitorIssue(arg1:string):Promise<app.MonitorIssue>;
 
 export function AnalyzeMonitorIssueStream(arg1:string,arg2:string):Promise<void>;
+
+export function AnalyzeNode(arg1:string):Promise<holmesgpt.HolmesResponse>;
+
+export function AnalyzeNodeStream(arg1:string,arg2:string):Promise<void>;
 
 export function AnalyzePersistentVolumeClaimStream(arg1:string,arg2:string,arg3:string):Promise<void>;
 
@@ -274,6 +282,8 @@ export function GetHooksConfig():Promise<app.HooksConfig>;
 
 export function GetHorizontalPodAutoscalers(arg1:string):Promise<Array<app.HorizontalPodAutoscalerInfo>>;
 
+export function GetHorizontalPodAutoscalerDetail(arg1:string,arg2:string):Promise<app.HorizontalPodAutoscalerInfo>;
+
 export function GetImageDigest(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function GetImageUpdateSettings():Promise<docker.ImageUpdateSettings>;
@@ -363,6 +373,8 @@ export function GetPodFiles(arg1:string,arg2:string,arg3:string):Promise<Array<a
 export function GetPodLog(arg1:string):Promise<string>;
 
 export function GetPodLogsPrevious(arg1:string,arg2:string,arg3:string,arg4:number):Promise<string>;
+
+export function GetPodsOnNode(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetPodMounts(arg1:string):Promise<app.PodMounts>;
 

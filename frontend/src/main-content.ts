@@ -10,6 +10,8 @@ import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOve
 import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
 import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewTable';
 import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
+import HPAOverviewTable from './k8s/resources/hpa/HPAOverviewTable';
+import NodesOverviewTable from './k8s/resources/nodes/NodesOverviewTable';
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
 import { renderPodOverviewTable } from './k8s/resources/pods/PodOverviewEntry';
@@ -174,6 +176,18 @@ export function renderResourceMainContent(
             id: 'jobs-overview-react',
             section: 'jobs',
             table: JobsOverviewTable,
+            props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'nodes-overview-react',
+            section: 'nodes',
+            table: NodesOverviewTable,
+            props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'hpa-overview-react',
+            section: 'hpa',
+            table: HPAOverviewTable,
             props: { namespaces: selectedNamespaces, namespace: firstNs }
         },
         {

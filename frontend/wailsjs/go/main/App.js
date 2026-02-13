@@ -38,6 +38,14 @@ export function AnalyzeDeploymentStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeDeploymentStream'](arg1, arg2, arg3);
 }
 
+export function AnalyzeHPA(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeHPA'](arg1, arg2);
+}
+
+export function AnalyzeHPAStream(arg1, arg2, arg3) {
+  return window['go']['main']['App']['AnalyzeHPAStream'](arg1, arg2, arg3);
+}
+
 export function AnalyzeIngressStream(arg1, arg2, arg3) {
   return window['go']['main']['App']['AnalyzeIngressStream'](arg1, arg2, arg3);
 }
@@ -56,6 +64,14 @@ export function AnalyzeMonitorIssue(arg1) {
 
 export function AnalyzeMonitorIssueStream(arg1, arg2) {
   return window['go']['main']['App']['AnalyzeMonitorIssueStream'](arg1, arg2);
+}
+
+export function AnalyzeNode(arg1) {
+  return window['go']['main']['App']['AnalyzeNode'](arg1);
+}
+
+export function AnalyzeNodeStream(arg1, arg2) {
+  return window['go']['main']['App']['AnalyzeNodeStream'](arg1, arg2);
 }
 
 export function AnalyzePersistentVolumeClaimStream(arg1, arg2, arg3) {
@@ -530,6 +546,10 @@ export function GetHorizontalPodAutoscalers(arg1) {
   return window['go']['main']['App']['GetHorizontalPodAutoscalers'](arg1);
 }
 
+export function GetHorizontalPodAutoscalerDetail(arg1, arg2) {
+  return window['go']['main']['App']['GetHorizontalPodAutoscalerDetail'](arg1, arg2);
+}
+
 export function GetImageDigest(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetImageDigest'](arg1, arg2, arg3);
 }
@@ -708,6 +728,10 @@ export function GetPodLog(arg1) {
 
 export function GetPodLogsPrevious(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPodLogsPrevious'](arg1, arg2, arg3, arg4);
+}
+
+export function GetPodsOnNode(arg1) {
+  return window['go']['main']['App']['GetPodsOnNode'](arg1);
 }
 
 export function GetPodMounts(arg1) {
