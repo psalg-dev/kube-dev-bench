@@ -197,6 +197,8 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
 
   const waitForNamespaceReady = async () => {
     let lastOutput = '';
+    let sawDeletionTimestamp = false;
+    let sawTerminatingPhase = false;
     for (let attempt = 1; attempt <= 30; attempt++) {
       const probe = await kubectl(
         ['get', 'ns', namespace, '-o', 'jsonpath={.status.phase}{"|"}{.metadata.deletionTimestamp}'],
@@ -221,6 +223,12 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
       }
 
       const [phase = '', deletionTs = ''] = String(probe.stdout || '').trim().split('|');
+      if (deletionTs) {
+        sawDeletionTimestamp = true;
+      }
+      if (/terminating/i.test(phase)) {
+        sawTerminatingPhase = true;
+      }
       if (/active/i.test(phase) && !deletionTs) {
         return;
       }
@@ -229,7 +237,41 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
       await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
     }
 
+    if (sawDeletionTimestamp || sawTerminatingPhase) {
+      throw new Error(
+        `Namespace ${namespace} is stuck terminating/deleting: ${lastOutput || 'unknown state'}`
+      );
+    }
+
     throw new Error(`Namespace ${namespace} did not become ready: ${lastOutput || 'unknown state'}`);
+  };
+
+  const recreateNamespace = async () => {
+    await kubectl(
+      ['delete', 'ns', namespace, '--ignore-not-found=true', '--wait=false', '--grace-period=0', '--force'],
+      { kubeconfigPath, timeoutMs: 60_000 }
+    );
+
+    for (let attempt = 1; attempt <= 8; attempt++) {
+      const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
+      if (create.code === 0) {
+        await waitForNamespaceReady();
+        return;
+      }
+
+      const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
+      if (/already exists/i.test(message)) {
+        await waitForNamespaceReady();
+        return;
+      }
+
+      if (isTransientConnectError(message) && attempt < 8) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+        continue;
+      }
+
+      throw new Error(`Failed recreating namespace ${namespace}: ${message || 'kubectl create ns failed'}`);
+    }
   };
 
   const ensureNamespaceOnce = async () => {
@@ -260,7 +302,16 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
 
     const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
     if (get.code === 0) {
-      await waitForNamespaceReady();
+      try {
+        await waitForNamespaceReady();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        if (/stuck terminating\/deleting/i.test(message)) {
+          await recreateNamespace();
+          return;
+        }
+        throw err;
+      }
       return;
     }
 
