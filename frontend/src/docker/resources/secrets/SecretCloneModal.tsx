@@ -1,16 +1,15 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
-import { CloneSwarmSecret } from '../../swarmApi';
 import { showError, showSuccess } from '../../../notification';
+import { CloneSwarmSecret } from '../../swarmApi';
 
 type SecretCloneModalProps = {
 	open: boolean;
 	sourceId?: string;
 	sourceName?: string;
 	onClose?: () => void;
-	onCreated?: (name: string) => void;
+	onCreated?: (_name: string) => void;
 };
-
 export default function SecretCloneModal({ open, sourceId, sourceName, onClose, onCreated }: SecretCloneModalProps) {
 	const [name, setName] = useState('');
 	const [value, setValue] = useState('');
@@ -186,5 +185,4 @@ export default function SecretCloneModal({ open, sourceId, sourceName, onClose, 
 		</div>
 	);
 }
-
 

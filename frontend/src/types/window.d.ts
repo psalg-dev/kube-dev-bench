@@ -5,7 +5,7 @@ declare global {
     go?: {
       main?: {
         App?: {
-          SetPreferredNamespaces?: (namespaces: string[]) => Promise<void>;
+          SetPreferredNamespaces?: (_namespaces: string[]) => Promise<void>;
         };
       };
     };

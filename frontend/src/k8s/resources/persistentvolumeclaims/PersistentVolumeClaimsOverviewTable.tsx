@@ -1,22 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import type { QuickInfoField } from '../../../QuickInfoSection';
-import PersistentVolumeClaimYamlTab from './PersistentVolumeClaimYamlTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import FilesTab from '../../../layout/bottompanel/FilesTab';
+import type { app } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
-import PVCBoundPVTab from './PVCBoundPVTab';
-import PVCConsumersTab from './PVCConsumersTab';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzePersistentVolumeClaimStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { AnalyzePersistentVolumeClaimStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
 import type { HolmesResponse } from '../../../holmes/HolmesResponseRenderer';
-import type { app } from '../../../../wailsjs/go/models';
-
+import FilesTab from '../../../layout/bottompanel/FilesTab';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import type { QuickInfoField } from '../../../QuickInfoSection';
+import QuickInfoSection from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import PersistentVolumeClaimYamlTab from './PersistentVolumeClaimYamlTab';
+import PVCBoundPVTab from './PVCBoundPVTab';
+import PVCConsumersTab from './PVCConsumersTab';
 type PersistentVolumeClaimsOverviewTableProps = {
 	namespaces?: string[];
 	namespace?: string;
@@ -194,7 +194,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		};
 		const unsubscribe = EventsOn('resource-updated', onUpdate);
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [namespaces]);
@@ -294,10 +294,9 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
-
 	useEffect(() => {
 		const unsubscribe = onHolmesContextProgress((event) => {
 			if (!event?.key) return;
@@ -321,7 +320,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -342,6 +341,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		{ key: 'events', label: 'Events', countKey: 'events' },
 		{ key: 'yaml', label: 'YAML', countable: false },
 		{ key: 'files', label: 'Files', countable: false },
+		{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 		{ key: 'holmes', label: 'Holmes', countable: false },
 	];
 
@@ -349,7 +349,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		row: PvcRow,
 		tab: string,
 		holmesState: HolmesState,
-		onAnalyze: (item: PvcRow) => void,
+		onAnalyze: (_item: PvcRow) => void,
 		onCancel: () => void
 	) {
 		if (tab === 'summary') {
@@ -363,7 +363,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 						key: 'age',
 						label: 'Age',
 						type: 'age',
-						getValue: (data: Record<string, any>) => (data as PvcRow).created || (data as PvcRow).age
+						getValue: (data: Record<string, unknown>) => (data as PvcRow).created || (data as PvcRow).age
 					}
 				},
 				{ key: 'namespace', label: 'Namespace' },
@@ -408,6 +408,9 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		if (tab === 'files') {
 			return <FilesTab namespace={row.namespace} pvcName={row.name} />;
 		}
+		if (tab === 'relationships') {
+			return <ResourceGraphTab namespace={row.namespace} kind="PersistentVolumeClaim" name={row.name} />;
+		}
 		if (tab === 'holmes') {
 			const key = `${row.namespace}/${row.name}`;
 			return (
@@ -448,7 +451,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 			</div>
 		);
 	}
-
 	if (error) {
 		return (
 			<div style={{
@@ -499,7 +501,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		}
 	};
 
-	const getRowActions = (row: PvcRow, api: { openDetails?: (tab?: string) => void }) => {
+	const getRowActions = (row: PvcRow, api: { openDetails?: (_tab?: string) => void }) => {
 		const key = `${row.namespace}/${row.name}`;
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [

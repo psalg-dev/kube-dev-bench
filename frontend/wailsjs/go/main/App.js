@@ -162,6 +162,10 @@ export function CancelHolmesStream(arg1) {
   return window['go']['main']['App']['CancelHolmesStream'](arg1);
 }
 
+export function CancelKindCluster() {
+  return window['go']['main']['App']['CancelKindCluster']();
+}
+
 export function CheckHolmesDeployment() {
   return window['go']['main']['App']['CheckHolmesDeployment']();
 }
@@ -192,6 +196,10 @@ export function CloneSwarmVolume(arg1, arg2) {
 
 export function ConnectToDocker(arg1) {
   return window['go']['main']['App']['ConnectToDocker'](arg1);
+}
+
+export function CreateKindCluster(arg1) {
+  return window['go']['main']['App']['CreateKindCluster'](arg1);
 }
 
 export function CreateResource(arg1, arg2) {
@@ -330,12 +338,24 @@ export function GetClusterRoleBindingDetail(arg1) {
   return window['go']['main']['App']['GetClusterRoleBindingDetail'](arg1);
 }
 
+export function GetClusterRoleBindingSubjects(arg1) {
+  return window['go']['main']['App']['GetClusterRoleBindingSubjects'](arg1);
+}
+
+export function GetClusterRoleBindingYAML(arg1) {
+  return window['go']['main']['App']['GetClusterRoleBindingYAML'](arg1);
+}
+
 export function GetClusterRoleBindings() {
   return window['go']['main']['App']['GetClusterRoleBindings']();
 }
 
 export function GetClusterRoleDetail(arg1) {
   return window['go']['main']['App']['GetClusterRoleDetail'](arg1);
+}
+
+export function GetClusterRoleYAML(arg1) {
+  return window['go']['main']['App']['GetClusterRoleYAML'](arg1);
 }
 
 export function GetClusterRoles() {
@@ -506,6 +526,10 @@ export function GetHooksConfig() {
   return window['go']['main']['App']['GetHooksConfig']();
 }
 
+export function GetHorizontalPodAutoscalers(arg1) {
+  return window['go']['main']['App']['GetHorizontalPodAutoscalers'](arg1);
+}
+
 export function GetImageDigest(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetImageDigest'](arg1, arg2, arg3);
 }
@@ -570,6 +594,10 @@ export function GetMCPStatus() {
   return window['go']['main']['App']['GetMCPStatus']();
 }
 
+export function GetNamespaceGraph(arg1, arg2) {
+  return window['go']['main']['App']['GetNamespaceGraph'](arg1, arg2);
+}
+
 export function GetNamespaces() {
   return window['go']['main']['App']['GetNamespaces']();
 }
@@ -580,6 +608,10 @@ export function GetNetworkPolicies(arg1) {
 
 export function GetNetworkPolicyDetail(arg1, arg2) {
   return window['go']['main']['App']['GetNetworkPolicyDetail'](arg1, arg2);
+}
+
+export function GetNetworkPolicyGraph(arg1, arg2) {
+  return window['go']['main']['App']['GetNetworkPolicyGraph'](arg1, arg2);
 }
 
 export function GetNodeDetail(arg1) {
@@ -710,6 +742,10 @@ export function GetProxyDisplayURL() {
   return window['go']['main']['App']['GetProxyDisplayURL']();
 }
 
+export function GetRBACGraph(arg1) {
+  return window['go']['main']['App']['GetRBACGraph'](arg1);
+}
+
 export function GetRegistries() {
   return window['go']['main']['App']['GetRegistries']();
 }
@@ -754,6 +790,10 @@ export function GetResourceEventsCount(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceEventsCount'](arg1, arg2, arg3);
 }
 
+export function GetResourceGraph(arg1, arg2, arg3, arg4) {
+  return window['go']['main']['App']['GetResourceGraph'](arg1, arg2, arg3, arg4);
+}
+
 export function GetResourceYAML(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceYAML'](arg1, arg2, arg3);
 }
@@ -762,12 +802,24 @@ export function GetRoleBindingDetail(arg1, arg2) {
   return window['go']['main']['App']['GetRoleBindingDetail'](arg1, arg2);
 }
 
+export function GetRoleBindingSubjects(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleBindingSubjects'](arg1, arg2);
+}
+
+export function GetRoleBindingYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleBindingYAML'](arg1, arg2);
+}
+
 export function GetRoleBindings(arg1) {
   return window['go']['main']['App']['GetRoleBindings'](arg1);
 }
 
 export function GetRoleDetail(arg1, arg2) {
   return window['go']['main']['App']['GetRoleDetail'](arg1, arg2);
+}
+
+export function GetRoleYAML(arg1, arg2) {
+  return window['go']['main']['App']['GetRoleYAML'](arg1, arg2);
 }
 
 export function GetRoles(arg1) {
@@ -872,6 +924,10 @@ export function GetStorageClassDetail(arg1) {
 
 export function GetStorageClasses() {
   return window['go']['main']['App']['GetStorageClasses']();
+}
+
+export function GetStorageGraph(arg1, arg2) {
+  return window['go']['main']['App']['GetStorageGraph'](arg1, arg2);
 }
 
 export function GetSwarmConfig(arg1) {
@@ -1316,6 +1372,10 @@ export function StartMonitorPolling() {
 
 export function StartPodExecSession(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['StartPodExecSession'](arg1, arg2, arg3, arg4);
+}
+
+export function StartRBACPolling() {
+  return window['go']['main']['App']['StartRBACPolling']();
 }
 
 export function StartShellSession(arg1, arg2) {

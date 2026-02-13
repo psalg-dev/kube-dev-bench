@@ -915,6 +915,56 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class HorizontalPodAutoscalerInfo {
+	    name: string;
+	    namespace: string;
+	    targetKind: string;
+	    targetName: string;
+	    minReplicas: number;
+	    maxReplicas: number;
+	    currentReplicas: number;
+	    desiredReplicas: number;
+	    currentCPU?: string;
+	    currentMemory?: string;
+	    targetCPU?: string;
+	    targetMemory?: string;
+	    age: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new HorizontalPodAutoscalerInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.targetKind = source["targetKind"];
+	        this.targetName = source["targetName"];
+	        this.minReplicas = source["minReplicas"];
+	        this.maxReplicas = source["maxReplicas"];
+	        this.currentReplicas = source["currentReplicas"];
+	        this.desiredReplicas = source["desiredReplicas"];
+	        this.currentCPU = source["currentCPU"];
+	        this.currentMemory = source["currentMemory"];
+	        this.targetCPU = source["targetCPU"];
+	        this.targetMemory = source["targetMemory"];
+	        this.age = source["age"];
+	    }
+	}
+	export class IPBlockRule {
+	    cidr: string;
+	    except?: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new IPBlockRule(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.cidr = source["cidr"];
+	        this.except = source["except"];
+	    }
+	}
 	export class IngressTLSInfo {
 	    hosts: string[];
 	    secretName: string;
@@ -1113,6 +1163,24 @@ export namespace app {
 		    return a;
 		}
 	}
+	export class KindClusterResult {
+	    name: string;
+	    kubeconfigPath: string;
+	    context: string;
+	    created: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new KindClusterResult(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.name = source["name"];
+	        this.kubeconfigPath = source["kubeconfigPath"];
+	        this.context = source["context"];
+	        this.created = source["created"];
+	    }
+	}
 	export class KubeConfigInfo {
 	    path: string;
 	    name: string;
@@ -1258,6 +1326,7 @@ export namespace app {
 	export class NetworkPolicyPeer {
 	    podSelector?: Record<string, string>;
 	    namespaceSelector?: Record<string, string>;
+	    ipBlock?: IPBlockRule;
 	
 	    static createFrom(source: any = {}) {
 	        return new NetworkPolicyPeer(source);
@@ -1267,7 +1336,26 @@ export namespace app {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.podSelector = source["podSelector"];
 	        this.namespaceSelector = source["namespaceSelector"];
+	        this.ipBlock = this.convertValues(source["ipBlock"], IPBlockRule);
 	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 	export class NetworkPolicyPort {
 	    protocol?: string;
@@ -1528,7 +1616,9 @@ export namespace app {
 	    }
 	}
 	export class PVCConsumer {
+	    kind?: string;
 	    podName: string;
+	    namespace?: string;
 	    node: string;
 	    status: string;
 	    refType?: string;
@@ -1539,7 +1629,9 @@ export namespace app {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.kind = source["kind"];
 	        this.podName = source["podName"];
+	        this.namespace = source["namespace"];
 	        this.node = source["node"];
 	        this.status = source["status"];
 	        this.refType = source["refType"];
@@ -2091,6 +2183,10 @@ export namespace app {
 	    persistentvolumeclaims: number;
 	    persistentvolumes: number;
 	    helmreleases: number;
+	    roles: number;
+	    clusterroles: number;
+	    rolebindings: number;
+	    clusterrolebindings: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new ResourceCounts(source);
@@ -2112,6 +2208,10 @@ export namespace app {
 	        this.persistentvolumeclaims = source["persistentvolumeclaims"];
 	        this.persistentvolumes = source["persistentvolumes"];
 	        this.helmreleases = source["helmreleases"];
+	        this.roles = source["roles"];
+	        this.clusterroles = source["clusterroles"];
+	        this.rolebindings = source["rolebindings"];
+	        this.clusterrolebindings = source["clusterrolebindings"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {
@@ -2459,6 +2559,7 @@ export namespace app {
 	    ports: string;
 	    age: string;
 	    labels?: Record<string, string>;
+	    selector?: Record<string, string>;
 	
 	    static createFrom(source: any = {}) {
 	        return new ServiceInfo(source);
@@ -2473,6 +2574,7 @@ export namespace app {
 	        this.ports = source["ports"];
 	        this.age = source["age"];
 	        this.labels = source["labels"];
+	        this.selector = source["selector"];
 	    }
 	}
 	export class ServiceSummary {
@@ -3693,6 +3795,87 @@ export namespace jobs {
 	        this.duration = source["duration"];
 	        this.labels = source["labels"];
 	    }
+	}
+
+}
+
+export namespace k8s_graph {
+	
+	export class GraphEdge {
+	    id: string;
+	    source: string;
+	    target: string;
+	    type: string;
+	    label: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new GraphEdge(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.source = source["source"];
+	        this.target = source["target"];
+	        this.type = source["type"];
+	        this.label = source["label"];
+	    }
+	}
+	export class GraphNode {
+	    id: string;
+	    kind: string;
+	    name: string;
+	    namespace: string;
+	    status: string;
+	    group: string;
+	    metadata: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new GraphNode(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.kind = source["kind"];
+	        this.name = source["name"];
+	        this.namespace = source["namespace"];
+	        this.status = source["status"];
+	        this.group = source["group"];
+	        this.metadata = source["metadata"];
+	    }
+	}
+	export class ResourceGraph {
+	    nodes: GraphNode[];
+	    edges: GraphEdge[];
+	
+	    static createFrom(source: any = {}) {
+	        return new ResourceGraph(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.nodes = this.convertValues(source["nodes"], GraphNode);
+	        this.edges = this.convertValues(source["edges"], GraphEdge);
+	    }
+	
+		convertValues(a: any, classs: any, asMap: boolean = false): any {
+		    if (!a) {
+		        return a;
+		    }
+		    if (a.slice && a.map) {
+		        return (a as any[]).map(elem => this.convertValues(elem, classs));
+		    } else if ("object" === typeof a) {
+		        if (asMap) {
+		            for (const key of Object.keys(a)) {
+		                a[key] = new classs(a[key]);
+		            }
+		            return a;
+		        }
+		        return new classs(a);
+		    }
+		    return a;
+		}
 	}
 
 }

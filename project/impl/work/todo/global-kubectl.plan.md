@@ -1,3 +1,8 @@
+---
+title: "Implementation Plan: Global kubectl Command Palette"
+status: todo
+priority: medium
+---
 # Implementation Plan: Global kubectl Command Palette
 
 **Status:** Todo (0% — nothing implemented)

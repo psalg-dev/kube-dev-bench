@@ -5,21 +5,21 @@
  * Configuration for GenericResourceTable to display Docker Swarm Configs.
  */
 
-import { GetSwarmConfigs, CloneSwarmConfig, ExportSwarmConfig, RemoveSwarmConfig } from '../../../docker/swarmApi';
 import { ConfigDataTab } from '../../../docker/resources/configs/ConfigDataTab';
 import { ConfigInspectTab } from '../../../docker/resources/configs/ConfigInspectTab';
 import { ConfigSummaryPanel } from '../../../docker/resources/configs/ConfigSummaryPanel';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import { showSuccess, showError } from '../../../notification';
+import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../../docker/swarmApi';
+import { showError, showSuccess } from '../../../notification';
 import type {
-  PanelApi,
-  RenderPanelContent,
-  ResourceColumn,
-  ResourceConfig,
-  ResourceRow,
-  ResourceTab,
-  RowAction,
+    PanelApi,
+    RenderPanelContent,
+    ResourceColumn,
+    ResourceConfig,
+    ResourceRow,
+    ResourceTab,
+    RowAction,
 } from '../../../types/resourceConfigs';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 /**
  * Column definitions for Swarm Configs table
@@ -69,18 +69,12 @@ export const normalizeSwarmConfig = (config: Record<string, any>): ResourceRow =
   updatedAt: config.updatedAt ?? config.UpdatedAt,
   labels: config.labels ?? config.Labels ?? {},
 });
-
 /**
  * Render panel content for each tab
  */
 export const renderSwarmConfigPanelContent: RenderPanelContent = (
   row,
-  tab,
-  _holmesState,
-  _onAnalyze,
-  _onCancel,
-  panelApi,
-  allData
+  tab
 ) => {
   if (tab === 'summary') {
     return <ConfigSummaryPanel row={row} />;

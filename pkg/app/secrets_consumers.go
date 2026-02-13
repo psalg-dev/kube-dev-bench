@@ -119,6 +119,50 @@ func (a *App) collectSecretConsumers(clientset kubernetes.Interface, namespace, 
 		}
 	}
 
+	// Scan StatefulSets
+	stsList, err := clientset.AppsV1().StatefulSets(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, sts := range stsList.Items {
+		if ok, why := podSpecUsesSecret(sts.Spec.Template.Spec, secretName); ok {
+			consumers = append(consumers, SecretConsumer{Kind: "StatefulSet", Name: sts.Name, Namespace: sts.Namespace, RefType: why})
+		}
+	}
+
+	// Scan DaemonSets
+	dsList, err := clientset.AppsV1().DaemonSets(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, ds := range dsList.Items {
+		if ok, why := podSpecUsesSecret(ds.Spec.Template.Spec, secretName); ok {
+			consumers = append(consumers, SecretConsumer{Kind: "DaemonSet", Name: ds.Name, Namespace: ds.Namespace, RefType: why})
+		}
+	}
+
+	// Scan Jobs
+	jobs, err := clientset.BatchV1().Jobs(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, job := range jobs.Items {
+		if ok, why := podSpecUsesSecret(job.Spec.Template.Spec, secretName); ok {
+			consumers = append(consumers, SecretConsumer{Kind: "Job", Name: job.Name, Namespace: job.Namespace, RefType: why})
+		}
+	}
+
+	// Scan CronJobs
+	cronJobs, err := clientset.BatchV1().CronJobs(namespace).List(a.ctx, metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, cj := range cronJobs.Items {
+		if ok, why := podSpecUsesSecret(cj.Spec.JobTemplate.Spec.Template.Spec, secretName); ok {
+			consumers = append(consumers, SecretConsumer{Kind: "CronJob", Name: cj.Name, Namespace: cj.Namespace, RefType: why})
+		}
+	}
+
 	return consumers, nil
 }
 

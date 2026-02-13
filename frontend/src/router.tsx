@@ -3,6 +3,15 @@ import App from './App';
 
 // All valid section keys - used for routing
 export const k8sSections = [
+  'cluster',
+  'namespace-topology',
+  'storage-graph',
+  'network-graph',
+  'rbac-graph',
+  'roles',
+  'clusterroles',
+  'rolebindings',
+  'clusterrolebindings',
   'pods',
   'deployments',
   'services',

@@ -1,23 +1,23 @@
-import { createContext, useContext, useEffect, useReducer, useCallback, useRef } from 'react';
-import {
-  GetDockerConnectionStatus,
-  ConnectToDocker,
-  TestDockerConnection,
-  DisconnectDocker,
-  GetDockerConfig,
-  AutoConnectDocker,
-  GetSwarmServices,
-  GetSwarmTasks,
-  GetSwarmNodes,
-  GetSwarmNetworks,
-  GetSwarmConfigs,
-  GetSwarmSecrets,
-  GetSwarmStacks,
-  GetSwarmVolumes,
-} from './swarmApi';
-import { showError, showSuccess } from '../notification';
-import { EventsOn } from '../../wailsjs/runtime';
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
 import type { docker } from '../../wailsjs/go/models';
+import { EventsOn } from '../../wailsjs/runtime';
+import { showError, showSuccess } from '../notification';
+import {
+    AutoConnectDocker,
+    ConnectToDocker,
+    DisconnectDocker,
+    GetDockerConfig,
+    GetDockerConnectionStatus,
+    GetSwarmConfigs,
+    GetSwarmNetworks,
+    GetSwarmNodes,
+    GetSwarmSecrets,
+    GetSwarmServices,
+    GetSwarmStacks,
+    GetSwarmTasks,
+    GetSwarmVolumes,
+    TestDockerConnection,
+} from './swarmApi';
 
 interface SwarmConnectionStatus {
   connected?: boolean;
@@ -152,8 +152,8 @@ function reducer(state: SwarmState, action: SwarmAction): SwarmState {
 export { reducer as swarmStateReducer };
 
 interface SwarmStateActions {
-  connect: (config: docker.DockerConfig) => Promise<SwarmConnectionStatus>;
-  testConnection: (config: docker.DockerConfig) => Promise<SwarmConnectionStatus>;
+  connect: (_config: docker.DockerConfig) => Promise<SwarmConnectionStatus>;
+  testConnection: (_config: docker.DockerConfig) => Promise<SwarmConnectionStatus>;
   disconnect: () => Promise<void>;
   refreshConnectionStatus: () => Promise<void>;
   openWizard: () => void;
@@ -167,7 +167,6 @@ interface SwarmStateActions {
   refreshStacks: () => Promise<void>;
   refreshVolumes: () => Promise<void>;
 }
-
 export interface SwarmStateContextValue extends SwarmState {
   actions: SwarmStateActions;
   refreshServices: () => Promise<void>;
@@ -189,7 +188,7 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
   const runRefresh = useCallback(async <T,>(
     key: string,
     fetcher: () => Promise<T>,
-    onData: (data: T) => void,
+    onData: (_data: T) => void,
     label: string
   ) => {
     if (refreshingRef.current[key]) return;
@@ -203,7 +202,6 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
       refreshingRef.current[key] = false;
     }
   }, []);
-
   const refreshConnectionStatus = useCallback(async () => {
     try {
       const status = await GetDockerConnectionStatus();
@@ -323,7 +321,7 @@ export function SwarmStateProvider({ children }: { children: React.ReactNode }) 
     let offs: Array<(() => void) | undefined> = [];
 
     const hasRuntimeEvents = () => {
-      const win = window as Window & { runtime?: { EventsOnMultiple?: (...args: any[]) => unknown } };
+      const win = window as Window & { runtime?: { EventsOnMultiple?: (..._args: unknown[]) => unknown } };
       return typeof win.runtime?.EventsOnMultiple === 'function';
     };
 

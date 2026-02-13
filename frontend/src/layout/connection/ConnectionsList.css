@@ -26,6 +26,76 @@
 .connections-header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.connections-kind-progress {
+  margin: 8px 0 20px;
+}
+
+.connections-kind-progress__label {
+  font-size: 12px;
+  color: var(--gh-text-secondary, #ccc);
+  margin-bottom: 6px;
+}
+
+.connections-kind-progress__track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--gh-border, #444);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.connections-kind-progress__fill {
+  height: 100%;
+  background: var(--gh-accent, #0969da);
+  transition: width 0.3s ease;
+  width: 0;
+}
+
+.connections-kind-progress__phases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.connections-kind-progress__phase {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--gh-text-tertiary, #999);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.connections-kind-progress__dot {
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--gh-border, #444);
+  background: transparent;
+}
+
+.connections-kind-progress__phase.is-complete,
+.connections-kind-progress__phase.is-active {
+  color: var(--gh-text, #fff);
+}
+
+.connections-kind-progress__phase.is-complete .connections-kind-progress__dot,
+.connections-kind-progress__phase.is-active .connections-kind-progress__dot {
+  background: var(--gh-accent, #0969da);
+  border-color: var(--gh-accent, #0969da);
+}
+
+.connections-kind-progress__phase.is-error {
+  color: #f85149;
+}
+
+.connections-kind-progress__phase.is-error .connections-kind-progress__dot {
+  background: #f85149;
+  border-color: #f85149;
 }
 
 .connections-alert {
@@ -80,6 +150,12 @@
   background: var(--gh-button-secondary-bg, #444);
   color: var(--gh-text, #fff);
   border: 1px solid var(--gh-border, #555);
+}
+
+.connections-button.secondary.cancel {
+  border-color: #f85149;
+  color: #f85149;
+  background: rgba(248, 81, 73, 0.08);
 }
 
 .connections-button.small {

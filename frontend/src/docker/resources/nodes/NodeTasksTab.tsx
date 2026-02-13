@@ -25,7 +25,7 @@ interface NodeTasksTabProps {
   nodeName?: string;
 }
 
-export default function NodeTasksTab({ nodeId, nodeName: _nodeName }: NodeTasksTabProps) {
+export default function NodeTasksTab({ nodeId }: NodeTasksTabProps) {
   const [tasks, setTasks] = useState<SwarmTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);

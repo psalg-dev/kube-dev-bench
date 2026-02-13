@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { EventsOn, EventsOff, BrowserOpenURL } from '../../../../wailsjs/runtime';
+import { BrowserOpenURL, EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 
 type PortForwardOutputProps = {
 	namespace: string;
@@ -23,12 +23,17 @@ export default function PortForwardOutput({ namespace, podName, localPort, remot
 	const url = useMemo(() => (localPort ? `http://127.0.0.1:${localPort}` : ''), [localPort]);
 
 	useEffect(() => {
-		// reset state on target change
-		setLines([]);
-		setReady(false);
-		setEnded(false);
+		const resetTimerId = window.setTimeout(() => {
+			setLines([]);
+			setReady(false);
+			setEnded(false);
+		}, 0);
 
-		if (!key) return;
+		if (!key) {
+			return () => {
+				window.clearTimeout(resetTimerId);
+			};
+		}
 
 		const outputEvent = `portforward:${key}:output`;
 		const errorEvent = `portforward:${key}:error`;
@@ -46,6 +51,7 @@ export default function PortForwardOutput({ namespace, podName, localPort, remot
 		EventsOn(exitEvent, onExit);
 
 		return () => {
+			window.clearTimeout(resetTimerId);
 			EventsOff(outputEvent, errorEvent, readyEvent, exitEvent);
 		};
 	}, [key, localPort, remotePort]);
@@ -59,16 +65,16 @@ export default function PortForwardOutput({ namespace, podName, localPort, remot
 
 	const handleOpen = () => {
 		if (!url) return;
-		try { BrowserOpenURL(url); } catch (_) {}
+		try { BrowserOpenURL(url); } catch {}
 	};
 
 	const handleStop = async () => {
 		try {
-			const stop = (window as any)?.go?.main?.App?.StopPortForward;
+			const stop = (window as unknown)?.go?.main?.App?.StopPortForward;
 			if (typeof stop === 'function') {
 				await stop(namespace, podName, localPort);
 			}
-		} catch (_) {}
+		} catch {}
 	};
 
 	if (!podName) {

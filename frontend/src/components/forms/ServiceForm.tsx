@@ -1,17 +1,16 @@
-import TextField from './TextField';
-import NumberField from './NumberField';
-import SelectField from './SelectField';
+import type { SwarmServiceFormData, SwarmServiceFormErrors } from '../../hooks/useSwarmServiceForm';
 import CollapsibleSection from './CollapsibleSection';
 import KeyValueEditor from './KeyValueEditor';
+import NumberField from './NumberField';
 import PortMappingEditor from './PortMappingEditor';
-import type { SwarmServiceFormData, SwarmServiceFormErrors } from '../../hooks/useSwarmServiceForm';
+import SelectField from './SelectField';
+import TextField from './TextField';
 
 type ServiceFormProps = {
   data: SwarmServiceFormData;
-  onChange: (data: SwarmServiceFormData) => void;
+  onChange: (_data: SwarmServiceFormData) => void;
   errors?: SwarmServiceFormErrors;
 };
-
 export default function ServiceForm({ data, onChange, errors }: ServiceFormProps) {
   const d = data;
   const e = errors || {};

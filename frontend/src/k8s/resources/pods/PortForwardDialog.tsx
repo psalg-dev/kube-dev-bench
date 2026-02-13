@@ -3,13 +3,11 @@ import { GetPodContainerPorts } from '../../../../wailsjs/go/main/App';
 
 type PortForwardDialogProps = {
 	open: boolean;
-	_namespace?: string;
 	podName?: string;
 	onCancel?: () => void;
-	onConfirm?: (args: { sourcePort: number; targetPort: number }) => void;
+	onConfirm?: (_args: { sourcePort: number; targetPort: number }) => void;
 };
-
-export default function PortForwardDialog({ open, _namespace, podName, onCancel, onConfirm }: PortForwardDialogProps) {
+export default function PortForwardDialog({ open, podName, onCancel, onConfirm }: PortForwardDialogProps) {
 	const [ports, setPorts] = useState<number[]>([]);
 	const [sourcePort, setSourcePort] = useState(''); // remote
 	const [targetPort, setTargetPort] = useState(''); // local

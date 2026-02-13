@@ -268,3 +268,47 @@ func TestGetClusterRoleDetail_EmptyName(t *testing.T) {
 		t.Errorf("unexpected error message: %v", err)
 	}
 }
+
+func TestGetRoles_RawFieldList(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "r1", Namespace: "default"}},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "r2", Namespace: "default"}},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	list, err := app.GetRoles("default")
+	if err != nil {
+		t.Fatalf("GetRoles error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("want 2, got %d", len(list))
+	}
+	if list[0].Raw == nil {
+		t.Fatal("expected Raw set for list item")
+	}
+	if _, ok := list[0].Raw.(*rbacv1.Role); !ok {
+		t.Fatalf("Raw type = %T, want *rbacv1.Role", list[0].Raw)
+	}
+}
+
+func TestGetClusterRoles_RawFieldList(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "cr1"}},
+		&rbacv1.ClusterRole{ObjectMeta: metav1.ObjectMeta{Name: "cr2"}},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	list, err := app.GetClusterRoles()
+	if err != nil {
+		t.Fatalf("GetClusterRoles error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("want 2, got %d", len(list))
+	}
+	if list[0].Raw == nil {
+		t.Fatal("expected Raw set for cluster role list item")
+	}
+	if _, ok := list[0].Raw.(*rbacv1.ClusterRole); !ok {
+		t.Fatalf("Raw type = %T, want *rbacv1.ClusterRole", list[0].Raw)
+	}
+}

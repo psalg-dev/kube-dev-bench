@@ -1,21 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import type { QuickInfoField } from '../../../QuickInfoSection';
-import PersistentVolumeYamlTab from './PersistentVolumeYamlTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import PVBoundPVCTab from './PVBoundPVCTab';
-import { showResourceOverlay } from '../../../resource-overlay';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import type { app } from '../../../../wailsjs/go/models';
 import ResourceActions from '../../../components/ResourceActions';
-import PVAnnotationsTab from './PVAnnotationsTab';
-import PVCapacityUsageTab from './PVCapacityUsageTab';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzePersistentVolumeStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { AnalyzePersistentVolumeStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
 import type { HolmesResponse } from '../../../holmes/HolmesResponseRenderer';
-import type { app } from '../../../../wailsjs/go/models';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import type { QuickInfoField } from '../../../QuickInfoSection';
+import QuickInfoSection from '../../../QuickInfoSection';
+import { showResourceOverlay } from '../../../resource-overlay';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import PersistentVolumeYamlTab from './PersistentVolumeYamlTab';
+import PVAnnotationsTab from './PVAnnotationsTab';
+import PVBoundPVCTab from './PVBoundPVCTab';
+import PVCapacityUsageTab from './PVCapacityUsageTab';
 
 type PersistentVolumesOverviewTableProps = {
 	namespaces?: string[];
@@ -81,6 +82,7 @@ const bottomTabs = [
 	{ key: 'usage', label: 'Capacity Usage', countable: false },
 	{ key: 'events', label: 'Events', countKey: 'events' },
 	{ key: 'yaml', label: 'YAML', countable: false },
+	{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 	{ key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -88,7 +90,7 @@ function renderPanelContent(
 	row: PvRow,
 	tab: string,
 	holmesState: HolmesState,
-	onAnalyze: (item: PvRow) => void,
+	onAnalyze: (_item: PvRow) => void,
 	onCancel: () => void
 ) {
 	if (tab === 'summary') {
@@ -102,7 +104,7 @@ function renderPanelContent(
 					key: 'age',
 					label: 'Age',
 					type: 'age',
-					getValue: (data: Record<string, any>) => (data as PvRow).created || (data as PvRow).age
+					getValue: (data: Record<string, unknown>) => (data as PvRow).created || (data as PvRow).age
 				}
 			},
 			{ key: 'namespace', label: 'Namespace' },
@@ -114,9 +116,6 @@ function renderPanelContent(
 			{ key: 'volumeType', label: 'Volume Type' },
 			{ key: 'name', label: 'PV name', type: 'break-word' }
 		];
-
-		// Extract annotations once for reuse
-		const _annotations = row.annotations || row.Annotations || row.metadata?.annotations || {};
 
 		return (
 			<div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -152,6 +151,9 @@ function renderPanelContent(
 	if (tab === 'yaml') {
 		return <PersistentVolumeYamlTab name={row.name} />;
 	}
+	if (tab === 'relationships') {
+		return <ResourceGraphTab namespace="" kind="PersistentVolume" name={row.name} />;
+	}
 	if (tab === 'holmes') {
 		const key = row.name; // PVs are cluster-scoped, no namespace
 		return (
@@ -173,22 +175,6 @@ function renderPanelContent(
 	}
 	return null;
 }
-
-function _getStatusColor(status?: string) {
-	switch (status?.toLowerCase()) {
-		case 'available':
-			return '#28a745'; // green
-		case 'bound':
-			return '#007bff'; // blue
-		case 'released':
-			return '#ffc107'; // yellow
-		case 'failed':
-			return '#dc3545'; // red
-		default:
-			return '#6c757d'; // gray
-	}
-}
-
 export default function PersistentVolumesOverviewTable({ namespaces }: PersistentVolumesOverviewTableProps) {
 	const [data, setData] = useState<PvRow[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -306,7 +292,7 @@ export default function PersistentVolumesOverviewTable({ namespaces }: Persisten
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -333,7 +319,7 @@ export default function PersistentVolumesOverviewTable({ namespaces }: Persisten
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -422,7 +408,6 @@ export default function PersistentVolumesOverviewTable({ namespaces }: Persisten
 			</div>
 		);
 	}
-
 	const analyzePersistentVolume = async (row: PvRow) => {
 		const key = row.name; // PVs are cluster-scoped, no namespace
 		const streamId = `pv-${Date.now()}`;
@@ -459,7 +444,7 @@ export default function PersistentVolumesOverviewTable({ namespaces }: Persisten
 		}
 	};
 
-	const getRowActions = (row: PvRow, api: { openDetails?: (tab?: string) => void }) => {
+	const getRowActions = (row: PvRow, api: { openDetails?: (_tab?: string) => void }) => {
 		const key = row.name; // PVs are cluster-scoped, no namespace
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [

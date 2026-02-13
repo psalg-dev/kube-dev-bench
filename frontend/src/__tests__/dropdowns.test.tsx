@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type SelectOption = { label: string; value: string };
 type MockSelectProps = {
@@ -7,11 +7,10 @@ type MockSelectProps = {
   value?: SelectOption | SelectOption[] | null;
   isMulti?: boolean;
   placeholder?: string;
-  onChange?: (value: SelectOption | SelectOption[] | null) => void;
+  onChange?: (_value: SelectOption | SelectOption[] | null) => void;
   onMenuOpen?: () => void;
   isDisabled?: boolean;
 };
-
 // Mock react-select with a simplified component capturing props
 vi.mock('react-select', () => {
   return {
@@ -21,7 +20,11 @@ vi.mock('react-select', () => {
         <button
           disabled={isDisabled}
           data-testid="select-toggle"
-          onClick={() => onMenuOpen && onMenuOpen()}
+          onClick={() => {
+            if (onMenuOpen) {
+              onMenuOpen();
+            }
+          }}
         >
           {placeholder}
         </button>
@@ -43,9 +46,13 @@ vi.mock('react-select', () => {
                     const next = exists
                       ? current.filter((c: SelectOption) => c.value !== o.value)
                       : [...current, o];
-                    onChange && onChange(next);
+                    if (onChange) {
+                      onChange(next);
+                    }
                   } else {
-                    onChange && onChange(o);
+                    if (onChange) {
+                      onChange(o);
+                    }
                   }
                 }}
               >

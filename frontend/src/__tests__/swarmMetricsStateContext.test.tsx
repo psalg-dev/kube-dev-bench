@@ -1,19 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../docker/swarmApi', () => ({
   GetSwarmMetricsHistory: vi.fn(() => Promise.resolve([{ timestamp: 't1', services: 1, tasks: 2, runningTasks: 1, nodes: 1, readyNodes: 1 }])),
 }));
 
-const handlers = new Map<string, (payload: unknown) => void>();
+const handlers = new Map<string, (_payload: unknown) => void>();
 vi.mock('../../wailsjs/runtime/runtime', () => ({
-  EventsOn: vi.fn((_event: string, cb: (payload: unknown) => void) => {
+  EventsOn: vi.fn((_event: string, cb: (_payload: unknown) => void) => {
     handlers.set(_event, cb);
     return () => { handlers.delete(_event); };
   }),
   EventsOff: vi.fn(),
 }));
-
 import { MetricsStateProvider, useClusterMetrics } from '../docker/metrics/MetricsStateContext';
 
 function Probe() {

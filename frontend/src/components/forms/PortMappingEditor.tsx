@@ -1,3 +1,5 @@
+import { useRef } from 'react';
+
 type PortMapping = {
   id?: string;
   protocol?: 'tcp' | 'udp' | string;
@@ -6,18 +8,18 @@ type PortMapping = {
   publishMode?: 'ingress' | 'host' | string;
 };
 
-function ensureRowId(row: PortMapping) {
-  if (row?.id) return row;
-  return { ...row, id: `port_${Date.now()}_${Math.random().toString(16).slice(2)}` };
-}
-
 type PortMappingEditorProps = {
   ports?: PortMapping[];
-  onChange: (ports: PortMapping[]) => void;
+  onChange: (_ports: PortMapping[]) => void;
 };
-
 export default function PortMappingEditor({ ports, onChange }: PortMappingEditorProps) {
-  const safePorts = (ports || []).map(ensureRowId);
+  const safePorts = ports || [];
+  const nextIdRef = useRef(0);
+
+  const createPortId = () => {
+    nextIdRef.current += 1;
+    return `port_${nextIdRef.current}`;
+  };
 
   const updateRow = (idx: number, patch: Partial<PortMapping>) => {
     const next = [...safePorts];
@@ -34,7 +36,7 @@ export default function PortMappingEditor({ ports, onChange }: PortMappingEditor
           onChange([
             ...(safePorts || []),
             {
-              id: `port_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+              id: createPortId(),
               protocol: 'tcp',
               targetPort: '',
               publishedPort: '',
@@ -58,7 +60,7 @@ export default function PortMappingEditor({ ports, onChange }: PortMappingEditor
 
       {safePorts.map((p, idx) => (
         <div
-          key={p.id || idx}
+          key={p.id || `row-${idx}`}
           style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr 140px auto', gap: 8, alignItems: 'end' }}
         >
           <div>

@@ -139,7 +139,6 @@ require (
 	golang.org/x/crypto v0.46.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/term v0.39.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
@@ -167,6 +166,7 @@ require (
 
 require (
 	github.com/mark3labs/mcp-go v0.43.2
+	golang.org/x/sync v0.19.0
 	k8s.io/apiextensions-apiserver v0.35.1
 	k8s.io/metrics v0.35.1
 )

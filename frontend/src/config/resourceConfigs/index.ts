@@ -1,6 +1,6 @@
 /**
  * Resource Configurations Index
- * 
+ *
  * Barrel export for all resource configuration files.
  * These configs define columns, tabs, fetch functions, and panel content
  * for use with GenericResourceTable component.

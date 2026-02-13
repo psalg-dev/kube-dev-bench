@@ -2,7 +2,7 @@
 // Abstracts the dual calls so callers have a single promise to await.
 import { SetCurrentNamespace } from '../k8s/resources/kubeApi';
 
-type SetPreferredNamespacesFn = (namespaces: string[]) => Promise<void>;
+type SetPreferredNamespacesFn = (_namespaces: string[]) => Promise<void>;
 
 /**
  * Persist preferred namespaces (if backend function exists) and current namespace.

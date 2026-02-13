@@ -27,16 +27,20 @@ function ConfigDataTab({ configId, configName }: ConfigDataTabProps) {
 
 	useEffect(() => {
 		let active = true;
-		if (!configId) {
-			setData('');
-			setError('Missing config id.');
-			setLoading(false);
-			return () => {
-				active = false;
-			};
-		}
 
 		const loadData = async () => {
+			if (!configId) {
+				if (active) {
+					setData('');
+					setError('Missing config id.');
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError('');
+			}
 			try {
 				const content = await GetSwarmConfigData(configId);
 				if (active) {

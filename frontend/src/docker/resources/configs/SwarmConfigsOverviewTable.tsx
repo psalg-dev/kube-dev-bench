@@ -1,20 +1,20 @@
-import { useEffect, useState, useCallback } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { useCallback, useEffect, useState } from 'react';
+import type { docker } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
+import Button from '../../../components/ui/Button';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../swarmApi';
 import SwarmResourceActions from '../SwarmResourceActions';
-import ConfigDataTab from './ConfigDataTab';
+import ConfigCompareModal from './ConfigCompareModal';
 import ConfigDataSection from './ConfigDataSection';
+import ConfigDataTab from './ConfigDataTab';
 import ConfigEditModal from './ConfigEditModal';
 import ConfigInspectTab from './ConfigInspectTab';
-import ConfigCompareModal from './ConfigCompareModal';
 import ConfigUsedBySection from './ConfigUsedBySection';
-import Button from '../../../components/ui/Button';
-import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../swarmApi';
-import { showSuccess, showError } from '../../../notification';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import type { docker } from '../../../../wailsjs/go/models';
 
 const columns = [
 	{ key: 'name', label: 'Name' },
@@ -53,9 +53,8 @@ type ConfigSummaryPanelProps = {
 	row: docker.SwarmConfigInfo;
 	allConfigs: docker.SwarmConfigInfo[];
 	onRefresh?: () => void;
-	onEdit?: (config: docker.SwarmConfigInfo) => void;
+	onEdit?: (_config: docker.SwarmConfigInfo) => void;
 };
-
 function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }: ConfigSummaryPanelProps) {
 	const [showCompare, setShowCompare] = useState(false);
 	const [cloning, setCloning] = useState(false);
@@ -73,7 +72,7 @@ function ConfigSummaryPanel({ row, allConfigs, onRefresh, onEdit }: ConfigSummar
 		{
 			key: 'dataSize',
 			label: 'Data Size',
-			getValue: (d: Record<string, any>) => {
+			getValue: (d: Record<string, unknown>) => {
 				const size = d.dataSize;
 				if (size === undefined || size === null) return '-';
 				if (size < 1024) return `${size} bytes`;
@@ -201,7 +200,7 @@ function renderPanelContent(
 	tab: string,
 	onRefresh: (() => void) | undefined,
 	allConfigs: docker.SwarmConfigInfo[],
-	onEdit: ((config: docker.SwarmConfigInfo) => void) | undefined
+	onEdit: ((_config: docker.SwarmConfigInfo) => void) | undefined
 ) {
 	if (tab === 'summary') {
 		return <ConfigSummaryPanel row={row} allConfigs={allConfigs} onRefresh={onRefresh} onEdit={onEdit} />;
@@ -217,7 +216,6 @@ function renderPanelContent(
 
 	return null;
 }
-
 export default function SwarmConfigsOverviewTable() {
 	const [configs, setConfigs] = useState<docker.SwarmConfigInfo[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -340,5 +338,4 @@ export default function SwarmConfigsOverviewTable() {
 		</>
 	);
 }
-
 

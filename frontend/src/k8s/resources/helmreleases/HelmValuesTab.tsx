@@ -13,19 +13,35 @@ export default function HelmValuesTab({ namespace, releaseName }: HelmValuesTabP
   const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
+    let active = true;
     const effectiveNamespace = namespace ?? '';
     const effectiveReleaseName = releaseName ?? '';
 
-    AppAPI.GetHelmReleaseValues(effectiveNamespace, effectiveReleaseName, showAll)
-      .then((data) => {
-        setValues(data || '# No values configured');
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        setValues(`# Error loading values: ${message}`);
-      })
-      .finally(() => setLoading(false));
+    const loadValues = async () => {
+      if (active) {
+        setLoading(true);
+      }
+      try {
+        const data = await AppAPI.GetHelmReleaseValues(effectiveNamespace, effectiveReleaseName, showAll);
+        if (active) {
+          setValues(data || '# No values configured');
+        }
+      } catch (err: unknown) {
+        if (active) {
+          const message = err instanceof Error ? err.message : String(err);
+          setValues(`# Error loading values: ${message}`);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadValues();
+    return () => {
+      active = false;
+    };
   }, [namespace, releaseName, showAll]);
 
   if (loading) {

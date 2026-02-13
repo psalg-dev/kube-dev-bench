@@ -3,6 +3,96 @@ import { expect, type Page } from '@playwright/test';
 export class SidebarPage {
   constructor(private readonly page: Page) {}
 
+  private readonly titleBySection: Record<string, string> = {
+    pods: 'Pods',
+    deployments: 'Deployments',
+    daemonsets: 'Daemon Sets',
+    statefulsets: 'Stateful Sets',
+    replicasets: 'Replica Sets',
+    jobs: 'Jobs',
+    cronjobs: 'Cron Jobs',
+    roles: 'Roles',
+    clusterroles: 'Cluster Roles',
+    rolebindings: 'Role Bindings',
+    clusterrolebindings: 'Cluster Role Bindings',
+  };
+
+  private readonly childGroupBySection: Record<string, string> = {
+    'namespace-topology': 'topology',
+    'storage-graph': 'topology',
+    'network-graph': 'topology',
+    'rbac-graph': 'topology',
+    pods: 'workloads',
+    deployments: 'workloads',
+    daemonsets: 'workloads',
+    statefulsets: 'workloads',
+    replicasets: 'workloads',
+    jobs: 'workloads',
+    cronjobs: 'workloads',
+    services: 'networking',
+    ingresses: 'networking',
+    configmaps: 'config',
+    secrets: 'config',
+    persistentvolumeclaims: 'storage',
+    persistentvolumes: 'storage',
+    helmreleases: 'packaging',
+    roles: 'rbac',
+    clusterroles: 'rbac',
+    rolebindings: 'rbac',
+    clusterrolebindings: 'rbac',
+  };
+
+  private async ensureSectionVisible(key: string) {
+    const section = this.page.locator(`#section-${key}`);
+    if (await section.isVisible().catch(() => false)) {
+      return;
+    }
+
+    const groupKey = this.childGroupBySection[key];
+    if (!groupKey) {
+      return;
+    }
+
+    const groupHeader = this.page.locator(`#section-${groupKey}`);
+    await expect(groupHeader).toBeVisible({ timeout: 30_000 });
+    const expanded = await groupHeader.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      await groupHeader.click({ timeout: 30_000 });
+    }
+
+    await expect(section).toBeVisible({ timeout: 30_000 });
+  }
+
+  private async expectSectionMainTitle(key: string) {
+    const expectedTitle = this.titleBySection[key];
+    if (!expectedTitle) {
+      return;
+    }
+    await expect(this.page.locator('h2.overview-title:visible')).toHaveText(
+      new RegExp(`^${expectedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
+      { timeout: 15_000 }
+    );
+  }
+
+  private async clickSectionWithRetry(sectionSelector: string, key: string) {
+    const section = this.page.locator(sectionSelector);
+    await expect(section).toBeVisible({ timeout: 30_000 });
+    await section.scrollIntoViewIfNeeded();
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      await section.click({ timeout: 30_000, force: attempt > 0 });
+
+      try {
+        await this.expectSectionMainTitle(key);
+        return;
+      } catch {
+        await this.page.waitForTimeout(250);
+      }
+    }
+
+    await this.expectSectionMainTitle(key);
+  }
+
   async selectContext(contextName: string) {
     const root = this.page.locator('#kubecontext-root');
     await expect(root).toBeVisible({ timeout: 60_000 });
@@ -45,8 +135,9 @@ export class SidebarPage {
     const listbox = this.page.locator('#react-select-namespace-multi-listbox');
     const combobox = root.getByRole('combobox');
 
-    // Keep trying until the namespace appears (namespaces list can lag a bit).
-    const deadline = Date.now() + 20_000;
+    // Keep trying until the namespace appears (namespaces list can lag in CI).
+    const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
+    const deadline = Date.now() + selectionTimeoutMs;
     while (Date.now() < deadline) {
       await root.click({ force: true });
       if (!(await listbox.isVisible())) {
@@ -54,10 +145,12 @@ export class SidebarPage {
       }
 
       if (await listbox.isVisible()) {
+        // Type-ahead nudges react-select to refresh visible options in some race windows.
+        await combobox.fill(namespace).catch(() => {});
         const option = listbox.getByRole('option', { name: namespace, exact: true });
         if (await option.isVisible().catch(() => false)) {
           await option.click();
-          await expect(root).toContainText(namespace);
+          await expect(root).toContainText(namespace, { timeout: 30_000 });
           break;
         }
       }
@@ -67,7 +160,7 @@ export class SidebarPage {
       await this.page.waitForTimeout(500);
     }
 
-    await expect(root).toContainText(namespace);
+    await expect(root).toContainText(namespace, { timeout: 30_000 });
 
     // Close menu by clicking outside
     await this.page.locator('#sidebar').click({ position: { x: 10, y: 10 } });
@@ -85,17 +178,34 @@ export class SidebarPage {
       await overlay.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => undefined);
     }
 
-    const section = this.page.locator(`#section-${key}`);
-    // Wait for the section to exist
-    await expect(section).toBeVisible({ timeout: 30_000 });
-    await section.scrollIntoViewIfNeeded();
+    await this.ensureSectionVisible(key);
 
-    // Use Playwright's click so it will auto-retry if the element is briefly
-    // detached/covered during React updates (common under parallel load).
-    await section.click({ timeout: 30_000 });
+    await this.clickSectionWithRetry(`#section-${key}`, key);
+  }
 
-    // Confirm the sidebar selection state changed before test assertions
-    // check the main view title.
-    await expect(section).toHaveClass(/\bselected\b/, { timeout: 30_000 });
+  async goToRbacSection(key: 'roles' | 'clusterroles' | 'rolebindings' | 'clusterrolebindings') {
+    const overlay = this.page.locator('[data-testid="create-manifest-overlay"]').first();
+    if (await overlay.isVisible().catch(() => false)) {
+      const closeBtn = overlay.getByRole('button', { name: /close|cancel/i }).first();
+      if (await closeBtn.isVisible().catch(() => false)) {
+        await closeBtn.click().catch(() => undefined);
+      } else {
+        await this.page.keyboard.press('Escape').catch(() => undefined);
+      }
+      await overlay.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => undefined);
+    }
+
+    const group = this.page.locator('#section-rbac');
+    await expect(group).toBeVisible({ timeout: 30_000 });
+    await group.scrollIntoViewIfNeeded();
+
+    const expanded = await group.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      await group.click({ timeout: 30_000 });
+    }
+
+    await this.ensureSectionVisible(key);
+
+    await this.clickSectionWithRetry(`#section-${key}`, key);
   }
 }

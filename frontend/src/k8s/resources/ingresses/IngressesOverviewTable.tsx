@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import IngressYamlTab from './IngressYamlTab';
+import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeIngressStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import IngressBackendServicesTab from './IngressBackendServicesTab';
 import IngressRulesTab from './IngressRulesTab';
 import IngressTLSTab from './IngressTLSTab';
-import IngressBackendServicesTab from './IngressBackendServicesTab';
-import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeIngressStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import type { app } from '../../../../wailsjs/go/models';
+import IngressYamlTab from './IngressYamlTab';
 
 const columns = [
 	{ key: 'name', label: 'Name' },
@@ -33,6 +34,7 @@ const bottomTabs = [
 	{ key: 'services', label: 'Backend Services', countable: false },
 	{ key: 'events', label: 'Events', countKey: 'events' },
 	{ key: 'yaml', label: 'YAML', countable: false },
+	{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 	{ key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -40,7 +42,7 @@ function renderPanelContent(
 	row: IngressRow,
 	tab: string,
 	holmesState: HolmesState,
-	onAnalyze: (row: IngressRow) => void,
+	onAnalyze: (_row: IngressRow) => void,
 	onCancel: () => void
 ) {
 	if (tab === 'summary') {
@@ -163,6 +165,9 @@ function renderPanelContent(
 	if (tab === 'yaml') {
 		return <IngressYamlTab namespace={row.namespace} name={row.name} />;
 	}
+	if (tab === 'relationships') {
+		return <ResourceGraphTab namespace={row.namespace} kind="Ingress" name={row.name} />;
+	}
 	if (tab === 'holmes') {
 		const key = `${row.namespace}/${row.name}`;
 		return (
@@ -185,7 +190,6 @@ function renderPanelContent(
 	}
 	return null;
 }
-
 type IngressRow = {
 	name: string;
 	namespace: string;
@@ -319,7 +323,7 @@ export default function IngressesOverviewTable({ namespaces, onIngressCreate }: 
 					? arr.filter((i) => namespaces.includes(i?.namespace ?? i?.Namespace ?? ''))
 					: arr;
 				setIngresses(normalize(filtered));
-			} catch (_e) {
+			} catch {
 				// ignore malformed payloads
 			}
 		};
@@ -428,7 +432,7 @@ export default function IngressesOverviewTable({ namespaces, onIngressCreate }: 
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -455,7 +459,7 @@ export default function IngressesOverviewTable({ namespaces, onIngressCreate }: 
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -482,7 +486,6 @@ export default function IngressesOverviewTable({ namespaces, onIngressCreate }: 
 			showError(`Holmes analysis failed: ${message}`);
 		}
 	};
-
 	const cancelHolmesAnalysis = async () => {
 		const currentStreamId = holmesState.streamId;
 		if (!currentStreamId) return;
@@ -494,7 +497,7 @@ export default function IngressesOverviewTable({ namespaces, onIngressCreate }: 
 		}
 	};
 
-	const getRowActions = (row: IngressRow, api?: { openDetails?: (tabKey: string) => void }) => {
+	const getRowActions = (row: IngressRow, api?: { openDetails?: (_tabKey: string) => void }) => {
 		const key = `${row.namespace}/${row.name}`;
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [
@@ -559,3 +562,4 @@ export default function IngressesOverviewTable({ namespaces, onIngressCreate }: 
 }
 
 export { IngressesOverviewTable };
+

@@ -1,24 +1,27 @@
-import { useState, useEffect } from 'react';
-import Select, { type SingleValue, type MultiValue } from 'react-select';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useEffect, useRef, useState } from 'react';
+import Select, { components, type MenuListProps, type MultiValue, type SingleValue } from 'react-select';
 
 type SelectOption = { value: string; label: string };
-
 type ContextSelectProps = {
   value?: string;
   options?: string[];
   disabled?: boolean;
-  onChange?: (value: string) => void;
+  onChange?: (_value: string) => void;
   onMenuOpen?: () => void;
 };
-
 type NamespaceMultiSelectProps = {
   values?: string[];
   options?: string[];
   disabled?: boolean;
-  onChange?: (values: string[]) => void;
+  onChange?: (_values: string[]) => void;
   placeholder?: string;
   onMenuOpen?: () => void;
+  onAddNamespace?: (_name: string) => Promise<boolean> | boolean;
+  allowAddNamespace?: boolean;
 };
+
+const ADD_NAMESPACE_VALUE = '__add_namespace__';
 
 // Shared dark theme styles matching app look, Material-inspired on GitHub Dark
 const baseControl = (base: any, state: any) => ({
@@ -95,7 +98,6 @@ const commonStyles = {
   // Hide clear button entirely
   clearIndicator: () => ({ display: 'none' }),
 };
-
 const multiStyles = {
   ...commonStyles,
   multiValue: (b: any) => ({ ...b, backgroundColor: 'rgba(88,166,255,0.12)', borderRadius: 6 }),
@@ -106,6 +108,82 @@ const multiStyles = {
     ':hover': { backgroundColor: 'rgba(88,166,255,0.25)', color: '#58a6ff' },
   }),
 };
+
+type AddNamespaceSelectProps = {
+  canAddNamespace: boolean;
+  addingNamespace: boolean;
+  newNamespace: string;
+  onNewNamespaceChange: (_value: string) => void;
+  onAddConfirm: () => void;
+  onAddCancel: () => void;
+  addDisabled: boolean;
+  addLabel: string;
+};
+
+function NamespaceMenuList(props: MenuListProps<SelectOption, true>) {
+  const selectProps = props.selectProps as unknown as AddNamespaceSelectProps;
+  return (
+    <components.MenuList {...props}>
+      {props.children}
+      {selectProps.canAddNamespace && selectProps.addingNamespace && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: 8,
+            borderTop: '1px solid var(--gh-border, #30363d)',
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) auto',
+            gap: 8,
+            alignItems: 'center',
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <input
+            value={selectProps.newNamespace}
+            onChange={(e) => selectProps.onNewNamespaceChange(e.target.value)}
+            placeholder="name"
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                selectProps.onAddConfirm();
+              }
+              if (e.key === 'Escape') {
+                e.preventDefault();
+                selectProps.onAddCancel();
+              }
+            }}
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              background: 'var(--gh-bg, #0d1117)',
+              border: '1px solid var(--gh-border, #30363d)',
+              color: 'var(--gh-text, #c9d1d9)',
+              borderRadius: 4,
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => selectProps.onAddConfirm()}
+            disabled={selectProps.addDisabled}
+            style={{
+              padding: '6px 10px',
+              background: 'var(--gh-bg-elev, #161b22)',
+              color: 'var(--gh-text, #c9d1d9)',
+              border: '1px solid var(--gh-border, #30363d)',
+              borderRadius: 4,
+              cursor: selectProps.addDisabled ? 'not-allowed' : 'pointer',
+              opacity: selectProps.addDisabled ? 0.6 : 1,
+            }}
+          >
+            {selectProps.addLabel}
+          </button>
+        </div>
+      )}
+    </components.MenuList>
+  );
+}
 
 export function ContextSelect({ value, options, disabled, onChange, onMenuOpen }: ContextSelectProps) {
   const selectOptions: SelectOption[] = (options || []).map((o) => ({ value: o, label: o }));
@@ -130,19 +208,86 @@ export function ContextSelect({ value, options, disabled, onChange, onMenuOpen }
   );
 }
 
-export function NamespaceMultiSelect({ values, options, disabled, onChange, placeholder = 'Select namespaces…', onMenuOpen }: NamespaceMultiSelectProps) {
+export function NamespaceMultiSelect({
+  values,
+  options,
+  disabled,
+  onChange,
+  placeholder = 'Select namespaces…',
+  onMenuOpen,
+  onAddNamespace,
+  allowAddNamespace,
+}: NamespaceMultiSelectProps) {
   const [internal, setInternal] = useState<string[]>(values || []);
+  const [addingNamespace, setAddingNamespace] = useState(false);
+  const [newNamespace, setNewNamespace] = useState('');
+  const [addingBusy, setAddingBusy] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const selectRef = useRef<any>(null);
+
   // Sync when parent updates values prop (controlled usage)
   useEffect(() => { if (Array.isArray(values)) setInternal(values); }, [values]);
+
+  const canAddNamespace = typeof allowAddNamespace === 'boolean'
+    ? allowAddNamespace
+    : ((options || []).length === 0);
   const selectOptions: SelectOption[] = (options || []).map((o) => ({ value: o, label: o }));
+  if (canAddNamespace) {
+    selectOptions.push({ value: ADD_NAMESPACE_VALUE, label: 'Add namespace' });
+  }
+
   const current = internal.map((v) => ({ value: v, label: v }));
+
   function handleChange(opts: MultiValue<SelectOption>) {
     const next = opts.map((o) => o.value);
+    if (next.includes(ADD_NAMESPACE_VALUE)) {
+      setAddingNamespace(true);
+      setMenuOpen(true);
+      return;
+    }
     setInternal(next);
     onChange?.(next);
   }
+
+  async function handleAddConfirm() {
+    if (addingBusy || !onAddNamespace) return;
+    const name = newNamespace.trim();
+    if (!name) return;
+    setMenuOpen(false);
+    setAddingNamespace(false);
+    setAddingBusy(true);
+    try {
+      const result = await onAddNamespace(name);
+      if (result !== false) {
+        setNewNamespace('');
+        selectRef.current?.blur();
+      }
+    } finally {
+      setAddingBusy(false);
+    }
+  }
+
+  function handleAddCancel() {
+    setAddingNamespace(false);
+    setNewNamespace('');
+    setMenuOpen(false);
+  }
+
+  const addDisabled = addingBusy || !newNamespace.trim() || !onAddNamespace;
+  const addNamespaceProps = {
+    canAddNamespace,
+    addingNamespace,
+    newNamespace,
+    onNewNamespaceChange: (value: string) => setNewNamespace(value),
+    onAddConfirm: () => { void handleAddConfirm(); },
+    onAddCancel: handleAddCancel,
+    addDisabled,
+    addLabel: addingBusy ? 'Creating…' : 'Confirm',
+  } as unknown as Record<string, unknown>;
+
   return (
     <Select<SelectOption, true>
+      ref={selectRef}
       isMulti
       options={selectOptions}
       value={current}
@@ -157,7 +302,18 @@ export function NamespaceMultiSelect({ values, options, disabled, onChange, plac
       closeMenuOnSelect={false}
       isSearchable={false}
       classNamePrefix="kdv"
-      onMenuOpen={onMenuOpen}
+      menuIsOpen={menuOpen || addingNamespace}
+      onMenuOpen={() => {
+        setMenuOpen(true);
+        onMenuOpen?.();
+      }}
+      onMenuClose={() => {
+        setMenuOpen(false);
+        setAddingNamespace(false);
+        setNewNamespace('');
+      }}
+      components={{ MenuList: NamespaceMenuList }}
+      {...(addNamespaceProps as any)}
     />
   );
 }

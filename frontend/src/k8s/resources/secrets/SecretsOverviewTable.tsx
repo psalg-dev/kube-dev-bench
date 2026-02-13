@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import SecretYamlTab from './SecretYamlTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import SecretDataTab from './SecretDataTab';
-import SecretConsumersTab from './SecretConsumersTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeSecretStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeSecretStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import SecretConsumersTab from './SecretConsumersTab';
+import SecretDataTab from './SecretDataTab';
+import SecretYamlTab from './SecretYamlTab';
 
 const columns = [
 	{ key: 'name', label: 'Name' },
@@ -29,6 +30,7 @@ const bottomTabs = [
 	{ key: 'consumers', label: 'Consumers', countKey: 'consumers' },
 	{ key: 'events', label: 'Events', countKey: 'events' },
 	{ key: 'yaml', label: 'YAML', countable: false },
+	{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 	{ key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -95,7 +97,7 @@ function renderPanelContent(
 	row: SecretRow,
 	tab: string,
 	holmesState: HolmesState,
-	onAnalyze: (row: SecretRow) => void,
+	onAnalyze: (_row: SecretRow) => void,
 	onCancel: () => void
 ) {
 	if (tab === 'summary') {
@@ -176,6 +178,9 @@ function renderPanelContent(
 	if (tab === 'yaml') {
 		return <SecretYamlTab namespace={row.namespace} name={row.name} />;
 	}
+	if (tab === 'relationships') {
+		return <ResourceGraphTab namespace={row.namespace} kind="Secret" name={row.name} />;
+	}
 	if (tab === 'holmes') {
 		const key = `${row.namespace}/${row.name}`;
 		return (
@@ -198,7 +203,6 @@ function renderPanelContent(
 	}
 	return null;
 }
-
 type SecretsOverviewTableProps = {
 	namespaces?: string[];
 	namespace?: string;
@@ -207,8 +211,8 @@ type SecretsOverviewTableProps = {
 
 export default function SecretsOverviewTable({ namespaces, onSecretCreate }: SecretsOverviewTableProps) {
 	const [data, setData] = useState<SecretRow[]>([]);
-	const [_loading, setLoading] = useState(false);
-	const [_error, setError] = useState<string | null>(null);
+	const [, setLoading] = useState(false);
+	const [, setError] = useState<string | null>(null);
 	const [holmesState, setHolmesState] = useState<HolmesState>({
 		loading: false,
 		response: null,
@@ -334,7 +338,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -361,7 +365,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -403,7 +407,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 			} catch { /* ignore */ }
 		};
 		EventsOn('secrets:update', onUpdate);
-		return () => { try { EventsOff('secrets:update'); } catch (_) { /* ignore */ } };
+		return () => { try { EventsOff('secrets:update'); } catch { /* ignore */ } };
 	}, [namespaces]);
 
 	const analyzeSecret = async (row: SecretRow) => {
@@ -440,8 +444,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 			console.error('Failed to cancel Holmes stream:', err);
 		}
 	};
-
-	const getRowActions = (row: SecretRow, api: { openDetails?: (tabKey?: string) => void }) => {
+	const getRowActions = (row: SecretRow, api: { openDetails?: (_tabKey?: string) => void }) => {
 		const key = `${row.namespace}/${row.name}`;
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [

@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import { useConnectionsState, type SwarmConnectionEntry } from './ConnectionsStateContext';
+import { useEffect, useState } from 'react';
 import './AddSwarmConnectionOverlay.css';
+import { useConnectionsState, type SwarmConnectionEntry } from './ConnectionsStateContext';
 
 type AddSwarmConnectionOverlayProps = {
   onClose: () => void;
-  onSuccess: (connection: SwarmConnectionEntry) => void;
+  onSuccess: (_connection: SwarmConnectionEntry) => void;
 };
-
 type TestResult = {
   connected?: boolean;
   error?: string;

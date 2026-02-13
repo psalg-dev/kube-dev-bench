@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import YamlTab from '../../../layout/bottompanel/YamlTab';
+import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
+import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
-import AggregateLogsTab from '../../../components/AggregateLogsTab';
-import DaemonSetNodeCoverageTab from './DaemonSetNodeCoverageTab';
-import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeDaemonSetStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeDaemonSetStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import type { app } from '../../../../wailsjs/go/models';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import YamlTab from '../../../layout/bottompanel/YamlTab';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import DaemonSetNodeCoverageTab from './DaemonSetNodeCoverageTab';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -32,6 +33,7 @@ const bottomTabs = [
   { key: 'logs', label: 'Logs', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -95,7 +97,7 @@ function renderPanelContent(
   row: DaemonSetRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze: (row: DaemonSetRow) => void,
+  onAnalyze: (_row: DaemonSetRow) => void,
   onCancel: () => void
 ) {
   if (tab === 'summary') {
@@ -229,6 +231,9 @@ spec:
 
     return <YamlTab content={yamlContent} />;
   }
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="DaemonSet" name={row.name} />;
+  }
   if (tab === 'holmes') {
     const key = `${row.namespace}/${row.name}`;
     return (
@@ -251,7 +256,6 @@ spec:
   }
   return null;
 }
-
 function panelHeader(row: DaemonSetRow) {
   return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
@@ -388,7 +392,7 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
       }
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -415,7 +419,7 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
       });
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -425,12 +429,12 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
         const arr = Array.isArray(list) ? list : [];
         const norm = normalizeDaemonSets(arr);
         setDaemonSets(norm);
-      } catch (_) {
+      } catch {
         setDaemonSets([]);
       } finally { setLoading(false); }
     };
     EventsOn('daemonsets:update', onUpdate);
-    return () => { try { EventsOff('daemonsets:update'); } catch (_) {} };
+    return () => { try { EventsOff('daemonsets:update'); } catch {} };
   }, []);
 
   useEffect(() => {
@@ -442,7 +446,7 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
         const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetDaemonSets(ns).catch(() => [] as app.DaemonSetInfo[])));
         const flat = lists.flat();
         setDaemonSets(normalizeDaemonSets(flat));
-      } catch (_error) {
+      } catch {
         setDaemonSets([]);
       } finally { setLoading(false); }
     };
@@ -484,8 +488,7 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
       console.error('Failed to cancel Holmes stream:', err);
     }
   };
-
-  const getRowActions = (row: DaemonSetRow, api?: { openDetails?: (tabKey: string) => void }) => {
+  const getRowActions = (row: DaemonSetRow, api?: { openDetails?: (_tabKey: string) => void }) => {
     const key = `${row.namespace}/${row.name}`;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [

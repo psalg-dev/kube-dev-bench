@@ -200,11 +200,13 @@ export async function startWailsDev(opts: {
   // If unset, the backend auto-detects the correct platform default (on Windows
   // this prefers Docker Desktop's dockerDesktopLinuxEngine pipe when present).
   const dockerHostOverride = process.env.E2E_DOCKER_HOST;
+  const frontendDevServerURL = process.env.E2E_FRONTEND_DEVSERVER_URL || 'http://127.0.0.1:5173/';
 
   const child = spawn('wails', args, {
     cwd: repoRoot,
     env: {
       ...process.env,
+      ...(isWin32 ? { frontenddevserverurl: frontendDevServerURL } : {}),
       // Let the Go backend bypass native OS file dialogs during E2E.
       KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
@@ -217,6 +219,7 @@ export async function startWailsDev(opts: {
       XDG_CONFIG_HOME: path.join(homeDir, '.config'),
       XDG_DATA_HOME: path.join(homeDir, '.local', 'share'),
       VITE_CACHE_DIR: viteCacheDir,
+      ...(isWin32 ? { VITE_HOST: '127.0.0.1' } : {}),
       E2E_VITE_ALLOW_OUTSIDE_ROOT: '1',
       VITE_FS_STRICT: '0',
     },
@@ -355,6 +358,7 @@ export async function startPrebuiltApp(opts: {
   logStream.write(`binary: ${binaryPath}\ncwd: ${repoRoot}\n`);
 
   const dockerHostOverride = process.env.E2E_DOCKER_HOST;
+  const frontendDevServerURL = process.env.E2E_FRONTEND_DEVSERVER_URL || 'http://127.0.0.1:5173/';
 
   // The Wails dev binary reads configuration from these env vars
   // (see wailsapp/wails v2/internal/app/app_dev.go).
@@ -366,7 +370,7 @@ export async function startPrebuiltApp(opts: {
       assetdir: assetDir,
       devserver: `127.0.0.1:${port}`,
       loglevel: 'Info',
-      frontenddevserverurl: '',
+      frontenddevserverurl: isWin32 ? frontendDevServerURL : '',
       // Per-worker isolation
       KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
@@ -379,6 +383,7 @@ export async function startPrebuiltApp(opts: {
       XDG_CONFIG_HOME: path.join(homeDir, '.config'),
       XDG_DATA_HOME: path.join(homeDir, '.local', 'share'),
       VITE_CACHE_DIR: viteCacheDir,
+      ...(isWin32 ? { VITE_HOST: '127.0.0.1' } : {}),
       E2E_VITE_ALLOW_OUTSIDE_ROOT: '1',
       VITE_FS_STRICT: '0',
     },

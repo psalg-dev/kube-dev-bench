@@ -48,6 +48,22 @@ type KubeConfigInfo struct {
 	Contexts []string `json:"contexts"`
 }
 
+// KindClusterResult describes the outcome of creating a KinD cluster.
+type KindClusterResult struct {
+	Name           string `json:"name"`
+	KubeconfigPath string `json:"kubeconfigPath"`
+	Context        string `json:"context"`
+	Created        bool   `json:"created"`
+}
+
+// KindProgressUpdate reports KinD cluster setup progress for the UI.
+type KindProgressUpdate struct {
+	Percent int    `json:"percent"`
+	Message string `json:"message"`
+	Stage   string `json:"stage"`
+	Done    bool   `json:"done"`
+}
+
 // EventInfo is a simplified event record for UI display
 type EventInfo struct {
 	Type           string `json:"type"`
@@ -147,6 +163,7 @@ type ServiceInfo struct {
 	Ports     string            `json:"ports"`
 	Age       string            `json:"age"`
 	Labels    map[string]string `json:"labels,omitempty"`
+	Selector  map[string]string `json:"selector,omitempty"`
 }
 
 // JobInfo describes a job's basic info — reuse the type from the jobs package to avoid duplication
@@ -162,6 +179,23 @@ type CronJobInfo struct {
 	Image     string            `json:"image"`
 	NextRun   string            `json:"nextRun"`
 	Labels    map[string]string `json:"labels"` // Added
+}
+
+// HorizontalPodAutoscalerInfo describes an HPA's basic info
+type HorizontalPodAutoscalerInfo struct {
+	Name            string `json:"name"`
+	Namespace       string `json:"namespace"`
+	TargetKind      string `json:"targetKind"`
+	TargetName      string `json:"targetName"`
+	MinReplicas     int32  `json:"minReplicas"`
+	MaxReplicas     int32  `json:"maxReplicas"`
+	CurrentReplicas int32  `json:"currentReplicas"`
+	DesiredReplicas int32  `json:"desiredReplicas"`
+	CurrentCPU      string `json:"currentCPU,omitempty"`
+	CurrentMemory   string `json:"currentMemory,omitempty"`
+	TargetCPU       string `json:"targetCPU,omitempty"`
+	TargetMemory    string `json:"targetMemory,omitempty"`
+	Age             string `json:"age"`
 }
 
 // DaemonSetInfo describes a daemonset's basic info
@@ -304,6 +338,11 @@ type ResourceCounts struct {
 	PersistentVolumeClaims int             `json:"persistentvolumeclaims"`
 	PersistentVolumes      int             `json:"persistentvolumes"`
 	HelmReleases           int             `json:"helmreleases"`
+
+	Roles               int `json:"roles"`
+	ClusterRoles        int `json:"clusterroles"`
+	RoleBindings        int `json:"rolebindings"`
+	ClusterRoleBindings int `json:"clusterrolebindings"`
 }
 
 // MonitorIssue represents a single warning or error detected in the cluster

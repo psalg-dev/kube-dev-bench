@@ -1,6 +1,6 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
-import { GetSwarmResourceCounts, GetRegistries } from './swarmApi';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { EventsOn } from '../../wailsjs/runtime';
+import { GetRegistries, GetSwarmResourceCounts } from './swarmApi';
 import SwarmStateContext from './SwarmStateContext';
 
 interface SwarmResourceCounts {
@@ -29,9 +29,8 @@ export interface SwarmResourceCountsContextValue {
   counts: SwarmResourceCounts | null;
   registriesCount: number | null;
   lastUpdated: number;
-  refetch: (opts?: { forceRegistries?: boolean }) => void;
+  refetch: (_opts?: { forceRegistries?: boolean }) => void;
 }
-
 const SwarmResourceCountsContext = createContext<SwarmResourceCountsContextValue>({
   counts: null,
   registriesCount: null,

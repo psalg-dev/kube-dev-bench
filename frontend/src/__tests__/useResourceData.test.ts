@@ -1,14 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createNormalizer, useResourceData, type UseResourceDataOptions } from '../hooks/useResourceData';
 import './wailsMocks';
 import { eventsOnMock, resetAllMocks } from './wailsMocks';
-import { useResourceData, createNormalizer, type UseResourceDataOptions } from '../hooks/useResourceData';
 
 describe('useResourceData', () => {
   type FetchFn<T> = UseResourceDataOptions<T, unknown>['fetchFn'];
   let mockFetchFn: ReturnType<typeof vi.fn>;
-  let eventCallback: ((data: unknown) => void) | null;
-
+  let eventCallback: ((_data: unknown) => void) | null;
   const asFetchFn = <T,>() => mockFetchFn as unknown as FetchFn<T>;
   beforeEach(() => {
     resetAllMocks();
@@ -16,7 +15,7 @@ describe('useResourceData', () => {
     eventCallback = null;
 
     // Mock EventsOn to capture callback
-    eventsOnMock.mockImplementation((_eventName: string, callback: (data: unknown) => void) => {
+    eventsOnMock.mockImplementation((_eventName: string, callback: (_data: unknown) => void) => {
       eventCallback = callback;
       return () => {}; // Return unsubscribe function
     });
@@ -309,7 +308,7 @@ describe('createNormalizer', () => {
   });
 
   it('should return null for null input', () => {
-    const normalize = createNormalizer({ name: '' }) as (input: unknown) => unknown;
+    const normalize = createNormalizer({ name: '' }) as (_input: unknown) => unknown;
     expect(normalize(null)).toBeNull();
   });
 });

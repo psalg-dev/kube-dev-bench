@@ -45,8 +45,74 @@
   margin-top: 12px;
   border: 1px solid var(--gh-border, #3c3c3c);
   background: rgba(110,118,129,0.04);
-  overflow: auto;
+  overflow: hidden;
   max-width: 100%;
+}
+
+.topologyCanvasHeader {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--gh-text-secondary, #858585);
+  border-bottom: 1px solid rgba(48, 54, 61, 0.6);
+}
+
+.topologyFlowWrap {
+  width: 100%;
+}
+
+.topologyFlowWrap .react-flow__node {
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+}
+
+.topologyFlowWrap .react-flow__node.selected .topologyGraphLabel {
+  outline: 1px solid rgba(88, 166, 255, 0.45);
+  border-radius: 6px;
+}
+
+.topologyGraphLabel {
+  min-width: 180px;
+}
+
+.topologyGraphMain {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--gh-text, #d4d4d4);
+}
+
+.topologyGraphSub {
+  margin-left: 16px;
+  font-size: 11px;
+  color: var(--gh-text-secondary, #858585);
+}
+
+.topologyGraphNodeDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: #d29922;
+}
+
+.topologyGraphNodeDot--ready {
+  background: #2ea44f;
+}
+
+.topologyGraphNodeDot--down {
+  background: #ff7b72;
+}
+
+.topologyGraphServiceSquare {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  background: #a371f7;
 }
 
 .topologyFootnote {

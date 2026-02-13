@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
-import EmptyTabContent from './EmptyTabContent';
 import { getEmptyTabMessage } from '../constants/emptyTabMessages';
+import EmptyTabContent from './EmptyTabContent';
 import './ResourcePodsTab.css';
 import StatusBadge from './StatusBadge';
 
@@ -20,10 +20,9 @@ type ResourcePodsTabProps = {
   namespace?: string;
   resourceKind?: string;
   resourceName?: string;
-  onPodClick?: (name: string, namespace: string) => void;
+  onPodClick?: (_name: string, _namespace: string) => void;
   refreshInterval?: number;
 };
-
 /**
  * Reusable pods tab component for workload resources.
  * Shows pods owned by Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs.

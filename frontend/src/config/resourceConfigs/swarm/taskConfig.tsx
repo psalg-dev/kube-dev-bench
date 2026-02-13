@@ -5,25 +5,25 @@
  * Configuration for GenericResourceTable to display Docker Swarm Tasks.
  */
 
-import { GetSwarmTasks, GetSwarmTaskLogs } from '../../../docker/swarmApi';
-import { AnalyzeSwarmTaskStream } from '../../../holmes/holmesApi';
-import TaskSummaryPanel from '../../../docker/resources/tasks/TaskSummaryPanel';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
-import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
-import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
 import EmptyTabContent from '../../../components/EmptyTabContent';
-import HealthStatusBadge from '../../../docker/resources/tasks/HealthStatusBadge';
 import StatusBadge from '../../../components/StatusBadge';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import HealthStatusBadge from '../../../docker/resources/tasks/HealthStatusBadge';
+import TaskSummaryPanel from '../../../docker/resources/tasks/TaskSummaryPanel';
+import { GetSwarmTaskLogs, GetSwarmTasks } from '../../../docker/swarmApi';
+import { AnalyzeSwarmTaskStream } from '../../../holmes/holmesApi';
+import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
+import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
 import type {
-  HolmesHelpers,
-  PanelApi,
-  RenderPanelContent,
-  ResourceColumn,
-  ResourceConfig,
-  ResourceRow,
-  ResourceTab,
-  RowAction,
+    HolmesHelpers,
+    PanelApi,
+    RenderPanelContent,
+    ResourceColumn,
+    ResourceConfig,
+    ResourceRow,
+    ResourceTab,
+    RowAction,
 } from '../../../types/resourceConfigs';
 
 /**
@@ -108,11 +108,10 @@ export const normalizeSwarmTask = (task: Record<string, any>): ResourceRow => ({
   mounts: task.mounts ?? task.Mounts ?? [],
   healthCheck: task.healthCheck ?? task.HealthCheck,
 });
-
 /**
  * Render panel content for each tab
  */
-export const renderSwarmTaskPanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel, panelApi) => {
+export const renderSwarmTaskPanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel) => {
   if (tab === 'summary') {
     return <TaskSummaryPanel row={row} />;
   }

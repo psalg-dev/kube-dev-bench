@@ -8,10 +8,9 @@ const OPTIONS = [
 
 type TimeRangeSelectorProps = {
   valueSeconds: number;
-  onChangeSeconds?: (value: number) => void;
+  onChangeSeconds?: (_value: number) => void;
   disabled?: boolean;
 };
-
 export default function TimeRangeSelector({ valueSeconds, onChangeSeconds, disabled = false }: TimeRangeSelectorProps) {
   return (
     <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--gh-text-secondary, #8b949e)' }}>

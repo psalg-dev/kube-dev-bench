@@ -3,12 +3,11 @@
  * Consolidates duplicated event subscription cleanup pattern from 23+ components.
  */
 
-import { useEffect } from 'react';
 import type { DependencyList } from 'react';
+import { useEffect } from 'react';
 
-type EventHandler<TArgs extends unknown[]> = (...args: TArgs) => void;
-type SubscribeFn<TArgs extends unknown[]> = (handler: EventHandler<TArgs>) => (() => void) | void;
-
+type EventHandler<TArgs extends unknown[]> = (..._args: TArgs) => void;
+type SubscribeFn<TArgs extends unknown[]> = (_handler: EventHandler<TArgs>) => (() => void) | void;
 /**
  * Hook for safely subscribing to events with automatic cleanup.
  */

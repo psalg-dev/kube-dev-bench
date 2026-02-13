@@ -27,8 +27,7 @@ const mockTestHook = vi.fn();
 const mockSelectHookScript = vi.fn();
 
 // Wails runtime EventsOn mock (ConnectionsStateContext subscribes to hook events)
-const mockEventsOn = vi.fn((..._args: unknown[]) => () => {});
-
+const mockEventsOn = vi.fn(() => () => {});
 vi.mock('../../wailsjs/go/main/App', () => ({
   GetKubeConfigs: (...args: unknown[]) => mockGetKubeConfigs(...args),
   SelectKubeConfigFile: (...args: unknown[]) => mockSelectKubeConfigFile(...args),
@@ -187,6 +186,14 @@ describe('ConnectionWizard', () => {
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /Browse/i })).toBeInTheDocument();
+      });
+    });
+
+    it('shows Spin up KinD button', async () => {
+      render(<ConnectionWizard onComplete={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Spin up KinD/i })).toBeInTheDocument();
       });
     });
 

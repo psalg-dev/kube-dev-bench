@@ -79,7 +79,7 @@ function VolumeSummaryPanel({ row, onRefresh }: VolumeSummaryPanelProps) {
 			} else {
 				if (!window.confirm(`Delete volume "${row.name}"?`)) return;
 			}
-		} catch (_e) {
+		} catch {
 			// If usage lookup fails, fall back to standard confirm.
 			if (!window.confirm(`Delete volume "${row.name}"?`)) return;
 		}
@@ -231,15 +231,19 @@ export default function SwarmVolumesOverviewTable() {
 	};
 
 	useEffect(() => {
-		if (!connected) {
-			setVolumes([]);
-			setLoading(false);
-			return;
-		}
-
 		let active = true;
 
 		const loadVolumes = async () => {
+			if (!connected) {
+				if (active) {
+					setVolumes([]);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+			}
 			try {
 				const data = await GetSwarmVolumes();
 				if (active) {
@@ -256,6 +260,12 @@ export default function SwarmVolumesOverviewTable() {
 		};
 
 		loadVolumes();
+
+		if (!connected) {
+			return () => {
+				active = false;
+			};
+		}
 
 		const off = EventsOn('swarm:volumes:update', (data) => {
 			if (!active) return;
@@ -356,5 +366,4 @@ export default function SwarmVolumesOverviewTable() {
 		/>
 	);
 }
-
 

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { genericAPIMock, resetAllMocks } from './wailsMocks';
 
 // Mock EventsOn and EventsOff
@@ -16,14 +16,14 @@ vi.mock('../notification', () => ({
 }));
 
 // Import after mocks
-import HelmReleasesOverviewTable from '../k8s/resources/helmreleases/HelmReleasesOverviewTable';
-import HelmHistoryTab from '../k8s/resources/helmreleases/HelmHistoryTab';
-import HelmValuesTab from '../k8s/resources/helmreleases/HelmValuesTab';
-import HelmNotesTab from '../k8s/resources/helmreleases/HelmNotesTab';
-import HelmResourcesTab from '../k8s/resources/helmreleases/HelmResourcesTab';
 import HelmActions from '../k8s/resources/helmreleases/HelmActions';
+import HelmHistoryTab from '../k8s/resources/helmreleases/HelmHistoryTab';
 import HelmInstallDialog from '../k8s/resources/helmreleases/HelmInstallDialog';
+import HelmNotesTab from '../k8s/resources/helmreleases/HelmNotesTab';
+import HelmReleasesOverviewTable from '../k8s/resources/helmreleases/HelmReleasesOverviewTable';
 import HelmRepositoriesDialog from '../k8s/resources/helmreleases/HelmRepositoriesDialog';
+import HelmResourcesTab from '../k8s/resources/helmreleases/HelmResourcesTab';
+import HelmValuesTab from '../k8s/resources/helmreleases/HelmValuesTab';
 
 const toUndefinedPromise = <T,>(value: T) => Promise.resolve(value as unknown as undefined);
 
@@ -272,7 +272,7 @@ describe('HelmResourcesTab', () => {
       '',
     ].join('\n');
 
-    genericAPIMock.mockImplementation((name, ..._args) => {
+    genericAPIMock.mockImplementation((name) => {
       if (name === 'GetHelmReleaseManifest') return toUndefinedPromise(manifest);
       if (name === 'GetConfigMaps') {
         return toUndefinedPromise([{ name: 'my-release-e2e', namespace: 'default', keys: 1, size: '1B', age: '1s', labels: {} }]);

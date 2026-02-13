@@ -1,17 +1,17 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  GetDockerHubRepositoryDetails,
-  GetImageDigest,
-  GetRegistryRepositoryDetails,
-  ListRegistryRepositories,
-  ListRegistryTags,
-  PullDockerImageLatest,
-  SearchDockerHubRepositories,
-  SearchRegistryRepositories,
-} from '../swarmApi';
 import { showError, showSuccess } from '../../notification';
-import './registry.css';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
+import {
+    GetDockerHubRepositoryDetails,
+    GetImageDigest,
+    GetRegistryRepositoryDetails,
+    ListRegistryRepositories,
+    ListRegistryTags,
+    PullDockerImageLatest,
+    SearchDockerHubRepositories,
+    SearchRegistryRepositories,
+} from '../swarmApi';
+import './registry.css';
 
 type RegistryBrowserProps = {
   registryName?: string;
@@ -168,7 +168,7 @@ export default function RegistryBrowser({ registryName, registryType = '' }: Reg
   }, [defaultSearchSortKey, searchColumns]);
 
   const sortedSearchResults = useMemo(() => {
-    return sortRows(searchResults, searchSort.key, searchSort.direction, (row: any, key: string) => {
+    return sortRows(searchResults, searchSort.key, searchSort.direction, (row: unknown, key: string) => {
       const fullName = (row.fullName || (row.namespace && row.name ? `${row.namespace}/${row.name}` : '') || row.name || '').trim();
       if (key === 'fullName') return fullName;
       return row?.[key];

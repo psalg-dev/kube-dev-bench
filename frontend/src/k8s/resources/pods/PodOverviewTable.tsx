@@ -1,41 +1,43 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type UIEvent as ReactUIEvent } from 'react';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  flexRender,
-  getCoreRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
-  type ColumnDef,
-  type ColumnFiltersState,
-  type PaginationState,
-  type SortingState,
+    flexRender,
+    getCoreRowModel,
+    getFilteredRowModel,
+    getPaginationRowModel,
+    getSortedRowModel,
+    useReactTable,
+    type ColumnDef,
+    type ColumnFiltersState,
+    type PaginationState,
+    type SortingState,
 } from '@tanstack/react-table';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type UIEvent as ReactUIEvent } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
 import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
-import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
-import PodSummaryTab from './PodSummaryTab';
-import PodEventsTab from './PodEventsTab';
-import PodYamlTab from './PodYamlTab';
-import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
-import PortForwardOutput from './PortForwardOutput';
-import BottomPanel from '../../../layout/bottompanel/BottomPanel';
-import PortForwardDialog from './PortForwardDialog';
-import PodMountsTab from './PodMountsTab';
-import PodFilesTab from './PodFilesTab';
-import '../../../layout/overview/OverviewTableWithPanel.css';
-import '../../../layout/overview/BulkSelection.css';
-import { showResourceOverlay } from '../../../resource-overlay';
-import { AnalyzePodStream, onHolmesContextProgress, onHolmesChatStream, CancelHolmesStream } from '../../../holmes/holmesApi';
+import { executeBulkAction } from '../../../api/bulkOperations';
+import BulkActionBar from '../../../components/BulkActionBar';
+import StatusBadge from '../../../components/StatusBadge';
+import { getBulkActionsForResource, type BulkAction } from '../../../constants/bulkActions';
+import { AnalyzePodStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
 import type { HolmesResponse } from '../../../holmes/HolmesResponseRenderer';
-import StatusBadge from '../../../components/StatusBadge';
-import BulkActionBar from '../../../components/BulkActionBar';
 import useTableSelection from '../../../hooks/useTableSelection';
-import { getBulkActionsForResource, type BulkAction } from '../../../constants/bulkActions';
-import { executeBulkAction } from '../../../api/bulkOperations';
+import BottomPanel from '../../../layout/bottompanel/BottomPanel';
+import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
+import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
+import '../../../layout/overview/BulkSelection.css';
+import '../../../layout/overview/OverviewTableWithPanel.css';
 import { showError, showSuccess } from '../../../notification';
-import type { app } from '../../../../wailsjs/go/models';
+import { showResourceOverlay } from '../../../resource-overlay';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import PodEventsTab from './PodEventsTab';
+import PodFilesTab from './PodFilesTab';
+import PodMountsTab from './PodMountsTab';
+import PodSummaryTab from './PodSummaryTab';
+import PodYamlTab from './PodYamlTab';
+import PortForwardDialog from './PortForwardDialog';
+import PortForwardOutput from './PortForwardOutput';
 
 // Resource types matching sidebar and templates in resource-overlay
 const createOptions = [
@@ -55,7 +57,7 @@ type PodOverviewTableProps = {
   namespaces?: string[];
   data?: PodRow[];
   loading?: boolean;
-  onCreateResource?: (type?: string) => void;
+  onCreateResource?: (_type?: string) => void;
 };
 
 type HolmesState = {
@@ -236,7 +238,7 @@ export default function PodOverviewTable({
       }
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -263,7 +265,7 @@ export default function PodOverviewTable({
       });
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -307,7 +309,7 @@ export default function PodOverviewTable({
       if (mountedRef.current) {
         setInternalData(combined);
       }
-    } catch (_) {
+    } catch {
       // Best-effort refresh; keep existing list on failure to avoid flicker.
     }
   }, [namespace, namespaces]);
@@ -319,7 +321,7 @@ export default function PodOverviewTable({
     };
     EventsOn('pods:update', handler);
     return () => {
-      try { EventsOff('pods:update'); } catch (_) {}
+      try { EventsOff('pods:update'); } catch {}
     };
   }, []);
 
@@ -337,7 +339,7 @@ export default function PodOverviewTable({
 
     const unsubscribe = EventsOn('resource-updated', onUpdate);
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, [namespace, namespaces, refreshPods]);
 
@@ -372,10 +374,10 @@ export default function PodOverviewTable({
       try {
         const list = await AppAPI.ListPortForwards();
         onUpdate(list as PortForwardInfoRaw[]);
-      } catch (_) {}
+      } catch {}
     };
     maybeFetch();
-    return () => { try { EventsOff('portforwards:update'); } catch (_) {} };
+    return () => { try { EventsOff('portforwards:update'); } catch {} };
   }, []);
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
@@ -383,7 +385,7 @@ export default function PodOverviewTable({
   // ensure backend current namespace aligns with the row we're operating on
   async function ensureNamespace(ns?: string) {
     if (!ns) return;
-    try { await AppAPI.SetCurrentNamespace(ns); } catch (_) {}
+    try { await AppAPI.SetCurrentNamespace(ns); } catch {}
   }
 
   useEffect(() => {
@@ -584,7 +586,7 @@ export default function PodOverviewTable({
   const getRowKey = useCallback((row: PodRow, idx: number) => {
     // Use UID for unique keys, fallback to namespace + name + status plus index
     // to guarantee uniqueness when UIDs are unavailable.
-    const uid = row?.uid ?? row?.UID ?? '';
+    const uid = row?.uid ?? (row as { UID?: string }).UID ?? '';
     if (uid) {
       return uid;
     }
@@ -896,6 +898,12 @@ export default function PodOverviewTable({
       content: <PodEventsTab namespace={resolvedBottomNamespace || undefined} podName={resolvedBottomPodName} />
     },
     {
+      id: 'relationships',
+      label: 'Relationships',
+      testId: 'relationships-tab',
+      content: <ResourceGraphTab namespace={resolvedBottomNamespace} kind="Pod" name={resolvedBottomPodName} />
+    },
+    {
       id: 'holmes',
       label: 'Holmes',
       content: (
@@ -950,7 +958,7 @@ export default function PodOverviewTable({
   // ensure backend namespace aligns when switching tabs that need it
   useEffect(() => {
     if (!bottomOpen || !bottomPodName) return;
-    if (['logs','yaml','summary','mounts','files'].includes(bottomActiveTab)) {
+    if (['logs','yaml','summary','mounts','files','relationships'].includes(bottomActiveTab)) {
       ensureNamespace(bottomNamespace || namespace);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1169,46 +1177,56 @@ export default function PodOverviewTable({
                     />
                   </th>
                 )}
-                {headerGroup.headers.map(header => (
+                {headerGroup.headers.map(header => {
+                  const isSorted = header.column.getIsSorted();
+                  const canSort = header.column.getCanSort();
+                  return (
                     <th
                         key={header.id}
-                        onClick={header.column.getToggleSortingHandler()}
-                        style={{
-                          background: 'var(--gh-bg)',
-                          color: 'var(--gh-table-header-text, #fff)',
-                          borderBottom: '2px solid #353a42',
-                          fontWeight: 600,
-                          // fontSize removed to use global CSS for uniform height
-                          textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
-                          userSelect: 'none',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-                        }}
-                  >
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
-                      {header.column.getIsSorted() ? (header.column.getIsSorted() === 'asc' ? ' 🔼' : ' 🔽') : ''}
+                        aria-sort={isSorted === 'asc' ? 'ascending' : isSorted === 'desc' ? 'descending' : 'none'}
+                    >
+                      {canSort ? (
+                        <button
+                          type="button"
+                          className="sortable-header"
+                          onClick={header.column.getToggleSortingHandler()}
+                          style={{
+                            textAlign: header.column.id === 'uptime' ? 'right' : header.column.id === 'restarts' ? 'center' : 'left',
+                          }}
+                        >
+                          <span>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
+                          <span className="sortable-indicator" aria-hidden="true">
+                            {isSorted ? (isSorted === 'asc' ? '▲' : '▼') : '↕'}
+                          </span>
+                        </button>
+                      ) : (
+                        <span>{header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}</span>
+                      )}
                   </th>
-                ))}
-                <th
-                    style={{
-                      background: 'var(--gh-bg)',
-                      color: 'var(--gh-table-header-text, #fff)',
-                      borderBottom: '2px solid #353a42',
-                      fontWeight: 600,
-                      // fontSize removed to use global CSS for uniform height
-                      textAlign: 'right',
-                      userSelect: 'none',
-                      boxShadow: '0 2px 4px rgba(0,0,0,0.04)'
-                    }}
-                    aria-label="Actions"
-                    title="Actions"
-                >
-                  Actions
-                </th>
+                  );
+                })}
+                <th>Actions</th>
               </tr>
           ))}
           </thead>
+          <tbody>
+            {tableData.length === 0 && !loading && (
+              <tr>
+                <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                  No Pods deployed in this namespace
+                </td>
+              </tr>
+            )}
+            {tableData.length > 0 && table.getRowModel().rows.length === 0 && !loading && (
+              <tr>
+                <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                  No rows match the filter.
+                </td>
+              </tr>
+            )}
+          </tbody>
         </table>
-        <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
+        {tableData.length > 0 && <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <colgroup>
               {bulkEnabled && <col className="bulk-checkbox-col" />}
@@ -1241,7 +1259,6 @@ export default function PodOverviewTable({
                     }}
                     className={bulkEnabled && selection.isSelected(getRowKey(row.original, row.index)) ? 'bulk-selected' : undefined}
                     style={{
-                      borderBottom: '1px solid #353a42',
                       transition: 'background 0.2s',
                       height: ROW_HEIGHT
                     }}
@@ -1264,21 +1281,13 @@ export default function PodOverviewTable({
                       <td
                           key={cell.id}
                           style={{
-                            // padding handled by CSS .gh-table tbody td
-                            fontSize: 14,
-                            color: 'var(--gh-table-text, #e0e0e0)',
-                            borderBottom: '1px solid #353a42',
                             textAlign: cell.column.id === 'uptime' ? 'right' : cell.column.id === 'restarts' ? 'center' : 'left',
-                            background: 'inherit',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap'
                           }}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                   ))}
-                  <td style={{position: 'relative', textAlign: 'right'}}>
+                  <td className="row-actions-cell">
                     <button
                       className="row-actions-button"
                       onClick={(e) => {
@@ -1437,7 +1446,7 @@ export default function PodOverviewTable({
             )}
             </tbody>
           </table>
-        </div>
+        </div>}
         {data.length >= 20 && (
           <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
             <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>

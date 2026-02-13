@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection from '../../../QuickInfoSection';
-import YamlTab from '../../../layout/bottompanel/YamlTab';
+import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
+import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
-import StatefulSetPVCsTab from './StatefulSetPVCsTab';
-import AggregateLogsTab from '../../../components/AggregateLogsTab';
-import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { AnalyzeStatefulSetStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeStatefulSetStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
-import type { app } from '../../../../wailsjs/go/models';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import YamlTab from '../../../layout/bottompanel/YamlTab';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import StatefulSetPVCsTab from './StatefulSetPVCsTab';
 
 const columns = [
 	{ key: 'name', label: 'Name' },
@@ -32,6 +33,7 @@ const bottomTabs = [
 	{ key: 'logs', label: 'Logs', countable: false },
 	{ key: 'events', label: 'Events', countKey: 'events' },
 	{ key: 'yaml', label: 'YAML', countable: false },
+	{ key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
 	{ key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -91,7 +93,7 @@ function renderPanelContent(
 	row: StatefulSetRow,
 	tab: string,
 	holmesState: HolmesState,
-	onAnalyze: (row: StatefulSetRow) => void,
+	onAnalyze: (_row: StatefulSetRow) => void,
 	onCancel: () => void
 ) {
 	if (tab === 'summary') {
@@ -225,6 +227,9 @@ spec:
 
 		return <YamlTab content={yamlContent} />;
 	}
+	if (tab === 'relationships') {
+		return <ResourceGraphTab namespace={row.namespace} kind="StatefulSet" name={row.name} />;
+	}
 	if (tab === 'holmes') {
 		const key = `${row.namespace}/${row.name}`;
 		return (
@@ -247,7 +252,6 @@ spec:
 	}
 	return null;
 }
-
 function panelHeader(row: StatefulSetRow) {
 	return <span style={{ fontWeight: 600 }}>{row.name}</span>;
 }
@@ -385,7 +389,7 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -412,7 +416,7 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) { /* ignore */ }
+			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
 	}, []);
 
@@ -428,7 +432,7 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 				if (cancelled) return;
 				const flat = lists.flat().map((x) => normalizeStatefulSet(x as StatefulSetInfoRaw));
 				setItems(flat);
-			} catch (_e) {
+			} catch {
 				if (!cancelled) setItems([]);
 			} finally {
 				if (!cancelled) setLoading(false);
@@ -445,16 +449,15 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 				const arr = Array.isArray(list) ? list : [];
 				const norm = arr.map((x) => normalizeStatefulSet(x as StatefulSetInfoRaw));
 				setItems(norm);
-			} catch (_) {
+			} catch {
 				setItems([]);
 			} finally {
 				setLoading(false);
 			}
 		};
 		EventsOn('statefulsets:update', onUpdate);
-		return () => { try { EventsOff('statefulsets:update'); } catch (_) { /* ignore */ } };
+		return () => { try { EventsOff('statefulsets:update'); } catch { /* ignore */ } };
 	}, []);
-
 	const analyzeStatefulSet = async (row: StatefulSetRow) => {
 		const key = `${row.namespace}/${row.name}`;
 		const streamId = `statefulset-${Date.now()}`;
@@ -491,7 +494,7 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 		}
 	};
 
-	const getRowActions = (row: StatefulSetRow, api: { openDetails?: (tabKey?: string) => void }) => {
+	const getRowActions = (row: StatefulSetRow, api: { openDetails?: (_tabKey?: string) => void }) => {
 		const key = `${row.namespace}/${row.name}`;
 		const isAnalyzing = holmesState.loading && holmesState.key === key;
 		return [
@@ -553,3 +556,4 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 }
 
 export { StatefulSetsOverviewTable };
+

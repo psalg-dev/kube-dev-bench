@@ -76,6 +76,13 @@ test.describe('Helm Releases View', () => {
     test.setTimeout(120_000);
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
 
+    const packagingGroup = page.locator('#section-packaging');
+    await expect(packagingGroup).toBeVisible({ timeout: 30_000 });
+    const expanded = await packagingGroup.getAttribute('aria-expanded');
+    if (expanded !== 'true') {
+      await packagingGroup.click({ timeout: 30_000 });
+    }
+
     // Verify sidebar has Helm Releases entry
     await expect(page.locator('#section-helmreleases')).toBeVisible({ timeout: 30_000 });
     await expect(page.locator('#section-helmreleases')).toHaveText(/helm releases/i);

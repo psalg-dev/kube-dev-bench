@@ -194,3 +194,58 @@ func (a *App) GetClusterRoleBindingDetail(name string) (*RoleBindingInfo, error)
 	info := buildClusterRoleBindingInfo(crb, time.Now())
 	return &info, nil
 }
+
+// GetRoleBindingSubjects returns the Subjects slice from a RoleBinding in order
+func (a *App) GetRoleBindingSubjects(namespace, name string) ([]Subject, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("missing required parameter: namespace")
+	}
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+	rb, err := clientset.RbacV1().RoleBindings(namespace).Get(a.ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	subjects := make([]Subject, 0, len(rb.Subjects))
+	for _, s := range rb.Subjects {
+		subjects = append(subjects, Subject{
+			Kind:      s.Kind,
+			Name:      s.Name,
+			Namespace: s.Namespace,
+			APIGroup:  s.APIGroup,
+		})
+	}
+	return subjects, nil
+}
+
+// GetClusterRoleBindingSubjects returns the Subjects slice from a ClusterRoleBinding in order
+func (a *App) GetClusterRoleBindingSubjects(name string) ([]Subject, error) {
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+	crb, err := clientset.RbacV1().ClusterRoleBindings().Get(a.ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	subjects := make([]Subject, 0, len(crb.Subjects))
+	for _, s := range crb.Subjects {
+		subjects = append(subjects, Subject{
+			Kind:      s.Kind,
+			Name:      s.Name,
+			Namespace: s.Namespace,
+			APIGroup:  s.APIGroup,
+		})
+	}
+	return subjects, nil
+}

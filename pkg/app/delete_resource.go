@@ -43,6 +43,14 @@ func (a *App) DeleteResource(resourceType, namespace, name string) error {
 		return clientset.CoreV1().Services(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
 	case "serviceaccount":
 		return clientset.CoreV1().ServiceAccounts(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	case "role":
+		return clientset.RbacV1().Roles(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	case "clusterrole":
+		return clientset.RbacV1().ClusterRoles().Delete(a.ctx, name, metav1.DeleteOptions{})
+	case "rolebinding":
+		return clientset.RbacV1().RoleBindings(namespace).Delete(a.ctx, name, metav1.DeleteOptions{})
+	case "clusterrolebinding":
+		return clientset.RbacV1().ClusterRoleBindings().Delete(a.ctx, name, metav1.DeleteOptions{})
 	default:
 		return ErrUnsupportedResourceType(resourceType)
 	}

@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
-import { UpdateSwarmSecretData } from '../../swarmApi';
 import { showError, showSuccess } from '../../../notification';
+import { UpdateSwarmSecretData } from '../../swarmApi';
 
 type SecretEditModalProps = {
 	open: boolean;
@@ -9,9 +9,8 @@ type SecretEditModalProps = {
 	secretName?: string;
 	titleVerb?: string;
 	onClose?: () => void;
-	onSaved?: (result: unknown) => void;
+	onSaved?: (_result: unknown) => void;
 };
-
 export default function SecretEditModal({ open, secretId, secretName, titleVerb = 'Edit', onClose, onSaved }: SecretEditModalProps) {
 	const [ack, setAck] = useState(false);
 	const [masked, setMasked] = useState(true);
@@ -197,5 +196,4 @@ export default function SecretEditModal({ open, secretId, secretName, titleVerb 
 		</div>
 	);
 }
-
 

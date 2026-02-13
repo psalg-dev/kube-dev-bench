@@ -57,4 +57,3 @@ export default function StackComposeTab({ stackName }: StackComposeTabProps) {
 
 export { StackComposeTab };
 
-

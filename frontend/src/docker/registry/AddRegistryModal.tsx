@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AddRegistry, TestRegistryConnection } from '../swarmApi';
 import { registry } from '../../../wailsjs/go/models';
 import { showError, showSuccess } from '../../notification';
+import { AddRegistry, TestRegistryConnection } from '../swarmApi';
 import './registry.css';
 
 const REGISTRY_TYPES = [
@@ -154,7 +154,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }: AddRegistry
     try {
       await TestRegistryConnection(buildConfig());
       showSuccess('Registry connection OK');
-    } catch (e: any) {
+    } catch (e: unknown) {
       showError(`Registry connection failed: ${e}`);
     } finally {
       setBusy(false);
@@ -174,7 +174,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }: AddRegistry
       showSuccess(`Saved registry ${form.name}`);
       onSaved?.();
       onClose?.();
-    } catch (e: any) {
+    } catch (e: unknown) {
       showError(`Failed to save registry: ${e}`);
     } finally {
       setBusy(false);

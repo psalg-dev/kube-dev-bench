@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import ConfigEditModal from '../docker/resources/configs/ConfigEditModal';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { docker } from '../../wailsjs/go/models';
+import ConfigEditModal from '../docker/resources/configs/ConfigEditModal';
 
 // Mock swarmApi
 vi.mock('../docker/swarmApi', () => ({
@@ -13,7 +13,6 @@ vi.mock('../docker/swarmApi', () => ({
 vi.mock('../../wailsjs/runtime/runtime.js', () => ({
   EventsEmit: vi.fn(),
 }));
-
 // Mock notification
 vi.mock('../notification', () => ({
   showError: vi.fn(),
@@ -22,7 +21,7 @@ vi.mock('../notification', () => ({
 
 // Mock TextEditorTab
 vi.mock('../layout/bottompanel/TextEditorTab', () => ({
-  default: ({ value, onChange, loading }: { value?: string; onChange?: (value: string) => void; loading?: boolean }) => (
+  default: ({ value, onChange, loading }: { value?: string; onChange?: (_value: string) => void; loading?: boolean }) => (
     <div data-testid="text-editor">
       {loading && <div>Loading...</div>}
       <textarea
@@ -300,5 +299,4 @@ describe('ConfigEditModal', () => {
     });
   });
 });
-
 

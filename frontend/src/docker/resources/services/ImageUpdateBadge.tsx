@@ -1,6 +1,6 @@
 import { useMemo, useState, type MouseEvent } from 'react';
-import { CheckServiceImageUpdates } from '../../swarmApi';
 import { showError, showSuccess } from '../../../notification';
+import { CheckServiceImageUpdates } from '../../swarmApi';
 
 type UpdateState = 'up-to-date' | 'update' | 'unknown';
 
@@ -14,9 +14,8 @@ type ImageUpdateValue = {
 
 type ImageUpdateBadgeProps = {
 	value?: ImageUpdateValue;
-	onOpenDetails?: (serviceId?: string) => void;
+	onOpenDetails?: (_serviceId?: string) => void;
 };
-
 function stylesFor(state: UpdateState) {
 	switch (state) {
 		case 'up-to-date':
@@ -141,5 +140,4 @@ function ImageUpdateBadge({ value, onOpenDetails }: ImageUpdateBadgeProps) {
 
 export default ImageUpdateBadge;
 export { ImageUpdateBadge };
-
 

@@ -5,20 +5,20 @@
  * Configuration for GenericResourceTable to display Docker Swarm Secrets.
  */
 
-import { GetSwarmSecrets, RemoveSwarmSecret } from '../../../docker/swarmApi';
 import { SecretInspectTab } from '../../../docker/resources/secrets/SecretInspectTab';
 import { SecretSummaryPanel } from '../../../docker/resources/secrets/SecretSummaryPanel';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import { showSuccess, showError } from '../../../notification';
+import { GetSwarmSecrets, RemoveSwarmSecret } from '../../../docker/swarmApi';
+import { showError, showSuccess } from '../../../notification';
 import type {
-  PanelApi,
-  RenderPanelContent,
-  ResourceColumn,
-  ResourceConfig,
-  ResourceRow,
-  ResourceTab,
-  RowAction,
+    PanelApi,
+    RenderPanelContent,
+    ResourceColumn,
+    ResourceConfig,
+    ResourceRow,
+    ResourceTab,
+    RowAction,
 } from '../../../types/resourceConfigs';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 /**
  * Column definitions for Swarm Secrets table
@@ -74,17 +74,12 @@ export const normalizeSwarmSecret = (secret: Record<string, any>): ResourceRow =
   labels: secret.labels ?? secret.Labels ?? {},
   driverName: secret.driverName ?? secret.DriverName,
 });
-
 /**
  * Render panel content for each tab
  */
 export const renderSwarmSecretPanelContent: RenderPanelContent = (
   row,
-  tab,
-  _holmesState,
-  _onAnalyze,
-  _onCancel,
-  panelApi
+  tab
 ) => {
   if (tab === 'summary') {
     return <SecretSummaryPanel row={row} />;

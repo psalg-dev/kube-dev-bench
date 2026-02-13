@@ -241,6 +241,9 @@ func TestBuildNetworkPolicyInfo_WithEgress(t *testing.T) {
 								},
 							},
 						},
+						{
+							IPBlock: &networkingv1.IPBlock{CIDR: "10.0.0.0/8", Except: []string{"10.96.0.0/12"}},
+						},
 					},
 				},
 			},
@@ -252,10 +255,16 @@ func TestBuildNetworkPolicyInfo_WithEgress(t *testing.T) {
 	if len(info.Egress) != 1 {
 		t.Errorf("expected 1 egress rule, got %d", len(info.Egress))
 	}
-	if len(info.Egress[0].To) != 1 {
-		t.Errorf("expected 1 destination peer, got %d", len(info.Egress[0].To))
+	if len(info.Egress[0].To) != 2 {
+		t.Errorf("expected 2 destination peers, got %d", len(info.Egress[0].To))
 	}
 	if info.Egress[0].Ports[0].Protocol != "UDP" {
 		t.Errorf("expected protocol 'UDP', got '%s'", info.Egress[0].Ports[0].Protocol)
+	}
+	if info.Egress[0].To[1].IPBlock == nil {
+		t.Fatalf("expected second egress peer to include IPBlock")
+	}
+	if info.Egress[0].To[1].IPBlock.CIDR != "10.0.0.0/8" {
+		t.Errorf("expected CIDR '10.0.0.0/8', got %q", info.Egress[0].To[1].IPBlock.CIDR)
 	}
 }

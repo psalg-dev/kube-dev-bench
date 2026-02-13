@@ -157,4 +157,3 @@ export default function ImageUpdateModal({ open, service, onClose }: ImageUpdate
 	);
 }
 
-

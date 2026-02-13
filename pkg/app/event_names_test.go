@@ -18,6 +18,10 @@ func TestEventNameConstants(t *testing.T) {
 		"EventConfigMapsUpdate":   EventConfigMapsUpdate,
 		"EventIngressesUpdate":    EventIngressesUpdate,
 		"EventHelmReleasesUpdate": EventHelmReleasesUpdate,
+		"EventRolesUpdate":        EventRolesUpdate,
+		"EventClusterRolesUpdate": EventClusterRolesUpdate,
+		"EventRoleBindingsUpdate": EventRoleBindingsUpdate,
+		"EventClusterRoleBindingsUpdate": EventClusterRoleBindingsUpdate,
 	}
 	for name, value := range resourceEvents {
 		if value == "" {
@@ -32,6 +36,10 @@ func TestEventNameConstants(t *testing.T) {
 	}{
 		{"EventPodsUpdate", EventPodsUpdate},
 		{"EventDeploymentsUpdate", EventDeploymentsUpdate},
+		{"EventRolesUpdate", EventRolesUpdate},
+		{"EventClusterRolesUpdate", EventClusterRolesUpdate},
+		{"EventRoleBindingsUpdate", EventRoleBindingsUpdate},
+		{"EventClusterRoleBindingsUpdate", EventClusterRoleBindingsUpdate},
 		{"EventMonitorUpdate", EventMonitorUpdate},
 		{"EventResourceCountsUpdate", EventResourceCountsUpdate},
 		{"EventPortForwardsUpdate", EventPortForwardsUpdate},

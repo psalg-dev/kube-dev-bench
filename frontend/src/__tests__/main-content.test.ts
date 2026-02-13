@@ -1,8 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
-import type { SwarmStateContextValue } from '../docker/SwarmStateContext';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SwarmResourceCountsContextValue } from '../docker/SwarmResourceCountsContext';
-import type { docker } from '../../wailsjs/go/models';
+import type { SwarmStateContextValue } from '../docker/SwarmStateContext';
 
 // Mock all heavy component imports used by main-content
 const Stub = () => null;
@@ -20,6 +19,7 @@ vi.mock('react-dom/client', () => ({
 }));
 
 vi.mock('../k8s/resources/deployments/DeploymentsOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/cluster/ClusterOverview', () => ({ default: Stub }));
 vi.mock('../k8s/resources/services/ServicesOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/jobs/JobsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/cronjobs/CronJobsOverviewTable', () => ({ default: Stub }));
@@ -32,6 +32,10 @@ vi.mock('../k8s/resources/ingresses/IngressesOverviewTable', () => ({ default: S
 vi.mock('../k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/persistentvolumes/PersistentVolumesOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/helmreleases/HelmReleasesOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/roles/RolesOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/clusterroles/ClusterRolesOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/rolebindings/RoleBindingsOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable', () => ({ default: Stub }));
 
 vi.mock('../docker/resources/services/SwarmServicesOverviewTable', () => ({ default: Stub }));
 vi.mock('../docker/resources/tasks/SwarmTasksOverviewTable', () => ({ default: Stub }));
@@ -49,11 +53,19 @@ vi.mock('../docker/SwarmOverview', () => ({ default: Stub }));
 // These are accessed via `.Provider`
 const SwarmStateProvider = vi.fn(({ children }: { children: ReactNode }) => children);
 const SwarmCountsProvider = vi.fn(({ children }: { children: ReactNode }) => children);
+const ClusterStateProvider = vi.fn(({ children }: { children: ReactNode }) => children);
+const ResourceCountsProvider = vi.fn(({ children }: { children: ReactNode }) => children);
 vi.mock('../docker/SwarmStateContext', () => ({
   default: { Provider: SwarmStateProvider },
 }));
 vi.mock('../docker/SwarmResourceCountsContext', () => ({
   default: { Provider: SwarmCountsProvider },
+}));
+vi.mock('../state/ClusterStateContext', () => ({
+  ClusterStateContext: { Provider: ClusterStateProvider },
+}));
+vi.mock('../state/ResourceCountsContext', () => ({
+  ResourceCountsContext: { Provider: ResourceCountsProvider },
 }));
 
 async function importFreshMainContent() {
@@ -142,8 +154,8 @@ describe('main-content', () => {
       stacks: [],
       volumes: [],
       actions: {
-        connect: vi.fn(async (_config: docker.DockerConfig) => ({})),
-        testConnection: vi.fn(async (_config: docker.DockerConfig) => ({})),
+        connect: vi.fn(async () => ({})),
+        testConnection: vi.fn(async () => ({})),
         disconnect: vi.fn(async () => {}),
         refreshConnectionStatus: vi.fn(async () => {}),
         openWizard: vi.fn(),
@@ -213,5 +225,34 @@ describe('main-content', () => {
       lastUpdated: 123,
     });
   });
-});
 
+  it('bridges K8s contexts (ClusterState + ResourceCounts) for non-swarm K8s views', async () => {
+    const { renderResourceMainContent } = await importFreshMainContent();
+    const { createRoot } = await import('react-dom/client');
+
+    const clusterStateValue = {
+      selectedContext: 'test-ctx',
+      selectedNamespaces: ['ns1'],
+      clusterConnected: true,
+    };
+    const resourceCountsValue = { counts: { deployments: 5 }, lastUpdated: 456 };
+
+    renderResourceMainContent(['ns1'], 'cluster', {
+      clusterState: clusterStateValue as unknown,
+      resourceCounts: resourceCountsValue,
+    });
+
+    const root = (createRoot as unknown as ReturnType<typeof vi.fn>).mock.results[0].value;
+    expect(root.render).toHaveBeenCalledTimes(1);
+
+    const renderedEl = root.render.mock.calls[0][0];
+    // outer Provider should be ClusterStateContext.Provider
+    expect(renderedEl.type).toBe(ClusterStateProvider);
+    expect(renderedEl.props.value).toMatchObject({ selectedContext: 'test-ctx' });
+
+    // inner Provider should be ResourceCountsContext.Provider
+    const inner = renderedEl.props.children;
+    expect(inner.type).toBe(ResourceCountsProvider);
+    expect(inner.props.value).toMatchObject({ counts: { deployments: 5 }, lastUpdated: 456 });
+  });
+});

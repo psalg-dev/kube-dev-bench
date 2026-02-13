@@ -1,19 +1,19 @@
-import { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
-import {
-  AskHolmesStream,
-  CancelHolmesStream,
-  GetHolmesConfig,
-  SetHolmesConfig,
-  TestHolmesConnection,
-  CheckHolmesDeployment,
-  DeployHolmesGPT,
-  onHolmesDeploymentStatus,
-  onHolmesChatStream,
-  ReconnectHolmes,
-  ClearHolmesConfig,
-} from './holmesApi';
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
+import { showError, showNotification, showSuccess } from '../notification';
 import type { HolmesConfig, HolmesConnectionStatus, HolmesDeploymentStatus, HolmesResponse } from './holmesApi';
-import { showSuccess, showError, showNotification } from '../notification';
+import {
+    AskHolmesStream,
+    CancelHolmesStream,
+    CheckHolmesDeployment,
+    ClearHolmesConfig,
+    DeployHolmesGPT,
+    GetHolmesConfig,
+    onHolmesChatStream,
+    onHolmesDeploymentStatus,
+    ReconnectHolmes,
+    SetHolmesConfig,
+    TestHolmesConnection,
+} from './holmesApi';
 
 interface HolmesToolEvent {
   id: string;
@@ -204,9 +204,9 @@ interface StreamRefState {
 
 interface HolmesContextValue {
   state: HolmesState;
-  askHolmes: (question: string) => Promise<void>;
+  askHolmes: (_question: string) => Promise<void>;
   cancelHolmes: () => Promise<void>;
-  saveConfig: (config: HolmesConfig) => Promise<void>;
+  saveConfig: (_config: HolmesConfig) => Promise<void>;
   clearConfig: () => Promise<void>;
   testConnection: () => Promise<HolmesConnectionStatus>;
   reconnectHolmes: () => Promise<HolmesConnectionStatus>;
@@ -218,11 +218,10 @@ interface HolmesContextValue {
   clearResponse: () => void;
   loadConfig: () => Promise<void>;
   checkDeployment: () => Promise<HolmesDeploymentStatus>;
-  deployHolmes: (request: HolmesDeploymentRequest, onStatus?: (status: HolmesDeploymentStatus) => void) => Promise<HolmesDeploymentStatus>;
+  deployHolmes: (_request: HolmesDeploymentRequest, _onStatus?: (_status: HolmesDeploymentStatus) => void) => Promise<HolmesDeploymentStatus>;
   showOnboarding: () => void;
   hideOnboarding: () => void;
 }
-
 const HolmesContext = createContext<HolmesContextValue | null>(null);
 
 export function HolmesProvider({ children }: { children: React.ReactNode }) {
@@ -454,10 +453,10 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
   const testConnection = useCallback(async (): Promise<HolmesConnectionStatus> => {
     try {
       const status = await TestHolmesConnection();
-      if ((status as any).connected) {
+      if ((status as unknown).connected) {
         showSuccess('Holmes connection successful');
       } else {
-        showError('Holmes connection failed: ' + ((status as any).error || 'Unknown error'));
+        showError('Holmes connection failed: ' + ((status as unknown).error || 'Unknown error'));
       }
       return status;
     } catch (err) {
@@ -478,14 +477,14 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const deployHolmes = useCallback(async (request: HolmesDeploymentRequest, onStatusUpdate?: (status: HolmesDeploymentStatus) => void) => {
+  const deployHolmes = useCallback(async (request: HolmesDeploymentRequest, onStatusUpdate?: (_status: HolmesDeploymentStatus) => void) => {
     dispatch({ type: 'SET_DEPLOYING', deploying: true });
 
     try {
       const result = await DeployHolmesGPT(request);
       onStatusUpdate?.(result);
 
-      if ((result as any).phase === 'deployed') {
+      if ((result as unknown).phase === 'deployed') {
         showSuccess('Holmes deployed successfully!');
         await loadConfig();
       }
@@ -498,16 +497,15 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
       throw err;
     }
   }, [loadConfig]);
-
   const reconnectHolmes = useCallback(async (): Promise<HolmesConnectionStatus> => {
     try {
       showNotification('Reconnecting to Holmes...', { type: 'warning', duration: 2000 });
       const status = await ReconnectHolmes();
-      if ((status as any).connected) {
+      if ((status as unknown).connected) {
         showSuccess('Holmes reconnected successfully');
         await loadConfig();
       } else {
-        showError('Holmes reconnection failed: ' + ((status as any).error || 'Unknown error'));
+        showError('Holmes reconnection failed: ' + ((status as unknown).error || 'Unknown error'));
       }
       return status;
     } catch (err) {

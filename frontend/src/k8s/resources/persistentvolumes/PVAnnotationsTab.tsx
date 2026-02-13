@@ -9,10 +9,6 @@ export default function PVAnnotationsTab({ annotations }: PVAnnotationsTabProps)
 	const ann = annotations || {};
 	const entries = Object.entries(ann).map(([key, value]) => ({ key, value }));
 
-	if (!entries.length) {
-		return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No annotations.</div>;
-	}
-
 	const columns = useMemo(() => ([
 		{ key: 'key', label: 'Key' },
 		{ key: 'value', label: 'Value' },
@@ -20,6 +16,10 @@ export default function PVAnnotationsTab({ annotations }: PVAnnotationsTabProps)
 	const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
 	const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(() => ({ key: defaultSortKey, direction: 'asc' }));
 	const sortedEntries = useMemo(() => sortRows(entries, sortState.key, sortState.direction), [entries, sortState]);
+
+	if (!entries.length) {
+		return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>No annotations.</div>;
+	}
 
 	const headerButtonStyle = {
 		width: '100%',

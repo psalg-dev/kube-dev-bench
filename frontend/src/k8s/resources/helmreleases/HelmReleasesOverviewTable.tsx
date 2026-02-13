@@ -1,19 +1,19 @@
 import { useEffect, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import YamlTab from '../../../layout/bottompanel/YamlTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOn, EventsOff } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import HelmHistoryTab from './HelmHistoryTab';
-import HelmValuesTab from './HelmValuesTab';
-import HelmNotesTab from './HelmNotesTab';
-import HelmActions from './HelmActions';
-import HelmResourcesTab from './HelmResourcesTab';
-import HelmResourcesSummary from './HelmResourcesSummary';
-import { showSuccess, showError } from '../../../notification';
-import StatusBadge from '../../../components/StatusBadge';
 import type { app } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import StatusBadge from '../../../components/StatusBadge';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import YamlTab from '../../../layout/bottompanel/YamlTab';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import HelmActions from './HelmActions';
+import HelmHistoryTab from './HelmHistoryTab';
+import HelmNotesTab from './HelmNotesTab';
+import HelmResourcesSummary from './HelmResourcesSummary';
+import HelmResourcesTab from './HelmResourcesTab';
+import HelmValuesTab from './HelmValuesTab';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -157,14 +157,31 @@ function HelmManifestTab({ namespace, releaseName }: HelmManifestTabProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    AppAPI.GetHelmReleaseManifest(namespace ?? '', releaseName ?? '')
-      .then(setManifest)
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        setManifest(`Error loading manifest: ${message}`);
-      })
-      .finally(() => setLoading(false));
+    let active = true;
+    const loadManifest = async () => {
+      if (active) {
+        setLoading(true);
+      }
+      try {
+        const data = await AppAPI.GetHelmReleaseManifest(namespace ?? '', releaseName ?? '');
+        if (active) {
+          setManifest(data);
+        }
+      } catch (err: unknown) {
+        if (active) {
+          const message = err instanceof Error ? err.message : String(err);
+          setManifest(`Error loading manifest: ${message}`);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+    loadManifest();
+    return () => {
+      active = false;
+    };
   }, [namespace, releaseName]);
 
   if (loading) {
@@ -231,7 +248,7 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }: Hel
       try {
         const arr = Array.isArray(list) ? list : [];
         setReleases(normalizeReleases(arr));
-      } catch (_e) {
+      } catch {
         setReleases([]);
       } finally {
         setLoading(false);
@@ -239,11 +256,11 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }: Hel
     };
     EventsOn('helmreleases:update', onUpdate);
     return () => {
-      try { EventsOff('helmreleases:update'); } catch (_) {}
+      try { EventsOff('helmreleases:update'); } catch {}
     };
   }, []);
 
-  const getRowActions = (row: HelmReleaseRow, _api: unknown) => [
+  const getRowActions = (row: HelmReleaseRow) => [
     {
       label: 'Rollback',
       icon: '↩️',

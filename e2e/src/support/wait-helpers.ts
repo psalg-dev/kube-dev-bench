@@ -1,5 +1,10 @@
 import { expect, type Page } from '@playwright/test';
 
+async function waitForReconnectOverlayToClear(page: Page, timeout: number) {
+  const reconnectOverlay = page.locator('.wails-reconnect-overlay');
+  await expect(reconnectOverlay).toHaveCount(0, { timeout });
+}
+
 /**
  * Wait for a table row with specific text to be visible and stable
  */
@@ -38,6 +43,7 @@ export async function openRowDetailsByName(page: Page, name: string, opts: { tim
   
   // Ensure no notifications are blocking
   await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
+  await waitForReconnectOverlayToClear(page, 10_000);
   
   const table = page
     .locator('#main-panels > div:visible table.gh-table')
@@ -47,10 +53,53 @@ export async function openRowDetailsByName(page: Page, name: string, opts: { tim
   
   const row = table.locator('tbody tr').filter({ hasText: name }).first();
   await expect(row).toBeVisible({ timeout });
-  await row.click();
-  
-  // Wait for bottom panel to appear
-  await expect(page.locator('.bottom-panel')).toBeVisible({ timeout: 10_000 });
+
+  const detailsPanel = page
+    .locator('.bottom-panel')
+    .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const nameCell = row.locator('td').first();
+    await nameCell.waitFor({ state: 'visible', timeout: 30_000 });
+    await waitForReconnectOverlayToClear(page, 10_000);
+
+    try {
+      await nameCell.click({ timeout: 30_000 });
+    } catch {
+      await waitForReconnectOverlayToClear(page, 10_000);
+      await nameCell.click({ timeout: 30_000 });
+    }
+
+    try {
+      await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
+      await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
+      return;
+    } catch {
+      // Continue to menu fallback below.
+    }
+
+    const actionsButton = row.getByRole('button', { name: 'Row actions' }).first();
+    if (await actionsButton.isVisible().catch(() => false)) {
+      await waitForReconnectOverlayToClear(page, 10_000);
+      await actionsButton.click({ timeout: 5_000 });
+      const menu = page.locator('.row-actions-menu').first();
+      const detailsItem = menu.getByText('Details').first();
+      if (await detailsItem.isVisible().catch(() => false)) {
+        await detailsItem.click({ force: true });
+        try {
+          await expect(detailsPanel).toBeVisible({ timeout: 5_000 });
+          await expect(detailsPanel.getByText(name).first()).toBeVisible({ timeout: 5_000 });
+          return;
+        } catch {
+          // Continue retry loop.
+        }
+      }
+    }
+
+    await page.waitForTimeout(250);
+  }
+
+  throw new Error(`Failed to open bottom panel for row: ${name}`);
 }
 
 /**

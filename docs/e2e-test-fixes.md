@@ -10,6 +10,33 @@ The failing tests were caused by a major refactoring effort that migrated resour
 2. Introduced new hooks (`useResourceData`, `useHolmesAnalysis`) for data fetching and Holmes AI integration
 3. Reduced duplicated code significantly but inadvertently removed some features
 
+## CI Diagnostics Artifact Map (Shard-1)
+
+To make shard-specific failures debuggable even when job logs are hard to access, CI now emits machine-readable Playwright reports and a shard-1 markdown summary.
+
+- Workflow: `.github/workflows/build.yml`
+- Playwright config: `e2e/playwright.config.ts`
+- Extractor script: `e2e/scripts/extract-playwright-failures.mjs`
+
+### Generated files (inside each e2e job workspace)
+
+- `e2e/test-results/ci-reports/<matrix-name>.json` — Playwright JSON report
+- `e2e/test-results/ci-reports/<matrix-name>.xml` — Playwright JUnit report
+- `e2e/test-results/ci-reports/e2e-shard-1-summary.md` — extracted shard-1 failure summary (always generated on shard-1 job)
+
+### Uploaded artifact
+
+- Artifact name: `e2e-test-results-<matrix-name>`
+- Contains:
+  - `e2e/test-results/**`
+  - `e2e/playwright-report/**`
+
+### Triage flow for shard-1 regressions
+
+1. Open artifact `e2e-test-results-e2e-shard-1`
+2. Read `e2e/test-results/ci-reports/e2e-shard-1-summary.md` for failing test titles, statuses, retries, locations, and compact errors
+3. If needed, inspect `e2e-shard-1.json` and `e2e-shard-1.xml` for full structured details
+
 ## Fixes Applied
 
 ### 1. ReplicaSet "Owner" Tab Missing (Test: `50-bottom-panels-workloads.spec.ts`)

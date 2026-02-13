@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type React from 'react';
-import { render, screen, fireEvent, within, waitFor, act } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { runtimeHandlers, swarmApiMocks, holmesApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
-    runtimeHandlers: new Map<string, (payload: unknown) => void>(),
+    runtimeHandlers: new Map<string, (_payload: unknown) => void>(),
     swarmApiMocks: {
       GetSwarmServices: vi.fn(),
       ScaleSwarmService: vi.fn(),
@@ -31,19 +31,18 @@ vi.mock('../holmes/holmesApi', () => holmesApiMocks);
 
 // SwarmServicesOverviewTable imports runtime via "../../../../wailsjs/runtime/runtime.js"
 vi.mock('../../wailsjs/runtime/runtime', () => ({
-  EventsOn: vi.fn((eventName: string, cb: (payload: unknown) => void) => {
+  EventsOn: vi.fn((eventName: string, cb: (_payload: unknown) => void) => {
     runtimeHandlers.set(eventName, cb);
     return vi.fn();
   }),
 }));
-
 // Minimal table mock that exercises column cell renderers.
 vi.mock('../layout/overview/OverviewTableWithPanel', () => ({
   default: function OverviewTableWithPanelMock(props: {
     title: string;
-    columns?: Array<{ key: string; cell?: (ctx: { getValue: () => unknown }) => React.ReactNode }>;
+    columns?: Array<{ key: string; cell?: (_ctx: { getValue: () => unknown }) => React.ReactNode }>;
     data?: Array<Record<string, unknown>>;
-    getRowActions?: (row: Record<string, unknown>) => Array<{ label: string; onClick: () => void; disabled?: boolean }>;
+    getRowActions?: (_row: Record<string, unknown>) => Array<{ label: string; onClick: () => void; disabled?: boolean }>;
     headerActions?: React.ReactNode;
   }) {
     const { title, columns, data, getRowActions, headerActions } = props;

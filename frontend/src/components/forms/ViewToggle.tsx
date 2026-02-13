@@ -2,9 +2,8 @@ type ViewMode = 'form' | 'yaml';
 
 type ViewToggleProps = {
   mode: ViewMode;
-  onChange: (mode: ViewMode) => void;
+  onChange: (_mode: ViewMode) => void;
 };
-
 export default function ViewToggle({ mode, onChange }: ViewToggleProps) {
   const baseBtn: React.CSSProperties = {
     padding: '6px 10px',

@@ -10,7 +10,7 @@ type PVBoundPVCTabProps = {
  * Bound PVC tab for PersistentVolumes - shows details about the bound PVC.
  */
 export default function PVBoundPVCTab({ pvName, _pvName, claim }: PVBoundPVCTabProps) {
-	const _pvNameNormalized = pvName ?? _pvName;
+	const pvNameNormalized = pvName ?? _pvName;
 	// Parse claim to get namespace and name
 	const parseClaimInfo = () => {
 		if (!claim || claim === '-') {
@@ -53,7 +53,7 @@ export default function PVBoundPVCTab({ pvName, _pvName, claim }: PVBoundPVCTabP
 	}
 
 	return (
-		<div className="pv-bound-pvc-tab">
+		<div className="pv-bound-pvc-tab" data-pv-name={pvNameNormalized || ''}>
 			<div className="bound-pvc-header">
 				<h3>Bound PersistentVolumeClaim</h3>
 				<p>This volume is bound to the following PVC:</p>

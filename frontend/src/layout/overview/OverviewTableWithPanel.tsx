@@ -1,17 +1,18 @@
-import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from 'react';
-import BottomPanel from '../bottompanel/BottomPanel';
-import './OverviewTableWithPanel.css';
-import './BulkSelection.css';
-import CreateManifestOverlay from '../../CreateManifestOverlay';
-import { showNotification, showError, showSuccess } from '../../notification';
-import { fetchTabCounts } from '../../api/tabCounts';
-import StatusBadge from '../../components/StatusBadge';
-import { getColumnKey, pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
-import BulkActionBar from '../../components/BulkActionBar';
-import useTableSelection from '../../hooks/useTableSelection';
-import { getBulkActionsForResource, type BulkAction } from '../../constants/bulkActions';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { executeBulkAction } from '../../api/bulkOperations';
-
+import { fetchTabCounts } from '../../api/tabCounts';
+import BulkActionBar from '../../components/BulkActionBar';
+import StatusBadge from '../../components/StatusBadge';
+import { getBulkActionsForResource, type BulkAction } from '../../constants/bulkActions';
+import CreateManifestOverlay from '../../CreateManifestOverlay';
+import useTableSelection from '../../hooks/useTableSelection';
+import { showError, showNotification, showSuccess } from '../../notification';
+import { getColumnKey, pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
+import BottomPanel from '../bottompanel/BottomPanel';
+import './BulkSelection.css';
+import './OverviewTableWithPanel.css';
 const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
 
 type ColumnDef = {
@@ -20,7 +21,7 @@ type ColumnDef = {
   header?: string;
   accessorKey?: string;
   width?: string | number;
-  cell?: (ctx: { getValue: () => any }) => ReactNode;
+  cell?: (_ctx: { getValue: () => any }) => ReactNode;
 };
 
 type TabDef = {
@@ -28,11 +29,11 @@ type TabDef = {
   label: string;
   countKey?: string;
   countable?: boolean;
+  testId?: string;
 };
-
 type RowAction = {
   label: string;
-  onClick?: (row: any) => void;
+  onClick?: (_row: any) => void;
   disabled?: boolean;
   danger?: boolean;
   icon?: ReactNode;
@@ -42,8 +43,8 @@ type OverviewTableWithPanelProps = {
   columns: ColumnDef[];
   data: any[];
   tabs?: TabDef[];
-  renderPanelContent?: (row: any, tab: string, panelApi: { activeTab: string; setActiveTab: (key: string) => void; tabCounts: Record<string, number> }) => ReactNode;
-  panelHeader?: (row: any) => ReactNode;
+  renderPanelContent?: (_row: any, _tab: string, _panelApi: { activeTab: string; setActiveTab: (_key: string) => void; tabCounts: Record<string, number> }) => ReactNode;
+  panelHeader?: (_row: any) => ReactNode;
   title: string;
   resourceKind?: string;
   namespace?: string;
@@ -57,8 +58,8 @@ type OverviewTableWithPanelProps = {
   createHint?: string;
   tableTestId?: string;
   headerActions?: ReactNode;
-  getRowActions?: (row: any, api: { openDetails: (tabKey?: string) => void; setActiveTab: (key: string) => void }) => RowAction[];
-  tabCountsFetcher?: (row: any) => Promise<Record<string, number>> | Record<string, number>;
+  getRowActions?: (_row: any, _api: { openDetails: (_tabKey?: string) => void; setActiveTab: (_key: string) => void }) => RowAction[];
+  tabCountsFetcher?: (_row: any) => Promise<Record<string, number>> | Record<string, number>;
   enableTabCounts?: boolean;
   bulkActions?: BulkAction[];
   bulkResourceKind?: string;
@@ -93,7 +94,10 @@ export default function OverviewTableWithPanel({
 }: OverviewTableWithPanelProps) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<any | null>(null);
-  const safeTabs = Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }];
+  const safeTabs = useMemo(
+    () => (Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }]),
+    [tabs]
+  );
   const [activeTab, setActiveTab] = useState(safeTabs[0]?.key || 'summary');
   // Filter text state
   const [filterText, setFilterText] = useState('');
@@ -104,6 +108,7 @@ export default function OverviewTableWithPanel({
   // Tab counts state
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
   const [tabCountsLoading, setTabCountsLoading] = useState(false);
+  const tabCountsInitializedRef = useRef(false);
 
   const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
   const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' as 'asc' | 'desc' }));
@@ -232,7 +237,7 @@ export default function OverviewTableWithPanel({
     let cancelled = false;
     // Only show loading indicator on initial load (when no counts exist)
     // This prevents badge flickering when counts are being refreshed
-    const isInitialLoad = Object.keys(tabCounts).length === 0;
+    const isInitialLoad = !tabCountsInitializedRef.current;
     if (isInitialLoad) {
       setTabCountsLoading(true);
     }
@@ -252,6 +257,7 @@ export default function OverviewTableWithPanel({
       .then((counts) => {
         if (!cancelled) {
           setTabCounts(counts || {});
+          tabCountsInitializedRef.current = true;
         }
       })
       .catch(() => {
@@ -260,6 +266,7 @@ export default function OverviewTableWithPanel({
           // Only clear if this was the initial load
           if (isInitialLoad) {
             setTabCounts({});
+            tabCountsInitializedRef.current = true;
           }
         }
       })
@@ -286,7 +293,7 @@ export default function OverviewTableWithPanel({
           return String(value).toLowerCase().includes(normalizedFilter);
         })
       );
-    } catch (_) {
+    } catch {
       return data;
     }
   }, [data, columns, normalizedFilter]);
@@ -496,6 +503,13 @@ export default function OverviewTableWithPanel({
           </tr>
         </thead>
         <tbody>
+          {data.length === 0 && !loading && (
+            <tr>
+              <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                No {title || resourceKind} deployed in this namespace
+              </td>
+            </tr>
+          )}
           {sortedData.map((row: any, idx: number) => (
             !row ? null : (
               <tr
@@ -592,7 +606,7 @@ export default function OverviewTableWithPanel({
               </tr>
             )
           ))}
-          {filteredData.length === 0 && (
+          {filteredData.length === 0 && data.length > 0 && (
             <tr>
               <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading">No rows match the filter.</td>
             </tr>

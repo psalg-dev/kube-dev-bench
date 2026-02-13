@@ -1,15 +1,14 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useHolmesAnalysis } from '../hooks/useHolmesAnalysis';
 import './wailsMocks';
 import { eventsOnMock, resetAllMocks } from './wailsMocks';
-import { useHolmesAnalysis } from '../hooks/useHolmesAnalysis';
 
 describe('useHolmesAnalysis', () => {
-  type AnalyzeFn = (...args: string[]) => Promise<void>;
+  type AnalyzeFn = (..._args: string[]) => Promise<void>;
   let mockAnalyzeFn: ReturnType<typeof vi.fn<AnalyzeFn>>;
-  let chatStreamCallback: ((event: unknown) => void) | null;
-  let contextProgressCallback: ((event: unknown) => void) | null;
-
+  let chatStreamCallback: ((_event: unknown) => void) | null;
+  let contextProgressCallback: ((_event: unknown) => void) | null;
   beforeEach(() => {
     resetAllMocks();
     mockAnalyzeFn = vi.fn<AnalyzeFn>().mockResolvedValue(undefined);
@@ -17,7 +16,7 @@ describe('useHolmesAnalysis', () => {
     contextProgressCallback = null;
 
     // Mock EventsOn to capture callbacks
-    eventsOnMock.mockImplementation((eventName: string, callback: (event: unknown) => void) => {
+    eventsOnMock.mockImplementation((eventName: string, callback: (_event: unknown) => void) => {
       if (eventName === 'holmes:chat:stream') {
         chatStreamCallback = callback;
       } else if (eventName === 'holmes:context:progress') {

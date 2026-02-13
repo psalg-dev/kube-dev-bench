@@ -114,7 +114,7 @@ export const sortRows = <T,>(
   rows: T[],
   sortKey: string,
   direction: 'asc' | 'desc' = 'asc',
-  getValue?: (row: T, key: string) => unknown
+  getValue?: (_row: T, _key: string) => unknown
 ) => {
   if (!Array.isArray(rows)) return [];
   if (!sortKey) return rows;
@@ -133,7 +133,6 @@ export const sortRows = <T,>(
     })
     .map((item) => item.row);
 };
-
 export const toggleSortState = (
   current: { key: string; direction: 'asc' | 'desc' } | null | undefined,
   key?: string

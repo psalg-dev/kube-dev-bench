@@ -19,7 +19,7 @@ export default function IngressYamlTab({ namespace, name }: IngressYamlTabProps)
 		try {
 			const res = await GetIngressYAML(namespace, name);
 			setYaml(res || '');
-		} catch (e: any) {
+		} catch (e: unknown) {
 			setError(String(e));
 		} finally {
 			setLoading(false);

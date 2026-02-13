@@ -1,24 +1,26 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { EditorView, lineNumbers, highlightActiveLineGutter, keymap } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { yaml as yamlLang } from '@codemirror/lang-yaml';
-import { foldGutter, foldKeymap, syntaxHighlighting, defaultHighlightStyle, indentOnInput, indentUnit } from '@codemirror/language';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
+import { yaml as yamlLang } from '@codemirror/lang-yaml';
+import { defaultHighlightStyle, foldGutter, foldKeymap, indentOnInput, indentUnit, syntaxHighlighting } from '@codemirror/language';
+import { EditorState } from '@codemirror/state';
+import { EditorView, highlightActiveLineGutter, keymap, lineNumbers } from '@codemirror/view';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../wailsjs/go/main/App';
 import { EventsEmit } from '../wailsjs/runtime';
-import { showSuccess, showError } from './notification';
-import ViewToggle from './components/forms/ViewToggle';
 import ServiceForm from './components/forms/ServiceForm';
+import ViewToggle from './components/forms/ViewToggle';
 import useSwarmServiceForm, { getDefaultServiceForm } from './hooks/useSwarmServiceForm';
+import { showError, showSuccess } from './notification';
 import {
-  validateServiceForm,
-  yamlToServiceForm,
-  yamlToConfigForm,
-  configFormToYaml,
-  yamlToSecretForm,
-  secretFormToYaml,
-  yamlToNodeForm,
-  nodeFormToYaml,
+    configFormToYaml,
+    nodeFormToYaml,
+    secretFormToYaml,
+    validateServiceForm,
+    yamlToConfigForm,
+    yamlToNodeForm,
+    yamlToSecretForm,
+    yamlToServiceForm,
 } from './utils/swarmYamlUtils';
 
 type KeyValueRow = { id: string; key: string; value: string };
@@ -100,7 +102,6 @@ function keyValueRowsToObject(rows: KeyValueRow[]) {
   }
   return out;
 }
-
 function objectToKeyValueRows(obj: Record<string, any>) {
   const o = obj || {};
   return Object.keys(o).sort().map((k) => ({ id: `kv_${k}`, key: k, value: (o[k] ?? '').toString() }));
@@ -117,7 +118,7 @@ function KeyValueEditor({
 }: {
   title: string;
   rows: KeyValueRow[];
-  onChange: (next: KeyValueRow[]) => void;
+  onChange: (_next: KeyValueRow[]) => void;
   keyPlaceholder: string;
   valuePlaceholder: string;
   addButtonLabel: string;
@@ -206,6 +207,14 @@ function getDefaultManifest(kind: string, namespace?: string) {
     case 'persistentvolume':
       // PersistentVolume is cluster-scoped; no namespace field
       return 'apiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: my-pv\n  labels:\n    type: local\nspec:\n  storageClassName: manual\n  capacity:\n    storage: 10Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Retain\n  hostPath:\n    path: "/mnt/data"\n  # Alternative volume sources:\n  # nfs:\n  #   server: nfs-server.example.com\n  #   path: /path/to/nfs/share\n  # awsElasticBlockStore:\n  #   volumeID: vol-12345678\n  #   fsType: ext4\n  # gcePersistentDisk:\n  #   pdName: my-data-disk\n  #   fsType: ext4\n';
+    case 'role':
+      return `apiVersion: rbac.authorization.k8s.io/v1\nkind: Role\nmetadata:\n  name: my-role\n  namespace: ${ns}\nrules:\n  - apiGroups: [""]\n    resources: ["pods"]\n    verbs: ["get", "list"]\n`;
+    case 'clusterrole':
+      return 'apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nmetadata:\n  name: my-cluster-role\nrules:\n  - apiGroups: [""]\n    resources: ["pods"]\n    verbs: ["get", "list"]\n';
+    case 'rolebinding':
+      return `apiVersion: rbac.authorization.k8s.io/v1\nkind: RoleBinding\nmetadata:\n  name: my-rolebinding\n  namespace: ${ns}\nsubjects:\n  - kind: User\n    name: jane\n    apiGroup: rbac.authorization.k8s.io\nroleRef:\n  kind: Role\n  name: my-role\n  apiGroup: rbac.authorization.k8s.io\n`;
+    case 'clusterrolebinding':
+      return 'apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRoleBinding\nmetadata:\n  name: my-clusterrolebinding\nsubjects:\n  - kind: User\n    name: jane\n    apiGroup: rbac.authorization.k8s.io\nroleRef:\n  kind: ClusterRole\n  name: my-cluster-role\n  apiGroup: rbac.authorization.k8s.io\n';
     default:
       return `# Unknown kind: ${kind || 'Resource'}\n# Edit as needed\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: example\n  namespace: ${ns}\ndata:\n  key: value\n`;
   }

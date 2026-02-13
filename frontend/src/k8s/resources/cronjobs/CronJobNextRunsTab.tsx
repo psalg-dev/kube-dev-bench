@@ -23,7 +23,7 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }: 
 	const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
 	const [sortState, setSortState] = useState<{ key: string; direction: 'asc' | 'desc' }>(() => ({ key: defaultSortKey, direction: 'asc' }));
 
-	const runs = Array.isArray(detail?.nextRuns) ? detail.nextRuns : [];
+	const runs = useMemo(() => (Array.isArray(detail?.nextRuns) ? detail.nextRuns : []), [detail]);
 	type CronJobRunRow = { index: number; time: string };
 	const rows = useMemo<CronJobRunRow[]>(() => runs.map((t: string, idx: number) => ({ index: idx + 1, time: t })), [runs]);
 	const sortedRows = useMemo<CronJobRunRow[]>(
@@ -32,21 +32,35 @@ export default function CronJobNextRunsTab({ namespace, cronJobName, suspend }: 
 	);
 
 	useEffect(() => {
-		if (!namespace || !cronJobName) return;
-
-		setLoading(true);
-		setError(null);
-
-		AppAPI.GetCronJobDetail(namespace, cronJobName)
-			.then((data) => {
+		let active = true;
+		const loadDetail = async () => {
+			if (!namespace || !cronJobName) {
+				if (active) {
+					setDetail(null);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError(null);
+			}
+			try {
+				const data = await AppAPI.GetCronJobDetail(namespace, cronJobName);
+				if (!active) return;
 				setDetail(data);
 				setLoading(false);
-			})
-			.catch((err: unknown) => {
+			} catch (err: unknown) {
+				if (!active) return;
 				const message = err instanceof Error ? err.message : String(err);
 				setError(message || 'Failed to fetch cronjob details');
 				setLoading(false);
-			});
+			}
+		};
+		loadDetail();
+		return () => {
+			active = false;
+		};
 	}, [namespace, cronJobName]);
 
 	if (loading) {

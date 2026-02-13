@@ -7,7 +7,7 @@
  * K8s manifest templates organized by resource kind.
  * Each template is a function that takes the namespace and returns YAML content.
  */
-export type ManifestTemplate = (namespace: string) => string;
+export type ManifestTemplate = (_namespace: string) => string;
 export type SwarmPayload = {
   name: string;
   data: string;
@@ -252,8 +252,8 @@ export const swarmDefaultPayloads: Record<string, SwarmPayload> = {
     labels: {},
     editorMode: 'text',
   },
-  // Note: 'name' field is used in the form input, while 'data' YAML contains the same 
-  // default name for the editor preview. Both are intentionally duplicated as they 
+  // Note: 'name' field is used in the form input, while 'data' YAML contains the same
+  // default name for the editor preview. Both are intentionally duplicated as they
   // serve different UI purposes (form field vs. YAML editor content).
   service: {
     name: 'my-service',
@@ -293,7 +293,7 @@ services:
 
 /**
  * Get the default K8s manifest for a given kind.
- * 
+ *
  * @param {string} kind - Resource kind (e.g., 'Deployment', 'Service')
  * @param {string} namespace - Target namespace
  * @returns {string} - YAML manifest content
@@ -301,11 +301,11 @@ services:
 export function getDefaultManifest(kind: string, namespace?: string) {
   const ns = namespace || 'default';
   const key = (kind || '').toLowerCase();
-  
+
   if (k8sManifestTemplates[key]) {
     return k8sManifestTemplates[key](ns);
   }
-  
+
   // Fallback for unknown kinds
   return `# Unknown kind: ${kind || 'Resource'}
 # Edit as needed
@@ -321,7 +321,7 @@ data:
 
 /**
  * Normalize Swarm kind to singular form.
- * 
+ *
  * @param {string} kind - Raw kind string
  * @returns {string} - Normalized kind
  */
@@ -339,17 +339,17 @@ export function normalizeSwarmKind(kind?: string) {
 
 /**
  * Get the default Swarm resource payload for a given kind.
- * 
+ *
  * @param {string} kind - Resource kind (e.g., 'service', 'config')
  * @returns {Object} - Default payload with name, data, labels, editorMode
  */
 export function getDefaultSwarmPayload(kind?: string): SwarmPayload {
   const normalized = normalizeSwarmKind(kind);
-  
+
   if (swarmDefaultPayloads[normalized]) {
     return { ...swarmDefaultPayloads[normalized] };
   }
-  
+
   // Fallback
   return {
     name: '',

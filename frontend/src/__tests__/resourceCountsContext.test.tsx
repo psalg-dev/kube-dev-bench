@@ -1,11 +1,15 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, act, waitFor } from '@testing-library/react';
+import { act, render, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { ResourceCountsProvider, useResourceCounts } from '../state/ResourceCountsContext';
 
+vi.mock('../state/ClusterStateContext', () => ({
+  useClusterState: () => ({ selectedNamespaces: ['default'] }),
+}));
+
 vi.mock('../../wailsjs/runtime', () => {
-  let handler: ((payload: unknown) => void) | null = null;
+  let handler: ((_payload: unknown) => void) | null = null;
   return {
-    EventsOn: (event: string, cb: (payload: unknown) => void) => {
+    EventsOn: (event: string, cb: (_payload: unknown) => void) => {
       if (event === 'resourcecounts:update') handler = cb;
       return () => {
         handler = null;
@@ -27,7 +31,7 @@ vi.mock('../k8s/resources/kubeApi', () => ({
 
 // Expose a fake Wails binding on window so the provider's waitForWailsBinding check passes
 beforeAll(() => {
-  (window as any).go = {
+  (window as unknown).go = {
     main: {
       App: {
         GetResourceCounts: () => Promise.resolve({}),
@@ -37,7 +41,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete (window as any).go;
+  delete (window as unknown).go;
 });
 
 function Probe() {
@@ -65,7 +69,7 @@ describe('ResourceCountsContext', () => {
     expect(initial.deployments).toBe(2);
 
     const runtime = await import('../../wailsjs/runtime');
-    const emitter = runtime as unknown as { __emit: (payload: unknown) => void };
+    const emitter = runtime as unknown as { __emit: (_payload: unknown) => void };
     await act(async () => {
       emitter.__emit({
         podStatus: { running: 3, pending: 1, failed: 0, succeeded: 0, unknown: 0, total: 4 },

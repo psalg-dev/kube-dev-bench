@@ -11,16 +11,31 @@ export default function HelmNotesTab({ namespace, releaseName }: HelmNotesTabPro
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    AppAPI.GetHelmReleaseNotes(namespace ?? '', releaseName ?? '')
-      .then((data) => {
-        setNotes(data || 'No notes available for this release.');
-      })
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        setNotes(`Error loading notes: ${message}`);
-      })
-      .finally(() => setLoading(false));
+    let active = true;
+    const loadNotes = async () => {
+      if (active) {
+        setLoading(true);
+      }
+      try {
+        const data = await AppAPI.GetHelmReleaseNotes(namespace ?? '', releaseName ?? '');
+        if (active) {
+          setNotes(data || 'No notes available for this release.');
+        }
+      } catch (err: unknown) {
+        if (active) {
+          const message = err instanceof Error ? err.message : String(err);
+          setNotes(`Error loading notes: ${message}`);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+    loadNotes();
+    return () => {
+      active = false;
+    };
   }, [namespace, releaseName]);
 
   if (loading) {

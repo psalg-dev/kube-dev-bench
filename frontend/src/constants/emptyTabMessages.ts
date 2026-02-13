@@ -30,6 +30,12 @@ export const emptyTabMessages: Record<string, EmptyTabMessage> = {
     description: 'This resource is not currently used by any workloads.',
     tip: 'Workloads (Deployments, StatefulSets, etc.) that reference this resource will appear here.',
   },
+  subjects: {
+    icon: 'default',
+    title: 'No subjects',
+    description: 'No subjects are bound to this role.',
+    tip: 'Bind users, groups, or service accounts to grant permissions.',
+  },
   endpoints: {
     icon: 'endpoints',
     title: 'No endpoints available',
@@ -47,6 +53,12 @@ export const emptyTabMessages: Record<string, EmptyTabMessage> = {
     title: 'No ingress rules',
     description: 'No routing rules are configured for this ingress.',
     tip: 'Add rules to define how traffic should be routed to your services.',
+  },
+  'policy-rules': {
+    icon: 'rules',
+    title: 'No policy rules',
+    description: 'No RBAC policy rules are defined for this resource.',
+    tip: 'Add verbs, API groups and resources to grant permissions.',
   },
   pvcs: {
     icon: 'pvcs',

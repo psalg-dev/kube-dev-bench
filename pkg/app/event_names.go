@@ -16,6 +16,10 @@ const (
 	EventConfigMapsUpdate   = "configmaps:update"
 	EventIngressesUpdate    = "ingresses:update"
 	EventHelmReleasesUpdate = "helmreleases:update"
+	EventRolesUpdate        = "roles:update"
+	EventClusterRolesUpdate = "clusterroles:update"
+	EventRoleBindingsUpdate = "rolebindings:update"
+	EventClusterRoleBindingsUpdate = "clusterrolebindings:update"
 )
 
 // Kubernetes system events.

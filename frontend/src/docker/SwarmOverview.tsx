@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSwarmState } from './SwarmStateContext';
 import SwarmMetricsDashboard from './metrics/SwarmMetricsDashboard';
-import TopologyView from './topology/TopologyView';
 import './swarm-overview.css';
+import TopologyView from './topology/TopologyView';
 
 const TAB_METRICS = 'metrics';
 const TAB_TOPOLOGY = 'topology';
@@ -12,7 +12,7 @@ type SwarmOverviewProps = {
 };
 
 export default function SwarmOverview({ initialTab = TAB_METRICS }: SwarmOverviewProps) {
-  const swarm = useSwarmState() as any;
+  const swarm = useSwarmState() as unknown;
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {

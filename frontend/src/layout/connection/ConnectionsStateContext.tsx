@@ -1,36 +1,35 @@
-import { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import {
-  GetKubeConfigs,
-  GetKubeContextsFromFile,
-  SaveCustomKubeConfig,
-  SetKubeConfigPath,
-  SavePrimaryKubeConfig,
-  SelectKubeConfigFile,
-  GetKubeContexts,
-  GetNamespaces,
-  SetCurrentKubeContext,
-  SetCurrentNamespace,
-  GetCurrentConfig,
-  GetProxyConfig,
-  SetProxyConfig,
-  DetectSystemProxy,
-  GetHooksConfig,
-  SaveHook,
-  DeleteHook,
-  TestHook,
-  SelectHookScript,
+    DeleteHook,
+    DetectSystemProxy,
+    GetCurrentConfig,
+    GetHooksConfig,
+    GetKubeConfigs,
+    GetKubeContexts,
+    GetKubeContextsFromFile,
+    GetNamespaces,
+    GetProxyConfig,
+    SaveCustomKubeConfig,
+    SaveHook,
+    SavePrimaryKubeConfig,
+    SelectHookScript,
+    SelectKubeConfigFile,
+    SetCurrentKubeContext,
+    SetCurrentNamespace,
+    SetKubeConfigPath,
+    SetProxyConfig,
+    TestHook,
 } from '../../../wailsjs/go/main/App';
 import {
-  GetDockerConnectionStatus,
-  TestDockerConnection,
-  AutoConnectDocker as _AutoConnectDocker,
-  ConnectToDocker,
-  GetDefaultDockerHost,
+    ConnectToDocker,
+    GetDefaultDockerHost,
+    GetDockerConnectionStatus,
+    TestDockerConnection,
 } from '../../docker/swarmApi';
 
+import type { app, docker } from '../../../wailsjs/go/models';
 import { EventsOn } from '../../../wailsjs/runtime/runtime';
 import { showError, showSuccess, showWarning } from '../../notification';
-import type { app, docker } from '../../../wailsjs/go/models';
 
 type KubeConfigEntry = app.KubeConfigInfo;
 
@@ -60,6 +59,23 @@ type ConnectionHook = app.HookConfig;
 
 type HookExecutionResult = app.HookExecutionResult;
 
+type KindClusterResult = {
+  name: string;
+  kubeconfigPath: string;
+  context: string;
+  created: boolean;
+};
+
+type KindClusterWails = {
+  go?: {
+    main?: {
+      App?: {
+        CreateKindCluster?: (_name: string) => Promise<KindClusterResult>;
+        CancelKindCluster?: () => Promise<boolean>;
+      };
+    };
+  };
+};
 interface PinnedConnection {
   type: 'kubernetes' | 'swarm';
   id: string;
@@ -140,6 +156,18 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: 
   return Promise.race([promise, timeout]).finally(() => {
     if (timeoutId) clearTimeout(timeoutId);
   });
+}
+
+function getCreateKindClusterFn() {
+  const win = window as unknown as KindClusterWails;
+  const fn = win?.go?.main?.App?.CreateKindCluster;
+  return typeof fn === 'function' ? fn : null;
+}
+
+function getCancelKindClusterFn() {
+  const win = window as unknown as KindClusterWails;
+  const fn = win?.go?.main?.App?.CancelKindCluster;
+  return typeof fn === 'function' ? fn : null;
 }
 
 const ConnectionsStateContext = createContext<ConnectionsStateContextValue | null>(null);
@@ -239,15 +267,9 @@ function reducer(state: ConnectionsState, action: ConnectionsAction): Connection
 
 export { reducer as connectionsStateReducer };
 
-export type {
-  KubeConfigEntry,
-  SwarmConnectionEntry,
-  PinnedConnection,
-  ConnectionHook,
-  ConnectionEntry,
-  SelectedSection,
-  ProxyConfig,
-};
+    export type {
+        ConnectionEntry, ConnectionHook, KubeConfigEntry, PinnedConnection, ProxyConfig, SelectedSection, SwarmConnectionEntry
+    };
 
 function loadPinnedConnections(): PinnedConnection[] {
   try {
@@ -283,32 +305,33 @@ interface ConnectionsStateProviderProps {
 }
 
 interface ConnectionsActions {
-  selectSection: (section: ConnectionsState['selectedSection']) => void;
-  selectKubeConfig: (config: KubeConfigEntry) => void;
-  togglePin: (connectionType: PinnedConnection['type'], connectionId: string, connectionData: Omit<PinnedConnection, 'type' | 'id'>) => void;
-  isPinned: (connectionType: PinnedConnection['type'], connectionId: string) => boolean;
-  showAddKubeConfigOverlay: (show: boolean) => void;
-  showAddSwarmOverlay: (show: boolean) => void;
-  showProxySettings: (show: boolean, connection?: ConnectionEntry | null) => void;
-  showHooksSettings: (show: boolean, connection?: ConnectionEntry | null) => void;
-  setEditingHook: (hook: ConnectionHook | null) => void;
+  selectSection: (_section: ConnectionsState['selectedSection']) => void;
+  selectKubeConfig: (_config: KubeConfigEntry) => void;
+  togglePin: (_connectionType: PinnedConnection['type'], _connectionId: string, _connectionData: Omit<PinnedConnection, 'type' | 'id'>) => void;
+  isPinned: (_connectionType: PinnedConnection['type'], _connectionId: string) => boolean;
+  showAddKubeConfigOverlay: (_show: boolean) => void;
+  showAddSwarmOverlay: (_show: boolean) => void;
+  showProxySettings: (_show: boolean, _connection?: ConnectionEntry | null) => void;
+  showHooksSettings: (_show: boolean, _connection?: ConnectionEntry | null) => void;
+  setEditingHook: (_hook: ConnectionHook | null) => void;
   loadKubeConfigs: () => Promise<KubeConfigEntry[]>;
+  createKindCluster: (_name?: string) => Promise<KindClusterResult | null>;
+  cancelKindCluster: () => Promise<boolean>;
   detectSwarmConnections: () => Promise<void>;
   loadHooks: () => Promise<ConnectionHook[]>;
   browseHookScript: () => Promise<string>;
-  saveHook: (hook: ConnectionHook) => Promise<ConnectionHook | null>;
-  deleteHook: (hookId: string) => Promise<boolean>;
-  testHook: (hookId: string) => Promise<HookExecutionResult | null>;
+  saveHook: (_hook: ConnectionHook) => Promise<ConnectionHook | null>;
+  deleteHook: (_hookId: string) => Promise<boolean>;
+  testHook: (_hookId: string) => Promise<HookExecutionResult | null>;
   browseKubeConfigFile: () => Promise<KubeConfigEntry | null>;
-  saveCustomKubeConfig: (name: string, content: string) => Promise<boolean>;
-  savePrimaryKubeConfig: (content: string) => Promise<string | null>;
-  connectKubeConfig: (config: KubeConfigEntry) => Promise<boolean>;
-  saveProxyConfig: (config: ProxyConfig) => Promise<boolean>;
-  testSwarmConnection: (config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
-  connectSwarm: (config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
-  addSwarmConnection: (connection: SwarmConnectionEntry) => void;
+  saveCustomKubeConfig: (_name: string, _content: string) => Promise<boolean>;
+  savePrimaryKubeConfig: (_content: string) => Promise<string | null>;
+  connectKubeConfig: (_config: KubeConfigEntry) => Promise<boolean>;
+  saveProxyConfig: (_config: ProxyConfig) => Promise<boolean>;
+  testSwarmConnection: (_config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
+  connectSwarm: (_config: DockerConfigInput) => Promise<docker.DockerConnectionStatus>;
+  addSwarmConnection: (_connection: SwarmConnectionEntry) => void;
 }
-
 export interface ConnectionsStateContextValue extends ConnectionsState {
   kubeConfigCount: number;
   swarmConnectionCount: number;
@@ -454,6 +477,124 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
     };
   }, []);
 
+  const connectKubeConfig = useCallback(async (config: KubeConfigEntry) => {
+    try {
+      dispatch({ type: 'SET_LOADING', loading: true });
+      dispatch({ type: 'SET_ERROR', error: '' });
+      await SetKubeConfigPath(config.path);
+
+      const currentConfig = await GetCurrentConfig();
+      let contextWasSet = !!currentConfig.currentContext;
+
+      if (!contextWasSet) {
+        const contexts = await GetKubeContexts();
+        if (Array.isArray(contexts) && contexts.length > 0) {
+          await SetCurrentKubeContext(contexts[0]);
+          contextWasSet = true;
+        }
+      }
+
+      if (contextWasSet) {
+        try {
+          const namespaces = await GetNamespaces();
+          if (Array.isArray(namespaces) && namespaces.length > 0) {
+            if (!currentConfig.currentNamespace) {
+              const firstNs = namespaces[0];
+              await SetCurrentNamespace(firstNs);
+              if (window?.go?.main?.App?.SetPreferredNamespaces) {
+                await window.go.main.App.SetPreferredNamespaces([firstNs]);
+              }
+            }
+          }
+        } catch {
+          /* ignore namespace failures */
+        }
+      }
+
+      return true;
+    } catch (err) {
+      const msg = String(err || '');
+      if (msg.includes('pre-connect hook aborted')) {
+        showError('Connection aborted by hook', { duration: 3000 });
+      }
+      dispatch({ type: 'SET_ERROR', error: 'Failed to connect: ' + String(err) });
+      return false;
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
+    }
+  }, []);
+
+  const createKindCluster = useCallback(async (name?: string) => {
+    const createFn = getCreateKindClusterFn();
+    if (!createFn) {
+      const msg = 'KinD cluster creation is unavailable in this build';
+      dispatch({ type: 'SET_ERROR', error: msg });
+      showError(msg, { duration: 3000 });
+      return null;
+    }
+
+    try {
+      dispatch({ type: 'SET_LOADING', loading: true });
+      dispatch({ type: 'SET_ERROR', error: '' });
+      const result = await withTimeout(
+        createFn(name || ''),
+        300_000,
+        'KinD cluster creation timed out'
+      );
+      const configs = await loadKubeConfigs();
+      const match = configs.find((config) => config.path === result.kubeconfigPath);
+      if (match) {
+        dispatch({ type: 'SET_SELECTED_KUBE_CONFIG', config: match });
+      }
+
+      const configToConnect: KubeConfigEntry = match || {
+        path: result.kubeconfigPath,
+        name: result.name || result.kubeconfigPath,
+        contexts: result.context ? [result.context] : [],
+      };
+
+      const connected = await connectKubeConfig(configToConnect);
+
+      const status = result.created ? 'created' : 'already exists';
+      if (connected) {
+        showSuccess(`KinD cluster ${status}: ${result.name}`, { duration: 3000, dismissible: true });
+      } else {
+        showWarning(`KinD cluster ${status}, but connection failed`, { duration: 3000, dismissible: true });
+      }
+      return result;
+    } catch (err) {
+      const errText = String(err || '').toLowerCase();
+      if (errText.includes('canceled') || errText.includes('cancelled')) {
+        showWarning('KinD setup canceled', { duration: 2000, dismissible: true });
+        return null;
+      }
+      dispatch({ type: 'SET_ERROR', error: 'Failed to create KinD cluster: ' + String(err) });
+      showError('Failed to create KinD cluster', { duration: 3000 });
+      return null;
+    } finally {
+      dispatch({ type: 'SET_LOADING', loading: false });
+    }
+  }, [connectKubeConfig, loadKubeConfigs]);
+
+  const cancelKindCluster = useCallback(async () => {
+    const cancelFn = getCancelKindClusterFn();
+    if (!cancelFn) {
+      const msg = 'KinD cancel is unavailable in this build';
+      dispatch({ type: 'SET_ERROR', error: msg });
+      showError(msg, { duration: 3000 });
+      return false;
+    }
+
+    try {
+      const canceled = await cancelFn();
+      return canceled;
+    } catch (err) {
+      dispatch({ type: 'SET_ERROR', error: 'Failed to cancel KinD setup: ' + String(err) });
+      showError('Failed to cancel KinD setup', { duration: 3000 });
+      return false;
+    }
+  }, []);
+
   const actions: ConnectionsActions = {
     selectSection: (section) => dispatch({ type: 'SET_SELECTED_SECTION', section }),
     selectKubeConfig: (config) => dispatch({ type: 'SET_SELECTED_KUBE_CONFIG', config }),
@@ -473,6 +614,8 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
       dispatch({ type: 'SHOW_HOOKS_SETTINGS', show, connection }),
     setEditingHook: (hook) => dispatch({ type: 'SET_EDITING_HOOK', hook }),
     loadKubeConfigs,
+    createKindCluster,
+    cancelKindCluster,
     detectSwarmConnections,
     loadHooks,
     browseHookScript: async () => {
@@ -578,52 +721,7 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
         dispatch({ type: 'SET_LOADING', loading: false });
       }
     },
-    connectKubeConfig: async (config) => {
-      try {
-        dispatch({ type: 'SET_LOADING', loading: true });
-        dispatch({ type: 'SET_ERROR', error: '' });
-        await SetKubeConfigPath(config.path);
-
-        const currentConfig = await GetCurrentConfig();
-        let contextWasSet = !!currentConfig.currentContext;
-
-        if (!contextWasSet) {
-          const contexts = await GetKubeContexts();
-          if (Array.isArray(contexts) && contexts.length > 0) {
-            await SetCurrentKubeContext(contexts[0]);
-            contextWasSet = true;
-          }
-        }
-
-        if (contextWasSet) {
-          try {
-            const namespaces = await GetNamespaces();
-            if (Array.isArray(namespaces) && namespaces.length > 0) {
-              if (!currentConfig.currentNamespace) {
-                const firstNs = namespaces[0];
-                await SetCurrentNamespace(firstNs);
-                if (window?.go?.main?.App?.SetPreferredNamespaces) {
-                  await window.go.main.App.SetPreferredNamespaces([firstNs]);
-                }
-              }
-            }
-          } catch {
-            /* ignore namespace failures */
-          }
-        }
-
-        return true;
-      } catch (err) {
-        const msg = String(err || '');
-        if (msg.includes('pre-connect hook aborted')) {
-          showError('Connection aborted by hook', { duration: 3000 });
-        }
-        dispatch({ type: 'SET_ERROR', error: 'Failed to connect: ' + String(err) });
-        return false;
-      } finally {
-        dispatch({ type: 'SET_LOADING', loading: false });
-      }
-    },
+    connectKubeConfig,
     saveProxyConfig: async (config) => {
       try {
         dispatch({ type: 'SET_LOADING', loading: true });

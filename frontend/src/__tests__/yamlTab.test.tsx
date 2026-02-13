@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@codemirror/view', () => {
   const dispatchSpy = vi.fn();
@@ -13,7 +13,7 @@ vi.mock('@codemirror/view', () => {
     static lineWrapping = {};
     state: EditorStateLike;
     destroy: () => void;
-    _dispatchSpy: (tr: unknown) => void;
+    _dispatchSpy: (_tr: unknown) => void;
     constructor({ state }: { state: EditorStateLike }) {
       ctorCount++;
       this.state = state;
@@ -53,8 +53,8 @@ vi.mock('@codemirror/language', () => ({
   defaultHighlightStyle: {},
 }));
 
-import YamlTab from '../layout/bottompanel/YamlTab';
 import * as View from '@codemirror/view';
+import YamlTab from '../layout/bottompanel/YamlTab';
 
 const { __dispatchSpy: dispatchSpy, __getCtorCount: getCtorCount } = View as unknown as {
   __dispatchSpy: ReturnType<typeof vi.fn>;

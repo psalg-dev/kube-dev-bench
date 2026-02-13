@@ -1,15 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/purity */
 import type { ReactNode } from 'react';
-import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils';
 import StatusBadge from './components/StatusBadge';
 import './QuickInfoSection.css';
-
+import { formatDateDMY, formatTimestampDMYHMS } from './utils/dateUtils';
 export type QuickInfoField = {
   key?: string;
   label?: string;
   type?: 'status' | 'age' | 'date' | 'date-only' | 'labels' | 'list' | 'break-word';
   layout?: 'flex';
-  getValue?: (data: Record<string, any>) => any;
-  render?: (value: any, data: Record<string, any>) => ReactNode;
+  getValue?: (_data: Record<string, any>) => any;
+  render?: (_value: any, _data: Record<string, any>) => ReactNode;
   rightField?: QuickInfoField;
 };
 
@@ -36,9 +37,7 @@ function QuickInfoSection({
   onRefresh,
   fields = [],
 }: QuickInfoSectionProps) {
-  const _resourceNameNormalized = resourceName ?? _resourceName;
-  void _resourceNameNormalized;
-
+  const displayName = resourceName ?? _resourceName ?? '';
   const renderLabels = (labels: Record<string, string>) => {
     if (!labels || Object.keys(labels).length === 0) return '-';
     const pairs = Object.keys(labels).sort().map((k) => `${k}=${labels[k]}`);
@@ -121,7 +120,7 @@ function QuickInfoSection({
 
   return (
     <div className="quick-info">
-      <div className="quick-info__header">
+      <div className="quick-info__header" title={displayName}>
         Quick info
       </div>
 

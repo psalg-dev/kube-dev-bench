@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ServiceEndpointsTab from '../k8s/resources/services/ServiceEndpointsTab';
 
 const mockGetServiceEndpoints = vi.fn();
@@ -202,7 +202,7 @@ describe('ServiceEndpointsTab', () => {
     });
 
     it('cancels pending request on unmount', async () => {
-      let resolvePromise: ((value: unknown) => void) | undefined;
+      let resolvePromise: ((_value: unknown) => void) | undefined;
       mockGetServiceEndpoints.mockImplementation(
         () => new Promise((resolve) => { resolvePromise = resolve; })
       );

@@ -30,7 +30,7 @@ vi.mock('../../layout/bottompanel/LogViewerTab', () => ({
 
 // Mock SummaryTabHeader
 vi.mock('../../layout/bottompanel/SummaryTabHeader', () => ({
-  default: ({ name, labels: _labels, actions }: { name: string; labels?: Record<string, string>; actions?: React.ReactNode }) => (
+  default: ({ name, actions }: { name: string; labels?: Record<string, string>; actions?: React.ReactNode }) => (
     <div data-testid="summary-header">
       <span data-testid="header-name">{name}</span>
       {actions && <div data-testid="header-actions">{actions}</div>}

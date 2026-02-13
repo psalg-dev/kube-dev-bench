@@ -49,6 +49,7 @@ func (a *App) StartAllPolling() {
 		EventName: EventHelmReleasesUpdate,
 		FetchFn:   a.GetHelmReleases,
 	})
+	a.StartRBACPolling()
 
 	// Monitor uses a custom loop (5s interval, aggregates across all namespaces
 	// into a single MonitorInfo instead of a flat list), so it remains separate.

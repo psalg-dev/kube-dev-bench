@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SecretEditModal from '../docker/resources/secrets/SecretEditModal';
 
 // Mock swarmApi
@@ -18,10 +18,9 @@ vi.mock('../notification', () => ({
   showSuccess: vi.fn(),
 }));
 
-import { UpdateSwarmSecretData } from '../docker/swarmApi';
 import type { docker } from '../../wailsjs/go/models';
-import { showError, showSuccess } from '../notification';
-
+import { UpdateSwarmSecretData } from '../docker/swarmApi';
+import { showSuccess } from '../notification';
 const updateSwarmSecretMock = vi.mocked(UpdateSwarmSecretData);
 
 describe('SecretEditModal', () => {

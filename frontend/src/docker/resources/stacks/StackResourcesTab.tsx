@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { GetSwarmStackResources } from '../../swarmApi';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
+import type { docker } from '../../../../wailsjs/go/models';
 import EmptyTabContent from '../../../components/EmptyTabContent';
 import { getEmptyTabMessage } from '../../../constants/emptyTabMessages';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 import { navigateToResource } from '../../../utils/resourceNavigation';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
-import type { docker } from '../../../../wailsjs/go/models';
+import { GetSwarmStackResources } from '../../swarmApi';
 
 // Mapping from resource type to empty message key
 const resourceMessageMap = {
@@ -27,7 +27,6 @@ type StackResourceRow = Record<string, unknown> & {
 	attachable?: boolean;
 	internal?: boolean;
 };
-
 type TableColumn = {
 	key: string;
 	label: string;
@@ -35,7 +34,7 @@ type TableColumn = {
 	mono?: boolean;
 	breakWord?: boolean;
 	maxWidth?: number;
-	render?: (row: StackResourceRow) => ReactNode;
+	render?: (_row: StackResourceRow) => ReactNode;
 };
 
 type EmptyProps = {
@@ -54,12 +53,11 @@ function Empty({ resource }: EmptyProps) {
 		/>
 	);
 }
-
 type TableProps = {
 	columns: TableColumn[];
 	rows: StackResourceRow[];
-	rowKey: (row: StackResourceRow) => string;
-	onRowClick?: (row: StackResourceRow) => void;
+	rowKey: (_row: StackResourceRow) => string;
+	onRowClick?: (_row: StackResourceRow) => void;
 	resourceType?: StackResourceKey;
 };
 
@@ -313,5 +311,4 @@ export default function StackResourcesTab({ stackName, resource }: StackResource
 }
 
 export { StackResourcesTab };
-
 

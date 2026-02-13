@@ -1,25 +1,25 @@
-import { useCallback, useEffect, useMemo, useState, useRef, type CSSProperties } from 'react';
-import { EventsOn } from '../../../../wailsjs/runtime';
-import { useSwarmState } from '../../SwarmStateContext';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import StackServicesTab from './StackServicesTab';
-import StackResourcesTab from './StackResourcesTab';
-import StackComposeTab from './StackComposeTab';
-import UpdateStackModal from './UpdateStackModal';
-import SwarmResourceActions from '../SwarmResourceActions';
-import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
-import { AnalyzeSwarmStackStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
-import { CreateSwarmStack, GetSwarmStackComposeYAML, GetSwarmStackResources, GetSwarmStackServices, GetSwarmStacks, RemoveSwarmStack, RollbackSwarmStack } from '../../swarmApi';
-import { showSuccess, showError } from '../../../notification';
-import { navigateToResource } from '../../../utils/resourceNavigation';
-import StatusBadge from '../../../components/StatusBadge';
-import './StackServicesTab.css';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
-import type { HolmesAnalysisState } from '../../../hooks/useHolmesAnalysis';
-import type { HolmesContextProgressEvent, HolmesStreamEvent } from '../../../holmes/holmesApi';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { docker } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import StatusBadge from '../../../components/StatusBadge';
+import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
+import type { HolmesContextProgressEvent, HolmesStreamEvent } from '../../../holmes/holmesApi';
+import { AnalyzeSwarmStackStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import type { HolmesAnalysisState } from '../../../hooks/useHolmesAnalysis';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import { navigateToResource } from '../../../utils/resourceNavigation';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
+import { useSwarmState } from '../../SwarmStateContext';
+import { CreateSwarmStack, GetSwarmStackComposeYAML, GetSwarmStackResources, GetSwarmStackServices, GetSwarmStacks, RemoveSwarmStack, RollbackSwarmStack } from '../../swarmApi';
+import SwarmResourceActions from '../SwarmResourceActions';
+import StackComposeTab from './StackComposeTab';
+import StackResourcesTab from './StackResourcesTab';
+import StackServicesTab from './StackServicesTab';
+import './StackServicesTab.css';
+import UpdateStackModal from './UpdateStackModal';
 
 type HolmesChatData = {
 	reasoning?: string;
@@ -469,7 +469,7 @@ function renderPanelContent(
 	tab: string,
 	onRefresh: (() => void) | undefined,
 	holmesState: HolmesAnalysisState,
-	onAnalyze: ((stack: docker.SwarmStackInfo) => void) | undefined,
+	onAnalyze: ((_stack: docker.SwarmStackInfo) => void) | undefined,
 	onCancel: (() => void) | undefined
 ) {
 	if (tab === 'summary') {
@@ -518,7 +518,6 @@ function renderPanelContent(
 
 	return null;
 }
-
 export default function SwarmStacksOverviewTable() {
 	const swarm = useSwarmState();
 	const connected = swarm?.connected;
@@ -554,15 +553,19 @@ export default function SwarmStacksOverviewTable() {
 	}, []);
 
 	useEffect(() => {
-		if (!connected) {
-			setStacks([]);
-			setLoading(false);
-			return;
-		}
-
 		let active = true;
 
 		const loadStacks = async () => {
+			if (!connected) {
+				if (active) {
+					setStacks([]);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+			}
 			try {
 				const data = await GetSwarmStacks();
 				if (active) {
@@ -579,6 +582,12 @@ export default function SwarmStacksOverviewTable() {
 		};
 
 		loadStacks();
+
+		if (!connected) {
+			return () => {
+				active = false;
+			};
+		}
 
 		const off = EventsOn('swarm:stacks:update', (data) => {
 			if (!active) return;
@@ -690,7 +699,7 @@ export default function SwarmStacksOverviewTable() {
 			}
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -718,7 +727,7 @@ export default function SwarmStacksOverviewTable() {
 			});
 		});
 		return () => {
-			try { unsubscribe?.(); } catch (_) {}
+			try { unsubscribe?.(); } catch {}
 		};
 	}, []);
 
@@ -809,5 +818,4 @@ export default function SwarmStacksOverviewTable() {
 }
 
 export { SwarmStacksOverviewTable };
-
 

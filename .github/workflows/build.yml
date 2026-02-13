@@ -126,6 +126,8 @@ jobs:
   e2e:
     runs-on: ubuntu-22.04
     needs: backend
+    env:
+      HOLMES_MOCK_NODE_IMAGE: node:24-alpine
     strategy:
       fail-fast: false
       matrix:
@@ -139,6 +141,12 @@ jobs:
           - name: e2e-shard-2
             shard: 2
             base_port: 34300
+            registry: false
+            holmes_deploy: false
+            mcp: false
+          - name: e2e-shard-3
+            shard: 3
+            base_port: 34700
             registry: false
             holmes_deploy: false
             mcp: false
@@ -278,11 +286,12 @@ jobs:
       - name: Run e2e tests (shard ${{ matrix.shard }}/2)
         if: matrix.registry != true && matrix.holmes_deploy != true && matrix.mcp != true
         working-directory: e2e
-        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/2
+        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
         env:
           CI: true
-          PW_WORKERS: '2'
+          PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
@@ -294,16 +303,22 @@ jobs:
           CI: true
           PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
 
       - name: Pre-load node image for Holmes mock (Holmes deploy shard only)
         if: matrix.holmes_deploy == true
         run: |
-          echo "Pulling node:20-alpine image..."
-          docker pull node:20-alpine
-          echo "Loading node:20-alpine into kind cluster..."
-          kind load docker-image node:20-alpine --name kdb-e2e
+          set -euo pipefail
+          IMAGE_PLATFORM="linux/amd64"
+          KIND_NODE="kdb-e2e-control-plane"
+
+          echo "Pulling ${HOLMES_MOCK_NODE_IMAGE} image for ${IMAGE_PLATFORM}..."
+          docker exec --privileged "${KIND_NODE}" ctr --namespace=k8s.io images pull --platform "${IMAGE_PLATFORM}" "docker.io/library/${HOLMES_MOCK_NODE_IMAGE}"
+
+          echo "Verifying ${HOLMES_MOCK_NODE_IMAGE} is present in kind node..."
+          docker exec --privileged "${KIND_NODE}" ctr --namespace=k8s.io images ls | grep -E "(docker.io/library/)?${HOLMES_MOCK_NODE_IMAGE}"
 
       - name: Run Holmes deployment e2e tests
         if: matrix.holmes_deploy == true
@@ -313,9 +328,18 @@ jobs:
           CI: true
           PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
+          E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
           E2E_HOLMES_DEPLOY: '1'
           E2E_PREBUILT_BINARY: '${{ github.workspace }}/build/bin/kube-dev-bench-e2e'
+
+      - name: Extract shard-1 failure summary
+        if: always() && matrix.name == 'e2e-shard-1'
+        working-directory: e2e
+        run: |
+          node scripts/extract-playwright-failures.mjs \
+            "./test-results/ci-reports/${{ matrix.name }}.json" \
+            "./test-results/ci-reports/${{ matrix.name }}-summary.md"
 
       - name: Run registry e2e tests
         if: matrix.registry == true

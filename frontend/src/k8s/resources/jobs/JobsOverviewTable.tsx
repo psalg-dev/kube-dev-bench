@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
-import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
-import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
-import JobYamlTab from './JobYamlTab';
-import JobPodsTab from './JobPodsTab';
-import ResourceEventsTab from '../../../components/ResourceEventsTab';
-import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
-import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import { showSuccess, showError } from '../../../notification';
-import { StartJob } from '../kubeApi';
-import { AnalyzeJobStream, CancelHolmesStream, onHolmesContextProgress, onHolmesChatStream } from '../../../holmes/holmesApi';
-import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
-import type { HolmesResponse, HolmesContextProgressEvent } from '../../../holmes/holmesApi';
 import type { jobs } from '../../../../wailsjs/go/models';
+import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
+import AggregateLogsTab from '../../../components/AggregateLogsTab';
+import ResourceActions from '../../../components/ResourceActions';
+import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
+import { AnalyzeJobStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
+import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
+import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
+import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../../notification';
+import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
+import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
+import { StartJob } from '../kubeApi';
+import JobPodsTab from './JobPodsTab';
+import JobYamlTab from './JobYamlTab';
 
 const columns = [
   { key: 'name', label: 'Name' },
@@ -34,6 +35,7 @@ const bottomTabs = [
   { key: 'logs', label: 'Logs', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -41,7 +43,7 @@ function renderPanelContent(
   row: JobRow,
   tab: string,
   holmesState: HolmesState,
-  onAnalyze: (row: JobRow) => void,
+  onAnalyze: (_row: JobRow) => void,
   onCancel: () => void
 ) {
   if (tab === 'summary') {
@@ -142,6 +144,9 @@ function renderPanelContent(
   if (tab === 'yaml') {
     return <JobYamlTab namespace={row.namespace} name={row.name} />;
   }
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="Job" name={row.name} />;
+  }
   if (tab === 'holmes') {
     const key = `${row.namespace}/${row.name}`;
     return (
@@ -164,7 +169,6 @@ function renderPanelContent(
   }
   return null;
 }
-
 type JobRow = {
   name: string;
   namespace: string;
@@ -363,7 +367,7 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
       }
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -390,7 +394,7 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
       });
     });
     return () => {
-      try { unsubscribe?.(); } catch (_) {}
+      try { unsubscribe?.(); } catch {}
     };
   }, []);
 
@@ -419,7 +423,6 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
     fetchJobs();
   }, [namespaces, namespace]);
   /* eslint-enable react-hooks/exhaustive-deps */
-
   // Subscribe to jobs updates if available
 
   useEffect(() => {
@@ -427,7 +430,7 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
       try { setJobs(normalizeJobs(Array.isArray(jobsData) ? jobsData : [])); } catch { setJobs([]); }
     };
     EventsOn('jobs:update', handler);
-    return () => { try { EventsOff('jobs:update'); } catch (_) {} };
+    return () => { try { EventsOff('jobs:update'); } catch {} };
   }, []);
 
   // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
@@ -439,7 +442,7 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
       }
     });
     return () => {
-      try { EventsOff('resource-updated'); } catch (_) {}
+      try { EventsOff('resource-updated'); } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(namespaces), namespace]);
@@ -479,7 +482,7 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
     }
   };
 
-  const getRowActions = (row: JobRow, api?: { openDetails?: (tabKey: string) => void }) => {
+  const getRowActions = (row: JobRow, api?: { openDetails?: (_tabKey: string) => void }) => {
     const key = `${row.namespace}/${row.name}`;
     const isAnalyzing = holmesState.loading && holmesState.key === key;
     return [

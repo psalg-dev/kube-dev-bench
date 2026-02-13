@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import StatusBadge from '../../../components/StatusBadge';
+import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
 type DeploymentPodsTabProps = {
 	namespace: string;
@@ -9,26 +9,40 @@ type DeploymentPodsTabProps = {
 };
 
 export default function DeploymentPodsTab({ namespace, deploymentName }: DeploymentPodsTabProps) {
-	const [detail, setDetail] = useState<any | null>(null);
+	const [detail, setDetail] = useState<unknown | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [activeSection, setActiveSection] = useState<'pods' | 'conditions' | 'revisions'>('pods');
 
 	useEffect(() => {
-		if (!namespace || !deploymentName) return;
-
-		setLoading(true);
-		setError(null);
-
-		AppAPI.GetDeploymentDetail(namespace, deploymentName)
-			.then(data => {
+		let active = true;
+		const loadDetail = async () => {
+			if (!namespace || !deploymentName) {
+				if (active) {
+					setDetail(null);
+					setLoading(false);
+				}
+				return;
+			}
+			if (active) {
+				setLoading(true);
+				setError(null);
+			}
+			try {
+				const data = await AppAPI.GetDeploymentDetail(namespace, deploymentName);
+				if (!active) return;
 				setDetail(data);
 				setLoading(false);
-			})
-			.catch(err => {
-				setError(err.message || 'Failed to fetch deployment details');
+			} catch (err) {
+				if (!active) return;
+				setError((err as Error)?.message || 'Failed to fetch deployment details');
 				setLoading(false);
-			});
+			}
+		};
+		loadDetail();
+		return () => {
+			active = false;
+		};
 	}, [namespace, deploymentName]);
 
 	if (loading) {
@@ -93,7 +107,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }: Deploym
 								</tr>
 							</thead>
 							<tbody>
-								{detail.pods.map((pod: any, idx: number) => (
+								{detail.pods.map((pod: unknown, idx: number) => (
 									<tr key={pod.name || idx}>
 										<td>{pod.name}</td>
 										<td>
@@ -128,7 +142,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }: Deploym
 								</tr>
 							</thead>
 							<tbody>
-								{detail.conditions.map((cond: any, idx: number) => (
+								{detail.conditions.map((cond: unknown, idx: number) => (
 									<tr key={idx}>
 										<td>{cond.type}</td>
 										<td>
@@ -168,7 +182,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }: Deploym
 								</tr>
 							</thead>
 							<tbody>
-								{detail.revisions.map((rev: any, idx: number) => (
+								{detail.revisions.map((rev: unknown, idx: number) => (
 									<tr key={idx} style={{ backgroundColor: rev.isCurrent ? '#23863610' : 'transparent' }}>
 										<td style={{ fontWeight: rev.isCurrent ? 600 : 400 }}>
 											#{rev.revision}

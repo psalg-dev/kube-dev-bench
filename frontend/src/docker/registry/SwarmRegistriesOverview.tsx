@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import BottomPanel from '../../layout/bottompanel/BottomPanel';
+import '../../layout/overview/OverviewTableWithPanel.css';
+import { showError, showSuccess } from '../../notification';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
 import { GetRegistries, RemoveRegistry } from '../swarmApi';
 import { useSwarmResourceCounts } from '../SwarmResourceCountsContext';
-import { showError, showSuccess } from '../../notification';
 import AddRegistryModal from './AddRegistryModal';
-import RegistryBrowser from './RegistryBrowser';
-import BottomPanel from '../../layout/bottompanel/BottomPanel';
 import './registry.css';
-import '../../layout/overview/OverviewTableWithPanel.css';
-import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
+import RegistryBrowser from './RegistryBrowser';
 
 function formatType(type: string) {
   if (type === 'dockerhub') return 'Docker Hub';
@@ -23,13 +23,13 @@ type RegistryRow = {
 };
 
 export default function SwarmRegistriesOverview() {
-  const [registries, setRegistries] = useState<any[]>([]);
+  const [registries, setRegistries] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedRegistry, setSelectedRegistry] = useState('');
   const [bottomOpen, setBottomOpen] = useState(false);
 
-  const swarmCounts: any = useSwarmResourceCounts();
+  const swarmCounts: unknown = useSwarmResourceCounts();
 
   const loadRegistries = useCallback(async () => {
     setLoading(true);
@@ -240,5 +240,4 @@ export default function SwarmRegistriesOverview() {
     </div>
   );
 }
-
 

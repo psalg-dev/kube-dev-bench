@@ -119,12 +119,12 @@ export function MonitorModal({ monitorInfo, onClose }: MonitorModalProps) {
                 }
                 const resourcePath = pathParts.join(' → ');
 
+                const issueClassName = `monitor-issue-item monitor-issue-item--${issueTone}`;
                 return (
                   <div
                     key={index}
-                    className="monitor-issue-item"
                     onClick={() => handleIssueClick(issue)}
-                    className={`monitor-issue-item monitor-issue-item--${issueTone}`}
+                    className={issueClassName}
                   >
                     {/* Header with reason and metadata */}
                     <div className="monitor-issue-header">

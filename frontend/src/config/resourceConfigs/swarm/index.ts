@@ -1,6 +1,6 @@
 /**
  * Swarm Resource Configurations Index
- * 
+ *
  * Barrel export for all Swarm resource configuration files.
  */
 

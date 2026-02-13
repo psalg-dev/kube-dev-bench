@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const scaleSpy = vi.fn();
 
@@ -19,14 +19,14 @@ vi.mock('../k8s/resources/kubeApi', () => ({
 }));
 
 import ResourceActions from '../components/ResourceActions';
-import { showSuccess, showError, showWarning } from '../notification';
 import {
-  StartJob,
-  SuspendCronJob,
-  ResumeCronJob,
-  StartJobFromCronJob,
-  ResizePersistentVolumeClaim,
+    ResizePersistentVolumeClaim,
+    ResumeCronJob,
+    StartJob,
+    StartJobFromCronJob,
+    SuspendCronJob,
 } from '../k8s/resources/kubeApi';
+import { showError, showSuccess, showWarning } from '../notification';
 
 describe('ResourceActions scale control', () => {
   beforeEach(() => {
@@ -133,8 +133,7 @@ describe('ResourceActions Job controls', () => {
   });
 
   it('calls StartJob when start button clicked for Job', async () => {
-    (StartJob as unknown as { mockResolvedValueOnce: (value: unknown) => void }).mockResolvedValueOnce(undefined);
-
+    (StartJob as unknown as { mockResolvedValueOnce: (_value: unknown) => void }).mockResolvedValueOnce(undefined);
     render(
       <ResourceActions
         resourceType="job"
@@ -151,10 +150,9 @@ describe('ResourceActions Job controls', () => {
   });
 
   it('shows error when StartJob fails', async () => {
-    (StartJob as unknown as { mockRejectedValueOnce: (value: unknown) => void }).mockRejectedValueOnce(
+    (StartJob as unknown as { mockRejectedValueOnce: (_value: unknown) => void }).mockRejectedValueOnce(
       new Error('Job failed')
     );
-
     render(
       <ResourceActions
         resourceType="job"
@@ -189,8 +187,7 @@ describe('ResourceActions CronJob controls', () => {
   });
 
   it('calls StartJobFromCronJob when start clicked', async () => {
-    (StartJobFromCronJob as unknown as { mockResolvedValueOnce: (value: unknown) => void }).mockResolvedValueOnce(undefined);
-
+    (StartJobFromCronJob as unknown as { mockResolvedValueOnce: (_value: unknown) => void }).mockResolvedValueOnce(undefined);
     render(
       <ResourceActions
         resourceType="cronjob"
@@ -206,8 +203,7 @@ describe('ResourceActions CronJob controls', () => {
   });
 
   it('calls SuspendCronJob when suspend clicked', async () => {
-    (SuspendCronJob as unknown as { mockResolvedValueOnce: (value: unknown) => void }).mockResolvedValueOnce(undefined);
-
+    (SuspendCronJob as unknown as { mockResolvedValueOnce: (_value: unknown) => void }).mockResolvedValueOnce(undefined);
     render(
       <ResourceActions
         resourceType="cronjob"
@@ -223,8 +219,7 @@ describe('ResourceActions CronJob controls', () => {
   });
 
   it('calls ResumeCronJob when resume clicked', async () => {
-    (ResumeCronJob as unknown as { mockResolvedValueOnce: (value: unknown) => void }).mockResolvedValueOnce(undefined);
-
+    (ResumeCronJob as unknown as { mockResolvedValueOnce: (_value: unknown) => void }).mockResolvedValueOnce(undefined);
     render(
       <ResourceActions
         resourceType="cronjob"
@@ -240,10 +235,9 @@ describe('ResourceActions CronJob controls', () => {
   });
 
   it('shows error when SuspendCronJob fails', async () => {
-    (SuspendCronJob as unknown as { mockRejectedValueOnce: (value: unknown) => void }).mockRejectedValueOnce(
+    (SuspendCronJob as unknown as { mockRejectedValueOnce: (_value: unknown) => void }).mockRejectedValueOnce(
       new Error('Suspend failed')
     );
-
     render(
       <ResourceActions
         resourceType="cronjob"
@@ -392,10 +386,9 @@ describe('ResourceActions PVC resize', () => {
   });
 
   it('submits resize with entered value', async () => {
-    (ResizePersistentVolumeClaim as unknown as { mockResolvedValueOnce: (value: unknown) => void }).mockResolvedValueOnce(
+    (ResizePersistentVolumeClaim as unknown as { mockResolvedValueOnce: (_value: unknown) => void }).mockResolvedValueOnce(
       undefined
     );
-
     render(
       <ResourceActions
         resourceType="pvc"

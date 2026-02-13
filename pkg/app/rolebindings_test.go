@@ -30,9 +30,9 @@ func TestGetRoleBindings_ReturnsRoleBindings(t *testing.T) {
 			},
 			Subjects: []rbacv1.Subject{
 				{
-					Kind:      "User",
-					Name:      "john",
-					APIGroup:  "rbac.authorization.k8s.io",
+					Kind:     "User",
+					Name:     "john",
+					APIGroup: "rbac.authorization.k8s.io",
 				},
 				{
 					Kind:      "ServiceAccount",
@@ -288,5 +288,177 @@ func TestGetClusterRoleBindingDetail_EmptyName(t *testing.T) {
 
 	if err.Error() != "missing required parameter: name" {
 		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func TestGetRoleBindingSubjects(t *testing.T) {
+	ctx := context.Background()
+	ns := "default"
+	clientset := fake.NewSimpleClientset(
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "rb", Namespace: ns},
+			RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: "r", APIGroup: "rbac.authorization.k8s.io"},
+			Subjects: []rbacv1.Subject{
+				{Kind: "User", Name: "alice", APIGroup: "rbac.authorization.k8s.io"},
+				{Kind: "Group", Name: "devs", APIGroup: "rbac.authorization.k8s.io"},
+				{Kind: "ServiceAccount", Name: "sa", Namespace: ns},
+			},
+		},
+	)
+	app := &App{ctx: ctx, testClientset: clientset}
+	subs, err := app.GetRoleBindingSubjects(ns, "rb")
+	if err != nil {
+		t.Fatalf("GetRoleBindingSubjects error: %v", err)
+	}
+	if len(subs) != 3 {
+		t.Fatalf("want 3 subjects, got %d", len(subs))
+	}
+	// Verify order is preserved
+	if subs[0].Name != "alice" || subs[1].Name != "devs" || subs[2].Name != "sa" {
+		t.Fatalf("order not preserved: %+v", subs)
+	}
+}
+
+func TestGetClusterRoleBindingSubjects(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "crb"},
+			RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr", APIGroup: "rbac.authorization.k8s.io"},
+			Subjects: []rbacv1.Subject{
+				{Kind: "Group", Name: "system:masters", APIGroup: "rbac.authorization.k8s.io"},
+				{Kind: "User", Name: "bob", APIGroup: "rbac.authorization.k8s.io"},
+			},
+		},
+	)
+	app := &App{ctx: ctx, testClientset: clientset}
+	subs, err := app.GetClusterRoleBindingSubjects("crb")
+	if err != nil {
+		t.Fatalf("GetClusterRoleBindingSubjects error: %v", err)
+	}
+	if len(subs) != 2 {
+		t.Fatalf("want 2 subjects, got %d", len(subs))
+	}
+	if subs[0].Name != "system:masters" || subs[1].Name != "bob" {
+		t.Fatalf("order not preserved: %+v", subs)
+	}
+}
+
+func TestGetRoleBindingSubjects_OrderAndFields(t *testing.T) {
+	ctx := context.Background()
+	ns := "default"
+	cs := fake.NewSimpleClientset(
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "rb-subjects", Namespace: ns},
+			RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: "r1", APIGroup: "rbac.authorization.k8s.io"},
+			Subjects: []rbacv1.Subject{
+				{Kind: "User", Name: "alice", APIGroup: "rbac.authorization.k8s.io"},
+				{Kind: "ServiceAccount", Name: "sa1", Namespace: ns},
+				{Kind: "Group", Name: "devs", APIGroup: "rbac.authorization.k8s.io"},
+			},
+		},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	subs, err := app.GetRoleBindingSubjects(ns, "rb-subjects")
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+	if len(subs) != 3 {
+		t.Fatalf("want 3, got %d", len(subs))
+	}
+	if subs[0].Name != "alice" || subs[1].Name != "sa1" || subs[2].Name != "devs" {
+		t.Fatalf("order wrong: %+v", subs)
+	}
+	if subs[1].Kind != "ServiceAccount" || subs[1].Namespace != ns {
+		t.Fatalf("serviceaccount fields: %+v", subs[1])
+	}
+}
+
+func TestGetClusterRoleBindingSubjects_OrderAndFields(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.ClusterRoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "crb-subjects"},
+			RoleRef:    rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr1", APIGroup: "rbac.authorization.k8s.io"},
+			Subjects: []rbacv1.Subject{
+				{Kind: "Group", Name: "system:masters", APIGroup: "rbac.authorization.k8s.io"},
+				{Kind: "User", Name: "bob", APIGroup: "rbac.authorization.k8s.io"},
+			},
+		},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	subs, err := app.GetClusterRoleBindingSubjects("crb-subjects")
+	if err != nil {
+		t.Fatalf("error: %v", err)
+	}
+	if len(subs) != 2 {
+		t.Fatalf("want 2, got %d", len(subs))
+	}
+	if subs[0].Kind != "Group" || subs[0].Name != "system:masters" {
+		t.Fatalf("first wrong: %+v", subs[0])
+	}
+	if subs[1].Kind != "User" || subs[1].Name != "bob" {
+		t.Fatalf("second wrong: %+v", subs[1])
+	}
+}
+
+func TestGetRoleBindingSubjects_Validation(t *testing.T) {
+	app := &App{ctx: context.Background()}
+	if _, err := app.GetRoleBindingSubjects("", "name"); err == nil {
+		t.Fatal("expected namespace error")
+	}
+	if _, err := app.GetRoleBindingSubjects("ns", ""); err == nil {
+		t.Fatal("expected name error")
+	}
+}
+
+func TestGetClusterRoleBindingSubjects_Validation(t *testing.T) {
+	app := &App{ctx: context.Background()}
+	if _, err := app.GetClusterRoleBindingSubjects(""); err == nil {
+		t.Fatal("expected name error")
+	}
+}
+
+func TestGetRoleBindings_RawFieldList(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "rb1", Namespace: "default"}, RoleRef: rbacv1.RoleRef{Kind: "Role", Name: "r1", APIGroup: "rbac.authorization.k8s.io"}},
+		&rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "rb2", Namespace: "default"}, RoleRef: rbacv1.RoleRef{Kind: "Role", Name: "r2", APIGroup: "rbac.authorization.k8s.io"}},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	list, err := app.GetRoleBindings("default")
+	if err != nil {
+		t.Fatalf("GetRoleBindings error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("want 2, got %d", len(list))
+	}
+	if list[0].Raw == nil {
+		t.Fatal("expected Raw set")
+	}
+	if _, ok := list[0].Raw.(*rbacv1.RoleBinding); !ok {
+		t.Fatalf("Raw type = %T, want *rbacv1.RoleBinding", list[0].Raw)
+	}
+}
+
+func TestGetClusterRoleBindings_RawFieldList(t *testing.T) {
+	ctx := context.Background()
+	cs := fake.NewSimpleClientset(
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crb1"}, RoleRef: rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr1", APIGroup: "rbac.authorization.k8s.io"}},
+		&rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: "crb2"}, RoleRef: rbacv1.RoleRef{Kind: "ClusterRole", Name: "cr2", APIGroup: "rbac.authorization.k8s.io"}},
+	)
+	app := &App{ctx: ctx, testClientset: cs}
+	list, err := app.GetClusterRoleBindings()
+	if err != nil {
+		t.Fatalf("GetClusterRoleBindings error: %v", err)
+	}
+	if len(list) != 2 {
+		t.Fatalf("want 2, got %d", len(list))
+	}
+	if list[0].Raw == nil {
+		t.Fatal("expected Raw set")
+	}
+	if _, ok := list[0].Raw.(*rbacv1.ClusterRoleBinding); !ok {
+		t.Fatalf("Raw type = %T, want *rbacv1.ClusterRoleBinding", list[0].Raw)
 	}
 }

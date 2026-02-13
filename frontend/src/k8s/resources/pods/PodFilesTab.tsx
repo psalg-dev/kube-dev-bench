@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
@@ -289,7 +290,7 @@ export default function PodFilesTab({ podName }: PodFilesTabProps) {
 			for (let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
 			const td = new TextDecoder('utf-8', { fatal: false });
 			return td.decode(bytes);
-		} catch (_) { return '[decode error]'; }
+		} catch { return '[decode error]'; }
 	};
 
 	const breadcrumbs = useMemo(() => {
@@ -378,7 +379,7 @@ export default function PodFilesTab({ podName }: PodFilesTabProps) {
 		// Conditions where we should not have an editor
 		if (!previewPath || !previewData || previewLoading || previewError || previewData.isBinary) {
 			if (previewEditorViewRef.current) {
-				try { previewEditorViewRef.current.destroy(); } catch(_) {}
+				try { previewEditorViewRef.current.destroy(); } catch {}
 				previewEditorViewRef.current = null;
 			}
 			return;
@@ -436,7 +437,7 @@ export default function PodFilesTab({ podName }: PodFilesTabProps) {
 	// Cleanup on unmount
 	useEffect(() => () => {
 		if (previewEditorViewRef.current) {
-			try { previewEditorViewRef.current.destroy(); } catch(_) {}
+			try { previewEditorViewRef.current.destroy(); } catch {}
 			previewEditorViewRef.current = null;
 		}
 	}, []);

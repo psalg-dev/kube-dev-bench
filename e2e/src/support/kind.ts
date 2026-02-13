@@ -1,6 +1,20 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { exec } from './exec.js';
+import { readRunState, writeRunState } from './run-state.js';
+
+const defaultWindowsKindNodeImage = 'kindest/node:v1.29.4';
+
+function resolveKindNodeImage(): string | null {
+  const explicitImage = process.env.KIND_NODE_IMAGE?.trim();
+  if (explicitImage) return explicitImage;
+
+  if (process.platform === 'win32') {
+    return defaultWindowsKindNodeImage;
+  }
+
+  return null;
+}
 
 export type KindInfo = {
   clusterName: string;
@@ -16,7 +30,87 @@ function isRecoverableKubeconfigError(output: string): boolean {
   );
 }
 
+function isTransientConnectError(output: string): boolean {
+  return (
+    /unable to connect to the server/i.test(output) ||
+    /the connection to the server .* was refused/i.test(output) ||
+    /connectex/i.test(output) ||
+    /only one usage of each socket address/i.test(output) ||
+    /i\/o timeout/i.test(output) ||
+    /tls handshake timeout/i.test(output) ||
+    /unexpected eof/i.test(output)
+  );
+}
+
+async function refreshRunStateKubeconfig(kindInfo: KindInfo) {
+  try {
+    const state = await readRunState();
+    await writeRunState({
+      ...state,
+      clusterName: kindInfo.clusterName,
+      contextName: kindInfo.contextName,
+      kubeconfigYaml: kindInfo.kubeconfigYaml,
+    });
+  } catch {
+    // Best-effort only. Local dev runs may not have run-state yet.
+  }
+}
+
+async function recoverKubeconfigForApiAvailability(kubeconfigPath: string): Promise<boolean> {
+  const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
+  console.log(`[e2e][kind] ${new Date().toISOString()} API unavailable; attempting KinD recovery for cluster '${clusterName}'`);
+
+  try {
+    // Step 1 – refresh kubeconfig (fast; only talks to Docker, not the API server).
+    const recovered = await ensureKindCluster(clusterName);
+    await fs.writeFile(kubeconfigPath, recovered.kubeconfigYaml, 'utf-8');
+    await refreshRunStateKubeconfig(recovered);
+
+    // Step 2 – verify the API server actually responds.
+    let apiResponding = false;
+    try {
+      const probe = await kubectl(['get', 'ns', 'default'], { kubeconfigPath, timeoutMs: 15_000 });
+      apiResponding = probe.code === 0;
+    } catch {
+      // exec() rejects on timeout — treat as API down.
+    }
+    if (apiResponding) {
+      console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery complete; kubeconfig refreshed`);
+      return true;
+    }
+
+    // Step 3 – API still unreachable.  Restart the control-plane container so
+    // the kubelet / kube-apiserver / etcd recover without losing cluster state.
+    const containerName = `${clusterName}-control-plane`;
+    console.log(
+      `[e2e][kind] ${new Date().toISOString()} API still unreachable after kubeconfig refresh; restarting container '${containerName}'`
+    );
+    await exec('docker', ['restart', containerName], { timeoutMs: 120_000 });
+
+    // Step 4 – wait for API to come back (up to ~60 s).
+    for (let i = 1; i <= 30; i++) {
+      await new Promise((r) => setTimeout(r, 2_000));
+      const check = await kubectl(['get', 'ns', 'default'], { kubeconfigPath, timeoutMs: 10_000 });
+      if (check.code === 0) {
+        console.log(
+          `[e2e][kind] ${new Date().toISOString()} KinD container restart successful; API available after ${i * 2}s`
+        );
+        return true;
+      }
+    }
+
+    console.log(`[e2e][kind] ${new Date().toISOString()} API still unreachable after container restart`);
+    return false;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery failed: ${message}`);
+    return false;
+  }
+}
+
 export async function ensureKindCluster(clusterName: string): Promise<KindInfo> {
+  const kindNodeImage = resolveKindNodeImage();
+
   for (let attempt = 1; attempt <= 2; attempt++) {
     console.log(`[e2e][kind] ${new Date().toISOString()} ensureKindCluster name=${clusterName} attempt=${attempt}`);
     // Check cluster exists
@@ -31,8 +125,15 @@ export async function ensureKindCluster(clusterName: string): Promise<KindInfo> 
       .filter(Boolean);
 
     if (!clusters.includes(clusterName)) {
-      console.log(`[e2e][kind] ${new Date().toISOString()} creating cluster '${clusterName}' (wait=120s)`);
-      const created = await exec('kind', ['create', 'cluster', '--name', clusterName, '--wait', '120s'], {
+      console.log(
+        `[e2e][kind] ${new Date().toISOString()} creating cluster '${clusterName}' (wait=120s` +
+          `${kindNodeImage ? `, image=${kindNodeImage}` : ''})`
+      );
+      const createArgs = ['create', 'cluster', '--name', clusterName, '--wait', '120s'];
+      if (kindNodeImage) {
+        createArgs.push('--image', kindNodeImage);
+      }
+      const created = await exec('kind', createArgs, {
         timeoutMs: 5 * 60_000,
       });
       if (created.code !== 0) {
@@ -88,25 +189,123 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 }
 
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
-  const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
-  if (get.code === 0) return;
+  const explicitRecoverySetting = process.env.E2E_RECOVER_KIND_DURING_NAMESPACE_SETUP;
+  const isCI = process.env.CI === '1' || process.env.CI === 'true';
+  const allowClusterRecovery = explicitRecoverySetting
+    ? explicitRecoverySetting === '1'
+    : isCI;
 
-  const isTransientConnectError = (output: string) =>
-    /unable to connect to the server/i.test(output) ||
-    /connectex/i.test(output) ||
-    /only one usage of each socket address/i.test(output);
+  const waitForNamespaceReady = async () => {
+    let lastOutput = '';
+    for (let attempt = 1; attempt <= 30; attempt++) {
+      const probe = await kubectl(
+        ['get', 'ns', namespace, '-o', 'jsonpath={.status.phase}{"|"}{.metadata.deletionTimestamp}'],
+        {
+          kubeconfigPath,
+          timeoutMs: 20_000,
+        }
+      );
 
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
-    if (create.code === 0) return;
+      if (probe.code !== 0) {
+        const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
+        lastOutput = output;
+        if (/not found/i.test(output)) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+          continue;
+        }
+        if (isTransientConnectError(output)) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+          continue;
+        }
+        throw new Error(`Failed probing namespace ${namespace}: ${output || 'kubectl probe failed'}`);
+      }
 
-    const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
-    if (attempt < 3 && isTransientConnectError(message)) {
-      await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
-      continue;
+      const [phase = '', deletionTs = ''] = String(probe.stdout || '').trim().split('|');
+      if (/active/i.test(phase) && !deletionTs) {
+        return;
+      }
+
+      lastOutput = `phase=${phase || 'unknown'} deletionTimestamp=${deletionTs || 'none'}`;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
     }
 
-    throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
+    throw new Error(`Namespace ${namespace} did not become ready: ${lastOutput || 'unknown state'}`);
+  };
+
+  const ensureNamespaceOnce = async () => {
+    const waitForApiReady = async () => {
+      let lastOutput = '';
+      for (let attempt = 1; attempt <= 20; attempt++) {
+        const probe = await kubectl(['get', 'ns', 'default'], {
+          kubeconfigPath,
+          timeoutMs: 15_000,
+        });
+        if (probe.code === 0) {
+          return;
+        }
+
+        const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
+        lastOutput = output;
+        if (!isTransientConnectError(output)) {
+          break;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+      }
+
+      throw new Error(`Kubernetes API not ready: ${lastOutput || 'probe failed'}`);
+    };
+
+    await waitForApiReady();
+
+    const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
+    if (get.code === 0) {
+      await waitForNamespaceReady();
+      return;
+    }
+
+    const initialMessage = `${get.stderr || ''}\n${get.stdout || ''}`.trim();
+
+    for (let attempt = 1; attempt <= 5; attempt++) {
+      const create = await kubectl(['create', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
+      if (create.code === 0) return;
+
+      const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
+      if (/already exists/i.test(message)) {
+        await waitForNamespaceReady();
+        return;
+      }
+
+      const transient = isTransientConnectError(message) || (attempt === 1 && isTransientConnectError(initialMessage));
+      if (attempt < 5 && transient) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        continue;
+      }
+
+      throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
+    }
+
+    await waitForNamespaceReady();
+  };
+
+  for (let cycle = 1; cycle <= 4; cycle++) {
+    try {
+      await ensureNamespaceOnce();
+      return;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const isFinalCycle = cycle === 4;
+      if (!isFinalCycle && isTransientConnectError(message)) {
+        if (allowClusterRecovery) {
+          const recovered = await recoverKubeconfigForApiAvailability(kubeconfigPath);
+          if (recovered) continue;
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 1000 * cycle));
+        continue;
+      }
+      throw err;
+    }
   }
 }
 
@@ -143,7 +342,7 @@ export async function cleanupWorkerNamespaces(
     .map((item) => item.metadata?.name)
     .filter((name): name is string => Boolean(name));
 
-  const workerNsPattern = /^kdb-e2e-(.+)-w\d+$/;
+  const workerNsPattern = /^kdb-e2e-(.+)-(?:w|p)\d+$/;
   const stale = candidates.filter((name) => {
     const match = name.match(workerNsPattern);
     return match ? match[1] !== currentRunId : false;

@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import MetricsChart from './MetricsChart';
 import { MetricsStateProvider, useClusterMetrics } from './MetricsStateContext';
 import TimeRangeSelector from './TimeRangeSelector';
@@ -56,6 +57,14 @@ function SwarmMetricsDashboardInner() {
   const [rangeSeconds, setRangeSeconds] = useState(900);
   const [hoveredService, setHoveredService] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [rangeNowMs, setRangeNowMs] = useState(0);
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      setRangeNowMs(Date.now());
+    }, 0);
+    return () => window.clearTimeout(timerId);
+  }, [rangeSeconds, history]);
 
   const handleServiceClick = (svc: any) => {
     const name = svc.serviceName || svc.serviceId;
@@ -75,12 +84,12 @@ function SwarmMetricsDashboardInner() {
     const arr = Array.isArray(history) ? history : [];
     const seconds = Number(rangeSeconds) || 0;
     if (!seconds) return arr;
-    const cutoff = Date.now() - seconds * 1000;
+    const cutoff = rangeNowMs - seconds * 1000;
     return arr.filter((p: any) => {
       const ts = Date.parse(p?.timestamp);
       return Number.isFinite(ts) ? ts >= cutoff : true;
     });
-  }, [history, rangeSeconds]);
+  }, [history, rangeSeconds, rangeNowMs]);
 
   const percent = useCallback((num: number, den: number) => {
     const n = Number(num);

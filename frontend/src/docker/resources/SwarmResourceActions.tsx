@@ -1,22 +1,21 @@
-import { useState } from 'react';
 import type { CSSProperties, MouseEvent } from 'react';
-import { showWarning } from '../../notification';
+import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import { showWarning } from '../../notification';
 
 interface SwarmResourceActionsProps {
   resourceType: string;
   name: string;
   canScale?: boolean;
   currentReplicas?: number;
-  onScale?: (next: number) => Promise<void> | void;
+  onScale?: (_next: number) => Promise<void> | void;
   onRestart?: () => Promise<void> | void;
   onDelete?: () => Promise<void> | void;
   onDrain?: () => Promise<void> | void;
   onActivate?: () => Promise<void> | void;
   availability?: string;
 }
-
 /**
  * SwarmResourceActions - Reusable action buttons for Swarm resources
  * Provides scale, restart, and delete actions with confirmation dialogs

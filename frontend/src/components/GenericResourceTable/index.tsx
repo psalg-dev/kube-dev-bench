@@ -26,13 +26,13 @@
  * }
  */
 
-import { useCallback } from 'react';
-import OverviewTableWithPanel from '../../layout/overview/OverviewTableWithPanel';
-import { useResourceData } from '../../hooks/useResourceData';
-import { useHolmesAnalysis } from '../../hooks/useHolmesAnalysis';
-import { showSuccess, showError } from '../../notification';
 import type { ComponentType, ReactNode } from 'react';
-import type { PanelApi, ResourceConfig, ResourceRow, RowAction, ResourceColumn, ResourceTab } from '../../types/resourceConfigs';
+import { useCallback } from 'react';
+import { useHolmesAnalysis } from '../../hooks/useHolmesAnalysis';
+import { useResourceData } from '../../hooks/useResourceData';
+import OverviewTableWithPanel from '../../layout/overview/OverviewTableWithPanel';
+import { showError, showSuccess } from '../../notification';
+import type { PanelApi, ResourceColumn, ResourceConfig, ResourceRow, ResourceTab, RowAction } from '../../types/resourceConfigs';
 
 export type { ResourceConfig } from '../../types/resourceConfigs';
 
@@ -114,7 +114,7 @@ export function GenericResourceTable({
 }: GenericResourceTableProps) {
   // Fetch and subscribe to resource data
   const { data, loading } = useResourceData({
-    fetchFn: fetchFn as (...args: any[]) => Promise<any[]>,
+    fetchFn: fetchFn as (..._args: unknown[]) => Promise<unknown[]>,
     eventName,
     namespaces,
     namespace,
@@ -126,7 +126,7 @@ export function GenericResourceTable({
   const hasHolmes = typeof analyzeFn === 'function';
   const { state: holmesState, analyze, cancel } = useHolmesAnalysis({
     kind: resourceKind,
-    analyzeFn: hasHolmes ? (analyzeFn as (...args: string[]) => Promise<void>) : async () => {},
+    analyzeFn: hasHolmes ? (analyzeFn as (..._args: string[]) => Promise<void>) : async () => {},
     keyPrefix: holmesKeyPrefix,
   });
 
@@ -275,7 +275,7 @@ export function GenericResourceTable({
       tableTestId={tableTestId}
       headerActions={headerActions}
       getRowActions={getRowActions}
-      tabCountsFetcher={tabCountsFetcher as ((row: ResourceRow) => Promise<Record<string, number>> | Record<string, number>)}
+      tabCountsFetcher={tabCountsFetcher as ((_row: ResourceRow) => Promise<Record<string, number>> | Record<string, number>)}
       enableTabCounts={enableTabCounts}
     />
   );

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within, fireEvent, waitFor, act } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { runtimeHandlers, swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
-    runtimeHandlers: new Map<string, (payload: unknown) => void>(),
+    runtimeHandlers: new Map<string, (_payload: unknown) => void>(),
     swarmApiMocks: {
       GetSwarmNodes: vi.fn(),
       UpdateSwarmNodeAvailability: vi.fn(),
@@ -21,19 +21,18 @@ vi.mock('../docker/swarmApi', () => swarmApiMocks);
 vi.mock('../notification', () => notificationMocks);
 
 vi.mock('../../wailsjs/runtime/runtime', () => ({
-  EventsOn: vi.fn((eventName: string, cb: (payload: unknown) => void) => {
+  EventsOn: vi.fn((eventName: string, cb: (_payload: unknown) => void) => {
     runtimeHandlers.set(eventName, cb);
     return vi.fn();
   }),
 }));
-
 vi.mock('../layout/overview/OverviewTableWithPanel', () => ({
   default: function OverviewTableWithPanelMock(props: {
     title: string;
-    columns?: Array<{ key: string; cell?: (ctx: { getValue: () => unknown }) => React.ReactNode }>;
+    columns?: Array<{ key: string; cell?: (_ctx: { getValue: () => unknown }) => React.ReactNode }>;
     data?: Array<Record<string, unknown>>;
-    getRowActions?: (row: Record<string, unknown>) => Array<{ label: string; disabled?: boolean; onClick: () => void }>;
-    renderPanelContent?: (row: Record<string, unknown>, tab: string) => React.ReactNode;
+    getRowActions?: (_row: Record<string, unknown>) => Array<{ label: string; disabled?: boolean; onClick: () => void }>;
+    renderPanelContent?: (_row: Record<string, unknown>, _tab: string) => React.ReactNode;
   }) {
     const { title, columns, data, getRowActions, renderPanelContent } = props;
     const rows = Array.isArray(data) ? data : [];
@@ -94,7 +93,6 @@ vi.mock('../layout/overview/OverviewTableWithPanel', () => ({
     );
   },
 }));
-
 vi.mock('../QuickInfoSection', () => ({
   default: function QuickInfoSectionMock() {
     return <div data-testid="quick-info" />;

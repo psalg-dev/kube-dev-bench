@@ -2,8 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { EventsOn } from '../../../wailsjs/runtime';
 import * as AppAPI from '../../../wailsjs/go/main/App';
+import { EventsOn } from '../../../wailsjs/runtime';
 
 type TerminalTabProps = {
   command?: string;
@@ -23,10 +23,8 @@ type XtermDisposable = { dispose?: () => void };
 
 type OutputPayload = string | string[] | null | undefined;
 
-type OutputHandler = (data: OutputPayload) => void;
-
-type ExitHandler = (msg: OutputPayload) => void;
-
+type OutputHandler = (_data: OutputPayload) => void;
+type ExitHandler = (_msg: OutputPayload) => void;
 export default function TerminalTab({
   command,
   podExec,
@@ -149,10 +147,14 @@ export default function TerminalTab({
       });
       unsubscribersRef.current = [];
       try {
-        dataDisp?.dispose && dataDisp.dispose();
+        if (dataDisp?.dispose) {
+          dataDisp.dispose();
+        }
       } catch {}
       try {
-        resizeDisp?.dispose && resizeDisp.dispose();
+        if (resizeDisp?.dispose) {
+          resizeDisp.dispose();
+        }
       } catch {}
       try {
         xterm.dispose();

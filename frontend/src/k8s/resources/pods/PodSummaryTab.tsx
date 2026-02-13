@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { GetPodSummary, GetPodEvents, GetPodEventsLegacy } from '../../../../wailsjs/go/main/App';
+import { GetPodEvents, GetPodEventsLegacy, GetPodSummary } from '../../../../wailsjs/go/main/App';
+import * as AppAPI from '../../../../wailsjs/go/main/App.js';
+import ResourceActions from '../../../components/ResourceActions';
+import StatusBadge from '../../../components/StatusBadge';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
-import ResourceActions from '../../../components/ResourceActions';
-import * as AppAPI from '../../../../wailsjs/go/main/App.js';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
-import StatusBadge from '../../../components/StatusBadge';
 
 type PodSummaryTabProps = {
 	podName: string;
@@ -13,11 +13,11 @@ type PodSummaryTabProps = {
 };
 
 export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps) {
-	const [data, setData] = useState<any | null>(null);
+	const [data, setData] = useState<unknown | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	// Events panel state
-	const [events, setEvents] = useState<any[]>([]);
+	const [events, setEvents] = useState<unknown[]>([]);
 	const [eventsLoading, setEventsLoading] = useState(false);
 	const [eventsError, setEventsError] = useState<string | null>(null);
 
@@ -41,7 +41,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 		setEventsLoading(true);
 		setEventsError(null);
 		try {
-			let res: any[] = [];
+			let res: unknown[] = [];
 			if (ns !== undefined) {
 				try {
 					res = await GetPodEvents(ns || '', podName);
@@ -219,7 +219,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 										<div>
 											<div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Init Containers</div>
 											<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-												{data.initContainers.map((ic: any, i: number) => {
+												{data.initContainers.map((ic: unknown, i: number) => {
 													const badgeStatus = getInitContainerBadgeStatus(ic.state, ic.exitCode);
 													return (
 														<div

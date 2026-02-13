@@ -3,17 +3,15 @@ import LabelsInline from '../../LabelsInline';
 
 type SummaryTabHeaderProps = {
   name?: string;
-  _name?: string;
   labels?: Record<string, unknown> | null;
-  _hideTitle?: boolean;
+  hideTitle?: boolean;
   actions?: React.ReactNode;
 };
 
 export default function SummaryTabHeader({
   name,
-  _name,
   labels,
-  _hideTitle = false,
+  hideTitle = false,
   actions = null,
 }: SummaryTabHeaderProps) {
   const normalized = useMemo(() => {
@@ -42,6 +40,7 @@ export default function SummaryTabHeader({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1, overflow: 'hidden' }}>
+        {!hideTitle && name ? <strong style={{ fontSize: 13 }}>{name}</strong> : null}
         {hasLabels ? (
           <LabelsInline labels={normalized} maxVisible={6} style={{ maxWidth: '100%' }} />
         ) : (

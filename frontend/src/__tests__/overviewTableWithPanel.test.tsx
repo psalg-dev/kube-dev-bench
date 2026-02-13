@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock CreateManifestOverlay to a lightweight stub
 vi.mock('../CreateManifestOverlay', () => ({
@@ -16,7 +16,7 @@ vi.mock('../notification', () => ({
 import OverviewTableWithPanel from '../layout/overview/OverviewTableWithPanel';
 import { showNotification } from '../notification';
 
-function setup(props: Record<string, any> = {}) {
+function setup(props: Record<string, unknown> = {}) {
   const columns = [
     { key: 'name', label: 'Name' },
     { key: 'status', label: 'Status' },
@@ -29,7 +29,7 @@ function setup(props: Record<string, any> = {}) {
     { key: 'summary', label: 'Summary' },
     { key: 'yaml', label: 'YAML' },
   ];
-  const renderPanelContent = (row: any, tab: string) => <div data-testid="panel-content">{row.name}-{tab}</div>;
+  const renderPanelContent = (row: unknown, tab: string) => <div data-testid="panel-content">{row.name}-{tab}</div>;
   return render(
     <OverviewTableWithPanel
       title="Pods"
@@ -179,7 +179,7 @@ describe('OverviewTableWithPanel', () => {
 
   it('supports getRowActions using api.openDetails(tabKey)', () => {
     setup({
-      getRowActions: (_row: any, api: any) => ([
+      getRowActions: (_row: unknown, api: unknown) => ([
         { label: 'Open YAML', onClick: () => api.openDetails('yaml') },
       ]),
     });

@@ -7,6 +7,7 @@ import {docker} from '../models';
 import {topology} from '../models';
 import {jobs} from '../models';
 import {mcp} from '../models';
+import {k8s_graph} from '../models';
 import {context} from '../models';
 
 export function AddHelmRepository(arg1:string,arg2:string):Promise<void>;
@@ -89,6 +90,8 @@ export function BackupSwarmVolume(arg1:string):Promise<string>;
 
 export function CancelHolmesStream(arg1:string):Promise<void>;
 
+export function CancelKindCluster():Promise<boolean>;
+
 export function CheckHolmesDeployment():Promise<holmesgpt.HolmesDeploymentStatus>;
 
 export function CheckServiceImageUpdates(arg1:Array<string>):Promise<Record<string, docker.ImageUpdateInfo>>;
@@ -104,6 +107,8 @@ export function CloneSwarmSecret(arg1:string,arg2:string,arg3:string):Promise<st
 export function CloneSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function ConnectToDocker(arg1:docker.DockerConfig):Promise<docker.DockerConnectionStatus>;
+
+export function CreateKindCluster(arg1:string):Promise<app.KindClusterResult>;
 
 export function CreateResource(arg1:string,arg2:string):Promise<void>;
 
@@ -173,9 +178,15 @@ export function GetAllTabCounts(arg1:string,arg2:string,arg3:string):Promise<app
 
 export function GetClusterRoleBindingDetail(arg1:string):Promise<app.RoleBindingInfo>;
 
+export function GetClusterRoleBindingSubjects(arg1:string):Promise<Array<app.Subject>>;
+
+export function GetClusterRoleBindingYAML(arg1:string):Promise<string>;
+
 export function GetClusterRoleBindings():Promise<Array<app.RoleBindingInfo>>;
 
 export function GetClusterRoleDetail(arg1:string):Promise<app.RoleInfo>;
+
+export function GetClusterRoleYAML(arg1:string):Promise<string>;
 
 export function GetClusterRoles():Promise<Array<app.RoleInfo>>;
 
@@ -261,6 +272,8 @@ export function GetHolmesLogPath():Promise<string>;
 
 export function GetHooksConfig():Promise<app.HooksConfig>;
 
+export function GetHorizontalPodAutoscalers(arg1:string):Promise<Array<app.HorizontalPodAutoscalerInfo>>;
+
 export function GetImageDigest(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function GetImageUpdateSettings():Promise<docker.ImageUpdateSettings>;
@@ -293,11 +306,15 @@ export function GetMCPConfig():Promise<mcp.MCPConfigData>;
 
 export function GetMCPStatus():Promise<mcp.MCPStatus>;
 
+export function GetNamespaceGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
+
 export function GetNamespaces():Promise<Array<string>>;
 
 export function GetNetworkPolicies(arg1:string):Promise<Array<app.NetworkPolicyInfo>>;
 
 export function GetNetworkPolicyDetail(arg1:string,arg2:string):Promise<app.NetworkPolicyInfo>;
+
+export function GetNetworkPolicyGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
 
 export function GetNodeDetail(arg1:string):Promise<app.NodeInfo>;
 
@@ -363,6 +380,8 @@ export function GetProxyConfig():Promise<app.ProxyConfig>;
 
 export function GetProxyDisplayURL():Promise<string>;
 
+export function GetRBACGraph(arg1:string):Promise<k8s_graph.ResourceGraph>;
+
 export function GetRegistries():Promise<Array<registry.RegistryConfig>>;
 
 export function GetRegistryRepositoryDetails(arg1:string,arg2:string):Promise<registry.RegistryRepoDetails>;
@@ -385,13 +404,21 @@ export function GetResourceEvents(arg1:string,arg2:string,arg3:string):Promise<A
 
 export function GetResourceEventsCount(arg1:string,arg2:string,arg3:string):Promise<number>;
 
+export function GetResourceGraph(arg1:string,arg2:string,arg3:string,arg4:number):Promise<k8s_graph.ResourceGraph>;
+
 export function GetResourceYAML(arg1:string,arg2:string,arg3:string):Promise<string>;
 
 export function GetRoleBindingDetail(arg1:string,arg2:string):Promise<app.RoleBindingInfo>;
 
+export function GetRoleBindingSubjects(arg1:string,arg2:string):Promise<Array<app.Subject>>;
+
+export function GetRoleBindingYAML(arg1:string,arg2:string):Promise<string>;
+
 export function GetRoleBindings(arg1:string):Promise<Array<app.RoleBindingInfo>>;
 
 export function GetRoleDetail(arg1:string,arg2:string):Promise<app.RoleInfo>;
+
+export function GetRoleYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetRoles(arg1:string):Promise<Array<app.RoleInfo>>;
 
@@ -444,6 +471,8 @@ export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>
 export function GetStorageClassDetail(arg1:string):Promise<app.StorageClassInfo>;
 
 export function GetStorageClasses():Promise<Array<app.StorageClassInfo>>;
+
+export function GetStorageGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
 
 export function GetSwarmConfig(arg1:string):Promise<docker.SwarmConfigInfo>;
 
@@ -666,6 +695,8 @@ export function StartMCPServer():Promise<void>;
 export function StartMonitorPolling():Promise<void>;
 
 export function StartPodExecSession(arg1:string,arg2:string,arg3:string,arg4:string):Promise<void>;
+
+export function StartRBACPolling():Promise<void>;
 
 export function StartShellSession(arg1:string,arg2:string):Promise<void>;
 

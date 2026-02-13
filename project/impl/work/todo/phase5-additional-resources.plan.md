@@ -1,3 +1,8 @@
+---
+title: "Phase 5: Holmes Analysis for Additional Kubernetes Resources"
+status: todo
+priority: medium
+---
 # Phase 5: Holmes Analysis for Additional Kubernetes Resources
 
 **Status:** WIP (65% — CronJob/Job/Ingress/PVC complete, ConfigMap/Secret/PV bonus; Node/HPA pending)

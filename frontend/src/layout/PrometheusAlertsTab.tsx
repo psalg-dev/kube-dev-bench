@@ -133,7 +133,7 @@ export function PrometheusAlertsTab() {
             <div key={`${alert.name || 'alert'}-${idx}`} className="prometheus-alert-card">
               <div className="prometheus-alert-top">
                 <div className="prometheus-alert-title">{alert.name}</div>
-                <span className={`prometheus-alert-state ${alert.state || alert.State}`}> 
+                <span className={`prometheus-alert-state ${alert.state || alert.State}`}>
                   {alert.state || alert.State}
                 </span>
               </div>

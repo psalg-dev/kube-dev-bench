@@ -34,6 +34,10 @@ func TestResourceCountsEqual_SameValues(t *testing.T) {
 		Ingresses:              2,
 		PersistentVolumeClaims: 3,
 		PersistentVolumes:      4,
+		Roles:                  2,
+		ClusterRoles:           1,
+		RoleBindings:           3,
+		ClusterRoleBindings:    1,
 	}
 
 	b := ResourceCounts{
@@ -56,6 +60,10 @@ func TestResourceCountsEqual_SameValues(t *testing.T) {
 		Ingresses:              2,
 		PersistentVolumeClaims: 3,
 		PersistentVolumes:      4,
+		Roles:                  2,
+		ClusterRoles:           1,
+		RoleBindings:           3,
+		ClusterRoleBindings:    1,
 	}
 
 	if !resourceCountsEqual(a, b) {
@@ -172,6 +180,42 @@ func TestResourceCountsEqual_DifferentPVs(t *testing.T) {
 
 	if resourceCountsEqual(a, b) {
 		t.Error("Expected counts with different PVs to be unequal")
+	}
+}
+
+func TestResourceCountsEqual_DifferentRoles(t *testing.T) {
+	a := ResourceCounts{Roles: 2}
+	b := ResourceCounts{Roles: 3}
+
+	if resourceCountsEqual(a, b) {
+		t.Error("Expected counts with different roles to be unequal")
+	}
+}
+
+func TestResourceCountsEqual_DifferentClusterRoles(t *testing.T) {
+	a := ResourceCounts{ClusterRoles: 2}
+	b := ResourceCounts{ClusterRoles: 3}
+
+	if resourceCountsEqual(a, b) {
+		t.Error("Expected counts with different cluster roles to be unequal")
+	}
+}
+
+func TestResourceCountsEqual_DifferentRoleBindings(t *testing.T) {
+	a := ResourceCounts{RoleBindings: 2}
+	b := ResourceCounts{RoleBindings: 3}
+
+	if resourceCountsEqual(a, b) {
+		t.Error("Expected counts with different role bindings to be unequal")
+	}
+}
+
+func TestResourceCountsEqual_DifferentClusterRoleBindings(t *testing.T) {
+	a := ResourceCounts{ClusterRoleBindings: 2}
+	b := ResourceCounts{ClusterRoleBindings: 3}
+
+	if resourceCountsEqual(a, b) {
+		t.Error("Expected counts with different cluster role bindings to be unequal")
 	}
 }
 

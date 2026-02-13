@@ -4,12 +4,11 @@ type TextFieldProps = {
   id: string;
   label?: string;
   value: string;
-  onChange: (value: string) => void;
+  onChange: (_value: string) => void;
   placeholder?: string;
   required?: boolean;
   error?: string;
 };
-
 export default function TextField({
   id,
   label,

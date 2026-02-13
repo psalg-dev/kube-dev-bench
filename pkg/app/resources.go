@@ -203,11 +203,24 @@ func (a *App) emitKindSpecificUpdate(ns, kind string) {
 		"ingress":     {EventIngressesUpdate, func() (interface{}, error) { return a.GetIngresses(ns) }},
 		"secret":      {EventSecretsUpdate, func() (interface{}, error) { return a.GetSecrets(ns) }},
 		"configmap":   {EventConfigMapsUpdate, func() (interface{}, error) { return a.GetConfigMaps(ns) }},
+		"role":        {EventRolesUpdate, func() (interface{}, error) { return a.GetRoles(ns) }},
+		"rolebinding": {EventRoleBindingsUpdate, func() (interface{}, error) { return a.GetRoleBindings(ns) }},
 	}
 
 	if fetcher, ok := fetchers[kindLower]; ok {
 		if data, err := fetcher.fetch(); err == nil {
 			emitEvent(a.ctx, fetcher.eventName, data)
+		}
+	}
+
+	switch kindLower {
+	case "clusterrole":
+		if data, err := a.GetClusterRoles(); err == nil {
+			emitEvent(a.ctx, EventClusterRolesUpdate, data)
+		}
+	case "clusterrolebinding":
+		if data, err := a.GetClusterRoleBindings(); err == nil {
+			emitEvent(a.ctx, EventClusterRoleBindingsUpdate, data)
 		}
 	}
 }

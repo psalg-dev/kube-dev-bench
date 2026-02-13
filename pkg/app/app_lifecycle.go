@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 )
@@ -38,6 +39,12 @@ type App struct {
 	logMu      sync.Mutex
 	logCancels map[string]context.CancelFunc
 
+	kindMu       sync.Mutex
+	kindCancel   context.CancelFunc
+	kindCancelID uint64
+	kindCmd      *exec.Cmd
+	kindPullCmd  *exec.Cmd
+
 	// Aggregated resource counts (for sidebar counters)
 	resourceCountsMu   sync.RWMutex
 	lastResourceCounts ResourceCounts
@@ -55,6 +62,10 @@ type App struct {
 	// disableStartupDocker is used for unit tests only, to prevent Startup from
 	// invoking Docker auto-connect and emitting Wails events with a non-Wails ctx.
 	disableStartupDocker bool
+
+	// graphCache stores short-lived relationship graph payloads to reduce repeated
+	// expensive graph construction for quick refresh/re-open actions.
+	graphCache sync.Map
 }
 
 // NewApp creates a new App application struct

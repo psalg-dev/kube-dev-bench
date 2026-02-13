@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { swarmApiMocks, notificationMocks } = vi.hoisted(() => {
   return {
@@ -18,7 +18,7 @@ vi.mock('../notification', () => notificationMocks);
 
 // Make KeyValueEditor deterministic and easy to manipulate.
 vi.mock('../components/forms/KeyValueEditor', () => ({
-  default: function KeyValueEditorMock({ rows, onChange }: { rows: Array<unknown>; onChange: (rows: Array<unknown>) => void }) {
+  default: function KeyValueEditorMock({ rows, onChange }: { rows: Array<unknown>; onChange: (_rows: Array<unknown>) => void }) {
     return (
       <div>
         <div data-testid="kv-count">{rows.length}</div>

@@ -51,6 +51,7 @@ func (a *App) GetServices(namespace string) ([]ServiceInfo, error) {
 			Ports:     strings.Join(ports, ", "),
 			Age:       age,
 			Labels:    svc.Labels,
+			Selector:  svc.Spec.Selector,
 		})
 	}
 

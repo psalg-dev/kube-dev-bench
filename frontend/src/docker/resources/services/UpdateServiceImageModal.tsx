@@ -5,19 +5,32 @@ type UpdateServiceImageModalProps = {
 	currentImage?: string;
 	serviceName?: string;
 	onClose?: () => void;
-	onConfirm?: (image: string) => void;
+	onConfirm?: (_image: string) => void;
 };
-
 export default function UpdateServiceImageModal({ open, currentImage, serviceName, onClose, onConfirm }: UpdateServiceImageModalProps) {
 	const [image, setImage] = useState(currentImage || '');
+	const normalizeImage = (value: string) => {
+		const trimmed = (value || '').trim();
+		if (!trimmed) return '';
+		const parts = trimmed.split(/\s+/);
+		return parts[parts.length - 1] || '';
+	};
 
 	useEffect(() => {
-		if (open) setImage(currentImage || '');
+		if (!open) return;
+		let active = true;
+		queueMicrotask(() => {
+			if (!active) return;
+			setImage(currentImage || '');
+		});
+		return () => {
+			active = false;
+		};
 	}, [open, currentImage]);
 
 	const canSave = useMemo(() => {
-		const trimmed = (image || '').trim();
-		return trimmed.length > 0 && trimmed !== (currentImage || '').trim();
+		const normalized = normalizeImage(image || '');
+		return normalized.length > 0 && normalized !== normalizeImage(currentImage || '');
 	}, [image, currentImage]);
 
 	if (!open) return null;
@@ -91,7 +104,7 @@ export default function UpdateServiceImageModal({ open, currentImage, serviceNam
 					<button
 						id="swarm-service-update-image-confirm-btn"
 						style={{ ...buttonStyle, backgroundColor: '#238636', color: '#fff' }}
-						onClick={() => onConfirm?.(image.trim())}
+						onClick={() => onConfirm?.(normalizeImage(image))}
 						disabled={!canSave}
 					>
 						Update

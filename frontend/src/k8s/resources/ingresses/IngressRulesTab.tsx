@@ -1,7 +1,7 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import './IngressRulesTab.css';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
+import './IngressRulesTab.css';
 
 type IngressRulesTabProps = {
 	namespace?: string;
@@ -48,8 +48,8 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }: Ingre
 
 			try {
 				// Try to get ingress detail if API exists
-				if (typeof (AppAPI as any).GetIngressDetail === 'function') {
-					const result = await (AppAPI as any).GetIngressDetail(namespace, ingressName);
+				if (typeof (AppAPI as unknown).GetIngressDetail === 'function') {
+					const result = await (AppAPI as unknown).GetIngressDetail(namespace, ingressName);
 					setDetail(result);
 				} else {
 					// Fallback: use the hosts prop to build basic rules
@@ -60,7 +60,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }: Ingre
 						})) || [],
 					});
 				}
-			} catch (err: any) {
+			} catch (err: unknown) {
 				setError(err?.message || String(err));
 			} finally {
 				setLoading(false);

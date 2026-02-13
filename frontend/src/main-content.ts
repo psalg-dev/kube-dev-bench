@@ -1,35 +1,43 @@
 import type React from 'react';
-import { renderPodOverviewTable } from './k8s/resources/pods/PodOverviewEntry';
-import { showResourceOverlay } from './resource-overlay';
-import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
-import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
-import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
+import ClusterOverview from './k8s/cluster/ClusterOverview';
+import GraphView from './k8s/graph/GraphView';
+import ClusterRoleBindingsOverviewTable from './k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable';
+import ClusterRolesOverviewTable from './k8s/resources/clusterroles/ClusterRolesOverviewTable';
+import ConfigMapsOverviewTable from './k8s/resources/configmaps/ConfigMapsOverviewTable';
 import CronJobsOverviewTable from './k8s/resources/cronjobs/CronJobsOverviewTable';
 import DaemonSetsOverviewTable from './k8s/resources/daemonsets/DaemonSetsOverviewTable';
-import StatefulSetsOverviewTable from './k8s/resources/statefulsets/StatefulSetsOverviewTable';
-import ReplicaSetsOverviewTable from './k8s/resources/replicasets/ReplicaSetsOverviewTable';
-import ConfigMapsOverviewTable from './k8s/resources/configmaps/ConfigMapsOverviewTable';
-import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable';
+import DeploymentsOverviewTable from './k8s/resources/deployments/DeploymentsOverviewTable';
+import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
 import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewTable';
+import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
-import HelmReleasesOverviewTable from './k8s/resources/helmreleases/HelmReleasesOverviewTable';
+import { renderPodOverviewTable } from './k8s/resources/pods/PodOverviewEntry';
+import ReplicaSetsOverviewTable from './k8s/resources/replicasets/ReplicaSetsOverviewTable';
+import RoleBindingsOverviewTable from './k8s/resources/rolebindings/RoleBindingsOverviewTable';
+import RolesOverviewTable from './k8s/resources/roles/RolesOverviewTable';
+import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable';
+import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
+import StatefulSetsOverviewTable from './k8s/resources/statefulsets/StatefulSetsOverviewTable';
+import { showResourceOverlay } from './resource-overlay';
 // Docker Swarm imports
-import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
-import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
-import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable';
-import SwarmNetworksOverviewTable from './docker/resources/networks/SwarmNetworksOverviewTable';
-import SwarmConfigsOverviewTable from './docker/resources/configs/SwarmConfigsOverviewTable';
-import SwarmSecretsOverviewTable from './docker/resources/secrets/SwarmSecretsOverviewTable';
-import SwarmStacksOverviewTable from './docker/resources/stacks/SwarmStacksOverviewTable';
-import SwarmVolumesOverviewTable from './docker/resources/volumes/SwarmVolumesOverviewTable';
-import SwarmRegistriesOverview from './docker/registry/SwarmRegistriesOverview';
-import SwarmOverview from './docker/SwarmOverview';
-import SwarmStateContext, { type SwarmStateContextValue } from './docker/SwarmStateContext';
-import SwarmResourceCountsContext, { type SwarmResourceCountsContextValue } from './docker/SwarmResourceCountsContext';
 import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
+import SwarmRegistriesOverview from './docker/registry/SwarmRegistriesOverview';
+import SwarmConfigsOverviewTable from './docker/resources/configs/SwarmConfigsOverviewTable';
+import SwarmNetworksOverviewTable from './docker/resources/networks/SwarmNetworksOverviewTable';
+import SwarmNodesOverviewTable from './docker/resources/nodes/SwarmNodesOverviewTable';
+import SwarmSecretsOverviewTable from './docker/resources/secrets/SwarmSecretsOverviewTable';
+import SwarmServicesOverviewTable from './docker/resources/services/SwarmServicesOverviewTable';
+import SwarmStacksOverviewTable from './docker/resources/stacks/SwarmStacksOverviewTable';
+import SwarmTasksOverviewTable from './docker/resources/tasks/SwarmTasksOverviewTable';
+import SwarmVolumesOverviewTable from './docker/resources/volumes/SwarmVolumesOverviewTable';
+import SwarmOverview from './docker/SwarmOverview';
+import SwarmResourceCountsContext, { type SwarmResourceCountsContextValue } from './docker/SwarmResourceCountsContext';
+import SwarmStateContext, { type SwarmStateContextValue } from './docker/SwarmStateContext';
+import { ClusterStateContext, type ClusterStateContextValue } from './state/ClusterStateContext';
+import { ResourceCountsContext } from './state/ResourceCountsContext';
 
 // React roots are bound to a specific DOM container. Recreating containers (via innerHTML)
 // or re-calling createRoot causes unmount/remount cycles which show up as visible flicker.
@@ -105,7 +113,13 @@ export function renderPodsMainContent(selectedNamespaces: string[]) {
 }
 
 type SwarmCountsValue = SwarmResourceCountsContextValue;
-type RenderOptions = { swarmState?: SwarmStateContextValue | null; swarmCounts?: SwarmCountsValue | null };
+type ResourceCountsValue = { counts: Record<string, unknown> | null; lastUpdated: number };
+type RenderOptions = {
+  swarmState?: SwarmStateContextValue | null;
+  swarmCounts?: SwarmCountsValue | null;
+  clusterState?: ClusterStateContextValue | null;
+  resourceCounts?: ResourceCountsValue | null;
+};
 
 export function renderResourceMainContent(
     selectedNamespaces: string[],
@@ -113,7 +127,37 @@ export function renderResourceMainContent(
     options: RenderOptions = {}
 ) {
     const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
-    const sections: Array<{ id: string; section: string; table: React.ComponentType<any>; props: Record<string, unknown> }> = [
+    const sections: Array<{ id: string; section: string; table: React.ComponentType<unknown>; props: Record<string, unknown> }> = [
+        {
+            id: 'cluster-overview-react',
+            section: 'cluster',
+            table: ClusterOverview,
+            props: {}
+        },
+        {
+            id: 'namespace-topology-react',
+            section: 'namespace-topology',
+            table: GraphView,
+            props: { mode: 'namespace' }
+        },
+        {
+            id: 'storage-graph-react',
+            section: 'storage-graph',
+            table: GraphView,
+            props: { mode: 'storage' }
+        },
+        {
+            id: 'network-graph-react',
+            section: 'network-graph',
+            table: GraphView,
+            props: { mode: 'network' }
+        },
+        {
+            id: 'rbac-graph-react',
+            section: 'rbac-graph',
+            table: GraphView,
+            props: { mode: 'rbac' }
+        },
         {
             id: 'deployments-overview-react',
             section: 'deployments',
@@ -216,6 +260,30 @@ export function renderResourceMainContent(
             table: HelmReleasesOverviewTable,
             props: { namespaces: selectedNamespaces, namespace: firstNs }
         },
+        {
+            id: 'roles-overview-react',
+            section: 'roles',
+            table: RolesOverviewTable,
+            props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'clusterroles-overview-react',
+            section: 'clusterroles',
+            table: ClusterRolesOverviewTable,
+            props: { namespace: firstNs }
+        },
+        {
+            id: 'rolebindings-overview-react',
+            section: 'rolebindings',
+            table: RoleBindingsOverviewTable,
+            props: { namespaces: selectedNamespaces, namespace: firstNs }
+        },
+        {
+            id: 'clusterrolebindings-overview-react',
+            section: 'clusterrolebindings',
+            table: ClusterRoleBindingsOverviewTable,
+            props: { namespace: firstNs }
+        },
         // Docker Swarm sections
         {
             id: 'swarm-overview-react',
@@ -310,8 +378,7 @@ export function renderResourceMainContent(
     const baseEl = createElement(target.table, target.props);
 
     // NOTE: main-content renders into a separate React root.
-    // React context does NOT cross roots, so we explicitly bridge Swarm contexts
-    // for Swarm-related views.
+    // React context does NOT cross roots, so we explicitly bridge contexts.
     if (target.section?.startsWith('swarm-') && options?.swarmState) {
         const swarmCountsValue = options?.swarmCounts ?? { counts: null, registriesCount: null, lastUpdated: 0, refetch: () => {} };
         root.render(
@@ -321,6 +388,23 @@ export function renderResourceMainContent(
                 createElement(
                     SwarmResourceCountsContext.Provider,
                     { value: swarmCountsValue },
+                    baseEl
+                )
+            )
+        );
+        return;
+    }
+
+    // Bridge K8s contexts (ClusterState + ResourceCounts) for K8s views
+    if (options?.clusterState) {
+        const rcValue = options?.resourceCounts ?? { counts: null, lastUpdated: 0 };
+        root.render(
+            createElement(
+                ClusterStateContext.Provider,
+                { value: options.clusterState },
+                createElement(
+                    ResourceCountsContext.Provider,
+                    { value: rcValue },
                     baseEl
                 )
             )

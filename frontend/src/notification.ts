@@ -212,7 +212,9 @@ export function showNotification(
     if (!el.parentNode) return;
     el.parentNode.removeChild(el);
     if (timeoutId) clearTimeout(timeoutId);
-    cleanupDrag && cleanupDrag();
+    if (cleanupDrag) {
+      cleanupDrag();
+    }
   };
 
   if (dismissible) {

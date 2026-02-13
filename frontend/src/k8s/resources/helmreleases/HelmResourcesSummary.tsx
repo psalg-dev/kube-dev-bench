@@ -142,17 +142,35 @@ export default function HelmResourcesSummary({ namespace, releaseName }: HelmRes
   const [healthByKey, setHealthByKey] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setLoading(true);
-    setError(null);
+    let active = true;
+    const loadManifest = async () => {
+      if (active) {
+        setLoading(true);
+        setError(null);
+      }
 
-    AppAPI.GetHelmReleaseManifest(namespace ?? '', releaseName ?? '')
-      .then((data) => setManifest(data || ''))
-      .catch((err: unknown) => {
-        const message = err instanceof Error ? err.message : String(err);
-        setError(message || 'Failed to load release manifest');
-        setManifest('');
-      })
-      .finally(() => setLoading(false));
+      try {
+        const data = await AppAPI.GetHelmReleaseManifest(namespace ?? '', releaseName ?? '');
+        if (active) {
+          setManifest(data || '');
+        }
+      } catch (err: unknown) {
+        if (active) {
+          const message = err instanceof Error ? err.message : String(err);
+          setError(message || 'Failed to load release manifest');
+          setManifest('');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadManifest();
+    return () => {
+      active = false;
+    };
   }, [namespace, releaseName]);
 
   const resources = useMemo<HelmResource[]>(() => {

@@ -96,6 +96,7 @@ async function timed<T>(label: string, fn: () => Promise<T>): Promise<T> {
 export default async function globalSetup(config: FullConfig) {
   const setupStart = Date.now();
   const runId = process.env.E2E_RUN_ID || crypto.randomBytes(6).toString('hex');
+  process.env.E2E_RUN_STATE_ID = runId;
   const clusterName = process.env.KIND_CLUSTER_NAME || 'kdb-e2e';
   const skipKindEnv = process.env.E2E_SKIP_KIND === '1';
   const skipKindAuto = shouldAutoSkipKindForSwarmOnly();

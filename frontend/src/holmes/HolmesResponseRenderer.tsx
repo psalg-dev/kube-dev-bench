@@ -52,9 +52,8 @@ export function HolmesResponseRenderer({ text, response }: HolmesResponseRendere
       const match = /language-(\w+)/.exec(className || '');
       const codeString = String(children).replace(/\n$/, '');
       const inline = (props as { inline?: boolean }).inline;
-      const { style: _style, ...restProps } = props;
-      void _style;
-
+      const restProps = { ...props };
+      delete (restProps as { style?: unknown }).style;
       if (inline) {
         return (
           <code className="holmes-inline-code" {...props}>
