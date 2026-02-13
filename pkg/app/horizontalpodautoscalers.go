@@ -108,3 +108,26 @@ func (a *App) GetHorizontalPodAutoscalers(namespace string) ([]HorizontalPodAuto
 		buildHPAInfo,
 	)
 }
+
+// GetHorizontalPodAutoscalerDetail returns details for a specific HPA.
+func (a *App) GetHorizontalPodAutoscalerDetail(namespace, name string) (*HorizontalPodAutoscalerInfo, error) {
+	if namespace == "" {
+		return nil, fmt.Errorf("missing required parameter: namespace")
+	}
+	if name == "" {
+		return nil, fmt.Errorf("missing required parameter: name")
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return nil, err
+	}
+
+	hpa, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(a.ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	info := buildHPAInfo(hpa, time.Now())
+	return &info, nil
+}

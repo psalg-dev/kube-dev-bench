@@ -7,6 +7,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	batchv1 "k8s.io/api/batch/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -786,6 +787,177 @@ func (a *App) getPersistentVolumeClaimContext(namespace, name string) (string, e
 	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "PersistentVolumeClaim")
 	eventsCancel()
 	a.emitHolmesContextProgress("PersistentVolumeClaim", namespace, name, "Collecting recent events", "done", "")
+
+	return sb.String(), nil
+}
+
+func (a *App) getNodeContext(name string) (string, error) {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", err
+	}
+
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var sb strings.Builder
+
+	a.emitHolmesContextProgress("Node", "", name, "Fetching node details", "running", "")
+	nodeCtx, nodeCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer nodeCancel()
+	node, err := clientset.CoreV1().Nodes().Get(nodeCtx, name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get node: %w", err)
+	}
+	a.emitHolmesContextProgress("Node", "", name, "Fetching node details", "done", "")
+
+	sb.WriteString(fmt.Sprintf("Node: %s\n", name))
+	sb.WriteString(fmt.Sprintf("Kernel: %s\n", node.Status.NodeInfo.KernelVersion))
+	sb.WriteString(fmt.Sprintf("OS Image: %s\n", node.Status.NodeInfo.OSImage))
+	sb.WriteString(fmt.Sprintf("Runtime: %s\n", node.Status.NodeInfo.ContainerRuntimeVersion))
+	sb.WriteString(fmt.Sprintf("Kubelet: %s\n", node.Status.NodeInfo.KubeletVersion))
+
+	sb.WriteString("\nConditions:\n")
+	for _, cond := range node.Status.Conditions {
+		sb.WriteString(fmt.Sprintf("  %s: %s\n", cond.Type, cond.Status))
+		if cond.Reason != "" {
+			sb.WriteString(fmt.Sprintf("    Reason: %s\n", cond.Reason))
+		}
+		if cond.Message != "" {
+			sb.WriteString(fmt.Sprintf("    Message: %s\n", cond.Message))
+		}
+	}
+
+	if len(node.Spec.Taints) > 0 {
+		sb.WriteString("\nTaints:\n")
+		for _, taint := range node.Spec.Taints {
+			sb.WriteString(fmt.Sprintf("  %s=%s:%s\n", taint.Key, taint.Value, taint.Effect))
+		}
+	}
+
+	if len(node.Status.Allocatable) > 0 {
+		sb.WriteString("\nAllocatable:\n")
+		if cpu := node.Status.Allocatable.Cpu(); cpu != nil {
+			sb.WriteString(fmt.Sprintf("  CPU: %s\n", cpu.String()))
+		}
+		if mem := node.Status.Allocatable.Memory(); mem != nil {
+			sb.WriteString(fmt.Sprintf("  Memory: %s\n", mem.String()))
+		}
+		if pods := node.Status.Allocatable.Pods(); pods != nil {
+			sb.WriteString(fmt.Sprintf("  Pods: %s\n", pods.String()))
+		}
+	}
+
+	a.emitHolmesContextProgress("Node", "", name, "Collecting pods on node", "running", "")
+	podsCtx, podsCancel := context.WithTimeout(ctx, 8*time.Second)
+	pods, err := clientset.CoreV1().Pods("").List(podsCtx, metav1.ListOptions{FieldSelector: "spec.nodeName=" + name})
+	podsCancel()
+	if err == nil {
+		sb.WriteString(fmt.Sprintf("\nPods on Node (%d):\n", len(pods.Items)))
+		for _, pod := range pods.Items {
+			sb.WriteString(fmt.Sprintf("  %s/%s: %s\n", pod.Namespace, pod.Name, pod.Status.Phase))
+		}
+	}
+	a.emitHolmesContextProgress("Node", "", name, "Collecting pods on node", "done", "")
+
+	a.emitHolmesContextProgress("Node", "", name, "Collecting recent events", "running", "")
+	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
+	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(""), name, "Node")
+	eventsCancel()
+	a.emitHolmesContextProgress("Node", "", name, "Collecting recent events", "done", "")
+
+	return sb.String(), nil
+}
+
+func writeHPAConditions(sb *strings.Builder, conditions []autoscalingv2.HorizontalPodAutoscalerCondition) {
+	if len(conditions) == 0 {
+		return
+	}
+	sb.WriteString("\nConditions:\n")
+	for _, cond := range conditions {
+		sb.WriteString(fmt.Sprintf("  %s: %s\n", cond.Type, cond.Status))
+		if cond.Reason != "" {
+			sb.WriteString(fmt.Sprintf("    Reason: %s\n", cond.Reason))
+		}
+		if cond.Message != "" {
+			sb.WriteString(fmt.Sprintf("    Message: %s\n", cond.Message))
+		}
+	}
+}
+
+func writeHPAMetrics(sb *strings.Builder, metrics []autoscalingv2.MetricSpec) {
+	if len(metrics) == 0 {
+		return
+	}
+	sb.WriteString("\nSpec Metrics:\n")
+	for _, metric := range metrics {
+		if metric.Type != autoscalingv2.ResourceMetricSourceType || metric.Resource == nil {
+			continue
+		}
+		resourceName := string(metric.Resource.Name)
+		target := formatHPAMetricTarget(metric.Resource.Target)
+		sb.WriteString(fmt.Sprintf("  %s target: %s\n", resourceName, target))
+	}
+}
+
+func writeHPACurrentMetrics(sb *strings.Builder, metrics []autoscalingv2.MetricStatus) {
+	if len(metrics) == 0 {
+		return
+	}
+	sb.WriteString("\nCurrent Metrics:\n")
+	for _, metric := range metrics {
+		if metric.Type != autoscalingv2.ResourceMetricSourceType || metric.Resource == nil {
+			continue
+		}
+		resourceName := string(metric.Resource.Name)
+		current := formatHPAMetricStatus(metric.Resource.Current)
+		sb.WriteString(fmt.Sprintf("  %s current: %s\n", resourceName, current))
+	}
+}
+
+func (a *App) getHPAContext(namespace, name string) (string, error) {
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", err
+	}
+
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	var sb strings.Builder
+
+	a.emitHolmesContextProgress("HorizontalPodAutoscaler", namespace, name, "Fetching HPA details", "running", "")
+	hpaCtx, hpaCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer hpaCancel()
+	hpa, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(hpaCtx, name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get horizontal pod autoscaler: %w", err)
+	}
+	a.emitHolmesContextProgress("HorizontalPodAutoscaler", namespace, name, "Fetching HPA details", "done", "")
+
+	minReplicas := int32(1)
+	if hpa.Spec.MinReplicas != nil {
+		minReplicas = *hpa.Spec.MinReplicas
+	}
+
+	sb.WriteString(fmt.Sprintf("HorizontalPodAutoscaler: %s/%s\n", namespace, name))
+	sb.WriteString(fmt.Sprintf("Target: %s/%s\n", hpa.Spec.ScaleTargetRef.Kind, hpa.Spec.ScaleTargetRef.Name))
+	sb.WriteString(fmt.Sprintf("Replicas: min=%d, max=%d, current=%d, desired=%d\n",
+		minReplicas, hpa.Spec.MaxReplicas, hpa.Status.CurrentReplicas, hpa.Status.DesiredReplicas))
+
+	writeHPAConditions(&sb, hpa.Status.Conditions)
+	writeHPAMetrics(&sb, hpa.Spec.Metrics)
+	writeHPACurrentMetrics(&sb, hpa.Status.CurrentMetrics)
+
+	a.emitHolmesContextProgress("HorizontalPodAutoscaler", namespace, name, "Collecting recent events", "running", "")
+	eventsCtx, eventsCancel := context.WithTimeout(ctx, 8*time.Second)
+	appendRecentEvents(eventsCtx, &sb, clientset.CoreV1().Events(namespace), name, "HorizontalPodAutoscaler")
+	eventsCancel()
+	a.emitHolmesContextProgress("HorizontalPodAutoscaler", namespace, name, "Collecting recent events", "done", "")
 
 	return sb.String(), nil
 }

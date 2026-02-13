@@ -416,6 +416,8 @@ func (a *App) GetResourceYAML(kind, namespace, name string) (string, error) {
 		return a.GetSecretYAML(namespace, name)
 	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc":
 		return a.GetPersistentVolumeClaimYAML(namespace, name)
+	case "horizontalpodautoscaler", "horizontalpodautoscalers", "hpa":
+		return a.getHorizontalPodAutoscalerYAML(namespace, name)
 	case "role", "roles":
 		return a.GetRoleYAML(namespace, name)
 	case "rolebinding", "rolebindings":
@@ -423,6 +425,26 @@ func (a *App) GetResourceYAML(kind, namespace, name string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported resource kind: %s", kind)
 	}
+}
+
+func (a *App) getHorizontalPodAutoscalerYAML(namespace, name string) (string, error) {
+	if namespace == "" {
+		return "", fmt.Errorf("namespace required")
+	}
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return "", fmt.Errorf("not connected to cluster: %w", err)
+	}
+	hpa, err := clientset.AutoscalingV2().HorizontalPodAutoscalers(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return "", fmt.Errorf("failed to get horizontal pod autoscaler: %w", err)
+	}
+	hpa.ManagedFields = nil
+	data, err := yaml.Marshal(hpa)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal horizontal pod autoscaler: %w", err)
+	}
+	return string(data), nil
 }
 
 // getPodYAMLWithNamespace is a helper that gets pod YAML for a specific namespace

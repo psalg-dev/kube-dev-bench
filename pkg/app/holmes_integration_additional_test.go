@@ -9,6 +9,7 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -165,6 +166,61 @@ func TestAnalyzeResource_Routes(t *testing.T) {
 
 	if _, err := app.AnalyzeResource("widget", "default", "pod"); err == nil {
 		t.Fatal("AnalyzeResource() expected error for unsupported kind")
+	}
+}
+
+func TestAnalyzeNode_WithFakeHolmes(t *testing.T) {
+	clientset := fake.NewSimpleClientset(
+		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node-a"}},
+	)
+
+	setupHolmesServer(t, "node ok")
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.initHolmes()
+
+	resp, err := app.AnalyzeNode("node-a")
+	if err != nil {
+		t.Fatalf("AnalyzeNode() unexpected error: %v", err)
+	}
+	if resp.Response != "node ok" {
+		t.Fatalf("AnalyzeNode() response = %q, want %q", resp.Response, "node ok")
+	}
+}
+
+func TestAnalyzeHPA_WithFakeHolmes(t *testing.T) {
+	minReplicas := int32(1)
+	util := int32(60)
+	clientset := fake.NewSimpleClientset(
+		&autoscalingv2.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{Name: "web-hpa", Namespace: "default"},
+			Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{Kind: "Deployment", Name: "web"},
+				MinReplicas:    &minReplicas,
+				MaxReplicas:    5,
+				Metrics: []autoscalingv2.MetricSpec{{
+					Type: autoscalingv2.ResourceMetricSourceType,
+					Resource: &autoscalingv2.ResourceMetricSource{
+						Name: corev1.ResourceCPU,
+						Target: autoscalingv2.MetricTarget{
+							Type:               autoscalingv2.UtilizationMetricType,
+							AverageUtilization: &util,
+						},
+					},
+				}},
+			},
+		},
+	)
+
+	setupHolmesServer(t, "hpa ok")
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.initHolmes()
+
+	resp, err := app.AnalyzeHPA("default", "web-hpa")
+	if err != nil {
+		t.Fatalf("AnalyzeHPA() unexpected error: %v", err)
+	}
+	if resp.Response != "hpa ok" {
+		t.Fatalf("AnalyzeHPA() response = %q, want %q", resp.Response, "hpa ok")
 	}
 }
 

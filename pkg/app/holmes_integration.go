@@ -740,6 +740,91 @@ func (a *App) AnalyzeService(namespace, name string) (*holmesgpt.HolmesResponse,
 	return resp, err
 }
 
+// AnalyzeNode gathers node context and sends it to HolmesGPT.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeNode(name string) (*holmesgpt.HolmesResponse, error) {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeNode: starting",
+		"name", name)
+
+	log.Debug("AnalyzeNode: gathering node context")
+	ctx, err := a.getNodeContext(name)
+	if err != nil {
+		log.Error("AnalyzeNode: failed to get node context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return nil, fmt.Errorf("failed to get node context: %w", err)
+	}
+	log.Info("AnalyzeNode: node context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes node and explain any issues:\n\nNode: %s\n\n%s",
+		name, ctx,
+	)
+
+	log.Debug("AnalyzeNode: sending to Holmes",
+		"questionLen", len(question))
+
+	resp, err := a.AskHolmes(question)
+	if err != nil {
+		log.Error("AnalyzeNode: analysis failed",
+			"error", err,
+			"totalDuration", time.Since(startTime))
+	} else {
+		log.Info("AnalyzeNode: completed",
+			"responseLen", len(resp.Response),
+			"totalDuration", time.Since(startTime))
+	}
+	return resp, err
+}
+
+// AnalyzeHPA gathers horizontal pod autoscaler context and sends it to HolmesGPT.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeHPA(namespace, name string) (*holmesgpt.HolmesResponse, error) {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeHPA: starting",
+		"namespace", namespace,
+		"name", name)
+
+	log.Debug("AnalyzeHPA: gathering hpa context")
+	ctx, err := a.getHPAContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeHPA: failed to get hpa context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return nil, fmt.Errorf("failed to get hpa context: %w", err)
+	}
+	log.Info("AnalyzeHPA: hpa context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes horizontal pod autoscaler and explain any issues:\n\nHorizontalPodAutoscaler: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeHPA: sending to Holmes",
+		"questionLen", len(question))
+
+	resp, err := a.AskHolmes(question)
+	if err != nil {
+		log.Error("AnalyzeHPA: analysis failed",
+			"error", err,
+			"totalDuration", time.Since(startTime))
+	} else {
+		log.Info("AnalyzeHPA: completed",
+			"responseLen", len(resp.Response),
+			"totalDuration", time.Since(startTime))
+	}
+	return resp, err
+}
+
 // AnalyzeResource routes to the correct analyzer based on resource kind.
 // This is a Wails RPC method callable from the frontend.
 func (a *App) AnalyzeResource(kind, namespace, name string) (*holmesgpt.HolmesResponse, error) {
@@ -760,6 +845,10 @@ func (a *App) AnalyzeResource(kind, namespace, name string) (*holmesgpt.HolmesRe
 		return a.AnalyzeDaemonSet(namespace, name)
 	case "service", "services":
 		return a.AnalyzeService(namespace, name)
+	case "node", "nodes":
+		return a.AnalyzeNode(name)
+	case "horizontalpodautoscaler", "horizontalpodautoscalers", "hpa":
+		return a.AnalyzeHPA(namespace, name)
 	default:
 		return nil, fmt.Errorf("unsupported resource kind: %s", kind)
 	}
@@ -1172,6 +1261,73 @@ func (a *App) AnalyzePersistentVolumeClaimStream(namespace, name, streamID strin
 	return a.AskHolmesStream(question, streamID)
 }
 
+// AnalyzeNodeStream gathers node context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeNodeStream(name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeNodeStream: starting",
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeNodeStream: gathering node context")
+	ctx, err := a.getNodeContext(name)
+	if err != nil {
+		log.Error("AnalyzeNodeStream: failed to get node context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get node context: %w", err)
+	}
+	log.Info("AnalyzeNodeStream: node context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes node and explain any issues:\n\nNode: %s\n\n%s",
+		name, ctx,
+	)
+
+	log.Debug("AnalyzeNodeStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
+// AnalyzeHPAStream gathers horizontal pod autoscaler context and streams analysis to the frontend.
+// This is a Wails RPC method callable from the frontend.
+func (a *App) AnalyzeHPAStream(namespace, name, streamID string) error {
+	log := holmesgpt.GetLogger()
+	startTime := time.Now()
+
+	log.Info("AnalyzeHPAStream: starting",
+		"namespace", namespace,
+		"name", name,
+		"streamID", streamID)
+
+	log.Debug("AnalyzeHPAStream: gathering hpa context")
+	ctx, err := a.getHPAContext(namespace, name)
+	if err != nil {
+		log.Error("AnalyzeHPAStream: failed to get hpa context",
+			"error", err,
+			"elapsed", time.Since(startTime))
+		return fmt.Errorf("failed to get hpa context: %w", err)
+	}
+	log.Info("AnalyzeHPAStream: hpa context gathered",
+		"contextLen", len(ctx),
+		"elapsed", time.Since(startTime))
+
+	question := fmt.Sprintf(
+		"Analyze this Kubernetes horizontal pod autoscaler and explain any issues:\n\nHorizontalPodAutoscaler: %s/%s\n\n%s",
+		namespace, name, ctx,
+	)
+
+	log.Debug("AnalyzeHPAStream: sending to Holmes stream",
+		"questionLen", len(question))
+
+	return a.AskHolmesStream(question, streamID)
+}
+
 // AnalyzeResourceStream routes to the correct streaming analyzer based on resource kind.
 // This is a Wails RPC method callable from the frontend.
 func (a *App) AnalyzeResourceStream(kind, namespace, name, streamID string) error {
@@ -1207,6 +1363,10 @@ func (a *App) AnalyzeResourceStream(kind, namespace, name, streamID string) erro
 		return a.AnalyzePersistentVolumeStream(name, streamID)
 	case "persistentvolumeclaim", "persistentvolumeclaims", "pvc":
 		return a.AnalyzePersistentVolumeClaimStream(namespace, name, streamID)
+	case "node", "nodes":
+		return a.AnalyzeNodeStream(name, streamID)
+	case "horizontalpodautoscaler", "horizontalpodautoscalers", "hpa":
+		return a.AnalyzeHPAStream(namespace, name, streamID)
 	default:
 		return fmt.Errorf("unsupported resource kind: %s", kind)
 	}

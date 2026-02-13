@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -947,5 +948,143 @@ func TestGetRecentPodLogs_ErrorFormatting(t *testing.T) {
 	result := app.getRecentPodLogs("default", "my-pod", 10)
 	if !strings.Contains(result, "(Failed to fetch logs: read failed)") {
 		t.Fatalf("unexpected log error formatting: %q", result)
+	}
+}
+
+func TestGetNodeContext_ReturnsNodeInfo(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-1",
+			},
+			Spec: corev1.NodeSpec{
+				Taints: []corev1.Taint{{
+					Key:    "node-role.kubernetes.io/control-plane",
+					Effect: corev1.TaintEffectNoSchedule,
+				}},
+			},
+			Status: corev1.NodeStatus{
+				NodeInfo: corev1.NodeSystemInfo{
+					KernelVersion:           "6.8.0",
+					OSImage:                 "Ubuntu",
+					ContainerRuntimeVersion: "containerd://1.7",
+					KubeletVersion:          "v1.30.0",
+				},
+				Conditions: []corev1.NodeCondition{{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionTrue,
+				}},
+			},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "pod-a", Namespace: "default"},
+			Spec:       corev1.PodSpec{NodeName: "node-1"},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getNodeContext("node-1")
+	if err != nil {
+		t.Fatalf("getNodeContext failed: %v", err)
+	}
+
+	if !strings.Contains(result, "Node: node-1") {
+		t.Error("expected node name in result")
+	}
+	if !strings.Contains(result, "Kernel: 6.8.0") {
+		t.Error("expected kernel version in result")
+	}
+	if !strings.Contains(result, "Pods on Node (1):") {
+		t.Error("expected pods on node section")
+	}
+}
+
+func TestGetNodeContext_NodeNotFound(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	_, err := app.getNodeContext("missing-node")
+	if err == nil {
+		t.Fatal("expected error for nonexistent node")
+	}
+}
+
+func TestGetHPAContext_ReturnsHPAInfo(t *testing.T) {
+	ctx := context.Background()
+	minReplicas := int32(2)
+	avgUtil := int32(70)
+	currentUtil := int32(55)
+	clientset := fake.NewSimpleClientset(
+		&autoscalingv2.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{Name: "web-hpa", Namespace: "default"},
+			Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+					Kind: "Deployment",
+					Name: "web",
+				},
+				MinReplicas: &minReplicas,
+				MaxReplicas: 8,
+				Metrics: []autoscalingv2.MetricSpec{{
+					Type: autoscalingv2.ResourceMetricSourceType,
+					Resource: &autoscalingv2.ResourceMetricSource{
+						Name: corev1.ResourceCPU,
+						Target: autoscalingv2.MetricTarget{
+							Type:               autoscalingv2.UtilizationMetricType,
+							AverageUtilization: &avgUtil,
+						},
+					},
+				}},
+			},
+			Status: autoscalingv2.HorizontalPodAutoscalerStatus{
+				CurrentReplicas: 3,
+				DesiredReplicas: 4,
+				CurrentMetrics: []autoscalingv2.MetricStatus{{
+					Type: autoscalingv2.ResourceMetricSourceType,
+					Resource: &autoscalingv2.ResourceMetricStatus{
+						Name: corev1.ResourceCPU,
+						Current: autoscalingv2.MetricValueStatus{
+							AverageUtilization: &currentUtil,
+						},
+					},
+				}},
+			},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	result, err := app.getHPAContext("default", "web-hpa")
+	if err != nil {
+		t.Fatalf("getHPAContext failed: %v", err)
+	}
+
+	if !strings.Contains(result, "HorizontalPodAutoscaler: default/web-hpa") {
+		t.Error("expected hpa name in result")
+	}
+	if !strings.Contains(result, "Target: Deployment/web") {
+		t.Error("expected target reference in result")
+	}
+	if !strings.Contains(result, "cpu target: 70%") {
+		t.Error("expected CPU target metric in result")
+	}
+	if !strings.Contains(result, "cpu current: 55%") {
+		t.Error("expected current CPU metric in result")
+	}
+}
+
+func TestGetHPAContext_HPANotFound(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset()
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	_, err := app.getHPAContext("default", "missing-hpa")
+	if err == nil {
+		t.Fatal("expected error for nonexistent hpa")
 	}
 }
