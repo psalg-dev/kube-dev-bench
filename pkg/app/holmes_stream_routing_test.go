@@ -43,7 +43,7 @@ func TestAnalyzeResource_RoutesNodeAndHPA(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "phase5 route ok")
+	setupHolmesServer(t, "route ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
 	app.initHolmes()
 
@@ -51,16 +51,16 @@ func TestAnalyzeResource_RoutesNodeAndHPA(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AnalyzeResource(nodes) unexpected error: %v", err)
 	}
-	if nodeResp.Response != "phase5 route ok" {
-		t.Fatalf("AnalyzeResource(nodes) response = %q, want %q", nodeResp.Response, "phase5 route ok")
+	if nodeResp.Response != "route ok" {
+		t.Fatalf("AnalyzeResource(nodes) response = %q, want %q", nodeResp.Response, "route ok")
 	}
 
 	hpaResp, err := app.AnalyzeResource("hpa", "default", "web-hpa")
 	if err != nil {
 		t.Fatalf("AnalyzeResource(hpa) unexpected error: %v", err)
 	}
-	if hpaResp.Response != "phase5 route ok" {
-		t.Fatalf("AnalyzeResource(hpa) response = %q, want %q", hpaResp.Response, "phase5 route ok")
+	if hpaResp.Response != "route ok" {
+		t.Fatalf("AnalyzeResource(hpa) response = %q, want %q", hpaResp.Response, "route ok")
 	}
 }
 
@@ -295,7 +295,7 @@ func TestAskHolmesStream_CompletesAndCleansUp(t *testing.T) {
 
 	streamID := "stream-success"
 	app := &App{ctx: context.Background()}
-	if err := app.AskHolmesStream("phase5 question", streamID); err != nil {
+	if err := app.AskHolmesStream("test question", streamID); err != nil {
 		t.Fatalf("AskHolmesStream unexpected error: %v", err)
 	}
 

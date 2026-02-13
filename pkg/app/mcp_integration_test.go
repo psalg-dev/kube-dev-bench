@@ -16,7 +16,6 @@ import (
 	ktesting "k8s.io/client-go/testing"
 )
 
-// Step 1: Getter coverage for MCPServerAdapter
 func TestMCPAdapter_Getters_Basic(t *testing.T) {
 	tmpCfg := filepath.Join(os.TempDir(), "kdb-test-kubeconfig")
 
@@ -64,7 +63,6 @@ func TestMCPAdapter_PreferredNamespaces_IsCopy(t *testing.T) {
 	}
 }
 
-// Step 2: Resource list passthroughs
 func TestMCPAdapter_ResourceLists_Passthrough(t *testing.T) {
 	ns := "ns1"
 
@@ -187,7 +185,6 @@ func TestMCPAdapter_ResourceLists_ErrorPropagation(t *testing.T) {
 	}
 }
 
-// Step 3: Wrappers that rely on non-fake clients (error paths or alternate injection)
 func TestMCPAdapter_GetJobs_ErrorWithoutContext(t *testing.T) {
 	app := &App{}
 	adapter := &MCPServerAdapter{app: app}
