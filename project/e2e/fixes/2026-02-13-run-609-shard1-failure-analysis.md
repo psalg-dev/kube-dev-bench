@@ -101,3 +101,35 @@
 2. No `connection refused` from local Wails API during create overlay operations.
 3. Workloads and batch bottom-panel tests pass on first attempt (or retry only for known transient UI waits).
 4. If failure recurs, shard-1 summary artifact pinpoints failing phase without requiring private logs.
+
+## Follow-Up Validation: Run 610 (Post-Isolation Patch)
+- Workflow run: 21984813202 (Build #610)
+- Commit: `63dc4897574a8af1d99eca1bdbdddbb055aae023`
+- Overall result: failed
+- Job focus: `e2e (e2e-shard-1, 1, 34200, false, false, false)`
+- Shard-1 result: failed
+
+### What Improved
+1. Other E2E jobs completed successfully (`e2e-shard-2`, `e2e-mcp`, `e2e-registry`, `e2e-holmes-deploy`).
+2. Shard-1 diagnostics remained available:
+   - `Extract shard-1 failure summary` step succeeded.
+   - `e2e-test-results-e2e-shard-1` artifact was uploaded.
+3. This indicates the isolation patch did not regress multi-shard execution and diagnostics collection.
+
+### Remaining Failure Signals (Shard-1)
+1. Same fixture setup timeout still appears:
+   - `Fixture "namespace" timeout of 300000ms exceeded during setup`
+   - Referenced at `e2e/src/fixtures.ts:28` in retries.
+2. Namespace selection/setup instability still appears in batch suite:
+   - `Expected substring: "kdb-e2e-...-p0"`
+   - `Received string: "Select namespaces…"`
+   - Location: `e2e/src/pages/SidebarPage.ts:160`.
+3. Workloads suite still shows bottom-panel transient error persistence:
+   - `Expected: "ok"`
+   - `Received: "transient"`
+   - Location: `e2e/src/pages/BottomPanel.ts:102`.
+4. Run still stopped early after max failures (`Testing stopped early after 1 maximum allowed failures`).
+
+### Updated Conclusion
+1. Isolation changes reduced cross-shard interference risk and preserved diagnostics, but did **not** eliminate shard-1 fixture/setup flakiness.
+2. Next fix iteration should target readiness/namespace bootstrap robustness rather than additional shard partitioning.

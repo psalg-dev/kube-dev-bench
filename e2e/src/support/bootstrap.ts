@@ -75,8 +75,26 @@ export async function bootstrapApp(opts: {
   await wizard.pastePrimaryKubeconfigAndContinue(state.kubeconfigYaml);
 
   const sidebar = new SidebarPage(page);
-  await sidebar.selectContext(contextName);
-  await sidebar.selectNamespace(namespace);
+  let lastSelectionError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await sidebar.selectContext(contextName);
+      await sidebar.selectNamespace(namespace);
+      lastSelectionError = undefined;
+      break;
+    } catch (error) {
+      lastSelectionError = error;
+      if (attempt === 3) {
+        break;
+      }
+
+      await page.waitForTimeout(1_000 * attempt);
+    }
+  }
+
+  if (lastSelectionError) {
+    throw lastSelectionError;
+  }
 
   return { sidebar };
 }

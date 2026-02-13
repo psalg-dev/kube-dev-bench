@@ -135,8 +135,9 @@ export class SidebarPage {
     const listbox = this.page.locator('#react-select-namespace-multi-listbox');
     const combobox = root.getByRole('combobox');
 
-    // Keep trying until the namespace appears (namespaces list can lag a bit).
-    const deadline = Date.now() + 20_000;
+    // Keep trying until the namespace appears (namespaces list can lag in CI).
+    const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
+    const deadline = Date.now() + selectionTimeoutMs;
     while (Date.now() < deadline) {
       await root.click({ force: true });
       if (!(await listbox.isVisible())) {
@@ -144,10 +145,12 @@ export class SidebarPage {
       }
 
       if (await listbox.isVisible()) {
+        // Type-ahead nudges react-select to refresh visible options in some race windows.
+        await combobox.fill(namespace).catch(() => {});
         const option = listbox.getByRole('option', { name: namespace, exact: true });
         if (await option.isVisible().catch(() => false)) {
           await option.click();
-          await expect(root).toContainText(namespace);
+          await expect(root).toContainText(namespace, { timeout: 30_000 });
           break;
         }
       }
@@ -157,7 +160,7 @@ export class SidebarPage {
       await this.page.waitForTimeout(500);
     }
 
-    await expect(root).toContainText(namespace);
+    await expect(root).toContainText(namespace, { timeout: 30_000 });
 
     // Close menu by clicking outside
     await this.page.locator('#sidebar').click({ position: { x: 10, y: 10 } });

@@ -154,7 +154,48 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 }
 
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
-  const allowClusterRecovery = process.env.E2E_RECOVER_KIND_DURING_NAMESPACE_SETUP === '1';
+  const explicitRecoverySetting = process.env.E2E_RECOVER_KIND_DURING_NAMESPACE_SETUP;
+  const isCI = process.env.CI === '1' || process.env.CI === 'true';
+  const allowClusterRecovery = explicitRecoverySetting
+    ? explicitRecoverySetting === '1'
+    : isCI;
+
+  const waitForNamespaceReady = async () => {
+    let lastOutput = '';
+    for (let attempt = 1; attempt <= 30; attempt++) {
+      const probe = await kubectl(
+        ['get', 'ns', namespace, '-o', 'jsonpath={.status.phase}{"|"}{.metadata.deletionTimestamp}'],
+        {
+          kubeconfigPath,
+          timeoutMs: 20_000,
+        }
+      );
+
+      if (probe.code !== 0) {
+        const output = `${probe.stderr || ''}\n${probe.stdout || ''}`.trim();
+        lastOutput = output;
+        if (/not found/i.test(output)) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+          continue;
+        }
+        if (isTransientConnectError(output)) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+          continue;
+        }
+        throw new Error(`Failed probing namespace ${namespace}: ${output || 'kubectl probe failed'}`);
+      }
+
+      const [phase = '', deletionTs = ''] = String(probe.stdout || '').trim().split('|');
+      if (/active/i.test(phase) && !deletionTs) {
+        return;
+      }
+
+      lastOutput = `phase=${phase || 'unknown'} deletionTimestamp=${deletionTs || 'none'}`;
+      await new Promise((resolve) => setTimeout(resolve, 1000 * Math.min(attempt, 5)));
+    }
+
+    throw new Error(`Namespace ${namespace} did not become ready: ${lastOutput || 'unknown state'}`);
+  };
 
   const ensureNamespaceOnce = async () => {
     const waitForApiReady = async () => {
@@ -183,7 +224,10 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
     await waitForApiReady();
 
     const get = await kubectl(['get', 'ns', namespace], { kubeconfigPath, timeoutMs: 60_000 });
-    if (get.code === 0) return;
+    if (get.code === 0) {
+      await waitForNamespaceReady();
+      return;
+    }
 
     const initialMessage = `${get.stderr || ''}\n${get.stdout || ''}`.trim();
 
@@ -193,6 +237,7 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
 
       const message = `${create.stderr || ''}\n${create.stdout || ''}`.trim();
       if (/already exists/i.test(message)) {
+        await waitForNamespaceReady();
         return;
       }
 
@@ -204,6 +249,8 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
 
       throw new Error(`Failed creating namespace ${namespace}: ${message || create.stderr || create.stdout}`);
     }
+
+    await waitForNamespaceReady();
   };
 
   for (let cycle = 1; cycle <= 4; cycle++) {
