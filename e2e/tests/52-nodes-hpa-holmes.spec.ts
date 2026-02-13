@@ -64,7 +64,9 @@ spec:
     });
 
     await test.step('Create HPA and verify Holmes tab availability', async () => {
-      await sidebar.goToSection('hpa');
+      // Open create overlay from Deployments section because some resources
+      // expose create actions differently in CI runs.
+      await sidebar.goToSection('deployments');
       const hpaYaml = `apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -90,6 +92,8 @@ spec:
       await overlay.fillYaml(hpaYaml);
       await overlay.create();
       await notifications.waitForClear();
+
+  await sidebar.goToSection('hpa');
       await waitForTableRow(page, new RegExp(hpaName));
 
       const hpaRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: hpaName }).first();

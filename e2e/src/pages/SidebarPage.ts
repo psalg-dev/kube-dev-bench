@@ -3,6 +3,32 @@ import { expect, type Page } from '@playwright/test';
 export class SidebarPage {
   constructor(private readonly page: Page) {}
 
+  private readonly routeBySection: Record<string, string> = {
+    pods: '#/pods',
+    nodes: '#/nodes',
+    hpa: '#/hpa',
+    deployments: '#/deployments',
+    daemonsets: '#/daemonsets',
+    statefulsets: '#/statefulsets',
+    replicasets: '#/replicasets',
+    jobs: '#/jobs',
+    cronjobs: '#/cronjobs',
+    services: '#/services',
+    ingresses: '#/ingresses',
+    configmaps: '#/configmaps',
+    secrets: '#/secrets',
+    persistentvolumeclaims: '#/persistentvolumeclaims',
+    persistentvolumes: '#/persistentvolumes',
+    roles: '#/roles',
+    clusterroles: '#/clusterroles',
+    rolebindings: '#/rolebindings',
+    clusterrolebindings: '#/clusterrolebindings',
+    'namespace-topology': '#/namespace-topology',
+    'storage-graph': '#/storage-graph',
+    'network-graph': '#/network-graph',
+    'rbac-graph': '#/rbac-graph',
+  };
+
   private readonly titleBySection: Record<string, string> = {
     pods: 'Pods',
     nodes: 'Nodes',
@@ -72,7 +98,7 @@ export class SidebarPage {
     if (!expectedTitle) {
       return;
     }
-    await expect(this.page.locator('h2.overview-title:visible')).toHaveText(
+    await expect(this.page.locator('#main-panels > div:visible h2.overview-title')).toHaveText(
       new RegExp(`^${expectedTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'),
       { timeout: 15_000 }
     );
@@ -82,11 +108,17 @@ export class SidebarPage {
     const section = this.page.locator(sectionSelector);
     await expect(section).toBeVisible({ timeout: 30_000 });
     await section.scrollIntoViewIfNeeded();
+    const expectedRoute = this.routeBySection[key];
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       await section.click({ timeout: 30_000, force: attempt > 0 });
 
       try {
+        if (expectedRoute) {
+          await expect(this.page).toHaveURL(new RegExp(`${expectedRoute.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i'), {
+            timeout: 10_000,
+          });
+        }
         await this.expectSectionMainTitle(key);
         return;
       } catch {
