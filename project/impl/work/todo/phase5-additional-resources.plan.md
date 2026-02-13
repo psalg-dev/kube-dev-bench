@@ -5,7 +5,7 @@ priority: medium
 ---
 # Phase 5: Holmes Analysis for Additional Kubernetes Resources
 
-**Status:** WIP (95% — Node + HPA Holmes implemented; validation/documentation wrap-up in progress)
+**Status:** WIP (98% — implementation complete; coverage threshold + final docs wrap-up remaining)
 **Created:** 2026-02-06
 **Updated:** 2026-02-13
 
@@ -50,8 +50,8 @@ Resources WITH Holmes analysis:
   - ✅ `AnalyzeJobStream` (line 261)
   - ✅ `AnalyzeIngressStream` (line 275)
   - ✅ `AnalyzePersistentVolumeClaimStream` (line 303)
-  - ❌ `AnalyzeNodeStream` — NOT FOUND
-  - ❌ `AnalyzeHPAStream` — NOT FOUND
+  - ✅ `AnalyzeNodeStream` (line 284)
+  - ✅ `AnalyzeHPAStream` (line 291)
 
 ---
 
@@ -150,6 +150,12 @@ Resources WITH Holmes analysis:
 - [x] Holmes E2E tests at `e2e/tests/holmes/` — 7 test files exist
 - [x] Phase 5 resource-specific E2E for remaining Node/HPA panels (`e2e/tests/52-nodes-hpa-holmes.spec.ts`)
 
+### Latest Validation Run (2026-02-13)
+- [x] Targeted Go tests passed: `go test ./pkg/app/... -run 'TestGet(Node|HPA)Context' -count=1`
+- [x] Phase 5 E2E passed: `cd e2e && npx playwright test tests/52-nodes-hpa-holmes.spec.ts`
+- [x] Added focused Holmes integration tests for Node/HPA routing, stream error branches, and stream lifecycle (`pkg/app/holmes_phase5_coverage_test.go`)
+- [ ] Backend package coverage still below target: `go test -cover ./pkg/app/...` now reports `gowails/pkg/app` at **50.7%**
+
 ---
 
 ## Success Criteria
@@ -161,15 +167,15 @@ Resources WITH Holmes analysis:
 - [x] Node analysis working (backend + frontend)
 - [x] HPA Holmes analysis working (backend + frontend)
 - [ ] Unit tests with >= 70% coverage for all new code
-- [ ] E2E tests for each resource type
+- [x] E2E tests for each resource type
 
 ---
 
 ## Documentation Updates
 
 - [x] Update `CLAUDE.md` with Phase 5 features (Holmes supports: CronJob, Job, Ingress, PVC, ConfigMap, Secret, PV, Node, HPA)
-- [ ] Document new resource analysis capabilities
-- [ ] Add troubleshooting section for new resource types
+- [x] Document new resource analysis capabilities
+- [x] Add troubleshooting section for new resource types
 
 ---
 
@@ -180,3 +186,10 @@ Resources WITH Holmes analysis:
 - Unit tests >= 70% coverage
 - E2E tests passing
 - Documentation updated
+
+---
+
+## Remaining Close-Out Actions
+
+1. Raise coverage for `pkg/app` from **50.7%** to >= 70% (focus on Holmes Node/HPA plus adjacent integration paths).
+2. Re-run targeted backend + E2E validation after coverage additions.

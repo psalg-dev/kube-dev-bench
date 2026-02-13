@@ -61,7 +61,7 @@ A modern desktop client for managing Kubernetes clusters and Docker Swarm enviro
 
 AI-powered diagnostics for intelligent troubleshooting:
 
-- **Resource Analysis** — Analyze pods, deployments, StatefulSets, DaemonSets, services
+- **Resource Analysis** — Analyze pods, deployments, StatefulSets, DaemonSets, services, CronJobs, Jobs, Ingresses, PVCs, PVs, ConfigMaps, Secrets, Nodes, and HPAs
 - **Log Analysis** — "Explain Logs" with error pattern detection and remediation suggestions
 - **Swarm Diagnostics** — Service and task analysis for Docker Swarm
 - **Free-form Questions** — Ask questions about your cluster state
@@ -106,6 +106,17 @@ AI-powered diagnostics for intelligent troubleshooting:
 1. Connect to Docker Swarm
 2. Open Services or Tasks, click a row
 3. Select the Holmes tab and click **Analyze with Holmes**
+
+### Analyze Kubernetes Nodes and HPAs
+1. Open **Nodes** or **HPA** in the Kubernetes sidebar
+2. Click a table row to open the bottom panel
+3. Select the Holmes tab and click **Analyze with Holmes**
+
+### Holmes Troubleshooting (Nodes / HPA)
+- If the Holmes tab shows no response, verify Holmes endpoint and API key in settings.
+- If Node analysis is empty, confirm the selected cluster has visible node permissions.
+- If HPA analysis is empty, ensure the HPA exists in the currently selected namespace.
+- If streaming appears stalled, retry after reconnecting the active Kubernetes context.
 
 ---
 
