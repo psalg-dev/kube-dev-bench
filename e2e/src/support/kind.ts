@@ -67,8 +67,14 @@ async function recoverKubeconfigForApiAvailability(kubeconfigPath: string): Prom
     await refreshRunStateKubeconfig(recovered);
 
     // Step 2 – verify the API server actually responds.
-    const probe = await kubectl(['get', 'ns', 'default'], { kubeconfigPath, timeoutMs: 10_000 });
-    if (probe.code === 0) {
+    let apiResponding = false;
+    try {
+      const probe = await kubectl(['get', 'ns', 'default'], { kubeconfigPath, timeoutMs: 15_000 });
+      apiResponding = probe.code === 0;
+    } catch {
+      // exec() rejects on timeout — treat as API down.
+    }
+    if (apiResponding) {
       console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery complete; kubeconfig refreshed`);
       return true;
     }

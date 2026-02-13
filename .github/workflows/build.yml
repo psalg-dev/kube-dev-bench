@@ -283,7 +283,7 @@ jobs:
         run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/2
         env:
           CI: true
-          PW_WORKERS: '2'
+          PW_WORKERS: '1'
           KIND_CLUSTER_NAME: 'kdb-e2e'
           E2E_REPORT_PREFIX: '${{ matrix.name }}'
           E2E_WAILS_BASE_PORT: '${{ matrix.base_port }}'
