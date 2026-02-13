@@ -144,6 +144,12 @@ jobs:
             registry: false
             holmes_deploy: false
             mcp: false
+          - name: e2e-shard-3
+            shard: 3
+            base_port: 34700
+            registry: false
+            holmes_deploy: false
+            mcp: false
           - name: e2e-mcp
             base_port: 34400
             registry: false
@@ -280,7 +286,7 @@ jobs:
       - name: Run e2e tests (shard ${{ matrix.shard }}/2)
         if: matrix.registry != true && matrix.holmes_deploy != true && matrix.mcp != true
         working-directory: e2e
-        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/2
+        run: xvfb-run -a npx playwright test tests/*.spec.ts tests/holmes tests/monitoring tests/swarm --shard=${{ matrix.shard }}/3
         env:
           CI: true
           PW_WORKERS: '1'
