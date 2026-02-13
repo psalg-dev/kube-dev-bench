@@ -154,6 +154,8 @@ export async function writeNamedKubeconfigFile(dir: string, fileName: string, ku
 }
 
 export async function ensureNamespace(kubeconfigPath: string, namespace: string) {
+  const allowClusterRecovery = process.env.E2E_RECOVER_KIND_DURING_NAMESPACE_SETUP === '1';
+
   const ensureNamespaceOnce = async () => {
     const waitForApiReady = async () => {
       let lastOutput = '';
@@ -212,8 +214,10 @@ export async function ensureNamespace(kubeconfigPath: string, namespace: string)
       const message = err instanceof Error ? err.message : String(err);
       const isFinalCycle = cycle === 4;
       if (!isFinalCycle && isTransientConnectError(message)) {
-        const recovered = await recoverKubeconfigForApiAvailability(kubeconfigPath);
-        if (recovered) continue;
+        if (allowClusterRecovery) {
+          const recovered = await recoverKubeconfigForApiAvailability(kubeconfigPath);
+          if (recovered) continue;
+        }
 
         await new Promise((resolve) => setTimeout(resolve, 1000 * cycle));
         continue;
