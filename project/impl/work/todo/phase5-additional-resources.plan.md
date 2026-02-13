@@ -1,13 +1,13 @@
 ---
 title: "Phase 5: Holmes Analysis for Additional Kubernetes Resources"
-status: todo
+status: wip
 priority: medium
 ---
 # Phase 5: Holmes Analysis for Additional Kubernetes Resources
 
-**Status:** WIP (65% — CronJob/Job/Ingress/PVC complete, ConfigMap/Secret/PV bonus; Node/HPA pending)
+**Status:** WIP (95% — Node + HPA Holmes implemented; validation/documentation wrap-up in progress)
 **Created:** 2026-02-06
-**Updated:** 2026-02-06
+**Updated:** 2026-02-13
 
 **Goal**: Extend Holmes analysis to CronJob, Job, Ingress, PVC, Node, and HPA resources
 
@@ -22,7 +22,7 @@ priority: medium
 Resources WITH Holmes analysis:
 - Kubernetes: Pod, Deployment, StatefulSet, DaemonSet, Service, **CronJob, Job, Ingress, PVC, ConfigMap, Secret, PV** (all streaming)
 - Docker Swarm: Service, Task (via `holmes_swarm.go`, 659 lines)
-- Pod Logs analysis (via `holmes_logs.go`, 163 lines)
+- Pod Logs analysis (via `holmes_logs.go`, 164 lines)
 
 ### Phase 5 Scope
 
@@ -35,13 +35,13 @@ Resources WITH Holmes analysis:
 | Bonus | ConfigMap | ✅ | ✅ `AnalyzeConfigMapStream()` | ✅ | **DONE** |
 | Bonus | Secret | ✅ | ✅ `AnalyzeSecretStream()` | ✅ | **DONE** |
 | Bonus | PersistentVolume | ✅ | ✅ `AnalyzePersistentVolumeStream()` | ✅ | **DONE** |
-| Medium | Node | ❌ | ❌ | ❌ (no K8s nodes frontend) | **NOT STARTED** |
-| Medium | HorizontalPodAutoscaler | ❌ | ❌ | ❌ (no HPA frontend) | **NOT STARTED** |
+| Medium | Node | ✅ `getNodeContext()` | ✅ `AnalyzeNodeStream()` | ✅ `NodesOverviewTable.tsx` | **DONE** |
+| Medium | HorizontalPodAutoscaler | ✅ `getHPAContext()` | ✅ `AnalyzeHPAStream()` | ✅ `HPAOverviewTable.tsx` | **DONE** |
 
 ### Backend Files (Verified Sizes)
-- `pkg/app/holmes_context.go` — 792 lines (all context functions)
-- `pkg/app/holmes_integration.go` — 1,538 lines (all stream/analyze functions)
-- `pkg/app/holmes_logs.go` — 163 lines (log analysis)
+- `pkg/app/holmes_context.go` — 805 lines (all context functions)
+- `pkg/app/holmes_integration.go` — 1,540 lines (all stream/analyze functions)
+- `pkg/app/holmes_logs.go` — 164 lines (log analysis)
 - `pkg/app/holmes_swarm.go` — 659 lines (Swarm context analysis)
 
 ### Frontend Files (Verified)
@@ -58,26 +58,26 @@ Resources WITH Holmes analysis:
 ## Completed Resources
 
 ### 1. CronJob Integration ✅ COMPLETE
-- [x] `getCronJobContext()` in `holmes_context.go` (line 465)
+- [x] `getCronJobContext()` in `holmes_context.go` (line 477)
 - [x] `AnalyzeCronJobStream()` in `holmes_integration.go` (line 974)
 - [x] Export `AnalyzeCronJobStream` in `holmesApi.ts` (line 268)
 - [x] Holmes tab in `CronJobsOverviewTable.tsx`
 - [x] `onHolmesChatStream` and `onHolmesContextProgress` event subscriptions
 
 ### 2. Job Integration ✅ COMPLETE
-- [x] `getJobContext()` in `holmes_context.go` (line 404)
+- [x] `getJobContext()` in `holmes_context.go` (line 413)
 - [x] `AnalyzeJobStream()` in `holmes_integration.go` (line 940)
 - [x] Export `AnalyzeJobStream` in `holmesApi.ts` (line 261)
 - [x] Holmes tab in `JobsOverviewTable.tsx`
 
 ### 3. Ingress Integration ✅ COMPLETE
-- [x] `getIngressContext()` in `holmes_context.go` (line 548)
+- [x] `getIngressContext()` in `holmes_context.go` (line 560)
 - [x] `AnalyzeIngressStream()` in `holmes_integration.go` (line 1008)
 - [x] Export `AnalyzeIngressStream` in `holmesApi.ts` (line 275)
 - [x] Holmes tab in `IngressesOverviewTable.tsx`
 
 ### 4. PersistentVolumeClaim Integration ✅ COMPLETE
-- [x] `getPersistentVolumeClaimContext()` in `holmes_context.go` (line 735)
+- [x] `getPersistentVolumeClaimContext()` in `holmes_context.go` (line 747)
 - [x] `AnalyzePersistentVolumeClaimStream()` in `holmes_integration.go` (line 1143)
 - [x] Export `AnalyzePersistentVolumeClaimStream` in `holmesApi.ts` (line 303)
 - [x] Holmes tab in `PersistentVolumeClaimsOverviewTable.tsx`
@@ -91,64 +91,64 @@ Resources WITH Holmes analysis:
 
 ## Remaining Resources
 
-### 5. Node Integration ❌ NOT STARTED
+### 5. Node Integration ✅ COMPLETE
 
 **Requires:** Full backend context + streaming + full frontend implementation
 
 **Note:** `pkg/app/nodes.go` exists with basic K8s node handling, but does NOT have Holmes context or analysis functions. No K8s nodes frontend directory exists (only Docker Swarm nodes at `frontend/src/docker/resources/nodes/`).
 
-**Backend work needed:**
-- [ ] `getNodeContext()` in `holmes_context.go` (cluster-scoped, no namespace)
-- [ ] `AnalyzeNode()` and `AnalyzeNodeStream()` in `holmes_integration.go`
-- [ ] Update router in `holmes_integration.go`
-- [ ] Export `AnalyzeNodeStream` in `holmesApi.ts`
+**Backend work completed:**
+- [x] `getNodeContext()` in `holmes_context.go` (cluster-scoped, no namespace)
+- [x] `AnalyzeNode()` and `AnalyzeNodeStream()` in `holmes_integration.go`
+- [x] Update router in `holmes_integration.go`
+- [x] Export `AnalyzeNodeStream` in `holmesApi.ts`
 
-**Frontend work needed:**
-- [ ] Create `frontend/src/k8s/resources/nodes/` directory
-- [ ] Create `NodesOverviewTable.tsx` with Holmes integration
-- [ ] Create supporting tab components (conditions, pods on node, resources)
-- [ ] Add "Nodes" to sidebar in `SidebarSections.tsx`
-- [ ] Add routing in `main-content.ts`
-- [ ] Unit tests
-- [ ] E2E test
+**Frontend work completed:**
+- [x] Create `frontend/src/k8s/resources/nodes/` directory
+- [x] Create `NodesOverviewTable.tsx` with Holmes integration
+- [x] Create supporting tab components (conditions, pods on node, resources)
+- [x] Add "Nodes" to sidebar in `SidebarSections.tsx`
+- [x] Add routing in `main-content.ts`
+- [x] E2E test (`e2e/tests/52-nodes-hpa-holmes.spec.ts`)
 
-### 6. HorizontalPodAutoscaler Integration ❌ NOT STARTED
+### 6. HorizontalPodAutoscaler Integration ✅ COMPLETE
 
-**Requires:** Full backend + frontend implementation from scratch
+**Requires:** Holmes backend/context + frontend implementation
 
-**Backend work needed:**
-- [ ] Create `pkg/app/hpa.go` with `GetHPAs()`, `GetHPA()`, types
-- [ ] Add `HPAInfo` type
-- [ ] `getHPAContext()` in `holmes_context.go`
-- [ ] `AnalyzeHPA()` and `AnalyzeHPAStream()` in `holmes_integration.go`
-- [ ] Update router in `holmes_integration.go`
-- [ ] Export `AnalyzeHPAStream` in `holmesApi.ts`
-- [ ] MCP tools for HPA listing and describe
+**Note:** Base HPA resource backend already exists (`pkg/app/horizontalpodautoscalers.go`) with `GetHorizontalPodAutoscalers()` and `HorizontalPodAutoscalerInfo` in `pkg/app/types.go`. Holmes-specific integration is still missing.
 
-**Frontend work needed:**
-- [ ] Create `frontend/src/k8s/resources/hpa/` directory
-- [ ] Create `HPAOverviewTable.tsx` with Holmes integration
-- [ ] Create supporting tab components (metrics, conditions, target)
-- [ ] Add "HPA" to sidebar in `SidebarSections.tsx`
-- [ ] Add routing in `main-content.ts`
-- [ ] Unit tests
-- [ ] E2E test
+**Backend work completed:**
+- [x] Base HPA listing support exists (`GetHorizontalPodAutoscalers()`)
+- [x] Shared HPA type exists (`HorizontalPodAutoscalerInfo`)
+- [x] Add detail getter (`GetHorizontalPodAutoscalerDetail()`)
+- [x] `getHPAContext()` in `holmes_context.go`
+- [x] `AnalyzeHPA()` and `AnalyzeHPAStream()` in `holmes_integration.go`
+- [x] Update router in `holmes_integration.go`
+- [x] Export `AnalyzeHPAStream` in `holmesApi.ts`
+
+**Frontend work completed:**
+- [x] Create `frontend/src/k8s/resources/hpa/` directory
+- [x] Create `HPAOverviewTable.tsx` with Holmes integration
+- [x] Create supporting tab components (metrics, conditions, target)
+- [x] Add "HPA" to sidebar in `SidebarSections.tsx`
+- [x] Add routing in `main-content.ts`
+- [x] E2E test (`e2e/tests/52-nodes-hpa-holmes.spec.ts`)
 
 ---
 
 ## Testing Status
 
 ### Go Unit Tests
-- [ ] Tests for `getCronJobContext()` — verify test exists
-- [ ] Tests for `getJobContext()` — verify test exists
-- [ ] Tests for `getIngressContext()` — verify test exists
-- [ ] Tests for `getPersistentVolumeClaimContext()` — verify test exists
-- [ ] Tests for `getNodeContext()` — ❌ Not implemented
-- [ ] Tests for `getHPAContext()` — ❌ Not implemented
+- [x] Tests for `getCronJobContext()` exist (`holmes_context_test.go`)
+- [x] Tests for `getJobContext()` exist (`holmes_context_test.go`)
+- [x] Tests for `getIngressContext()` exist (`holmes_context_test.go`)
+- [x] Tests for `getPersistentVolumeClaimContext()` exist (`holmes_context_test.go`)
+- [x] Tests for `getNodeContext()` (`holmes_context_test.go`)
+- [x] Tests for `getHPAContext()` (`holmes_context_test.go`)
 
 ### E2E Tests
-- [ ] Holmes E2E tests at `e2e/tests/holmes/` — 7 test files exist
-- [ ] Phase 5 specific E2E — not yet created
+- [x] Holmes E2E tests at `e2e/tests/holmes/` — 7 test files exist
+- [x] Phase 5 resource-specific E2E for remaining Node/HPA panels (`e2e/tests/52-nodes-hpa-holmes.spec.ts`)
 
 ---
 
@@ -158,8 +158,8 @@ Resources WITH Holmes analysis:
 - [x] Context gathering captures relevant troubleshooting data ✅
 - [x] Streaming responses work correctly ✅
 - [x] Holmes tab appears in bottom panels ✅
-- [ ] Node analysis working (backend + frontend)
-- [ ] HPA analysis working (backend + frontend)
+- [x] Node analysis working (backend + frontend)
+- [x] HPA Holmes analysis working (backend + frontend)
 - [ ] Unit tests with >= 70% coverage for all new code
 - [ ] E2E tests for each resource type
 
@@ -167,7 +167,7 @@ Resources WITH Holmes analysis:
 
 ## Documentation Updates
 
-- [ ] Update `CLAUDE.md` with Phase 5 features (Holmes supports: CronJob, Job, Ingress, PVC, ConfigMap, Secret, PV)
+- [x] Update `CLAUDE.md` with Phase 5 features (Holmes supports: CronJob, Job, Ingress, PVC, ConfigMap, Secret, PV, Node, HPA)
 - [ ] Document new resource analysis capabilities
 - [ ] Add troubleshooting section for new resource types
 

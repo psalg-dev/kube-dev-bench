@@ -35,10 +35,10 @@ func TestGetNodes_ReturnsNodes(t *testing.T) {
 					},
 				},
 				NodeInfo: corev1.NodeSystemInfo{
-					KubeletVersion:           "v1.28.0",
-					OSImage:                  "Ubuntu 22.04",
-					KernelVersion:            "5.15.0",
-					ContainerRuntimeVersion:  "containerd://1.7.0",
+					KubeletVersion:          "v1.28.0",
+					OSImage:                 "Ubuntu 22.04",
+					KernelVersion:           "5.15.0",
+					ContainerRuntimeVersion: "containerd://1.7.0",
 				},
 				Allocatable: corev1.ResourceList{
 					corev1.ResourceCPU:    resource.MustParse("4"),
@@ -194,5 +194,43 @@ func TestExtractNodeRoles_NoRoleLabels(t *testing.T) {
 
 	if len(roles) != 1 || roles[0] != "worker" {
 		t.Errorf("expected default worker role, got %v", roles)
+	}
+}
+
+func TestGetPodsOnNode_ReturnsScheduledPods(t *testing.T) {
+	ctx := context.Background()
+	clientset := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "pod-on-node", Namespace: "default"},
+			Spec:       corev1.PodSpec{NodeName: "node-1"},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "pod-other-node", Namespace: "default"},
+			Spec:       corev1.PodSpec{NodeName: "node-2"},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+
+	app := &App{ctx: ctx, testClientset: clientset}
+
+	pods, err := app.GetPodsOnNode("node-1")
+	if err != nil {
+		t.Fatalf("GetPodsOnNode failed: %v", err)
+	}
+
+	if len(pods) != 1 {
+		t.Fatalf("expected 1 pod on node-1, got %d", len(pods))
+	}
+	if pods[0].Name != "pod-on-node" {
+		t.Fatalf("expected pod-on-node, got %s", pods[0].Name)
+	}
+}
+
+func TestGetPodsOnNode_EmptyNodeName(t *testing.T) {
+	app := &App{ctx: context.Background()}
+	_, err := app.GetPodsOnNode("")
+	if err == nil {
+		t.Fatal("expected error for empty node name")
 	}
 }

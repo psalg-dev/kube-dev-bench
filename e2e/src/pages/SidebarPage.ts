@@ -5,6 +5,8 @@ export class SidebarPage {
 
   private readonly titleBySection: Record<string, string> = {
     pods: 'Pods',
+    nodes: 'Nodes',
+    hpa: 'Horizontal Pod Autoscalers',
     deployments: 'Deployments',
     daemonsets: 'Daemon Sets',
     statefulsets: 'Stateful Sets',
@@ -23,10 +25,12 @@ export class SidebarPage {
     'network-graph': 'topology',
     'rbac-graph': 'topology',
     pods: 'workloads',
+    nodes: 'workloads',
     deployments: 'workloads',
     daemonsets: 'workloads',
     statefulsets: 'workloads',
     replicasets: 'workloads',
+    hpa: 'workloads',
     jobs: 'workloads',
     cronjobs: 'workloads',
     services: 'networking',

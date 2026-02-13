@@ -127,7 +127,7 @@ Docker Swarm (via `docker_integration.go`):
 - `GetDockerServiceLogs`, `GetDockerTaskLogs` - Log streaming
 
 Holmes AI:
-- `AnalyzePod`, `AnalyzeDeployment`, `AnalyzeStatefulSet`, `AnalyzeDaemonSet`, `AnalyzeService`, `AnalyzeResource` provide context-aware analysis.
+- `AnalyzePod`, `AnalyzeDeployment`, `AnalyzeStatefulSet`, `AnalyzeDaemonSet`, `AnalyzeService`, `AnalyzeJob`, `AnalyzeCronJob`, `AnalyzeIngress`, `AnalyzePersistentVolumeClaim`, `AnalyzePersistentVolume`, `AnalyzeConfigMap`, `AnalyzeSecret`, `AnalyzeNode`, `AnalyzeHPA`, and `AnalyzeResource` provide context-aware analysis.
 - `HolmesBottomPanel` renders analysis in resource bottom-panel tabs; `HolmesResponseRenderer` handles markdown + syntax highlighting.
 
 Monitoring + Alerts:

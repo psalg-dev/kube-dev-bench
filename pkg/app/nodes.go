@@ -182,6 +182,9 @@ func (a *App) GetPodsOnNode(nodeName string) ([]PodInfo, error) {
 	now := time.Now()
 	result := make([]PodInfo, 0, len(pods.Items))
 	for _, pod := range pods.Items {
+		if pod.Spec.NodeName != nodeName {
+			continue
+		}
 		if shouldIncludePod(&pod) {
 			result = append(result, buildPodInfoFromPod(pod, now))
 		}
