@@ -61,11 +61,40 @@ async function recoverKubeconfigForApiAvailability(kubeconfigPath: string): Prom
   console.log(`[e2e][kind] ${new Date().toISOString()} API unavailable; attempting KinD recovery for cluster '${clusterName}'`);
 
   try {
+    // Step 1 – refresh kubeconfig (fast; only talks to Docker, not the API server).
     const recovered = await ensureKindCluster(clusterName);
     await fs.writeFile(kubeconfigPath, recovered.kubeconfigYaml, 'utf-8');
     await refreshRunStateKubeconfig(recovered);
-    console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery complete; kubeconfig refreshed`);
-    return true;
+
+    // Step 2 – verify the API server actually responds.
+    const probe = await kubectl(['get', 'ns', 'default'], { kubeconfigPath, timeoutMs: 10_000 });
+    if (probe.code === 0) {
+      console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery complete; kubeconfig refreshed`);
+      return true;
+    }
+
+    // Step 3 – API still unreachable.  Restart the control-plane container so
+    // the kubelet / kube-apiserver / etcd recover without losing cluster state.
+    const containerName = `${clusterName}-control-plane`;
+    console.log(
+      `[e2e][kind] ${new Date().toISOString()} API still unreachable after kubeconfig refresh; restarting container '${containerName}'`
+    );
+    await exec('docker', ['restart', containerName], { timeoutMs: 120_000 });
+
+    // Step 4 – wait for API to come back (up to ~60 s).
+    for (let i = 1; i <= 30; i++) {
+      await new Promise((r) => setTimeout(r, 2_000));
+      const check = await kubectl(['get', 'ns', 'default'], { kubeconfigPath, timeoutMs: 10_000 });
+      if (check.code === 0) {
+        console.log(
+          `[e2e][kind] ${new Date().toISOString()} KinD container restart successful; API available after ${i * 2}s`
+        );
+        return true;
+      }
+    }
+
+    console.log(`[e2e][kind] ${new Date().toISOString()} API still unreachable after container restart`);
+    return false;
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.log(`[e2e][kind] ${new Date().toISOString()} KinD recovery failed: ${message}`);
