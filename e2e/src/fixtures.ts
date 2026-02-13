@@ -21,10 +21,15 @@ type TestFixtures = {
   consoleErrors: string[];
 };
 
+function workerSlot(workerInfo: WorkerInfo): number {
+  return typeof workerInfo.parallelIndex === 'number' ? workerInfo.parallelIndex : workerInfo.workerIndex;
+}
+
 export const test = base.extend<TestFixtures, WorkerFixtures>({
   // Per-worker: isolated home dir + wails dev instance + k8s namespace
   homeDir: [async ({}, use: (value: string) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
+    const slot = workerSlot(workerInfo);
 
     // When Wails instances are pre-started in global setup, they already have an
     // assigned per-instance home dir. Use that so tests can coordinate via FS.
@@ -35,7 +40,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     }
 
     if (Array.isArray(state.wailsInstances) && state.wailsInstances.length > 0) {
-      const inst = state.wailsInstances[workerInfo.workerIndex % state.wailsInstances.length];
+      const inst = state.wailsInstances[slot % state.wailsInstances.length];
       if (inst?.homeDir) {
         await fs.mkdir(inst.homeDir, { recursive: true });
         await use(inst.homeDir);
@@ -44,13 +49,14 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     }
 
     // Fallback: derive a per-worker home dir from runId.
-    const dir = path.join(repoRoot, 'e2e', '.playwright-artifacts-' + state.runId, `home-w${workerInfo.workerIndex}`);
+    const dir = path.join(repoRoot, 'e2e', '.playwright-artifacts-' + state.runId, `home-p${slot}`);
     await fs.mkdir(dir, { recursive: true });
     await use(dir);
   }, { scope: 'worker' }],
 
   kubeconfigPath: [async ({ homeDir }, use: (value: string) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
+    const slot = workerSlot(workerInfo);
     const kubeDir = path.join(repoRoot, 'e2e', '.playwright-artifacts-' + state.runId, 'kube');
     if (!state.kubeconfigYaml) {
       throw new Error(
@@ -62,7 +68,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
     const kubeconfigPath = await writeNamedKubeconfigFile(
       kubeDir,
-      `kubeconfig-w${workerInfo.workerIndex}`,
+      `kubeconfig-p${slot}`,
       state.kubeconfigYaml
     );
     await use(kubeconfigPath);
@@ -82,7 +88,8 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   namespace: [async ({ kubeconfigPath }, use: (value: string) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
-    const ns = `kdb-e2e-${state.runId}-w${workerInfo.workerIndex}`;
+    const slot = workerSlot(workerInfo);
+    const ns = `kdb-e2e-${state.runId}-p${slot}`;
     await ensureNamespace(kubeconfigPath, ns);
     try {
       await use(ns);
@@ -126,10 +133,11 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
 
   page: async ({ browser, consoleErrors }, use: (value: Page) => Promise<void>, workerInfo: WorkerInfo) => {
     const state = await readRunState();
+    const slot = workerSlot(workerInfo);
     const baseURL = state.sharedBaseURL
       ? state.sharedBaseURL
       : state.wailsInstances && state.wailsInstances.length > 0
-        ? state.wailsInstances[workerInfo.workerIndex % state.wailsInstances.length].baseURL
+        ? state.wailsInstances[slot % state.wailsInstances.length].baseURL
         : undefined;
 
     if (!baseURL) {
@@ -140,7 +148,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
     //   <outputDir>/.playwright-artifacts-<workerIndex>/traces
     // On some Windows setups, these directories are not created automatically before trace writing,
     // resulting in ENOENT during context.close(). Create them proactively.
-    const pwArtifactsRoot = path.join(repoRoot, 'e2e', 'test-results', `.playwright-artifacts-${workerInfo.workerIndex}`);
+    const pwArtifactsRoot = path.join(repoRoot, 'e2e', 'test-results', `.playwright-artifacts-${slot}`);
     await fs.mkdir(path.join(pwArtifactsRoot, 'traces'), { recursive: true });
 
     const context = await browser.newContext({ baseURL });

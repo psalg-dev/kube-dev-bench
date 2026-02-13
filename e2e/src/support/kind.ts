@@ -260,7 +260,7 @@ export async function cleanupWorkerNamespaces(
     .map((item) => item.metadata?.name)
     .filter((name): name is string => Boolean(name));
 
-  const workerNsPattern = /^kdb-e2e-(.+)-w\d+$/;
+  const workerNsPattern = /^kdb-e2e-(.+)-(?:w|p)\d+$/;
   const stale = candidates.filter((name) => {
     const match = name.match(workerNsPattern);
     return match ? match[1] !== currentRunId : false;
