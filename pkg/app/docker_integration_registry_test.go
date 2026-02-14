@@ -107,4 +107,47 @@ func TestRegistryWailsBindings_CRUDAndBrowse(t *testing.T) {
 	if digest != "sha256:deadbeef" {
 		t.Fatalf("unexpected digest: %q", digest)
 	}
+
+	if err := app.RemoveRegistry("TestRegistry"); err != nil {
+		t.Fatalf("RemoveRegistry: %v", err)
+	}
+}
+
+func TestRegistryWailsBindings_SearchAndDetailsBranches(t *testing.T) {
+	tmp := t.TempDir()
+	restore := registry.SetStorageOverridesForTests(
+		filepath.Join(tmp, "registries.json"),
+		filepath.Join(tmp, "registry-secrets.key"),
+	)
+	defer restore()
+
+	app := &App{ctx: context.Background()}
+
+	cfg := registry.RegistryConfig{
+		Name: "DockerHub",
+		URL:  "https://index.docker.io",
+		Type: registry.RegistryTypeDockerHub,
+	}
+	if err := app.AddRegistry(cfg); err != nil {
+		t.Fatalf("AddRegistry: %v", err)
+	}
+
+	if _, err := app.SearchRegistryRepositories("DockerHub", "nginx"); err == nil {
+		t.Fatal("expected dockerhub search-not-supported error")
+	}
+	if _, err := app.GetRegistryRepositoryDetails("DockerHub", "library/nginx"); err == nil {
+		t.Fatal("expected dockerhub details-not-supported error")
+	}
+
+	results, err := app.SearchDockerHubRepositories("   ")
+	if err != nil {
+		t.Fatalf("SearchDockerHubRepositories empty query returned error: %v", err)
+	}
+	if len(results) != 0 {
+		t.Fatalf("expected empty results for empty query, got %d", len(results))
+	}
+
+	if _, err := app.GetDockerHubRepositoryDetails(""); err == nil {
+		t.Fatal("expected validation error for empty full name")
+	}
 }

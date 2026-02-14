@@ -10,10 +10,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
@@ -29,7 +29,7 @@ jobs:
 
       - name: Upload frontend coverage artifact
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
           path: frontend/coverage
@@ -50,7 +50,7 @@ jobs:
         run: npm run build
 
       - name: Upload frontend dist artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
@@ -61,16 +61,16 @@ jobs:
     needs: frontend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Download frontend dist
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
@@ -86,7 +86,7 @@ jobs:
 
       - name: Upload backend coverage artifact
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
           path: coverage.out
@@ -117,7 +117,7 @@ jobs:
           echo "Dev binary size: $(du -h build/bin/kube-dev-bench-e2e | cut -f1)"
 
       - name: Upload E2E dev binary artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: e2e-dev-binary
           path: build/bin/kube-dev-bench-e2e
@@ -167,16 +167,16 @@ jobs:
             mcp: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
@@ -192,13 +192,13 @@ jobs:
         run: npm ci
 
       - name: Download frontend dist
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: frontend-dist
           path: frontend/dist
 
       - name: Download E2E dev binary
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: e2e-dev-binary
           path: build/bin
@@ -232,7 +232,7 @@ jobs:
           docker info --format '{{.Swarm.LocalNodeState}}'
 
       - name: Cache KinD node image
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         id: kind-image-cache
         with:
           path: /tmp/kind-node-image.tar
@@ -272,7 +272,7 @@ jobs:
         run: echo "version=$(npm ls @playwright/test --json | jq -r '.dependencies["@playwright/test"].version')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -356,7 +356,7 @@ jobs:
 
       - name: Upload e2e test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: e2e-test-results-${{ matrix.name }}
           path: |
@@ -406,16 +406,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           cache: true
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
@@ -451,7 +451,7 @@ jobs:
 
       - name: Upload release artifact (Windows)
         if: matrix.platform == 'windows'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: build/bin/${{ matrix.artifact }}
@@ -459,7 +459,7 @@ jobs:
 
       - name: Upload release artifact (macOS/Linux)
         if: matrix.platform != 'windows'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: build/bin/${{ matrix.artifact }}

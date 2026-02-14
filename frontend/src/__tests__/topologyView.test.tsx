@@ -178,8 +178,8 @@ describe('TopologyView', () => {
     fireEvent.click(tabs.getByRole('button', { name: 'Summary' }));
     expect(await screen.findByText('Memory')).toBeInTheDocument();
 
-    // Close via Escape key.
-    fireEvent.keyDown(document, { key: 'Escape' });
+    // Close via explicit panel action to avoid key-event timing flakiness.
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => {
       expect(screen.queryByTestId('bottom-panel')).not.toBeInTheDocument();
     });

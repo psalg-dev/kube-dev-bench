@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -187,5 +188,96 @@ func TestLogCancelsMap_EmptyMap(t *testing.T) {
 	}
 	if cancel != nil {
 		t.Error("cancel should be nil for nonexistent entry")
+	}
+}
+
+func TestLogs_StopPodLogs_CancelsAndRemoves(t *testing.T) {
+	ctx, cancelCtx := context.WithCancel(context.Background())
+	app := &App{
+		ctx:        nil,
+		logCancels: map[string]context.CancelFunc{"pod-a": cancelCtx},
+	}
+
+	app.StopPodLogs("pod-a")
+
+	select {
+	case <-ctx.Done():
+		// expected
+	default:
+		t.Fatal("expected stop to cancel existing log stream context")
+	}
+
+	app.logMu.Lock()
+	_, exists := app.logCancels["pod-a"]
+	app.logMu.Unlock()
+	if exists {
+		t.Fatal("expected pod-a cancel function to be removed")
+	}
+}
+
+func TestLogs_RegisterAndUnregisterLogCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	app := &App{logCancels: make(map[string]context.CancelFunc)}
+
+	app.registerLogCancel("pod-b", cancel)
+	app.logMu.Lock()
+	_, exists := app.logCancels["pod-b"]
+	app.logMu.Unlock()
+	if !exists {
+		t.Fatal("expected cancel registration for pod-b")
+	}
+
+	app.unregisterLogCancel("pod-b", cancel)
+	select {
+	case <-ctx.Done():
+		// expected
+	default:
+		t.Fatal("expected unregister to call cancel")
+	}
+}
+
+func TestLogs_BuildLogOptions(t *testing.T) {
+	app := &App{}
+
+	withContainer := app.buildLogOptions("main", 25, true)
+	if !withContainer.Follow {
+		t.Fatal("expected Follow=true")
+	}
+	if withContainer.Container != "main" {
+		t.Fatalf("expected container main, got %q", withContainer.Container)
+	}
+	if withContainer.TailLines == nil || *withContainer.TailLines != 25 {
+		t.Fatal("expected tail lines pointer with value 25")
+	}
+
+	withoutTail := app.buildLogOptions("", 0, false)
+	if withoutTail.Follow {
+		t.Fatal("expected Follow=false")
+	}
+	if withoutTail.Container != "" {
+		t.Fatalf("expected empty container, got %q", withoutTail.Container)
+	}
+	if withoutTail.TailLines != nil {
+		t.Fatal("expected nil tail lines when tailLines <= 0")
+	}
+}
+
+func TestLogs_ValidationAndClientErrors(t *testing.T) {
+	app := &App{ctx: context.Background(), logCancels: make(map[string]context.CancelFunc)}
+
+	if err := app.streamLogsToEvents(context.Background(), "pod-a", "", 0, true); err == nil || !strings.Contains(err.Error(), "no namespace selected") {
+		t.Fatalf("expected no-namespace error, got %v", err)
+	}
+
+	app.currentNamespace = "default"
+	if err := app.streamLogsToEvents(context.Background(), "pod-a", "", 0, false); err == nil || !strings.Contains(err.Error(), "client:") {
+		t.Fatalf("expected client error, got %v", err)
+	}
+
+	if _, err := app.GetPodLog("pod-a"); err == nil {
+		t.Fatal("expected GetPodLog client error")
+	}
+	if _, err := app.GetPodContainerLog("pod-a", "main"); err == nil {
+		t.Fatal("expected GetPodContainerLog client error")
 	}
 }

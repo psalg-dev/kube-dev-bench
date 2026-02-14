@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"runtime"
 	"testing"
 
 	"gowails/pkg/app/docker"
@@ -147,5 +148,50 @@ func TestEnsureImageHasRegistryHost(t *testing.T) {
 		if got := ensureImageHasRegistryHost(tt.image, tt.registry); got != tt.want {
 			t.Fatalf("ensureImageHasRegistryHost(%q, %q) = %q, want %q", tt.image, tt.registry, got, tt.want)
 		}
+	}
+}
+
+func TestConnectToDocker_PreConnectHookAbort(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+
+	app := NewApp()
+	app.ctx = context.Background()
+
+	tmp := t.TempDir()
+	var scriptPath string
+	if runtime.GOOS == "windows" {
+		scriptPath = writeExecutableScript(t, tmp, "pre-fail.cmd", "@echo off\r\nexit /b 9\r\n")
+	} else {
+		scriptPath = writeExecutableScript(t, tmp, "pre-fail.sh", "#!/bin/sh\nexit 9\n")
+	}
+
+	host := "tcp://127.0.0.1:2375"
+	_, err := app.SaveHook(HookConfig{
+		ID:             "hook-pre-fail-swarm",
+		Name:           "pre-fail",
+		Type:           hookTypePreConnect,
+		ScriptPath:     scriptPath,
+		TimeoutSeconds: 5,
+		Enabled:        true,
+		AbortOnFailure: true,
+		Scope:          hookScopeConnection,
+		ConnectionType: "swarm",
+		ConnectionID:   host,
+	})
+	if err != nil {
+		t.Fatalf("SaveHook failed: %v", err)
+	}
+
+	status, err := app.ConnectToDocker(docker.DockerConfig{Host: host})
+	if err != nil {
+		t.Fatalf("ConnectToDocker returned unexpected error: %v", err)
+	}
+	if status == nil || status.Connected {
+		t.Fatalf("expected disconnected status from pre-hook abort, got %+v", status)
+	}
+	if status.Error == "" {
+		t.Fatal("expected non-empty abort error message")
 	}
 }
