@@ -62,3 +62,23 @@
 - Local run for the target spec:
   - `npx playwright test tests/40-create-secret-and-pvc.spec.ts --workers=1`
   - Result: one initial attempt failed due transient browser console IPC error, retry passed (`flaky`, test flow assertions succeeded).
+
+## Follow-Up After Second Push
+- New run after Secret/PVC stabilization (`22017637334`) failed in shard-1 at `tests/62-bottom-panels-storage.spec.ts`.
+- Failure signature: PVC row did not appear in the main storage table within 60s after create (`waitForTableRow` -> `toBeVisible` timeout, element not found).
+
+### Storage-Spec Approach
+1. **Add spec-local retry helpers for storage row/status readiness**
+   - File: `e2e/tests/62-bottom-panels-storage.spec.ts`
+   - Added `waitForStorageRowWithRefresh(...)` for PV/PVC row appearance.
+   - Added `waitForStorageStatusWithRefresh(...)` for PVC `Bound` status.
+   - Both helpers:
+     - call existing wait helper with a shorter per-attempt timeout (`20s`),
+     - on failure run `page.reload()` and re-enter the relevant section,
+     - retry up to 3 attempts.
+   - Replaced direct waits for PV row, PVC row, and PVC `Bound` status with these helpers.
+
+### Storage-Spec Validation Plan
+- Run targeted spec locally:
+  - `npx playwright test tests/62-bottom-panels-storage.spec.ts --workers=1`
+- If passing, push and re-check shard-1 on the next workflow run.

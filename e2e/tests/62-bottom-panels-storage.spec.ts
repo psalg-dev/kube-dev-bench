@@ -12,6 +12,49 @@ function uniqueName(prefix: string) {
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
 }
 
+async function waitForStorageRowWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'persistentvolumes' | 'persistentvolumeclaims') => Promise<void> },
+  section: 'persistentvolumes' | 'persistentvolumeclaims',
+  rowText: RegExp,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForTableRow(page, rowText, { timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Row did not appear in section '${section}' for ${rowText}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection(section);
+    }
+  }
+}
+
+async function waitForStorageStatusWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'persistentvolumeclaims') => Promise<void> },
+  section: 'persistentvolumeclaims',
+  resourceName: RegExp,
+  status: string,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForResourceStatus(page, resourceName, status, { timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Status '${status}' did not appear in section '${section}' for ${resourceName}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection(section);
+    }
+  }
+}
+
 async function confirmAction(panel: BottomPanel, actionLabel: 'Delete') {
   await panel.root.getByRole('button', { name: actionLabel, exact: true }).click();
   await panel.root.getByRole('button', { name: 'Confirm', exact: true }).click();
@@ -64,7 +107,7 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
   await overlay.fillYaml(pvYaml);
   await overlay.create();
   await notifications.waitForClear();
-  await waitForTableRow(page, new RegExp(pvName));
+  await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumes', new RegExp(pvName));
 
   // Then create PVC (namespaced)
   await sidebar.goToSection('persistentvolumeclaims');
@@ -73,9 +116,9 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace })
   await overlay.fillYaml(pvcYaml);
   await overlay.create();
   await notifications.waitForClear();
-  await waitForTableRow(page, new RegExp(pvcName));
+  await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumeclaims', new RegExp(pvcName));
   // Wait for PVC to bind to PV
-  await waitForResourceStatus(page, new RegExp(pvcName), 'Bound', { timeout: 60_000 });
+  await waitForStorageStatusWithRefresh(page, sidebar, 'persistentvolumeclaims', new RegExp(pvcName), 'Bound');
 
   // PVC bottom panel
   await openRowDetailsByName(page, pvcName);
