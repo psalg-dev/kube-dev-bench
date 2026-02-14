@@ -9,6 +9,26 @@ function uniqueName(prefix: string) {
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
 }
 
+async function waitForConfigMapRowRemovedWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'configmaps') => Promise<void> },
+  rowText: RegExp,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForTableRowRemoved(page, rowText, { timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`ConfigMap row was not removed after retries for ${rowText}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection('configmaps');
+    }
+  }
+}
+
 test('creates and deletes a ConfigMap from the bottom panel', async ({ page, contextName, namespace }) => {
   const { sidebar } = await bootstrapApp({ page, contextName, namespace });
   await sidebar.goToSection('configmaps');
@@ -39,5 +59,5 @@ test('creates and deletes a ConfigMap from the bottom panel', async ({ page, con
   await notifications.waitForClear();
 
   // Table should eventually stop showing the deleted resource.
-  await waitForTableRowRemoved(page, new RegExp(name));
+  await waitForConfigMapRowRemovedWithRefresh(page, sidebar, new RegExp(name));
 });

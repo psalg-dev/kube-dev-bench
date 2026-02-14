@@ -82,3 +82,20 @@
 - Run targeted spec locally:
   - `npx playwright test tests/62-bottom-panels-storage.spec.ts --workers=1`
 - If passing, push and re-check shard-1 on the next workflow run.
+
+## Follow-Up After Storage Push
+- New run after storage stabilization (`22018724320`) still failed in shard-1, but `tests/62-bottom-panels-storage.spec.ts` now passed.
+- New failure moved to `tests/70-create-and-delete-configmap-from-details.spec.ts`.
+- Failure signature: deleted ConfigMap row persisted in table beyond 60s (`waitForTableRowRemoved` -> `toHaveCount(0)` timeout).
+
+### ConfigMap-Spec Approach
+1. **Add spec-local resilient row-removal helper for ConfigMaps**
+   - File: `e2e/tests/70-create-and-delete-configmap-from-details.spec.ts`
+   - Added `waitForConfigMapRowRemovedWithRefresh(...)` that:
+     - runs `waitForTableRowRemoved(..., timeout=20s)`,
+     - on failure reloads page and re-enters `configmaps` section,
+     - retries up to 3 attempts.
+   - Replaced direct `waitForTableRowRemoved(...)` with the new helper.
+
+### ConfigMap-Spec Validation Plan
+- Run targeted spec locally, then push and monitor next shard-1 run.
