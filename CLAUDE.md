@@ -61,8 +61,9 @@ docker swarm init --advertise-addr 127.0.0.1 2>/dev/null || true
 ## Architecture
 
 ### Backend (Go)
-- `main.go` - Wails application entry point, starts polling for K8s resources
+- `main.go` - Wails application entry point
 - `pkg/app/` - Core application logic, K8s API integrations, and Wails-exposed methods
+  - `informer_manager.go` - Kubernetes watch/informer mode (beta)
   - Resource handlers: `pods.go`, `deployments.go`, `cronjobs.go`, `statefulsets.go`, etc.
   - Holmes AI: `holmes_context.go` for context enrichment, `holmes_integration.go` for analysis RPCs
   - Holmes AI (Phase 4): `holmes_logs.go` for log analysis helpers, `holmes_swarm.go` for Swarm context analysis
@@ -136,6 +137,11 @@ Monitoring + Alerts:
 - Holmes analysis and dismissals persist for 24 hours in `~/.KubeDevBench/monitor_issues.json`.
 
 When modifying Go method signatures in `pkg/app/`, rebuild Wails to regenerate bindings.
+
+### Kubernetes Update Mode
+- Config flag `useInformers` controls backend update strategy.
+- `false` (default): legacy polling loops.
+- `true`: informer manager emits `*:update` snapshots and suppresses periodic counts polling.
 
 ### Testing Infrastructure
 - `kind/` - Docker-based KinD manager for deterministic test clusters

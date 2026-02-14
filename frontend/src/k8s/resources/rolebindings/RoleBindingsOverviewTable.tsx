@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
@@ -12,6 +11,7 @@ import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from 
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import { showError, showSuccess } from '../../../notification';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
@@ -227,13 +227,10 @@ function renderPanelContent(
 type RoleBindingsOverviewTableProps = { namespaces?: string[]; namespace?: string };
 
 export default function RoleBindingsOverviewTable({ namespaces, namespace }: RoleBindingsOverviewTableProps) {
-  const [data, setData] = useState<RoleBindingRow[]>([]);
-  const [loading, setLoading] = useState(false);
   const namespaceList = useMemo(
     () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
     [namespaces, namespace]
   );
-  const namespaceKey = useMemo(() => JSON.stringify(namespaceList), [namespaceList]);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -336,46 +333,18 @@ export default function RoleBindingsOverviewTable({ namespaces, namespace }: Rol
     return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
-  const fetchRoleBindings = useCallback(async () => {
+  const fetchRoleBindings = useCallback(async (): Promise<RoleBindingRow[]> => {
     if (namespaceList.length === 0) return;
-    setLoading(true);
     try {
       const lists = await Promise.all(namespaceList.map((ns) => AppAPI.GetRoleBindings(ns).catch(() => [] as app.RoleBindingInfo[])));
-      setData(normalizeRoleBindings(lists.flat()));
+      return normalizeRoleBindings(lists.flat());
     } catch (err) {
       console.error('Error fetching role bindings:', err);
-      setData([]);
-    } finally {
-      setLoading(false);
+      return [];
     }
   }, [namespaceList]);
 
-  useEffect(() => { fetchRoleBindings(); }, [fetchRoleBindings]);
-
-  useEffect(() => {
-    const onUpdate = (list: RoleBindingInfoRaw[] | null | undefined) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        setData(normalizeRoleBindings(arr));
-      } catch {
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('rolebindings:update', onUpdate);
-    return () => { try { EventsOff('rolebindings:update'); } catch {} };
-  }, []);
-
-  useEffect(() => {
-    const onUpdate = (eventData: any) => {
-      if (eventData?.resource === 'rolebinding' && namespaceList.includes(eventData?.namespace)) {
-        fetchRoleBindings();
-      }
-    };
-    EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated'); } catch {} };
-  }, [fetchRoleBindings, namespaceKey, namespaceList]);
+  const { data, loading } = useResourceWatch<RoleBindingRow>('rolebindings:update', fetchRoleBindings, { mergeStrategy: 'replace' });
 
   const analyzeRoleBinding = async (row: RoleBindingRow) => {
     const key = `${row.namespace}/${row.name}`;

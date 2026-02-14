@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import { AnalyzePersistentVolumeStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
@@ -179,7 +180,6 @@ export default function PersistentVolumesOverviewTable({ namespaces }: Persisten
 	const [data, setData] = useState<PvRow[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const intervalRef = useRef<number | null>(null);
 	const [holmesState, setHolmesState] = useState<HolmesState>({
 		loading: false,
 		response: null,
@@ -378,11 +378,13 @@ export default function PersistentVolumesOverviewTable({ namespaces }: Persisten
 
 	useEffect(() => {
 		fetchAllPVs(true); // Initial load
-		intervalRef.current = window.setInterval(() => fetchAllPVs(false), 5000); // Subsequent refreshes
-		return () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
+		const unsubscribe = EventsOn('resource-updated', (eventData: { resource?: string } | null | undefined) => {
+			if (eventData?.resource === 'persistentvolume') {
+				fetchAllPVs(false);
 			}
+		});
+		return () => {
+			try { unsubscribe?.(); } catch {}
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);

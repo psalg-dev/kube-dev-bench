@@ -6,6 +6,7 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // GetSecretData fetches a Secret by name in the current namespace and returns its data as base64 strings
@@ -43,17 +44,47 @@ func (a *App) GetSecretData(secretName string) (map[string]string, error) {
 func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 	secrets := make([]map[string]interface{}, 0)
 
-	clientset, err := a.getClient()
-	if err != nil {
-		return secrets, err
-	}
-
 	ns := namespace
 	if ns == "" {
 		ns = a.currentNamespace
 	}
 	if ns == "" {
 		return secrets, fmt.Errorf("no namespace specified")
+	}
+
+	if factory, ok := a.getInformerNamespaceFactory(ns); ok {
+		secretList, err := factory.Core().V1().Secrets().Lister().Secrets(ns).List(labels.Everything())
+		if err == nil {
+			secrets = make([]map[string]interface{}, 0, len(secretList))
+			for _, secret := range secretList {
+				age := "-"
+				if secret.CreationTimestamp.Time != (time.Time{}) {
+					age = formatDuration(time.Since(secret.CreationTimestamp.Time))
+				}
+
+				keyCount := len(secret.Data)
+				totalSize := 0
+				for _, v := range secret.Data {
+					totalSize += len(v)
+				}
+
+				secrets = append(secrets, map[string]interface{}{
+					"name":      secret.Name,
+					"namespace": secret.Namespace,
+					"type":      string(secret.Type),
+					"keys":      fmt.Sprintf("%d", keyCount),
+					"size":      formatBytes(totalSize),
+					"age":       age,
+					"labels":    secret.Labels,
+				})
+			}
+			return secrets, nil
+		}
+	}
+
+	clientset, err := a.getClient()
+	if err != nil {
+		return secrets, err
 	}
 
 	secretList, err := clientset.CoreV1().Secrets(ns).List(a.ctx, metav1.ListOptions{})

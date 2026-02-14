@@ -28,7 +28,11 @@ func formatAge(t time.Time) string {
 func (a *App) StartMonitorPolling() {
 	go func() {
 		for {
-			time.Sleep(5 * time.Second)
+			select {
+			case <-time.After(5 * time.Second):
+			case <-a.pollingStopCh:
+				return
+			}
 			if a.ctx == nil {
 				continue
 			}

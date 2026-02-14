@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeSecretStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
@@ -210,9 +210,6 @@ type SecretsOverviewTableProps = {
 };
 
 export default function SecretsOverviewTable({ namespaces, onSecretCreate }: SecretsOverviewTableProps) {
-	const [data, setData] = useState<SecretRow[]>([]);
-	const [, setLoading] = useState(false);
-	const [, setError] = useState<string | null>(null);
 	const [holmesState, setHolmesState] = useState<HolmesState>({
 		loading: false,
 		response: null,
@@ -229,6 +226,11 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 	useEffect(() => {
 		holmesStateRef.current = holmesState;
 	}, [holmesState]);
+
+	const selectedNamespaces = useMemo(
+		() => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : []),
+		[namespaces]
+	);
 
 	// Subscribe to Holmes chat stream events
 	useEffect(() => {
@@ -372,43 +374,18 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 	const normalize = (arr: unknown[]): SecretRow[] =>
 		(arr || []).filter(Boolean).map((s) => normalizeSecret(s as SecretInfoRaw));
 
-	const fetchAllSecrets = async () => {
-		if (!Array.isArray(namespaces) || namespaces.length === 0) {
-			setData([]);
-			return;
-		}
-		setLoading(true);
-		setError(null);
-		try {
-			const results = await Promise.all(
-				namespaces.map((ns) => AppAPI.GetSecrets(ns).catch(() => []))
-			);
-			const flat = ([] as unknown[]).concat(...results).filter(Boolean);
-			setData(normalize(flat));
-		} catch (err) {
-			console.error('Error fetching secrets:', err);
-			setError(err instanceof Error ? err.message : 'Failed to fetch secrets');
-			setData([]);
-		} finally {
-			setLoading(false);
-		}
-	};
+	const initialFetchSecrets = useCallback(async (): Promise<SecretRow[]> => {
+		if (selectedNamespaces.length === 0) return [];
+		const results = await Promise.all(selectedNamespaces.map((ns) => AppAPI.GetSecrets(ns).catch(() => [])));
+		const flat = ([] as unknown[]).concat(...results).filter(Boolean);
+		return normalize(flat);
+	}, [selectedNamespaces]);
 
-	useEffect(() => {
-		fetchAllSecrets();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [namespaces]);
-
-	useEffect(() => {
-		const onUpdate = (list: unknown) => {
-			try {
-				const arr = Array.isArray(list) ? list : [];
-				setData(normalize(arr));
-			} catch { /* ignore */ }
-		};
-		EventsOn('secrets:update', onUpdate);
-		return () => { try { EventsOff('secrets:update'); } catch { /* ignore */ } };
-	}, [namespaces]);
+	const { data, loading } = useResourceWatch<SecretRow>(
+		'secrets:update',
+		initialFetchSecrets,
+		{ mergeStrategy: 'replace' }
+	);
 
 	const analyzeSecret = async (row: SecretRow) => {
 		const key = `${row.namespace}/${row.name}`;
@@ -477,6 +454,7 @@ export default function SecretsOverviewTable({ namespaces, onSecretCreate }: Sec
 		<OverviewTableWithPanel
 			columns={columns}
 			data={data}
+			loading={loading}
 			tabs={bottomTabs}
 			renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeSecret, cancelHolmesAnalysis)}
 			title="Secrets"

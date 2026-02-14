@@ -4,6 +4,7 @@ import { GraphLegend } from './components/GraphLegend';
 import { GraphToolbar } from './components/GraphToolbar';
 import { useGraphLayout } from './hooks/useGraphLayout';
 import { useResourceGraph } from './hooks/useResourceGraph';
+import { exportGraphCanvas } from './utils/exportGraph';
 import './ResourceGraphTab.css';
 
 export interface ResourceGraphTabProps {
@@ -80,6 +81,22 @@ export function ResourceGraphTab({ namespace, kind, name }: ResourceGraphTabProp
     }));
   };
 
+  const withGraphCanvas = async (format: 'svg' | 'png') => {
+    const element = document.getElementById('graph-canvas');
+    if (!element) {
+      return;
+    }
+    await exportGraphCanvas(element, format, `${namespace}-${kind}-${name}-relationships`);
+  };
+
+  const handleExportSvg = () => {
+    void withGraphCanvas('svg');
+  };
+
+  const handleExportPng = () => {
+    void withGraphCanvas('png');
+  };
+
   return (
     <div className="resource-graph-tab">
       <GraphToolbar
@@ -87,6 +104,8 @@ export function ResourceGraphTab({ namespace, kind, name }: ResourceGraphTabProp
         onDepthChange={setDepth}
         loading={loading}
         onRefresh={refresh}
+        onExportSvg={handleExportSvg}
+        onExportPng={handleExportPng}
         filters={kindFilters}
         onToggleFilter={toggleKindFilter}
       />

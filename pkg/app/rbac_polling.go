@@ -23,7 +23,11 @@ func startClusterRBACPolling[T any](a *App, eventName string, fetchFn func() ([]
 		defer ticker.Stop()
 
 		for {
-			<-ticker.C
+			select {
+			case <-ticker.C:
+			case <-a.pollingStopCh:
+				return
+			}
 			if a.ctx == nil {
 				continue
 			}

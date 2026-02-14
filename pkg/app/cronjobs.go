@@ -6,6 +6,7 @@ import (
 	"github.com/robfig/cron/v3"
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -39,6 +40,18 @@ func buildCronJobInfo(cj *batchv1.CronJob, now time.Time) CronJobInfo {
 
 // GetCronJobs returns all cronjobs in a namespace
 func (a *App) GetCronJobs(namespace string) ([]CronJobInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Batch().V1().CronJobs().Lister().CronJobs(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]CronJobInfo, 0, len(items))
+			for _, item := range items {
+				result = append(result, buildCronJobInfo(item, now))
+			}
+			return result, nil
+		}
+	}
+
 	return listResources(a, namespace,
 		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]batchv1.CronJob, error) {
 			list, err := cs.BatchV1().CronJobs(ns).List(a.ctx, opts)

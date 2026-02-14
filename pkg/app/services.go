@@ -7,12 +7,48 @@ import (
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // GetServices returns all services in a namespace.
 func (a *App) GetServices(namespace string) ([]ServiceInfo, error) {
 	if namespace == "" {
 		return nil, fmt.Errorf("namespace required")
+	}
+
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Core().V1().Services().Lister().Services(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]ServiceInfo, 0, len(items))
+			for _, svc := range items {
+				age := "-"
+				if svc.CreationTimestamp.Time != (time.Time{}) {
+					age = formatDuration(now.Sub(svc.CreationTimestamp.Time))
+				}
+
+				ports := make([]string, 0, len(svc.Spec.Ports))
+				for _, port := range svc.Spec.Ports {
+					label := fmt.Sprintf("%d/%s", port.Port, port.Protocol)
+					if port.Name != "" {
+						label = fmt.Sprintf("%s (%s)", label, port.Name)
+					}
+					ports = append(ports, label)
+				}
+
+				result = append(result, ServiceInfo{
+					Name:      svc.Name,
+					Namespace: svc.Namespace,
+					Type:      string(svc.Spec.Type),
+					ClusterIP: svc.Spec.ClusterIP,
+					Ports:     strings.Join(ports, ", "),
+					Age:       age,
+					Labels:    svc.Labels,
+					Selector:  svc.Spec.Selector,
+				})
+			}
+			return result, nil
+		}
 	}
 
 	clientset, err := a.getClient()

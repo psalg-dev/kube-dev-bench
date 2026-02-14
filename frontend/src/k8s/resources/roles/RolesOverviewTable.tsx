@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
@@ -11,6 +10,7 @@ import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from 
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import { showError, showSuccess } from '../../../notification';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
@@ -223,8 +223,6 @@ function renderPanelContent(
 type RolesOverviewTableProps = { namespaces?: string[]; namespace?: string };
 
 export default function RolesOverviewTable({ namespaces, namespace }: RolesOverviewTableProps) {
-  const [data, setData] = useState<RoleRow[]>([]);
-  const [, setLoading] = useState(false);
   const namespaceList = useMemo(
     () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
     [namespaces, namespace]
@@ -313,50 +311,18 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
     return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
-  const fetchRoles = useCallback(async () => {
+  const fetchRoles = useCallback(async (): Promise<RoleRow[]> => {
     if (namespaceList.length === 0) return;
-    setLoading(true);
     try {
       const lists = await Promise.all(namespaceList.map((ns) => AppAPI.GetRoles(ns).catch(() => [] as app.RoleInfo[])));
-      setData(normalizeRoles(lists.flat()));
+      return normalizeRoles(lists.flat());
     } catch (err) {
       console.error('Error fetching roles:', err);
-      setData([]);
-    } finally {
-      setLoading(false);
+      return [];
     }
   }, [namespaceList]);
 
-  useEffect(() => { fetchRoles(); }, [fetchRoles]);
-
-  // Subscribe to live roles updates from backend (already aggregated)
-  useEffect(() => {
-    const onUpdate = (list: RoleInfoRaw[] | null | undefined) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        setData(normalizeRoles(arr));
-      } catch {
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('roles:update', onUpdate);
-    return () => {
-      try { EventsOff('roles:update'); } catch {}
-    };
-  }, []);
-
-  // Subscribe to generic resource-updated events (from CreateManifestOverlay)
-  useEffect(() => {
-    const onUpdate = (eventData: any) => {
-      if (eventData?.resource === 'role' && namespaceList.includes(eventData?.namespace)) {
-        fetchRoles();
-      }
-    };
-    EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated'); } catch {} };
-  }, [fetchRoles, namespaceList]);
+  const { data, loading } = useResourceWatch<RoleRow>('roles:update', fetchRoles, { mergeStrategy: 'replace' });
 
   const analyzeRole = async (row: RoleRow) => {
     const key = `${row.namespace}/${row.name}`;
@@ -391,6 +357,7 @@ export default function RolesOverviewTable({ namespaces, namespace }: RolesOverv
       title="Roles"
       columns={columns}
       data={data}
+      loading={loading}
       tabs={bottomTabs}
       renderPanelContent={(row, tab) => renderPanelContent(row, tab, holmesState, analyzeRole, cancelHolmesAnalysis, yamlLoader)}
       resourceKind="Role"

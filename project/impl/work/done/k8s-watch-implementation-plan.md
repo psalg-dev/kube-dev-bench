@@ -2,11 +2,83 @@
 title: "Kubernetes Watch/Informer Migration Plan"
 date: "2026-02-11"
 owner: "team"
-status: "draft"
+status: "in-progress"
 ---
 
 # Goal
 Replace polling-based Kubernetes data refresh with watch/informer-driven updates to reduce traffic while keeping UI behavior stable.
+
+# Implementation Status (2026-02-14)
+
+Implemented in this pass:
+
+- Added backend informer manager: `pkg/app/informer_manager.go`
+- Added config flag and runtime switch RPCs: `GetUseInformers` / `SetUseInformers`
+- Wired informer lifecycle into context/namespace changes and app startup/shutdown
+- Added stop control for legacy polling loops to support mode switching
+- Added informer-backed events for services and PVCs (`services:update`, `persistentvolumeclaims:update`)
+- Converted timer-heavy frontend loops in:
+  - `ConfigMapsOverviewTable.tsx`
+  - `PersistentVolumeClaimsOverviewTable.tsx`
+- Added reusable hook: `frontend/src/hooks/useResourceWatch.ts`
+- Added hook unit test: `frontend/src/__tests__/useResourceWatch.test.ts`
+- Added settings UI toggle for informer mode (`GetUseInformers` / `SetUseInformers`) in connection sidebar
+- Added docs: `docs/informer-architecture.md`, README/CLAUDE updates
+
+Implemented in this pass (2026-02-14, continued):
+
+- Migrated additional resource tables to shared `useResourceWatch` pattern:
+  - `DeploymentsOverviewTable.tsx`
+  - `ServicesOverviewTable.tsx`
+  - `JobsOverviewTable.tsx`
+  - `StatefulSetsOverviewTable.tsx`
+  - `DaemonSetsOverviewTable.tsx`
+  - `SecretsOverviewTable.tsx`
+- Kept existing table/bottom-panel UX and selectors unchanged while removing duplicated local watch/fetch wiring
+
+Implemented in this pass (2026-02-14, continued #2):
+
+- Migrated remaining workload and RBAC tables to shared `useResourceWatch` pattern:
+  - `PodOverviewTable.tsx`
+  - `RolesOverviewTable.tsx`
+  - `RoleBindingsOverviewTable.tsx`
+  - `ClusterRolesOverviewTable.tsx`
+  - `ClusterRoleBindingsOverviewTable.tsx`
+- Ran targeted frontend tests for hook + RBAC overview tables after migration
+
+Implemented in this pass (2026-02-14, continued #3):
+
+- Added informer manager unit tests for lifecycle/helper paths:
+  - `TestSelectedNamespacesReturnsCopy`
+  - `TestInformerManagerStopClearsTimersAndState`
+  - `TestEmitAcrossNamespacesSkipsErrors`
+- Clarified events-table migration scope: no standalone `EventsOverviewTable` exists in current frontend tree
+
+Implemented in this pass (2026-02-14, continued #4):
+
+- Added backend `resourceevents:update` signal emission path
+- Extended `useResourceWatch` with signal-triggered refetch support (`refetchOnSignal`)
+- Migrated `ResourceEventsTab` off local interval polling to watch-hook driven updates
+- Added/updated focused tests for the new hook behavior and events tab integration
+
+Implemented in this pass (2026-02-14, continued #5):
+
+- Added targeted E2E live-update spec: `e2e/tests/66-events-live-update.spec.ts`
+- Validated the spec passes against local Wails+KinD workflow (`1 passed`)
+- Coverage focus: `ResourceEventsTab` updates while details panel stays open after Deployment scale action
+
+Implemented in this pass (2026-02-14, continued #6):
+
+- Added second targeted E2E live-update spec for a non-Deployment resource: `e2e/tests/67-events-live-update-statefulset.spec.ts`
+- Validated the spec passes against local Wails+KinD workflow (`1 passed`)
+- Coverage focus: `ResourceEventsTab` updates while details panel stays open after StatefulSet scale action
+
+Still pending from full plan:
+
+- Cache/lister-backed GET/LIST RPC path migration (remaining endpoints, especially events path)
+- Full frontend rollout across all resource tables to shared `useResourceWatch` pattern
+- Expanded informer backend unit tests to reach target coverage (suite file exists)
+- E2E live-update rollout and performance benchmark evidence
 
 # Scope
 - Kubernetes resources currently polled in the backend and surfaced in the frontend tables/bottom panel.
@@ -367,17 +439,17 @@ const { data: pods, loading } = useResourceWatch(
 
 #### Apply to All Resource Tables
 - [x] Document pattern above
-- [ ] `PodsOverviewTable` → use `useResourceWatch('k8s:pods:update')`
-- [ ] `DeploymentsOverviewTable` → use `useResourceWatch('k8s:deployments:update')`
-- [ ] `ServicesOverviewTable` → use `useResourceWatch('k8s:services:update')`
-- [ ] `JobsOverviewTable` → use `useResourceWatch('k8s:jobs:update')`
-- [ ] `StatefulSetsOverviewTable` → use `useResourceWatch('k8s:statefulsets:update')`
-- [ ] `DaemonSetsOverviewTable` → use `useResourceWatch('k8s:daemonsets:update')`
-- [ ] `ConfigMapsOverviewTable` → use `useResourceWatch('k8s:configmaps:update')`
-- [ ] `SecretsOverviewTable` → use `useResourceWatch('k8s:secrets:update')`
-- [ ] `PersistentVolumeClaimsOverviewTable` → use `useResourceWatch('k8s:pvcs:update')`
-- [ ] `EventsOverviewTable` → use `useResourceWatch('k8s:events:update')`
-- [ ] All RBAC resource tables
+- [x] `PodsOverviewTable` → use `useResourceWatch('k8s:pods:update')`
+- [x] `DeploymentsOverviewTable` → use `useResourceWatch('k8s:deployments:update')`
+- [x] `ServicesOverviewTable` → use `useResourceWatch('k8s:services:update')`
+- [x] `JobsOverviewTable` → use `useResourceWatch('k8s:jobs:update')`
+- [x] `StatefulSetsOverviewTable` → use `useResourceWatch('k8s:statefulsets:update')`
+- [x] `DaemonSetsOverviewTable` → use `useResourceWatch('k8s:daemonsets:update')`
+- [x] `ConfigMapsOverviewTable` → use `useResourceWatch('k8s:configmaps:update')`
+- [x] `SecretsOverviewTable` → use `useResourceWatch('k8s:secrets:update')`
+- [x] `PersistentVolumeClaimsOverviewTable` → use `useResourceWatch('k8s:pvcs:update')`
+- [x] `ResourceEventsTab` (no standalone `EventsOverviewTable` in repo) → migrated from interval polling to `useResourceWatch` with backend `resourceevents:update`
+- [x] All RBAC resource tables
 
 ### Phase 3: State Management Updates
 
@@ -937,29 +1009,29 @@ Add informer context:
 # Deliverables
 
 ## Code Deliverables
-- [ ] **`pkg/app/informer_manager.go`** - Core informer management (500-800 LOC)
-- [ ] **`pkg/app/informer_manager_test.go`** - Unit tests (\u226570% coverage)
-- [ ] **`frontend/src/hooks/useResourceWatch.ts`** - Reusable watch hook (100-150 LOC)
-- [ ] **`frontend/src/hooks/__tests__/useResourceWatch.test.ts`** - Hook tests
-- [ ] **Updated resource table components** (~15 files):
+- [x] **`pkg/app/informer_manager.go`** - Core informer management (500-800 LOC)
+- [x] **`pkg/app/informer_manager_test.go`** - Unit test suite file created
+- [x] **`frontend/src/hooks/useResourceWatch.ts`** - Reusable watch hook (100-150 LOC)
+- [x] **`frontend/src/hooks/__tests__/useResourceWatch.test.ts`** - Hook tests
+- [ ] **Updated resource table components** (~15 files, progress: 13 migrated):
   - Remove `setInterval` polling loops
   - Add `useResourceWatch` hook usage
   - Preserve stable DOM selectors
 - [ ] **Updated backend RPCs** - Replace direct API calls with lister queries
-- [ ] **Updated `counts.go`** - Read from informer cache instead of polling
-- [ ] **E2E tests** - Add/update tests for live updates (`e2e/tests/*-live-update.spec.ts`)
+- [x] **Updated `counts.go`** - Read from informer cache instead of polling
+- [ ] **E2E tests** - Add/update tests for live updates (`e2e/tests/*-live-update.spec.ts`, now includes `66-events-live-update.spec.ts` and `67-events-live-update-statefulset.spec.ts`)
 
 ## Documentation Deliverables
-- [ ] **`docs/informer-architecture.md`** - Architecture overview and diagrams
+- [x] **`docs/informer-architecture.md`** - Architecture overview and diagrams
   - Informer lifecycle (diagram)
   - Event flow: API \u2192 Informer \u2192 Cache \u2192 Wails Event \u2192 Frontend
   - Troubleshooting guide
   - Performance characteristics
-- [ ] **README.md updates** - User-facing documentation
+- [x] **README.md updates** - User-facing documentation
   - \"Real-Time Updates\" section
   - RBAC requirements for watch permissions
   - Troubleshooting connection issues
-- [ ] **CLAUDE.md updates** - AI agent context
+- [x] **CLAUDE.md updates** - AI agent context
   - Explain watch/informer architecture
   - Note cache-based data access patterns
   - Event subscription patterns
@@ -972,9 +1044,9 @@ Add informer context:
 - [ ] Performance test results: Traffic reduction metrics
 
 ## Configuration Deliverables
-- [ ] Feature flag in settings UI
+- [x] Feature flag in settings UI
 - [ ] Per-resource toggle capability
-- [ ] Default config (informers disabled initially for safe rollout)
+- [x] Default config (informers disabled initially for safe rollout)
 - [ ] Migration plan checklist
 
 # Risks and Mitigations

@@ -6,6 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -33,6 +34,18 @@ func buildConfigMapInfo(cm *corev1.ConfigMap, now time.Time) ConfigMapInfo {
 
 // GetConfigMaps returns all configmaps in a namespace
 func (a *App) GetConfigMaps(namespace string) ([]ConfigMapInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Core().V1().ConfigMaps().Lister().ConfigMaps(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]ConfigMapInfo, 0, len(items))
+			for _, item := range items {
+				result = append(result, buildConfigMapInfo(item, now))
+			}
+			return result, nil
+		}
+	}
+
 	return listResources(a, namespace,
 		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]corev1.ConfigMap, error) {
 			list, err := cs.CoreV1().ConfigMaps(ns).List(a.ctx, opts)

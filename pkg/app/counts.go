@@ -13,17 +13,31 @@ func (a *App) runResourceCountsAggregator() {
 	defer podsTicker.Stop()
 	// Initial immediate attempt
 	a.refreshResourceCounts()
+	emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:init"})
 	for {
 		select {
 		case <-a.ctx.Done():
 			return
 		case <-fullTicker.C:
-			a.refreshResourceCounts()
+			if !a.useInformers {
+				a.refreshResourceCounts()
+				emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:full"})
+			}
 		case <-podsTicker.C:
-			a.refreshPodStatusOnly()
+			if !a.useInformers {
+				a.refreshPodStatusOnly()
+			}
 		case <-a.countsRefreshCh:
 			a.refreshResourceCounts()
+			emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:refresh"})
 		}
+	}
+}
+
+func (a *App) requestCountsRefresh() {
+	select {
+	case a.countsRefreshCh <- struct{}{}:
+	default:
 	}
 }
 

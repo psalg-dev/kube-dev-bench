@@ -25,6 +25,31 @@
   gap: 8px;
 }
 
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--gh-bg, #0d1117);
+  color: var(--gh-text, #e6edf3);
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.export-button:hover:not(:disabled) {
+  background: var(--gh-bg-tertiary, #21262d);
+  border-color: var(--gh-border-hover, #484f58);
+}
+
+.export-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .toolbar-filters {
   display: flex;
   align-items: center;

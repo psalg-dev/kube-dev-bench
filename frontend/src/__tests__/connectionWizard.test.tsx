@@ -18,6 +18,8 @@ const mockGetCurrentConfig = vi.fn();
 const mockGetProxyConfig = vi.fn();
 const mockSetProxyConfig = vi.fn();
 const mockDetectSystemProxy = vi.fn();
+const mockGetUseInformers = vi.fn();
+const mockSetUseInformers = vi.fn();
 
 // Hooks mocks
 const mockGetHooksConfig = vi.fn();
@@ -43,6 +45,8 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   GetProxyConfig: (...args: unknown[]) => mockGetProxyConfig(...args),
   SetProxyConfig: (...args: unknown[]) => mockSetProxyConfig(...args),
   DetectSystemProxy: (...args: unknown[]) => mockDetectSystemProxy(...args),
+  GetUseInformers: (...args: unknown[]) => mockGetUseInformers(...args),
+  SetUseInformers: (...args: unknown[]) => mockSetUseInformers(...args),
 
   GetHooksConfig: (...args: unknown[]) => mockGetHooksConfig(...args),
   SaveHook: (...args: unknown[]) => mockSaveHook(...args),
@@ -108,6 +112,8 @@ describe('ConnectionWizard', () => {
     mockGetProxyConfig.mockResolvedValue({ HttpProxy: '', HttpsProxy: '', NoProxy: '' });
     mockDetectSystemProxy.mockResolvedValue({ HTTP_PROXY: '', HTTPS_PROXY: '', NO_PROXY: '' });
     mockSetProxyConfig.mockResolvedValue(undefined);
+    mockGetUseInformers.mockResolvedValue(false);
+    mockSetUseInformers.mockResolvedValue(undefined);
 
     mockGetHooksConfig.mockResolvedValue({ hooks: [] });
     mockSaveHook.mockResolvedValue({});

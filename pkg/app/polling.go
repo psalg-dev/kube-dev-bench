@@ -21,6 +21,15 @@ type ResourcePollingConfig[T any] struct {
 // generic polling framework. MonitorPolling is excluded because it has different
 // aggregation semantics (single MonitorInfo across all namespaces).
 func (a *App) StartAllPolling() {
+	a.pollingMu.Lock()
+	if a.pollingStarted {
+		a.pollingMu.Unlock()
+		return
+	}
+	a.pollingStopCh = make(chan struct{})
+	a.pollingStarted = true
+	a.pollingMu.Unlock()
+
 	startResourcePolling(a, ResourcePollingConfig[PodInfo]{
 		EventName: EventPodsUpdate,
 		FetchFn:   a.GetRunningPods,
@@ -56,6 +65,19 @@ func (a *App) StartAllPolling() {
 	a.StartMonitorPolling()
 }
 
+func (a *App) StopAllPolling() {
+	a.pollingMu.Lock()
+	defer a.pollingMu.Unlock()
+	if !a.pollingStarted {
+		return
+	}
+	if a.pollingStopCh != nil {
+		close(a.pollingStopCh)
+	}
+	a.pollingStopCh = nil
+	a.pollingStarted = false
+}
+
 // startResourcePolling starts a generic polling loop for any K8s resource type.
 // It polls the configured namespaces periodically and emits events with the collected resources.
 func startResourcePolling[T any](a *App, config ResourcePollingConfig[T]) {
@@ -69,7 +91,11 @@ func startResourcePolling[T any](a *App, config ResourcePollingConfig[T]) {
 		defer ticker.Stop()
 
 		for {
-			<-ticker.C
+			select {
+			case <-ticker.C:
+			case <-a.pollingStopCh:
+				return
+			}
 			if a.ctx == nil {
 				continue
 			}

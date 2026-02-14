@@ -5,6 +5,8 @@ export interface GraphToolbarProps {
   onDepthChange: (_value: number) => void;
   loading?: boolean;
   onRefresh: () => void;
+  onExportSvg?: () => void;
+  onExportPng?: () => void;
   filters: GraphFilterState;
   onToggleFilter: (_filterKey: string) => void;
 }
@@ -21,6 +23,8 @@ export function GraphToolbar({
   onDepthChange,
   loading,
   onRefresh,
+  onExportSvg,
+  onExportPng,
   filters,
   onToggleFilter,
 }: GraphToolbarProps) {
@@ -54,6 +58,26 @@ export function GraphToolbar({
       </div>
 
       <div className="toolbar-right">
+        {onExportSvg && (
+          <button
+            id="graph-export-svg-btn"
+            onClick={onExportSvg}
+            className="export-button"
+            disabled={Boolean(loading)}
+          >
+            Export SVG
+          </button>
+        )}
+        {onExportPng && (
+          <button
+            id="graph-export-png-btn"
+            onClick={onExportPng}
+            className="export-button"
+            disabled={Boolean(loading)}
+          >
+            Export PNG
+          </button>
+        )}
         <button
           id="graph-refresh-btn"
           onClick={onRefresh}

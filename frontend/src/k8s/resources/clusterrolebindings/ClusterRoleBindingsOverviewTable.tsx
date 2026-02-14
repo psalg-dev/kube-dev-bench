@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/rules-of-hooks */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
@@ -12,6 +11,7 @@ import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from 
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import YamlTab from '../../../layout/bottompanel/YamlTab';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import { showError, showSuccess } from '../../../notification';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import { ResourceGraphTab } from '../../graph/ResourceGraphTab';
@@ -219,8 +219,6 @@ function renderPanelContent(
 type ClusterRoleBindingsOverviewTableProps = { namespace?: string };
 
 export default function ClusterRoleBindingsOverviewTable({ namespace }: ClusterRoleBindingsOverviewTableProps) {
-  const [data, setData] = useState<ClusterRoleBindingRow[]>([]);
-  const [loading, setLoading] = useState(false);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -323,45 +321,17 @@ export default function ClusterRoleBindingsOverviewTable({ namespace }: ClusterR
     return () => { try { unsubscribe?.(); } catch {} };
   }, []);
 
-  const fetchClusterRoleBindings = async () => {
-    setLoading(true);
+  const fetchClusterRoleBindings = useCallback(async (): Promise<ClusterRoleBindingRow[]> => {
     try {
       const list = await AppAPI.GetClusterRoleBindings().catch(() => [] as app.RoleBindingInfo[]);
-      setData(normalizeClusterRoleBindings(list));
+      return normalizeClusterRoleBindings(list);
     } catch (err) {
       console.error('Error fetching cluster role bindings:', err);
-      setData([]);
-    } finally {
-      setLoading(false);
+      return [];
     }
-  };
-
-  useEffect(() => { fetchClusterRoleBindings(); }, []);
-
-  useEffect(() => {
-    const onUpdate = (list: RoleBindingInfoRaw[] | null | undefined) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        setData(normalizeClusterRoleBindings(arr));
-      } catch {
-        setData([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('clusterrolebindings:update', onUpdate);
-    return () => { try { EventsOff('clusterrolebindings:update'); } catch {} };
   }, []);
 
-  useEffect(() => {
-    const onUpdate = (eventData: any) => {
-      if (eventData?.resource === 'clusterrolebinding') {
-        fetchClusterRoleBindings();
-      }
-    };
-    EventsOn('resource-updated', onUpdate);
-    return () => { try { EventsOff('resource-updated'); } catch {} };
-  }, []);
+  const { data, loading } = useResourceWatch<ClusterRoleBindingRow>('clusterrolebindings:update', fetchClusterRoleBindings, { mergeStrategy: 'replace' });
 
   const analyzeClusterRoleBinding = async (row: ClusterRoleBindingRow) => {
     const key = row.name;

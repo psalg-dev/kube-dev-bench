@@ -8,11 +8,13 @@ package app
 
 import (
 	"context"
+	"time"
 
 	jobs "gowails/pkg/app/jobs"
 
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	types "k8s.io/apimachinery/pkg/types"
 	kubernetes "k8s.io/client-go/kubernetes"
 	typedbatchv1 "k8s.io/client-go/kubernetes/typed/batch/v1"
@@ -20,6 +22,43 @@ import (
 
 // GetJobs returns all jobs in a namespace by delegating to the jobs package.
 func (a *App) GetJobs(namespace string) ([]jobs.JobInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Batch().V1().Jobs().Lister().Jobs(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]jobs.JobInfo, 0, len(items))
+			for _, item := range items {
+				completions := int32(1)
+				if item.Spec.Completions != nil {
+					completions = *item.Spec.Completions
+				}
+
+				duration := "-"
+				if item.Status.StartTime != nil {
+					if item.Status.CompletionTime != nil {
+						duration = formatDuration(item.Status.CompletionTime.Sub(item.Status.StartTime.Time))
+					} else {
+						duration = formatDuration(now.Sub(item.Status.StartTime.Time)) + " (running)"
+					}
+				}
+
+				result = append(result, jobs.JobInfo{
+					Name:        item.Name,
+					Namespace:   item.Namespace,
+					Completions: completions,
+					Succeeded:   item.Status.Succeeded,
+					Active:      item.Status.Active,
+					Failed:      item.Status.Failed,
+					Age:         FormatAge(item.CreationTimestamp, now),
+					Image:       ExtractFirstContainerImage(item.Spec.Template.Spec),
+					Duration:    duration,
+					Labels:      MergeLabels(item.Labels, item.Spec.Template.Labels),
+				})
+			}
+			return result, nil
+		}
+	}
+
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err

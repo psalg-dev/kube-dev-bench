@@ -402,6 +402,8 @@ export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
 
+export function GetUseInformers():Promise<boolean>;
+
 export function GetReplicaSetDetail(arg1:string,arg2:string):Promise<app.ReplicaSetDetail>;
 
 export function GetReplicaSetLogs(arg1:string,arg2:string):Promise<string>;
@@ -689,6 +691,8 @@ export function SetProxyConfig(arg1:string,arg2:string,arg3:string,arg4:string):
 export function SetRememberContext(arg1:boolean):Promise<void>;
 
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
+
+export function SetUseInformers(arg1:boolean):Promise<void>;
 
 export function ShellPod(arg1:string,arg2:string):Promise<string>;
 

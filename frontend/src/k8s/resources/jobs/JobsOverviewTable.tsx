@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { jobs } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeJobStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
@@ -241,8 +241,6 @@ function panelHeader(row: JobRow) {
 }
 
 export default function JobsOverviewTable({ namespaces, namespace }: JobsOverviewTableProps) {
-  const [jobs, setJobs] = useState<JobRow[]>([]);
-  const [loading, setLoading] = useState(false);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -259,6 +257,11 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
   useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
+
+  const selectedNamespaces = useMemo(
+    () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+    [namespaces, namespace]
+  );
 
   // Subscribe to Holmes chat stream events
   useEffect(() => {
@@ -400,52 +403,19 @@ export default function JobsOverviewTable({ namespaces, namespace }: JobsOvervie
 
   const normalizeJobs = (arr: JobInfoRaw[] | null | undefined) => (arr || []).filter(Boolean).map(normalizeJob);
 
-  // Fetch jobs data
-  const fetchJobs = async () => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
+  const initialFetchJobs = useCallback(async (): Promise<JobRow[]> => {
+    if (selectedNamespaces.length === 0) return [];
+    const lists = await Promise.all(
+      selectedNamespaces.map((ns) => AppAPI.GetJobs(ns).catch(() => [] as jobs.JobInfo[]))
+    );
+    return normalizeJobs(lists.flat() as JobInfoRaw[]);
+  }, [selectedNamespaces]);
 
-    setLoading(true);
-    try {
-      const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetJobs(ns).catch(() => [] as jobs.JobInfo[])));
-      setJobs(normalizeJobs(lists.flat()));
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-      setJobs([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initial fetch when namespace changes
-  /* eslint-disable react-hooks/exhaustive-deps */
-  useEffect(() => {
-    fetchJobs();
-  }, [namespaces, namespace]);
-  /* eslint-enable react-hooks/exhaustive-deps */
-  // Subscribe to jobs updates if available
-
-  useEffect(() => {
-    const handler = (jobsData: JobInfoRaw[] | null | undefined) => {
-      try { setJobs(normalizeJobs(Array.isArray(jobsData) ? jobsData : [])); } catch { setJobs([]); }
-    };
-    EventsOn('jobs:update', handler);
-    return () => { try { EventsOff('jobs:update'); } catch {} };
-  }, []);
-
-  // Generic resource-updated fallback (e.g. after CreateManifestOverlay)
-  useEffect(() => {
-    EventsOn('resource-updated', (eventData) => {
-      const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-      if (eventData?.resource === 'job' && nsArr.includes(eventData?.namespace)) {
-        fetchJobs();
-      }
-    });
-    return () => {
-      try { EventsOff('resource-updated'); } catch {}
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(namespaces), namespace]);
+  const { data: jobs, loading } = useResourceWatch<JobRow>(
+    'jobs:update',
+    initialFetchJobs,
+    { mergeStrategy: 'replace' }
+  );
 
   const analyzeJob = async (row: JobRow) => {
     const key = `${row.namespace}/${row.name}`;

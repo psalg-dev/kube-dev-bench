@@ -23,6 +23,7 @@ import { AnalyzePodStream, CancelHolmesStream, onHolmesChatStream, onHolmesConte
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
 import type { HolmesResponse } from '../../../holmes/HolmesResponseRenderer';
 import useTableSelection from '../../../hooks/useTableSelection';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import BottomPanel from '../../../layout/bottompanel/BottomPanel';
 import ConsoleTab from '../../../layout/bottompanel/ConsoleTab';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
@@ -122,7 +123,6 @@ export default function PodOverviewTable({
   const [pfDialogPod, setPfDialogPod] = useState<string | null>(null);
   const [forwardLocalPort, setForwardLocalPort] = useState<number | null>(null);
   const [forwardRemotePort, setForwardRemotePort] = useState<number | null>(null);
-  const [internalData, setInternalData] = useState<PodRow[]>([]);
   const [pfByKey, setPfByKey] = useState<PortForwardMap>({}); // key: ns/pod -> { remotePort: [locals] }
   const bulkActions = useMemo(() => getBulkActionsForResource({ platform: 'k8s', kind: 'pod' }), []);
   const bulkEnabled = bulkActions.length > 0;
@@ -271,14 +271,6 @@ export default function PodOverviewTable({
 
   const multiNs = Array.isArray(namespaces) && namespaces.length > 1;
 
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
   const normalizePod = (pod: PodRow, ns?: string): PodRow => {
     const name = pod?.name ?? pod?.Name;
     const namespaceVal = pod?.namespace ?? pod?.Namespace ?? ns;
@@ -293,60 +285,25 @@ export default function PodOverviewTable({
     };
   };
 
-  const refreshPods = useCallback(async () => {
-    const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
-    const targetNamespaces = selected.filter((value): value is string => Boolean(value));
-    if (targetNamespaces.length === 0) return;
+  const targetNamespaces = useMemo(
+    () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace]).filter((value): value is string => Boolean(value)),
+    [namespace, namespaces]
+  );
 
-    try {
-      const results = await Promise.all(
-        targetNamespaces.map(async (ns) => {
-          const pods = await AppAPI.GetRunningPods(ns);
-          return (Array.isArray(pods) ? (pods as PodRow[]) : []).map((p) => normalizePod(p, ns));
-        })
-      );
-      const combined = results.flat();
-      if (mountedRef.current) {
-        setInternalData(combined);
-      }
-    } catch {
-      // Best-effort refresh; keep existing list on failure to avoid flicker.
+  const initialFetchPods = useCallback(async (): Promise<PodRow[]> => {
+    if (targetNamespaces.length === 0) {
+      return [];
     }
-  }, [namespace, namespaces]);
+    const results = await Promise.all(
+      targetNamespaces.map(async (ns) => {
+        const pods = await AppAPI.GetRunningPods(ns);
+        return (Array.isArray(pods) ? (pods as PodRow[]) : []).map((p) => normalizePod(p, ns));
+      })
+    );
+    return results.flat();
+  }, [targetNamespaces]);
 
-  // Fallback: subscribe to pods:update if parent doesn't pass data
-  useEffect(() => {
-    const handler = (pods: PodRow[] | null | undefined) => {
-      setInternalData(Array.isArray(pods) ? (pods as PodRow[]) : []);
-    };
-    EventsOn('pods:update', handler);
-    return () => {
-      try { EventsOff('pods:update'); } catch {}
-    };
-  }, []);
-
-  // React to generic resource-updated events emitted by CreateManifestOverlay.
-  // This makes newly created Pods appear quickly without waiting for background polling.
-  useEffect(() => {
-    const onUpdate = (eventData: { resource?: string; namespace?: string } | null | undefined) => {
-      const res = (eventData?.resource || '').toString().toLowerCase();
-      if (res !== 'pod' && res !== 'pods') return;
-      const ns = (eventData?.namespace || '').toString();
-      const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
-      if (ns && !selected.includes(ns)) return;
-      refreshPods();
-    };
-
-    const unsubscribe = EventsOn('resource-updated', onUpdate);
-    return () => {
-      try { unsubscribe?.(); } catch {}
-    };
-  }, [namespace, namespaces, refreshPods]);
-
-  // Initial load when this view mounts or namespaces change.
-  useEffect(() => {
-    refreshPods();
-  }, [refreshPods]);
+  const { data: watchedPods, loading: watchLoading } = useResourceWatch<PodRow>('pods:update', initialFetchPods, { mergeStrategy: 'replace' });
 
   // Subscribe to consolidated portforward updates and seed initial state
   useEffect(() => {
@@ -563,7 +520,9 @@ export default function PodOverviewTable({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [now, pfByKey, multiNs]);
 
-  const tableData: PodRow[] = (Array.isArray(data) && data.length > 0) ? data : internalData;
+  const usingExternalData = Array.isArray(data) && data.length > 0;
+  const tableData: PodRow[] = usingExternalData ? data : watchedPods;
+  const tableLoading = usingExternalData ? loading : watchLoading;
   const table = useReactTable<PodRow>({
     data: tableData,
     columns: baseColumns,
@@ -1210,14 +1169,14 @@ export default function PodOverviewTable({
           ))}
           </thead>
           <tbody>
-            {tableData.length === 0 && !loading && (
+            {tableData.length === 0 && !tableLoading && (
               <tr>
                 <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
                   No Pods deployed in this namespace
                 </td>
               </tr>
             )}
-            {tableData.length > 0 && table.getRowModel().rows.length === 0 && !loading && (
+            {tableData.length > 0 && table.getRowModel().rows.length === 0 && !tableLoading && (
               <tr>
                 <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
                   No rows match the filter.
@@ -1447,7 +1406,7 @@ export default function PodOverviewTable({
             </tbody>
           </table>
         </div>}
-        {data.length >= 20 && (
+        {tableData.length >= 20 && (
           <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
             <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
             <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>

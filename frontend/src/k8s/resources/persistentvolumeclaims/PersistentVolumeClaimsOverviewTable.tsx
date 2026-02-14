@@ -85,20 +85,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		holmesStateRef.current = holmesState;
 	}, [holmesState]);
 
-	const fastTimerRef = useRef<number | null>(null);
-	const slowTimerRef = useRef<number | null>(null);
-
-	const clearTimers = () => {
-		if (fastTimerRef.current) {
-			clearInterval(fastTimerRef.current);
-			fastTimerRef.current = null;
-		}
-		if (slowTimerRef.current) {
-			clearInterval(slowTimerRef.current);
-			slowTimerRef.current = null;
-		}
-	};
-
 	// Normalize PVC data
 	const normalize = (arr: PvcRowRaw[] | null | undefined): PvcRow[] => (arr || []).filter(Boolean).map((i) => {
 		const modes = i.accessModes ?? i.AccessModes;
@@ -149,23 +135,7 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 
 	useEffect(() => {
 		fetchAllPVCs(true); // Initial load
-		// Start a fast window when view opens
-		clearTimers();
-		let elapsed = 0;
-		if (Array.isArray(namespaces) && namespaces.length > 0) {
-			fastTimerRef.current = window.setInterval(async () => {
-				await fetchAllPVCs(false); // Subsequent refreshes without loading state
-				elapsed += 1;
-				if (elapsed >= 60) {
-					if (fastTimerRef.current) {
-						clearInterval(fastTimerRef.current);
-						fastTimerRef.current = null;
-					}
-					slowTimerRef.current = window.setInterval(() => fetchAllPVCs(false), 60000);
-				}
-			}, 1000);
-		}
-		return () => clearTimers();
+		return () => {};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [namespaces]);
 
@@ -175,21 +145,6 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 			const targetNs = eventData?.namespace;
 			if (eventData?.resource === 'persistentvolumeclaim' && (!namespaces || (targetNs && namespaces.includes(targetNs)))) {
 				fetchAllPVCs(false); // Refresh without loading state
-				clearTimers();
-				let elapsed = 0;
-				if (Array.isArray(namespaces) && namespaces.length > 0) {
-					fastTimerRef.current = window.setInterval(async () => {
-						await fetchAllPVCs(false); // Subsequent refreshes without loading state
-						elapsed += 1;
-						if (elapsed >= 60) {
-							if (fastTimerRef.current) {
-								clearInterval(fastTimerRef.current);
-								fastTimerRef.current = null;
-							}
-							slowTimerRef.current = window.setInterval(() => fetchAllPVCs(false), 60000);
-						}
-					}, 1000);
-				}
 			}
 		};
 		const unsubscribe = EventsOn('resource-updated', onUpdate);
@@ -198,6 +153,18 @@ export default function PersistentVolumeClaimsOverviewTable({ namespaces, onPVCC
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [namespaces]);
+
+	useEffect(() => {
+		const unsubscribe = EventsOn('persistentvolumeclaims:update', (list: unknown) => {
+			const arr = Array.isArray(list) ? (list as PvcRowRaw[]) : [];
+			setPVCs(normalize(arr));
+			setLoading(false);
+		});
+		return () => {
+			try { unsubscribe?.(); } catch {}
+		};
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	// Subscribe to Holmes chat stream events
 	useEffect(() => {

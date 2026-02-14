@@ -16,6 +16,7 @@ import (
 	"github.com/creack/pty"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	restclient "k8s.io/client-go/rest"
@@ -633,6 +634,21 @@ func shouldIncludePod(pod *v1.Pod) bool {
 // GetRunningPods returns all running (and pending) pods (name, restarts, uptime) in a namespace
 // Pending pods are included so the UI can show pods while they are in 'Creating' state.
 func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		pods, err := factory.Core().V1().Pods().Lister().Pods(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]PodInfo, 0, len(pods))
+			for _, pod := range pods {
+				if shouldIncludePod(pod) {
+					copyPod := *pod
+					result = append(result, buildPodInfoFromPod(copyPod, now))
+				}
+			}
+			return result, nil
+		}
+	}
+
 	clientset, err := a.getClient()
 	if err != nil {
 		return nil, err
@@ -720,6 +736,29 @@ func (a *App) ExecCommand(cmdline string) error {
 
 // GetPodStatusCounts returns counts of pods by phase for the given namespace
 func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		pods, err := factory.Core().V1().Pods().Lister().Pods(namespace).List(labels.Everything())
+		if err == nil {
+			var counts PodStatusCounts
+			counts.Total = len(pods)
+			for _, pod := range pods {
+				switch pod.Status.Phase {
+				case v1.PodRunning:
+					counts.Running++
+				case v1.PodPending:
+					counts.Pending++
+				case v1.PodFailed:
+					counts.Failed++
+				case v1.PodSucceeded:
+					counts.Succeeded++
+				default:
+					counts.Unknown++
+				}
+			}
+			return counts, nil
+		}
+	}
+
 	clientset, err := a.getClient()
 	if err != nil {
 		return PodStatusCounts{}, err

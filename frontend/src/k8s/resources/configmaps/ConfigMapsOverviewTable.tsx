@@ -217,22 +217,6 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 		holmesStateRef.current = holmesState;
 	}, [holmesState]);
 
-	// Timers and guards as refs so we can restart fast polling on new creates
-	const inFlightRef = useRef(false);
-	const fastTimerRef = useRef<number | null>(null);
-	const slowTimerRef = useRef<number | null>(null);
-
-	const clearTimers = () => {
-		if (fastTimerRef.current) {
-			clearInterval(fastTimerRef.current);
-			fastTimerRef.current = null;
-		}
-		if (slowTimerRef.current) {
-			clearInterval(slowTimerRef.current);
-			slowTimerRef.current = null;
-		}
-	};
-
 	// Subscribe to Holmes chat stream events
 	useEffect(() => {
 		const unsubscribe = onHolmesChatStream((payload) => {
@@ -393,39 +377,9 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 		}
 	};
 
-	// Fast polling for all selected namespaces
-	const periodicFetch = async () => {
-		if (inFlightRef.current) return;
-		inFlightRef.current = true;
-		try {
-			await fetchConfigMaps();
-		} catch {
-			// ignore periodic errors
-		} finally {
-			inFlightRef.current = false;
-		}
-	};
-
-	const startFastPollingWindow = () => {
-		clearTimers();
-		let elapsed = 0;
-			fastTimerRef.current = window.setInterval(async () => {
-			await periodicFetch();
-			elapsed += 1;
-			if (elapsed >= 60) {
-				if (fastTimerRef.current) {
-					clearInterval(fastTimerRef.current);
-					fastTimerRef.current = null;
-				}
-					slowTimerRef.current = window.setInterval(() => periodicFetch(), 60000);
-			}
-		}, 1000);
-	};
-
 	useEffect(() => {
 		fetchConfigMaps();
-		startFastPollingWindow();
-		return () => clearTimers();
+		return () => {};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [JSON.stringify(namespaces), namespace]);
 
@@ -434,7 +388,6 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 		EventsOn('resource-updated', (eventData) => {
 			if (eventData?.resource === 'configmap' && (namespaces.includes(eventData?.namespace) || eventData?.namespace === namespace)) {
 				fetchConfigMaps();
-				startFastPollingWindow();
 			}
 		});
 		return () => {
@@ -450,7 +403,6 @@ export default function ConfigMapsOverviewTable({ namespaces = [], namespace, on
 				const arr = Array.isArray(list) ? list : [];
 				const filtered = arr.filter((cm) => namespaces.includes(cm?.namespace ?? cm?.Namespace ?? '') || (cm?.namespace ?? cm?.Namespace) === namespace);
 				setData(normalizeConfigMaps(filtered));
-				startFastPollingWindow();
 			} catch {
 				// ignore malformed payloads
 			}

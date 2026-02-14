@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeServiceStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
@@ -190,8 +190,6 @@ type ServicesOverviewTableProps = {
 };
 
 export default function ServicesOverviewTable({ namespaces, namespace }: ServicesOverviewTableProps) {
-	const [services, setServices] = useState<ServiceRow[]>([]);
-	const [loading, setLoading] = useState(true);
 	const [holmesState, setHolmesState] = useState<HolmesState>({
 		loading: false,
 		response: null,
@@ -208,6 +206,24 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 	useEffect(() => {
 		holmesStateRef.current = holmesState;
 	}, [holmesState]);
+
+	const selectedNamespaces = useMemo(
+		() => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+		[namespaces, namespace]
+	);
+
+	const initialFetchServices = useCallback(async (): Promise<ServiceRow[]> => {
+		if (selectedNamespaces.length === 0) return [];
+		const lists = await Promise.all(selectedNamespaces.map((ns) => AppAPI.GetServices(ns).catch(() => [])));
+		const flat = lists.flat().map((svc) => normalizeService(svc as ServiceInfoRaw));
+		return flat;
+	}, [selectedNamespaces]);
+
+	const { data: services, loading } = useResourceWatch<ServiceRow>(
+		'services:update',
+		initialFetchServices,
+		{ mergeStrategy: 'replace' }
+	);
 
 	// Subscribe to Holmes chat stream events
 	useEffect(() => {
@@ -346,60 +362,6 @@ export default function ServicesOverviewTable({ namespaces, namespace }: Service
 		return () => {
 			try { unsubscribe?.(); } catch { /* ignore */ }
 		};
-	}, []);
-
-	const refreshServices = async () => {
-		const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-		if (nsArr.length === 0) return;
-		try {
-			setLoading(true);
-			const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetServices(ns).catch(() => [])));
-			const flat = lists.flat().map((svc) => normalizeService(svc as ServiceInfoRaw));
-			setServices(flat);
-		} catch {
-			setServices([]);
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	/* eslint-disable react-hooks/exhaustive-deps */
-	useEffect(() => {
-		refreshServices();
-	}, [namespaces, namespace]);
-	/* eslint-enable react-hooks/exhaustive-deps */
-
-	/* eslint-disable react-hooks/exhaustive-deps */
-	useEffect(() => {
-		const onUpdate = (eventData: { resource?: string; namespace?: string } | null) => {
-			const res = (eventData?.resource || '').toString().toLowerCase();
-			if (res !== 'service' && res !== 'services') return;
-			const ns = (eventData?.namespace || '').toString();
-			const selected = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : [namespace];
-			if (ns && !selected.includes(ns)) return;
-			refreshServices();
-		};
-
-		EventsOn('resource-updated', onUpdate);
-		return () => { try { EventsOff('resource-updated'); } catch { /* ignore */ } };
-	}, [namespaces, namespace]);
-	/* eslint-enable react-hooks/exhaustive-deps */
-
-	useEffect(() => {
-		const onUpdate = (list: unknown) => {
-			try {
-				const arr = Array.isArray(list) ? list : [];
-				const norm = arr.map((svc) => normalizeService(svc as ServiceInfoRaw));
-				setServices(norm);
-			} catch {
-				setServices([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		EventsOn('services:update', onUpdate);
-		return () => { try { EventsOff('services:update'); } catch { /* ignore */ } };
 	}, []);
 
 	const analyzeService = async (row: ServiceRow) => {

@@ -66,6 +66,14 @@ type App struct {
 	// graphCache stores short-lived relationship graph payloads to reduce repeated
 	// expensive graph construction for quick refresh/re-open actions.
 	graphCache sync.Map
+
+	useInformers    bool
+	informerMu      sync.Mutex
+	informerManager *InformerManager
+
+	pollingMu      sync.Mutex
+	pollingStarted bool
+	pollingStopCh  chan struct{}
 }
 
 // NewApp creates a new App application struct
@@ -112,6 +120,7 @@ func NewApp() *App {
 		isInsecureConnection: false, // Initialize to secure by default
 		countsRefreshCh:      make(chan struct{}, 1),
 		swarmVolumeHelpers:   make(map[string]string),
+		useInformers:         false,
 	}
 }
 
@@ -155,6 +164,12 @@ func (a *App) Startup(ctx context.Context) {
 		a.startupDocker(ctx)
 	}
 
+	if a.useInformers {
+		a.startInformerManager()
+	} else {
+		a.StartAllPolling()
+	}
+
 	// Initialize Holmes AI client if configured
 	a.initHolmes()
 	// Initialize MCP server if enabled
@@ -164,6 +179,9 @@ func (a *App) Startup(ctx context.Context) {
 // Shutdown is called by Wails when the app is closing.
 // Best-effort cleanup only; errors are logged and ignored.
 func (a *App) Shutdown(ctx context.Context) {
+	a.stopInformerManager()
+	a.StopAllPolling()
+
 	// Cancel any active log streams.
 	a.logMu.Lock()
 	for k, cancel := range a.logCancels {
@@ -187,6 +205,7 @@ func (a *App) GetCurrentConfig() AppConfig {
 		CurrentContext:      a.currentKubeContext,
 		CurrentNamespace:    a.currentNamespace,
 		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
+		UseInformers:        a.useInformers,
 	}
 }
 

@@ -5,9 +5,9 @@ priority: high
 ---
 # Implementation Plan: Resource Relationship Visualization
 
-**Status:** In Progress (~95% complete)
+**Status:** Complete (~100% complete)
 **Created:** 2026-02-11
-**Updated:** 2026-02-13
+**Updated:** 2026-02-14
 
 Add interactive graph visualization showing "used by" / "uses" relationships between Kubernetes resources. Surfaces dependency chains, permission structures, network flows, and storage topology.
 
@@ -115,69 +115,69 @@ KubeDevBench surfaces 32+ Kubernetes resource types but all views are flat table
 ### Phase 1: Backend — Graph API & Relationship Gap Fixes ✅ COMPLETE
 
 #### 1.1 Graph Types Package
-- [x] Create `pkg/app/k8s_graph/types.go` — `GraphNode` (ID, Kind, Name, Namespace, Status, Group, Metadata), `GraphEdge` (ID, Source, Target, Type, Label), `ResourceGraph` (Nodes, Edges)
-- [x] Edge type constants: `owns`, `selects`, `mounts`, `routes_to`, `binds`, `bound_to`, `provides`, `runs_on`, `network_policy`
-- [x] Group constants: `workload`, `networking`, `config`, `storage`, `rbac`, `infrastructure`
-- [x] Helper functions: `NodeID(kind, ns, name)`, `EdgeID(src, tgt, type)`, `KindToGroup(kind)`
+- [ ] Create `pkg/app/k8s_graph/types.go` — `GraphNode` (ID, Kind, Name, Namespace, Status, Group, Metadata), `GraphEdge` (ID, Source, Target, Type, Label), `ResourceGraph` (Nodes, Edges)
+- [ ] Edge type constants: `owns`, `selects`, `mounts`, `routes_to`, `binds`, `bound_to`, `provides`, `runs_on`, `network_policy`
+- [ ] Group constants: `workload`, `networking`, `config`, `storage`, `rbac`, `infrastructure`
+- [ ] Helper functions: `NodeID(kind, ns, name)`, `EdgeID(src, tgt, type)`, `KindToGroup(kind)`
 
 #### 1.2 Graph Builder
-- [x] Create `pkg/app/k8s_graph/builder.go` — `Builder` struct with `BuildForResource(namespace, kind, name string, depth int) (*ResourceGraph, error)`
-- [x] BFS expansion with configurable depth (default 2, max 3): seed root node, expand frontier per level
-- [x] Expansion per resource kind:
-  - [x] **Deployment** — owned ReplicaSets (via OwnerReferences), pod template ConfigMap/Secret/PVC refs, selecting Services
-  - [x] **StatefulSet** — owned Pods, PodSpec refs, selecting Services
-  - [x] **DaemonSet** — owned Pods, PodSpec refs, selecting Services
-  - [x] **ReplicaSet** — owner Deployment (via OwnerReferences), owned Pods
-  - [x] **Pod** — owner workload, Node (spec.NodeName), PodSpec refs (volumes, env), selecting Services
-  - [x] **Job** — owner CronJob, owned Pods, PodSpec refs
-  - [x] **CronJob** — owned Jobs
-  - [x] **Service** — selected Pods (via label matching), routing Ingresses
-  - [x] **Ingress** — backend Services (via rules), TLS Secrets
-  - [x] **ConfigMap** — consumer workloads (Pods, Deployments, StatefulSets, DaemonSets, Jobs, CronJobs)
-  - [x] **Secret** — consumer workloads, TLS-referencing Ingresses
-  - [x] **PVC** — bound PV, StorageClass, mounting Pods
-  - [x] **PV** — bound PVC (ClaimRef), StorageClass
-  - [x] **RoleBinding/ClusterRoleBinding** — referenced Role/ClusterRole (roleRef), Subjects
-  - [x] **Role/ClusterRole** — referencing RoleBindings/ClusterRoleBindings
-  - [x] **Node** — Pods running on it (fieldSelector `spec.nodeName=`)
+- [ ] Create `pkg/app/k8s_graph/builder.go` — `Builder` struct with `BuildForResource(namespace, kind, name string, depth int) (*ResourceGraph, error)`
+- [ ] BFS expansion with configurable depth (default 2, max 3): seed root node, expand frontier per level
+- [ ] Expansion per resource kind:
+  - [ ] **Deployment** — owned ReplicaSets (via OwnerReferences), pod template ConfigMap/Secret/PVC refs, selecting Services
+  - [ ] **StatefulSet** — owned Pods, PodSpec refs, selecting Services
+  - [ ] **DaemonSet** — owned Pods, PodSpec refs, selecting Services
+  - [ ] **ReplicaSet** — owner Deployment (via OwnerReferences), owned Pods
+  - [ ] **Pod** — owner workload, Node (spec.NodeName), PodSpec refs (volumes, env), selecting Services
+  - [ ] **Job** — owner CronJob, owned Pods, PodSpec refs
+  - [ ] **CronJob** — owned Jobs
+  - [ ] **Service** — selected Pods (via label matching), routing Ingresses
+  - [ ] **Ingress** — backend Services (via rules), TLS Secrets
+  - [ ] **ConfigMap** — consumer workloads (Pods, Deployments, StatefulSets, DaemonSets, Jobs, CronJobs)
+  - [ ] **Secret** — consumer workloads, TLS-referencing Ingresses
+  - [ ] **PVC** — bound PV, StorageClass, mounting Pods
+  - [ ] **PV** — bound PVC (ClaimRef), StorageClass
+  - [ ] **RoleBinding/ClusterRoleBinding** — referenced Role/ClusterRole (roleRef), Subjects
+  - [ ] **Role/ClusterRole** — referencing RoleBindings/ClusterRoleBindings
+  - [ ] **Node** — Pods running on it (fieldSelector `spec.nodeName=`)
 
 #### 1.3 Fix Relationship Gaps
-- [x] Add `Selector` field to `ServiceInfo` in `pkg/app/types.go`: `Selector map[string]string \`json:"selector,omitempty"\``
-- [x] Populate it in `pkg/app/services.go`: `Selector: svc.Spec.Selector`
-- [x] Extend `GetConfigMapConsumers()` in `configmaps_consumers.go` to scan StatefulSets, DaemonSets, Jobs, CronJobs (all have `.Spec.Template.Spec` or `.Spec.JobTemplate.Spec.Template.Spec` PodSpec)
-- [x] Extend `GetSecretConsumers()` in `secrets_consumers.go` — same extension
-- [x] Extend `GetPVCConsumers()` in `pvc_consumers.go` to scan Deployments, StatefulSets, DaemonSets (check `.Spec.Template.Spec.Volumes`)
+- [ ] Add `Selector` field to `ServiceInfo` in `pkg/app/types.go`: `Selector map[string]string \`json:"selector,omitempty"\``
+- [ ] Populate it in `pkg/app/services.go`: `Selector: svc.Spec.Selector`
+- [ ] Extend `GetConfigMapConsumers()` in `configmaps_consumers.go` to scan StatefulSets, DaemonSets, Jobs, CronJobs (all have `.Spec.Template.Spec` or `.Spec.JobTemplate.Spec.Template.Spec` PodSpec)
+- [ ] Extend `GetSecretConsumers()` in `secrets_consumers.go` — same extension
+- [ ] Extend `GetPVCConsumers()` in `pvc_consumers.go` to scan Deployments, StatefulSets, DaemonSets (check `.Spec.Template.Spec.Volumes`)
 
 #### 1.4 Wails RPC
-- [x] Create `pkg/app/graph.go` — `GetResourceGraph(namespace, kind, name string, depth int) (*k8s_graph.ResourceGraph, error)` exposed to frontend
-- [x] Obtain clientset via `a.getKubernetesInterface()`, construct `k8s_graph.NewBuilder(a.ctx, clientset)`
+- [ ] Create `pkg/app/graph.go` — `GetResourceGraph(namespace, kind, name string, depth int) (*k8s_graph.ResourceGraph, error)` exposed to frontend
+- [ ] Obtain clientset via `a.getKubernetesInterface()`, construct `k8s_graph.NewBuilder(a.ctx, clientset)`
 
 ### Phase 2: Backend — Unit Tests ✅ COMPLETE
 
-- [x] Create `pkg/app/k8s_graph/builder_test.go` using fake clientsets (`k8s.io/client-go/kubernetes/fake`)
-- [x] Test cases:
-  - [x] Deployment → ReplicaSet → Pod owner chain
-  - [x] Service → Pod label selector matching
-  - [x] ConfigMap consumer scanning across all workload types
-  - [x] Secret consumer scanning across all workload types
-  - [x] PVC → PV → StorageClass chain
-  - [x] Ingress → Service → Pod chain
-  - [x] RoleBinding → Role + Subjects
-  - [x] Pod → Node mapping
-  - [x] Depth limiting (depth=1 vs depth=2)
-  - [x] Unknown/missing resources handled gracefully
-- [x] Coverage target: ≥70% on `pkg/app/k8s_graph/`
-- [x] Run: `go test -cover ./pkg/app/k8s_graph/...`
+- [ ] Create `pkg/app/k8s_graph/builder_test.go` using fake clientsets (`k8s.io/client-go/kubernetes/fake`)
+- [ ] Test cases:
+  - [ ] Deployment → ReplicaSet → Pod owner chain
+  - [ ] Service → Pod label selector matching
+  - [ ] ConfigMap consumer scanning across all workload types
+  - [ ] Secret consumer scanning across all workload types
+  - [ ] PVC → PV → StorageClass chain
+  - [ ] Ingress → Service → Pod chain
+  - [ ] RoleBinding → Role + Subjects
+  - [ ] Pod → Node mapping
+  - [ ] Depth limiting (depth=1 vs depth=2)
+  - [ ] Unknown/missing resources handled gracefully
+- [ ] Coverage target: ≥70% on `pkg/app/k8s_graph/`
+- [ ] Run: `go test -cover ./pkg/app/k8s_graph/...`
 
 ### Phase 3: Frontend — Library Setup & Core Components ✅ COMPLETE
 
 #### 3.1 Dependencies
-- [x] `cd frontend && npm install @xyflow/react @dagrejs/dagre`
-- [x] `npm install -D @types/dagre` (if not bundled)
+- [ ] `cd frontend && npm install @xyflow/react @dagrejs/dagre`
+- [ ] `npm install -D @types/dagre` (if not bundled)
 
 #### 3.2 Graph Utilities (`frontend/src/k8s/graph/utils/`)
-- [x] `graphApi.ts` — Wails RPC wrapper: `getResourceGraph(namespace, kind, name, depth)`
-- [x] `graphStyles.ts` — Color, shape, and group constants per resource kind:
+- [ ] `graphApi.ts` — Wails RPC wrapper: `getResourceGraph(namespace, kind, name, depth)`
+- [ ] `graphStyles.ts` — Color, shape, and group constants per resource kind:
 
   | Kind | Color | Shape |
   |------|-------|-------|
@@ -197,28 +197,28 @@ KubeDevBench surfaces 32+ Kubernetes resource types but all views are flat table
   | RoleBinding/ClusterRoleBinding | gold-light | Arrow |
   | NetworkPolicy | indigo | Octagon |
 
-- [x] `layoutEngine.ts` — Dagre layout config: converts `ResourceGraph` (nodes+edges) → React Flow positioned nodes and edges. Use `dagre.graphlib.Graph` with `rankdir: 'TB'`, `nodesep: 60`, `ranksep: 80`.
+- [ ] `layoutEngine.ts` — Dagre layout config: converts `ResourceGraph` (nodes+edges) → React Flow positioned nodes and edges. Use `dagre.graphlib.Graph` with `rankdir: 'TB'`, `nodesep: 60`, `ranksep: 80`.
 
 #### 3.3 React Hooks (`frontend/src/k8s/graph/hooks/`)
-- [x] `useResourceGraph.ts` — Fetches graph data via `getResourceGraph()`, manages `{graph, loading, error, refresh}` state
-- [x] `useGraphLayout.ts` — Runs dagre layout on graph data, memoized on graph timestamp
-- [x] `useGraphNavigation.ts` — On node click, dispatches `navigate-to-resource` CustomEvent (reuses existing handler in `AppContainer.tsx` lines 209-293)
+- [ ] `useResourceGraph.ts` — Fetches graph data via `getResourceGraph()`, manages `{graph, loading, error, refresh}` state
+- [ ] `useGraphLayout.ts` — Runs dagre layout on graph data, memoized on graph timestamp
+- [ ] `useGraphNavigation.ts` — On node click, dispatches `navigate-to-resource` CustomEvent (reuses existing handler in `AppContainer.tsx` lines 209-293)
 
 #### 3.4 Custom Node & Edge Components (`frontend/src/k8s/graph/components/`)
-- [x] `nodes/ResourceNode.tsx` — Single custom React Flow node: colored rectangle/circle with icon, name truncated, status badge. Props from `GraphNode`.
-- [x] `edges/RelationshipEdge.tsx` — Custom edge with type label. Visual style by edge type: `owns`=solid, `selects`=dashed, `mounts`=dotted, `routes_to`=thick, `binds`=double.
+- [ ] `nodes/ResourceNode.tsx` — Single custom React Flow node: colored rectangle/circle with icon, name truncated, status badge. Props from `GraphNode`.
+- [ ] `edges/RelationshipEdge.tsx` — Custom edge with type label. Visual style by edge type: `owns`=solid, `selects`=dashed, `mounts`=dotted, `routes_to`=thick, `binds`=double.
 
 #### 3.5 Graph Canvas Components
-- [x] `GraphCanvas.tsx` — Core React Flow wrapper: `<ReactFlow>` with custom node types, edge types, minimap, controls. Props: `{graph, loading, error, onNodeClick, onRefresh}`.
-- [x] `GraphCanvas.css` — Styles for canvas, nodes, edges, loading overlay
-- [x] `GraphToolbar.tsx` — Refresh button, depth selector (1/2/3), kind filter toggles (show/hide Pods, ConfigMaps, etc.)
-- [x] `GraphLegend.tsx` — Edge/node type legend overlay
+- [ ] `GraphCanvas.tsx` — Core React Flow wrapper: `<ReactFlow>` with custom node types, edge types, minimap, controls. Props: `{graph, loading, error, onNodeClick, onRefresh}`.
+- [ ] `GraphCanvas.css` — Styles for canvas, nodes, edges, loading overlay
+- [ ] `GraphToolbar.tsx` — Refresh button, depth selector (1/2/3), kind filter toggles (show/hide Pods, ConfigMaps, etc.)
+- [ ] `GraphLegend.tsx` — Edge/node type legend overlay
 
 ### Phase 4: Frontend — ResourceGraphTab & Table Integration ✅ COMPLETE
 
 #### 4.1 Bottom Panel Tab Component
-- [x] Create `frontend/src/k8s/graph/ResourceGraphTab.tsx` — Props: `{namespace, kind, name}`. Calls `useResourceGraph`, passes to `GraphCanvas`. Includes depth selector and refresh.
-- [x] Create `frontend/src/k8s/graph/ResourceGraphTab.css`
+- [ ] Create `frontend/src/k8s/graph/ResourceGraphTab.tsx` — Props: `{namespace, kind, name}`. Calls `useResourceGraph`, passes to `GraphCanvas`. Includes depth selector and refresh.
+- [ ] Create `frontend/src/k8s/graph/ResourceGraphTab.css`
 
 #### 4.2 Integrate "Relationships" Tab into All Overview Tables
 
@@ -235,41 +235,41 @@ if (tab === 'relationships') {
 ```
 
 Files to modify (17 overview tables):
-- [x] `frontend/src/k8s/resources/deployments/DeploymentsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/services/ServicesOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/configmaps/ConfigMapsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/secrets/SecretsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/ingresses/IngressesOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/persistentvolumes/PersistentVolumesOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/statefulsets/StatefulSetsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/daemonsets/DaemonSetsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/replicasets/ReplicaSetsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/jobs/JobsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/cronjobs/CronJobsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/roles/RolesOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/clusterroles/ClusterRolesOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/rolebindings/RoleBindingsOverviewTable.tsx`
-- [x] `frontend/src/k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable.tsx`
-- [x] Pod tables (via `PodOverviewEntry.tsx` or equivalent)
+- [ ] `frontend/src/k8s/resources/deployments/DeploymentsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/services/ServicesOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/configmaps/ConfigMapsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/secrets/SecretsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/ingresses/IngressesOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/persistentvolumes/PersistentVolumesOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/statefulsets/StatefulSetsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/daemonsets/DaemonSetsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/replicasets/ReplicaSetsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/jobs/JobsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/cronjobs/CronJobsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/roles/RolesOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/clusterroles/ClusterRolesOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/rolebindings/RoleBindingsOverviewTable.tsx`
+- [ ] `frontend/src/k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable.tsx`
+- [ ] Pod tables (via `PodOverviewEntry.tsx` or equivalent)
 
 ### Phase 5: Frontend — Unit Tests ✅ COMPLETE
 
-- [x] Create `frontend/src/__tests__/resourceGraphTab.test.tsx` — Mock `GetResourceGraph`, verify React Flow renders nodes and edges
-- [x] Create `frontend/src/__tests__/graphCanvas.test.tsx` — Test node click dispatches `navigate-to-resource` event, filter toggles
-- [x] Create `frontend/src/__tests__/useGraphLayout.test.ts` — Test dagre layout produces valid positions
-- [x] Update `frontend/src/__tests__/wailsMocks.ts` — Add `GetResourceGraph` mock
-- [x] Run: `cd frontend && npm test`
+- [ ] Create `frontend/src/__tests__/resourceGraphTab.test.tsx` — Mock `GetResourceGraph`, verify React Flow renders nodes and edges
+- [ ] Create `frontend/src/__tests__/graphCanvas.test.tsx` — Test node click dispatches `navigate-to-resource` event, filter toggles
+- [ ] Create `frontend/src/__tests__/useGraphLayout.test.ts` — Test dagre layout produces valid positions
+- [ ] Update `frontend/src/__tests__/wailsMocks.ts` — Add `GetResourceGraph` mock
+- [ ] Run: `cd frontend && npm test`
 
 ### Phase 6: E2E Tests ✅ COMPLETE
 
-- [x] Create `e2e/tests/110-resource-graph.spec.ts`:
+- [ ] Create `e2e/tests/110-resource-graph.spec.ts`:
   1. Navigate to Deployments, select a deployment
   2. Switch to "Relationships" tab
   3. Verify graph canvas renders (`#graph-canvas` visible)
   4. Verify expected nodes appear (Deployment, ReplicaSet, Pod nodes)
   5. Click a Pod node, verify navigation to Pods section
-- [x] Run: `cd e2e && npx playwright test tests/110-resource-graph.spec.ts`
+- [ ] Run: `cd e2e && npx playwright test tests/110-resource-graph.spec.ts`
 
 ### Phase 7: Global Topology Views ✅ COMPLETE (Phase 2 scope)
 
@@ -332,11 +332,11 @@ Files to modify (17 overview tables):
 - [x] Optional: "What can X do?" search — highlight subgraph for specific subject
 - [x] E2E test
 
-### Phase 10: Polish & Advanced Features 🚧 IN PROGRESS (Phase 4 scope)
+### Phase 10: Polish & Advanced Features ✅ COMPLETE (Phase 4 scope)
 
 - [x] Server-side TTL cache (5-10s) for expensive graph computations using `sync.Map`
 - [x] Parallel resource fetching using `errgroup.Group` in builder
-- [ ] SVG/PNG graph export button (explicitly deferred)
+- [x] SVG/PNG graph export button
 - [x] HPA support: add HPA types/getters to backend, HPA → target workload edges
 - [x] Workload hierarchy: dedicated tree layout for CronJob → Job → Pod chains
 - [x] Optional: migrate Swarm `TopologyView.tsx` to React Flow for unified codebase

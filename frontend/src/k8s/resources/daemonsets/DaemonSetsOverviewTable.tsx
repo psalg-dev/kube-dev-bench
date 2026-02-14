@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeDaemonSetStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
@@ -266,8 +266,6 @@ type DaemonSetsOverviewTableProps = {
 };
 
 export default function DaemonSetsOverviewTable({ namespaces, namespace }: DaemonSetsOverviewTableProps) {
-  const [daemonSets, setDaemonSets] = useState<DaemonSetRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -284,6 +282,25 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
   useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
+
+  const selectedNamespaces = useMemo(
+    () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+    [namespaces, namespace]
+  );
+
+  const initialFetchDaemonSets = useCallback(async (): Promise<DaemonSetRow[]> => {
+    if (selectedNamespaces.length === 0) return [];
+    const lists = await Promise.all(
+      selectedNamespaces.map((ns) => AppAPI.GetDaemonSets(ns).catch(() => [] as app.DaemonSetInfo[]))
+    );
+    return normalizeDaemonSets(lists.flat() as DaemonSetInfoRaw[]);
+  }, [selectedNamespaces]);
+
+  const { data: daemonSets, loading } = useResourceWatch<DaemonSetRow>(
+    'daemonsets:update',
+    initialFetchDaemonSets,
+    { mergeStrategy: 'replace' }
+  );
 
   // Subscribe to Holmes chat stream events
   useEffect(() => {
@@ -422,36 +439,6 @@ export default function DaemonSetsOverviewTable({ namespaces, namespace }: Daemo
       try { unsubscribe?.(); } catch {}
     };
   }, []);
-
-  useEffect(() => {
-    const onUpdate = (list: DaemonSetInfoRaw[] | null | undefined) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const norm = normalizeDaemonSets(arr);
-        setDaemonSets(norm);
-      } catch {
-        setDaemonSets([]);
-      } finally { setLoading(false); }
-    };
-    EventsOn('daemonsets:update', onUpdate);
-    return () => { try { EventsOff('daemonsets:update'); } catch {} };
-  }, []);
-
-  useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-    const fetchDaemonSets = async () => {
-      try {
-        setLoading(true);
-        const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetDaemonSets(ns).catch(() => [] as app.DaemonSetInfo[])));
-        const flat = lists.flat();
-        setDaemonSets(normalizeDaemonSets(flat));
-      } catch {
-        setDaemonSets([]);
-      } finally { setLoading(false); }
-    };
-    fetchDaemonSets();
-  }, [namespaces, namespace]);
 
   const analyzeDaemonSet = async (row: DaemonSetRow) => {
     const key = `${row.namespace}/${row.name}`;

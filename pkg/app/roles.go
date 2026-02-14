@@ -6,6 +6,7 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 // RoleInfo represents summary information about a Kubernetes role
@@ -33,6 +34,18 @@ func (a *App) GetRoles(namespace string) ([]RoleInfo, error) {
 		return nil, fmt.Errorf("missing required parameter: namespace")
 	}
 
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		roles, err := factory.Rbac().V1().Roles().Lister().Roles(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]RoleInfo, 0, len(roles))
+			for _, role := range roles {
+				result = append(result, buildRoleInfo(role, now))
+			}
+			return result, nil
+		}
+	}
+
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
@@ -56,6 +69,18 @@ func (a *App) GetRoles(namespace string) ([]RoleInfo, error) {
 
 // GetClusterRoles returns all cluster roles
 func (a *App) GetClusterRoles() ([]RoleInfo, error) {
+	if factory, ok := a.getInformerClusterFactory(); ok {
+		clusterRoles, err := factory.Rbac().V1().ClusterRoles().Lister().List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]RoleInfo, 0, len(clusterRoles))
+			for _, clusterRole := range clusterRoles {
+				result = append(result, buildClusterRoleInfo(clusterRole, now))
+			}
+			return result, nil
+		}
+	}
+
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err

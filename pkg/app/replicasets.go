@@ -5,6 +5,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -23,6 +24,18 @@ func buildReplicaSetInfo(rs *appsv1.ReplicaSet, now time.Time) ReplicaSetInfo {
 
 // GetReplicaSets returns all replicasets in a namespace
 func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Apps().V1().ReplicaSets().Lister().ReplicaSets(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]ReplicaSetInfo, 0, len(items))
+			for _, item := range items {
+				result = append(result, buildReplicaSetInfo(item, now))
+			}
+			return result, nil
+		}
+	}
+
 	return listResources(a, namespace,
 		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]appsv1.ReplicaSet, error) {
 			list, err := cs.AppsV1().ReplicaSets(ns).List(a.ctx, opts)

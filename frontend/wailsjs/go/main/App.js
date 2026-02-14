@@ -786,6 +786,10 @@ export function GetRememberNamespace() {
   return window['go']['main']['App']['GetRememberNamespace']();
 }
 
+export function GetUseInformers() {
+  return window['go']['main']['App']['GetUseInformers']();
+}
+
 export function GetReplicaSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetDetail'](arg1, arg2);
 }
@@ -1360,6 +1364,10 @@ export function SetRememberContext(arg1) {
 
 export function SetRememberNamespace(arg1) {
   return window['go']['main']['App']['SetRememberNamespace'](arg1);
+}
+
+export function SetUseInformers(arg1) {
+  return window['go']['main']['App']['SetUseInformers'](arg1);
 }
 
 export function ShellPod(arg1, arg2) {

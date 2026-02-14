@@ -7,6 +7,7 @@ import { GraphLegend } from './components/GraphLegend';
 import { GraphToolbar } from './components/GraphToolbar';
 import { getNamespaceGraph, getNetworkPolicyGraph, getRBACGraph, getStorageGraph } from './utils/graphApi';
 import { collapsePodsForLargeNamespaceGraph } from './utils/graphTransforms';
+import { exportGraphCanvas } from './utils/exportGraph';
 import './GraphView.css';
 
 type GraphMode = 'namespace' | 'storage' | 'network' | 'rbac';
@@ -249,6 +250,29 @@ export default function GraphView({ mode }: GraphViewProps) {
     }));
   };
 
+  const withGraphCanvas = async (format: 'svg' | 'png') => {
+    const element = document.getElementById('graph-canvas');
+    if (!element) {
+      return;
+    }
+    const graphName = mode === 'storage'
+      ? 'storage-graph'
+      : mode === 'network'
+        ? 'network-policy-graph'
+        : mode === 'rbac'
+          ? 'rbac-graph'
+          : 'namespace-topology';
+    await exportGraphCanvas(element, format, `${namespace}-${graphName}`);
+  };
+
+  const handleExportSvg = () => {
+    void withGraphCanvas('svg');
+  };
+
+  const handleExportPng = () => {
+    void withGraphCanvas('png');
+  };
+
   return (
     <div className="graph-view-root">
       <div className="graph-view-header">
@@ -283,6 +307,8 @@ export default function GraphView({ mode }: GraphViewProps) {
               onDepthChange={setDepth}
               loading={loading}
               onRefresh={onRefresh}
+              onExportSvg={handleExportSvg}
+              onExportPng={handleExportPng}
               filters={kindFilters}
               onToggleFilter={toggleKindFilter}
             />

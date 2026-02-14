@@ -23,9 +23,6 @@ func main() {
 	// Create an instance of the app structure (from pkg/app)
 	app := &App{App: apppkg.NewApp()}
 
-	// Start all resource polling loops (uses the generic polling framework)
-	app.StartAllPolling()
-
 	// Create application with options
 	err := wails.Run(&options.App{
 		Title:  "KubeDevBench",

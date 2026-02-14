@@ -5,6 +5,10 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   GetResourceEvents: vi.fn(),
 }));
 
+vi.mock('../../wailsjs/runtime/runtime', () => ({
+  EventsOn: vi.fn(() => () => {}),
+}));
+
 import ResourceEventsTab from '../components/ResourceEventsTab';
 import * as AppAPI from '../../wailsjs/go/main/App';
 import type { app } from '../../wailsjs/go/models';

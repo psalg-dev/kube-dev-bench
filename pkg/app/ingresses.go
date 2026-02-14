@@ -6,6 +6,7 @@ import (
 
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -69,6 +70,18 @@ func buildIngressInfo(ingress *networkingv1.Ingress, now time.Time) IngressInfo 
 
 // GetIngresses returns all ingresses in a namespace
 func (a *App) GetIngresses(namespace string) ([]IngressInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Networking().V1().Ingresses().Lister().Ingresses(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]IngressInfo, 0, len(items))
+			for _, item := range items {
+				result = append(result, buildIngressInfo(item, now))
+			}
+			return result, nil
+		}
+	}
+
 	return listResources(a, namespace,
 		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]networkingv1.Ingress, error) {
 			list, err := cs.NetworkingV1().Ingresses(ns).List(a.ctx, opts)

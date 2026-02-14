@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime';
 import StatusBadge from '../../../components/StatusBadge';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
 import './StatefulSetPVCsTab.css';
@@ -16,7 +17,6 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }: State
 	const [pvcs, setPvcs] = useState<unknown[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	const fetchPVCs = async (isInitial = false) => {
 		if (!statefulSetName || !namespace) return;
@@ -37,9 +37,24 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }: State
 
 	useEffect(() => {
 		fetchPVCs(true);
-		intervalRef.current = setInterval(() => fetchPVCs(false), 10000);
+
+		const refresh = () => {
+			fetchPVCs(false);
+		};
+
+		const unsubStatefulSetsUpdate = EventsOn('statefulsets:update', refresh);
+		const unsubPVCUpdate = EventsOn('persistentvolumeclaims:update', refresh);
+		const unsubResourceUpdated = EventsOn('resource-updated', (eventData: { resource?: string; namespace?: string } | null | undefined) => {
+			const resource = (eventData?.resource || '').toString().toLowerCase();
+			if ((resource === 'statefulset' || resource === 'persistentvolumeclaim') && (!eventData?.namespace || eventData.namespace === namespace)) {
+				refresh();
+			}
+		});
+
 		return () => {
-			if (intervalRef.current) clearInterval(intervalRef.current);
+			try { unsubStatefulSetsUpdate?.(); } catch {}
+			try { unsubPVCUpdate?.(); } catch {}
+			try { unsubResourceUpdated?.(); } catch {}
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [namespace, statefulSetName]);

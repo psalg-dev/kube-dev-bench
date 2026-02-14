@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeDeploymentStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
@@ -258,8 +258,6 @@ type DeploymentsOverviewTableProps = {
 };
 
 export default function DeploymentsOverviewTable({ namespaces, namespace }: DeploymentsOverviewTableProps) {
-  const [deployments, setDeployments] = useState<DeploymentRow[]>([]);
-  const [loading, setLoading] = useState(true);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -276,6 +274,25 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }: Depl
   useEffect(() => {
     holmesStateRef.current = holmesState;
   }, [holmesState]);
+
+  const selectedNamespaces = useMemo(
+    () => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+    [namespaces, namespace]
+  );
+
+  const initialFetchDeployments = useCallback(async (): Promise<DeploymentRow[]> => {
+    if (selectedNamespaces.length === 0) return [];
+    const lists = await Promise.all(
+      selectedNamespaces.map((ns) => AppAPI.GetDeployments(ns).catch(() => [] as app.DeploymentInfo[]))
+    );
+    return normalizeDeployments(lists.flat() as DeploymentInfoRaw[]);
+  }, [selectedNamespaces]);
+
+  const { data: deployments, loading } = useResourceWatch<DeploymentRow>(
+    'deployments:update',
+    initialFetchDeployments,
+    { mergeStrategy: 'replace' }
+  );
 
   // Subscribe to Holmes chat stream events
   useEffect(() => {
@@ -412,46 +429,6 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }: Depl
     });
     return () => {
       try { unsubscribe?.(); } catch {}
-    };
-  }, []);
-
-  useEffect(() => {
-    const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-    if (nsArr.length === 0) return;
-
-    const fetchDeployments = async () => {
-      try {
-        setLoading(true);
-        const lists = await Promise.all(nsArr.map((ns) => AppAPI.GetDeployments(ns).catch(() => [] as app.DeploymentInfo[])));
-        const flat = lists.flat();
-        setDeployments(normalizeDeployments(flat));
-      } catch (error) {
-        console.error('Failed to fetch deployments:', error);
-        setDeployments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDeployments();
-  }, [namespaces, namespace]);
-
-  // Subscribe to live deployment updates from backend (already aggregated)
-  useEffect(() => {
-    const onUpdate = (list: DeploymentInfoRaw[] | null | undefined) => {
-      try {
-        const arr = Array.isArray(list) ? list : [];
-        const norm = normalizeDeployments(arr);
-        setDeployments(norm);
-      } catch {
-        setDeployments([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    EventsOn('deployments:update', onUpdate);
-    return () => {
-      try { EventsOff('deployments:update'); } catch {}
     };
   }, []);
 

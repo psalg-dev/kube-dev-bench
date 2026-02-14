@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { GetUseInformers, SetUseInformers } from '../../../wailsjs/go/main/App';
+import { showError, showSuccess } from '../../notification';
 import { useConnectionsState, type PinnedConnection, type SelectedSection } from './ConnectionsStateContext';
 import './ConnectionsSidebar.css';
 
@@ -18,6 +20,45 @@ function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
     useConnectionsState();
 
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [useInformers, setUseInformers] = useState(false);
+  const [informersLoading, setInformersLoading] = useState(true);
+  const [informersSaving, setInformersSaving] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void GetUseInformers()
+      .then((enabled) => {
+        if (mounted) {
+          setUseInformers(Boolean(enabled));
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setUseInformers(false);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setInformersLoading(false);
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleUseInformersToggle = async (enabled: boolean) => {
+    setInformersSaving(true);
+    try {
+      await SetUseInformers(enabled);
+      setUseInformers(enabled);
+      showSuccess(enabled ? 'Kubernetes updates set to informer watch mode.' : 'Kubernetes updates set to polling mode.');
+    } catch (err) {
+      showError(`Failed to update Kubernetes refresh mode: ${err instanceof Error ? err.message : String(err)}`);
+    } finally {
+      setInformersSaving(false);
+    }
+  };
 
   const sections: SidebarSection[] = [
     {
@@ -127,6 +168,21 @@ function ConnectionsSidebar({ onConnect }: ConnectionsSidebarProps) {
       </div>
 
       <div className="connections-sidebar__footer">
+        <div className="connections-sidebar__updates">
+          <label className="connections-sidebar__updates-toggle">
+            <input
+              id="k8s-use-informers-toggle"
+              type="checkbox"
+              checked={useInformers}
+              disabled={informersLoading || informersSaving}
+              onChange={(e) => void handleUseInformersToggle(e.target.checked)}
+            />
+            <span>Use informer updates</span>
+          </label>
+          <div className="connections-sidebar__updates-status">
+            {informersLoading ? 'Loading mode…' : useInformers ? 'Watch mode' : 'Polling mode'}
+          </div>
+        </div>
         <button
           id="global-proxy-settings-btn"
           onClick={() => actions.showProxySettings(true)}

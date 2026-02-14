@@ -5,6 +5,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -51,6 +52,18 @@ func buildPVCListInfo(pvc *corev1.PersistentVolumeClaim, now time.Time) Persiste
 
 // GetPersistentVolumeClaims returns all persistent volume claims in a namespace
 func (a *App) GetPersistentVolumeClaims(namespace string) ([]PersistentVolumeClaimInfo, error) {
+	if factory, ok := a.getInformerNamespaceFactory(namespace); ok {
+		items, err := factory.Core().V1().PersistentVolumeClaims().Lister().PersistentVolumeClaims(namespace).List(labels.Everything())
+		if err == nil {
+			now := time.Now()
+			result := make([]PersistentVolumeClaimInfo, 0, len(items))
+			for _, item := range items {
+				result = append(result, buildPVCListInfo(item, now))
+			}
+			return result, nil
+		}
+	}
+
 	return listResources(a, namespace,
 		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]corev1.PersistentVolumeClaim, error) {
 			list, err := cs.CoreV1().PersistentVolumeClaims(ns).List(a.ctx, opts)

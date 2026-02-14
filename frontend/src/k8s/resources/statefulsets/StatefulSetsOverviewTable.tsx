@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
-import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
 import ResourcePodsTab from '../../../components/ResourcePodsTab';
+import { useResourceWatch } from '../../../hooks/useResourceWatch';
 import type { HolmesContextProgressEvent, HolmesResponse } from '../../../holmes/holmesApi';
 import { AnalyzeStatefulSetStream, CancelHolmesStream, onHolmesChatStream, onHolmesContextProgress } from '../../../holmes/holmesApi';
 import HolmesBottomPanel, { type HolmesContextStep, type HolmesToolEvent } from '../../../holmes/HolmesBottomPanel';
@@ -262,8 +262,6 @@ type StatefulSetsOverviewTableProps = {
 };
 
 export default function StatefulSetsOverviewTable({ namespaces, namespace }: StatefulSetsOverviewTableProps) {
-	const [items, setItems] = useState<StatefulSetRow[]>([]);
-	const [loading, setLoading] = useState(true);
 	const [holmesState, setHolmesState] = useState<HolmesState>({
 		loading: false,
 		response: null,
@@ -280,6 +278,24 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 	useEffect(() => {
 		holmesStateRef.current = holmesState;
 	}, [holmesState]);
+
+	const selectedNamespaces = useMemo(
+		() => (Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : [])),
+		[namespaces, namespace]
+	);
+
+	const initialFetchStatefulSets = useCallback(async (): Promise<StatefulSetRow[]> => {
+		if (selectedNamespaces.length === 0) return [];
+		const lists = await Promise.all(selectedNamespaces.map(ns => AppAPI.GetStatefulSets(ns).catch(() => [])));
+		const flat = lists.flat().map((x) => normalizeStatefulSet(x as StatefulSetInfoRaw));
+		return flat;
+	}, [selectedNamespaces]);
+
+	const { data: items, loading } = useResourceWatch<StatefulSetRow>(
+		'statefulsets:update',
+		initialFetchStatefulSets,
+		{ mergeStrategy: 'replace' }
+	);
 
 	// Subscribe to Holmes chat stream events
 	useEffect(() => {
@@ -420,44 +436,6 @@ export default function StatefulSetsOverviewTable({ namespaces, namespace }: Sta
 		};
 	}, []);
 
-	// Aggregate fetch by namespaces
-	useEffect(() => {
-		const nsArr = Array.isArray(namespaces) && namespaces.length > 0 ? namespaces : (namespace ? [namespace] : []);
-		if (nsArr.length === 0) return;
-		let cancelled = false;
-		const run = async () => {
-			try {
-				setLoading(true);
-				const lists = await Promise.all(nsArr.map(ns => AppAPI.GetStatefulSets(ns).catch(() => [])));
-				if (cancelled) return;
-				const flat = lists.flat().map((x) => normalizeStatefulSet(x as StatefulSetInfoRaw));
-				setItems(flat);
-			} catch {
-				if (!cancelled) setItems([]);
-			} finally {
-				if (!cancelled) setLoading(false);
-			}
-		};
-		run();
-		return () => { cancelled = true; };
-	}, [namespaces, namespace]);
-
-	// Live updates (already aggregated by backend polling)
-	useEffect(() => {
-		const onUpdate = (list: unknown) => {
-			try {
-				const arr = Array.isArray(list) ? list : [];
-				const norm = arr.map((x) => normalizeStatefulSet(x as StatefulSetInfoRaw));
-				setItems(norm);
-			} catch {
-				setItems([]);
-			} finally {
-				setLoading(false);
-			}
-		};
-		EventsOn('statefulsets:update', onUpdate);
-		return () => { try { EventsOff('statefulsets:update'); } catch { /* ignore */ } };
-	}, []);
 	const analyzeStatefulSet = async (row: StatefulSetRow) => {
 		const key = `${row.namespace}/${row.name}`;
 		const streamId = `statefulset-${Date.now()}`;

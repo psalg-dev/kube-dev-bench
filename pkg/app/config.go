@@ -14,6 +14,7 @@ type AppConfig struct {
 	CurrentContext      string   `json:"currentContext"`
 	CurrentNamespace    string   `json:"currentNamespace"`
 	PreferredNamespaces []string `json:"preferredNamespaces"`
+	UseInformers        bool     `json:"useInformers"`
 	RememberContext     bool     `json:"rememberContext"`
 	RememberNamespace   bool     `json:"rememberNamespace"`
 	KubeConfigPath      string   `json:"kubeConfigPath"`
@@ -43,6 +44,7 @@ func (a *App) loadConfig() error {
 	a.currentKubeContext = config.CurrentContext
 	a.currentNamespace = config.CurrentNamespace
 	a.preferredNamespaces = append([]string(nil), config.PreferredNamespaces...)
+	a.useInformers = config.UseInformers
 	a.rememberContext = config.RememberContext
 	a.rememberNamespace = config.RememberNamespace
 	a.kubeConfig = config.KubeConfigPath
@@ -62,6 +64,7 @@ func (a *App) saveConfig() error {
 		CurrentContext:      a.currentKubeContext,
 		CurrentNamespace:    a.currentNamespace,
 		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
+		UseInformers:        a.useInformers,
 		RememberContext:     a.rememberContext,
 		RememberNamespace:   a.rememberNamespace,
 		KubeConfigPath:      a.kubeConfig,
@@ -134,11 +137,9 @@ func (a *App) SetKubeConfigPath(path string) error {
 // SetCurrentKubeContext stores the selected context name
 func (a *App) SetCurrentKubeContext(name string) error {
 	a.currentKubeContext = name
+	a.restartInformerManager()
 	// Trigger a counts refresh (context switch invalidates prior data)
-	select {
-	case a.countsRefreshCh <- struct{}{}:
-	default:
-	}
+	a.requestCountsRefresh()
 	if a.rememberContext {
 		return a.saveConfig()
 	}
@@ -152,10 +153,8 @@ func (a *App) SetCurrentNamespace(ns string) error {
 	if len(a.preferredNamespaces) == 0 && ns != "" {
 		a.preferredNamespaces = []string{ns}
 	}
-	select {
-	case a.countsRefreshCh <- struct{}{}:
-	default:
-	}
+	a.restartInformerManager()
+	a.requestCountsRefresh()
 	if a.rememberNamespace {
 		return a.saveConfig()
 	}
@@ -169,10 +168,8 @@ func (a *App) SetPreferredNamespaces(namespaces []string) error {
 	if len(namespaces) > 0 {
 		a.currentNamespace = namespaces[0]
 	}
-	select {
-	case a.countsRefreshCh <- struct{}{}:
-	default:
-	}
+	a.restartInformerManager()
+	a.requestCountsRefresh()
 	if a.rememberNamespace {
 		return a.saveConfig()
 	}
@@ -196,3 +193,22 @@ func (a *App) SetRememberNamespace(val bool) error {
 
 // GetRememberNamespace returns the rememberNamespace flag
 func (a *App) GetRememberNamespace() bool { return a.rememberNamespace }
+
+// GetUseInformers returns whether informer-based updates are enabled.
+func (a *App) GetUseInformers() bool { return a.useInformers }
+
+// SetUseInformers switches between polling and informer-based update mode.
+func (a *App) SetUseInformers(val bool) error {
+	if a.useInformers == val {
+		return nil
+	}
+	a.useInformers = val
+	if a.useInformers {
+		a.StopAllPolling()
+		a.startInformerManager()
+	} else {
+		a.stopInformerManager()
+		a.StartAllPolling()
+	}
+	return a.saveConfig()
+}

@@ -82,6 +82,13 @@ AI-powered diagnostics for intelligent troubleshooting:
 - Proxy support (manual and system detection)
 - Pinned connections for quick access
 
+### 🔄 Kubernetes Real-Time Updates (Beta)
+
+- Optional informer-based mode reduces periodic polling traffic.
+- Uses watch/informer streams and emits `*:update` events to resource tables.
+- Current default remains polling for safe rollout (`useInformers=false`).
+- Architecture details: [docs/informer-architecture.md](docs/informer-architecture.md)
+
 ---
 
 ## 🎯 Quick Start

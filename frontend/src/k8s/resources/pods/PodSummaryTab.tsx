@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { GetPodEvents, GetPodEventsLegacy, GetPodSummary } from '../../../../wailsjs/go/main/App';
 import * as AppAPI from '../../../../wailsjs/go/main/App.js';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime';
 import ResourceActions from '../../../components/ResourceActions';
 import StatusBadge from '../../../components/StatusBadge';
 import LogViewerTab from '../../../layout/bottompanel/LogViewerTab';
@@ -75,8 +76,26 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 	useEffect(() => {
 		const ns = (data && data.namespace) ? data.namespace : undefined;
 		loadEvents(ns);
-		const id = setInterval(() => loadEvents(ns), 5000);
-		return () => clearInterval(id);
+
+		const onPodUpdate = () => {
+			loadEvents(ns);
+		};
+
+		const onResourceUpdated = (eventData: { resource?: string; namespace?: string; name?: string } | null | undefined) => {
+			const resource = (eventData?.resource || '').toString().toLowerCase();
+			if (resource !== 'pod') return;
+			if (eventData?.name && eventData.name !== podName) return;
+			if (ns && eventData?.namespace && eventData.namespace !== ns) return;
+			loadEvents(ns);
+		};
+
+		const unsubPodsUpdate = EventsOn('pods:update', onPodUpdate);
+		const unsubResourceUpdated = EventsOn('resource-updated', onResourceUpdated);
+
+		return () => {
+			try { unsubPodsUpdate?.(); } catch {}
+			try { unsubResourceUpdated?.(); } catch {}
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [podName, data && data.namespace]);
 

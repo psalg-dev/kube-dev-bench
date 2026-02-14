@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import * as AppAPI from '../../wailsjs/go/main/App';
+import { useResourceWatch } from '../hooks/useResourceWatch';
 import EmptyTabContent from './EmptyTabContent';
 import { getEmptyTabMessage } from '../constants/emptyTabMessages';
 import './ResourceEventsTab.css';
+
+const RESOURCE_EVENTS_UPDATE_EVENT = 'resourceevents:update';
 
 type ResourceEvent = {
   type?: string;
@@ -32,24 +35,19 @@ export default function ResourceEventsTab({
   resourceKind,
   name,
   resourceName,
-  refreshInterval = 5000,
+  refreshInterval: _refreshInterval = 5000,
   limit = null,
 }: ResourceEventsTabProps) {
-  const [events, setEvents] = useState<ResourceEvent[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Support both prop naming conventions
   const actualKind = kind || resourceKind;
   const actualName = name || resourceName;
 
-  const fetchEvents = async (isInitial = false) => {
-    if (!actualName || !actualKind) return;
+  const fetchEvents = useCallback(async (): Promise<ResourceEvent[]> => {
+    if (!actualName || !actualKind) return [];
 
-    if (isInitial) setLoading(true);
     setError(null);
-
     try {
       const result = await AppAPI.GetResourceEvents(namespace || '', actualKind, actualName);
       const arr = Array.isArray(result) ? (result as ResourceEvent[]) : [];
@@ -59,27 +57,21 @@ export default function ResourceEventsTab({
         return tb - ta;
       });
       if (typeof limit === 'number' && Number.isFinite(limit) && limit > 0) {
-        setEvents(arr.slice(0, limit));
-      } else {
-        setEvents(arr);
+        return arr.slice(0, limit);
       }
+      return arr;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-      if (isInitial) setEvents([]);
-    } finally {
-      if (isInitial) setLoading(false);
+      return [];
     }
-  };
+  }, [actualKind, actualName, limit, namespace]);
 
-  useEffect(() => {
-    fetchEvents(true);
-    intervalRef.current = setInterval(() => fetchEvents(false), refreshInterval);
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [namespace, actualKind, actualName, refreshInterval, limit]);
+  const { data: events, loading } = useResourceWatch<ResourceEvent>(
+    RESOURCE_EVENTS_UPDATE_EVENT,
+    fetchEvents,
+    { mergeStrategy: 'replace', refetchOnSignal: true }
+  );
 
   const formatTime = (timestamp?: string) => {
     if (!timestamp) return '-';
