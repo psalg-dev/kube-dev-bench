@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import RoleBindingsOverviewTable from '../k8s/resources/rolebindings/RoleBindingsOverviewTable';
 import { appApiMocks, eventsOnMock, resetAllMocks } from './wailsMocks';
@@ -38,18 +38,24 @@ describe('RoleBindingsOverviewTable', () => {
     expect(row.textContent).toContain('Role: read-only');
     expect(row.textContent).toContain('2');
 
-    const sub = eventsOnMock.mock.calls.find(([event]) => event === 'rolebindings:update');
-    expect(sub).toBeTruthy();
-    const cb = sub?.[1] as (_payload: unknown) => void;
-    cb?.([
-      {
-        Name: 'rb-beta',
-        Namespace: 'ns1',
-        Age: '-',
-        RoleRef: { Kind: 'ClusterRole', Name: 'admin' },
-        Subjects: [],
-      },
-    ]);
+    const subs = eventsOnMock.mock.calls.filter(([event]) => event === 'rolebindings:update');
+    expect(subs.length).toBeGreaterThan(0);
+    const cb = subs.at(-1)?.[1] as (_payload: unknown) => void;
+    act(() => {
+      cb?.([
+        {
+          name: 'rb-beta',
+          namespace: 'ns1',
+          age: '-',
+          roleRef: { kind: 'ClusterRole', name: 'admin' },
+          roleRefLabel: 'ClusterRole: admin',
+          subjects: [],
+          subjectsCount: 0,
+          labels: {},
+          annotations: {},
+        },
+      ]);
+    });
 
     await waitFor(() => {
       expect(screen.getByText('rb-beta')).toBeInTheDocument();
