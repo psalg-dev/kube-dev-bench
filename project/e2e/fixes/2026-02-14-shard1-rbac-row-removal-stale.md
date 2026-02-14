@@ -99,3 +99,20 @@
 
 ### ConfigMap-Spec Validation Plan
 - Run targeted spec locally, then push and monitor next shard-1 run.
+
+## Follow-Up After ConfigMap Push
+- New run after ConfigMap stabilization (`22019193763`) showed:
+  - `tests/70-create-and-delete-configmap-from-details.spec.ts` now passing.
+  - New failure moved to `tests/holmes/10-context-analysis.spec.ts`.
+- Failure signature: resource row did not appear in table (`waitForTableRow` -> `toBeVisible` timeout, element not found), repeated across all retries.
+
+### Holmes-Spec Approach
+1. **Add spec-local resilient row/status helpers for Holmes flow**
+   - File: `e2e/tests/holmes/10-context-analysis.spec.ts`
+   - Added `waitForHolmesRowWithRefresh(...)` for `deployments`, `pods`, and `services` rows.
+   - Added `waitForHolmesStatusWithRefresh(...)` for pod `Running` state.
+   - Both helpers:
+     - use short per-attempt waits,
+     - on failure reload page and re-enter section,
+     - retry up to 3 attempts.
+   - Replaced direct waits for deployment row, pod row/status, and service row with these helpers.

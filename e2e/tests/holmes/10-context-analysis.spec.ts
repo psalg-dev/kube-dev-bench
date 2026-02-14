@@ -11,6 +11,49 @@ function uniqueName(prefix: string) {
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
 }
 
+async function waitForHolmesRowWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'deployments' | 'pods' | 'services') => Promise<void> },
+  section: 'deployments' | 'pods' | 'services',
+  rowText: RegExp,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForTableRow(page, rowText, { timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Row did not appear in section '${section}' for ${rowText}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection(section);
+    }
+  }
+}
+
+async function waitForHolmesStatusWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'pods') => Promise<void> },
+  section: 'pods',
+  resourceName: RegExp,
+  status: string,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForResourceStatus(page, resourceName, status, { timeout: 30_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Status '${status}' did not appear in section '${section}' for ${resourceName}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection(section);
+    }
+  }
+}
+
 async function openRowActionsAndAskHolmes(page: any, rowText: string) {
   const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
@@ -44,7 +87,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await overlay.fillYaml(deployYaml);
   await overlay.create();
   await notifications.waitForClear();
-  await waitForTableRow(page, new RegExp(deployName));
+  await waitForHolmesRowWithRefresh(page, sidebar, 'deployments', new RegExp(deployName));
 
   // Ask Holmes from Deployment row
   await openRowActionsAndAskHolmes(page, deployName);
@@ -55,9 +98,8 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await panel.closeByClickingOutside();
   await sidebar.goToSection('pods');
 
-  const podRow = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
-  await expect(podRow).toBeVisible({ timeout: 90_000 });
-  await waitForResourceStatus(page, new RegExp(deployName), 'Running', { timeout: 120_000 });
+  await waitForHolmesRowWithRefresh(page, sidebar, 'pods', new RegExp(deployName));
+  await waitForHolmesStatusWithRefresh(page, sidebar, 'pods', new RegExp(deployName), 'Running');
 
   await openRowActionsAndAskHolmes(page, deployName);
   await panel.expectVisible(30_000);
@@ -74,7 +116,7 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await overlay.fillYaml(serviceYaml);
   await overlay.create();
   await notifications.waitForClear();
-  await waitForTableRow(page, new RegExp(serviceName));
+  await waitForHolmesRowWithRefresh(page, sidebar, 'services', new RegExp(serviceName));
 
   await openRowActionsAndAskHolmes(page, serviceName);
   await panel.expectVisible(30_000);
