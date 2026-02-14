@@ -44,3 +44,21 @@
 ## Notes
 - The observed state showed sidebar counts reflecting deletion while table rows could remain stale.
 - The chosen fix keeps changes scoped to this flaky RBAC spec and avoids altering global helper behavior for unrelated suites.
+
+## Follow-Up After First Push
+- New run after RBAC stabilization (`22017302698`) failed in shard-1 at `tests/40-create-secret-and-pvc.spec.ts`.
+- Failure signature: PVC row did not become visible within 60s in the table (`toBeVisible` timeout).
+
+### Additional Approaches
+1. **Replace direct `getByRole('row')` assertions with table-scoped helper + retries**
+   - File: `e2e/tests/40-create-secret-and-pvc.spec.ts`
+   - Added `waitForRowWithRefresh(...)` that:
+     - uses `waitForTableRow(...)` with section-scoped table matching,
+     - reloads page + re-enters section on failure,
+     - retries up to 3 attempts.
+   - Applied to both Secret and PVC creation checks.
+
+### Additional Validation
+- Local run for the target spec:
+  - `npx playwright test tests/40-create-secret-and-pvc.spec.ts --workers=1`
+  - Result: one initial attempt failed due transient browser console IPC error, retry passed (`flaky`, test flow assertions succeeded).
