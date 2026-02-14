@@ -20,8 +20,11 @@ vi.mock('react-dom/client', () => ({
 
 vi.mock('../k8s/resources/deployments/DeploymentsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/cluster/ClusterOverview', () => ({ default: Stub }));
+vi.mock('../k8s/graph/GraphView', () => ({ default: Stub }));
 vi.mock('../k8s/resources/services/ServicesOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/jobs/JobsOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/nodes/NodesOverviewTable', () => ({ default: Stub }));
+vi.mock('../k8s/resources/hpa/HPAOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/cronjobs/CronJobsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/daemonsets/DaemonSetsOverviewTable', () => ({ default: Stub }));
 vi.mock('../k8s/resources/statefulsets/StatefulSetsOverviewTable', () => ({ default: Stub }));
@@ -76,6 +79,7 @@ async function importFreshMainContent() {
 }
 
 beforeEach(() => {
+  vi.clearAllMocks();
   document.body.innerHTML = '<div id="main-panels"></div>';
 });
 
