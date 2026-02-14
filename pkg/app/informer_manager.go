@@ -60,9 +60,8 @@ func normalizeNamespaces(namespaces []string) []string {
 
 func (im *InformerManager) Start() error {
 	im.mu.Lock()
-	defer im.mu.Unlock()
-
 	if im.started {
+		im.mu.Unlock()
 		return nil
 	}
 
@@ -114,11 +113,15 @@ func (im *InformerManager) Start() error {
 		im.stopCh = nil
 		im.nsFactories = nil
 		im.clFactory = nil
+		im.mu.Unlock()
 		return fmt.Errorf("failed to sync informer caches")
 	}
 
 	im.started = true
-	emitEvent(im.app.ctx, "k8s:cache:synced", map[string]interface{}{"namespaces": im.namespaces})
+	namespaces := append([]string(nil), im.namespaces...)
+	im.mu.Unlock()
+
+	emitEvent(im.app.ctx, "k8s:cache:synced", map[string]interface{}{"namespaces": namespaces})
 	im.emitAllSnapshots()
 	return nil
 }
