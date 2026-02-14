@@ -15,10 +15,10 @@ export async function waitForTableRow(page: Page, rowText: string | RegExp, opts
     .filter({ has: page.locator('tbody tr') })
     .first();
   await expect(table).toBeVisible({ timeout: 30_000 });
-  
-  const row = page.getByRole('row', { name: rowText });
+
+  const row = table.locator('tbody tr').filter({ hasText: rowText }).first();
   await expect(row).toBeVisible({ timeout });
-  
+
   // Wait for table to stabilize
   await page.waitForTimeout(500);
 }
@@ -28,9 +28,15 @@ export async function waitForTableRow(page: Page, rowText: string | RegExp, opts
  */
 export async function waitForTableRowRemoved(page: Page, rowText: string | RegExp, opts: { timeout?: number } = {}) {
   const timeout = opts.timeout ?? 60_000;
-  const row = page.getByRole('row', { name: rowText });
+  const table = page
+    .locator('#main-panels > div:visible table.gh-table')
+    .filter({ has: page.locator('tbody tr') })
+    .first();
+  await expect(table).toBeVisible({ timeout: 30_000 });
+
+  const row = table.locator('tbody tr').filter({ hasText: rowText });
   await expect(row).toHaveCount(0, { timeout });
-  
+
   // Wait for table to stabilize
   await page.waitForTimeout(500);
 }

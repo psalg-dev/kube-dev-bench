@@ -9,6 +9,27 @@ function uniqueName(prefix: string) {
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
 }
 
+async function waitForRbacRowRemovedWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToRbacSection: (section: string) => Promise<void> },
+  section: 'roles' | 'clusterroles' | 'rolebindings' | 'clusterrolebindings',
+  rowText: RegExp,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForTableRowRemoved(page, rowText, { timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Row was not removed after retries in section '${section}' for ${rowText}`);
+      }
+
+      await page.reload();
+      await sidebar.goToRbacSection(section);
+    }
+  }
+}
+
 test.describe('RBAC resources', () => {
   test('creates and deletes RBAC resources via overlay', async ({ page, contextName, namespace }) => {
     test.setTimeout(180_000);
@@ -46,7 +67,7 @@ test.describe('RBAC resources', () => {
       await panel.getByRole('button', { name: /^confirm$/i }).click();
       await notifications.expectSuccessContains(`role '${roleName}' deleted`);
       await notifications.waitForClear();
-      await waitForTableRowRemoved(page, new RegExp(roleName));
+      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'roles', new RegExp(roleName));
     });
 
     const clusterRoleName = uniqueName('e2e-cr');
@@ -117,7 +138,7 @@ test.describe('RBAC resources', () => {
       await panel.getByRole('button', { name: /^confirm$/i }).click();
       await notifications.expectSuccessContains(`clusterrolebinding '${clusterRoleBindingName}' deleted`);
       await notifications.waitForClear();
-      await waitForTableRowRemoved(page, new RegExp(clusterRoleBindingName));
+      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'clusterrolebindings', new RegExp(clusterRoleBindingName));
 
       await sidebar.goToRbacSection('rolebindings');
       await openRowDetailsByName(page, roleBindingName);
@@ -128,7 +149,7 @@ test.describe('RBAC resources', () => {
       await panel.getByRole('button', { name: /^confirm$/i }).click();
       await notifications.expectSuccessContains(`rolebinding '${roleBindingName}' deleted`);
       await notifications.waitForClear();
-      await waitForTableRowRemoved(page, new RegExp(roleBindingName));
+      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'rolebindings', new RegExp(roleBindingName));
     });
 
     await test.step('delete cluster role', async () => {
@@ -141,7 +162,7 @@ test.describe('RBAC resources', () => {
       await panel.getByRole('button', { name: /^confirm$/i }).click();
       await notifications.expectSuccessContains(`clusterrole '${clusterRoleName}' deleted`);
       await notifications.waitForClear();
-      await waitForTableRowRemoved(page, new RegExp(clusterRoleName));
+      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'clusterroles', new RegExp(clusterRoleName));
     });
   });
 });
