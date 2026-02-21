@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-scripts
+  labels:
+    app: {{ .Release.Name }}
+data:
+  server.js: |
+    const http = require('http');
+    
+    const host = process.env.HOLMES_MOCK_HOST || '0.0.0.0';
+    const port = Number(process.env.HOLMES_MOCK_PORT || '5050');
+    
+    // Simple pattern-based responses
+    const patterns = [
+      {
+        pattern: /pod.*crash|CrashLoopBackOff/i,
+        response: "## Pod Crash Analysis\n\nThe pod is experiencing issues.\n\n### Root Cause\nApplication error detected.\n\n### Recommendations\n1. Check logs\n2. Verify configuration"
+      },
+      {
+        pattern: /deployment|replica/i,
+        response: "## Deployment Analysis\n\nDeployment health check completed.\n\n### Status\n- All replicas running\n- No issues detected"
+      },
+      {
+        pattern: /log|logs/i,
+        response: "## Log Analysis\n\nAnalyzed the provided logs.\n\n### Summary\n- No critical errors found\n- Application running normally"
+      },
+      {
+        pattern: /secret|configmap|configuration/i,
+        response: "## Configuration Analysis\n\nConfiguration resource analysis completed.\n\n### Summary\n- Configuration values validated\n- No issues detected"
+      }
+    ];
+    
+    const defaultResponse = "## Resource Analysis\n\nThe resource appears healthy.\n\n### Summary\nNo issues detected.";
+    
+    function findResponse(question) {
+      for (const p of patterns) {
+        if (p.pattern.test(question)) {
+          return p.response;
+        }
+      }
+      return defaultResponse;
+    }
+    
+    function parseBody(req) {
+      return new Promise((resolve, reject) => {
+        const chunks = [];
+        req.on('data', (chunk) => chunks.push(chunk));
+        req.on('end', () => {
+          try {
+            const body = JSON.parse(Buffer.concat(chunks).toString());
+            resolve(body);
+          } catch (err) {
+            reject(err);
+          }
+        });
+        req.on('error', reject);
+      });
+    }
+    
+    const server = http.createServer(async (req, res) => {
+      const url = req.url || '';
+      const acceptHeader = req.headers['accept'] || '';
+      const wantSSE = acceptHeader.includes('text/event-stream');
+      
+      console.log(`[Holmes Mock] ${req.method} ${url} (Accept: ${acceptHeader}, SSE: ${wantSSE})`);
+      
+      // Health endpoint
+      if (url === '/healthz' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'text/plain' });
+        res.end('ok');
+        return;
+      }
+      
+      // Chat endpoint
+      if (url === '/api/chat' && req.method === 'POST') {
+        try {
+          const body = await parseBody(req);
+          const question = body.ask || '';
+          const responseText = findResponse(question);
+          const queryId = `mock-${Date.now()}`;
+          
+          if (wantSSE) {
+            // SSE streaming response
+            res.writeHead(200, { 
+              'Content-Type': 'text/event-stream',
+              'Cache-Control': 'no-cache',
+              'Connection': 'keep-alive'
+            });
+            
+            // Helper to add delay between chunks (simulates real AI streaming)
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+            
+            // Send the response as SSE events using ai_message format
+            const chunks = responseText.match(/.{1,50}/g) || [responseText];
+            for (let i = 0; i < chunks.length; i++) {
+              const chunk = chunks[i];
+              // Frontend expects ai_message event with {content: ...}
+              const eventData = JSON.stringify({ content: chunk, query_id: queryId });
+              res.write(`event: ai_message\n`);
+              res.write(`data: ${eventData}\n\n`);
+              // Add small delay between chunks to simulate streaming
+              if (i < chunks.length - 1) await sleep(50);
+            }
+            
+            // Small delay before stream_end
+            await sleep(100);
+            
+            // Send stream_end event (frontend expects this to finalize)
+            res.write(`event: stream_end\n`);
+            res.write(`data: {"query_id":"${queryId}"}\n\n`);
+            res.end();
+            console.log(`[Holmes Mock] SSE response sent, ${chunks.length} chunks`);
+          } else {
+            // Regular JSON response
+            const response = {
+              response: responseText,
+              analysis: 'Mock analysis completed',
+              timestamp: new Date().toISOString(),
+              query_id: queryId
+            };
+            
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(response));
+            console.log(`[Holmes Mock] JSON response sent`);
+          }
+        } catch (err) {
+          console.error(`[Holmes Mock] Error: ${err.message}`);
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Bad Request', message: err.message }));
+        }
+        return;
+      }
+      
+      // 404 for other endpoints
+      console.log(`[Holmes Mock] 404 Not Found: ${url}`);
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not Found');
+    });
+    
+    server.listen(port, host, () => {
+      console.log(`Holmes mock server listening on http://${host}:${port}`);
+    });

@@ -291,3 +291,242 @@ describe('HolmesContext', () => {
     consoleSpy.mockRestore();
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Extended tests: streaming path, partial-response accumulation, abort-on-unmount
+// ─────────────────────────────────────────
+
+describe('HolmesContext – streaming path', () => {
+  beforeEach(() => {
+    resetAllMocks();
+    genericAPIMock.mockImplementation((name) => {
+      if (name === 'GetHolmesConfig') {
+        return toUndefinedPromise({ enabled: true, endpoint: 'http://test:8080', apiKey: '', modelKey: '', responseFormat: '' });
+      }
+      if (name === 'AskHolmesStream') {
+        return toUndefinedPromise(undefined);
+      }
+      return toUndefinedPromise(undefined);
+    });
+  });
+
+  it('accumulates partial response text from multiple ai_message events', async () => {
+    let streamCallback: ((_payload: { stream_id?: string; event?: string; data?: string | null; error?: string }) => void) | undefined;
+
+    eventsOnMock.mockImplementation((event: string, callback: typeof streamCallback) => {
+      if (event === 'holmes:chat:stream') {
+        streamCallback = callback;
+      }
+      return () => {};
+    });
+
+    let capturedContext: HolmesContextValue | undefined;
+    render(
+      <HolmesProvider>
+        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
+      </HolmesProvider>
+    );
+
+    await waitFor(() => { expect(capturedContext).toBeDefined(); });
+
+    // Start a query
+    await act(async () => {
+      await capturedContext?.askHolmes('partial test question');
+    });
+
+    // Send first partial ai_message
+    await act(async () => {
+      streamCallback?.({ event: 'ai_message', data: JSON.stringify({ content: 'Hello' }) });
+    });
+
+    await waitFor(() => {
+      expect(capturedContext?.state.streamingText).toBe('Hello');
+    });
+
+    // Send second partial ai_message – should be appended
+    await act(async () => {
+      streamCallback?.({ event: 'ai_message', data: JSON.stringify({ content: 'World' }) });
+    });
+
+    await waitFor(() => {
+      expect(capturedContext?.state.streamingText).toBe('Hello\nWorld');
+    });
+
+    // The response should also reflect the accumulated streaming text
+    expect(capturedContext?.state.response?.response).toBe('Hello\nWorld');
+  });
+
+  it('accumulates reasoning text separately from content', async () => {
+    let streamCallback: ((_payload: { stream_id?: string; event?: string; data?: string | null; error?: string }) => void) | undefined;
+
+    eventsOnMock.mockImplementation((event: string, callback: typeof streamCallback) => {
+      if (event === 'holmes:chat:stream') streamCallback = callback;
+      return () => {};
+    });
+
+    let capturedContext: HolmesContextValue | undefined;
+    render(
+      <HolmesProvider>
+        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
+      </HolmesProvider>
+    );
+
+    await waitFor(() => { expect(capturedContext).toBeDefined(); });
+
+    await act(async () => { await capturedContext?.askHolmes('reasoning test'); });
+
+    await act(async () => {
+      streamCallback?.({ event: 'ai_message', data: JSON.stringify({ reasoning: 'Step 1' }) });
+    });
+
+    await waitFor(() => { expect(capturedContext?.state.reasoningText).toBe('Step 1'); });
+
+    await act(async () => {
+      streamCallback?.({ event: 'ai_message', data: JSON.stringify({ reasoning: 'Step 2' }) });
+    });
+
+    await waitFor(() => { expect(capturedContext?.state.reasoningText).toBe('Step 1\nStep 2'); });
+    // Content should be unchanged since only reasoning was sent
+    expect(capturedContext?.state.streamingText).toBe('');
+  });
+
+  it('cleans up onHolmesChatStream listener on unmount (abort-on-unmount)', async () => {
+    const unsubscribeSpy = vi.fn();
+
+    eventsOnMock.mockImplementation((event: string) => {
+      // Return a unique spy for the chat stream event
+      if (event === 'holmes:chat:stream' || event === 'holmes:deployment:status') {
+        return unsubscribeSpy;
+      }
+      return () => {};
+    });
+
+    let capturedContext: HolmesContextValue | undefined;
+    const { unmount } = render(
+      <HolmesProvider>
+        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
+      </HolmesProvider>
+    );
+
+    await waitFor(() => { expect(capturedContext).toBeDefined(); });
+
+    // Unmount should trigger useEffect cleanup → call the unsubscribe function
+    unmount();
+
+    expect(unsubscribeSpy).toHaveBeenCalled();
+  });
+
+  it('handles stream_end event and finalises loading state', async () => {
+    let streamCallback: ((_payload: { stream_id?: string; event?: string; data?: string | null; error?: string }) => void) | undefined;
+
+    eventsOnMock.mockImplementation((event: string, callback: typeof streamCallback) => {
+      if (event === 'holmes:chat:stream') streamCallback = callback;
+      return () => {};
+    });
+
+    let capturedContext: HolmesContextValue | undefined;
+    render(
+      <HolmesProvider>
+        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
+      </HolmesProvider>
+    );
+
+    await waitFor(() => { expect(capturedContext).toBeDefined(); });
+
+    await act(async () => { await capturedContext?.askHolmes('stream end test'); });
+
+    // Accumulate some text first
+    await act(async () => {
+      streamCallback?.({ event: 'ai_message', data: JSON.stringify({ content: 'Final answer' }) });
+    });
+
+    await waitFor(() => { expect(capturedContext?.state.loading).toBe(true); });
+
+    // Now send stream_end – this should stop loading
+    await act(async () => {
+      streamCallback?.({ event: 'stream_end' });
+    });
+
+    await waitFor(() => {
+      expect(capturedContext?.state.loading).toBe(false);
+    });
+  });
+
+  it('dispatches ADD_TOOL_EVENT and UPDATE_TOOL_EVENT for tool calls', async () => {
+    let streamCallback: ((_payload: { stream_id?: string; event?: string; data?: string | null; error?: string }) => void) | undefined;
+
+    eventsOnMock.mockImplementation((event: string, callback: typeof streamCallback) => {
+      if (event === 'holmes:chat:stream') streamCallback = callback;
+      return () => {};
+    });
+
+    let capturedContext: HolmesContextValue | undefined;
+    render(
+      <HolmesProvider>
+        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
+      </HolmesProvider>
+    );
+
+    await waitFor(() => { expect(capturedContext).toBeDefined(); });
+
+    await act(async () => { await capturedContext?.askHolmes('tool test'); });
+
+    // Tool call started
+    await act(async () => {
+      streamCallback?.({
+        event: 'start_tool_calling',
+        data: JSON.stringify({ id: 'tool-1', tool_name: 'kubectl_get', description: 'Getting pods' }),
+      });
+    });
+
+    await waitFor(() => {
+      const toolEvents = capturedContext?.state.toolEvents ?? [];
+      expect(toolEvents).toHaveLength(1);
+      expect(toolEvents[0]).toMatchObject({ id: 'tool-1', name: 'kubectl_get', status: 'running' });
+    });
+
+    // Tool call completed
+    await act(async () => {
+      streamCallback?.({
+        event: 'tool_calling_result',
+        data: JSON.stringify({ tool_call_id: 'tool-1', name: 'kubectl_get', result: { status: 'success' } }),
+      });
+    });
+
+    await waitFor(() => {
+      const toolEvents = capturedContext?.state.toolEvents ?? [];
+      expect(toolEvents[0]).toMatchObject({ id: 'tool-1', status: 'success' });
+    });
+  });
+
+  it('handles STREAM_ERROR events and shows error notification', async () => {
+    let streamCallback: ((_payload: { stream_id?: string; event?: string; data?: string | null; error?: string }) => void) | undefined;
+
+    eventsOnMock.mockImplementation((event: string, callback: typeof streamCallback) => {
+      if (event === 'holmes:chat:stream') streamCallback = callback;
+      return () => {};
+    });
+
+    let capturedContext: HolmesContextValue | undefined;
+    render(
+      <HolmesProvider>
+        <TestConsumer onContext={(ctx) => { capturedContext = ctx; }} />
+      </HolmesProvider>
+    );
+
+    await waitFor(() => { expect(capturedContext).toBeDefined(); });
+
+    await act(async () => { await capturedContext?.askHolmes('error test'); });
+
+    await act(async () => {
+      streamCallback?.({ event: 'error', data: null, error: 'Internal server error' });
+    });
+
+    await waitFor(() => {
+      expect(capturedContext?.state.loading).toBe(false);
+      expect(capturedContext?.state.error).toBe('Internal server error');
+    });
+
+    expect(document.body).toHaveTextContent('Holmes query failed: Internal server error');
+  });
+});

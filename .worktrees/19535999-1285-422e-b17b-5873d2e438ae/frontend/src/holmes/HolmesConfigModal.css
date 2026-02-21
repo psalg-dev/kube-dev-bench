@@ -1,0 +1,183 @@
+/* Holmes Config Modal Styles */
+
+.holmes-config-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(1, 4, 9, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.holmes-config-modal {
+  background: var(--gh-bg, #181818);
+  border: 1px solid var(--gh-border, #3c3c3c);
+  border-radius: 8px;
+  width: 480px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: 0 16px 48px rgba(1, 4, 9, 0.6);
+}
+
+.holmes-config-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.holmes-config-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gh-text, #d4d4d4);
+}
+
+.holmes-config-close {
+  background: transparent;
+  border: none;
+  color: var(--gh-text-secondary, #858585);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.holmes-config-close:hover {
+  color: var(--gh-text, #d4d4d4);
+  background: var(--gh-bg-secondary, #3c3c3c);
+}
+
+.holmes-config-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.holmes-config-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.holmes-config-field > label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--gh-text, #d4d4d4);
+}
+
+.holmes-config-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--gh-text, #d4d4d4);
+}
+
+.holmes-config-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gh-accent, #0e639c);
+}
+
+.holmes-config-input {
+  background: var(--gh-bg-secondary, #181818);
+  border: 1px solid var(--gh-border, #3c3c3c);
+  border-radius: 6px;
+  color: var(--gh-text, #d4d4d4);
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.holmes-config-input:focus {
+  border-color: var(--gh-accent, #3794ff);
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.2);
+}
+
+.holmes-config-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.holmes-config-input::placeholder {
+  color: var(--gh-text-muted, #858585);
+}
+
+.holmes-config-textarea {
+  min-height: 120px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  resize: vertical;
+}
+
+.holmes-config-help {
+  font-size: 12px;
+  color: var(--gh-text-secondary, #858585);
+  margin: 0;
+}
+
+.holmes-config-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--gh-border, #3c3c3c);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.holmes-config-footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+.holmes-config-btn {
+  background: var(--gh-bg-secondary, #3c3c3c);
+  border: 1px solid var(--gh-border, #3c3c3c);
+  color: var(--gh-text, #d4d4d4);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.holmes-config-btn:hover:not(:disabled) {
+  background: var(--gh-bg-hover, #3c3c3c);
+  border-color: var(--gh-border-hover, #484f58);
+}
+
+.holmes-config-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.holmes-config-btn-primary {
+  background: var(--gh-accent, #0e639c);
+  border-color: var(--gh-accent, #0e639c);
+  color: #ffffff;
+}
+
+.holmes-config-btn-primary:hover:not(:disabled) {
+  background: var(--gh-accent-hover, #1177bb);
+  border-color: var(--gh-accent-hover, #1177bb);
+}
+
+.holmes-config-btn-danger {
+  background: var(--gh-danger-bg, #3c3c3c);
+  border-color: var(--gh-danger, #f14c4c);
+  color: var(--gh-danger, #f14c4c);
+}
+
+.holmes-config-btn-danger:hover:not(:disabled) {
+  background: var(--gh-danger, #f14c4c);
+  border-color: var(--gh-danger, #f14c4c);
+  color: #ffffff;
+}

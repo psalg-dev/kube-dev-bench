@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"path/filepath"
+	"path"
 	"regexp"
 	"sort"
 	"strings"
@@ -296,8 +296,8 @@ func buildTarCommand(abs string, isDir bool) string {
 	if isDir {
 		return fmt.Sprintf("tar -C %q -czf - .", abs)
 	}
-	parent := filepath.Dir(abs)
-	name := filepath.Base(abs)
+	parent := path.Dir(abs)
+	name := path.Base(abs)
 	return fmt.Sprintf("tar -C %q -czf - %q", parent, name)
 }
 

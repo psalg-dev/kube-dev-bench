@@ -1,0 +1,58 @@
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--gh-text-secondary, #8b949e);
+  min-height: 200px;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--gh-text, #c9d1d9);
+  margin-bottom: 8px;
+}
+
+.empty-state-message {
+  font-size: 14px;
+  margin-bottom: 8px;
+  max-width: 400px;
+}
+
+.empty-state-hint {
+  font-size: 12px;
+  color: var(--gh-text-muted, #6e7681);
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.empty-state-action {
+  margin-top: 16px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--gh-border, #30363d);
+  border-radius: 6px;
+  background: var(--gh-bg-secondary, #21262d);
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.empty-state-action:hover {
+  background: var(--gh-bg-tertiary, #30363d);
+  border-color: var(--gh-border-hover, #8b949e);
+}
+
+.empty-state-action:active {
+  background: var(--gh-bg-active, #484f58);
+}

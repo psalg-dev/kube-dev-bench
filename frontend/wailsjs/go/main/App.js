@@ -542,12 +542,12 @@ export function GetHooksConfig() {
   return window['go']['main']['App']['GetHooksConfig']();
 }
 
-export function GetHorizontalPodAutoscalers(arg1) {
-  return window['go']['main']['App']['GetHorizontalPodAutoscalers'](arg1);
-}
-
 export function GetHorizontalPodAutoscalerDetail(arg1, arg2) {
   return window['go']['main']['App']['GetHorizontalPodAutoscalerDetail'](arg1, arg2);
+}
+
+export function GetHorizontalPodAutoscalers(arg1) {
+  return window['go']['main']['App']['GetHorizontalPodAutoscalers'](arg1);
 }
 
 export function GetImageDigest(arg1, arg2, arg3) {
@@ -730,10 +730,6 @@ export function GetPodLogsPrevious(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPodLogsPrevious'](arg1, arg2, arg3, arg4);
 }
 
-export function GetPodsOnNode(arg1) {
-  return window['go']['main']['App']['GetPodsOnNode'](arg1);
-}
-
 export function GetPodMounts(arg1) {
   return window['go']['main']['App']['GetPodMounts'](arg1);
 }
@@ -752,6 +748,10 @@ export function GetPodYAML(arg1) {
 
 export function GetPodsCountForResource(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetPodsCountForResource'](arg1, arg2, arg3);
+}
+
+export function GetPodsOnNode(arg1) {
+  return window['go']['main']['App']['GetPodsOnNode'](arg1);
 }
 
 export function GetPrometheusAlerts(arg1) {
@@ -784,10 +784,6 @@ export function GetRememberContext() {
 
 export function GetRememberNamespace() {
   return window['go']['main']['App']['GetRememberNamespace']();
-}
-
-export function GetUseInformers() {
-  return window['go']['main']['App']['GetUseInformers']();
 }
 
 export function GetReplicaSetDetail(arg1, arg2) {
@@ -1112,6 +1108,10 @@ export function GetSwarmVolumeUsage(arg1) {
 
 export function GetSwarmVolumes() {
   return window['go']['main']['App']['GetSwarmVolumes']();
+}
+
+export function GetUseInformers() {
+  return window['go']['main']['App']['GetUseInformers']();
 }
 
 export function GetVolumeInfo(arg1) {
@@ -1444,6 +1444,10 @@ export function StartSwarmTaskPolling() {
 
 export function Startup(arg1) {
   return window['go']['main']['App']['Startup'](arg1);
+}
+
+export function StopAllPolling() {
+  return window['go']['main']['App']['StopAllPolling']();
 }
 
 export function StopHolmesPortForward(arg1) {

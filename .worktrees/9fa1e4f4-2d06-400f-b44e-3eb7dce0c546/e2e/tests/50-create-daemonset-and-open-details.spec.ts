@@ -1,0 +1,33 @@
+import { test, expect } from '../src/fixtures.js';
+import { bootstrapApp } from '../src/support/bootstrap.js';
+import { CreateOverlay } from '../src/pages/CreateOverlay.js';
+import { Notifications } from '../src/pages/Notifications.js';
+
+function uniqueName(prefix: string) {
+  const rand = Math.random().toString(16).slice(2, 8);
+  return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
+}
+
+test('creates a DaemonSet via overlay and opens bottom panel', async ({ page, contextName, namespace }) => {
+  const { sidebar } = await bootstrapApp({ page, contextName, namespace });
+  await sidebar.goToSection('daemonsets');
+
+  const name = uniqueName('e2e-ds');
+  const yaml = `apiVersion: apps/v1\nkind: DaemonSet\nmetadata:\n  name: ${name}\n  namespace: ${namespace}\nspec:\n  selector:\n    matchLabels:\n      app: ${name}\n  template:\n    metadata:\n      labels:\n        app: ${name}\n    spec:\n      containers:\n      - name: app\n        image: busybox\n        command: [\"sh\", \"-c\", \"sleep 3600\"]\n`;
+
+  const overlay = new CreateOverlay(page);
+  await overlay.openFromOverviewHeader();
+  await overlay.fillYaml(yaml);
+  await overlay.create();
+
+  const notifications = new Notifications(page);
+  await notifications.expectSuccessContains('created successfully');
+
+  await expect(page.getByRole('row', { name: new RegExp(name) })).toBeVisible({ timeout: 60_000 });
+  await page.getByRole('row', { name: new RegExp(name) }).click();
+  await expect(page.locator('.bottom-panel')).toBeVisible();
+
+  // Close bottom panel by clicking outside
+  await page.locator('#maincontent').click({ position: { x: 5, y: 5 } });
+  await expect(page.locator('.bottom-panel')).toBeHidden();
+});

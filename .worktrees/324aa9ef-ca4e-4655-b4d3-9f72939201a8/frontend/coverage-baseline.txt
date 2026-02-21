@@ -1,0 +1,760 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mZ:/development/git/psalg-dev/kube-dev-bench/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [32mÔ£ô[39m src/__tests__/topologyView.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 3765[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders topology and opens node details panel [33m 3045[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens service details and loads logs (masked env + mount formatting) [33m 434[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/overviewTableWithPanel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 3673[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters rows by search input [33m 955[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m switches tabs and updates panel content [33m 466[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m resets active tab after closing & reopening [33m 505[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceActions.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 4411[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m prepopulates replica count and applies scale changes [33m 969[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m cancels inline scale editor and restores original value [33m 385[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pods/PodFilesTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 4940[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders without crashing [33m 372[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows directory entries [33m 989[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m navigates into a directory [33m 828[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m previews a file on click [33m 900[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters entries by search [33m 638[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m handles copy-to-clipboard state [33m 1099[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeFilesTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 4763[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads root dir and previews a file [33m 984[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens editor and saves edits (writes file and refreshes dir) [33m 1546[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m read-only volumes disable edit/create actions [33m 1091[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m prompts to discard unsaved changes before navigating directories [33m 687[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m supports row download and delete actions [33m 451[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/createManifestOverlay.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 4532[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls CreateResource and emits events + success on Create [33m 850[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates config via CreateSwarmConfig [33m 451[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: config YAML tab uses CodeMirror and renders YAML wrapper [33m 353[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates secret via CreateSwarmSecret (labels parsed) [33m 495[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: updates node via UpdateSwarmNodeAvailability/Role/Labels [33m 301[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates service via form (CreateSwarmService) [33m 369[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: service YAML view uses CodeMirror editor [33m 329[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionWizard.test.tsx [2m([22m[2m35 tests[22m[2m)[22m[33m 8576[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Add Config button [33m 708[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m opens Add Kubeconfig overlay when clicking Add Config button [33m 361[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Connect button for each config [33m 351[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows kubeconfig content textarea in overlay [33m 336[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m disables Save button when content is empty [33m 486[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m enables Save button when content is provided [33m 495[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m saves primary kubeconfig and completes [33m 519[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking close button [33m 492[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking Cancel button [33m 490[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows configuration type selection when configs exist [33m 316[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls file browser when Browse button is clicked [33m 331[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m handles file selection cancellation [33m 405[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when save fails [33m 548[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m saves global proxy settings [33m 540[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2929[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 593[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 661[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 433[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3257[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 749[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 765[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 320[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 352[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvcYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3169[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 694[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays PVC name in header [33m 829[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 338[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3351[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 919[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 768[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 369[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3267[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 950[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays cronjob name in header [33m 688[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/helmReleases.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 3075[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows rollback button for non-current revisions [33m 452[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m has toggle for showing all values [33m 424[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders resources with health status [33m 350[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvYamlTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2623[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 659[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays PV name in header [33m 606[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32mÔ£ô[39m src/__tests__/jobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3255[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 620[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays job name in header [33m 827[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 329[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionHooksSettings.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2692[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows applicable hooks for a connection [33m 1150[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m can add a new hook using browse and save [33m 1005[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m can test an existing hook and show results [33m 533[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobPodsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 3206[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays pods in table [33m 440[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by name column [33m 1147[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by status column [33m 523[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podYamlTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 3470[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 715[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays YAML content when loaded [33m 896[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows pod name in header [33m 308[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 3264[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 794[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 701[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 369[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 386[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConnectionWizard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 2021[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m defaults to local socket and picks Windows default host [33m 1000[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/registryBrowser.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2055[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m searches Docker Hub, inspects a repo, and pulls latest [33m 1286[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows an error when repository inspection fails [33m 482[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pods/PodSummaryTab.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 2103[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configCompareModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 1967[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders a select dropdown [33m 464[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmTasksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2127[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders tasks with formatted cells [33m 1053[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m reacts to runtime updates: array replaces, non-array triggers reload [33m 442[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m panel content: logs/exec branches render correctly [33m 414[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/viewToggle.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 3007[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders Form and YAML buttons [33m 845[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m swaps styles when mode changes [33m 549[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvAnnotationsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 2108[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders as a table [33m 728[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows column headers [33m 474[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNodesOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 2205[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders nodes; row action disabled states apply [33m 1451[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m executes row actions and shows notifications [33m 565[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNetworkInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1164[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays network inspect JSON when loaded [33m 540[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/selectField.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1763[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders select with correct id [33m 687[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesConfigModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1813[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows pre-filled values from state [33m 607[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls testConnection when Test Connection button is clicked [33m 312[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobActionsTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 2030[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders Trigger Now action [33m 687[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmServicesOverviewTable.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1754[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads services and renders rows/cells [33m 384[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m adds Ask Holmes action for services [33m 559[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m row actions call APIs and emit notifications [33m 302[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentPodsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1565[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can switch to conditions section [33m 549[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/monitorFeature.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 1751[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m closes panel when close button is clicked [33m 664[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/keyValueEditor.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1655[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders add button with correct label [33m 583[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceActions.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1398[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m scales a resource and closes the dialog [33m 703[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m blocks negative scale values with a warning [33m 306[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/addRegistryModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1727[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves dockerhub registry with basic auth [33m 1054[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m tests dockerhub token auth (token used as password) [33m 490[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretCloneModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1366[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m allows entering secret name [33m 506[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmVolumesOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1293[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m row actions call APIs and trigger refresh where expected [33m 729[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSecretsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1420[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deletes via row action [33m 599[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens edit/rotate/clone modals from summary panel and deletes from panel actions [33m 517[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/numberField.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1455[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 731[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/collapsibleSection.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1478[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m expands when header button is clicked [33m 493[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretEditModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1302[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls UpdateSwarmSecretData API when saved with acknowledgment [33m 606[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1390[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens Compare modal from summary panel [33m 677[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logViewerHolmes.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1147[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m triggers Holmes log analysis and renders response [33m 1143[2mms[22m[39m
+stderr | src/__tests__/swarmConfigDataTab.test.tsx > ConfigDataTab > error state > displays error message when API call fails
+Failed to load config data: Error: Access denied
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/swarmConfigDataTab.test.tsx:29:48
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [32mÔ£ô[39m src/__tests__/swarmConfigDataTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1252[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays config content when loaded [33m 487[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32mÔ£ô[39m src/__tests__/holmesPanel.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1410[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows unconfigured state when Holmes is disabled [33m 543[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmEventsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1079[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m has retry button on error [33m 457[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podMountsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1056[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceTasksTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1125[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads tasks and renders a table with state colors [33m 941[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1159[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows Metrics by default and switches to Topology [33m 1112[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1046[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/updateServiceImageModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1251[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m requires a changed image to enable update and confirms trimmed value [33m 1157[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 979[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays config inspect JSON when loaded [33m 467[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentRolloutTab.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1050[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeLabelsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1097[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m save/reset disabled when not dirty; becomes enabled after edit; save calls API [33m 845[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/bottomPanel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1020[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders tabs and active content [33m 741[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSecretInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 944[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays secret inspect JSON when loaded [33m 460[2mms[22m[39m
+07:16:34 [vite] (client) warning: Duplicate "className" attribute in JSX element
+125 |                      className="monitor-issue-item"
+126 |                      onClick={() => handleIssueClick(issue)}
+127 |                      className={`monitor-issue-item monitor-issue-item--${issueTone}`}
+    |                      ^
+128 |                    >
+129 |                      {/* Header with reason and metadata */}
+
+  Plugin: vite:esbuild
+  File: Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/layout/MonitorModal.tsx
+ [32mÔ£ô[39m src/__tests__/monitorModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1100[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders close button [33m 532[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeTasksTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1086[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders tasks table and state colors [33m 957[2mms[22m[39m
+stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter)
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/pvcBoundPVTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1035[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays Open PV button [33m 574[2mms[22m[39m
+stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with correct section for multiple switches
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/appContainer.resourceSwitch.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1221[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter) [33m 865[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with correct section for multiple switches [33m 352[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobHistoryTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 771[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateSettingsModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1098[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves settings (minutes -> seconds) and closes [33m 754[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useAsyncData.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 1229[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/updateStackModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1001[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays initial compose YAML [33m 495[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/textField.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 1069[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 612[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNetworksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1016[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders networks; built-in delete is disabled [33m 697[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useResourceData.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 1061[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statusBadge.test.tsx [2m([22m[2m21 tests[22m[2m)[22m[33m 708[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m applies inline styles with correct color [33m 364[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceEndpointsTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 1035[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressRulesTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 774[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapDataTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 904[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configEditModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 881[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedContainersSection.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 816[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m navigates to task when clicked [33m 460[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyState.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 740[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders action button when onAction and actionLabel are provided [33m 482[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dropdowns.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 946[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ContextSelect passes selected value [33m 681[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateBadge.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 875[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders disabled when serviceId is missing [33m 568[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmStacksOverviewTable.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 902[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens stack create overlay when + clicked [33m 898[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesOnboardingWizard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 761[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statefulSetPVCsTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 739[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsDashboard.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 857[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters charts by selected time range [33m 854[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabContent.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 762[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders action button when provided [33m 458[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/GenericInspectTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 813[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should have absolute positioning container [33m 462[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/BaseModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 678[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should apply custom width [33m 377[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesBottomPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 746[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows empty state when no response [33m 586[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/daemonSetNodeCoverageTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 817[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeLogsTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 723[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m selects a running task with container and wires AggregateLogsTab loadLogs [33m 490[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/quickInfoSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 708[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m handles refresh button callback [33m 453[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesContext.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 701[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesResponseRenderer.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 829[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders code blocks with copy button [33m 666[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobNextRunsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 753[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/notification.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 538[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m injects styles & container once [33m 318[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourcePodsTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 707[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/aggregateLogsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 398[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 501[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSidebarSections.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 426[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 575[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceEventsTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 425[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateModal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 587[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeUsedBySection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 384[2mms[22m[39m
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > does nothing for unknown resource type
+showResourceOverlay called with: does-not-exist
+Template found: no
+No template found for resource type: does-not-exist
+Available templates: [
+  'deployment',
+  'job',
+  'configmap',
+  'service',
+  'secret',
+  'ingress',
+  'persistentvolumeclaim',
+  'persistentvolume'
+]
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > creates overlay and calls CreateResource on success
+showResourceOverlay called with: deployment
+Template found: yes
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > shows error and keeps overlay when CreateResource fails
+showResourceOverlay called with: job
+Template found: yes
+
+ [32mÔ£ô[39m src/__tests__/resource-overlay.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 332[2mms[22m[39m
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > closes overlay via cancel button and overlay background click
+showResourceOverlay called with: configmap
+Template found: yes
+showResourceOverlay called with: secret
+Template found: yes
+
+ [32mÔ£ô[39m src/__tests__/clusterStateProvider.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 465[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedServicesSection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 589[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > initializes with default state
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > opens and closes wizard
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > connects to Docker successfully
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/swarmRegistriesOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 430[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads registries, opens bottom panel, and can remove a registry [33m 352[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > provides resource refresh functions
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/swarmStateContext.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 423[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/stackComposeTab.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 256[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvBoundPVCTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 349[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/replicaSetOwnerTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 356[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/PrometheusAlertsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 339[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkDetailsSections.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 323[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/healthStatusBadge.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 367[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/yamlTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 269[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeInspectTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 259[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/settingsContext.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[32m 298[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/MonitorIssueCard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 250[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsStateContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 120[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tabLabel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 212[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 161[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configDataSection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useHolmesAnalysis.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 200[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/consoleTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[32m 186[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvCapacityUsageTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 129[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useEventSubscription.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 104[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceCountsContext.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 141[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useSwarmServiceForm.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 134[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useTableSelection.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 117[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logger.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 122[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceCountsContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 116[2mms[22m[39m
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchAllTabCounts > returns empty object on error
+Failed to fetch tab counts: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:48:45
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchEventsCount > returns null on error
+Failed to fetch events count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:75:52
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchPodsCount > returns null on error
+Failed to fetch pods count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:94:53
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchConsumersCount > returns null on error
+Failed to fetch consumers count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:137:56
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchCronJobHistoryCount > returns null on error
+Failed to fetch CronJob history count: Error: API error
+    at Z:/development/git/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:156:52
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///Z:/development/git/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [32mÔ£ô[39m src/__tests__/tabCounts.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tableSorting.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmYamlUtils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceNavigation.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 18[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/timeUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/persistence.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabMessages.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 16[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/clusterStateReducer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podOverviewEntry.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/dateUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 7[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/codeMirrorLanguage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/router.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 13[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/legacy-jsx-imports.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 5[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m142 passed[39m[22m[90m (142)[39m
+[2m      Tests [22m [1m[32m1327 passed[39m[22m[90m (1327)[39m
+[2m   Start at [22m 07:15:20
+[2m   Duration [22m 151.97s[2m (transform 40.76s, setup 62.99s, import 145.96s, tests 173.92s, environment 476.62s)[22m
+
+[34m % [39m[2mCoverage report from [22m[33mv8[39m
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |   41.88 |    32.09 |   39.77 |   44.11 |                   
+ src               |   56.52 |    48.23 |   57.69 |   57.61 |                   
+  App.tsx          |       0 |        0 |       0 |       0 | 26-295            
+  ...stOverlay.tsx |   60.81 |    52.83 |   65.45 |   60.75 | ...3-895,930-1013 
+  Dropdowns.tsx    |   89.47 |    53.84 |   83.33 |    93.1 | 79,82             
+  LabelsInline.tsx |      75 |    66.66 |     100 |   77.77 | 19,23             
+  ...foSection.css |       0 |        0 |       0 |       0 |                   
+  ...foSection.tsx |   81.81 |    79.01 |     100 |   93.47 | 69,74,95          
+  app.css          |       0 |        0 |       0 |       0 |                   
+  main-content.ts  |    1.49 |        0 |       0 |    1.69 | 39-331            
+  notification.ts  |   96.87 |    76.74 |     100 |     100 | ...57,184-214,218 
+  ...ce-overlay.ts |     100 |     61.9 |     100 |     100 | 89-120            
+  router.tsx       |     100 |      100 |     100 |     100 |                   
+  style.css        |       0 |        0 |       0 |       0 |                   
+ src/api           |   16.88 |        4 |   42.85 |   21.48 |                   
+  ...Operations.ts |       0 |        0 |       0 |       0 | 17-170            
+  tabCounts.ts     |     100 |      100 |     100 |     100 |                   
+ src/components    |    85.5 |    75.26 |   88.33 |   92.22 |                   
+  ...teLogsTab.tsx |   93.54 |    76.92 |     100 |     100 | 37,40,44          
+  ...ActionBar.css |       0 |        0 |       0 |       0 |                   
+  ...ActionBar.tsx |    37.5 |    18.75 |   33.33 |   33.33 | 22,29-37          
+  EmptyState.css   |       0 |        0 |       0 |       0 |                   
+  EmptyState.tsx   |     100 |      100 |     100 |     100 |                   
+  ...abContent.css |       0 |        0 |       0 |       0 |                   
+  ...abContent.tsx |     100 |      100 |     100 |     100 |                   
+  ...nspectTab.tsx |     100 |      100 |     100 |     100 |                   
+  ...ceActions.tsx |   84.93 |    80.79 |      96 |   92.36 | ...99-200,220-221 
+  ...EventsTab.css |       0 |        0 |       0 |       0 |                   
+  ...EventsTab.tsx |   86.15 |    63.07 |   88.88 |   96.29 | 62,104            
+  ...cePodsTab.css |       0 |        0 |       0 |       0 |                   
+  ...cePodsTab.tsx |   84.31 |    62.96 |    62.5 |   86.66 | 67-70,93-94,154   
+  StatusBadge.css  |       0 |        0 |       0 |       0 |                   
+  StatusBadge.tsx  |   86.95 |    86.36 |     100 |   94.73 | 76                
+  TabLabel.css     |       0 |        0 |       0 |       0 |                   
+  TabLabel.tsx     |     100 |      100 |     100 |     100 |                   
+ ...ents/BaseModal |     100 |      100 |     100 |     100 |                   
+  BaseModal.css    |       0 |        0 |       0 |       0 |                   
+  index.tsx        |     100 |      100 |     100 |     100 |                   
+ ...cResourceTable |    1.63 |        0 |       0 |    1.66 |                   
+  index.tsx        |    1.63 |        0 |       0 |    1.66 | 116-265           
+ ...mponents/forms |   62.29 |    57.62 |   58.53 |    62.5 |                   
+  ...leSection.tsx |     100 |      100 |     100 |     100 |                   
+  FormField.tsx    |     100 |     87.5 |     100 |     100 | 17                
+  ...lueEditor.tsx |     100 |       70 |     100 |     100 | 31-78             
+  NumberField.tsx  |     100 |      100 |     100 |     100 |                   
+  ...ingEditor.tsx |       0 |        0 |       0 |       0 | 10-138            
+  SelectField.tsx  |     100 |      100 |     100 |     100 |                   
+  ServiceForm.tsx  |      40 |    58.33 |      25 |      40 | 35-94             
+  TextField.tsx    |     100 |      100 |     100 |     100 |                   
+  ViewToggle.tsx   |     100 |      100 |     100 |     100 |                   
+ src/components/ui |     100 |     92.3 |     100 |     100 |                   
+  Button.css       |       0 |        0 |       0 |       0 |                   
+  Button.jsx       |     100 |      100 |     100 |     100 |                   
+  ...irmDialog.css |       0 |        0 |       0 |       0 |                   
+  ...irmDialog.tsx |     100 |    88.88 |     100 |     100 | 30                
+ ...esourceConfigs |   23.44 |        0 |       0 |   24.41 |                   
+  ...mapConfig.tsx |   26.92 |        0 |       0 |      28 | 76,94-167,183     
+  ...jobConfig.tsx |   24.13 |        0 |       0 |      25 | 82-89,106-189,205 
+  ...setConfig.tsx |   21.21 |        0 |       0 |   21.87 | 80,99-225,242-244 
+  ...entConfig.tsx |   30.76 |        0 |       0 |   31.57 | ...07-227,243-245 
+  index.ts         |       0 |        0 |       0 |       0 |                   
+  ...essConfig.tsx |   16.66 |        0 |       0 |    17.5 | ...91,108-229,245 
+  jobConfig.tsx    |      25 |        0 |       0 |   25.92 | 84,106-200,216    
+  podConfig.tsx    |   14.63 |        0 |       0 |   15.78 | ...05-180,196-197 
+  pvConfig.tsx     |   22.22 |        0 |       0 |   23.07 | 88,111-194,210    
+  pvcConfig.tsx    |   26.92 |        0 |       0 |      28 | 83,103-182,198    
+  ...setConfig.tsx |   25.92 |        0 |       0 |   26.92 | 80,100-210,227    
+  secretConfig.tsx |   26.92 |        0 |       0 |      28 | 78,97-169,185     
+  ...iceConfig.tsx |   30.43 |        0 |       0 |   31.81 | 86-161,177        
+  ...setConfig.tsx |   20.58 |        0 |       0 |   21.21 | 80,99-232,249-252 
+ src/constants     |   66.66 |    63.33 |      75 |   72.72 |                   
+  bulkActions.ts   |    87.5 |       75 |     100 |     100 | ...54,158,163,167 
+  ...abMessages.ts |      25 |       40 |      50 |      25 | 233-241           
+ src/docker        |   64.65 |    54.44 |      50 |   66.96 |                   
+  ...ionWizard.tsx |      75 |    64.07 |   68.18 |      75 | ...00,250,272-302 
+  ...mOverview.tsx |   88.23 |    93.33 |      80 |   93.33 | 44                
+  ...tsContext.tsx |   80.64 |    44.77 |    64.7 |   86.79 | ...29-130,140-141 
+  ...rSections.tsx |     100 |      100 |     100 |     100 |                   
+  ...teContext.tsx |    47.3 |    35.36 |   29.78 |   49.67 | ...91,400-401,406 
+  ...-overview.css |       0 |        0 |       0 |       0 |                   
+  swarmApi.ts      |       0 |        0 |       0 |       0 |                   
+ ...docker/metrics |   75.26 |    56.65 |   64.91 |   76.64 |                   
+  MetricsChart.tsx |     100 |    91.66 |     100 |     100 | 20                
+  ...teContext.tsx |    83.6 |    45.71 |   82.35 |   88.67 | 60-61,120-126     
+  ...Dashboard.css |       0 |        0 |       0 |       0 |                   
+  ...Dashboard.tsx |   65.71 |    56.21 |   48.48 |   65.26 | ...34-135,158-237 
+  ...eSelector.tsx |     100 |      100 |     100 |     100 |                   
+ ...ocker/registry |    74.1 |       54 |    65.6 |   81.18 |                   
+  ...stryModal.tsx |   70.19 |    53.48 |   62.16 |   78.04 | ...44,272,334-359 
+  ...ryBrowser.tsx |   73.68 |    53.72 |   67.85 |    81.9 | ...72-387,422-477 
+  ...sOverview.tsx |   79.38 |    55.69 |   65.62 |    82.5 | ...59-171,234-237 
+  registry.css     |       0 |        0 |       0 |       0 |                   
+ ...cker/resources |   85.86 |    78.66 |      90 |    87.2 |                   
+  ...EventsTab.css |       0 |        0 |       0 |       0 |                   
+  ...EventsTab.tsx |    80.7 |    69.38 |     100 |   82.35 | ...03,111,114,123 
+  ...ceActions.tsx |   94.28 |    96.15 |   81.81 |   94.28 | 136,162           
+ ...ources/configs |   75.13 |    62.39 |   81.01 |   78.59 |                   
+  ...pareModal.tsx |   88.63 |    73.43 |     100 |   93.15 | 52-54,97-98       
+  ...taSection.tsx |     100 |      100 |     100 |     100 |                   
+  ...igDataTab.tsx |   85.71 |    73.07 |   85.71 |    87.5 | 31-35             
+  ...EditModal.tsx |   81.42 |    66.66 |   83.33 |   83.33 | ...,64-65,135-164 
+  ...nspectTab.tsx |     100 |       50 |     100 |     100 | 9                 
+  ...BySection.tsx |   76.19 |     62.5 |      75 |   78.94 | 24-27,106-111     
+  ...viewTable.tsx |   58.13 |    43.33 |   68.96 |   62.83 | ...97,312,327-338 
+ ...urces/networks |   49.25 |    24.16 |   43.68 |   53.37 |                   
+  ...rsSection.tsx |   68.29 |    48.97 |   54.54 |   72.97 | 27-30,84,100-119  
+  ...nersTable.tsx |       0 |        0 |       0 |       0 | 21-280            
+  ...esSection.tsx |    75.6 |     62.5 |   72.72 |   78.37 | 26-29,108-113     
+  ...icesTable.tsx |    50.7 |    11.34 |   36.36 |   54.09 | ...,70-71,122-203 
+  ...sSections.tsx |     100 |      100 |     100 |     100 |                   
+  ...nspectTab.tsx |     100 |       50 |     100 |     100 | 9                 
+  ...viewTable.tsx |   69.62 |    43.47 |   84.21 |   73.61 | ...64-167,179,220 
+ ...esources/nodes |    49.5 |    30.53 |    50.8 |   53.22 |                   
+  ...LabelsTab.tsx |   90.47 |    65.62 |   84.61 |   89.74 | 25,87,92-93       
+  NodeLogsTab.tsx  |   94.87 |    63.88 |     100 |     100 | ...3,39-47,92-106 
+  NodeTasksTab.tsx |    57.4 |    34.56 |   34.61 |   64.44 | ...28-227,243-247 
+  ...viewTable.tsx |   38.79 |    21.07 |   44.73 |   42.27 | ...48,862-868,885 
+ ...ources/secrets |   76.03 |    61.03 |      75 |   78.89 |                   
+  ...loneModal.tsx |   89.13 |       75 |   77.77 |   92.85 | 33-34,156         
+  ...taSection.tsx |     100 |      100 |     100 |     100 |                   
+  ...EditModal.tsx |   65.51 |    57.14 |      80 |   65.38 | ...56,121,155-166 
+  ...nspectTab.tsx |     100 |       50 |     100 |     100 | 9                 
+  ...BySection.tsx |   76.19 |     62.5 |      75 |   78.94 | 24-27,106-111     
+  ...viewTable.tsx |   75.26 |    54.76 |   70.37 |   79.51 | ...13-216,228,272 
+ ...urces/services |   54.39 |    38.31 |   53.14 |   58.01 |                   
+  ...dateBadge.tsx |   89.47 |    84.74 |     100 |   97.82 | 23                
+  ...dateModal.tsx |   91.66 |    85.45 |     100 |   97.61 | 90                
+  ...ingsModal.tsx |    91.3 |       70 |     100 |     100 | 17-30,43-76       
+  ...eTasksTab.css |       0 |        0 |       0 |       0 |                   
+  ...eTasksTab.tsx |   64.61 |    40.18 |   34.37 |   72.54 | ...19-161,174-177 
+  ...viewTable.tsx |   35.27 |    16.87 |   45.23 |   36.97 | ...72,889,904,941 
+  ...mageModal.tsx |     100 |    78.57 |     100 |     100 | 12-15,20          
+ ...sources/stacks |    14.8 |     5.28 |   12.76 |   15.89 |                   
+  ...omposeTab.tsx |    91.3 |       60 |     100 |     100 | 21-22,25-29       
+  ...ourcesTab.tsx |       1 |        0 |       0 |    1.13 | 46-308            
+  ...rvicesTab.css |       0 |        0 |       0 |       0 |                   
+  ...rvicesTab.tsx |       0 |        0 |       0 |       0 | 16-172            
+  ...viewTable.tsx |   13.21 |     2.56 |      12 |   14.28 | ...68-774,784-802 
+  ...tackModal.tsx |   93.75 |     87.5 |   83.33 |   92.85 | 103               
+ ...esources/tasks |   59.31 |    50.38 |    64.7 |   62.93 |                   
+  ...atusBadge.tsx |     100 |      100 |     100 |     100 |                   
+  ...viewTable.tsx |   56.14 |    45.53 |    62.5 |   60.18 | ...43-668,673-679 
+ ...ources/volumes |      60 |    51.04 |   62.36 |   68.49 |                   
+  ...viewTable.tsx |   57.59 |    43.58 |   68.96 |   67.42 | ...07,321,336,351 
+  ...eFilesTab.tsx |   59.87 |    51.86 |   59.61 |   68.37 | ...37-478,547-549 
+  ...nspectTab.tsx |     100 |      100 |     100 |     100 |                   
+  ...BySection.tsx |   70.27 |    60.52 |   54.54 |   72.72 | 45-47,81-103      
+ ...ocker/topology |   90.04 |    63.15 |   98.18 |    94.6 |                   
+  TopologyView.tsx |   90.04 |    63.15 |   98.18 |    94.6 | ...70,273,339,429 
+  topology.css     |       0 |        0 |       0 |       0 |                   
+ src/holmes        |   54.81 |     49.9 |   48.63 |    55.9 |                   
+  ...ttomPanel.css |       0 |        0 |       0 |       0 |                   
+  ...ttomPanel.tsx |   77.77 |    54.41 |   33.33 |   77.77 | 110-125           
+  ...nfigModal.css |       0 |        0 |       0 |       0 |                   
+  ...nfigModal.tsx |   79.48 |    81.48 |   77.77 |   78.37 | 64-76,94,99-100   
+  ...esContext.tsx |   35.34 |    25.28 |   46.66 |   35.29 | ...03-516,521-528 
+  ...ingWizard.css |       0 |        0 |       0 |       0 |                   
+  ...ingWizard.tsx |   81.81 |    67.12 |   80.95 |   82.43 | ...13,236,280-281 
+  HolmesPanel.css  |       0 |        0 |       0 |       0 |                   
+  HolmesPanel.tsx  |   70.66 |     63.3 |   62.85 |   77.34 | ...10-211,317-389 
+  ...rceButton.css |       0 |        0 |       0 |       0 |                   
+  ...rceButton.tsx |     100 |     87.5 |     100 |     100 | 15                
+  ...eRenderer.tsx |   85.71 |    43.47 |      80 |   85.71 | 32,45,59          
+  holmesApi.ts     |    11.9 |        0 |    11.9 |    11.9 | ...25-353,382-390 
+ src/hooks         |   81.67 |    64.72 |   85.54 |   85.14 |                   
+  useAsyncData.ts  |   91.89 |    69.56 |     100 |   91.89 | 81-83             
+  ...bscription.ts |     100 |      100 |     100 |     100 |                   
+  ...esAnalysis.ts |   71.65 |    56.89 |   70.83 |   77.27 | ...48-252,282-288 
+  ...sourceData.ts |   83.78 |    83.87 |   91.66 |    85.5 | ...74,101,123-127 
+  ...erviceForm.ts |   95.65 |    67.85 |     100 |   95.34 | 79-80             
+  ...eSelection.ts |   81.37 |    64.91 |   84.61 |   85.71 | ...05-106,150-151 
+ src/k8s/resources |       0 |        0 |       0 |       0 |                   
+  kubeApi.ts       |       0 |        0 |       0 |       0 |                   
+ ...ces/configmaps |   23.33 |    21.44 |   18.51 |   24.19 |                   
+  ...sumersTab.tsx |       0 |        0 |       0 |       0 | 14-96             
+  ...apDataTab.tsx |   68.75 |    61.26 |   61.11 |   73.49 | ...10-111,192-266 
+  ...apYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |    2.21 |        0 |       0 |     2.5 | 75-78,101-536     
+ ...urces/cronjobs |   33.62 |    28.66 |   30.86 |   34.31 |                   
+  ...ctionsTab.css |       0 |        0 |       0 |       0 |                   
+  ...ctionsTab.tsx |   81.81 |    86.84 |     100 |   81.81 | 27-28,47-48,58-59 
+  ...istoryTab.tsx |   92.85 |    88.88 |     100 |   96.15 | 51                
+  ...xtRunsTab.tsx |   90.47 |    65.78 |      75 |   93.93 | 90-96             
+  ...obYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |    2.35 |        0 |       0 |    2.67 | 78-81,106-543     
+ ...ces/daemonsets |   16.17 |    16.45 |    9.61 |   16.17 |                   
+  ...verageTab.tsx |     100 |    88.37 |     100 |     100 | 22-26,66,75       
+  ...viewTable.tsx |    2.47 |        0 |       0 |    2.84 | 74-77,101-540     
+ ...es/deployments |   28.36 |     30.1 |   26.56 |    30.2 |                   
+  ...ntPodsTab.tsx |   96.77 |    81.03 |     100 |   96.55 | 48                
+  ...olloutTab.tsx |   95.55 |     90.9 |     100 |   97.61 | 57                
+  ...viewTable.tsx |    2.51 |        0 |       0 |    2.87 | 77-80,105-539     
+ ...s/helmreleases |    31.9 |    25.05 |   35.23 |   33.87 |                   
+  HelmActions.tsx  |   14.87 |    17.17 |      12 |   15.17 | ...99,104,163-464 
+  ...istoryTab.tsx |   47.22 |       38 |    62.5 |      50 | ...5-48,57,61,102 
+  ...allDialog.tsx |    42.5 |    39.18 |   31.81 |    42.5 | ...49,178,222-394 
+  HelmNotesTab.tsx |   83.33 |       50 |      80 |   83.33 | 20-21             
+  ...viewTable.tsx |    28.3 |    16.66 |      32 |   28.72 | ...51-303,314-315 
+  ...iesDialog.tsx |   37.87 |    40.74 |   46.15 |   38.46 | ...87,168-207,268 
+  ...esSummary.tsx |       0 |        0 |       0 |       0 | 31-439            
+  ...ourcesTab.tsx |   60.17 |    41.27 |   70.45 |   65.62 | ...58,369,388,392 
+  ...ValuesTab.tsx |   81.25 |       50 |   66.66 |   81.25 | 25-26,42          
+ ...rces/ingresses |   14.38 |     8.51 |   14.16 |   14.86 |                   
+  ...rvicesTab.tsx |       0 |        0 |       0 |       0 | 16-162            
+  ...sRulesTab.css |       0 |        0 |       0 |       0 |                   
+  ...sRulesTab.tsx |   78.43 |    46.91 |   56.52 |      85 | 56-57,189-207     
+  ...essTLSTab.tsx |       0 |        0 |       0 |       0 | 12-136            
+  ...ssYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |    1.95 |        0 |       0 |    2.18 | ...31-234,239-551 
+ ...resources/jobs |   24.04 |    21.58 |      25 |    23.2 |                   
+  JobPodsTab.tsx   |   73.77 |    54.38 |   52.94 |   80.95 | 103-121,151-169   
+  JobYamlTab.tsx   |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |    2.04 |        0 |       0 |    2.38 | ...10-213,236-531 
+ ...ntvolumeclaims |    8.94 |     3.57 |     8.1 |    9.29 |                   
+  ...oundPVTab.tsx |   88.88 |    83.33 |     100 |     100 | 11                
+  ...sumersTab.tsx |       0 |        0 |       0 |       0 | 14-149            
+  ...imYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |       0 |        0 |       0 |       0 | 68-538            
+ ...sistentvolumes |   22.67 |    13.56 |      30 |   21.19 |                   
+  ...ationsTab.tsx |     100 |    91.66 |     100 |     100 | 50-53             
+  ...undPVCTab.css |       0 |        0 |       0 |       0 |                   
+  ...undPVCTab.tsx |   76.47 |       60 |   66.66 |   81.25 | 31-39             
+  ...yUsageTab.tsx |     100 |      100 |     100 |     100 |                   
+  ...meYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 36-45             
+  ...viewTable.tsx |    1.11 |        0 |       0 |    1.25 | 94-504            
+ ...resources/pods |   29.39 |     26.1 |    23.5 |   31.01 |                   
+  PodEventsTab.tsx |       0 |        0 |       0 |       0 | 12-113            
+  PodFilesTab.tsx  |   56.98 |    51.67 |   66.12 |   63.19 | ...73,484,548-549 
+  PodMountsTab.tsx |   53.41 |    48.81 |      30 |   57.36 | ...34,138,198-241 
+  ...viewEntry.tsx |     100 |      100 |     100 |     100 |                   
+  ...viewTable.tsx |    0.17 |        0 |       0 |    0.19 | 106-1457          
+  ...ummaryTab.tsx |   68.37 |    50.34 |      75 |      75 | ...23-224,324-326 
+  PodYamlTab.tsx   |     100 |      100 |     100 |     100 |                   
+  ...ardDialog.tsx |       0 |        0 |       0 |       0 | 13-86             
+  ...ardOutput.tsx |       0 |        0 |       0 |       0 | 12-96             
+ ...es/replicasets |    92.3 |     87.5 |      75 |      96 |                   
+  ...tOwnerTab.css |       0 |        0 |       0 |       0 |                   
+  ...tOwnerTab.tsx |      96 |     87.5 |     100 |     100 | 25,41             
+  ...viewTable.tsx |       0 |      100 |       0 |       0 | 17                
+ ...ources/secrets |   21.06 |     13.8 |   14.73 |   22.22 |                   
+  ...sumersTab.tsx |       0 |        0 |       0 |       0 | 23-151            
+  ...etDataTab.tsx |   51.88 |    42.57 |   34.48 |   54.83 | ...77-189,226-300 
+  ...etYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |     2.2 |        0 |       0 |    2.51 | 77-80,101-478     
+ ...urces/services |   25.26 |    19.33 |   21.33 |   26.58 |                   
+  ...pointsTab.css |       0 |        0 |       0 |       0 |                   
+  ...pointsTab.tsx |   78.33 |    52.27 |      50 |    87.5 | 133-163           
+  ...ceYamlTab.tsx |   66.66 |      100 |      80 |   62.96 | 37-46             
+  ...viewTable.tsx |    2.09 |        0 |       0 |    2.46 | ...65-168,188-471 
+ ...s/statefulsets |   17.05 |    16.17 |   12.32 |   16.98 |                   
+  ...etPVCsTab.css |       0 |        0 |       0 |       0 |                   
+  ...etPVCsTab.tsx |   71.42 |    46.31 |    37.5 |   82.05 | 109-145           
+  ...viewTable.tsx |    1.98 |        0 |       0 |    2.31 | 73-76,97-544      
+ src/layout        |   68.94 |    59.95 |   77.41 |   70.87 |                   
+  AppContainer.tsx |   39.84 |    18.75 |   44.82 |   44.14 | ...53-177,203-278 
+  AppLayout.tsx    |   83.33 |    46.66 |   66.66 |   83.33 | 24,35             
+  FooterBar.css    |       0 |        0 |       0 |       0 |                   
+  FooterBar.tsx    |      90 |    72.09 |      75 |   89.47 | 72-104            
+  ...IssueCard.css |       0 |        0 |       0 |       0 |                   
+  ...IssueCard.tsx |    90.9 |    94.11 |   88.88 |      90 | 64-65,124         
+  MonitorModal.css |       0 |        0 |       0 |       0 |                   
+  MonitorModal.tsx |    90.9 |    61.36 |     100 |    90.9 | 112,118           
+  MonitorPanel.css |       0 |        0 |       0 |       0 |                   
+  MonitorPanel.tsx |   66.91 |    64.28 |      80 |   67.76 | ...33,235-239,250 
+  ...AlertsTab.css |       0 |        0 |       0 |       0 |                   
+  ...AlertsTab.tsx |   86.88 |    62.68 |   94.73 |    86.2 | ...62,70-71,87-88 
+  ...rSections.css |       0 |        0 |       0 |       0 |                   
+  ...rSections.tsx |   94.11 |    84.37 |     100 |   93.54 | 55,65             
+  monitorApi.ts    |     100 |       50 |     100 |     100 | 25                
+ ...ut/bottompanel |      32 |    28.77 |   35.62 |   34.15 |                   
+  BottomPanel.tsx  |   95.74 |    79.06 |     100 |   97.77 | 44                
+  ConsoleTab.tsx   |     100 |      100 |     100 |     100 |                   
+  FilesTab.tsx     |    1.16 |        0 |       0 |    1.35 | 36-463            
+  LogViewerTab.tsx |   35.89 |    34.62 |   45.45 |   38.11 | ...-990,1020-1117 
+  ...TabHeader.tsx |    87.5 |    66.66 |     100 |     100 | 20-51             
+  TerminalTab.tsx  |       0 |        0 |       0 |       0 | 39-167            
+  ...EditorTab.tsx |       0 |        0 |       0 |       0 | 26-167            
+  ...ViewerTab.tsx |    90.9 |     82.6 |     100 |    92.3 | 82,90,105         
+  YamlTab.tsx      |   83.87 |       80 |     100 |   92.59 | 73,81             
+ ...out/connection |   52.27 |    39.55 |   41.57 |   54.14 |                   
+  ...igOverlay.css |       0 |        0 |       0 |       0 |                   
+  ...igOverlay.tsx |   56.66 |    66.66 |      50 |   56.66 | ...4,45-46,86-113 
+  ...onOverlay.css |       0 |        0 |       0 |       0 |                   
+  ...onOverlay.tsx |       0 |        0 |       0 |       0 | 18-230            
+  ...sSettings.css |       0 |        0 |       0 |       0 |                   
+  ...sSettings.tsx |   66.66 |    45.49 |      50 |   73.26 | ...58-431,464-536 
+  ...ySettings.css |       0 |        0 |       0 |       0 |                   
+  ...ySettings.tsx |    60.6 |    53.44 |   28.57 |    60.6 | ...5,51-52,92-193 
+  ...ionWizard.css |       0 |        0 |       0 |       0 |                   
+  ...ionWizard.tsx |      50 |       50 |      75 |      50 | 19-23             
+  ...tionsList.css |       0 |        0 |       0 |       0 |                   
+  ...sMainView.css |       0 |        0 |       0 |       0 |                   
+  ...sMainView.tsx |      44 |    47.36 |   55.55 |   45.83 | 28-37,47,67-70,77 
+  ...nsSidebar.css |       0 |        0 |       0 |       0 |                   
+  ...nsSidebar.tsx |   26.66 |       10 |   66.66 |   27.58 | 73-109            
+  ...teContext.tsx |   61.94 |    46.42 |   56.52 |   62.96 | ...39,645-707,732 
+  ...tionsList.tsx |   35.38 |    31.46 |   15.38 |   38.98 | ...46-168,193-255 
+  ...tionsList.tsx |   64.44 |    55.31 |   47.61 |   67.44 | ...00,124-141,157 
+ ...ayout/overview |   66.15 |     57.3 |   70.31 |   68.83 |                   
+  ...Selection.css |       0 |        0 |       0 |       0 |                   
+  ...WithPanel.css |       0 |        0 |       0 |       0 |                   
+  ...WithPanel.tsx |   66.15 |     57.3 |   70.31 |   68.83 | ...08,514-521,624 
+ src/state         |   73.92 |    63.38 |   84.09 |   76.49 |                   
+  ...teContext.tsx |   64.15 |    59.75 |   72.22 |   65.56 | ...90-302,317-318 
+  ...tsContext.tsx |   82.14 |       62 |   84.61 |   92.85 | 32-34,72          
+  ...gsContext.tsx |     100 |      100 |     100 |     100 |                   
+ src/utils         |   89.75 |    72.96 |   84.74 |   92.36 |                   
+  ...orLanguage.ts |     100 |      100 |     100 |     100 |                   
+  dateUtils.ts     |     100 |      100 |     100 |     100 |                   
+  logger.ts        |      76 |    32.14 |      75 |      76 | 124-145           
+  persistence.ts   |     100 |      100 |     100 |     100 |                   
+  ...Navigation.ts |     100 |      100 |     100 |     100 |                   
+  ...mYamlUtils.ts |   81.48 |    60.64 |   71.42 |   84.53 | 73,255-304        
+  tableSorting.ts  |   93.06 |       87 |     100 |     100 | ...1-83,90-93,142 
+  timeUtils.ts     |     100 |      100 |     100 |     100 |                   
+ wailsjs/go        |   10.33 |     3.65 |    4.65 |   11.44 |                   
+  models.ts        |   10.33 |     3.65 |    4.65 |   11.44 | ...3962,3972-3998 
+-------------------|---------|----------|---------|---------|-------------------

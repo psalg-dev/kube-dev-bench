@@ -79,7 +79,9 @@ jobs:
         run: go mod download
 
       - name: Run Go tests (with coverage)
-        run: go test -v -coverprofile=coverage.out -covermode=atomic ./...
+        # Use ./pkg/... to measure only application logic; main.go is a thin
+        # Wails bootstrap wrapper with no testable logic of its own.
+        run: go test -v -coverprofile=coverage.out -covermode=atomic ./pkg/...
 
       - name: Display coverage summary
         run: go tool cover -func coverage.out | tail -1

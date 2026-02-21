@@ -1,0 +1,53 @@
+/* Footer related styles extracted from app.css */
+#footer {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  height: var(--footer-height);
+  max-height: var(--footer-height);
+  background: var(--gh-bg-footer);
+  border-top: 1px solid var(--gh-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  font-size: var(--text-size-base);
+  z-index: 10;
+  color: var(--gh-text-muted);
+}
+
+#footer-info {
+  margin-right: 45px;
+  color: var(--gh-text-muted);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+#footer-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  color: var(--vsc-error, #f14c4c); /* VS Code error red */
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+  margin-right: 8px;
+  cursor: default;
+  user-select: none;
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+#footer-dot:hover {
+  background-color: rgba(241, 76, 76, 0.15);
+}
+#footer-dot.connected {
+  background: var(--gh-accent);
+  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(14, 99, 156, 0.3);
+}
+#footer-dot.insecure {
+  background: var(--vsc-error, #f14c4c);
+  box-shadow: 0 0 0 3px var(--gh-bg-footer), 0 0 10px rgba(241, 76, 76, 0.4);
+}

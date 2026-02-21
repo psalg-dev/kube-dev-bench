@@ -1,0 +1,67 @@
+.stack-services-container {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.stack-services-loading,
+.stack-services-empty,
+.stack-services-error {
+  padding: 32px;
+  text-align: center;
+  color: var(--gh-text-secondary);
+}
+
+.stack-services-error {
+  color: var(--vsc-error, #f14c4c);
+}
+
+.stack-services-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  table-layout: fixed;
+}
+
+.stack-services-table th,
+.stack-services-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--gh-border, #3c3c3c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.stack-services-table th {
+  font-weight: 600;
+  color: var(--gh-text-secondary, #858585);
+  background: var(--gh-bg-secondary, #181818);
+  position: sticky;
+  top: 0;
+}
+
+.stack-services-table td {
+  color: var(--gh-text, #d4d4d4);
+}
+
+.stack-services-table td.mono {
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.stack-services-table tbody tr:hover {
+  background: var(--gh-bg-tertiary, #2a2d2e);
+}
+
+.replica-ok {
+  color: var(--vsc-success, #89d185);
+  font-weight: 500;
+}
+
+.replica-warn {
+  color: var(--vsc-warning, #cca700);
+  font-weight: 500;
+}
