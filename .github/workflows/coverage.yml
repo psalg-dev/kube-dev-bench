@@ -69,6 +69,7 @@ jobs:
           fi
 
       - name: Compute combined coverage and compare to baseline (warn only)
+        id: compute_cov
         run: |
           set -e
           mkdir -p coverage
@@ -82,6 +83,8 @@ jobs:
             combined=$(awk -v g="$go_total" -v f="$frontend_total" 'BEGIN{printf "%.2f", (g+f)/2}')
           fi
           echo "Combined coverage (average of Go & Frontend): $combined%"
+          # export combined as step output for later steps
+          echo "combined=$combined" >> $GITHUB_OUTPUT
 
           if [ -f .github/coverage-baseline.txt ]; then
             baseline=$(cat .github/coverage-baseline.txt)
@@ -101,7 +104,7 @@ jobs:
         run: |
           echo "Go coverage: ${{ steps.go_cov.outputs.go_total }}%" > coverage/coverage_summary.txt
           echo "Frontend coverage: ${{ steps.frontend_cov.outputs.frontend_total }}%" >> coverage/coverage_summary.txt
-          echo "Combined (avg): $combined%" >> coverage/coverage_summary.txt
+          echo "Combined (avg): ${{ steps.compute_cov.outputs.combined }}%" >> coverage/coverage_summary.txt
 
       - name: Upload coverage artifacts
         uses: actions/upload-artifact@v4
