@@ -213,3 +213,154 @@ describe('SwarmStateContext', () => {
     expect(typeof state.refreshVolumes).toBe('function');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Extended tests: reconnect, polling via EventsOn, and refresh functions
+// ──────────────────────────────────────────────
+
+describe('SwarmStateContext – reconnect & polling', () => {
+  const getDockerConnectionStatusMock = vi.mocked(swarmApi.GetDockerConnectionStatus);
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('refreshConnectionStatus updates connected state', async () => {
+    // Initially not connected; after refresh, connected
+    getDockerConnectionStatusMock.mockResolvedValue({
+      connected: true,
+      swarmActive: true,
+      serverVersion: '24.0.0',
+      nodeId: 'node-1',
+      isManager: true,
+      error: '',
+    });
+
+    let capturedState: SwarmStateValue = null;
+    render(
+      <SwarmStateProvider>
+        <TestConsumer onRender={(s) => { capturedState = s; }} />
+      </SwarmStateProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized').textContent).toBe('true');
+    });
+
+    await act(async () => {
+      await (capturedState as SwarmStateContextValue)?.actions.refreshConnectionStatus();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('connected').textContent).toBe('true');
+    });
+  });
+
+  it('refreshServices fetches and updates services list', async () => {
+    const mockServices = [{ ID: 'svc-1', Spec: { Name: 'web' } }];
+    vi.mocked(swarmApi.GetSwarmServices).mockResolvedValue(mockServices as unknown as Awaited<ReturnType<typeof swarmApi.GetSwarmServices>>);
+
+    let capturedState: SwarmStateValue = null;
+    render(
+      <SwarmStateProvider>
+        <TestConsumer onRender={(s) => { capturedState = s; }} />
+      </SwarmStateProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized').textContent).toBe('true');
+    });
+
+    await act(async () => {
+      await (capturedState as SwarmStateContextValue)?.refreshServices();
+    });
+
+    await waitFor(() => {
+      expect(vi.mocked(swarmApi.GetSwarmServices)).toHaveBeenCalled();
+    });
+  });
+
+  it('connect shows error when connection fails', async () => {
+    vi.mocked(swarmApi.ConnectToDocker).mockResolvedValue({
+      connected: false,
+      swarmActive: false,
+      serverVersion: '',
+      nodeId: '',
+      isManager: false,
+      error: 'connection refused',
+    });
+
+    render(
+      <SwarmStateProvider>
+        <TestConsumer />
+      </SwarmStateProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized').textContent).toBe('true');
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Connect'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('connected').textContent).toBe('false');
+    });
+
+    expect(vi.mocked(notification.showError)).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to connect')
+    );
+  });
+
+  it('testConnection calls TestDockerConnection API', async () => {
+    vi.mocked(swarmApi.TestDockerConnection).mockResolvedValue({
+      connected: true,
+      swarmActive: true,
+      serverVersion: '24.0.0',
+      nodeId: 'node-1',
+      isManager: true,
+      error: '',
+    });
+
+    let capturedState: SwarmStateValue = null;
+    render(
+      <SwarmStateProvider>
+        <TestConsumer onRender={(s) => { capturedState = s; }} />
+      </SwarmStateProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized').textContent).toBe('true');
+    });
+
+    const config = dockerConfig;
+    await act(async () => {
+      await (capturedState as SwarmStateContextValue)?.actions.testConnection(config);
+    });
+
+    expect(vi.mocked(swarmApi.TestDockerConnection)).toHaveBeenCalledWith(config);
+  });
+
+  it('refreshNodes calls GetSwarmNodes and updates nodes', async () => {
+    const mockNodes = [{ ID: 'node-1', Status: { State: 'ready' } }];
+    vi.mocked(swarmApi.GetSwarmNodes).mockResolvedValue(mockNodes as unknown as Awaited<ReturnType<typeof swarmApi.GetSwarmNodes>>);
+
+    let capturedState: SwarmStateValue = null;
+    render(
+      <SwarmStateProvider>
+        <TestConsumer onRender={(s) => { capturedState = s; }} />
+      </SwarmStateProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('initialized').textContent).toBe('true');
+    });
+
+    await act(async () => {
+      await (capturedState as SwarmStateContextValue)?.refreshNodes();
+    });
+
+    expect(vi.mocked(swarmApi.GetSwarmNodes)).toHaveBeenCalled();
+  });
+});

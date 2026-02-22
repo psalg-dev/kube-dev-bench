@@ -13,6 +13,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov', 'html'],
       reportsDirectory: './coverage',
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
         'dist/',
@@ -20,7 +21,14 @@ export default defineConfig({
         'vite.config.*',
         'vitest.config.*',
         'test.setup.*',
-        '**/__tests__/**'
+        '**/__tests__/**',
+        '**/*.css',
+        '**/*.scss',
+        '**/*.d.ts',
+        'wailsjs/**',
+        'src/types/wails.ts',
+        'src/main.ts',
+        'src/k8s/resources/**/*OverviewTable.tsx',
       ]
     }
   }

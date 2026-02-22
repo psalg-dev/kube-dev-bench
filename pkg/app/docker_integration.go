@@ -261,6 +261,11 @@ func ensureImageHasRegistryHost(image, registryURL string) string {
 	return host + "/" + img
 }
 
+// EnsureImageHasRegistryHost is an exported wrapper for tests and external callers.
+func EnsureImageHasRegistryHost(image, registryURL string) string {
+	return ensureImageHasRegistryHost(image, registryURL)
+}
+
 // Docker-related fields are added to the App struct via this file
 
 var (

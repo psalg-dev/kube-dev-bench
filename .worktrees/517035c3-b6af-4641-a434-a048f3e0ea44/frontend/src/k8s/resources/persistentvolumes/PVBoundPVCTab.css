@@ -1,0 +1,125 @@
+.pv-bound-pvc-tab {
+  padding: 16px;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.no-pvc-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  text-align: center;
+  color: var(--gh-text-muted, #858585);
+}
+
+.no-pvc-message .icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.no-pvc-message h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  color: var(--gh-text, #d4d4d4);
+}
+
+.no-pvc-message p {
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+}
+
+.no-pvc-message .hint {
+  color: var(--gh-text-muted, #858585);
+  font-size: 0.85rem;
+}
+
+.bound-pvc-header {
+  margin-bottom: 20px;
+}
+
+.bound-pvc-header h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--gh-text, #d4d4d4);
+}
+
+.bound-pvc-header p {
+  margin: 0;
+  color: var(--gh-text-muted, #858585);
+  font-size: 0.9rem;
+}
+
+.pvc-card {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background-color: var(--gh-bg-sidebar, #181818);
+  border: 1px solid var(--gh-border, #3c3c3c);
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.pvc-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.pvc-details {
+  flex: 1;
+}
+
+.pvc-row {
+  display: flex;
+  margin-bottom: 8px;
+}
+
+.pvc-row:last-child {
+  margin-bottom: 0;
+}
+
+.pvc-label {
+  color: var(--gh-text-muted, #858585);
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.pvc-value {
+  color: var(--gh-text, #d4d4d4);
+  font-weight: 500;
+}
+
+.pvc-value.code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background-color: var(--gh-bg, #181818);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.info-section {
+  padding: 16px;
+  background-color: rgba(55, 148, 255, 0.1);
+  border: 1px solid rgba(55, 148, 255, 0.2);
+  border-radius: 8px;
+}
+
+.info-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--vsc-info, #3794ff);
+}
+
+.info-section p {
+  margin: 0 0 8px 0;
+  color: var(--gh-text-muted, #858585);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.info-section p:last-child {
+  margin-bottom: 0;
+}

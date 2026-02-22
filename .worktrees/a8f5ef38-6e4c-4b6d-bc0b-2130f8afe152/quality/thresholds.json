@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "thresholds": {
+    "coverage": {
+      "go": {
+        "minimum": 70,
+        "target": 80
+      },
+      "js": {
+        "minimum": 70,
+        "target": 80
+      }
+    },
+    "complexity": {
+      "cyclomatic": {
+        "maximum": 15,
+        "warning": 10
+      },
+      "cognitive": {
+        "maximum": 20,
+        "warning": 15
+      }
+    },
+    "duplication": {
+      "maximum_percent": 5,
+      "warning_percent": 3
+    },
+    "security": {
+      "critical": 0,
+      "high": 0,
+      "medium": 10
+    },
+    "linting": {
+      "errors": 0,
+      "warnings": 50
+    }
+  }
+}

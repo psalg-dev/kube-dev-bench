@@ -1,0 +1,309 @@
+package app
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	batchv1 "k8s.io/api/batch/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+
+	jobs "gowails/pkg/app/jobs"
+)
+
+type mockResourceClient struct {
+	batch jobs.BatchV1Interface
+}
+
+func (m *mockResourceClient) BatchV1() jobs.BatchV1Interface { return m.batch }
+
+func TestStartJob_Success(t *testing.T) {
+	jobName := "test-job"
+	namespace := "default"
+	mockJobs := &mockJobInterface{
+		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error) {
+			return &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: jobName}, Spec: batchv1.JobSpec{}}, nil
+		},
+		createFunc: func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error) {
+			if job.GenerateName == "test-job-manual-" {
+				return job, nil
+			}
+			return nil, errors.New("unexpected job name")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs}}
+	if err := jobs.StartJob(client, namespace, jobName); err != nil {
+		t.Errorf("expected success, got error: %v", err)
+	}
+}
+
+func TestSuspendCronJob_Success(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		patchFunc: func(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions) (*batchv1.CronJob, error) {
+			if string(data) == `{"spec":{"suspend":true}}` {
+				return &batchv1.CronJob{}, nil
+			}
+			return nil, errors.New("patch data mismatch")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
+	if err := jobs.SuspendCronJob(client, namespace, cronJobName); err != nil {
+		t.Errorf("expected success, got error: %v", err)
+	}
+}
+
+func TestResumeCronJob_Success(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		patchFunc: func(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions) (*batchv1.CronJob, error) {
+			if string(data) == `{"spec":{"suspend":false}}` {
+				return &batchv1.CronJob{}, nil
+			}
+			return nil, errors.New("patch data mismatch")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
+	if err := jobs.ResumeCronJob(client, namespace, cronJobName); err != nil {
+		t.Errorf("expected success, got error: %v", err)
+	}
+}
+
+func TestStartJobFromCronJob_Success(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.CronJob, error) {
+			return &batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{Name: cronJobName}, Spec: batchv1.CronJobSpec{JobTemplate: batchv1.JobTemplateSpec{Spec: batchv1.JobSpec{}}}}, nil
+		},
+	}
+	mockJobs := &mockJobInterface{
+		createFunc: func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error) {
+			if job.GenerateName == "test-cronjob-manual-" {
+				return job, nil
+			}
+			return nil, errors.New("unexpected job name")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs, cronJobs: mockCronJobs}}
+	if err := jobs.StartJobFromCronJob(client, namespace, cronJobName); err != nil {
+		t.Errorf("expected success, got error: %v", err)
+	}
+}
+
+func TestStartJob_GetError(t *testing.T) {
+	jobName := "test-job"
+	namespace := "default"
+	mockJobs := &mockJobInterface{
+		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error) {
+			return nil, errors.New("get error")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs}}
+	if err := jobs.StartJob(client, namespace, jobName); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+func TestStartJob_CreateError(t *testing.T) {
+	jobName := "test-job"
+	namespace := "default"
+	mockJobs := &mockJobInterface{
+		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error) {
+			return &batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: jobName}, Spec: batchv1.JobSpec{}}, nil
+		},
+		createFunc: func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error) {
+			return nil, errors.New("create error")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs}}
+	if err := jobs.StartJob(client, namespace, jobName); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+func TestSuspendCronJob_PatchError(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		patchFunc: func(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions) (*batchv1.CronJob, error) {
+			return nil, errors.New("patch error")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
+	if err := jobs.SuspendCronJob(client, namespace, cronJobName); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+func TestResumeCronJob_PatchError(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		patchFunc: func(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions) (*batchv1.CronJob, error) {
+			return nil, errors.New("patch error")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
+	if err := jobs.ResumeCronJob(client, namespace, cronJobName); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+func TestStartJobFromCronJob_GetError(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.CronJob, error) {
+			return nil, errors.New("get error")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{cronJobs: mockCronJobs}}
+	if err := jobs.StartJobFromCronJob(client, namespace, cronJobName); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+func TestStartJobFromCronJob_CreateError(t *testing.T) {
+	cronJobName := "test-cronjob"
+	namespace := "default"
+	mockCronJobs := &mockCronJobInterface{
+		getFunc: func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.CronJob, error) {
+			return &batchv1.CronJob{ObjectMeta: metav1.ObjectMeta{Name: cronJobName}, Spec: batchv1.CronJobSpec{JobTemplate: batchv1.JobTemplateSpec{Spec: batchv1.JobSpec{}}}}, nil
+		},
+	}
+	mockJobs := &mockJobInterface{
+		createFunc: func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error) {
+			return nil, errors.New("create error")
+		},
+	}
+	client := &mockResourceClient{batch: &mockBatchV1{jobs: mockJobs, cronJobs: mockCronJobs}}
+	if err := jobs.StartJobFromCronJob(client, namespace, cronJobName); err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+// Additional: DeleteJob and DeleteCronJob
+func TestDeleteJob_Success(t *testing.T) {
+	jobName := "test-job"
+	mockJobs := &mockJobInterface{
+		deleteFunc: func(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+			if name == jobName {
+				return nil
+			}
+			return errors.New("unexpected job name")
+		},
+	}
+	err := mockJobs.Delete(context.Background(), jobName, metav1.DeleteOptions{})
+	if err != nil {
+		t.Errorf("expected success, got error: %v", err)
+	}
+}
+
+func TestDeleteJob_Error(t *testing.T) {
+	jobName := "test-job"
+	mockJobs := &mockJobInterface{
+		deleteFunc: func(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+			return errors.New("delete error")
+		},
+	}
+	err := mockJobs.Delete(context.Background(), jobName, metav1.DeleteOptions{})
+	if err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+func TestDeleteCronJob_Success(t *testing.T) {
+	cronJobName := "test-cronjob"
+	mockCronJobs := &mockCronJobInterface{
+		deleteFunc: func(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+			if name == cronJobName {
+				return nil
+			}
+			return errors.New("unexpected cronjob name")
+		},
+	}
+	err := mockCronJobs.Delete(context.Background(), cronJobName, metav1.DeleteOptions{})
+	if err != nil {
+		t.Errorf("expected success, got error: %v", err)
+	}
+}
+
+func TestDeleteCronJob_Error(t *testing.T) {
+	cronJobName := "test-cronjob"
+	mockCronJobs := &mockCronJobInterface{
+		deleteFunc: func(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+			return errors.New("delete error")
+		},
+	}
+	err := mockCronJobs.Delete(context.Background(), cronJobName, metav1.DeleteOptions{})
+	if err == nil {
+		t.Errorf("expected error, got success")
+	}
+}
+
+// Mock implementations
+
+type mockBatchV1 struct {
+	jobs     jobs.JobInterface
+	cronJobs jobs.CronJobInterface
+}
+
+func (m *mockBatchV1) Jobs(namespace string) jobs.JobInterface         { return m.jobs }
+func (m *mockBatchV1) CronJobs(namespace string) jobs.CronJobInterface { return m.cronJobs }
+
+type mockJobInterface struct {
+	listFunc   func(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error)
+	getFunc    func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error)
+	createFunc func(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error)
+	deleteFunc func(ctx context.Context, name string, opts metav1.DeleteOptions) error
+}
+
+func (m *mockJobInterface) List(ctx context.Context, opts metav1.ListOptions) (*batchv1.JobList, error) {
+	if m.listFunc != nil {
+		return m.listFunc(ctx, opts)
+	}
+	// default: return empty list
+	return &batchv1.JobList{Items: []batchv1.Job{}}, nil
+}
+
+func (m *mockJobInterface) Get(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.Job, error) {
+	return m.getFunc(ctx, name, opts)
+}
+func (m *mockJobInterface) Create(ctx context.Context, job *batchv1.Job, opts metav1.CreateOptions) (*batchv1.Job, error) {
+	return m.createFunc(ctx, job, opts)
+}
+func (m *mockJobInterface) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	if m.deleteFunc != nil {
+		return m.deleteFunc(ctx, name, opts)
+	}
+	return nil
+}
+
+type mockCronJobInterface struct {
+	getFunc    func(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.CronJob, error)
+	patchFunc  func(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions) (*batchv1.CronJob, error)
+	deleteFunc func(ctx context.Context, name string, opts metav1.DeleteOptions) error
+}
+
+func (m *mockCronJobInterface) Get(ctx context.Context, name string, opts metav1.GetOptions) (*batchv1.CronJob, error) {
+	if m.getFunc != nil {
+		return m.getFunc(ctx, name, opts)
+	}
+	return nil, nil
+}
+func (m *mockCronJobInterface) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions) (*batchv1.CronJob, error) {
+	if m.patchFunc != nil {
+		return m.patchFunc(ctx, name, pt, data, opts)
+	}
+	return nil, nil
+}
+func (m *mockCronJobInterface) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
+	if m.deleteFunc != nil {
+		return m.deleteFunc(ctx, name, opts)
+	}
+	return nil
+}

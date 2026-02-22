@@ -2,6 +2,7 @@ package app
 
 import (
 	"testing"
+	"time"
 )
 
 // Tests for sanitizeName function
@@ -89,5 +90,27 @@ func TestSanitizeName_Numbers(t *testing.T) {
 	result := sanitizeName("pvc123", 63)
 	if result != "pvc123" {
 		t.Errorf("sanitizeName(\"pvc123\", 63) = %q, want %q", result, "pvc123")
+	}
+}
+
+func TestListPVCFilesFromPod_ParsesLsOutput(t *testing.T) {
+	a := NewApp()
+	// stub exec to return predictable ls output
+	lsOut := `-rw-r--r-- 1 root root 123 2026-02-22T12:00:00 file1.txt
+	drwxr-xr-x 2 root root 4096 2026-02-22T12:01:00 dir1
+	lrwxrwxrwx 1 root root 5 2026-02-22T12:02:00 link -> target`
+	a.TestExecInPod = func(namespace, pod, container string, command []string, timeout time.Duration) (string, error) {
+		return lsOut, nil
+	}
+
+	entries, err := a.listPVCFilesFromPod("default", "mypod", "container", "/mnt/claim", "", "/")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d", len(entries))
+	}
+	if entries[0].Name != "dir1" {
+		t.Errorf("expected dir1 first, got %s", entries[0].Name)
 	}
 }

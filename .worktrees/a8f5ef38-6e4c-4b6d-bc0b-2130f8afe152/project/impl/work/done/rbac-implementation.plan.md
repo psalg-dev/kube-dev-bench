@@ -1,0 +1,295 @@
+---
+title: "Implementation Plan: K8s RBAC Resources"
+status: wip
+priority: medium
+---
+# Implementation Plan: K8s RBAC Resources
+
+**Status:** COMPLETE (100% — backend + frontend + tests + e2e implemented)
+**Created:** 2026-02-05
+**Updated:** 2026-02-06
+
+Add support for Roles, ClusterRoles, RoleBindings, and ClusterRoleBindings with full CRUD and a collapsible sidebar group.
+
+**Summary:** Backend RBAC support (types, list/detail getters, YAML, delete, polling, counts) is complete. Frontend includes RBAC sidebar group, overview tables for all 4 resources, routing, and unit tests. E2E coverage added for create/view/delete flows.
+
+**Note:** Frontend was migrated to TypeScript in PR #104. All frontend file references use `.tsx`/`.ts` extensions.
+
+---
+
+## Phase 1: Go Backend ✅ PARTIALLY COMPLETE
+
+### 1.1 Type Definitions ✅ IMPLEMENTED
+
+Types are defined in separate files:
+- `pkg/app/roles.go` — `RoleInfo` (Name, Namespace, Age, Rules, Labels, Annotations), `PolicyRule` (APIGroups, Resources, Verbs, ResourceNames)
+- `pkg/app/rolebindings.go` — `RoleBindingInfo` (Name, Namespace, RoleRef, Subjects), `RoleRef`, `Subject`
+
+**Note:** Types are in dedicated files rather than `types.go` (cleaner organization).
+
+- [x] Add to `ResourceCounts`
+
+### 1.2 Resource Getters ✅ IMPLEMENTED
+
+Implemented in `pkg/app/roles.go` and `pkg/app/rolebindings.go`:
+
+| Method | Status | Location |
+|--------|--------|----------|
+| `GetRoles(namespace)` | ✅ | `roles.go` |
+| `GetClusterRoles()` | ✅ | `roles.go` |
+| `GetRoleBindings(namespace)` | ✅ | `rolebindings.go` |
+| `GetClusterRoleBindings()` | ✅ | `rolebindings.go` |
+| `GetRoleDetail(namespace, name)` | ✅ | `roles.go` |
+| `GetClusterRoleDetail(name)` | ✅ | `roles.go` |
+| `GetRoleBindingSubjects(namespace, name)` | ✅ | `rolebindings.go` |
+| `GetClusterRoleBindingSubjects(name)` | ✅ | `rolebindings.go` |
+| `StartRBACPolling()` | ✅ | `rbac_polling.go` |
+
+**MCP Tools Exposed (via `pkg/app/mcp/tools.go`):**
+- `k8s_list_roles` ✅
+- `k8s_list_cluster_roles` ✅
+- `k8s_list_role_bindings` ✅
+- `k8s_list_cluster_role_bindings` ✅
+
+### 1.3 YAML Getters — append to `pkg/app/resource_yaml.go` ✅ IMPLEMENTED
+
+Follow existing pattern (`GetServiceYAML` etc.):
+- [x] `GetRoleYAML(namespace, name) (string, error)`
+- [x] `GetClusterRoleYAML(name) (string, error)`
+- [x] `GetRoleBindingYAML(namespace, name) (string, error)`
+- [x] `GetClusterRoleBindingYAML(name) (string, error)`
+
+### 1.4 Delete Support — `pkg/app/delete_resource.go` ✅ IMPLEMENTED
+
+Add 4 cases to the switch:
+```go
+case "role":               clientset.RbacV1().Roles(namespace).Delete(...)
+case "clusterrole":        clientset.RbacV1().ClusterRoles().Delete(...)
+case "rolebinding":        clientset.RbacV1().RoleBindings(namespace).Delete(...)
+case "clusterrolebinding": clientset.RbacV1().ClusterRoleBindings().Delete(...)
+```
+
+### 1.5 Counts — `pkg/app/counts.go` ✅ IMPLEMENTED
+
+- [x] Add RBAC to `refreshResourceCounts()`: Roles/RoleBindings inside namespace loop; ClusterRoles/ClusterRoleBindings outside (like PersistentVolumes)
+- [x] Update `resourceCountsEqual()` to compare new fields
+
+### 1.6 Register Polling — `main.go` ✅ IMPLEMENTED
+
+- [x] Add `app.StartRBACPolling()` after existing polling registrations.
+
+---
+
+## Phase 2: Go Backend Tests ✅ IMPLEMENTED
+
+Tests exist in:
+- `pkg/app/roles_test.go` — Tests for GetRoles, GetClusterRoles
+- `pkg/app/rolebindings_test.go` — Tests for GetRoleBindings, GetClusterRoleBindings
+
+| Test | Status |
+|------|--------|
+| `TestGetRoles` | ✅ |
+| `TestGetClusterRoles` | ✅ |
+| `TestGetRoleBindings` | ✅ |
+| `TestGetClusterRoleBindings` | ✅ |
+| `TestGetRoleDetail` | ✅ |
+| `TestGetClusterRoleDetail` | ✅ |
+| `TestGetRoleBindingSubjects` | ✅ |
+| `TestGetClusterRoleBindingSubjects` | ✅ |
+| YAML getter tests | ✅ |
+| Delete tests | ✅ |
+
+---
+
+## Phase 3: Frontend — Collapsible Sidebar Group ✅ COMPLETE
+
+### Modify: `frontend/src/layout/SidebarSections.tsx`
+
+**Status:** ✅ Implemented
+
+Current sidebar sections (14):
+pods, deployments, services, jobs, cronjobs, daemonsets, statefulsets, replicasets, configmaps, secrets, ingresses, persistentvolumeclaims, persistentvolumes, helmreleases
+
+Add group entry to `resourceSections`:
+```ts
+{
+  key: 'rbac',
+  label: 'RBAC',
+  group: true,
+  children: [
+    { key: 'roles', label: 'Roles' },
+    { key: 'clusterroles', label: 'Cluster Roles' },
+    { key: 'rolebindings', label: 'Role Bindings' },
+    { key: 'clusterrolebindings', label: 'Cluster Role Bindings' },
+  ]
+}
+```
+
+Rendering changes:
+- [x] When `sec.group === true`, render a clickable header with collapse chevron + summed count badge
+- [x] `useState` for collapsed state (default: collapsed)
+- [x] When expanded, render indented children with individual counts
+- [x] Auto-expand when a child is the `selected` section
+- [x] Stable DOM ids: `#section-rbac` (group header), `#section-roles`, etc.
+
+Accessibility follow-ups:
+- [x] RBAC group header supports keyboard toggle (Enter/Space).
+- [x] Sidebar links expose aria-current and count labels.
+
+### Modify: `frontend/src/app.css`
+
+- [x] Add styles for `.sidebar-group-header`, `.sidebar-group-children`, `.sidebar-group-children.collapsed`.
+
+### Modify: `frontend/src/state/ResourceCountsContext.tsx`
+
+- [x] Add `roles`, `clusterroles`, `rolebindings`, `clusterrolebindings` to signature computation.
+
+---
+
+## Phase 4: Frontend — RBAC Overview Tables ✅ COMPLETE
+
+**Status:** All RBAC overview tables and shared components implemented.
+
+### New directories and files needed:
+
+| File | Status | Columns | Key Tabs |
+|------|--------|---------|----------|
+| `frontend/src/k8s/resources/roles/RolesOverviewTable.tsx` | ✅ | Name, Namespace, Rules, Age | Summary, Rules, Events, YAML, Holmes |
+| `frontend/src/k8s/resources/clusterroles/ClusterRolesOverviewTable.tsx` | ✅ | Name, Rules, Age | Summary, Rules, Events, YAML, Holmes |
+| `frontend/src/k8s/resources/rolebindings/RoleBindingsOverviewTable.tsx` | ✅ | Name, Namespace, Role Ref, Subjects, Age | Summary, Subjects, Events, YAML, Holmes |
+| `frontend/src/k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable.tsx` | ✅ | Name, Role Ref, Subjects, Age | Summary, Subjects, Events, YAML, Holmes |
+
+### Shared components needed:
+
+| File | Status | Purpose |
+|------|--------|---------|
+| `frontend/src/k8s/resources/rbac/PolicyRulesTable.tsx` | ✅ | Renders `[]PolicyRuleInfo` — columns: Verbs, API Groups, Resources, Resource Names |
+| `frontend/src/k8s/resources/rbac/SubjectsTable.tsx` | ✅ | Renders `[]SubjectInfo` — columns: Kind, Name, Namespace |
+
+All tables should follow `DeploymentsOverviewTable.tsx` pattern:
+- Fetch via `AppAPI.Get{Resource}()`, listen to `{resource}:update` events
+- Normalize data, use `<OverviewTableWithPanel>` wrapper
+- Delete action via `AppAPI.DeleteResource(type, namespace, name)`
+- Create via existing YAML overlay
+- Holmes integration for AI analysis
+
+**Cluster-scoped resources** (ClusterRoles, ClusterRoleBindings): no Namespace column, fetch once (not per-namespace), like `PersistentVolumesOverviewTable`.
+
+---
+
+## Phase 5: Frontend — Routing & Wiring ✅ COMPLETE
+
+### Modify: `frontend/src/main-content.ts`
+
+Add imports and section entries for all 4 RBAC tables:
+```ts
+{ id: 'roles-overview-react', section: 'roles', table: RolesOverviewTable, props: {namespaces, namespace} },
+{ id: 'clusterroles-overview-react', section: 'clusterroles', table: ClusterRolesOverviewTable, props: {namespace} },
+{ id: 'rolebindings-overview-react', section: 'rolebindings', table: RoleBindingsOverviewTable, props: {namespaces, namespace} },
+{ id: 'clusterrolebindings-overview-react', section: 'clusterrolebindings', table: ClusterRoleBindingsOverviewTable, props: {namespace} },
+```
+
+### Modify: `frontend/src/__tests__/wailsMocks.ts`
+
+Add all new RBAC API function names to the mock registry.
+
+### Rebuild Wails bindings
+
+Run `wails dev` or `wails build` to regenerate `frontend/wailsjs/go/main/App.js` and `App.d.ts`.
+
+---
+
+## Phase 6: Frontend Unit Tests ✅ COMPLETE
+
+| Test File | What It Tests |
+|-----------|---------------|
+| `frontend/src/__tests__/rolesOverviewTable.test.tsx` | Loading, data display, empty state, delete action |
+| `frontend/src/__tests__/clusterRolesOverviewTable.test.tsx` | Same pattern, no namespace column |
+| `frontend/src/__tests__/roleBindingsOverviewTable.test.tsx` | RoleRef display, subjects count |
+| `frontend/src/__tests__/clusterRoleBindingsOverviewTable.test.tsx` | Same pattern, cluster-scoped |
+| `frontend/src/__tests__/sidebarRbacGroup.test.tsx` | Collapsible group behavior, auto-expand, count badges |
+
+---
+
+## Phase 7: E2E Tests ✅ COMPLETE
+
+### New: `e2e/tests/100-rbac-resources.spec.ts`
+
+1. Navigate to RBAC > Roles via sidebar (expand group, click Roles)
+2. Create a Role via YAML overlay
+3. Verify it appears in table
+4. Open bottom panel, verify Rules tab displays policy rules
+5. Switch to YAML tab
+6. Delete the role
+7. Repeat for ClusterRole, RoleBinding, ClusterRoleBinding
+
+### Modify: `e2e/src/pages/SidebarPage.ts`
+
+Add `goToRbacSection(section)` helper that expands the RBAC group then clicks the sub-section.
+
+---
+
+## Implementation Order
+
+```
+Phase 1 (Go backend — remaining)  ---+
+                                      +---> Phase 2 (Go tests — remaining)
+Phase 3 (Sidebar UI) ----------------+
+                                      +---> Phase 4 (Overview tables)
+                                      |         |
+                                      |         v
+                                      +---> Phase 5 (Routing + wiring)
+                                      |         |
+                                      |         v
+                                      +---> Phase 6 (Frontend unit tests)
+                                      |         |
+                                      |         v
+                                      +---> Phase 7 (E2E tests)
+```
+
+Phases 1 and 3 can run in parallel. Phase 4 depends on Phase 1 (API shape) and Phase 3 (sidebar navigation). Phases 5-7 are sequential.
+
+---
+
+## Files Summary
+
+**New files (14):**
+- `frontend/src/k8s/resources/roles/RolesOverviewTable.tsx`
+- `frontend/src/k8s/resources/clusterroles/ClusterRolesOverviewTable.tsx`
+- `frontend/src/k8s/resources/rolebindings/RoleBindingsOverviewTable.tsx`
+- `frontend/src/k8s/resources/clusterrolebindings/ClusterRoleBindingsOverviewTable.tsx`
+- `frontend/src/k8s/resources/rbac/PolicyRulesTable.tsx`
+- `frontend/src/k8s/resources/rbac/SubjectsTable.tsx`
+- `frontend/src/__tests__/rolesOverviewTable.test.tsx`
+- `frontend/src/__tests__/clusterRolesOverviewTable.test.tsx`
+- `frontend/src/__tests__/roleBindingsOverviewTable.test.tsx`
+- `frontend/src/__tests__/clusterRoleBindingsOverviewTable.test.tsx`
+- `frontend/src/__tests__/sidebarRbacGroup.test.tsx`
+- `e2e/tests/100-rbac-resources.spec.ts`
+
+**Existing files (already implemented):**
+- `pkg/app/roles.go` — RoleInfo type + GetRoles/GetClusterRoles ✅
+- `pkg/app/rolebindings.go` — RoleBindingInfo type + GetRoleBindings/GetClusterRoleBindings ✅
+- `pkg/app/roles_test.go` — Unit tests ✅
+- `pkg/app/rolebindings_test.go` — Unit tests ✅
+- `pkg/app/mcp/tools.go` — 4 RBAC MCP tools ✅
+
+**Modified files (9):**
+- `pkg/app/resource_yaml.go` — 4 YAML getters
+- `pkg/app/delete_resource.go` — 4 RBAC delete cases
+- `pkg/app/counts.go` — RBAC in refresh + equals
+- `main.go` — register `StartRBACPolling()`
+- `frontend/src/layout/SidebarSections.tsx` — collapsible group
+- `frontend/src/app.css` — group styles
+- `frontend/src/main-content.ts` — 4 RBAC section entries
+- `frontend/src/__tests__/wailsMocks.ts` — RBAC mock functions
+
+---
+
+## Verification
+
+1. `go test -cover ./pkg/app/...` — all pass, >=70% on new code
+2. `cd frontend && npm test` — all pass
+3. `wails dev` — app starts, RBAC group visible in sidebar, expanding shows 4 sub-items with counts
+4. Create/view/delete Role, ClusterRole, RoleBinding, ClusterRoleBinding via UI
+5. `cd e2e && npx playwright test tests/100-rbac-resources.spec.ts` — passes

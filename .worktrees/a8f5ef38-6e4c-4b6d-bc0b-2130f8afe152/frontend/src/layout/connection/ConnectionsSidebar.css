@@ -1,0 +1,118 @@
+.connections-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.connections-sidebar__title {
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gh-text-secondary, #ccc);
+}
+
+.connections-sidebar__sections {
+  flex: 1;
+}
+
+.connections-sidebar__item {
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--gh-table-header-text, #fff);
+  font-size: 15px;
+  margin: 0;
+  border-radius: 4px;
+  transition: background 0.15s;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.connections-sidebar__item.is-connecting {
+  opacity: 0.6;
+}
+
+.connections-sidebar__item-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.connections-sidebar__item-name {
+  font-size: 13px;
+}
+
+.connections-sidebar__count {
+  min-width: 2em;
+  text-align: right;
+  color: #9aa0a6;
+  font-weight: 700;
+}
+
+.connections-sidebar__count.is-active {
+  color: #8ecfff;
+}
+
+.connections-sidebar__divider {
+  border: none;
+  border-top: 1px solid var(--gh-border, #30363d);
+  margin: 16px 0;
+}
+
+.connections-sidebar__pinned-label {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.connections-sidebar__pinned-icon {
+  font-size: 10px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.connections-sidebar__footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--gh-border, #30363d);
+}
+
+.connections-sidebar__updates {
+  margin-bottom: 10px;
+  padding: 8px;
+  border: 1px solid var(--gh-border, #30363d);
+  background: var(--gh-bg-secondary, #161b22);
+}
+
+.connections-sidebar__updates-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gh-text-secondary, #ccc);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.connections-sidebar__updates-status {
+  margin-top: 6px;
+  margin-left: 22px;
+  font-size: 11px;
+  color: var(--gh-text-muted, #8b949e);
+}
+
+.connections-sidebar__proxy-button {
+  width: 100%;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--gh-border, #444);
+  color: var(--gh-text-secondary, #ccc);
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}

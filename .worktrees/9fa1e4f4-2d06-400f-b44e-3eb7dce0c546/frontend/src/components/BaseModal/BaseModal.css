@@ -1,0 +1,110 @@
+/**
+ * Base modal styles.
+ * Consolidates duplicated inline styles from 17+ modal components.
+ */
+
+.base-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.base-modal-container {
+  background-color: var(--gh-bg, #0d1117);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--gh-border, #30363d);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.base-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.base-modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gh-text, #c9d1d9);
+}
+
+.base-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--gh-text-muted, #8b949e);
+  padding: 0;
+  line-height: 1;
+}
+
+.base-modal-close:hover {
+  color: var(--gh-text, #c9d1d9);
+}
+
+.base-modal-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.base-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Button Styles */
+.base-modal-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--gh-border, #30363d);
+  background-color: var(--gh-button-bg, #21262d);
+  color: var(--gh-text, #c9d1d9);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.base-modal-btn:hover:not(:disabled) {
+  background-color: var(--gh-button-hover-bg, #30363d);
+}
+
+.base-modal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.base-modal-btn-primary {
+  background-color: var(--gh-accent, #238636);
+  border-color: var(--gh-accent, #238636);
+  color: #fff;
+}
+
+.base-modal-btn-primary:hover:not(:disabled) {
+  background-color: var(--gh-accent-hover, #2ea043);
+  border-color: var(--gh-accent-hover, #2ea043);
+}
+
+.base-modal-btn-danger {
+  background-color: #da3633;
+  border-color: #da3633;
+  color: #fff;
+}
+
+.base-modal-btn-danger:hover:not(:disabled) {
+  background-color: #f85149;
+  border-color: #f85149;
+}

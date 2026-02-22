@@ -39,6 +39,7 @@ export namespace app {
 	    currentContext: string;
 	    currentNamespace: string;
 	    preferredNamespaces: string[];
+	    useInformers: boolean;
 	    rememberContext: boolean;
 	    rememberNamespace: boolean;
 	    kubeConfigPath: string;
@@ -57,6 +58,7 @@ export namespace app {
 	        this.currentContext = source["currentContext"];
 	        this.currentNamespace = source["currentNamespace"];
 	        this.preferredNamespaces = source["preferredNamespaces"];
+	        this.useInformers = source["useInformers"];
 	        this.rememberContext = source["rememberContext"];
 	        this.rememberNamespace = source["rememberNamespace"];
 	        this.kubeConfigPath = source["kubeConfigPath"];

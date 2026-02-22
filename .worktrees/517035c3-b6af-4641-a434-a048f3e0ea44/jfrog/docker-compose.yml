@@ -1,0 +1,29 @@
+services:
+  artifactory:
+    image: releases-docker.jfrog.io/jfrog/artifactory-jcr:7.71.10
+    container_name: jfrog-jcr
+    restart: unless-stopped
+    ports:
+      - "8081:8081"  # Artifactory UI
+      - "8082:8082"  # Artifactory Router
+    volumes:
+      - artifactory-data:/var/opt/jfrog/artifactory
+      - ./artifactory.config.import.yml:/var/opt/jfrog/artifactory/etc/artifactory/artifactory.config.import.yml:ro
+    environment:
+      - JF_SHARED_DATABASE_TYPE=derby
+      - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=8082
+    ulimits:
+      nproc: 65535
+      nofile:
+        soft: 32000
+        hard: 40000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8082/artifactory/api/system/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+
+volumes:
+  artifactory-data:
+    driver: local

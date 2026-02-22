@@ -1,0 +1,127 @@
+import { test, expect } from '../../src/fixtures.js';
+import { bootstrapApp } from '../../src/support/bootstrap.js';
+import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
+import { Notifications } from '../../src/pages/Notifications.js';
+import { BottomPanel } from '../../src/pages/BottomPanel.js';
+import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
+import { waitForTableRow, waitForResourceStatus } from '../../src/support/wait-helpers.js';
+
+function uniqueName(prefix: string) {
+  const rand = Math.random().toString(16).slice(2, 8);
+  return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
+}
+
+async function waitForHolmesRowWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'deployments' | 'pods' | 'services') => Promise<void> },
+  section: 'deployments' | 'pods' | 'services',
+  rowText: RegExp,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForTableRow(page, rowText, { timeout: 20_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Row did not appear in section '${section}' for ${rowText}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection(section);
+    }
+  }
+}
+
+async function waitForHolmesStatusWithRefresh(
+  page: import('@playwright/test').Page,
+  sidebar: { goToSection: (section: 'pods') => Promise<void> },
+  section: 'pods',
+  resourceName: RegExp,
+  status: string,
+) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await waitForResourceStatus(page, resourceName, status, { timeout: 30_000 });
+      return;
+    } catch {
+      if (attempt === 2) {
+        throw new Error(`Status '${status}' did not appear in section '${section}' for ${resourceName}`);
+      }
+
+      await page.reload();
+      await sidebar.goToSection(section);
+    }
+  }
+}
+
+async function openRowActionsAndAskHolmes(page: any, rowText: string) {
+  const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText }).first();
+  await expect(row).toBeVisible({ timeout: 60_000 });
+
+  // Use retry pattern to handle potential popups intercepting clicks
+  await expect(async () => {
+    await page.keyboard.press('Escape');
+    await row.locator('.row-actions-button').click();
+    const askHolmes = page.locator('.menu-content .context-menu-item', { hasText: 'Ask Holmes' }).first();
+    await expect(askHolmes).toBeVisible({ timeout: 5_000 });
+    await askHolmes.click();
+  }).toPass({ timeout: 30_000, intervals: [500, 1000, 2000] });
+}
+
+test('Ask Holmes from resource details opens Holmes tab', async ({ page, contextName, namespace }) => {
+  test.setTimeout(180_000);
+
+  const { sidebar } = await bootstrapApp({ page, contextName, namespace });
+  await configureHolmesMock({ page });
+  const overlay = new CreateOverlay(page);
+  const notifications = new Notifications(page);
+  const panel = new BottomPanel(page);
+
+  // Create a deployment to ensure a stable target.
+  await sidebar.goToSection('deployments');
+
+  const deployName = uniqueName('e2e-holmes-deploy');
+  const deployYaml = `apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: ${deployName}\n  namespace: ${namespace}\nspec:\n  replicas: 1\n  selector:\n    matchLabels:\n      app: ${deployName}\n  template:\n    metadata:\n      labels:\n        app: ${deployName}\n    spec:\n      containers:\n      - name: app\n        image: nginx:latest\n        ports:\n        - containerPort: 80\n`;
+
+  await overlay.openFromOverviewHeader();
+  await overlay.fillYaml(deployYaml);
+  await overlay.create();
+  await notifications.waitForClear();
+  await waitForHolmesRowWithRefresh(page, sidebar, 'deployments', new RegExp(deployName));
+
+  // Ask Holmes from Deployment row
+  await openRowActionsAndAskHolmes(page, deployName);
+  await panel.expectVisible(30_000);
+  await panel.expectTabs(['Holmes']);
+
+  // Switch to Pods and ask Holmes from a pod row
+  await panel.closeByClickingOutside();
+  await sidebar.goToSection('pods');
+
+  await waitForHolmesRowWithRefresh(page, sidebar, 'pods', new RegExp(deployName));
+  await waitForHolmesStatusWithRefresh(page, sidebar, 'pods', new RegExp(deployName), 'Running');
+
+  await openRowActionsAndAskHolmes(page, deployName);
+  await panel.expectVisible(30_000);
+  await panel.expectTabs(['Holmes']);
+
+  // Create a service and ask Holmes from Services view
+  await panel.closeByClickingOutside();
+  await sidebar.goToSection('services');
+
+  const serviceName = uniqueName('e2e-holmes-svc');
+  const serviceYaml = `apiVersion: v1\nkind: Service\nmetadata:\n  name: ${serviceName}\n  namespace: ${namespace}\nspec:\n  selector:\n    app: ${deployName}\n  ports:\n  - name: http\n    port: 80\n    targetPort: 80\n`;
+
+  await overlay.openFromOverviewHeader();
+  await overlay.fillYaml(serviceYaml);
+  await overlay.create();
+  await notifications.waitForClear();
+  await waitForHolmesRowWithRefresh(page, sidebar, 'services', new RegExp(serviceName));
+
+  await openRowActionsAndAskHolmes(page, serviceName);
+  await panel.expectVisible(30_000);
+  await panel.expectTabs(['Holmes']);
+
+  // Expect Holmes panel content from mock server
+  await expect(panel.root).toContainText(/Resource Analysis|Holmes analysis|Deployment Analysis|Pod Crash Analysis|Service and networking analysis completed/i);
+});

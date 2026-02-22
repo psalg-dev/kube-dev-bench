@@ -280,9 +280,9 @@ export function GetHolmesLogPath():Promise<string>;
 
 export function GetHooksConfig():Promise<app.HooksConfig>;
 
-export function GetHorizontalPodAutoscalers(arg1:string):Promise<Array<app.HorizontalPodAutoscalerInfo>>;
-
 export function GetHorizontalPodAutoscalerDetail(arg1:string,arg2:string):Promise<app.HorizontalPodAutoscalerInfo>;
+
+export function GetHorizontalPodAutoscalers(arg1:string):Promise<Array<app.HorizontalPodAutoscalerInfo>>;
 
 export function GetImageDigest(arg1:string,arg2:string,arg3:string):Promise<string>;
 
@@ -374,8 +374,6 @@ export function GetPodLog(arg1:string):Promise<string>;
 
 export function GetPodLogsPrevious(arg1:string,arg2:string,arg3:string,arg4:number):Promise<string>;
 
-export function GetPodsOnNode(arg1:string):Promise<Array<app.PodInfo>>;
-
 export function GetPodMounts(arg1:string):Promise<app.PodMounts>;
 
 export function GetPodStatusCounts(arg1:string):Promise<app.PodStatusCounts>;
@@ -385,6 +383,8 @@ export function GetPodSummary(arg1:string):Promise<app.PodSummary>;
 export function GetPodYAML(arg1:string):Promise<string>;
 
 export function GetPodsCountForResource(arg1:string,arg2:string,arg3:string):Promise<number>;
+
+export function GetPodsOnNode(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetPrometheusAlerts(arg1:string):Promise<Array<app.PrometheusAlert>>;
 
@@ -401,8 +401,6 @@ export function GetRegistryRepositoryDetails(arg1:string,arg2:string):Promise<re
 export function GetRememberContext():Promise<boolean>;
 
 export function GetRememberNamespace():Promise<boolean>;
-
-export function GetUseInformers():Promise<boolean>;
 
 export function GetReplicaSetDetail(arg1:string,arg2:string):Promise<app.ReplicaSetDetail>;
 
@@ -565,6 +563,8 @@ export function GetSwarmVolumeInspectJSON(arg1:string):Promise<string>;
 export function GetSwarmVolumeUsage(arg1:string):Promise<Array<docker.SwarmServiceRef>>;
 
 export function GetSwarmVolumes():Promise<Array<docker.SwarmVolumeInfo>>;
+
+export function GetUseInformers():Promise<boolean>;
 
 export function GetVolumeInfo(arg1:string):Promise<docker.SwarmVolumeInfo>;
 
@@ -731,6 +731,8 @@ export function StartSwarmTaskExecSession(arg1:string,arg2:string,arg3:string):P
 export function StartSwarmTaskPolling():Promise<void>;
 
 export function Startup(arg1:context.Context):Promise<void>;
+
+export function StopAllPolling():Promise<void>;
 
 export function StopHolmesPortForward(arg1:string):Promise<void>;
 

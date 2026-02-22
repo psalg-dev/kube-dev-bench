@@ -1,0 +1,42 @@
+.status-badge.status-badge-component {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.status-badge.status-badge-component .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-badge.status-badge-component .status-text {
+  text-transform: capitalize;
+}
+
+/* Size variants */
+.status-badge.status-badge-component.status-badge-small {
+  font-size: 11px;
+  gap: 4px;
+}
+
+.status-badge.status-badge-component.status-badge-small .status-dot {
+  width: 6px;
+  height: 6px;
+}
+
+.status-badge.status-badge-component.status-badge-large {
+  font-size: 15px;
+  gap: 8px;
+}
+
+.status-badge.status-badge-component.status-badge-large .status-dot {
+  width: 10px;
+  height: 10px;
+}

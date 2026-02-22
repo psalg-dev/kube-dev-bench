@@ -697,3 +697,116 @@ describe('ConnectionWizard', () => {
     });
   });
 });
+
+// ──────────────────────────────────────────────────────────────────────────
+// KubernetesConnectionsList – edit / pin extended tests
+// ────────────────────────────────────────────────────────────────
+
+describe('KubernetesConnectionsList – pin behaviour', () => {
+  const mockConfigs = [
+    { path: '/home/user/.kube/config', name: 'config', contexts: ['dev'] },
+    { path: '/home/user/.kube/staging', name: 'staging', contexts: ['staging-ctx'] },
+  ];
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockGetKubeConfigs.mockResolvedValue(mockConfigs);
+  });
+
+  it('shows pin icon button for every config card', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      const pinButtons = screen.getAllByTitle(/Pin to sidebar/i);
+      expect(pinButtons).toHaveLength(mockConfigs.length);
+    });
+  });
+
+  it('shows one pin button per config when two configs exist', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('config')).toBeInTheDocument();
+      expect(screen.getByText('staging')).toBeInTheDocument();
+      expect(screen.getAllByTitle(/Pin to sidebar/i)).toHaveLength(2);
+    });
+  });
+
+  it('clicking pin button on first config does not navigate away from Kubernetes section', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle(/Pin to sidebar/i)).toHaveLength(2);
+    });
+
+    const pinButtons = screen.getAllByTitle(/Pin to sidebar/i);
+    fireEvent.click(pinButtons[0]);
+
+    // Still on Kubernetes section
+    await waitFor(() => {
+      expect(screen.getByText(/Kubernetes Connections/i)).toBeInTheDocument();
+    });
+  });
+
+  it('clicking pin button does not trigger a Connect action', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('config')).toBeInTheDocument();
+      expect(screen.getByText('staging')).toBeInTheDocument();
+    });
+
+    const pinButtons = screen.getAllByTitle(/Pin to sidebar/i);
+    fireEvent.click(pinButtons[0]);
+
+    // SetKubeConfigPath should NOT have been called (no connect triggered)
+    expect(mockSetKubeConfigPath).not.toHaveBeenCalled();
+  });
+});
+
+describe('KubernetesConnectionsList – hooks settings', () => {
+  const mockConfigs = [
+    { path: '/home/user/.kube/config', name: 'config', contexts: ['dev'] },
+  ];
+
+  beforeEach(() => {
+    localStorage.clear();
+    mockGetKubeConfigs.mockResolvedValue(mockConfigs);
+    mockGetProxyConfig.mockResolvedValue({ HttpProxy: '', HttpsProxy: '', NoProxy: '' });
+  });
+
+  it('shows a Hooks (🪝) button for each config', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      const hooksBtn = screen.getByTitle(/hooks/i);
+      expect(hooksBtn).toBeInTheDocument();
+    });
+  });
+
+  it('proxy settings and hooks button are distinct', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      const proxyBtns = screen.getAllByTitle(/Proxy settings/i);
+      const hooksBtns = screen.getAllByTitle(/Hooks/i);
+      expect(proxyBtns.length).toBeGreaterThan(0);
+      expect(hooksBtns.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('clicking proxy button opens proxy settings overlay', async () => {
+    render(<ConnectionWizard onComplete={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByTitle(/Proxy settings/i)).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByTitle(/Proxy settings/i));
+
+    await waitFor(() => {
+      // The overlay shows "Proxy Settings - <config path>"
+      expect(screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
+    }, { timeout: 5000 });
+  });
+});

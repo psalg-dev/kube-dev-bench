@@ -152,6 +152,7 @@ func TestEnsureImageHasRegistryHost(t *testing.T) {
 }
 
 func TestConnectToDocker_PreConnectHookAbort(t *testing.T) {
+
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
