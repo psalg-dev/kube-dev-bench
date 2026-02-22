@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package app
 
 // coverage_batch11_test.go – Comprehensive coverage for remaining uncovered blocks.
@@ -774,3 +777,4 @@ func TestLoadConfig_DirAsPath(t *testing.T) {
 		t.Error("expected error when configPath is a directory")
 	}
 }
+

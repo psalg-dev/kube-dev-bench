@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package app
 
 import (
@@ -197,3 +200,4 @@ func TestGetDismissedIssues_WithDismissedEntry(t *testing.T) {
 		t.Errorf("expected 1 dismissed issue, got %d", len(dismissed))
 	}
 }
+

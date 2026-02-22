@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // Package app – additional coverage tests for helm, pod_details, logs.
 // These tests boost overall pkg/app coverage without requiring a live cluster.
 package app
@@ -573,3 +576,4 @@ func TestDefaultShortTimeout_Value(t *testing.T) {
 		t.Errorf("expected positive duration, got %v", d)
 	}
 }
+

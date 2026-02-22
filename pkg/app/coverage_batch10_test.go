@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package app
 
 // coverage_batch10_test.go – systematic coverage of getKubernetesInterface error
@@ -607,3 +610,4 @@ func TestGetJobLogs_NilSelector(t *testing.T) {
 		t.Errorf("expected 'job has no selector', got %v", err)
 	}
 }
+

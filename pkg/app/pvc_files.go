@@ -129,7 +129,7 @@ func (a *App) ListPVCFiles(namespace, pvcName, path string) ([]PodFileEntry, err
 		path = "/"
 	}
 
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func validatePVCFilesRequest(namespace, pvcName, path string) error {
 	return nil
 }
 
-func (a *App) checkPVCState(clientset *kubernetes.Clientset, namespace, pvcName string) error {
+func (a *App) checkPVCState(clientset kubernetes.Interface, namespace, pvcName string) error {
 	pvc, err := clientset.CoreV1().PersistentVolumeClaims(namespace).Get(a.ctx, pvcName, metav1.GetOptions{})
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (a *App) GetPVCFileContent(namespace, pvcName, filePath string, maxBytes in
 		maxBytes = 128 * 1024 // 128 KiB default
 	}
 
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return PodFileContent{}, err
 	}
@@ -313,7 +313,7 @@ func (a *App) ArchivePVCPath(namespace, pvcName, path string, maxBytes int64) (A
 	if strings.Contains(path, "..") {
 		return ArchiveResult{}, fmt.Errorf("invalid path")
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return ArchiveResult{}, err
 	}
@@ -353,7 +353,7 @@ func (a *App) ArchivePVCPath(namespace, pvcName, path string, maxBytes int64) (A
 
 // ensurePVCBrowseHelper creates or reuses a helper pod to mount the PVC read-only.
 func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (string, string, string, string, error) {
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return "", "", "", "", err
 	}
@@ -442,11 +442,18 @@ func (a *App) execInPod(namespace, pod, container string, command []string, time
 	if pod == "" || container == "" {
 		return "", fmt.Errorf("pod/container required")
 	}
+	// Allow tests to override exec behavior
+	if a.TestExecInPod != nil {
+		return a.TestExecInPod(namespace, pod, container, command, timeout)
+	}
+	if a.testExecInPod != nil {
+		return a.testExecInPod(namespace, pod, container, command, timeout)
+	}
 	restCfg, err := a.getRESTConfig()
 	if err != nil {
 		return "", err
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return "", err
 	}
@@ -481,11 +488,18 @@ func (a *App) execInPodLimited(namespace, pod, container string, command []strin
 	if pod == "" || container == "" {
 		return "", fmt.Errorf("pod/container required")
 	}
+	// Allow tests to override exec behavior
+	if a.TestExecInPodLimited != nil {
+		return a.TestExecInPodLimited(namespace, pod, container, command, timeout, maxBytes)
+	}
+	if a.testExecInPodLimited != nil {
+		return a.testExecInPodLimited(namespace, pod, container, command, timeout, maxBytes)
+	}
 	restCfg, err := a.getRESTConfig()
 	if err != nil {
 		return "", err
 	}
-	clientset, err := a.getKubernetesClient()
+	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return "", err
 	}
@@ -575,7 +589,7 @@ func findContainerMountingVolume(p *corev1.Pod, volNames map[string]bool) (conta
 
 // Returns error if none found (caller may create helper pod).
 func (a *App) findPodMountingPVC(namespace, pvcName string) (podName, containerName, mountPath, subPath string, err error) {
-	clientset, err2 := a.getKubernetesClient()
+	clientset, err2 := a.getKubernetesInterface()
 	if err2 != nil {
 		err = err2
 		return
@@ -601,3 +615,4 @@ func (a *App) findPodMountingPVC(namespace, pvcName string) (podName, containerN
 	err = errors.New("no running pod found mounting pvc")
 	return
 }
+

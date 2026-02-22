@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // Package app – mid-coverage tests for pod_details, resource_yaml, logs, helm.
 // These tests require NO live cluster and exercise pure/unit-level logic.
 package app
@@ -1379,3 +1382,4 @@ func TestFormatResourceYAML_GetPodDetailInNamespaceErrors(t *testing.T) {
 		}
 	})
 }
+

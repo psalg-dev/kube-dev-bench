@@ -8,6 +8,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sync"
+	"time"
+
+	"k8s.io/client-go/kubernetes"
 )
 
 // App struct
@@ -52,12 +55,24 @@ type App struct {
 
 	// testClientset is used for testing only (dependency injection)
 	testClientset interface{}
+	// Exported alias for tests from other packages
+	TestClientset kubernetes.Interface
 
 	// testCRDClientset is used for testing CRD operations only (dependency injection)
 	testCRDClientset interface{}
 
 	// testPodLogsFetcher is used for testing only (dependency injection)
 	testPodLogsFetcher func(namespace, podName, containerName string, lines int) (string, error)
+
+	// Exported test exec stubs for other packages to set
+	TestExecInPod func(namespace, pod, container string, command []string, timeout time.Duration) (string, error)
+	TestExecInPodLimited func(namespace, pod, container string, command []string, timeout time.Duration, maxBytes int64) (string, error)
+
+	// testExecInPod allows tests to override execInPod behavior without needing a real cluster
+	testExecInPod func(namespace, pod, container string, command []string, timeout time.Duration) (string, error)
+
+	// testExecInPodLimited allows tests to override execInPodLimited behavior
+	testExecInPodLimited func(namespace, pod, container string, command []string, timeout time.Duration, maxBytes int64) (string, error)
 
 	// disableStartupDocker is used for unit tests only, to prevent Startup from
 	// invoking Docker auto-connect and emitting Wails events with a non-Wails ctx.

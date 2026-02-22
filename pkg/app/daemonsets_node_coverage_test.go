@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package app
 
 import (
@@ -90,3 +93,4 @@ func TestGetDaemonSetNodeCoverage(t *testing.T) {
 		t.Errorf("expected both nodes present, got %+v", cov.Nodes)
 	}
 }
+

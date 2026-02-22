@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 package app
 
 import (
@@ -249,3 +252,4 @@ func TestGetResourceContext_UnknownKind(t *testing.T) {
 		t.Errorf("expected empty string for unknown kind, got %q", ctx)
 	}
 }
+

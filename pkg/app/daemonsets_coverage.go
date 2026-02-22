@@ -89,6 +89,19 @@ func buildCoverageEntries(nodes *v1.NodeList, podsByNode map[string]DaemonSetNod
 	return entries
 }
 
+// Test helpers exported for unit tests
+func BuildCoverageEntriesForTest(nodes *v1.NodeList, podsByNode map[string]DaemonSetNodeCoverageEntry) []DaemonSetNodeCoverageEntry {
+	return buildCoverageEntries(nodes, podsByNode)
+}
+
+func CollectPodsByNodeForTest(pods []v1.Pod, daemonSetName string) map[string]DaemonSetNodeCoverageEntry {
+	return collectPodsByNode(pods, daemonSetName)
+}
+
+func CalculateReadyStringForTest(pod *v1.Pod) string {
+	return calculateReadyString(pod)
+}
+
 // GetDaemonSetNodeCoverage returns a best-effort view of which nodes have a DaemonSet pod.
 // This is a simple coverage view: every cluster node is listed, and nodes with at least one
 // pod owned by the DaemonSet are marked as covered.

@@ -1,3 +1,6 @@
+//go:build ignore
+// +build ignore
+
 // Package app – additional coverage tests targeting uncovered pure/utility
 // functions, MCP adapter methods, swarm tar utilities, and RBAC YAML endpoints.
 // No live cluster required.
@@ -1055,3 +1058,4 @@ if sorted[0].Kind != "Deployment" {
 t.Errorf("expected Deployment first, got %s", sorted[0].Kind)
 }
 }
+

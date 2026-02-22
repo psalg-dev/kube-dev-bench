@@ -69,6 +69,9 @@ func (a *App) getKubernetesClient() (*kubernetes.Clientset, error) {
 // getKubernetesInterface returns a kubernetes.Interface for use with testClientset.
 // Prefer using this function in resource actions to enable testing.
 func (a *App) getKubernetesInterface() (kubernetes.Interface, error) {
+	if a.TestClientset != nil {
+		return a.TestClientset, nil
+	}
 	if a.testClientset != nil {
 		return a.testClientset.(kubernetes.Interface), nil
 	}
