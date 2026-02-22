@@ -32,3 +32,17 @@ e2e-test-results*.zip
 
 # Agent worktrees (auto-added)
 .agent-worktrees/
+/coverage
+/coverage.out
+/coverage_new
+/coverage_baseline.out
+/coverage_baseline_new
+/coverage_baseline
+/coverage_func.txt
+/coverage_func_alt.txt
+/coverage_func_ci.txt
+/coverage_func_debug.txt
+/coverage_*.txt
+/coverage_*.json
+/coverage*.cov
+/pkgapp*.cov
