@@ -1,0 +1,16 @@
+Baseline coverage report (generated on 2026-02-22T20:12:59Z)
+
+Frontend (Vitest):
+- Lines coverage: 49.31% (6769/13727)
+- LCov report: coverage/frontend-lcov.info (pre-existing artifact; frontend tests couldn't be run on this Windows host due to an @rollup Linux-only dependency)
+
+Go (go test):
+- Statements coverage (functions report): 68.5%
+- Coverage profile: coverage/go-coverage
+- Function summary: coverage/go-coverage-func.txt
+- HTML report: coverage/go-coverage.html
+
+Notes:
+- I ran 'go test ./... -coverprofile=coverage/go-coverage' and generated the function-summary and HTML using 'go tool cover'.
+- Frontend vitest execution failed on Windows because of a linux-only optional dependency; the repository already contains frontend lcov artifacts which were used for the baseline.
+- A helper script scripts/generate-coverage.ps1 was added to reproduce these steps.
