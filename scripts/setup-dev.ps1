@@ -19,16 +19,16 @@ foreach ($r in $requirements) {
         Write-Host "  - $($r.Name) : MISSING" -ForegroundColor Yellow
         $missing += $r
     } else {
-        Write-Host "  - $($r.Name) : present (`$($present.Source)`)") -ForegroundColor Green
+        Write-Host "  - $($r.Name) : present ($($present.Source))" -ForegroundColor Green
     }
 }
 
 if ($missing.Count -eq 0) {
-    Write-Host "\nAll required tools appear to be installed." -ForegroundColor Green
-    Write-Host "Recommended next steps:" -ForegroundColor Cyan
-    Write-Host "  1. Install Go modules: `go mod download`" -ForegroundColor Gray
-    Write-Host "  2. Install frontend dependencies: `cd frontend; npm install`" -ForegroundColor Gray
-    Write-Host "  3. Run tests: `go test ./...` and `cd frontend; npm test`" -ForegroundColor Gray
+    Write-Host "`nAll required tools appear to be installed." -ForegroundColor Green
+    Write-Host 'Recommended next steps:' -ForegroundColor Cyan
+    Write-Host '  1. Install Go modules: `go mod download`' -ForegroundColor Gray
+    Write-Host '  2. Install frontend dependencies: `cd frontend; npm install`' -ForegroundColor Gray
+    Write-Host '  3. Run tests: `go test ./...` and `cd frontend; npm test`' -ForegroundColor Gray
     exit 0
 } else {
     Write-Host "\nMissing tools detected. Please install the following:" -ForegroundColor Red
