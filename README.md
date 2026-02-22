@@ -1,11 +1,11 @@
-﻿# KubeDevBench
+# KubeDevBench
 
 A modern desktop client for managing Kubernetes clusters and Docker Swarm environments. Built with Go (Wails) and React, KubeDevBench provides a unified interface for container orchestration with AI-powered diagnostics.
 
 [![Build](https://github.com/psalg-dev/kube-dev-bench/actions/workflows/build.yml/badge.svg)](https://github.com/psalg-dev/kube-dev-bench/actions/workflows/build.yml)
 [![Release](https://img.shields.io/github/v/release/psalg-dev/kube-dev-bench?include_prereleases)](https://github.com/psalg-dev/kube-dev-bench/releases)
 [![Frontend Coverage](https://codecov.io/gh/psalg-dev/kube-dev-bench/graph/badge.svg?flag=frontend)](https://codecov.io/gh/psalg-dev/kube-dev-bench)
-[![Backend Coverage](https://codecov.io/gh/psalg-dev/kube-dev-bench/graph/badge.svg?flag=backend)](https://codecov.io/gh/psalg-dev/kube-dev-bench)
+[![Backend Coverage](https://codecov.io/gh/psalg-dev/kube-dev-bench/graph/badge.svg?flag=backend)](https://codecov.io/gh/psalg-dev/kube-dev-bench)\n\n<!-- Coverage summary inserted by automation -->\n## Coverage Report\n\n- Backend coverage (latest): **71.6%**\n- Baseline coverage: **75.6%** (see .github/coverage-baseline.txt)\n\nView the full backend coverage report: [coverage.html](./coverage.html)\n\n<!-- End coverage summary -->\n
 [![License](https://img.shields.io/github/license/psalg-dev/kube-dev-bench)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-blue)
 [![Go](https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
@@ -183,3 +183,4 @@ cd frontend && npm test
 ## License
 
 See [LICENSE](LICENSE) for details.
+
