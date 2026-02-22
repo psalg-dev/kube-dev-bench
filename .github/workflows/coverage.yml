@@ -1,0 +1,77 @@
+name: CI Coverage
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  coverage:
+    name: Run Go tests and collect coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+
+      - name: Run Go tests with coverage
+        run: |
+          set -e
+          echo "Running go test ./... -coverprofile=coverage.out"
+          go test ./... -coverprofile=coverage.out
+          echo "Generating function coverage report"
+          go tool cover -func=coverage.out > coverage_func.txt
+          echo "Coverage function report written to coverage_func.txt"
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-artifacts
+          path: |
+            coverage.out
+            coverage_func.txt
+
+      - name: Enforce coverage baseline
+        run: |
+          set -e
+          if [ ! -f .github/coverage-baseline.txt ]; then
+            echo "No baseline file found at .github/coverage-baseline.txt, skipping baseline check";
+            exit 0;
+          fi
+          baseline=$(cat .github/coverage-baseline.txt)
+          # Extract total percentage from coverage_func.txt
+          total_line=$(grep "total:" coverage_func.txt || true)
+          if [ -z "$total_line" ]; then
+            echo "Could not find total coverage line in coverage_func.txt";
+            cat coverage_func.txt || true;
+            exit 1;
+          fi
+          # total_line looks like: total: (statements)68.5%
+          total=$(echo "$total_line" | awk -F")" '{print $2}' | sed 's/%//')
+          echo "Baseline: $baseline%    Current: $total%"
+          # Compare as numbers using awk
+          ok=$(awk -v c="$total" -v b="$baseline" 'BEGIN{if (c+0 >= b+0) print "1"; else print "0"}')
+          if [ "$ok" -ne "1" ]; then
+            echo "Coverage check failed: current coverage ($total%) is less than baseline ($baseline%)"
+            exit 1
+          fi
+          echo "Coverage check passed: $total% >= $baseline%"
+
+      - name: Create coverage summary artifact
+        if: success()
+        run: |
+          echo "Baseline: $(cat .github/coverage-baseline.txt)%" > coverage_summary.txt
+          echo "Current: $(grep 'total:' coverage_func.txt)" >> coverage_summary.txt
+        
+      - name: Upload coverage summary
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: coverage_summary.txt
