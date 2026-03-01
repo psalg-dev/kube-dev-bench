@@ -61,9 +61,6 @@ type App struct {
 	// testCRDClientset is used for testing CRD operations only (dependency injection)
 	testCRDClientset interface{}
 
-	// testCRDClientset is used for testing CRD operations only (dependency injection)
-	testCRDClientset interface{}
-
 	// testPodLogsFetcher is used for testing only (dependency injection)
 	testPodLogsFetcher func(namespace, podName, containerName string, lines int) (string, error)
 

@@ -1,8 +1,14 @@
 package app
 
 import (
+	"context"
+	"strings"
 	"testing"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fake "k8s.io/client-go/kubernetes/fake"
 )
 
 // Tests for sanitizeName function
@@ -112,5 +118,98 @@ func TestListPVCFilesFromPod_ParsesLsOutput(t *testing.T) {
 	}
 	if entries[0].Name != "dir1" {
 		t.Errorf("expected dir1 first, got %s", entries[0].Name)
+	}
+}
+
+func TestListPVCFiles_ParsesLsAndReturnsEntries(t *testing.T) {
+	lsOutput := `-rw-r--r-- 1 root root 100 2024-01-01T00:00:00 file.txt
+	drwxr-xr-x 2 root root 4096 2024-01-01T00:00:00 subdir/
+	lrwxrwxrwx 1 root root 7 2024-01-01T00:00:00 link -> file.txt
+
+	total 12`
+
+	execStub := func(namespace, pod, container string, command []string, timeout time.Duration) (string, error) {
+		cmd := strings.Join(command, " ")
+		if strings.Contains(cmd, "ls -alp") {
+			return lsOutput, nil
+		}
+		return "", nil
+	}
+
+	// Create a PVC
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: "mypvc", Namespace: "default"},
+		Status:     corev1.PersistentVolumeClaimStatus{Phase: corev1.ClaimBound},
+	}
+	// Create a pod that mounts the PVC and is ready
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mypod",
+			Namespace: "default",
+		},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:         "c1",
+				Image:        "busybox",
+				VolumeMounts: []corev1.VolumeMount{{Name: "vol", MountPath: "/data"}},
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "vol",
+				VolumeSource: corev1.VolumeSource{
+					PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+						ClaimName: "mypvc",
+					},
+				},
+			}},
+		},
+		Status: corev1.PodStatus{
+			Phase:             corev1.PodRunning,
+			ContainerStatuses: []corev1.ContainerStatus{{Name: "c1", Ready: true}},
+		},
+	}
+
+	cs := fake.NewSimpleClientset(pvc, pod)
+	a := &App{
+		ctx:           context.Background(),
+		testClientset: cs,
+		TestExecInPod: execStub,
+	}
+
+	entries, err := a.ListPVCFiles("default", "mypvc", "/data")
+	if err != nil {
+		t.Fatalf("ListPVCFiles returned error: %v", err)
+	}
+	if len(entries) != 3 {
+		t.Fatalf("expected 3 entries, got %d: %+v", len(entries), entries)
+	}
+
+	var foundFile, foundDir, foundLink bool
+	for _, e := range entries {
+		switch e.Name {
+		case "file.txt":
+			foundFile = true
+			if e.Path != "/data/file.txt" {
+				t.Errorf("file path mismatch: got %q", e.Path)
+			}
+		case "subdir/":
+			foundDir = true
+			if !e.IsDir {
+				t.Errorf("expected subdir to be a dir")
+			}
+		case "link":
+			foundLink = true
+			if !e.IsSymlink {
+				t.Errorf("expected link to be symlink")
+			}
+		}
+	}
+	if !foundFile || !foundDir || !foundLink {
+		t.Fatalf("missing expected entries: file=%v dir=%v link=%v", foundFile, foundDir, foundLink)
+	}
+
+	// Also call with root path
+	_, err = a.ListPVCFiles("default", "mypvc", "/")
+	if err != nil {
+		t.Fatalf("ListPVCFiles root returned error: %v", err)
 	}
 }

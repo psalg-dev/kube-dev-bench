@@ -689,3 +689,38 @@ func TestBuildRBACGraph(t *testing.T) {
 	assertNodeMetadataContains(t, graph, "role", "default", "reader", "rules", "pods")
 	assertNodeMetadataContains(t, graph, "clusterrole", "", "cluster-admin-lite", "rules", "deployments")
 }
+
+func int32Ptr(i int32) *int32 { return &i }
+
+func TestBuildForNamespace_AddsSeedNodes(t *testing.T) {
+	ns := "default"
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "mypod", Namespace: ns},
+		Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "c1", Image: "busybox"}}},
+		Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+	}
+	deploy := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "mydeploy", Namespace: ns},
+		Spec:       appsv1.DeploymentSpec{Replicas: int32Ptr(1)},
+		Status:     appsv1.DeploymentStatus{ReadyReplicas: 1, Replicas: 1},
+	}
+	svc := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: "myservice", Namespace: ns},
+		Spec:       corev1.ServiceSpec{Type: corev1.ServiceTypeClusterIP, ClusterIP: "10.0.0.1"},
+	}
+	ing := &networkingv1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{Name: "myingress", Namespace: ns},
+	}
+
+	client := fake.NewSimpleClientset(pod, deploy, svc, ing)
+	b := NewBuilder(context.Background(), client)
+	graph, err := b.BuildForNamespace(ns, 1)
+	if err != nil {
+		t.Fatalf("BuildForNamespace failed: %v", err)
+	}
+
+	assertNode(t, graph, "pod", ns, "mypod")
+	assertNode(t, graph, "deployment", ns, "mydeploy")
+	assertNode(t, graph, "service", ns, "myservice")
+	assertNode(t, graph, "ingress", ns, "myingress")
+}

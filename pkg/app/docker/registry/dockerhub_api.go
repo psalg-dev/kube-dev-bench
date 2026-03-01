@@ -54,43 +54,6 @@ func normalizeRepoName(name, namespace, full string) (string, string) {
 	return name, full
 }
 
-// buildDockerHubSearchURL builds the search endpoint URL with query parameters.
-func buildDockerHubSearchURL(query string) (string, error) {
-	base, err := url.Parse(dockerHubAPIBaseURL)
-	if err != nil {
-		return "", fmt.Errorf("invalid docker hub api base url: %w", err)
-	}
-	u, err := base.Parse("/v2/search/repositories/")
-	if err != nil {
-		return "", fmt.Errorf("build docker hub search url: %w", err)
-	}
-	q := u.Query()
-	q.Set("query", query)
-	q.Set("page_size", "25")
-	u.RawQuery = q.Encode()
-	return u.String(), nil
-}
-
-// normalizeRepoName normalizes namespace and name into a full repository name.
-func normalizeRepoName(name, namespace, full string) (string, string) {
-	name = strings.TrimSpace(name)
-	namespace = strings.TrimSpace(namespace)
-	full = strings.TrimSpace(full)
-
-	if full == "" {
-		if namespace != "" {
-			full = namespace + "/" + name
-		} else {
-			full = name
-		}
-	}
-	if name == "" && full != "" {
-		parts := strings.Split(full, "/")
-		name = parts[len(parts)-1]
-	}
-	return name, full
-}
-
 func SearchDockerHubRepositories(ctx context.Context, query string) ([]DockerHubRepoSearchResult, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
