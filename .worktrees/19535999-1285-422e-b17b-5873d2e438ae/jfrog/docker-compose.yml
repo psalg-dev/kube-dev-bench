@@ -1,6 +1,6 @@
 services:
   artifactory:
-    image: releases-docker.jfrog.io/jfrog/artifactory-jcr:7.71.10
+    image: releases-docker.jfrog.io/jfrog/artifactory-jcr:7.133.10
     container_name: jfrog-jcr
     restart: unless-stopped
     ports:
