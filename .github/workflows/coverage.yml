@@ -1,0 +1,116 @@
+name: CI Coverage
+
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    branches: [ '**' ]
+
+jobs:
+  coverage:
+    name: Run tests and collect coverage (Go + Frontend)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+
+      - name: Run Go tests with coverage
+        id: go_cov
+        run: |
+          set -e
+          mkdir -p coverage
+          echo "Running go test ./... -coverprofile=coverage/go-coverage"
+          go test ./... -covermode=atomic -coverprofile=coverage/go-coverage 2>&1 | tee coverage/go-test-output.txt
+          echo "Generating function coverage report"
+          go tool cover -func=coverage/go-coverage > coverage/go-coverage-func.txt
+          echo "Coverage function report written to coverage/go-coverage-func.txt"
+          # Extract total percentage from go coverage func output
+          total_line=$(grep "total:" coverage/go-coverage-func.txt || true)
+          if [ -n "$total_line" ]; then
+            go_total=$(echo "$total_line" | awk -F")" '{print $2}' | sed 's/%//')
+            echo "go_total=$go_total" >> $GITHUB_OUTPUT
+          else
+            echo "go_total=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: |
+          set -e
+          npm ci --no-audit --no-fund
+
+      - name: Run frontend tests with coverage (Vitest)
+        id: frontend_cov
+        working-directory: frontend
+        run: |
+          set -e
+          mkdir -p ../coverage
+          echo "Running vitest coverage"
+          npx vitest run --coverage --run 2>&1 | tee ../coverage/frontend-vitest-output.txt
+          # extract 'All files' line
+          all_line=$(grep "All files" ../coverage/frontend-vitest-output.txt || true)
+          if [ -n "$all_line" ]; then
+            # All files line format: All files |   46.68 | ...
+            frontend_total=$(echo "$all_line" | awk -F'|' '{gsub(/^ +| +$/,"",$2); print $2}' | tr -d '%')
+            echo "frontend_total=$frontend_total" >> $GITHUB_OUTPUT
+          else
+            echo "frontend_total=0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compute combined coverage and compare to baseline (warn only)
+        id: compute_cov
+        run: |
+          set -e
+          mkdir -p coverage
+          go_total=${{ steps.go_cov.outputs.go_total }}
+          frontend_total=${{ steps.frontend_cov.outputs.frontend_total }}
+          echo "Go coverage: $go_total"; echo "Frontend coverage: $frontend_total"
+          # compute simple average to present combined metric
+          if [ -z "$go_total" ] || [ -z "$frontend_total" ]; then
+            combined=0
+          else
+            combined=$(awk -v g="$go_total" -v f="$frontend_total" 'BEGIN{printf "%.2f", (g+f)/2}')
+          fi
+          echo "Combined coverage (average of Go & Frontend): $combined%"
+          # export combined as step output for later steps
+          echo "combined=$combined" >> $GITHUB_OUTPUT
+
+          if [ -f .github/coverage-baseline.txt ]; then
+            baseline=$(cat .github/coverage-baseline.txt)
+            echo "Baseline: $baseline"
+            # If below baseline, warn but do not fail CI
+            cmp=$(awk -v c="$combined" -v b="$baseline" 'BEGIN{if (c+0 < b+0) print "less"; else print "ok"}')
+            if [ "$cmp" = "less" ]; then
+              echo "::warning title=Coverage check::Combined coverage ($combined%) is below baseline ($baseline%)." 
+            else
+              echo "::notice title=Coverage check::Combined coverage ($combined%) meets baseline ($baseline%)."
+            fi
+          else
+            echo "No baseline file found; combined coverage: $combined%"
+          fi
+
+      - name: Create coverage summary artifact
+        run: |
+          echo "Go coverage: ${{ steps.go_cov.outputs.go_total }}%" > coverage/coverage_summary.txt
+          echo "Frontend coverage: ${{ steps.frontend_cov.outputs.frontend_total }}%" >> coverage/coverage_summary.txt
+          echo "Combined (avg): ${{ steps.compute_cov.outputs.combined }}%" >> coverage/coverage_summary.txt
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-artifacts
+          path: |
+            coverage/**
+            frontend/coverage/**
+

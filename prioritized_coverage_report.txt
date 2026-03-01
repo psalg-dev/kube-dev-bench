@@ -1,0 +1,46 @@
+Prioritized coverage report - generated: 2026-02-22T18:15:34.2752156+01:00
+Total files analyzed: 107
+Top 20 files by uncovered blocks:
+
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\docker_integration.go | uncovered: 256 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\k8s_graph\builder.go | uncovered: 210 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\holmes_deployment.go | uncovered: 155 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\helm.go | uncovered: 130 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\pvc_files.go | uncovered: 117 | complexity: Medium | impact: High
+  Recommendations: Add unit tests covering key branches and edge cases; mock IO/network.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\holmes_integration.go | uncovered: 110 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\pods.go | uncovered: 108 | complexity: Medium | impact: High
+  Recommendations: Add unit tests covering key branches and edge cases; mock IO/network.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\kind_cluster.go | uncovered: 104 | complexity: Medium | impact: High
+  Recommendations: Add unit tests covering key branches and edge cases; mock IO/network.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\swarm_volume_file_transfer.go | uncovered: 84 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\holmes_swarm.go | uncovered: 82 | complexity: High | impact: High
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\pod_details.go | uncovered: 79 | complexity: Medium | impact: Medium
+  Recommendations: Add unit tests covering key branches and edge cases; mock IO/network.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\swarm_volume_backup_restore.go | uncovered: 75 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\docker\registry\storage.go | uncovered: 63 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\swarm_volume_file_mutations.go | uncovered: 61 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\swarm_volume_files.go | uncovered: 55 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\docker\registry\client.go | uncovered: 46 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\swarm_volume_helpers.go | uncovered: 44 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\docker\image_updates.go | uncovered: 40 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\docker\registry\dockerhub_api.go | uncovered: 38 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+- C:\dev\workspace\psalg-dev\kube-dev-bench\pkg\app\holmesgpt\client.go | uncovered: 37 | complexity: High | impact: Medium
+  Recommendations: Write unit tests with mocks for external dependencies (Docker/K8s/Helm); focus on error paths and retries. Break large functions into smaller testable units if possible.
+
+Full list written to prioritized_coverage_report.json

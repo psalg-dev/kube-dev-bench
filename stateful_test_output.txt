@@ -1,0 +1,110 @@
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/dev/workspace/psalg-dev/kube-dev-bench/frontend[39m
+
+[33m[39m[32m┬À[39m[33m[39m[32m┬À[39m[33m[39m[31mx[39m[33m[39m[32m┬À[39m[33m[39m[32m┬À[39m[33m[39m[32m┬À[39m[33m[39m[32m┬À[39m[33m[39m[32m┬À[39m[33m[39m[32m┬À[39m
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/statefulSetDetailTab.test.tsx > StatefulSetDetailTab > renders pods and pvcs section buttons
+TestingLibraryElementError: Found multiple elements with the text: /pods/i
+
+Here are the matching elements:
+
+Ignored nodes: comments, script, style
+<button
+  style="padding: 6px 12px; background-color: rgb(35, 134, 54); border: 1px solid rgb(48, 54, 61); border-radius: 4px; color: var(--gh-text, #c9d1d9); cursor: pointer; text-transform: uppercase; font-size: 13px;"
+>
+  pods
+   (0)
+</button>
+
+Ignored nodes: comments, script, style
+<div
+  style="color: var(--gh-text-muted, #8b949e);"
+>
+  No pods found.
+</div>
+
+(If this is intentional, then use the `*AllBy*` variant of the query (like `queryAllByText`, `getAllByText`, or `findAllByText`)).
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div
+      style="padding: 12px; overflow: auto; height: 100%;"
+    >
+      <div
+        style="display: flex; gap: 8px; margin-bottom: 16px;"
+      >
+        <button
+          style="padding: 6px 12px; background-color: rgb(35, 134, 54); border: 1px solid rgb(48, 54, 61); border-radius: 4px; color: var(--gh-text, #c9d1d9); cursor: pointer; text-transform: uppercase; font-size: 13px;"
+        >
+          pods
+           (0)
+        </button>
+        <button
+          style="padding: 6px 12px; background-color: rgb(33, 38, 45); border: 1px solid rgb(48, 54, 61); border-radius: 4px; color: var(--gh-text, #c9d1d9); cursor: pointer; text-transform: uppercase; font-size: 13px;"
+        >
+          pvcs
+           (0)
+        </button>
+      </div>
+      <div
+        style="color: var(--gh-text-muted, #8b949e);"
+      >
+        No pods found.
+      </div>
+    </div>
+  </div>
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div>
+      <div
+        style="padding: 12px; overflow: auto; height: 100%;"
+      >
+        <div
+          style="display: flex; gap: 8px; margin-bottom: 16px;"
+        >
+          <button
+            style="padding: 6px 12px; background-color: rgb(35, 134, 54); border: 1px solid rgb(48, 54, 61); border-radius: 4px; color: var(--gh-text, #c9d1d9); cursor: pointer; text-transform: uppercase; font-size: 13px;"
+          >
+            pods
+             (0)
+          </button>
+          <button
+            style="padding: 6px 12px; background-color: rgb(33, 38, 45); border: 1px solid rgb(48, 54, 61); border-radius: 4px; color: var(--gh-text, #c9d1d9); cursor: pointer; text-transform: uppercase; font-size: 13px;"
+          >
+            pvcs
+             (0)
+          </button>
+        </div>
+        <div
+          style="color: var(--gh-text-muted, #8b949e);"
+        >
+          No pods found.
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/statefulSetDetailTab.test.tsx:34:11
+     32|     getStatefulSetDetailMock.mockResolvedValue({ pods: [], pvcs: [] } ÔÇª
+     33|     render(<StatefulSetDetailTab namespace="default" statefulSetName="ÔÇª
+     34|     await waitFor(() => {
+       |           ^
+     35|       expect(screen.getByText(/pods/i)).toBeInTheDocument();
+     36|       expect(screen.getByText(/pvcs/i)).toBeInTheDocument();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/1]ÔÄ»
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (9)[39m
+[2m   Start at [22m 18:04:58
+[2m   Duration [22m 1.81s[2m (transform 77ms, setup 81ms, import 164ms, tests 1.11s, environment 368ms)[22m
+
