@@ -2,7 +2,7 @@
   "name": "frontend",
   "private": true,
   "type": "module",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "e2e:local": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location -Path ..\\e2e; npm install; npx playwright install; npx playwright test\"",
