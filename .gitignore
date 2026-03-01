@@ -46,3 +46,7 @@ e2e-test-results*.zip
 /coverage_*.json
 /coverage*.cov
 /pkgapp*.cov
+*.log
+*.txt
+**/**/*.log
+**/**/*.txt
