@@ -8,9 +8,6 @@ import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 // Skip entire suite when E2E_REGISTRY_SUITE is not enabled
 test.skip(() => process.env.E2E_REGISTRY_SUITE !== '1', 'Requires E2E_REGISTRY_SUITE=1');
 
-// Skip entire suite when E2E_REGISTRY_SUITE is not enabled
-test.skip(() => process.env.E2E_REGISTRY_SUITE !== '1', 'Requires E2E_REGISTRY_SUITE=1');
-
 test.describe('Artifactory Registry Integration', () => {
   test.beforeAll(async () => {
     // Fail fast with a clear message if JCR isn't running/configured.
