@@ -12,6 +12,7 @@ import {
     SearchRegistryRepositories,
 } from '../swarmApi';
 import './registry.css';
+import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting.js';
 
 type RegistryBrowserProps = {
   registryName?: string;

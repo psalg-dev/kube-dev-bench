@@ -126,3 +126,19 @@ export function resetAllMocks() {
     }
   });
 }
+
+// Helper to trigger runtime EventsOn callbacks that tests registered via EventsOn
+export function triggerRuntimeEvent(name, ...args) {
+  const calls = eventsOnMock.mock && eventsOnMock.mock.calls ? eventsOnMock.mock.calls : [];
+  for (const call of calls) {
+    if (call && call[0] === name && typeof call[1] === 'function') {
+      try { call[1](...args); } catch (e) { /* ignore errors in test trigger */ }
+    }
+  }
+}
+
+// Helper to simulate EventsEmit calls
+export function emitRuntimeEvent(name, ...args) {
+  eventsEmitMock(name, ...args);
+}
+

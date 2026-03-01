@@ -1,0 +1,21 @@
+FAIL	gowails [setup failed]
+# gowails
+found packages app (detail_notfound_extra_test.go) and main (main.go) in C:\dev\workspace\psalg-dev\kube-dev-bench
+# gowails/pkg/app [gowails/pkg/app.test]
+pkg\app\monitor_actions_test.go:299:6: TestSaveMonitorIssueAnalysis_Success redeclared in this block
+	pkg\app\coverage_batch12_test.go:639:6: other declaration of TestSaveMonitorIssueAnalysis_Success
+pkg\app\monitor_actions_test.go:328:6: TestSaveMonitorIssueAnalysis_InvalidInput redeclared in this block
+	pkg\app\coverage_batch12_test.go:629:6: other declaration of TestSaveMonitorIssueAnalysis_InvalidInput
+pkg\app\purefunction_extra_test.go:95:6: TestConvertEventsV1Event_DeprecatedCount redeclared in this block
+	pkg\app\coverage_batch12_test.go:579:6: other declaration of TestConvertEventsV1Event_DeprecatedCount
+pkg\app\resource_detail_extra_test.go:130:6: TestGetPodYAMLWithNamespace_NotFound redeclared in this block
+	pkg\app\coverage_batch12_test.go:197:6: other declaration of TestGetPodYAMLWithNamespace_NotFound
+FAIL	gowails/pkg/app [build failed]
+ok  	gowails/pkg/app/docker	(cached)	coverage: 70.3% of statements
+ok  	gowails/pkg/app/docker/registry	(cached)	coverage: 70.1% of statements
+ok  	gowails/pkg/app/docker/topology	(cached)	coverage: 85.2% of statements
+ok  	gowails/pkg/app/holmesgpt	(cached)	coverage: 70.4% of statements
+ok  	gowails/pkg/app/jobs	(cached)	coverage: 100.0% of statements
+ok  	gowails/pkg/app/k8s_graph	(cached)	coverage: 81.3% of statements
+ok  	gowails/pkg/app/mcp	(cached)	coverage: 84.0% of statements
+FAIL

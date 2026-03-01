@@ -191,6 +191,74 @@ func buildInitContainerInfo(pod *v1.Pod) []InitContainerInfo {
 	return result
 }
 
+// extractContainerState extracts state information from a container status
+func extractContainerState(status v1.ContainerStatus) (state, reason, message, startedAt, finishedAt string, exitCode *int32) {
+	if status.State.Waiting != nil {
+		return "Waiting", status.State.Waiting.Reason, status.State.Waiting.Message, "", "", nil
+	}
+	if status.State.Running != nil {
+		started := ""
+		if !status.State.Running.StartedAt.IsZero() {
+			started = status.State.Running.StartedAt.Time.UTC().Format(time.RFC3339Nano)
+		}
+		return "Running", "", "", started, "", nil
+	}
+	if status.State.Terminated != nil {
+		started := ""
+		finished := ""
+		if !status.State.Terminated.StartedAt.IsZero() {
+			started = status.State.Terminated.StartedAt.Time.UTC().Format(time.RFC3339Nano)
+		}
+		if !status.State.Terminated.FinishedAt.IsZero() {
+			finished = status.State.Terminated.FinishedAt.Time.UTC().Format(time.RFC3339Nano)
+		}
+		code := status.State.Terminated.ExitCode
+		return "Terminated", status.State.Terminated.Reason, status.State.Terminated.Message, started, finished, &code
+	}
+	return "Unknown", "", "", "", "", nil
+}
+
+// buildInitContainerFromStatus builds an InitContainerInfo from container spec and status
+func buildInitContainerFromStatus(c v1.Container, status v1.ContainerStatus, hasStatus bool) InitContainerInfo {
+	info := InitContainerInfo{
+		Name:  c.Name,
+		Image: c.Image,
+	}
+
+	if !hasStatus {
+		info.State = "Pending"
+		info.StateReason = "ContainerNotStarted"
+		return info
+	}
+
+	info.Ready = status.Ready
+	info.RestartCount = status.RestartCount
+	info.State, info.StateReason, info.StateMessage, info.StartedAt, info.FinishedAt, info.ExitCode = extractContainerState(status)
+
+	return info
+}
+
+// buildInitContainerInfo extracts init container info and statuses from a pod
+func buildInitContainerInfo(pod *v1.Pod) []InitContainerInfo {
+	if len(pod.Spec.InitContainers) == 0 {
+		return nil
+	}
+
+	// Build a map of status by container name for quick lookup
+	statusMap := make(map[string]v1.ContainerStatus)
+	for _, cs := range pod.Status.InitContainerStatuses {
+		statusMap[cs.Name] = cs
+	}
+
+	result := make([]InitContainerInfo, 0, len(pod.Spec.InitContainers))
+	for _, c := range pod.Spec.InitContainers {
+		status, hasStatus := statusMap[c.Name]
+		result = append(result, buildInitContainerFromStatus(c, status, hasStatus))
+	}
+
+	return result
+}
+
 // GetPodContainerPorts returns a flat list of all defined container ports for the pod
 func (a *App) GetPodContainerPorts(podName string) ([]int, error) {
 	if a.currentNamespace == "" {
