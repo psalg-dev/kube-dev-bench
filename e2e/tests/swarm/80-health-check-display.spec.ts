@@ -5,6 +5,7 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 async function expectSwarmConnected(page: import('@playwright/test').Page) {
   const sidebar = new SwarmSidebarPage(page);
@@ -25,6 +26,9 @@ async function waitForAnyRow(table: import('@playwright/test').Locator, timeoutM
 test.describe('Docker Swarm Health Check Display', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });

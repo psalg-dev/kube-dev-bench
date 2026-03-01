@@ -7,6 +7,7 @@ import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstr
 import { exec } from '../../src/support/exec.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { setNextOpenPath, setNextSavePath } from '../../src/support/e2e-dialogs.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 async function docker(args: string[], timeoutMs = 90_000) {
   return exec('docker', args, { timeoutMs });
@@ -89,6 +90,9 @@ async function writeCodeMirror(
 test.describe('Docker Swarm Volumes Files (Phase 1-3)', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(240_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });

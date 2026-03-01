@@ -2,10 +2,14 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 test.describe('Docker Swarm Registries', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(180_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });

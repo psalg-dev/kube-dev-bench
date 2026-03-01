@@ -3,6 +3,7 @@ import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { ensureArtifactory, getArtifactoryConfig } from '../../src/support/artifactory-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 // Skip entire suite when E2E_REGISTRY_SUITE is not enabled
 test.skip(() => process.env.E2E_REGISTRY_SUITE !== '1', 'Requires E2E_REGISTRY_SUITE=1');
@@ -15,6 +16,9 @@ test.describe('Artifactory Registry Integration', () => {
 
   test.beforeEach(async ({ page }) => {
     test.setTimeout(180_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });

@@ -5,6 +5,7 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 async function docker(args: string[], timeoutMs = 60_000) {
   return exec('docker', args, { timeoutMs });
@@ -26,6 +27,9 @@ function toDockerDesktopHostPath(p: string) {
 test.describe('Docker Swarm Volumes Files (read-only)', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(180_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
   });

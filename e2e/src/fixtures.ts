@@ -174,6 +174,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       /websocket.*handshake.*400/i,
       /websocket.*ERR_CONNECTION_REFUSED/i,
       /502.*bad gateway/i,
+      /bad gateway/i,
       /failed to load resource.*502/i,
       /failed to load resource.*net::ERR_/i,
       /ERR_ADDRESS_IN_USE/i,

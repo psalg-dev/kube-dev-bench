@@ -4,6 +4,7 @@ import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
 import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 const fixtureStackName = 'kdb-e2e-fixtures';
 const replicatedServiceName = `${fixtureStackName}_a-replicated`;
@@ -30,6 +31,9 @@ test.describe('Holmes Swarm Integration', () => {
 
   test.beforeEach(async ({ page }) => {
     test.setTimeout(150_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await gotoWithRetry(page);
     await bootstrapSwarm({ page, skipIfConnected: true });
     await configureHolmesMock({ page });
