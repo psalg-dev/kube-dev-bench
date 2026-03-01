@@ -1,0 +1,1013 @@
+
+> frontend@0.5.0 test:coverage
+> vitest run -c vitest.config.ts --coverage
+
+
+[1m[46m RUN [49m[22m [36mv4.0.18 [39m[90mC:/dev/workspace/psalg-dev/kube-dev-bench/frontend[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [31mÔØ»[39m src/__tests__/statefulSetDetailTab.test.tsx [2m([22m[2m0 test[22m[2m)[22m
+stderr | src/__tests__/ingressBackendServicesTab.test.tsx > IngressBackendServicesTab > renders service table columns when services exist
+React has detected a change in the order of Hooks called by IngressBackendServicesTab. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useState                   useState
+2. useState                   useState
+3. useState                   useState
+4. useState                   useState
+5. useEffect                  useEffect
+6. useMemo                    useMemo
+7. useEffect                  useEffect
+8. undefined                  useMemo
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An error occurred in the <IngressBackendServicesTab> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+ [32mÔ£ô[39m src/__tests__/ingressTLSTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 331[2mms[22m[39m
+stderr | src/__tests__/pvcConsumersTab.test.tsx > PVCConsumersTab > renders table columns when consumers exist
+React has detected a change in the order of Hooks called by PVCConsumersTab. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useState                   useState
+2. useState                   useState
+3. useState                   useState
+4. useEffect                  useEffect
+5. undefined                  useMemo
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An error occurred in the <PVCConsumersTab> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+stderr | src/__tests__/ingressBackendServicesTab.test.tsx > IngressBackendServicesTab > renders service name in table
+An error occurred in the <IngressBackendServicesTab> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+stderr | src/__tests__/pvcConsumersTab.test.tsx > PVCConsumersTab > renders pod name in table
+An error occurred in the <PVCConsumersTab> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+ [32mÔ£ô[39m src/__tests__/pvAnnotationsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 1630[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows column headers [33m 350[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by key column [33m 334[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by value column [33m 366[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConnectionWizard.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1866[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m defaults to local socket and picks Windows default host [33m 776[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m switches between local/tcp/tls and toggles TLS fields [33m 379[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/portForwardDialog.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 1658[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m has two number inputs for local and remote ports [33m 631[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls onConfirm with port values when Start is clicked with valid ports [33m 544[2mms[22m[39m
+stderr | src/__tests__/ingressBackendServicesTab.test.tsx > IngressBackendServicesTab > shows footer disclaimer text
+An error occurred in the <IngressBackendServicesTab> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+ [32mÔ£ô[39m src/__tests__/viewToggle.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 2289[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders Form and YAML buttons [33m 513[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionHooksSettings.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 2099[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows applicable hooks for a connection [33m 979[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m can add a new hook using browse and save [33m 792[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m can test an existing hook and show results [33m 325[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32mÔ£ô[39m src/__tests__/cronJobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2368[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 499[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 592[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2386[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 447[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 490[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2407[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 530[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 518[2mms[22m[39m
+stderr | src/__tests__/pvcConsumersTab.test.tsx > PVCConsumersTab > renders node name in table
+An error occurred in the <PVCConsumersTab> component.
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries.
+
+
+ [32mÔ£ô[39m src/__tests__/jobYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2427[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 533[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays job name in header [33m 520[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 337[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2471[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 511[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays service name in header [33m 531[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls API on refresh button click [33m 329[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvYamlTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 2471[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 511[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays PV name in header [33m 494[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 315[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvcYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2493[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 491[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 570[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 366[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressYamlTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 2671[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 512[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays action buttons [33m 627[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 303[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podYamlTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 2713[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows loading initially [33m 591[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays YAML content when loaded [33m 612[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when API call fails [33m 306[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logViewerHolmes.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 2385[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m triggers Holmes log analysis and renders response [33m 1284[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows "Explain Logs" button in Analysis tab [33m 482[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobPodsTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 2842[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by name column [33m 1257[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can sort by status column [33m 727[2mms[22m[39m
+ [31mÔØ»[39m src/__tests__/ingressBackendServicesTab.test.tsx [2m([22m[2m8 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 3192[2mms[22m[39m
+     [32mÔ£ô[39m shows loading state initially[32m 44[2mms[22m[39m
+     [32mÔ£ô[39m shows error when API call fails[32m 34[2mms[22m[39m
+     [32mÔ£ô[39m shows no backend services when rules are empty[32m 12[2mms[22m[39m
+[31m     [31m├ù[31m renders service table columns when services exist[39m[33m 1035[2mms[22m[39m
+[31m     [31m├ù[31m renders service name in table[39m[33m 1010[2mms[22m[39m
+[31m     [31m├ù[31m shows footer disclaimer text[39m[33m 1015[2mms[22m[39m
+     [32mÔ£ô[39m does not call API when namespace is missing[32m 5[2mms[22m[39m
+     [32mÔ£ô[39m calls API with correct arguments[32m 34[2mms[22m[39m
+ [31mÔØ»[39m src/__tests__/pvcConsumersTab.test.tsx [2m([22m[2m9 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[33m 3320[2mms[22m[39m
+     [32mÔ£ô[39m shows loading state initially[32m 58[2mms[22m[39m
+     [32mÔ£ô[39m shows error when API call fails[32m 45[2mms[22m[39m
+     [32mÔ£ô[39m shows empty state when no consumers[32m 51[2mms[22m[39m
+[31m     [31m├ù[31m renders table columns when consumers exist[39m[33m 1069[2mms[22m[39m
+[31m     [31m├ù[31m renders pod name in table[39m[33m 1014[2mms[22m[39m
+[31m     [31m├ù[31m renders node name in table[39m[33m 1039[2mms[22m[39m
+     [32mÔ£ô[39m does not call API when namespace is missing[32m 3[2mms[22m[39m
+     [32mÔ£ô[39m does not call API when pvcName is missing[32m 3[2mms[22m[39m
+     [32mÔ£ô[39m calls API with correct arguments[32m 34[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pods/PodFilesTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 4405[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows directory entries [33m 1092[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m navigates into a directory [33m 868[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m previews a file on click [33m 659[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters entries by search [33m 415[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m handles copy-to-clipboard state [33m 1134[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/addRegistryModal.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1568[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves dockerhub registry with basic auth [33m 940[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m tests dockerhub token auth (token used as password) [33m 531[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/mcpConfigModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 4530[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls hideConfigModal when the Cancel button is clicked [33m 731[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves with updated port when user changes port field [33m 705[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m disables Save button while saving is in progress [33m 397[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m rejects port value of 0 ÔÇô SetMCPConfig is NOT called [33m 407[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m rejects port value above 65535 ÔÇô SetMCPConfig is NOT called [33m 590[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m accepts a valid port value and calls saveConfig [33m 625[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/overviewTableWithPanel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 3913[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters rows by search input [33m 889[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m switches tabs and updates panel content [33m 491[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m resets active tab after closing & reopening [33m 521[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceActions.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 4875[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m prepopulates replica count and applies scale changes [33m 642[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m cancels inline scale editor and restores original value [33m 407[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders start, suspend, and resume buttons for CronJob [33m 311[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows error when SuspendCronJob fails [33m 319[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m requires double-click to restart (confirmation flow) [33m 313[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/helmReleases.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 2581[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows rollback button for non-current revisions [33m 370[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m has toggle for showing all values [33m 403[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/topologyView.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 5364[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders topology and opens node details panel [33m 4176[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens service details and loads logs (masked env + mount formatting) [33m 636[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows error and clears topology on non-silent refresh failures [33m 449[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/main-content.test.ts [2m([22m[2m4 tests[22m[2m)[22m[33m 5877[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renderPodsMainContent mounts into a stable panel and calls renderPodOverviewTable [33m 5827[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobActionsTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 1649[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders Trigger Now action [33m 532[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/helmActions.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 5338[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders Upgrade, Rollback and Uninstall buttons [33m 525[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m upgrade dialog shows chart reference field and submits to UpgradeHelmRelease [33m 1351[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m upgrade dialog shows error if chart ref is empty on submit [33m 470[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m upgrade dialog closes when Cancel is clicked [33m 303[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m upgrade shows error message when UpgradeHelmRelease rejects [33m 993[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/selectField.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1446[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders select with correct id [33m 450[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configCompareModal.test.tsx [2m([22m[2m18 tests[22m[2m)[22m[33m 1244[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeFilesTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 5991[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads root dir and previews a file [33m 718[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens editor and saves edits (writes file and refreshes dir) [33m 2296[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m read-only volumes disable edit/create actions [33m 1451[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m prompts to discard unsaved changes before navigating directories [33m 1046[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m supports row download and delete actions [33m 477[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/collapsibleSection.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1261[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m expands when header button is clicked [33m 320[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/keyValueEditor.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 1454[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders add button with correct label [33m 462[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentPodsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 1332[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m can switch to conditions section [33m 535[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pods/PodSummaryTab.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 1307[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/numberField.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1295[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 516[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/mcpContext.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 1188[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/createManifestOverlay.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 5488[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls CreateResource and emits events + success on Create [33m 684[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows error & does not close on create failure [33m 329[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates config via CreateSwarmConfig [33m 479[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: config YAML tab uses CodeMirror and renders YAML wrapper [33m 482[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates secret via CreateSwarmSecret (labels parsed) [33m 994[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: updates node via UpdateSwarmNodeAvailability/Role/Labels [33m 494[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates service via form (CreateSwarmService) [33m 529[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: service YAML view uses CodeMirror editor [33m 485[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m swarm: creates stack via YAML editor (CreateSwarmStack) [33m 336[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceActions.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1377[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m scales a resource and closes the dialog [33m 752[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmTasksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1315[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders tasks with formatted cells [33m 729[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m reacts to runtime updates: array replaces, non-array triggers reload [33m 322[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmServicesOverviewTable.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 1348[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m adds Ask Holmes action for services [33m 437[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesConfigModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 1538[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows pre-filled values from state [33m 554[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/registryBrowser.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1751[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m searches Docker Hub, inspects a repo, and pulls latest [33m 1221[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows an error when repository inspection fails [33m 349[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSecretsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 1093[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m deletes via row action [33m 382[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens edit/rotate/clone modals from summary panel and deletes from panel actions [33m 553[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmVolumesOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 827[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m row actions call APIs and trigger refresh where expected [33m 452[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeTasksTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 800[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders tasks table and state colors [33m 723[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useAsyncData.test.ts [2m([22m[2m10 tests[22m[2m)[22m[33m 986[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/addSwarmConnectionOverlay.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 979[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m validates name and saves local connection after successful test [33m 673[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesContext.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[33m 657[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/bottomPanel.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 667[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders tabs and active content [33m 419[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigsOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 997[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m opens Compare modal from summary panel [33m 431[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmStacksOverviewTable.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 962[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads stacks, resolves tab counts, and renders stack services tab panel [33m 488[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/filesTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 912[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretCloneModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 982[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m allows entering secret name [33m 389[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/textField.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 882[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders input with correct id [33m 469[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useResourceData.test.ts [2m([22m[2m15 tests[22m[2m)[22m[33m 798[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceTasksTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 910[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads tasks and renders a table with state colors [33m 741[2mms[22m[39m
+stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter)
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/swarmNetworkInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 767[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays network inspect JSON when loaded [33m 424[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretEditModal.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 771[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls UpdateSwarmSecretData API when saved with acknowledgment [33m 339[2mms[22m[39m
+stderr | src/__tests__/clusterRoleBindingsOverviewTable.test.tsx > ClusterRoleBindingsOverviewTable > renders data, has no Namespace column, and subscribes to clusterrolebindings:update
+An update to ClusterRoleBindingsOverviewTable inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32mÔ£ô[39m src/__tests__/imageUpdateSettingsModal.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 823[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m saves settings (minutes -> seconds) and closes [33m 469[2mms[22m[39m
+stderr | src/__tests__/appContainer.resourceSwitch.test.tsx > AppContainer resource switching > calls renderResourceMainContent with correct section for multiple switches
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/clusterRolesOverviewTable.test.tsx > ClusterRolesOverviewTable > renders data, has no Namespace column, and subscribes to clusterroles:update
+An update to ClusterRolesOverviewTable inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32mÔ£ô[39m src/__tests__/pvcBoundPVTab.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 918[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays Open PV button [33m 403[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeLabelsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 765[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m save/reset disabled when not dirty; becomes enabled after edit; save calls API [33m 545[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 1008[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays config inspect JSON when loaded [33m 534[2mms[22m[39m
+Not implemented: navigation to another Document
+ [32mÔ£ô[39m src/__tests__/swarmSecretInspectTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 868[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays secret inspect JSON when loaded [33m 384[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNodesOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 1580[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders nodes; row action disabled states apply [33m 825[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m executes row actions and shows notifications [33m 629[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesPanel.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 1138[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows unconfigured state when Holmes is disabled [33m 457[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/monitorFeature.test.tsx [2m([22m[2m20 tests[22m[2m)[22m[33m 1454[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m closes panel when close button is clicked [33m 606[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/appContainer.resourceSwitch.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1041[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with the selectedSection when switching to Jobs (regression test for missing parameter) [33m 676[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls renderResourceMainContent with correct section for multiple switches [33m 362[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/connectionWizard.test.tsx [2m([22m[2m43 tests[22m[2m)[22m[33m 9647[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Add Config button [33m 594[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m opens Add Kubeconfig overlay when clicking Add Config button [33m 357[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Connect button for each config [33m 459[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m allows connecting to a config [33m 385[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows kubeconfig content textarea in overlay [33m 352[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m disables Save button when content is empty [33m 572[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m enables Save button when content is provided [33m 585[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m saves primary kubeconfig and completes [33m 587[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking close button [33m 631[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m closes overlay when clicking Cancel button [33m 582[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows configuration type selection when configs exist [33m 442[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m shows Add Kubeconfig title when configs exist [33m 384[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m calls file browser when Browse button is clicked [33m 391[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m handles file selection cancellation [33m 377[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays error when save fails [33m 707[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m saves global proxy settings [33m 567[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/graphView.rbacSearch.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 1053[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m dims non-matching subgraphs when searching subject [33m 1049[2mms[22m[39m
+stderr | src/__tests__/swarmConfigDataTab.test.tsx > ConfigDataTab > error state > displays error message when API call fails
+Failed to load config data: Error: Access denied
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/swarmConfigDataTab.test.tsx:29:48
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [32mÔ£ô[39m src/__tests__/resourceGraphTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 856[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m triggers SVG and PNG exports from toolbar buttons [33m 669[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterRolesOverviewTable.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 896[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls DeleteResource when Delete row action is clicked [33m 693[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNetworksOverviewTable.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 778[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m loads and renders networks; built-in delete is disabled [33m 486[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterRoleBindingsOverviewTable.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 1008[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m calls DeleteResource when Delete row action is clicked [33m 836[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/roleBindingsOverviewTable.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1062[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders data with Role Ref label and subjects count; subscribes to rolebindings:update [33m 604[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/rolesOverviewTable.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 1286[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m fetches roles and renders rows/cells [33m 581[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m row Delete action calls DeleteResource(role, namespace, name) [33m 588[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigDataTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 809[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays config content when loaded [33m 346[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/monitorModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 761[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m renders close button [33m 435[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 702[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dropdowns.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 788[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m ContextSelect passes selected value [33m 482[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 622[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows Metrics by default and switches to Topology [33m 559[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentRolloutTab.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 770[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmEventsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 861[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m has retry button on error [33m 310[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateBadge.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 679[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders disabled when serviceId is missing [33m 355[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsDashboard.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 545[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m filters charts by selected time range [33m 540[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podMountsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 681[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/updateStackModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 627[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m displays initial compose YAML [33m 316[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > initializes with default state
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > opens and closes wizard
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/updateServiceImageModal.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 652[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m requires a changed image to enable update and confirms trimmed value [33m 624[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > connects to Docker successfully
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext > provides resource refresh functions
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext ÔÇô reconnect & polling > refreshConnectionStatus updates connected state
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/serviceEndpointsTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 766[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext ÔÇô reconnect & polling > refreshServices fetches and updates services list
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext ÔÇô reconnect & polling > connect shows error when connection fails
+Docker not connected - Swarm features will be unavailable
+
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext ÔÇô reconnect & polling > testConnection calls TestDockerConnection API
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/podEventsTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 716[2mms[22m[39m
+stderr | src/__tests__/swarmStateContext.test.tsx > SwarmStateContext ÔÇô reconnect & polling > refreshNodes calls GetSwarmNodes and updates nodes
+Docker not connected - Swarm features will be unavailable
+
+ [32mÔ£ô[39m src/__tests__/networkConnectedContainersTable.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 608[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedContainersSection.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 701[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m navigates to task when clicked [33m 453[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabContent.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 719[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders action button when provided [33m 432[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesOnboardingWizard.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 578[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmStateContext.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 655[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapDataTab.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[33m 773[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configEditModal.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 608[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/daemonSetNodeCoverageTab.test.tsx [2m([22m[2m17 tests[22m[2m)[22m[33m 591[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/GenericInspectTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 646[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m should have absolute positioning container [33m 405[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statusBadge.test.tsx [2m([22m[2m21 tests[22m[2m)[22m[33m 618[2mms[22m[39m
+       [33m[2mÔ£ô[22m[39m applies inline styles with correct color [33m 363[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobHistoryTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 728[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/BaseModal.test.tsx [2m([22m[2m19 tests[22m[2m)[22m[33m 546[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/daemonSetPodsTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 574[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/nodeLogsTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 579[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m selects a running task with container and wires AggregateLogsTab loadLogs [33m 390[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronJobNextRunsTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[33m 430[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyState.test.tsx [2m([22m[2m23 tests[22m[2m)[22m[33m 595[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressRulesTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 476[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 312[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statefulSetPVCsTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[33m 481[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configUsedBySection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[32m 257[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/quickInfoSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[33m 391[2mms[22m[39m
+stderr | src/__tests__/stackServicesTab.test.tsx > StackServicesTab > shows error when API call fails
+Failed to load stack services: Error: Stack not found
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/stackServicesTab.test.tsx:31:49
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [32mÔ£ô[39m src/__tests__/secretConsumersTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 334[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/stackServicesTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 386[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterStateProvider.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 380[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkConnectedServicesSection.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 335[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/imageUpdateModal.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 344[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useResourceWatch.test.ts [2m([22m[2m3 tests[22m[2m)[22m[33m 416[2mms[22m[39m
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > does nothing for unknown resource type
+showResourceOverlay called with: does-not-exist
+Template found: no
+No template found for resource type: does-not-exist
+Available templates: [
+  'deployment',
+  'job',
+  'configmap',
+  'service',
+  'secret',
+  'ingress',
+  'persistentvolumeclaim',
+  'persistentvolume'
+]
+
+ [32mÔ£ô[39m src/__tests__/notification.test.ts [2m([22m[2m9 tests[22m[2m)[22m[33m 351[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourcePodsTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 524[2mms[22m[39m
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > creates overlay and calls CreateResource on success
+showResourceOverlay called with: deployment
+Template found: yes
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > shows error and keeps overlay when CreateResource fails
+showResourceOverlay called with: job
+Template found: yes
+
+stderr | src/__tests__/resource-overlay.test.ts > resource-overlay > closes overlay via cancel button and overlay background click
+showResourceOverlay called with: configmap
+Template found: yes
+showResourceOverlay called with: secret
+Template found: yes
+
+ [32mÔ£ô[39m src/__tests__/helmResourcesSummary.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 355[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resource-overlay.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 196[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/graphCanvas.test.tsx [2m([22m[2m1 test[22m[2m)[22m[33m 424[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m dispatches navigate-to-resource on node click [33m 420[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmRegistriesOverview.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 252[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSidebarSections.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[33m 326[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceEventsTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 306[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeUsedBySection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 288[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesResponseRenderer.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[33m 569[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m renders code blocks with copy button [33m 495[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/sidebarRbacGroup.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[33m 340[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/portForwardOutput.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[33m 432[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configMapConsumersTab.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[33m 333[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/networkDetailsSections.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[33m 312[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/holmesBottomPanel.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[33m 522[2mms[22m[39m
+     [33m[2mÔ£ô[22m[39m shows empty state when no response [33m 449[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/replicaSetOwnerTab.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 275[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/aggregateLogsTab.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[33m 417[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvBoundPVCTab.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 177[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tabLabel.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+stderr | src/__tests__/resourceCountsContext.rbacNormalization.test.tsx > ResourceCountsProvider RBAC normalization > normalizes uppercase RBAC keys to camelCase and updates on events
+An update to ResourceCountsProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to ResourceCountsProvider inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+ [32mÔ£ô[39m src/__tests__/terminalTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 214[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceCountsContext.rbacNormalization.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 216[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/yamlTab.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 173[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/settingsContext.test.tsx [2m([22m[2m16 tests[22m[2m)[22m[32m 170[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/healthStatusBadge.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 222[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretDataSection.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 102[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/stackComposeTab.test.tsx [2m([22m[2m6 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/volumeInspectTab.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 150[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/secretResourceConfig.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/logger.test.ts [2m([22m[2m14 tests[22m[2m)[22m[32m 82[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/consoleTab.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[32m 135[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceCountsContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 53[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useHolmesAnalysis.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 118[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmMetricsStateContext.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 80[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/deploymentResourceConfig.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 109[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/cronjobResourceConfig.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 124[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/podResourceConfig.test.tsx [2m([22m[2m15 tests[22m[2m)[22m[32m 125[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/statefulsetResourceConfig.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 140[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configmapResourceConfig.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 108[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressDetailTab.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[33m 434[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNetworkConfig.test.tsx [2m([22m[2m9 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/textEditorTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 102[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/configDataSection.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 107[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvResourceConfig.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[32m 94[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/ingressResourceConfig.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 95[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvCapacityUsageTab.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 70[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/jobResourceConfig.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 90[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/PrometheusAlertsTab.test.tsx [2m([22m[2m2 tests[22m[2m)[22m[32m 192[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/replicasetResourceConfig.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 94[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmStackConfig.test.tsx [2m([22m[2m13 tests[22m[2m)[22m[32m 79[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/daemonsetResourceConfig.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[32m 98[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useTableSelection.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 97[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/pvcResourceConfig.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 103[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/serviceResourceConfig.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 89[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useSwarmServiceForm.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 77[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmTaskConfig.test.tsx [2m([22m[2m11 tests[22m[2m)[22m[32m 71[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmResourceCountsContext.test.tsx [2m([22m[2m3 tests[22m[2m)[22m[32m 85[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmNodeConfig.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmServiceConfig.test.tsx [2m([22m[2m10 tests[22m[2m)[22m[32m 72[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceCountsContext.rbac.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 47[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useEventSubscription.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 55[2mms[22m[39m
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchAllTabCounts > returns empty object on error
+Failed to fetch tab counts: Error: API error
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:48:45
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchEventsCount > returns null on error
+Failed to fetch events count: Error: API error
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:75:52
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchPodsCount > returns null on error
+Failed to fetch pods count: Error: API error
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:94:53
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchConsumersCount > returns null on error
+Failed to fetch consumers count: Error: API error
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:137:56
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+stderr | src/__tests__/tabCounts.test.ts > tabCounts API > fetchCronJobHistoryCount > returns null on error
+Failed to fetch CronJob history count: Error: API error
+    at C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/__tests__/tabCounts.test.ts:156:52
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:145:11
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:915:26
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1243:20
+    at new Promise (<anonymous>)
+    at runWithTimeout (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1209:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:37
+    at Traces.$ (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/traces.CCmnQaNT.js:142:27)
+    at trace (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/test.B8ej_ZHS.js:239:21)
+    at runTest (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/runner/dist/index.js:1653:12)
+
+ [32mÔ£ô[39m src/__tests__/tabCounts.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmYamlUtils.test.ts [2m([22m[2m11 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/tableSorting.test.ts [2m([22m[2m33 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/timeUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmVolumeConfig.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 65[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/bulkOperations.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/persistence.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmConfigConfig.test.tsx [2m([22m[2m8 tests[22m[2m)[22m[32m 41[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/swarmSecretConfig.test.tsx [2m([22m[2m7 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/resourceNavigation.test.ts [2m([22m[2m15 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/legacy-jsx-imports.test.ts [2m([22m[2m1 test[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/dateUtils.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/emptyTabMessages.test.ts [2m([22m[2m8 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/graphTransforms.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/useGraphLayout.test.tsx [2m([22m[2m1 test[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/codeMirrorLanguage.test.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32mÔ£ô[39m src/__tests__/clusterStateReducer.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+ [32mÔ£ô[39m src/layout/__tests__/MonitorIssueCard.test.tsx [2m([22m[2m4 tests[22m[2m)[22m[32m 45[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/podOverviewEntry.test.tsx [2m([22m[2m5 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+Not implemented: HTMLCanvasElement's getContext() method: without installing the canvas npm package
+ [32mÔ£ô[39m src/__tests__/router.test.tsx [2m([22m[2m14 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+Failed to parse file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/k8s/resources/statefulsets/StatefulSetDetailTab.tsx. Excluding it from coverage.
+ Error [RollupError]: Expected ',', got 'CSSProperties'
+    at getRollupError (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/rollup/dist/es/shared/parseAst.js:401:41)
+    at convertProgram (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/rollup/dist/es/shared/parseAst.js:1098:26)
+    at parseAstAsync (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/rollup/dist/es/shared/parseAst.js:2084:106)
+    at V8CoverageProvider.remapCoverage (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/coverage-v8/dist/provider.js:133:10)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/coverage-v8/dist/provider.js:119:23
+    at async Promise.all (index 17)
+    at V8CoverageProvider.getCoverageMapForUncoveredFiles (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/coverage-v8/dist/provider.js:109:4)
+    at V8CoverageProvider.generateCoverage (file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/@vitest/coverage-v8/dist/provider.js:57:29)
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/cli-api.B7PN_QUv.js:12609:23
+    at file:///C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/node_modules/vitest/dist/chunks/cli-api.B7PN_QUv.js:12622:11 {
+  code: 'PARSE_ERROR',
+  pos: 92
+}
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Suites 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/statefulSetDetailTab.test.tsx [ src/__tests__/statefulSetDetailTab.test.tsx ]
+Error: Transform failed with 1 error:
+C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/k8s/resources/statefulsets/StatefulSetDetailTab.tsx:199:3: ERROR: Unterminated regular expression
+  Plugin: vite:esbuild
+  File: C:/dev/workspace/psalg-dev/kube-dev-bench/frontend/src/k8s/resources/statefulsets/StatefulSetDetailTab.tsx:199:3
+  
+  Unterminated regular expression
+  197 |  </table>
+  198 |  )
+  199 |  </>
+      |     ^
+  200 |  )}
+  201 |  
+  
+ ÔØ» failureErrorWithLog node_modules/esbuild/lib/main.js:1467:15
+ ÔØ» node_modules/esbuild/lib/main.js:736:50
+ ÔØ» responseCallbacks.<computed> node_modules/esbuild/lib/main.js:603:9
+ ÔØ» handleIncomingPacket node_modules/esbuild/lib/main.js:658:12
+ ÔØ» Socket.readFromStdout node_modules/esbuild/lib/main.js:581:7
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/7]ÔÄ»
+
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 6 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/ingressBackendServicesTab.test.tsx > IngressBackendServicesTab > renders service table columns when services exist
+TestingLibraryElementError: Unable to find an element with the text: Service. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/ingressBackendServicesTab.test.tsx:52:11
+     50|     } as never);
+     51|     render(<IngressBackendServicesTab namespace="default" ingressName=ÔÇª
+     52|     await waitFor(() => {
+       |           ^
+     53|       expect(screen.getByText('Service')).toBeInTheDocument();
+     54|       expect(screen.getByText('Port')).toBeInTheDocument();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/7]ÔÄ»
+
+ FAIL  src/__tests__/ingressBackendServicesTab.test.tsx > IngressBackendServicesTab > renders service name in table
+TestingLibraryElementError: Unable to find an element with the text: backend-service. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/ingressBackendServicesTab.test.tsx:63:11
+     61|     } as never);
+     62|     render(<IngressBackendServicesTab namespace="default" ingressName=ÔÇª
+     63|     await waitFor(() => {
+       |           ^
+     64|       expect(screen.getByText('backend-service')).toBeInTheDocument();
+     65|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/7]ÔÄ»
+
+ FAIL  src/__tests__/ingressBackendServicesTab.test.tsx > IngressBackendServicesTab > shows footer disclaimer text
+TestingLibraryElementError: Unable to find an element with the text: /Services referenced by Ingress rules/. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/ingressBackendServicesTab.test.tsx:73:11
+     71|     } as never);
+     72|     render(<IngressBackendServicesTab namespace="default" ingressName=ÔÇª
+     73|     await waitFor(() => {
+       |           ^
+     74|       expect(screen.getByText(/Services referenced by Ingress rules/))ÔÇª
+     75|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/7]ÔÄ»
+
+ FAIL  src/__tests__/pvcConsumersTab.test.tsx > PVCConsumersTab > renders table columns when consumers exist
+TestingLibraryElementError: Unable to find an element with the text: Pod. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/pvcConsumersTab.test.tsx:48:11
+     46|     ] as never);
+     47|     render(<PVCConsumersTab namespace="default" pvcName="my-pvc" />);
+     48|     await waitFor(() => {
+       |           ^
+     49|       expect(screen.getByText('Pod')).toBeInTheDocument();
+     50|       expect(screen.getByText('Node')).toBeInTheDocument();
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/7]ÔÄ»
+
+ FAIL  src/__tests__/pvcConsumersTab.test.tsx > PVCConsumersTab > renders pod name in table
+TestingLibraryElementError: Unable to find an element with the text: database-pod-0. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/pvcConsumersTab.test.tsx:61:11
+     59|     ] as never);
+     60|     render(<PVCConsumersTab namespace="default" pvcName="my-pvc" />);
+     61|     await waitFor(() => {
+       |           ^
+     62|       expect(screen.getByText('database-pod-0')).toBeInTheDocument();
+     63|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/7]ÔÄ»
+
+ FAIL  src/__tests__/pvcConsumersTab.test.tsx > PVCConsumersTab > renders node name in table
+TestingLibraryElementError: Unable to find an element with the text: node-abc. This could be because the text is broken up by multiple elements. In this case, you can provide a function for your text matcher to make your matcher more flexible.
+
+Ignored nodes: comments, script, style
+<body>
+  <div />
+</body>
+
+Ignored nodes: comments, script, style
+<html>
+  <head />
+  <body>
+    <div />
+  </body>
+</html>
+ ÔØ» Proxy.waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ÔØ» src/__tests__/pvcConsumersTab.test.tsx:71:11
+     69|     ] as never);
+     70|     render(<PVCConsumersTab namespace="default" pvcName="my-pvc" />);
+     71|     await waitFor(() => {
+       |           ^
+     72|       expect(screen.getByText('node-abc')).toBeInTheDocument();
+     73|     });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/7]ÔÄ»
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Unhandled Errors ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+Vitest caught 6 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Uncaught Exception ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: Rendered more hooks than during the previous render.
+ ÔØ» updateWorkInProgressHook node_modules/react-dom/cjs/react-dom-client.development.js:7848:17
+ ÔØ» updateMemo node_modules/react-dom/cjs/react-dom-client.development.js:8790:18
+ ÔØ» Object.useMemo node_modules/react-dom/cjs/react-dom-client.development.js:26484:18
+ ÔØ» process.env.NODE_ENV.exports.useMemo node_modules/react/cjs/react.development.js:1251:34
+ ÔØ» IngressBackendServicesTab src/k8s/resources/ingresses/IngressBackendServicesTab.tsx:93:18
+     91|  }
+     92| 
+     93|  const columns = useMemo(() => ([
+       |                  ^
+     94|   { key: 'name', label: 'Service' },
+     95|   { key: 'port', label: 'Port' },
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+
+This error originated in "src/__tests__/ingressBackendServicesTab.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "renders service table columns when services exist". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Uncaught Exception ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: Rendered more hooks than during the previous render.
+ ÔØ» updateWorkInProgressHook node_modules/react-dom/cjs/react-dom-client.development.js:7848:17
+ ÔØ» updateMemo node_modules/react-dom/cjs/react-dom-client.development.js:8790:18
+ ÔØ» Object.useMemo node_modules/react-dom/cjs/react-dom-client.development.js:26484:18
+ ÔØ» process.env.NODE_ENV.exports.useMemo node_modules/react/cjs/react.development.js:1251:34
+ ÔØ» PVCConsumersTab src/k8s/resources/persistentvolumeclaims/PVCConsumersTab.tsx:68:18
+     66|  }
+     67| 
+     68|  const columns = useMemo(() => ([
+       |                  ^
+     69|   { key: 'podName', label: 'Pod' },
+     70|   { key: 'node', label: 'Node' },
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+
+This error originated in "src/__tests__/pvcConsumersTab.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "renders table columns when consumers exist". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Uncaught Exception ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: Rendered more hooks than during the previous render.
+ ÔØ» updateWorkInProgressHook node_modules/react-dom/cjs/react-dom-client.development.js:7848:17
+ ÔØ» updateMemo node_modules/react-dom/cjs/react-dom-client.development.js:8790:18
+ ÔØ» Object.useMemo node_modules/react-dom/cjs/react-dom-client.development.js:26484:18
+ ÔØ» process.env.NODE_ENV.exports.useMemo node_modules/react/cjs/react.development.js:1251:34
+ ÔØ» IngressBackendServicesTab src/k8s/resources/ingresses/IngressBackendServicesTab.tsx:93:18
+     91|  }
+     92| 
+     93|  const columns = useMemo(() => ([
+       |                  ^
+     94|   { key: 'name', label: 'Service' },
+     95|   { key: 'port', label: 'Port' },
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+
+This error originated in "src/__tests__/ingressBackendServicesTab.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "renders service name in table". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Uncaught Exception ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: Rendered more hooks than during the previous render.
+ ÔØ» updateWorkInProgressHook node_modules/react-dom/cjs/react-dom-client.development.js:7848:17
+ ÔØ» updateMemo node_modules/react-dom/cjs/react-dom-client.development.js:8790:18
+ ÔØ» Object.useMemo node_modules/react-dom/cjs/react-dom-client.development.js:26484:18
+ ÔØ» process.env.NODE_ENV.exports.useMemo node_modules/react/cjs/react.development.js:1251:34
+ ÔØ» PVCConsumersTab src/k8s/resources/persistentvolumeclaims/PVCConsumersTab.tsx:68:18
+     66|  }
+     67| 
+     68|  const columns = useMemo(() => ([
+       |                  ^
+     69|   { key: 'podName', label: 'Pod' },
+     70|   { key: 'node', label: 'Node' },
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+
+This error originated in "src/__tests__/pvcConsumersTab.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "renders pod name in table". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Uncaught Exception ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: Rendered more hooks than during the previous render.
+ ÔØ» updateWorkInProgressHook node_modules/react-dom/cjs/react-dom-client.development.js:7848:17
+ ÔØ» updateMemo node_modules/react-dom/cjs/react-dom-client.development.js:8790:18
+ ÔØ» Object.useMemo node_modules/react-dom/cjs/react-dom-client.development.js:26484:18
+ ÔØ» process.env.NODE_ENV.exports.useMemo node_modules/react/cjs/react.development.js:1251:34
+ ÔØ» IngressBackendServicesTab src/k8s/resources/ingresses/IngressBackendServicesTab.tsx:93:18
+     91|  }
+     92| 
+     93|  const columns = useMemo(() => ([
+       |                  ^
+     94|   { key: 'name', label: 'Service' },
+     95|   { key: 'port', label: 'Port' },
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+
+This error originated in "src/__tests__/ingressBackendServicesTab.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "shows footer disclaimer text". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Uncaught Exception ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+Error: Rendered more hooks than during the previous render.
+ ÔØ» updateWorkInProgressHook node_modules/react-dom/cjs/react-dom-client.development.js:7848:17
+ ÔØ» updateMemo node_modules/react-dom/cjs/react-dom-client.development.js:8790:18
+ ÔØ» Object.useMemo node_modules/react-dom/cjs/react-dom-client.development.js:26484:18
+ ÔØ» process.env.NODE_ENV.exports.useMemo node_modules/react/cjs/react.development.js:1251:34
+ ÔØ» PVCConsumersTab src/k8s/resources/persistentvolumeclaims/PVCConsumersTab.tsx:68:18
+     66|  }
+     67| 
+     68|  const columns = useMemo(() => ([
+       |                  ^
+     69|   { key: 'podName', label: 'Pod' },
+     70|   { key: 'node', label: 'Node' },
+ ÔØ» Object.react_stack_bottom_frame node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ÔØ» renderWithHooks node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ÔØ» updateFunctionComponent node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ÔØ» beginWork node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ÔØ» runWithFiberInDEV node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+
+This error originated in "src/__tests__/pvcConsumersTab.test.tsx" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "renders node name in table". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+
+[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m196 passed[39m[22m[90m (199)[39m
+[2m      Tests [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m1812 passed[39m[22m[90m (1818)[39m
+[2m     Errors [22m [1m[31m6 errors[39m[22m
+[2m   Start at [22m 17:55:13
+[2m   Duration [22m 28.00s[2m (transform 41.59s, setup 37.48s, import 137.06s, tests 189.41s, environment 287.71s)[22m
+
