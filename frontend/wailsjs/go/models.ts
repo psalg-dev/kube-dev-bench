@@ -2411,12 +2411,6 @@ export namespace app {
 		}
 	}
 	
-	export class Subject {
-	    kind: string;
-	    name: string;
-	    namespace?: string;
-	    apiGroup?: string;
-	
 	export class RolloutStatus {
 	    kind: string;
 	    name: string;

@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/rules-of-hooks */
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
@@ -34,14 +33,6 @@ export default function IngressDetailTab({ namespace, ingressName }: IngressDeta
 			});
 	}, [namespace, ingressName]);
 
-	if (loading) {
-		return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
-	}
-
-	if (error) {
-		return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
-	}
-
 	const ruleColumns = useMemo(() => ([
 		{ key: 'host', label: 'Host' },
 		{ key: 'path', label: 'Path' },
@@ -70,6 +61,14 @@ export default function IngressDetailTab({ namespace, ingressName }: IngressDeta
 			return value;
 		});
 	}, [detail?.tls, tlsSortState]);
+
+	if (loading) {
+		return <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>Loading...</div>;
+	}
+
+	if (error) {
+		return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
+	}
 
 	const headerButtonStyle: CSSProperties = {
 		width: '100%',
