@@ -1,0 +1,13 @@
+?   	gowails	[no test files]
+ok  	gowails/pkg/app	(cached)
+ok  	gowails/pkg/app/docker	(cached)
+ok  	gowails/pkg/app/docker/registry	(cached)
+ok  	gowails/pkg/app/docker/topology	(cached)
+ok  	gowails/pkg/app/holmesgpt	(cached)
+ok  	gowails/pkg/app/jobs	(cached)
+ok  	gowails/pkg/app/k8s_graph	(cached)
+ok  	gowails/pkg/app/mcp	(cached)
+?   	gowails/pkg/app/testutils	[no test files]
+ok  	gowails/tests/docker	(cached)
+ok  	gowails/tests/k8s_graph	(cached)
+ok  	gowails/tests/pvc_files	(cached)
