@@ -32,8 +32,8 @@ describe('StatefulSetDetailTab', () => {
     getStatefulSetDetailMock.mockResolvedValue({ pods: [], pvcs: [] } as never);
     render(<StatefulSetDetailTab namespace="default" statefulSetName="my-ss" />);
     await waitFor(() => {
-      expect(screen.getByText(/pods/i)).toBeInTheDocument();
-      expect(screen.getByText(/pvcs/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /pods/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /pvcs/i })).toBeInTheDocument();
     });
   });
 

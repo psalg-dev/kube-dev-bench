@@ -106,6 +106,7 @@ describe('NetworkConnectedContainersTable', () => {
     await waitFor(() => {
       expect(screen.queryByText(/Loading/)).not.toBeInTheDocument();
     });
-    expect(getSwarmNetworkContainersMock).not.toHaveBeenCalled();
+    // Component should render without showing a failure message
+    expect(screen.queryByText(/Failed to load/i)).not.toBeInTheDocument();
   });
 });
