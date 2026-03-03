@@ -367,10 +367,51 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  create-release:
+    runs-on: ubuntu-22.04
+    needs: e2e
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    steps:
+      - name: Create GitHub Release with notes
+        uses: softprops/action-gh-release@v2
+        with:
+          body: |
+            ## Installation
+
+            Download the artifact for your platform from the assets below.
+
+            ### macOS — Required first-launch step
+
+            macOS will show **"KubeDevBench.app is damaged and can't be opened"** because the app is not signed with an Apple Developer ID. This is expected — the app is not actually damaged — it is macOS Gatekeeper blocking an unsigned internet download.
+
+            **Fix (run once after extracting the zip):**
+
+            Option A — use the included helper script:
+            ```bash
+            ./install.sh
+            ```
+
+            Option B — manual:
+            ```bash
+            xattr -dr com.apple.quarantine KubeDevBench.app
+            ```
+
+            After either step, open the app normally or drag it to `/Applications`.
+
+            > macOS builds are smaller than Windows/Linux because macOS uses the **system WebKit** (WKWebView) which is already installed on every Mac and does not need to be bundled. This is expected and correct.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   release:
     runs-on: ${{ matrix.os }}
-    needs: e2e
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    needs: [e2e, create-release]
+    # Run on main (for artifact uploads) or tags (for full release).
+    # create-release is skipped on non-tag main builds; treat skipped as OK.
+    if: |
+      (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')) &&
+      (needs.create-release.result == 'success' || needs.create-release.result == 'skipped')
     permissions:
       contents: write
     strategy:
@@ -460,6 +501,26 @@ jobs:
         run: ls -laR build/bin/
         shell: bash
 
+      - name: Ad-hoc sign macOS app bundle
+        if: matrix.platform == 'darwin'
+        run: |
+          # Wails produces a .app bundle on macOS. Ad-hoc signing marks the binary
+          # as intentionally signed (using the '-' identity which requires no
+          # certificate). This does NOT satisfy Gatekeeper for internet downloads,
+          # but prevents "missing signature" errors and improves compatibility.
+          # Users still need to remove the quarantine attribute after download —
+          # see README for instructions.
+          APP_BUNDLE=$(ls -d build/bin/*.app 2>/dev/null | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "ERROR: No .app bundle found in build/bin/"
+            ls -la build/bin/
+            exit 1
+          fi
+          echo "Found app bundle: $APP_BUNDLE"
+          codesign --sign - --deep --force --no-strict "$APP_BUNDLE"
+          echo "Ad-hoc signing complete"
+          codesign --display --verbose=2 "$APP_BUNDLE" 2>&1 || true
+
       - name: Package macOS app bundle
         if: matrix.platform == 'darwin'
         working-directory: build/bin
@@ -472,7 +533,34 @@ jobs:
             exit 1
           fi
           echo "Found app bundle: $APP_BUNDLE"
-          zip -r -y "${{ matrix.artifact }}" "$APP_BUNDLE"
+
+          # Bundle a helper script so users can easily remove the quarantine
+          # attribute that macOS sets on internet-downloaded files. Without this,
+          # Gatekeeper blocks the app with "damaged and can't be opened".
+          cat > install.sh << 'INSTALL_EOF'
+#!/bin/bash
+# KubeDevBench macOS installer helper
+# Removes the quarantine attribute that macOS sets on downloaded apps,
+# which causes the "damaged and can't be opened" Gatekeeper error.
+set -e
+
+APP=$(ls -d *.app 2>/dev/null | head -1)
+if [ -z "$APP" ]; then
+  echo "ERROR: No .app bundle found in the current directory."
+  echo "Make sure you run this script from the same folder as the .app bundle."
+  exit 1
+fi
+
+echo "Removing quarantine attribute from $APP ..."
+xattr -dr com.apple.quarantine "$APP"
+echo ""
+echo "Done! You can now open $APP normally."
+echo "To install, drag $APP to your /Applications folder."
+INSTALL_EOF
+          chmod +x install.sh
+
+          zip -r -y "${{ matrix.artifact }}" "$APP_BUNDLE" install.sh
+          rm install.sh
           echo "Created ${{ matrix.artifact }} ($(du -h ${{ matrix.artifact }} | cut -f1))"
 
       - name: Upload release artifact (Windows)

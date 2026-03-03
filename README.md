@@ -102,6 +102,34 @@ AI-powered diagnostics for intelligent troubleshooting:
 
 ---
 
+## 🍎 macOS Installation
+
+> **Important:** macOS will block KubeDevBench on first launch because the app is not yet signed with an Apple Developer ID. This is normal for open-source desktop apps distributed outside the Mac App Store.
+
+You will see the error: *"KubeDevBench.app is damaged and can't be opened."*
+
+**Fix — option 1: use the included helper script (recommended)**
+
+The `.zip` release includes an `install.sh` script that removes the quarantine attribute macOS adds to downloaded files:
+
+```bash
+# After extracting the zip:
+cd ~/Downloads/KubeDevBench-darwin-arm64   # or -amd64
+./install.sh
+```
+
+**Fix — option 2: manual removal**
+
+```bash
+xattr -dr com.apple.quarantine /path/to/KubeDevBench.app
+```
+
+After either step, double-click the `.app` as normal or drag it to `/Applications`.
+
+> **Why does this happen?** macOS Gatekeeper quarantines apps downloaded from the internet unless they are signed with a paid Apple Developer ID and notarized through Apple's servers. This is a macOS security policy — the app itself is not actually damaged.
+
+---
+
 ## Holmes Quick Guide
 
 ### Explain Pod Logs
@@ -173,7 +201,8 @@ cd frontend && npm test
 
 ## System Requirements
 
-- **OS:** Windows 10+, macOS 10.15+, or Linux (Ubuntu 20.04+, Fedora 34+)
+- **OS:** Windows 10+, macOS 11+ (arm64) / macOS 10.15+ (amd64), or Linux (Ubuntu 20.04+, Fedora 34+)
+- **macOS note:** First launch requires removing the Gatekeeper quarantine — see [macOS Installation](#-macos-installation) above
 - **Memory:** 4 GB RAM minimum, 8 GB recommended
 - **Disk:** 200 MB for installation
 - **Network:** Access to Kubernetes API server and/or Docker daemon
