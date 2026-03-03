@@ -1,4 +1,10 @@
-kube-dev-bench development setup
+---
+layout: default
+title: Development Guide
+nav_order: 3
+---
+
+# Development Guide
 
 This document describes how to set up your local development environment for the kube-dev-bench project.
 

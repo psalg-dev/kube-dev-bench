@@ -1,3 +1,9 @@
+---
+layout: default
+title: Registry E2E Suite
+nav_order: 6
+---
+
 # Registry E2E Suite
 
 ## Overview

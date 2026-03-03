@@ -1,3 +1,9 @@
+---
+layout: default
+title: Informer Architecture
+nav_order: 4
+---
+
 # Informer Architecture (Kubernetes)
 
 ## Overview

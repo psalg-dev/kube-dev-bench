@@ -1,4 +1,10 @@
-Local Development Setup
+---
+layout: default
+title: Setup
+nav_order: 2
+---
+
+# Local Development Setup
 
 This repository uses Go for the backend, React (Vite) for the frontend, and Wails for the desktop app shell.
 
