@@ -33,7 +33,7 @@ jobs:
           # Extract total percentage from go coverage func output
           total_line=$(grep "total:" coverage/go-coverage-func.txt || true)
           if [ -n "$total_line" ]; then
-            go_total=$(echo "$total_line" | awk -F")" '{print $2}' | sed 's/%//')
+            go_total=$(echo "$total_line" | awk -F")" '{print $2}' | sed 's/%//' | xargs)
             echo "go_total=$go_total" >> $GITHUB_OUTPUT
           else
             echo "go_total=0" >> $GITHUB_OUTPUT
@@ -59,7 +59,7 @@ jobs:
           echo "Running vitest coverage"
           npx vitest run --coverage --run 2>&1 | tee ../coverage/frontend-vitest-output.txt
           # extract 'All files' line
-          all_line=$(grep "All files" ../coverage/frontend-vitest-output.txt || true)
+          all_line=$(grep -i "All files" ../coverage/frontend-vitest-output.txt || true)
           if [ -n "$all_line" ]; then
             # All files line format: All files |   46.68 | ...
             frontend_total=$(echo "$all_line" | awk -F'|' '{gsub(/^ +| +$/,"",$2); print $2}' | tr -d '%')
@@ -73,8 +73,8 @@ jobs:
         run: |
           set -e
           mkdir -p coverage
-          go_total=${{ steps.go_cov.outputs.go_total }}
-          frontend_total=${{ steps.frontend_cov.outputs.frontend_total }}
+          go_total="${{ steps.go_cov.outputs.go_total }}"
+          frontend_total="${{ steps.frontend_cov.outputs.frontend_total }}"
           echo "Go coverage: $go_total"; echo "Frontend coverage: $frontend_total"
           # compute simple average to present combined metric
           if [ -z "$go_total" ] || [ -z "$frontend_total" ]; then
