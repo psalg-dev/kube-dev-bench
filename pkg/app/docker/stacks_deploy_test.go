@@ -2,8 +2,10 @@ package docker
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -20,8 +22,18 @@ func TestDeploySwarmStack_EmptyCompose(t *testing.T) {
 	}
 }
 
-func writeDockerShim(dir string, content string) (string, error) {
-	p := filepath.Join(dir, "docker.bat")
+// writeDockerShim creates a fake docker executable in dir that exits with the
+// given exit code. It returns the path to the shim. On Windows it writes a
+// .bat file; on Unix-like systems it writes a shell script named "docker".
+func writeDockerShim(dir string, exitCode int) (string, error) {
+	var p, content string
+	if runtime.GOOS == "windows" {
+		p = filepath.Join(dir, "docker.bat")
+		content = fmt.Sprintf("@echo off\necho fake docker\nexit /b %d\n", exitCode)
+	} else {
+		p = filepath.Join(dir, "docker")
+		content = fmt.Sprintf("#!/bin/sh\necho fake docker\nexit %d\n", exitCode)
+	}
 	if err := os.WriteFile(p, []byte(content), 0755); err != nil {
 		return "", err
 	}
@@ -36,8 +48,7 @@ func TestDeploySwarmStack_CommandFailure(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	// Create a docker shim that exits with code 2
-	content := "@echo off\necho fake docker\nexit /b 2\n"
-	if _, err := writeDockerShim(tmp, content); err != nil {
+	if _, err := writeDockerShim(tmp, 2); err != nil {
 		t.Fatal(err)
 	}
 
@@ -63,8 +74,7 @@ func TestDeploySwarmStack_CommandSuccess(t *testing.T) {
 	defer os.RemoveAll(tmp)
 
 	// Create a docker shim that exits 0
-	content := "@echo off\necho fake docker success\nexit /b 0\n"
-	if _, err := writeDockerShim(tmp, content); err != nil {
+	if _, err := writeDockerShim(tmp, 0); err != nil {
 		t.Fatal(err)
 	}
 
