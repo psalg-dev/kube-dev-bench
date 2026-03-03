@@ -1,9 +1,3 @@
----
-layout: default
-title: Home
-nav_order: 1
----
-
 # KubeDevBench
 
 A modern desktop client for managing Kubernetes clusters and Docker Swarm environments. Built with Go (Wails) and React, KubeDevBench provides a unified interface for container orchestration with AI-powered diagnostics.

@@ -5,6 +5,20 @@ baseurl: "/kube-dev-bench"
 
 remote_theme: pages-themes/cayman@v0.2.0
 
+# Apply default layout without requiring front matter in each file
+defaults:
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: default
+  - scope:
+      path: "README.md"
+    values:
+      layout: default
+      title: Home
+      nav_order: 1
+
 plugins:
   - jekyll-remote-theme
   - jekyll-seo-tag
