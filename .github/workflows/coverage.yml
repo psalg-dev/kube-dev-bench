@@ -107,7 +107,7 @@ jobs:
           echo "Combined (avg): ${{ steps.compute_cov.outputs.combined }}%" >> coverage/coverage_summary.txt
 
       - name: Upload coverage artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-artifacts
           path: |
