@@ -5,10 +5,14 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 test.describe('Docker Swarm Cluster Topology', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });

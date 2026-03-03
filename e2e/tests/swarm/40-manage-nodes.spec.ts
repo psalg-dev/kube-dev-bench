@@ -10,6 +10,7 @@ import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 async function expectSwarmConnected(page: import('@playwright/test').Page) {
   const sidebar = new SwarmSidebarPage(page);

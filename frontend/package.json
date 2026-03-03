@@ -2,7 +2,7 @@
   "name": "frontend",
   "private": true,
   "type": "module",
-  "version": "0.5.0",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "e2e:local": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Set-Location -Path ..\\e2e; npm install; npx playwright install; npx playwright test\"",
@@ -51,7 +51,6 @@
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.38.2",
     "@dagrejs/dagre": "^2.0.4",
-    "@rollup/rollup-linux-x64-gnu": "^4.57.1",
     "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.10.0",
     "diff": "^8.0.0",

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -61,7 +61,7 @@ jobs:
     needs: frontend
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Download frontend dist
         uses: actions/download-artifact@v7
@@ -169,7 +169,7 @@ jobs:
             mcp: false
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -390,11 +390,11 @@ jobs:
           - os: macos-latest
             platform: darwin
             arch: amd64
-            artifact: KubeDevBench-darwin-amd64
+            artifact: KubeDevBench-darwin-amd64.zip
           - os: macos-latest
             platform: darwin
             arch: arm64
-            artifact: KubeDevBench-darwin-arm64
+            artifact: KubeDevBench-darwin-arm64.zip
           # Linux builds
           - os: ubuntu-22.04
             platform: linux
@@ -408,7 +408,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Go
         uses: actions/setup-go@v6
@@ -449,7 +449,31 @@ jobs:
           CGO_ENABLED: ${{ matrix.arch == 'arm64' && matrix.platform == 'linux' && '1' || '' }}
           CC: ${{ matrix.arch == 'arm64' && matrix.platform == 'linux' && 'aarch64-linux-gnu-gcc' || '' }}
         run: |
-          wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -o ${{ matrix.artifact }}
+          if [ "${{ matrix.platform }}" = "darwin" ]; then
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }}
+          else
+            wails build -platform ${{ matrix.platform }}/${{ matrix.arch }} -o ${{ matrix.artifact }}
+          fi
+        shell: bash
+
+      - name: List build output
+        run: ls -laR build/bin/
+        shell: bash
+
+      - name: Package macOS app bundle
+        if: matrix.platform == 'darwin'
+        working-directory: build/bin
+        run: |
+          # Wails produces a .app bundle on macOS
+          APP_BUNDLE=$(ls -d *.app 2>/dev/null | head -1)
+          if [ -z "$APP_BUNDLE" ]; then
+            echo "ERROR: No .app bundle found in build/bin/"
+            ls -la
+            exit 1
+          fi
+          echo "Found app bundle: $APP_BUNDLE"
+          zip -r -y "${{ matrix.artifact }}" "$APP_BUNDLE"
+          echo "Created ${{ matrix.artifact }} ($(du -h ${{ matrix.artifact }} | cut -f1))"
 
       - name: Upload release artifact (Windows)
         if: matrix.platform == 'windows'

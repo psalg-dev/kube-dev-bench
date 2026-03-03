@@ -13,6 +13,7 @@ import { SwarmConnectionWizardPage } from '../../src/pages/SwarmConnectionWizard
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { ConnectionWizardPage } from '../../src/pages/ConnectionWizardPage.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 test.describe('Docker Swarm Connection', () => {
   const gotoWithRetry = async (page: Page) => {
@@ -35,6 +36,9 @@ test.describe('Docker Swarm Connection', () => {
   };
 
   test.beforeEach(async ({ page }) => {
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await gotoWithRetry(page);
     // The Swarm connection flow should not require Kubernetes setup.
     // Ensure the Connections wizard is visible (it may be hidden if a kubeconfig already exists).

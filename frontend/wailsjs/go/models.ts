@@ -2411,7 +2411,6 @@ export namespace app {
 		}
 	}
 	
-	
 	export class RolloutStatus {
 	    kind: string;
 	    name: string;

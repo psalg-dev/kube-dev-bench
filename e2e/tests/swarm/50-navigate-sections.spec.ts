@@ -5,6 +5,7 @@
 import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 const swarmSections = [
   { key: 'swarm-services', label: 'Services' },
@@ -39,6 +40,9 @@ async function expectSwarmConnected(page: import('@playwright/test').Page) {
 test.describe('Docker Swarm Sidebar Navigation', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });
@@ -96,6 +100,9 @@ test.describe('Docker Swarm Sidebar Navigation', () => {
 test.describe('Docker Swarm Networks View', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });
@@ -126,6 +133,9 @@ test.describe('Docker Swarm Networks View', () => {
 test.describe('Docker Swarm Volumes View', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });
@@ -142,6 +152,9 @@ test.describe('Docker Swarm Volumes View', () => {
 test.describe('Docker Swarm Configs View', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });
@@ -158,6 +171,9 @@ test.describe('Docker Swarm Configs View', () => {
 test.describe('Docker Swarm Secrets View', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });
@@ -174,6 +190,9 @@ test.describe('Docker Swarm Secrets View', () => {
 test.describe('Docker Swarm Stacks View', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });

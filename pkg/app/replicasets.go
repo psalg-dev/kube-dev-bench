@@ -47,3 +47,13 @@ func (a *App) GetReplicaSets(namespace string) ([]ReplicaSetInfo, error) {
 		buildReplicaSetInfo,
 	)
 }
+
+func (a *App) collectReplicaSets(nsList []string) []ReplicaSetInfo {
+	var all []ReplicaSetInfo
+	for _, ns := range nsList {
+		if list, err := a.GetReplicaSets(ns); err == nil {
+			all = append(all, list...)
+		}
+	}
+	return all
+}

@@ -47,3 +47,13 @@ func (a *App) GetStatefulSets(namespace string) ([]StatefulSetInfo, error) {
 		buildStatefulSetInfo,
 	)
 }
+
+func (a *App) collectStatefulSets(nsList []string) []StatefulSetInfo {
+	var all []StatefulSetInfo
+	for _, ns := range nsList {
+		if list, err := a.GetStatefulSets(ns); err == nil {
+			all = append(all, list...)
+		}
+	}
+	return all
+}

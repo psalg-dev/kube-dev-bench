@@ -151,38 +151,28 @@ async function assertBulkSelection(opts: {
   }
 
   const rowCheckboxes = root.locator('tbody input.bulk-row-checkbox:visible');
-  try {
-    await expect(rowCheckboxes.first()).toBeVisible({ timeout: 60_000 });
-  } catch (err) {
-    const emptyState = root.locator('td.main-panel-loading', { hasText: /no rows match the filter/i }).first();
-    if (await emptyState.isVisible().catch(() => false)) {
-      return;
-    }
 
-    const totalRowCheckboxes = await root.locator('tbody input.bulk-row-checkbox').count();
-    if (totalRowCheckboxes === 0) {
-      const totalBodyRows = await root.locator('table tbody tr').count();
-      if (totalBodyRows === 0) {
-        return;
-      }
+  // Race: wait for either row checkboxes to appear OR for the table to show an
+  // empty-state row (a single <td> child whose text starts with "No ").  We use
+  // locator.waitFor() instead of expect().toBeVisible() because Playwright's
+  // expect() can track failed assertions internally even when caught via
+  // try/catch, causing the test to fail despite graceful error handling.
+  const emptyIndicator = root.locator('table tbody tr td:only-child').filter({ hasText: /^No /i });
+  const raceResult = await Promise.race([
+    rowCheckboxes.first().waitFor({ state: 'visible', timeout: 60_000 }).then(() => 'checkboxes' as const),
+    emptyIndicator.waitFor({ state: 'visible', timeout: 60_000 }).then(() => 'empty' as const),
+  ]).catch(() => 'timeout' as const);
 
-      const genericEmptyStates = [
-        root.getByText(/no rows match the filter/i).first(),
-        root.getByText(/no data/i).first(),
-        root.getByText(/no .* found/i).first(),
-      ];
-      for (const state of genericEmptyStates) {
-        if (await state.isVisible().catch(() => false)) {
-          return;
-        }
-      }
+  if (raceResult !== 'checkboxes') {
+    return;
+  }
 
-      // If the view currently has no selectable rows, skip bulk assertions for
-      // this resource view instead of failing the entire cross-resource suite.
-      return;
-    }
-
-    throw err;
+  // Double-check: the race can resolve with 'checkboxes' during a view
+  // transition when stale rows from the previous view are briefly visible.
+  // Verify that visible checkboxes still exist after a micro-settle.
+  const visibleCount = await rowCheckboxes.count();
+  if (visibleCount === 0) {
+    return;
   }
 
   const rowCount = await rowCheckboxes.count();

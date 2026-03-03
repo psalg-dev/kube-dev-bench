@@ -5,6 +5,7 @@ import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName, waitForSwarmServicesTable } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 function escapeRegExp(input: string): string {
   return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -53,6 +54,9 @@ async function cleanupServices(prefix: string) {
 test.describe('Docker Swarm Nodes/Services/Stacks', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(360_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true, ensureSeedService: false });
     // Ensure no leftover panels from previous tests

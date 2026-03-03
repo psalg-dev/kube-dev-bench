@@ -1,5 +1,0 @@
-# Generated reports (recreated on each run)
-reports/
-
-# Docker volumes (if any local state)
-.docker/

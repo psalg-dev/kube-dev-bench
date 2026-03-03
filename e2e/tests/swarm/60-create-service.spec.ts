@@ -7,6 +7,7 @@ import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 async function expectSwarmConnected(page: import('@playwright/test').Page) {
   const sidebar = new SwarmSidebarPage(page);
@@ -17,6 +18,9 @@ async function expectSwarmConnected(page: import('@playwright/test').Page) {
 test.describe('Docker Swarm Create Service', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
   });

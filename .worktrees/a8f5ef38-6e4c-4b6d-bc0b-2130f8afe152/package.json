@@ -1,6 +1,0 @@
-{
-  "private": true,
-  "scripts": {
-    "test": "npm --prefix frontend test"
-  }
-}

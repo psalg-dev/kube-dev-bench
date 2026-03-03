@@ -31,7 +31,20 @@ test('sidebar navigation renders the correct main view', async ({ page, contextN
 
   for (const c of checks) {
     await sidebar.goToSection(c.key);
-    await expect(page.locator('h2.overview-title:visible')).toHaveText(c.title, { timeout: 60_000 });
+
+    // Some views may fail to load on first attempt due to transient proxy /
+    // connection errors (e.g. Windows socket exhaustion after many sequential
+    // API calls).  If the title doesn't appear quickly, wait for connections
+    // to drain and re-navigate.
+    const title = page.locator('h2.overview-title:visible');
+    try {
+      await title.waitFor({ state: 'visible', timeout: 15_000 });
+    } catch {
+      await page.waitForTimeout(3_000);
+      await sidebar.goToSection(c.key);
+    }
+
+    await expect(title).toHaveText(c.title, { timeout: 60_000 });
     
     // Add a stabilization wait to ensure the view has fully rendered
     await page.waitForTimeout(1000);

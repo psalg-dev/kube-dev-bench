@@ -66,19 +66,38 @@ server.on('connect', (req, clientSocket, head) => {
   const upstreamSocket = net.connect(targetPort, targetHost, () => {
     clientSocket.write('HTTP/1.1 200 Connection Established\r\n\r\n');
     if (head && head.length > 0) upstreamSocket.write(head);
+
+    // Enable keepalive to reuse connections and set no-delay for responsiveness.
+    upstreamSocket.setKeepAlive(true, 30_000);
+    upstreamSocket.setNoDelay(true);
+    clientSocket.setKeepAlive(true, 30_000);
+    clientSocket.setNoDelay(true);
+
     upstreamSocket.pipe(clientSocket);
     clientSocket.pipe(upstreamSocket);
   });
+
+  // When either side ends, use destroy() (sends RST) instead of allowing
+  // graceful FIN/FIN-ACK close.  This avoids accumulating TIME_WAIT sockets
+  // on Windows, which exhausts ephemeral ports after many sequential tests.
+  const cleanup = () => {
+    if (!upstreamSocket.destroyed) upstreamSocket.destroy();
+    if (!clientSocket.destroyed) clientSocket.destroy();
+  };
+  upstreamSocket.on('end', cleanup);
+  clientSocket.on('end', cleanup);
+  upstreamSocket.on('close', cleanup);
+  clientSocket.on('close', cleanup);
 
   upstreamSocket.on('error', (err) => {
     try {
       clientSocket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
     } catch {}
-    clientSocket.destroy(err);
+    cleanup();
   });
 
   clientSocket.on('error', () => {
-    upstreamSocket.destroy();
+    cleanup();
   });
 });
 

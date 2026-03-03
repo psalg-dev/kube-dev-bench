@@ -9,6 +9,7 @@ import { test, expect } from '../../src/fixtures.js';
 import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { SwarmBottomPanel } from '../../src/pages/SwarmBottomPanel.js';
 import { bootstrapSwarm } from '../../src/support/swarm-bootstrap.js';
+import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
 
 const fixtureStackName = 'kdb-e2e-fixtures';
 const replicatedServiceName = `${fixtureStackName}_a-replicated`;
@@ -23,6 +24,9 @@ async function expectSwarmConnected(page: import('@playwright/test').Page) {
 test.describe('Docker Swarm Services', () => {
   test.beforeEach(async ({ page }) => {
     test.setTimeout(120_000);
+    if (!(await isLocalSwarmActive())) {
+      test.skip(true, 'Docker Swarm is not active');
+    }
     await page.goto('/');
     await bootstrapSwarm({ page, skipIfConnected: true });
     // Ensure no leftover panels from previous tests

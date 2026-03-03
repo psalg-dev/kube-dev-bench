@@ -1,6 +1,0 @@
-# Docker Registry authentication files
-auth/htpasswd
-
-# Temporary files
-*.tmp
-*.log
