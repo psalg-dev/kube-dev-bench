@@ -511,3 +511,19 @@ func TestGetServiceEndpoints_WithoutNodeName(t *testing.T) {
 		t.Errorf("expected empty NodeName, got %s", endpoints[0].NodeName)
 	}
 }
+
+func TestGetServices_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetServices("default")
+	if err == nil {
+		t.Error("expected error from GetServices with no K8s context")
+	}
+}
+
+func TestGetServiceEndpoints_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetServiceEndpoints("default", "my-svc")
+	if err == nil {
+		t.Error("expected error from GetServiceEndpoints with no K8s context")
+	}
+}

@@ -462,3 +462,51 @@ func TestGetClusterRoleBindings_RawFieldList(t *testing.T) {
 		t.Fatalf("Raw type = %T, want *rbacv1.ClusterRoleBinding", list[0].Raw)
 	}
 }
+
+func TestGetRoleBindings_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetRoleBindings("default")
+	if err == nil {
+		t.Error("expected error from GetRoleBindings with no K8s context")
+	}
+}
+
+func TestGetClusterRoleBindings_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetClusterRoleBindings()
+	if err == nil {
+		t.Error("expected error from GetClusterRoleBindings with no K8s context")
+	}
+}
+
+func TestGetRoleBindingDetail_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetRoleBindingDetail("default", "rb")
+	if err == nil {
+		t.Error("expected error from GetRoleBindingDetail with no K8s context")
+	}
+}
+
+func TestGetClusterRoleBindingDetail_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetClusterRoleBindingDetail("crb")
+	if err == nil {
+		t.Error("expected error from GetClusterRoleBindingDetail with no K8s context")
+	}
+}
+
+func TestGetRoleBindingSubjects_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetRoleBindingSubjects("default", "rb")
+	if err == nil {
+		t.Error("expected error from GetRoleBindingSubjects with no K8s context")
+	}
+}
+
+func TestGetClusterRoleBindingSubjects_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetClusterRoleBindingSubjects("crb")
+	if err == nil {
+		t.Error("expected error from GetClusterRoleBindingSubjects with no K8s context")
+	}
+}

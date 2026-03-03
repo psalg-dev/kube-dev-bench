@@ -765,3 +765,54 @@ func TestFormatEventTime(t *testing.T) {
 		})
 	}
 }
+
+// TestGetPodEvents_WithMatchingEvent verifies that a pre-loaded Event whose
+// InvolvedObject matches the pod name is included in the result.
+func TestGetPodEvents_WithMatchingEvent(t *testing.T) {
+	evt := &v1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "pod-evt-1",
+			Namespace: "default",
+		},
+		InvolvedObject: v1.ObjectReference{
+			Name:      "target-pod",
+			Kind:      "Pod",
+			Namespace: "default",
+		},
+		Reason:  "Started",
+		Message: "Container started",
+		Type:    "Normal",
+		Count:   1,
+		LastTimestamp: metav1.Time{Time: time.Now()},
+	}
+	cs := fake.NewSimpleClientset(evt)
+	app := &App{ctx: context.Background(), testClientset: cs, currentNamespace: "default"}
+
+	results, err := app.GetPodEvents("default", "target-pod")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) == 0 {
+		t.Error("expected at least one event result matching the pod")
+	}
+}
+
+// TestGetPodEvents_GetEventsClientsetError verifies that GetPodEvents returns an
+// error when no Kubernetes context is configured.
+func TestGetPodEvents_GetEventsClientsetError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetPodEvents("default", "some-pod")
+	if err == nil {
+		t.Error("expected error when no kube context configured")
+	}
+}
+
+// TestGetResourceEvents_GetEventsClientsetError verifies that GetResourceEvents
+// returns an error when no Kubernetes context is configured.
+func TestGetResourceEvents_GetEventsClientsetError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetResourceEvents("default", "Pod", "some-pod")
+	if err == nil {
+		t.Error("expected error when no kube context configured")
+	}
+}

@@ -312,3 +312,35 @@ func TestGetClusterRoles_RawFieldList(t *testing.T) {
 		t.Fatalf("Raw type = %T, want *rbacv1.ClusterRole", list[0].Raw)
 	}
 }
+
+func TestGetRoles_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetRoles("default")
+	if err == nil {
+		t.Error("expected error from GetRoles with no K8s context")
+	}
+}
+
+func TestGetClusterRoles_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetClusterRoles()
+	if err == nil {
+		t.Error("expected error from GetClusterRoles with no K8s context")
+	}
+}
+
+func TestGetRoleDetail_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetRoleDetail("default", "r")
+	if err == nil {
+		t.Error("expected error from GetRoleDetail with no K8s context")
+	}
+}
+
+func TestGetClusterRoleDetail_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetClusterRoleDetail("cr")
+	if err == nil {
+		t.Error("expected error from GetClusterRoleDetail with no K8s context")
+	}
+}

@@ -162,3 +162,24 @@ func TestGetCurrentConfig_PreferredNamespacesCopy(t *testing.T) {
 		t.Error("GetCurrentConfig should return a copy of PreferredNamespaces")
 	}
 }
+
+// TestStartup_LoadConfigError_CountsRefreshChNil covers the loadConfig error
+// path (bad JSON) and the nil countsRefreshCh safety assignment in Startup.
+func TestStartup_LoadConfigError_CountsRefreshChNil(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "bad-cfg.json")
+	if err := os.WriteFile(configPath, []byte("{bad json!!}"), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	app := &App{
+		configPath:           configPath,
+		countsRefreshCh:      nil, // triggers nil-safety branch
+		disableStartupDocker: true,
+		logCancels:           make(map[string]context.CancelFunc),
+		swarmVolumeHelpers:   make(map[string]string),
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.Startup(ctx)
+}

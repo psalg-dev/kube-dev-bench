@@ -206,3 +206,19 @@ func TestBuildEndpointInfo_MultiplePortsAndAddresses(t *testing.T) {
 		t.Errorf("expected %d endpoint addresses, got %d", expectedAddresses, len(info.Endpoints))
 	}
 }
+
+func TestGetEndpoints_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetEndpoints("default")
+	if err == nil {
+		t.Error("expected error from GetEndpoints with no K8s context")
+	}
+}
+
+func TestGetEndpointDetail_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetEndpointDetail("default", "svc")
+	if err == nil {
+		t.Error("expected error from GetEndpointDetail with no K8s context")
+	}
+}
