@@ -19,7 +19,6 @@ export type RunState = {
   sharedDialogDir?: string;
   proxyBaseURL?: string;
   proxyPid?: number;
-  jfrogLogPath?: string;
   // Holmes mock server for deterministic AI testing
   holmesMockBaseURL?: string;
   holmesMockPid?: number;
