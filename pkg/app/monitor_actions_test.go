@@ -515,3 +515,26 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	holmesClient = nil
 	holmesMu.Unlock()
 }
+
+// TestLoadPersistedIssues_NullJSON covers the branch that converts a JSON null
+// result into an empty (non-nil) map.
+func TestLoadPersistedIssues_NullJSON(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "issues-*.json")
+	if err != nil {
+		t.Fatalf("os.CreateTemp: %v", err)
+	}
+	path := f.Name()
+	f.Close()
+	if werr := os.WriteFile(path, []byte("null"), 0o600); werr != nil {
+		t.Fatalf("write: %v", werr)
+	}
+	t.Setenv("KDB_MONITOR_ISSUES_PATH", path)
+
+	issues, err := loadPersistedIssues()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if issues == nil {
+		t.Error("expected non-nil map after null-JSON load")
+	}
+}

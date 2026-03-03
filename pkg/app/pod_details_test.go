@@ -671,3 +671,23 @@ func TestGetPodMounts(t *testing.T) {
 		}
 	}
 }
+
+// TestGetPodYAML_GetK8sError verifies that GetPodYAML returns an error when no
+// Kubernetes context is configured.
+func TestGetPodYAML_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetPodYAML("test-pod")
+	if err == nil {
+		t.Error("expected error from GetPodYAML with no K8s context")
+	}
+}
+
+// TestGetPodContainers_GetK8sError verifies that GetPodContainers returns an
+// error when no Kubernetes context is configured.
+func TestGetPodContainers_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetPodContainers("test-pod")
+	if err == nil {
+		t.Error("expected error from GetPodContainers with no K8s context")
+	}
+}

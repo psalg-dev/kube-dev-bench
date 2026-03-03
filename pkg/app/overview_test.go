@@ -175,3 +175,11 @@ func TestGetOverview(t *testing.T) {
 		})
 	}
 }
+
+func TestGetOverview_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetOverview("default")
+	if err == nil {
+		t.Error("expected error from GetOverview with no K8s context")
+	}
+}

@@ -686,3 +686,23 @@ func TestUpdateScale(t *testing.T) {
 		t.Errorf("expected update error, got %v", err)
 	}
 }
+
+// TestStartJobFromCronJob_NotFound verifies that StartJobFromCronJob returns an
+// error when the referenced CronJob does not exist.
+func TestStartJobFromCronJob_NotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	err := app.StartJobFromCronJob("default", "missing-cj")
+	if err == nil {
+		t.Error("expected error for missing cronjob")
+	}
+}
+
+// TestStartJob_NotFound verifies that StartJob returns an error when the
+// referenced Job does not exist.
+func TestStartJob_NotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	err := app.StartJob("default", "missing-job")
+	if err == nil {
+		t.Error("expected error for missing job")
+	}
+}
