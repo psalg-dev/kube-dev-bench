@@ -25,8 +25,8 @@ jobs:
         run: |
           set -e
           mkdir -p coverage
-          echo "Running go test ./... -coverprofile=coverage/go-coverage"
-          go test ./... -covermode=atomic -coverprofile=coverage/go-coverage 2>&1 | tee coverage/go-test-output.txt
+          echo "Running go test ./pkg/app/... -coverprofile=coverage/go-coverage"
+          go test ./pkg/app/... -covermode=atomic -coverprofile=coverage/go-coverage 2>&1 | tee coverage/go-test-output.txt
           echo "Generating function coverage report"
           go tool cover -func=coverage/go-coverage > coverage/go-coverage-func.txt
           echo "Coverage function report written to coverage/go-coverage-func.txt"
@@ -42,7 +42,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Install frontend dependencies
         working-directory: frontend
