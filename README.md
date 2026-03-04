@@ -100,6 +100,19 @@ AI-powered diagnostics for intelligent troubleshooting:
 5. **Docker Swarm:** Local Docker socket is auto-detected, or configure remote
 6. Start managing your containers!
 
+### 🧪 Development Snapshots
+
+Use rolling dev snapshots (public, no GitHub login required):
+
+- Snapshot release page: https://github.com/psalg-dev/kube-dev-bench/releases/tag/dev-snapshot
+- Windows (x64): https://github.com/psalg-dev/kube-dev-bench/releases/download/dev-snapshot/KubeDevBench-windows-amd64.exe
+- Windows (ARM64): https://github.com/psalg-dev/kube-dev-bench/releases/download/dev-snapshot/KubeDevBench-windows-arm64.exe
+- macOS (Intel): https://github.com/psalg-dev/kube-dev-bench/releases/download/dev-snapshot/KubeDevBench-darwin-amd64.zip
+- macOS (Apple Silicon): https://github.com/psalg-dev/kube-dev-bench/releases/download/dev-snapshot/KubeDevBench-darwin-arm64.zip
+- Linux (x64): https://github.com/psalg-dev/kube-dev-bench/releases/download/dev-snapshot/KubeDevBench-linux-amd64
+
+> These builds are generated from the `dev` branch and may be unstable.
+
 ---
 
 ## 🍎 macOS Installation
