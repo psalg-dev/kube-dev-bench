@@ -96,7 +96,7 @@ export function useEnterpriseAuthEvents() {
 
     showWarning(
       'Corporate proxy requires NTLM/Negotiate authentication. ' +
-        'Open Connection Settings → Proxy and switch auth to "ntlm-local".',
+        'Set up a local proxy relay (CNTLM or px-proxy), then switch auth to "ntlm-local" in Connection Settings → Proxy.',
     );
   }, []);
 

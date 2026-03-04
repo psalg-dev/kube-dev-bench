@@ -18,14 +18,26 @@ import (
 // This is a no-op on non-Windows platforms (ensured by the build tag).
 func supplementWindowsPath() {
 	extra := []string{
+		// kubelogin (Azure AKS)
 		os.ExpandEnv(`${ProgramFiles}\kubelogin`),
 		os.ExpandEnv(`${ProgramFiles(x86)}\kubelogin`),
+		// TKGI / PKS (VMware Tanzu)
+		os.ExpandEnv(`${ProgramFiles}\VMware\TKGI CLI`),
+		os.ExpandEnv(`${ProgramFiles(x86)}\VMware\TKGI CLI`),
+		os.ExpandEnv(`${LOCALAPPDATA}\Programs\tkgi`),
+		// AWS
+		os.ExpandEnv(`${ProgramFiles}\Amazon\AWSCLIV2`),
+		os.ExpandEnv(`${ProgramFiles}\Amazon\aws-iam-authenticator`),
+		// General locations
 		os.ExpandEnv(`${LOCALAPPDATA}\Microsoft\WindowsApps`),
 		os.ExpandEnv(`${USERPROFILE}\.local\bin`),
 		os.ExpandEnv(`${USERPROFILE}\bin`),
+		// Package managers
 		filepath.Join(os.ExpandEnv(`${ProgramData}`), "chocolatey", "bin"),
 		filepath.Join(os.ExpandEnv(`${USERPROFILE}`), "scoop", "shims"),
 		filepath.Join(os.ExpandEnv(`${USERPROFILE}`), "scoop", "apps", "kubelogin", "current"),
+		filepath.Join(os.ExpandEnv(`${USERPROFILE}`), "scoop", "apps", "tkgi", "current"),
+		// Cloud SDK
 		filepath.Join(os.ExpandEnv(`${USERPROFILE}`), ".azure", "bin"),
 		filepath.Join(os.ExpandEnv(`${APPDATA}`), "gcloud", "bin"),
 	}
