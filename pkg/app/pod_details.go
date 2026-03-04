@@ -49,7 +49,11 @@ func (a *App) GetPodContainers(podName string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(a.ctx, podName, metav1.GetOptions{})
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(ctx, podName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

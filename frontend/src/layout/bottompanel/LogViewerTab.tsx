@@ -21,6 +21,10 @@ const MAX_LINES = 10000;
 const BATCH_SIZE = 100;
 const UPDATE_INTERVAL = 100;
 
+// Container prefix regex: matches "[container-name] " at line start (module-level for reuse)
+const containerPrefixRegex = /^\[([^\]]+)\] /;
+const containerColorCount = 8;
+
 type LogViewerTabProps = {
   podName?: string;
   namespace?: string;
@@ -145,6 +149,8 @@ export default function LogViewerTab({
       setSelectedContainer(null);
       return;
     }
+    // Clear container color assignments when switching pods
+    containerColorMapRef.current.clear();
     let cancelled = false;
     GetPodContainers(podName)
       .then((containers) => {
@@ -192,10 +198,6 @@ export default function LogViewerTab({
       ),
     []
   );
-
-  // Container prefix regex: matches "[container-name] " at line start
-  const containerPrefixRegex = /^\[([^\]]+)\] /;
-  const containerColorCount = 8;
 
   // Build a stable color index map for container names
   const containerColorMapRef = useRef(new Map<string, number>());

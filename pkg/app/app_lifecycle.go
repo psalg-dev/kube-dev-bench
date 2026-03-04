@@ -102,6 +102,11 @@ type App struct {
 	informerMu      sync.Mutex
 	informerManager *InformerManager
 
+	// kubeContextMu protects reads/writes of currentKubeContext across
+	// goroutines (pollers, informers, session probe, etc.).
+	// Use getKubeContext() / setKubeContext() for thread-safe access.
+	kubeContextMu sync.RWMutex
+
 	// Cached kubernetes clientset to avoid creating a new one per API call.
 	cachedClientMu  sync.Mutex
 	cachedClientset *kubernetes.Clientset
@@ -110,6 +115,20 @@ type App struct {
 	pollingMu      sync.Mutex
 	pollingStarted bool
 	pollingStopCh  chan struct{}
+}
+
+// getKubeContext returns the current kube context name in a thread-safe manner.
+func (a *App) getKubeContext() string {
+	a.kubeContextMu.RLock()
+	defer a.kubeContextMu.RUnlock()
+	return a.currentKubeContext
+}
+
+// setKubeContext stores the kube context name in a thread-safe manner.
+func (a *App) setKubeContext(name string) {
+	a.kubeContextMu.Lock()
+	defer a.kubeContextMu.Unlock()
+	a.currentKubeContext = name
 }
 
 // NewApp creates a new App application struct
@@ -191,8 +210,10 @@ func (a *App) Startup(ctx context.Context) {
 	supplementWindowsPath()
 
 	// Initialize file logger in a user-writable app directory.
+	// Errors are always written to stderr by the logger package itself,
+	// but we also log them here so they appear on the console during dev.
 	if err := logger.Init(a.logDirectory()); err != nil {
-		fmt.Printf("Warning: could not initialize file logger: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Warning: could not initialize file logger: %v\n", err)
 	}
 	logger.Info("KubeDevBench starting up")
 
@@ -281,7 +302,7 @@ func (a *App) Shutdown(ctx context.Context) {
 // GetCurrentConfig returns the currently loaded configuration
 func (a *App) GetCurrentConfig() AppConfig {
 	return AppConfig{
-		CurrentContext:      a.currentKubeContext,
+		CurrentContext:      a.getKubeContext(),
 		CurrentNamespace:    a.currentNamespace,
 		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
 		UseInformers:        a.useInformers,
