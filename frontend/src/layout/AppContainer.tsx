@@ -16,6 +16,10 @@ import { HolmesPanel } from '../holmes/HolmesPanel';
 // MCP server provider and components
 import { MCPConfigModal } from '../mcp/MCPConfigModal';
 import { MCPProvider, useMCP } from '../mcp/MCPContext';
+// Enterprise auth events
+import { useEnterpriseAuthEvents } from '../hooks/useEnterpriseAuthEvents';
+import { TLSCertErrorDialog } from './connection/TLSCertErrorDialog';
+import { AuthExpiredBanner } from './connection/AuthExpiredBanner';
 type MainContentBinderProps = {
   selectedSection: string;
   setConnectionWizardInitialSection?: (_section: SelectedSection) => void;
@@ -114,6 +118,7 @@ function LayoutOrWizard({
   const swarmState = useSwarmState();
   const holmes = useHolmes();
   const mcpCtx = useMCP();
+  const enterpriseAuth = useEnterpriseAuthEvents();
 
   // Swarm-only mode: if Kubernetes isn't available (no kubeconfigs detected),
   // ensure we land on a Swarm view so the main content isn't blank.
@@ -195,6 +200,26 @@ function LayoutOrWizard({
       <HolmesConfigModal />
       <HolmesOnboardingWizard />
       <MCPConfigModal />
+      {/* Enterprise Auth: TLS cert error dialog */}
+      {enterpriseAuth.tlsCertError && (
+        <TLSCertErrorDialog
+          payload={enterpriseAuth.tlsCertError}
+          onDismiss={enterpriseAuth.dismissTlsCertError}
+          onInsecureConnected={() => actions.refreshConnectionStatus()}
+          onAddCA={() => {
+            if (setConnectionWizardInitialSection) setConnectionWizardInitialSection('kubernetes');
+            actions.openWizard();
+          }}
+        />
+      )}
+      {/* Enterprise Auth: auth expired banner */}
+      {enterpriseAuth.authExpired && (
+        <AuthExpiredBanner
+          payload={enterpriseAuth.authExpired}
+          onDismiss={enterpriseAuth.dismissAuthExpired}
+          onReconnect={() => actions.refreshConnectionStatus()}
+        />
+      )}
     </>
   );
 }

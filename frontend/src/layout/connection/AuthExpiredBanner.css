@@ -1,0 +1,71 @@
+/* Auth Expired Banner — scoped to .auth-expired-banner */
+.auth-expired-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #4a2800;
+  border-bottom: 2px solid #d29922;
+  color: #e3b341;
+  font-size: 13px;
+}
+
+.auth-expired-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.auth-expired-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.auth-expired-text strong {
+  color: #fff;
+}
+
+.auth-expired-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.auth-expired-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.auth-expired-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-expired-reconnect {
+  background: #238636;
+  color: #fff;
+}
+
+.auth-expired-reconnect:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+.auth-expired-dismiss {
+  background: transparent;
+  color: #e3b341;
+  font-size: 16px;
+  padding: 4px 8px;
+}
+
+.auth-expired-dismiss:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}

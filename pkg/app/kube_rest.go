@@ -3,30 +3,33 @@ package app
 import (
 	"crypto/x509"
 	"fmt"
+	"net/url"
 	"os"
+	"regexp"
 	"strings"
 
 	"gowails/pkg/logger"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
-// getRESTConfig returns a *rest.Config for the current kube context, performing an
-// insecure fallback (Insecure=true & clearing CA data) when a certificate error occurs.
-// It updates a.isInsecureConnection accordingly so the frontend can reflect connection security.
+// getRESTConfig returns a *rest.Config for the current kube context.
+// Instead of auto-degrading to insecure TLS on cert errors, it returns structured
+// sentinel errors so the frontend can prompt the user for explicit consent.
+//
 // Permission / RBAC errors during probing are tolerated — they prove the cluster is reachable.
+// 401 Unauthorized errors are distinguished from 403 Forbidden and surface as ErrAuthExpired.
 func (a *App) getRESTConfig() (*rest.Config, error) {
-	configPath := a.getKubeConfigPath()
-	logger.Info("getRESTConfig: loading kubeconfig", "path", configPath, "context", a.currentKubeContext)
-	cfg, err := clientcmd.LoadFromFile(configPath)
+	cfg, err := a.loadKubeconfig()
 	if err != nil {
-		logger.Error("getRESTConfig: failed to load kubeconfig", "path", configPath, "error", err)
 		return nil, err
 	}
+
 	if a.currentKubeContext == "" {
 		logger.Error("getRESTConfig: no kube context selected")
 		return nil, fmt.Errorf("no kube context selected")
@@ -34,6 +37,16 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 	clientConfig := clientcmd.NewNonInteractiveClientConfig(*cfg, a.currentKubeContext, &clientcmd.ConfigOverrides{}, nil)
 	restConfig, err := clientConfig.ClientConfig()
 	if err != nil {
+		// Gap 5: detect exec binary not found
+		if binary := extractExecBinaryFromError(err); binary != "" {
+			logger.Error("getRESTConfig: exec provider binary not found", "binary", binary, "error", err)
+			emitEvent(a.ctx, EventExecProviderNotFound, map[string]interface{}{
+				"binary":  binary,
+				"context": a.currentKubeContext,
+				"error":   err.Error(),
+			})
+			return nil, &ErrExecBinaryNotFound{Binary: binary, Err: err}
+		}
 		logger.Error("getRESTConfig: failed to build client config", "context", a.currentKubeContext, "error", err)
 		return nil, err
 	}
@@ -47,29 +60,59 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 	// Apply proxy configuration if set
 	a.applyProxyConfig(restConfig)
 
-	// Probe cluster to detect TLS issues early. We do a lightweight call via a temp clientset.
+	// Probe cluster to detect TLS / auth issues early.
 	if err := a.probeRESTConfig(restConfig); err != nil {
-		if isCertError(err) && !restConfig.TLSClientConfig.Insecure {
-			// Apply insecure fallback
-			restConfig.TLSClientConfig.Insecure = true
-			restConfig.TLSClientConfig.CAData = nil
-			restConfig.TLSClientConfig.CAFile = ""
-			a.isInsecureConnection = true
-			a.insecureWarnOnce.Do(func() {
-				logger.Warn("TLS error detected, falling back to insecure mode", "context", a.currentKubeContext)
-			})
-			// Re-probe only for non-permission errors
-			if perr := a.probeRESTConfig(restConfig); perr != nil && isCertError(perr) {
-				logger.Error("getRESTConfig: insecure re-probe also failed with cert error", "error", perr)
-				return nil, perr
+		// Gap 2: TLS cert errors → require explicit user consent instead of auto-degrade
+		if isCertError(err) {
+			if a.allowInsecure {
+				// User has previously opted in via ConnectInsecure
+				restConfig.TLSClientConfig.Insecure = true
+				restConfig.TLSClientConfig.CAData = nil
+				restConfig.TLSClientConfig.CAFile = ""
+				a.isInsecureConnection = true
+				a.insecureWarnOnce.Do(func() {
+					logger.Warn("TLS error detected, using insecure mode (user opted in)", "context", a.currentKubeContext)
+				})
+				// Re-probe
+				if perr := a.probeRESTConfig(restConfig); perr != nil && isCertError(perr) {
+					logger.Error("getRESTConfig: insecure re-probe also failed with cert error", "error", perr)
+					return nil, perr
+				}
+				return restConfig, nil
 			}
-			return restConfig, nil
+
+			// No opt-in: emit event and return sentinel error
+			host := extractHostFromRESTConfig(restConfig)
+			logger.Warn("getRESTConfig: TLS cert error, requesting user consent", "host", host, "error", err)
+			emitEvent(a.ctx, EventTLSCertError, map[string]interface{}{
+				"host":    host,
+				"context": a.currentKubeContext,
+				"error":   err.Error(),
+			})
+			return nil, &ErrTLSCertVerification{Host: host, Err: err}
 		}
-		// Permission / RBAC errors mean the cluster IS reachable, just restricted.
-		// Do NOT block connection for those — the user may still be able to
-		// access specific namespaces even without cluster-wide list permission.
-		if isPermissionError(err) {
-			logger.Warn("getRESTConfig: cluster probe returned permission error (RBAC); connection allowed", "context", a.currentKubeContext, "error", err)
+
+		// Gap 6: detect 407 Proxy Authentication Required
+		if isProxyAuthRequired(err) {
+			logger.Warn("getRESTConfig: proxy requires authentication (407)", "error", err)
+			emitEvent(a.ctx, EventProxyAuthRequired, map[string]interface{}{
+				"context": a.currentKubeContext,
+				"error":   err.Error(),
+			})
+			return nil, fmt.Errorf("proxy requires NTLM/Negotiate authentication: %w", err)
+		}
+
+		// Gap 3: distinguish 401 from 403
+		if isUnauthenticated(err) {
+			logger.Warn("getRESTConfig: cluster probe returned 401 Unauthorized", "context", a.currentKubeContext, "error", err)
+			emitEvent(a.ctx, EventConnectionAuthExpired, map[string]interface{}{
+				"context": a.currentKubeContext,
+				"error":   err.Error(),
+			})
+			return nil, &ErrAuthExpired{Context: a.currentKubeContext, Err: err}
+		}
+		if isRBACForbidden(err) {
+			logger.Warn("getRESTConfig: cluster probe returned 403 Forbidden (RBAC); connection allowed", "context", a.currentKubeContext, "error", err)
 			a.isInsecureConnection = false
 			return restConfig, nil
 		}
@@ -85,6 +128,59 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 	logger.Info("getRESTConfig: probe successful", "context", a.currentKubeContext)
 	a.isInsecureConnection = false
 	return restConfig, nil
+}
+
+// loadKubeconfig loads the kubeconfig using either merged multi-path loading (Gap 4)
+// or the legacy single-file approach.
+func (a *App) loadKubeconfig() (*clientcmdapi.Config, error) {
+	// Gap 4: merged kubeconfig loading
+	if len(a.kubeconfigPaths) > 0 {
+		loadingRules := &clientcmd.ClientConfigLoadingRules{
+			Precedence: a.kubeconfigPaths,
+		}
+		cfg, err := loadingRules.Load()
+		if err != nil {
+			logger.Error("loadKubeconfig: failed to load merged kubeconfigs", "paths", a.kubeconfigPaths, "error", err)
+			return nil, err
+		}
+		logger.Info("loadKubeconfig: loaded merged kubeconfigs", "paths", a.kubeconfigPaths, "contexts", len(cfg.Contexts))
+		return cfg, nil
+	}
+
+	// Check KUBECONFIG env var for multi-path
+	if envPaths := os.Getenv("KUBECONFIG"); envPaths != "" {
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		cfg, err := loadingRules.Load()
+		if err != nil {
+			logger.Warn("loadKubeconfig: KUBECONFIG env merge failed, falling back to single file", "error", err)
+		} else if len(cfg.Contexts) > 0 {
+			logger.Info("loadKubeconfig: loaded from KUBECONFIG env var", "contexts", len(cfg.Contexts))
+			return cfg, nil
+		}
+	}
+
+	// Legacy single-file load
+	configPath := a.getKubeConfigPath()
+	logger.Info("loadKubeconfig: loading single kubeconfig", "path", configPath, "context", a.currentKubeContext)
+	cfg, err := clientcmd.LoadFromFile(configPath)
+	if err != nil {
+		logger.Error("loadKubeconfig: failed to load kubeconfig", "path", configPath, "error", err)
+		return nil, err
+	}
+	return cfg, nil
+}
+
+// ConnectInsecure explicitly connects with TLS verification disabled.
+// This should only be called after the user has confirmed the insecure opt-in dialog.
+func (a *App) ConnectInsecure(context string) error {
+	if context == "" {
+		return fmt.Errorf("context name required")
+	}
+	a.allowInsecure = true
+	logger.Warn("ConnectInsecure: user opted into insecure TLS", "context", context)
+
+	// Re-attempt connection via SetCurrentKubeContext which will call getRESTConfig
+	return a.SetCurrentKubeContext(context)
 }
 
 // getKubernetesClient returns a clientset using getRESTConfig.
@@ -182,6 +278,7 @@ func (a *App) applyCustomCA(rc *rest.Config) error {
 }
 
 // isPermissionError returns true if err is a Kubernetes API Forbidden or Unauthorized error.
+// Deprecated: use isRBACForbidden or isUnauthenticated for accurate classification.
 func isPermissionError(err error) bool {
 	if err == nil {
 		return false
@@ -219,4 +316,55 @@ func isAuthDiscoveryRecoverableError(err error) bool {
 		}
 	}
 	return false
+}
+
+// isProxyAuthRequired returns true when the error indicates a 407 Proxy
+// Authentication Required response, typically from NTLM/Kerberos proxies.
+func isProxyAuthRequired(err error) bool {
+	if err == nil {
+		return false
+	}
+	le := strings.ToLower(err.Error())
+	return strings.Contains(le, "407") || strings.Contains(le, "proxy authentication required") || strings.Contains(le, "proxy-authenticate")
+}
+
+// extractHostFromRESTConfig extracts the hostname from the REST config's Host field.
+func extractHostFromRESTConfig(rc *rest.Config) string {
+	if rc == nil {
+		return "unknown"
+	}
+	u, err := url.Parse(rc.Host)
+	if err != nil {
+		return rc.Host
+	}
+	if h := u.Hostname(); h != "" {
+		return h
+	}
+	// url.Parse treats schemeless strings as paths; return raw host.
+	return rc.Host
+}
+
+// execBinaryRegexp captures the binary name from "exec: \"<name>\": ..." style errors.
+var execBinaryRegexp = regexp.MustCompile(`exec:\s*"([^"]+)"`)
+
+// execFileNotFoundRegexp captures the binary name from "executable file not found" errors.
+var execFileNotFoundRegexp = regexp.MustCompile(`"([^"]+)":\s*executable file not found`)
+
+// extractExecBinaryFromError attempts to extract a credential provider binary name
+// from an error message. Returns empty string if not an exec-binary error.
+func extractExecBinaryFromError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "executable file not found") && !strings.Contains(msg, "exec:") {
+		return ""
+	}
+	if m := execFileNotFoundRegexp.FindStringSubmatch(msg); len(m) >= 2 {
+		return m[1]
+	}
+	if m := execBinaryRegexp.FindStringSubmatch(msg); len(m) >= 2 {
+		return m[1]
+	}
+	return ""
 }

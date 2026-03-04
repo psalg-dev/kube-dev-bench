@@ -1,243 +1,452 @@
-# Enterprise Kubernetes Authentication — Gap Analysis
+# Enterprise Kubernetes Authentication — Implementation Plan
 
-Research phase document. Covers how the app currently connects to Kubernetes clusters and identifies gaps for enterprise environments (Kerberos, SSO, TKGI, NTLM proxies, etc.).
+Gap analysis refined for development. Each gap maps directly to the code that needs changing, includes the exact change required, acceptance criteria, and test requirements.
 
 **Codebase snapshot**: client-go v0.35.2, Wails v2, Windows-primary desktop app.
 
 ---
 
-## How the App Connects Today
-
-The app delegates all authentication to the kubeconfig and client-go's plugin system — the correct architectural approach. Connection flow on each resource fetch:
+## Verified Connection Flow
 
 ```
-getRESTConfig()
-  └─ clientcmd.LoadFromFile(kubeConfigPath)        ← single file, no env var merge
+getRESTConfig()                                    ← pkg/app/kube_rest.go
+  └─ clientcmd.LoadFromFile(configPath)            ← single file only; no KUBECONFIG env merge (Gap 4)
   └─ NewNonInteractiveClientConfig(cfg, context)
   └─ clientConfig.ClientConfig()                   ← client-go resolves exec/token/cert auth
-  └─ applyCustomCA(restConfig)                     ← appends custom CA PEM
-  └─ applyProxyConfig(restConfig)                  ← none / basic / system proxy
-  └─ probeRESTConfig(restConfig)                   ← /version + namespace list probe
-       ├─ cert error   → auto-degrade to Insecure=true (no user consent)
-       ├─ 403 Forbidden → tolerated (RBAC restricted but reachable)
-       ├─ auth-provider error → tolerated (isAuthDiscoveryRecoverableError)
+       └─ only OIDC exec plugin imported           ← k8s_auth_plugins.go (Gap 1)
+  └─ applyCustomCA(restConfig)                     ← PEM-merge into TLSClientConfig.CAData ✓
+  └─ applyProxyConfig(restConfig)                  ← none / basic / system; no NTLM (Gap 6)
+  └─ probeRESTConfig(restConfig)                   ← /version then Namespaces().List(Limit:1)
+       ├─ cert error   → AUTO-degrade Insecure=true, no user consent (Gap 2)
+       ├─ 403 Forbidden → tolerated via isPermissionError ✓
+       ├─ 401 Unauthorized → tolerated via isPermissionError (should NOT be — Gap 3)
+       ├─ auth-provider / OIDC error → tolerated via isAuthDiscoveryRecoverableError ✓
        └─ other error  → hard fail
 ```
 
-### Currently Working
+### What Already Works
 
-| Capability | Notes |
+| Capability | Code location |
 |---|---|
-| Bearer token (kubeconfig) | Native client-go |
-| Client certificate auth | Native client-go |
-| Basic auth (kubeconfig) | Native client-go |
-| OIDC via exec credential provider | `k8s_auth_plugins.go` imports the OIDC plugin |
-| Custom CA certificate | PEM merge into `TLSClientConfig.CAData` |
-| HTTP proxy — none / basic / system | `proxy.go` |
-| Pre/post-connect hooks | Scripts run before connection; good extensibility |
-| Context switching | `kubeconfig.go` |
+| Bearer token / client cert / basic auth | Native client-go |
+| OIDC exec credential provider | `pkg/app/k8s_auth_plugins.go` — blank import |
+| Custom CA (PEM merge, appends to existing CA) | `pkg/app/kube_rest.go` — `applyCustomCA()` |
+| HTTP proxy — none / basic / system | `pkg/app/proxy.go` — `applyProxyConfig()` |
+| Pre/post-connect hooks | `pkg/app/hooks.go` — `hookTypePreConnect`, `hookTypePostConnect` |
+| Auth-provider error tolerance at connect time | `pkg/app/kube_rest.go` — `isAuthDiscoveryRecoverableError()` |
+| Multi-file kubeconfig *discovery* (scan `~/.kube/`) | `pkg/app/kubeconfig.go` — `GetKubeConfigs()` |
+| Context switching | `pkg/app/kubeconfig.go` |
 
 ---
 
-## Gap 1 — Missing Legacy Auth Plugins (Trivial fix, medium coverage)
+## Gap 1 — Missing Legacy Auth Plugins
 
-**File**: `pkg/app/k8s_auth_plugins.go`
+**Priority**: P1 — Trivial fix, medium coverage gain  
+**File**: [pkg/app/k8s_auth_plugins.go](pkg/app/k8s_auth_plugins.go)
 
-Only the OIDC plugin is imported. client-go ships two additional built-in auth providers still present in many enterprise kubeconfigs:
+### Problem
+
+Only the OIDC exec plugin is imported. client-go ships two additional built-in auth providers that are present in many enterprise kubeconfigs generated before 2022:
 
 ```
 k8s.io/client-go/plugin/pkg/client/auth/azure   ← AKS with legacy auth-provider stanza
 k8s.io/client-go/plugin/pkg/client/auth/gcp     ← GKE with legacy auth-provider stanza
 ```
 
-These are deprecated in favour of `exec:` credential plugins, but large enterprises often run older control plane versions or have kubeconfigs with the old `auth-provider:` stanza. Without these imports, the app silently fails to authenticate — no actionable error.
+Without these imports, client-go silently skips the auth provider and produces a generic "no auth provider found" error that `isAuthDiscoveryRecoverableError()` currently swallows — meaning the user connects but every API call returns 401 with no explanation.
 
-**Fix**: Add blank imports for `azure` and `gcp` in `k8s_auth_plugins.go`. Two lines of code.
+### Implementation
 
----
-
-## Gap 2 — Silent Insecure TLS Fallback (Security policy risk)
-
-**File**: `pkg/app/kube_rest.go:52–66`
-
-When a certificate verification error occurs during `probeRESTConfig`, the app automatically degrades the connection to `InsecureSkipVerify=true` and clears all CA data — **without any user consent or warning in the UI**:
+Add two blank imports to `k8s_auth_plugins.go`:
 
 ```go
-restConfig.TLSClientConfig.Insecure = true
-restConfig.TLSClientConfig.CAData = nil
-restConfig.TLSClientConfig.CAFile = ""
-a.isInsecureConnection = true
+import (
+    _ "k8s.io/client-go/plugin/pkg/client/auth/azure"
+    _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+    _ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
+)
 ```
 
-Enterprise concerns:
-- Security scanning tools (Prisma Cloud, Wiz, Aqua) flag `InsecureSkipVerify=true` in outbound connections.
-- Corporate TLS-inspection proxies use internal CAs — the correct response is to add that CA, not skip verification.
-- TKGI management plane certificates and internal PKI CAs are the most common source of cert errors; the existing custom CA feature already solves this if users are guided to it.
-- Zero-trust / mTLS policies in some environments require mutual TLS and will reject connections that skip server verification.
+### Tests Required
 
-The `isInsecureConnection` flag is exposed to the frontend (shows a warning badge), but the degradation itself is silent and automatic.
+- Unit test in `pkg/app/k8s_auth_plugins_test.go`: verify packages compile and register their providers (check `rest.RegisterAuthProviderPlugin` indirectly by asserting `ClientConfig()` does not error for a kubeconfig with `auth-provider: name: azure`).
 
-**Fix**: Surface the TLS error to the user as a modal/dialog explaining the cert problem, with two options:
-1. Add the server's CA certificate (links to the CA settings panel)
-2. Explicitly opt-in to insecure mode (requires user action, not auto-degraded)
+### Acceptance Criteria
 
-Do not auto-degrade. Keep the insecure fallback available but require explicit user consent.
+- [ ] Both imports present and compiling.
+- [ ] A kubeconfig with `auth-provider: name: azure` or `name: gcp` does not produce a "no auth provider found" log during connection probe.
 
 ---
 
-## Gap 3 — TKGI / UAA / SSO Token Expiry UX (Partial fix in place, UX gap remains)
+## Gap 2 — Silent Insecure TLS Fallback
 
-**Files**: `pkg/app/kube_rest.go` — `isPermissionError`, `isAuthDiscoveryRecoverableError`
+**Priority**: P0 — Security policy risk  
+**File**: [pkg/app/kube_rest.go](pkg/app/kube_rest.go) lines 52–66
 
-### How TKGI Works
+### Problem
 
-1. User runs `tkgi get-credentials <cluster>` → writes kubeconfig with a short-lived UAA bearer token (expires in 1–10 hours depending on UAA config).
-2. Token expires → API returns `401 Unauthorized`.
-3. User must re-run `tkgi get-credentials` to refresh.
-
-### Current State
-
-`isAuthDiscoveryRecoverableError` (recently added) catches auth-provider/OIDC errors during the connection probe and allows the app to proceed rather than hard-fail. This prevents the jarring "connection refused" behaviour when an OIDC exec provider returns a stale token.
-
-However, the 401 vs 403 distinction in `isPermissionError` still groups both:
+When `probeRESTConfig` returns a cert error, `getRESTConfig` auto-degrades without user consent:
 
 ```go
-if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
-    return true
+// kube_rest.go ~line 52 — current behaviour
+if isCertError(err) && !restConfig.TLSClientConfig.Insecure {
+    restConfig.TLSClientConfig.Insecure = true
+    restConfig.TLSClientConfig.CAData = nil
+    restConfig.TLSClientConfig.CAFile = ""
+    a.isInsecureConnection = true
+    // ... re-probes silently
 }
 ```
 
-- `403 Forbidden` = authenticated, not permitted (RBAC) — correct to tolerate
-- `401 Unauthorized` = not authenticated (expired/invalid token) — should surface as actionable error
+Enterprise concerns:
+- Security scanners (Prisma Cloud, Wiz, Aqua) flag `InsecureSkipVerify=true` on outbound connections.
+- Corporate TLS-inspection proxies use internal CAs — the correct fix is to add that CA, not bypass it.
+- TKGI management plane and internal PKI CAs are the most common source; `applyCustomCA()` already solves this if users are guided to it.
 
-When a TKGI token expires mid-session, every resource fetch fails with 401. The user sees red error states on every panel but no indication that their session has expired and they need to re-run `tkgi get-credentials`.
+The `isInsecureConnection` flag surfaces a warning badge in the frontend, but the degradation is automatic before the user sees anything.
 
-### Fix
+### Implementation
 
-1. **Split `isPermissionError`**: Treat `401 Unauthorized` separately from `403 Forbidden`. Only tolerate 403 silently.
-2. **Emit a frontend event on persistent 401**: When a resource fetch or the connection probe returns 401, emit a `ConnectionAuthExpired` event with a message like: "Authentication expired for context `<name>`. Re-run your credential provider (e.g. `tkgi get-credentials <cluster>`) and reconnect."
-3. **Show a reconnect prompt** in the UI that re-runs pre-connect hooks and re-initialises the kubeconfig (covering automated refresh via hooks).
+1. **Add a new Wails-emitted event** `TLSCertError` carrying the cert error string and the cluster hostname.
+2. **Remove the auto-degrade block** from `getRESTConfig`. Return a new sentinel error type `ErrTLSCertVerification` instead.
+3. **In `ConnectToCluster`** (or wherever `getRESTConfig` is called at connection time): catch `ErrTLSCertVerification`, emit `TLSCertError` to the frontend, and return without completing the connection.
+4. **Add `ConnectInsecure(context string) error`** — a separate Wails RPC that explicitly sets `a.allowInsecure = true` for the given context before calling `getRESTConfig` again. Frontend calls this only after user confirms the insecure-opt-in dialog.
+5. **Frontend**: Show a modal on `TLSCertError` with:
+   - Error details and server hostname.
+   - "Add CA Certificate" button → opens the existing CA settings panel with the cluster hostname pre-filled.
+   - "Connect Anyway (Insecure)" button → calls `ConnectInsecure`.
+   - "Cancel" button.
 
----
-
-## Gap 4 — Single Kubeconfig File / No KUBECONFIG Env Var (Common enterprise pattern)
-
-**File**: `pkg/app/kubeconfig.go`, `pkg/app/kube_rest.go`
-
-The app stores and uses a single kubeconfig path. Enterprise workstations commonly aggregate multiple kubeconfig files:
-
-```bash
-export KUBECONFIG=~/.kube/config:~/.kube/tkgi-prod:~/.kube/eks-clusters:~/.kube/aks-dev
-```
-
-`clientcmd.LoadFromFile(path)` reads one file. The `KUBECONFIG` environment variable is not consulted. Users who manage multi-cluster access via merged kubeconfigs cannot see all their contexts.
-
-client-go provides the right primitives:
 ```go
-// Respects KUBECONFIG env var and merges multiple files
-loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+// Proposed sentinel type (pkg/app/kube_rest.go)
+type ErrTLSCertVerification struct {
+    Host string
+    Err  error
+}
+func (e *ErrTLSCertVerification) Error() string { ... }
+func (e *ErrTLSCertVerification) Unwrap() error { return e.Err }
 ```
 
-**Fix**:
-1. In settings, allow the user to specify multiple kubeconfig paths (as a list).
-2. Use `clientcmd.LoadingRules` with `Precedence` set to the list, falling back to `NewDefaultClientConfigLoadingRules()` (which picks up `KUBECONFIG` env var) if no path is explicitly set.
-3. On startup, if `KUBECONFIG` env var is set, pre-populate the list from it.
+### Tests Required
+
+- `TestGetRESTConfig_CertErrorReturnsErrTLSCertVerification` — mock `probeRESTConfig` returning a cert error; assert `getRESTConfig` returns `*ErrTLSCertVerification`, not nil config.
+- `TestGetRESTConfig_InsecureAllowedWhenFlagSet` — set `allowInsecure=true`; assert insecure fallback proceeds.
+- Frontend: Vitest test for cert-error modal rendering on `TLSCertError` event.
+
+### Acceptance Criteria
+
+- [ ] `getRESTConfig` never sets `TLSClientConfig.Insecure=true` without `allowInsecure` being explicitly set by the user.
+- [ ] Frontend shows modal with CA and insecure options on cert error; "Cancel" leaves app disconnected.
+- [ ] Existing insecure badge still shows when user has opted in.
 
 ---
 
-## Gap 5 — Exec Credential Provider Binary Discovery on Windows (High impact on Windows)
+## Gap 3 — TKGI / UAA / SSO Token Expiry UX
 
-**File**: `pkg/app/kube_rest.go` — `clientConfig.ClientConfig()` → exec provider invocation
+**Priority**: P0 — Affects all SSO/exec-provider auth  
+**Files**: [pkg/app/kube_rest.go](pkg/app/kube_rest.go) — `isPermissionError()`, `isAuthDiscoveryRecoverableError()`
 
-Modern enterprise auth relies on executables being in `PATH`:
-- `kubelogin` — Azure AD / OIDC for AKS
-- `tkgi` — TKGI UAA credentials
-- `aws-iam-authenticator` / `aws eks get-token` — EKS
-- `gke-gcloud-auth-plugin` — GKE post-deprecation
-- Custom kubectl credential plugins
+### Problem
 
-**The Windows problem**: When the app is launched from the Start menu, taskbar, or Windows Explorer, it inherits a different `PATH` than the terminal session where the user installed these tools. On Windows, installers often add to the user's `PATH` via registry entries that are picked up by new terminal sessions but not by already-running GUI processes.
+`isPermissionError` groups `401 Unauthorized` and `403 Forbidden` together:
 
-Result: auth works when the user tests `kubectl` in a terminal, but the app fails with a generic `exec: <binary>: executable file not found in $PATH` error that gets wrapped into an opaque auth failure.
+```go
+// kube_rest.go — current
+func isPermissionError(err error) bool {
+    if apierrors.IsForbidden(err) || apierrors.IsUnauthorized(err) {
+        return true
+    }
+    ...
+}
+```
 
-**Fix**:
-1. When `clientConfig.ClientConfig()` returns an error referencing exec failure, parse the error to detect "executable not found" and surface the binary name with a diagnostic message.
-2. On Windows, supplement the PATH search with common installation directories: `%ProgramFiles%`, `%ProgramFiles(x86)%`, `%LOCALAPPDATA%\Microsoft\WindowsApps`, `%USERPROFILE%\.local\bin`, common Chocolatey/Scoop paths.
-3. Optionally: scan kubeconfig `exec:` stanzas on load and warn upfront if the referenced binary is not resolvable.
+- **403 Forbidden** = authenticated but RBAC-restricted → correct to tolerate silently.
+- **401 Unauthorized** = not authenticated (expired/invalid token) → must surface as actionable error.
+
+When a TKGI UAA token or OIDC token expires mid-session, every resource fetch returns 401. The user sees red error states on every panel with no "re-authenticate" guidance.
+
+### Implementation
+
+1. **Split `isPermissionError` into two helpers**:
+   ```go
+   // isRBACForbidden returns true for 403 — cluster reachable, RBAC restricted.
+   func isRBACForbidden(err error) bool { return apierrors.IsForbidden(err) || ... }
+
+   // isUnauthenticated returns true for 401 — token absent, expired, or invalid.
+   func isUnauthenticated(err error) bool { return apierrors.IsUnauthorized(err) || ... }
+   ```
+
+2. **In `probeRESTConfig`**: if `isUnauthenticated(err)`, return a new `ErrAuthExpired` sentinel rather than returning the raw 401.
+
+3. **In `getRESTConfig`**: catch `ErrAuthExpired` — emit `ConnectionAuthExpired` Wails event with context name and a suggested command (parsed from kubeconfig `exec:` stanza command field if present).
+
+4. **In resource-fetch handlers** (deployments, pods, etc.): when an API call returns 401, call a shared `a.handleUnauthenticated(contextName)` that debounces and emits `SessionAuthExpired` to avoid flooding the frontend.
+
+5. **Frontend**: show a sticky banner on `ConnectionAuthExpired` / `SessionAuthExpired`:
+   > "Session expired for `<context>`. Re-run `tkgi get-credentials <cluster>` (or your credential provider) and reconnect."
+   - "Reconnect" button → re-runs pre-connect hooks and calls `ConnectContext`.
+   - Banner dismissible but re-appears on next 401.
+
+### Tests Required
+
+- `TestIsRBACForbidden` / `TestIsUnauthenticated` — verify correct classification for both structured and string-wrapped API errors.
+- `TestProbeRESTConfig_401ReturnsErrAuthExpired` — mock clientset returning 401; assert sentinel.
+- `TestGetRESTConfig_AuthExpiredEmitsEvent` — assert Wails runtime event is emitted.
+- Frontend Vitest: sticky banner renders on `SessionAuthExpired` event.
+
+### Acceptance Criteria
+
+- [ ] 403 responses never trigger reconnect prompts.
+- [ ] 401 during connect probe emits `ConnectionAuthExpired` event within 1 second.
+- [ ] 401 during live resource fetch debounces to one `SessionAuthExpired` event per 30-second window.
+- [ ] Reconnect button re-runs pre-connect hooks before re-initialising the client.
 
 ---
 
-## Gap 6 — NTLM / Kerberos / Negotiate Proxy Authentication (Windows AD environments)
+## Gap 4 — Single Kubeconfig File / No KUBECONFIG Env Var
 
-**File**: `pkg/app/proxy.go`
+**Priority**: P1 — Common multi-cluster enterprise pattern  
+**Files**: [pkg/app/kubeconfig.go](pkg/app/kubeconfig.go), [pkg/app/kube_rest.go](pkg/app/kube_rest.go)
 
-Proxy modes supported: `none`, `basic`, `system`.
+### Problem
 
-`system` proxy mode uses Go's `http.ProxyFromEnvironment`, which reads `HTTPS_PROXY` / `HTTP_PROXY` environment variables or Windows system proxy settings. It does **not** handle NTLM authentication challenge-response.
+`GetKubeConfigs()` already scans `~/.kube/` and discovers multiple kubeconfig files, but `getRESTConfig` still calls `clientcmd.LoadFromFile(configPath)` — a single-file load that ignores the `KUBECONFIG` env var and cannot merge contexts across files:
 
-In Windows Active Directory environments, corporate HTTP proxies (Zscaler, F5 Access Policy Manager, Bluecoat, McAfee Web Gateway) commonly require:
-- **NTLM** authentication (challenge-response using Windows domain credentials)
-- **Kerberos/Negotiate** authentication (Kerberos ticket exchange)
+```go
+// kube_rest.go — current single-file load
+cfg, err := clientcmd.LoadFromFile(configPath)
+```
 
-The connection stalls at `407 Proxy Authentication Required` with `Proxy-Authenticate: NTLM` and the app shows a generic proxy connection error.
+Enterprise workstations commonly set:
+```
+KUBECONFIG=~/.kube/config:~/.kube/tkgi-prod:~/.kube/eks-clusters
+```
 
-**Options**:
-1. **Recommend local authenticating proxy** (low effort, user-side): Document that users can run [Px](https://github.com/genotrance/px) or [Cntlm](http://cntlm.sourceforge.net/) locally — these handle NTLM authentication and expose a simple Basic-auth proxy that the app can use. This is the pragmatic approach.
-2. **Integrate NTLM library** (high effort): Use `github.com/Azure/go-ntlmssp` or `golang.org/x/net/http/httpproxy` extensions for NTLM proxy auth. Requires maintaining the NTLM handshake within the HTTP transport layer.
+Users who manage contexts this way see only the single "primary" kubeconfig in the app.
 
-**Fix (recommended)**: Document Option 1 in the connection settings UI. Add a fourth proxy mode `ntlm` that acts as a pointer to the local-proxy pattern with setup instructions.
+### Implementation
+
+1. **Add `kubeconfigPaths []string` field to `App`** alongside the existing `kubeConfigPath string`. Persist in saved config as `kubeconfig_paths`.
+
+2. **Replace `LoadFromFile` in `getRESTConfig`** with a merged load:
+   ```go
+   loadingRules := &clientcmd.ClientConfigLoadingRules{}
+   if len(a.kubeconfigPaths) > 0 {
+       loadingRules.Precedence = a.kubeconfigPaths
+   } else {
+       // Fall back to NewDefaultClientConfigLoadingRules which reads KUBECONFIG env var
+       loadingRules = clientcmd.NewDefaultClientConfigLoadingRules()
+   }
+   cfg, err := loadingRules.Load()
+   ```
+
+3. **On app startup**: if `a.kubeconfigPaths` is empty, read the `KUBECONFIG` env var and pre-populate from it, **without saving** (so it stays dynamic on the next launch).
+
+4. **In `GetKubeContexts`**: switch to the same merged load so the contexts list reflects all configured paths.
+
+5. **Settings panel**: show an ordered list of kubeconfig paths with add/remove/reorder controls. "Detect from KUBECONFIG env" button populates from `os.Getenv("KUBECONFIG")`.
+
+### Tests Required
+
+- `TestGetRESTConfig_MergesMultipleKubeconfigPaths` — set `kubeconfigPaths` to two temp files with different contexts; assert both contexts resolvable.
+- `TestGetRESTConfig_FallsBackToKUBECONFIGEnvVar` — set `KUBECONFIG` env var to two temp files; assert merged load.
+- `TestGetKubeContexts_ReflectsMergedPaths`.
+
+### Acceptance Criteria
+
+- [ ] Setting two kubeconfig paths surfaces contexts from both in the context selector.
+- [ ] If `KUBECONFIG` env var is set and no explicit paths are configured, all contexts from env var paths appear.
+- [ ] Removing a path from the list removes its contexts from the selector (no reconnect required, triggers a context list refresh).
 
 ---
 
-## Gap 7 — No Credential Refresh / Re-auth Signal During Live Session
+## Gap 5 — Exec Credential Provider Binary Discovery on Windows
 
-**Files**: `pkg/app/kube_rest.go`, `pkg/app/hooks.go`
+**Priority**: P1 — High frequency on Windows desktops  
+**File**: [pkg/app/kube_rest.go](pkg/app/kube_rest.go) — `clientConfig.ClientConfig()` call and surrounding error handling
 
-Pre-connect hooks run once at connection time. There is no recurring or event-driven mechanism for:
-- Detecting that an exec credential provider needs to be re-invoked (e.g. OIDC token TTL expired mid-session)
-- Notifying the user that their credentials have expired while using the app
-- Triggering re-authentication without a full disconnect/reconnect cycle
+### Problem
 
-When credentials expire mid-session, every API call fails. The user sees per-resource error states with no overarching "your session has expired" indicator.
+When the app is launched from the Start menu or taskbar, it inherits a stripped `PATH` that excludes tools installed via terminal sessions (Chocolatey, Scoop, direct installer MSI). Auth works in the terminal (`kubectl` succeeds) but the app fails with a raw `exec: "kubelogin": executable file not found in $PATH` error buried in a generic auth failure.
 
-**Fix**:
-1. Intercept `401 Unauthorized` responses from the Kubernetes API client at the transport level (or in resource-fetch error handling paths).
-2. Debounce: if N 401 errors occur within a short window, emit a `SessionExpired` frontend event.
-3. UI shows a sticky banner: "Session expired for `<context>`. Reconnect to refresh credentials." Reconnect button re-runs pre-connect hooks and re-initialises the client.
-4. Consider a background token probe (lightweight `/version` call on a timer) for proactive expiry detection — though this needs to be configurable to avoid unnecessary traffic.
+Common affected tools: `kubelogin` (AKS), `tkgi`, `aws-iam-authenticator`, `aws eks get-token`, `gke-gcloud-auth-plugin`.
+
+### Implementation
+
+1. **Augment the Windows PATH at startup** (`app.go` `startup()` or `OnDomReady`):
+   ```go
+   // Windows only (build tag: //go:build windows)
+   func supplementWindowsPath() {
+       extra := []string{
+           os.ExpandEnv(`%ProgramFiles%\kubelogin`),
+           os.ExpandEnv(`%ProgramFiles(x86)%\kubelogin`),
+           os.ExpandEnv(`%LOCALAPPDATA%\Microsoft\WindowsApps`),
+           os.ExpandEnv(`%USERPROFILE%\.local\bin`),
+           os.ExpandEnv(`%USERPROFILE%\bin`),
+           filepath.Join(os.ExpandEnv(`%ProgramData%`), "chocolatey", "bin"),
+           filepath.Join(os.ExpandEnv(`%USERPROFILE%`), "scoop", "shims"),
+       }
+       // Merge into os PATH, deduplicating
+   }
+   ```
+   Use a `_windows.go` build-tagged file to keep this platform-specific.
+
+2. **Parse exec-not-found errors**: when `clientConfig.ClientConfig()` or `getRESTConfig` returns an error matching `executable file not found` or `exec: "<name>":`, wrap it:
+   ```go
+   type ErrExecBinaryNotFound struct {
+       Binary string
+       Err    error
+   }
+   ```
+   Emit a `ExecProviderNotFound` frontend event with the binary name.
+
+3. **Frontend**: show an actionable notification: "Credential provider `kubelogin` not found in PATH. Install it or ensure it is in a standard location." with a link to the tool's install page.
+
+4. **Upfront scan**: in `GetKubeContexts` (or a new `ValidateKubeconfig(path string)` RPC), parse all `exec:` stanzas and return a list of missing binaries alongside the contexts list. Frontend can warn before the user attempts to connect.
+
+### Tests Required
+
+- `TestSupplementWindowsPath_AddsMissingDirs` (Windows build tag) — verify known dirs are appended when absent.
+- `TestGetRESTConfig_ExecBinaryMissingReturnsErrExecBinaryNotFound` — inject an error string matching `executable file not found`; assert sentinel type and correct binary name extraction.
+- `TestValidateKubeconfig_DetectsMissingExecBinary`.
+
+### Acceptance Criteria
+
+- [ ] App launched from Start menu can invoke `kubelogin`, `tkgi`, `aws-iam-authenticator`, `gke-gcloud-auth-plugin` when installed via Chocolatey, Scoop, or standard MSI locations.
+- [ ] "Binary not found" produces a notification with the binary name and an install link, not a generic auth failure.
+- [ ] Validated on Windows 11; PATH supplement is a no-op on Linux/macOS.
 
 ---
 
-## What Already Works Well for Enterprise
+## Gap 6 — NTLM / Kerberos / Negotiate Proxy Authentication
 
-These are strengths to preserve:
+**Priority**: P2 — Affects Windows AD environments with Zscaler/F5/Bluecoat proxies  
+**File**: [pkg/app/proxy.go](pkg/app/proxy.go) — `SetProxyConfig`, `ProxyConfig`, `applyProxyConfig`
 
-- **Custom CA certificate support** — covers TKGI management plane CAs, internal PKI, self-signed cluster certs. The PEM-merge approach is correct.
-- **Pre-connect hooks** — power users can wrap `tkgi get-credentials`, `az aks get-credentials`, `aws eks update-kubeconfig` as pre-connect scripts for automated token refresh before the app connects.
-- **OIDC exec provider (client-go)** — the foundation of modern SSO integration is in place. kubelogin, Dex, Keycloak all work via the kubeconfig `exec:` stanza.
-- **isAuthDiscoveryRecoverableError** — recently added; prevents hard-fail when auth-provider/OIDC errors are detected during the connection probe, allowing namespace-scoped fallback.
-- **Basic/system proxy** — covers many standard corporate proxy setups.
-- **Context switching** — works correctly across multiple clusters.
+### Problem
+
+Current proxy `authType` values: `"none"`, `"basic"`, `"system"`. `"system"` mode delegates to `http.ProxyFromEnvironment` which cannot perform NTLM challenge-response. Connections stall at `407 Proxy Authentication Required` with `Proxy-Authenticate: NTLM` and display a generic proxy error.
+
+### Recommended Approach: Document + Local Auth Proxy Pattern
+
+Full NTLM integration requires maintaining a multi-round-trip authentication handshake in the HTTP transport and carries a library dependency (`github.com/Azure/go-ntlmssp`). The simpler and more maintainable approach is to add a fourth proxy mode `"ntlm-local"` that guides users to a local authenticating proxy ([Px](https://github.com/genotrance/px) or [Cntlm](http://cntlm.sourceforge.net/)) that handles NTLM and exposes a plain HTTP proxy to the app.
+
+### Implementation
+
+1. **Add `"ntlm-local"` proxy auth type** to `SetProxyConfig` validation (alongside `none`, `basic`, `system`).
+2. **In `applyProxyConfig`**: treat `"ntlm-local"` identically to `"basic"` at the transport level — the user provides the local Px/Cntlm address (`127.0.0.1:3128`) and no credentials.
+3. **Settings UI**: when `"ntlm-local"` is selected, show an informational panel:
+   - "Your corporate proxy requires NTLM or Kerberos authentication."
+   - "Install Px or Cntlm locally. Point it at your corporate proxy. Enter its local address below."
+   - Link to Px and Cntlm documentation.
+   - Local proxy address field (default: `http://127.0.0.1:3128`).
+4. **Detect 407 at connect time**: if `probeRESTConfig` returns a `407` response, emit a `ProxyAuthRequired` event with the proxy address so the frontend can suggest switching to `ntlm-local` mode.
+
+### Tests Required
+
+- `TestSetProxyConfig_AcceptsNtlmLocal` — assert no error for `authType="ntlm-local"`.
+- `TestApplyProxyConfig_NtlmLocalBehavesLikeBasic`.
+- `TestProbeRESTConfig_407EmitsProxyAuthRequiredEvent`.
+
+### Acceptance Criteria
+
+- [ ] `"ntlm-local"` mode selectable in proxy settings with setup guidance visible.
+- [ ] `407` response during probe triggers a notification suggesting `ntlm-local` mode.
+- [ ] `SetProxyConfig` returns a validation error for unknown `authType` values (regression: this already works, keep it).
+
+---
+
+## Gap 7 — No Credential Refresh Signal During Live Session
+
+**Priority**: P2 — Affects long-lived sessions with OIDC/exec-provider auth  
+**Files**: [pkg/app/kube_rest.go](pkg/app/kube_rest.go), [pkg/app/hooks.go](pkg/app/hooks.go)
+
+### Problem
+
+Pre-connect hooks run once at `ConnectContext` time. When an OIDC or exec-provider token expires mid-session (typically 1–8 hours), every resource fetch starts returning 401. Gap 3 addresses the immediate 401 detection; this gap covers the proactive side — detecting expiry before the user encounters errors.
+
+There is no:
+- Background keep-alive / token-probe mechanism.
+- Token TTL parsing to warn ahead of expiry.
+- Re-auth trigger that re-runs hooks without a full disconnect.
+
+### Implementation
+
+1. **Background liveness probe** (opt-in, off by default): after a connection is established, start a goroutine that calls `/version` every N minutes (configurable, default 10, minimum 5). On 401, call `a.handleUnauthenticated(contextName)` (defined in Gap 3). Stop probe on disconnect.
+   ```go
+   // pkg/app/session_probe.go
+   func (a *App) startSessionProbe(ctx context.Context, interval time.Duration) { ... }
+   func (a *App) stopSessionProbe() { ... }
+   ```
+
+2. **Re-auth without disconnect**: add `RefreshCredentials(context string) error` Wails RPC that:
+   - Re-runs any `pre-connect` hooks for the given context.
+   - Calls `getRESTConfig` again to rebuild the client (picks up refreshed token from kubeconfig written by the hook).
+   - Does **not** change namespace or reset UI state.
+
+3. **Settings**: expose "Connection keep-alive interval (minutes)" setting; `0` disables the probe.
+
+### Tests Required
+
+- `TestStartSessionProbe_Emits401EventOnUnauthorized` — inject a clientset that returns 401; assert `SessionAuthExpired` event emitted after one probe tick.
+- `TestRefreshCredentials_ReRunsPreConnectHooks` — verify hook execution and client re-initialisation.
+- `TestStopSessionProbe_StopsOnDisconnect`.
+
+### Acceptance Criteria
+
+- [ ] Background probe is disabled by default; users must opt in via settings.
+- [ ] With probe enabled, session expiry produces `SessionAuthExpired` banner before the user encounters API errors on resource panels.
+- [ ] `RefreshCredentials` reconnects without clearing namespace or selected resource.
+- [ ] Probe goroutine does not leak on disconnect (verified with `goleak` in tests).
+
+---
+
+## What Already Works Well (Preserve These)
+
+| Strength | Location | Notes |
+|---|---|---|
+| Custom CA (PEM merge) | `pkg/app/kube_rest.go` — `applyCustomCA()` | Covers TKGI/internal PKI; do not remove merge logic |
+| Pre/post-connect hooks | `pkg/app/hooks.go` | Used for `tkgi get-credentials` automation |
+| OIDC exec provider | `pkg/app/k8s_auth_plugins.go` | Foundation of SSO; kubelogin/Dex/Keycloak work |
+| `isAuthDiscoveryRecoverableError` | `pkg/app/kube_rest.go` | Prevents hard-fail on stale OIDC token at connect time |
+| Multi-file kubeconfig discovery | `pkg/app/kubeconfig.go` — `GetKubeConfigs()` | Scans `~/.kube/`; Gap 4 extends this to the *load* path |
+| Basic/system proxy | `pkg/app/proxy.go` | Handles most corporate HTTP proxy setups |
+| Context switching | `pkg/app/kubeconfig.go` | Correct across multiple clusters |
 
 ---
 
 ## Priority Matrix
 
-| Gap | Enterprise Scenario | Effort | Priority |
-|---|---|---|---|
-| **G2** Silent insecure TLS fallback | Security audit finding; TKGI internal CAs | Medium | **P0** |
-| **G3** 401 vs 403 + session expiry UX | TKGI/SSO token expiry mid-session | Medium | **P0** |
-| **G1** Missing azure/gcp plugins | Legacy AKS / GKE kubeconfigs | Trivial | **P1** |
-| **G5** Exec binary PATH on Windows | TKGI, AKS, EKS on Windows desktops | Medium | **P1** |
-| **G4** Multi-kubeconfig / KUBECONFIG env | Multi-cluster enterprise workstations | Medium | **P1** |
-| **G7** Mid-session credential refresh signal | All SSO/exec-provider auth, long sessions | Medium | **P2** |
-| **G6** NTLM proxy auth | Windows AD corporate proxy environments | High | **P2** |
+| Gap | Enterprise Scenario | Effort | Priority | New files / changed files |
+|---|---|---|---|---|
+| **G2** Silent insecure TLS fallback | Security audit; TKGI internal CAs | Medium | **P0** | `kube_rest.go`, new `tls_error.go`, frontend modal |
+| **G3** 401 vs 403 + session expiry UX | TKGI/SSO token expiry mid-session | Medium | **P0** | `kube_rest.go`, new `session_auth.go`, frontend banner |
+| **G1** Missing azure/gcp plugins | Legacy AKS / GKE kubeconfigs | Trivial | **P1** | `k8s_auth_plugins.go` (2 lines) |
+| **G5** Exec binary PATH on Windows | TKGI, AKS, EKS on Windows desktops | Medium | **P1** | New `path_windows.go`, `kube_rest.go` error handling |
+| **G4** Multi-kubeconfig / KUBECONFIG env | Multi-cluster enterprise workstations | Medium | **P1** | `kube_rest.go`, `kubeconfig.go`, settings UI |
+| **G7** Mid-session credential refresh | All SSO/exec-provider auth, long sessions | Medium | **P2** | New `session_probe.go`, `kube_rest.go`, settings UI |
+| **G6** NTLM proxy auth | Windows AD corporate proxy environments | Low–Medium | **P2** | `proxy.go` (new mode + 407 detection), settings UI |
+
+---
+
+## Sequence of Implementation
+
+Implement in priority order. G2 and G3 are independent and can be done in parallel. G1 is a prerequisite warm-up. G5 and G4 are independent. G7 depends on G3 (re-uses `handleUnauthenticated`).
+
+```
+Sprint 1:  G1 (2 lines)  →  G3 (split 401/403, emit event, frontend banner)
+Sprint 2:  G2 (TLS modal, remove auto-degrade)
+Sprint 3:  G5 (Windows PATH supplement + exec-not-found error surfacing)
+           G4 (multi-kubeconfig merge)
+Sprint 4:  G7 (session probe + RefreshCredentials)
+           G6 (ntlm-local mode + 407 detection)
+```
 
 ---
 
 ## Out of Scope (Deliberate Non-Goals)
 
-- **Kerberos/SPNEGO direct auth**: Kubernetes API server does not natively speak Kerberos. Enterprise Kerberos auth is implemented via exec credential providers or reverse proxies — not in the client. No app-level change needed beyond ensuring exec providers work (Gap 5).
-- **LDAP direct auth**: LDAP is an identity source, not a Kubernetes auth protocol. Handled at the cluster level (via Dex, Keycloak, or static token/OIDC federation). No client-side change needed.
+- **Kerberos/SPNEGO direct auth**: Kubernetes does not natively speak Kerberos. Handled via exec credential providers — no client change needed beyond Gap 5.
+- **LDAP direct auth**: Identity-source concern handled at the cluster level (Dex, Keycloak). No client change needed.
 - **In-cluster service account mode**: Desktop app; not intended to run inside a pod.
-- **MFA/2FA UI**: Handled by the exec credential provider (browser-based OIDC flow). The app already launches subprocesses which can open a browser.
+- **MFA/2FA UI**: Delegated to the exec credential provider (browser-based OIDC flow). Works today via subprocess launching.
