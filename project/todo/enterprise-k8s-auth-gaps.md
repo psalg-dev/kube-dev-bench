@@ -73,8 +73,8 @@ import (
 
 ### Acceptance Criteria
 
-- [ ] Both imports present and compiling.
-- [ ] A kubeconfig with `auth-provider: name: azure` or `name: gcp` does not produce a "no auth provider found" log during connection probe.
+- [x] Both imports present and compiling.
+- [x] A kubeconfig with `auth-provider: name: azure` or `name: gcp` does not produce a "no auth provider found" log during connection probe.
 
 ---
 
@@ -135,9 +135,9 @@ func (e *ErrTLSCertVerification) Unwrap() error { return e.Err }
 
 ### Acceptance Criteria
 
-- [ ] `getRESTConfig` never sets `TLSClientConfig.Insecure=true` without `allowInsecure` being explicitly set by the user.
-- [ ] Frontend shows modal with CA and insecure options on cert error; "Cancel" leaves app disconnected.
-- [ ] Existing insecure badge still shows when user has opted in.
+- [x] `getRESTConfig` never sets `TLSClientConfig.Insecure=true` without `allowInsecure` being explicitly set by the user.
+- [x] Frontend shows modal with CA and insecure options on cert error; "Cancel" leaves app disconnected.
+- [x] Existing insecure badge still shows when user has opted in.
 
 ---
 
@@ -196,10 +196,10 @@ When a TKGI UAA token or OIDC token expires mid-session, every resource fetch re
 
 ### Acceptance Criteria
 
-- [ ] 403 responses never trigger reconnect prompts.
-- [ ] 401 during connect probe emits `ConnectionAuthExpired` event within 1 second.
-- [ ] 401 during live resource fetch debounces to one `SessionAuthExpired` event per 30-second window.
-- [ ] Reconnect button re-runs pre-connect hooks before re-initialising the client.
+- [x] 403 responses never trigger reconnect prompts.
+- [x] 401 during connect probe emits `ConnectionAuthExpired` event within 1 second.
+- [x] 401 during live resource fetch debounces to one `SessionAuthExpired` event per 30-second window.
+- [x] Reconnect button re-runs pre-connect hooks before re-initialising the client.
 
 ---
 
@@ -254,9 +254,9 @@ Users who manage contexts this way see only the single "primary" kubeconfig in t
 
 ### Acceptance Criteria
 
-- [ ] Setting two kubeconfig paths surfaces contexts from both in the context selector.
-- [ ] If `KUBECONFIG` env var is set and no explicit paths are configured, all contexts from env var paths appear.
-- [ ] Removing a path from the list removes its contexts from the selector (no reconnect required, triggers a context list refresh).
+- [x] Setting two kubeconfig paths surfaces contexts from both in the context selector.
+- [x] If `KUBECONFIG` env var is set and no explicit paths are configured, all contexts from env var paths appear.
+- [x] Removing a path from the list removes its contexts from the selector (no reconnect required, triggers a context list refresh).
 
 ---
 
@@ -312,9 +312,9 @@ Common affected tools: `kubelogin` (AKS), `tkgi`, `aws-iam-authenticator`, `aws 
 
 ### Acceptance Criteria
 
-- [ ] App launched from Start menu can invoke `kubelogin`, `tkgi`, `aws-iam-authenticator`, `gke-gcloud-auth-plugin` when installed via Chocolatey, Scoop, or standard MSI locations.
-- [ ] "Binary not found" produces a notification with the binary name and an install link, not a generic auth failure.
-- [ ] Validated on Windows 11; PATH supplement is a no-op on Linux/macOS.
+- [x] App launched from Start menu can invoke `kubelogin`, `tkgi`, `aws-iam-authenticator`, `gke-gcloud-auth-plugin` when installed via Chocolatey, Scoop, or standard MSI locations.
+- [x] "Binary not found" produces a notification with the binary name and an install link, not a generic auth failure.
+- [x] Validated on Windows 11; PATH supplement is a no-op on Linux/macOS.
 
 ---
 
@@ -350,9 +350,9 @@ Full NTLM integration requires maintaining a multi-round-trip authentication han
 
 ### Acceptance Criteria
 
-- [ ] `"ntlm-local"` mode selectable in proxy settings with setup guidance visible.
-- [ ] `407` response during probe triggers a notification suggesting `ntlm-local` mode.
-- [ ] `SetProxyConfig` returns a validation error for unknown `authType` values (regression: this already works, keep it).
+- [x] `"ntlm-local"` mode selectable in proxy settings with setup guidance visible.
+- [x] `407` response during probe triggers a notification suggesting `ntlm-local` mode.
+- [x] `SetProxyConfig` returns a validation error for unknown `authType` values (regression: this already works, keep it).
 
 ---
 
@@ -394,10 +394,10 @@ There is no:
 
 ### Acceptance Criteria
 
-- [ ] Background probe is disabled by default; users must opt in via settings.
-- [ ] With probe enabled, session expiry produces `SessionAuthExpired` banner before the user encounters API errors on resource panels.
-- [ ] `RefreshCredentials` reconnects without clearing namespace or selected resource.
-- [ ] Probe goroutine does not leak on disconnect (verified with `goleak` in tests).
+- [x] Background probe is disabled by default; users must opt in via settings.
+- [x] With probe enabled, session expiry produces `SessionAuthExpired` banner before the user encounters API errors on resource panels.
+- [x] `RefreshCredentials` reconnects without clearing namespace or selected resource.
+- [x] Probe goroutine does not leak on disconnect (verified with `goleak` in tests).
 
 ---
 
