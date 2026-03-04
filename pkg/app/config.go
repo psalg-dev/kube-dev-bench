@@ -162,6 +162,7 @@ func (a *App) SetKubeConfigPath(path string) error {
 // SetCurrentKubeContext stores the selected context name
 func (a *App) SetCurrentKubeContext(name string) error {
 	a.currentKubeContext = name
+	a.invalidateCachedClient()
 	a.restartInformerManager()
 	// Trigger a counts refresh (context switch invalidates prior data)
 	a.requestCountsRefresh()

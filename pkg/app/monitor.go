@@ -230,7 +230,7 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 	if a.testClientset != nil {
 		clientset = a.testClientset.(kubernetes.Interface)
 	} else {
-		clientset, err = a.createKubernetesClient()
+		clientset, err = a.getClient()
 		if err != nil {
 			return issues
 		}
@@ -251,13 +251,15 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 // processCoreV1Events collects warning events from CoreV1 Events API
 func processCoreV1Events(clientset kubernetes.Interface, ctx context.Context, namespace string, cutoff time.Time) []MonitorIssue {
 	var issues []MonitorIssue
-	list, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	list, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "type=Warning",
+	})
 	if err != nil {
 		return issues
 	}
 	for _, e := range list.Items {
 		if e.Type != "Warning" {
-			continue
+			continue // safety net: field selector may not be enforced by all backends
 		}
 		lastTime := e.LastTimestamp.Time
 		if lastTime.IsZero() && !e.EventTime.Time.IsZero() {
@@ -282,13 +284,15 @@ func processCoreV1Events(clientset kubernetes.Interface, ctx context.Context, na
 // processEventsV1Events collects warning events from EventsV1 API
 func processEventsV1Events(clientset kubernetes.Interface, ctx context.Context, namespace string, cutoff time.Time) []MonitorIssue {
 	var issues []MonitorIssue
-	list, err := clientset.EventsV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	list, err := clientset.EventsV1().Events(namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "type=Warning",
+	})
 	if err != nil {
 		return issues
 	}
 	for _, e := range list.Items {
 		if e.Type != "Warning" {
-			continue
+			continue // safety net: field selector may not be enforced by all backends
 		}
 		lastTime := e.EventTime.Time
 		if lastTime.IsZero() && !e.DeprecatedLastTimestamp.Time.IsZero() {
@@ -317,7 +321,7 @@ func (a *App) checkEventIssues(namespace string) []MonitorIssue {
 	if a.testClientset != nil {
 		clientset = a.testClientset.(kubernetes.Interface)
 	} else {
-		clientset, err = a.createKubernetesClient()
+		clientset, err = a.getClient()
 		if err != nil {
 			return nil
 		}
