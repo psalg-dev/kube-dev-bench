@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gowails/pkg/app/holmesgpt"
 )
@@ -25,6 +26,14 @@ type AppConfig struct {
 	ProxyPassword string `json:"proxyPassword"`
 	// Custom CA certificate path for Kubernetes API connections
 	CustomCAPath string `json:"customCAPath,omitempty"`
+	// KubeconfigPaths holds explicit kubeconfig file paths for multi-file merge (Gap 4).
+	// When empty, falls back to KUBECONFIG env var or the single KubeConfigPath.
+	KubeconfigPaths []string `json:"kubeconfigPaths,omitempty"`
+	// SessionProbeInterval is the background liveness probe interval in minutes.
+	// 0 disables the probe (default).
+	SessionProbeInterval int `json:"sessionProbeInterval,omitempty"`
+	// AllowInsecure remembers user's opt-in to insecure TLS for the current context.
+	AllowInsecure bool `json:"allowInsecure,omitempty"`
 	// Holmes AI configuration
 	HolmesConfig holmesgpt.HolmesConfigData `json:"holmesConfig,omitempty"`
 }
@@ -51,6 +60,11 @@ func (a *App) loadConfig() error {
 	a.rememberNamespace = config.RememberNamespace
 	a.kubeConfig = config.KubeConfigPath
 	a.customCAPath = config.CustomCAPath
+	a.kubeconfigPaths = append([]string(nil), config.KubeconfigPaths...)
+	a.allowInsecure = config.AllowInsecure
+	if config.SessionProbeInterval > 0 {
+		a.sessionProbeInterval = time.Duration(config.SessionProbeInterval) * time.Minute
+	}
 	// Load proxy configuration
 	a.proxyURL = config.ProxyURL
 	a.proxyAuthType = config.ProxyAuthType
@@ -63,15 +77,22 @@ func (a *App) loadConfig() error {
 
 // saveConfig persists the current configuration to disk
 func (a *App) saveConfig() error {
+	probeMinutes := 0
+	if a.sessionProbeInterval > 0 {
+		probeMinutes = int(a.sessionProbeInterval / time.Minute)
+	}
 	config := AppConfig{
-		CurrentContext:      a.currentKubeContext,
-		CurrentNamespace:    a.currentNamespace,
-		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
-		UseInformers:        a.useInformers,
-		RememberContext:     a.rememberContext,
-		RememberNamespace:   a.rememberNamespace,
-		KubeConfigPath:      a.kubeConfig,
-		CustomCAPath:        a.customCAPath,
+		CurrentContext:       a.currentKubeContext,
+		CurrentNamespace:     a.currentNamespace,
+		PreferredNamespaces:  append([]string(nil), a.preferredNamespaces...),
+		UseInformers:         a.useInformers,
+		RememberContext:      a.rememberContext,
+		RememberNamespace:    a.rememberNamespace,
+		KubeConfigPath:       a.kubeConfig,
+		CustomCAPath:         a.customCAPath,
+		KubeconfigPaths:      append([]string(nil), a.kubeconfigPaths...),
+		SessionProbeInterval: probeMinutes,
+		AllowInsecure:        a.allowInsecure,
 		// Proxy configuration
 		ProxyURL:      a.proxyURL,
 		ProxyAuthType: a.proxyAuthType,

@@ -13,7 +13,7 @@ import (
 // ProxyConfig holds proxy configuration for frontend consumption
 type ProxyConfig struct {
 	URL      string `json:"url"`
-	AuthType string `json:"authType"` // "none", "basic", "system"
+	AuthType string `json:"authType"` // "none", "basic", "system", "ntlm-local"
 	Username string `json:"username"`
 	// Password is intentionally omitted from the response for security
 }
@@ -22,8 +22,8 @@ type ProxyConfig struct {
 func (a *App) SetProxyConfig(proxyURL, authType, username, password string) error {
 	// Validate authType
 	authType = strings.ToLower(authType)
-	if authType != "none" && authType != "basic" && authType != "system" {
-		return fmt.Errorf("invalid authType: must be 'none', 'basic', or 'system'")
+	if authType != "none" && authType != "basic" && authType != "system" && authType != "ntlm-local" {
+		return fmt.Errorf("invalid authType: must be 'none', 'basic', 'system', or 'ntlm-local'")
 	}
 
 	// Validate proxy URL if not empty and not using system proxy
@@ -90,7 +90,7 @@ func (a *App) getProxyURL() string {
 	case "system":
 		// Use system environment variables - client-go will pick these up automatically
 		return ""
-	case "basic", "none":
+	case "basic", "none", "ntlm-local":
 		return a.proxyURL
 	default:
 		return ""

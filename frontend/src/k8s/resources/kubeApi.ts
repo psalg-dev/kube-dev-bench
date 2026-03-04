@@ -42,6 +42,14 @@ import {
   SetProxyConfig,
   ClearProxyConfig,
   DetectSystemProxy,
+  // Enterprise auth (Gaps 2-7)
+  ConnectInsecure,
+  RefreshCredentials,
+  GetKubeconfigPaths,
+  SetKubeconfigPaths,
+  DetectKubeconfigEnvPaths,
+  SetSessionProbeInterval,
+  GetSessionProbeInterval,
 } from '../../../wailsjs/go/main/App';
 
 // Direct re-exports for now. Wrapper functions retained for possible future enhancements.
@@ -85,4 +93,12 @@ export {
   SetProxyConfig,
   ClearProxyConfig,
   DetectSystemProxy,
+  // Enterprise auth (Gaps 2-7)
+  ConnectInsecure,
+  RefreshCredentials,
+  GetKubeconfigPaths,
+  SetKubeconfigPaths,
+  DetectKubeconfigEnvPaths,
+  SetSessionProbeInterval,
+  GetSessionProbeInterval,
 };

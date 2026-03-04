@@ -220,6 +220,29 @@ func TestIsPermissionError_StatusError(t *testing.T) {
 	}
 }
 
+func TestIsAuthDiscoveryRecoverableError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{name: "nil", err: nil, expected: false},
+		{name: "generic network error", err: errors.New("connection refused"), expected: false},
+		{name: "auth provider missing", err: errors.New("No Auth Provider found for name oidc"), expected: true},
+		{name: "oidc refresh token missing", err: errors.New("oidc: no valid id-token, and cannot refresh without refresh token"), expected: true},
+		{name: "k8s logged in prompt", err: errors.New("You must be logged in to the server"), expected: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isAuthDiscoveryRecoverableError(tc.err)
+			if got != tc.expected {
+				t.Errorf("isAuthDiscoveryRecoverableError(%v) = %v, want %v", tc.err, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestApplyCustomCA_NoPath(t *testing.T) {
 	a := &App{customCAPath: ""}
 	rc := &rest.Config{}
@@ -365,6 +388,211 @@ func TestSetCustomCAPath_FileNotFound(t *testing.T) {
 	err := a.SetCustomCAPath("/nonexistent/ca.crt")
 	if err == nil {
 		t.Fatal("SetCustomCAPath should error for nonexistent file")
+	}
+}
+
+// --- Gap 2/5: extractExecBinaryFromError ---
+
+func TestExtractExecBinaryFromError_ExecFileNotFound(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected string
+	}{
+		{
+			name:     "kubelogin not found",
+			err:      errors.New(`exec: "kubelogin": executable file not found in $PATH`),
+			expected: "kubelogin",
+		},
+		{
+			name:     "aws-iam-authenticator not found",
+			err:      errors.New(`"aws-iam-authenticator": executable file not found in %PATH%`),
+			expected: "aws-iam-authenticator",
+		},
+		{
+			name:     "gke-gcloud-auth-plugin not found",
+			err:      errors.New(`exec: "gke-gcloud-auth-plugin": executable file not found`),
+			expected: "gke-gcloud-auth-plugin",
+		},
+		{
+			name:     "non-exec error",
+			err:      errors.New("connection refused"),
+			expected: "",
+		},
+		{
+			name:     "nil error",
+			err:      nil,
+			expected: "",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extractExecBinaryFromError(tc.err)
+			if got != tc.expected {
+				t.Errorf("extractExecBinaryFromError(%v) = %q, want %q", tc.err, got, tc.expected)
+			}
+		})
+	}
+}
+
+// --- Gap 6: isProxyAuthRequired ---
+
+func TestIsProxyAuthRequired(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{name: "nil error", err: nil, expected: false},
+		{name: "407 status code", err: errors.New("proxyconnect tcp: dial tcp: lookup proxy: 407 Proxy Authentication Required"), expected: true},
+		{name: "proxy authentication required", err: errors.New("proxy authentication required"), expected: true},
+		{name: "proxy-authenticate header", err: errors.New("server returned Proxy-Authenticate: NTLM"), expected: true},
+		{name: "normal error", err: errors.New("connection refused"), expected: false},
+		{name: "403 forbidden is not proxy auth", err: errors.New("forbidden"), expected: false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isProxyAuthRequired(tc.err)
+			if got != tc.expected {
+				t.Errorf("isProxyAuthRequired(%v) = %v, want %v", tc.err, got, tc.expected)
+			}
+		})
+	}
+}
+
+// --- Gap 2: extractHostFromRESTConfig ---
+
+func TestExtractHostFromRESTConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		host     string
+		expected string
+	}{
+		{name: "https URL", host: "https://api.prod.example.com:6443", expected: "api.prod.example.com"},
+		{name: "http URL", host: "http://localhost:8080", expected: "localhost"},
+		{name: "plain host", host: "api.example.com", expected: "api.example.com"},
+		{name: "nil config", host: "", expected: "unknown"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			var got string
+			if tc.host == "" && tc.name == "nil config" {
+				got = extractHostFromRESTConfig(nil)
+			} else {
+				got = extractHostFromRESTConfig(&rest.Config{Host: tc.host})
+			}
+			if got != tc.expected {
+				t.Errorf("extractHostFromRESTConfig(Host=%q) = %q, want %q", tc.host, got, tc.expected)
+			}
+		})
+	}
+}
+
+// --- Gap 4: loadKubeconfig with multiple paths ---
+
+func TestLoadKubeconfig_MergesMultiplePaths(t *testing.T) {
+	dir := t.TempDir()
+
+	// Create two kubeconfig files with different contexts
+	kc1 := filepath.Join(dir, "kc1.yaml")
+	kc2 := filepath.Join(dir, "kc2.yaml")
+
+	kc1Content := `apiVersion: v1
+kind: Config
+contexts:
+- name: cluster-a
+  context:
+    cluster: cluster-a
+    user: user-a
+clusters:
+- name: cluster-a
+  cluster:
+    server: https://a.example.com:6443
+users:
+- name: user-a
+  user:
+    token: fake-token-a
+current-context: cluster-a
+`
+	kc2Content := `apiVersion: v1
+kind: Config
+contexts:
+- name: cluster-b
+  context:
+    cluster: cluster-b
+    user: user-b
+clusters:
+- name: cluster-b
+  cluster:
+    server: https://b.example.com:6443
+users:
+- name: user-b
+  user:
+    token: fake-token-b
+current-context: cluster-b
+`
+	if err := os.WriteFile(kc1, []byte(kc1Content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(kc2, []byte(kc2Content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &App{
+		kubeconfigPaths: []string{kc1, kc2},
+	}
+
+	cfg, err := a.loadKubeconfig()
+	if err != nil {
+		t.Fatalf("loadKubeconfig with merged paths should succeed, got: %v", err)
+	}
+
+	if len(cfg.Contexts) != 2 {
+		t.Errorf("expected 2 contexts, got %d", len(cfg.Contexts))
+	}
+	if _, ok := cfg.Contexts["cluster-a"]; !ok {
+		t.Error("expected context 'cluster-a' in merged config")
+	}
+	if _, ok := cfg.Contexts["cluster-b"]; !ok {
+		t.Error("expected context 'cluster-b' in merged config")
+	}
+}
+
+func TestLoadKubeconfig_SingleFile(t *testing.T) {
+	dir := t.TempDir()
+	kc := filepath.Join(dir, "config")
+	kcContent := `apiVersion: v1
+kind: Config
+contexts:
+- name: test
+  context:
+    cluster: test
+    user: test
+clusters:
+- name: test
+  cluster:
+    server: https://test.example.com:6443
+users:
+- name: test
+  user:
+    token: fake
+current-context: test
+`
+	if err := os.WriteFile(kc, []byte(kcContent), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	a := &App{kubeConfig: kc}
+
+	cfg, err := a.loadKubeconfig()
+	if err != nil {
+		t.Fatalf("loadKubeconfig single file should succeed, got: %v", err)
+	}
+	if len(cfg.Contexts) != 1 {
+		t.Errorf("expected 1 context, got %d", len(cfg.Contexts))
 	}
 }
 

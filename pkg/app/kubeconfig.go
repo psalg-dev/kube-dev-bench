@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -18,25 +19,59 @@ type kubeConfigFile struct {
 	} `yaml:"contexts"`
 }
 
-// GetKubeContexts reads the configured kubeconfig and returns all context names
+// GetKubeContexts reads the configured kubeconfig(s) and returns all context names.
+// When multi-kubeconfig paths are configured (Gap 4) or KUBECONFIG env var is set,
+// contexts are merged across all files.
 func (a *App) GetKubeContexts() ([]string, error) {
-	configPath := a.getKubeConfigPath()
-	configPath = filepath.Clean(configPath)
-	// #nosec G304 -- path is derived from user home or explicitly set config.
-	data, err := os.ReadFile(configPath)
+	cfg, err := a.loadKubeconfig()
 	if err != nil {
 		return nil, err
 	}
-	var cfg kubeConfigFile
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, err
-	}
 	names := make([]string, 0, len(cfg.Contexts))
-	for _, ctx := range cfg.Contexts {
-		names = append(names, ctx.Name)
+	for name := range cfg.Contexts {
+		names = append(names, name)
 	}
 	sort.Strings(names)
 	return names, nil
+}
+
+// GetKubeconfigPaths returns the configured multi-kubeconfig paths.
+func (a *App) GetKubeconfigPaths() []string {
+	return append([]string(nil), a.kubeconfigPaths...)
+}
+
+// SetKubeconfigPaths sets the kubeconfig paths for multi-file merge.
+// Pass an empty slice to revert to single-file or KUBECONFIG env var behaviour.
+func (a *App) SetKubeconfigPaths(paths []string) error {
+	// Validate each path exists
+	for _, p := range paths {
+		if _, err := os.Stat(p); err != nil {
+			return fmt.Errorf("kubeconfig path not accessible: %s: %w", p, err)
+		}
+	}
+	a.kubeconfigPaths = append([]string(nil), paths...)
+	return a.saveConfig()
+}
+
+// DetectKubeconfigEnvPaths reads the KUBECONFIG environment variable and
+// returns the individual paths it contains.
+func (a *App) DetectKubeconfigEnvPaths() []string {
+	envVal := os.Getenv("KUBECONFIG")
+	if envVal == "" {
+		return nil
+	}
+	sep := ":"
+	if filepath.Separator == '\\' {
+		sep = ";"
+	}
+	var paths []string
+	for _, p := range strings.Split(envVal, sep) {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			paths = append(paths, p)
+		}
+	}
+	return paths
 }
 
 // getContextsFromFile extracts context names from a kubeconfig file
