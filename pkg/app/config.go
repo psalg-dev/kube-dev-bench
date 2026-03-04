@@ -23,6 +23,8 @@ type AppConfig struct {
 	ProxyAuthType string `json:"proxyAuthType"` // "none", "basic", "system"
 	ProxyUsername string `json:"proxyUsername"`
 	ProxyPassword string `json:"proxyPassword"`
+	// Custom CA certificate path for Kubernetes API connections
+	CustomCAPath string `json:"customCAPath,omitempty"`
 	// Holmes AI configuration
 	HolmesConfig holmesgpt.HolmesConfigData `json:"holmesConfig,omitempty"`
 }
@@ -48,6 +50,7 @@ func (a *App) loadConfig() error {
 	a.rememberContext = config.RememberContext
 	a.rememberNamespace = config.RememberNamespace
 	a.kubeConfig = config.KubeConfigPath
+	a.customCAPath = config.CustomCAPath
 	// Load proxy configuration
 	a.proxyURL = config.ProxyURL
 	a.proxyAuthType = config.ProxyAuthType
@@ -68,6 +71,7 @@ func (a *App) saveConfig() error {
 		RememberContext:     a.rememberContext,
 		RememberNamespace:   a.rememberNamespace,
 		KubeConfigPath:      a.kubeConfig,
+		CustomCAPath:        a.customCAPath,
 		// Proxy configuration
 		ProxyURL:      a.proxyURL,
 		ProxyAuthType: a.proxyAuthType,
@@ -196,6 +200,23 @@ func (a *App) GetRememberNamespace() bool { return a.rememberNamespace }
 
 // GetUseInformers returns whether informer-based updates are enabled.
 func (a *App) GetUseInformers() bool { return a.useInformers }
+
+// GetCustomCAPath returns the configured custom CA certificate path for Kubernetes connections.
+func (a *App) GetCustomCAPath() string { return a.customCAPath }
+
+// SetCustomCAPath sets an optional custom CA certificate file path used for TLS
+// verification when connecting to Kubernetes clusters whose server certificate
+// is signed by a private / enterprise CA not in the system trust store.
+// Pass an empty string to clear.
+func (a *App) SetCustomCAPath(path string) error {
+	if path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("custom CA file not accessible: %w", err)
+		}
+	}
+	a.customCAPath = path
+	return a.saveConfig()
+}
 
 // SetUseInformers switches between polling and informer-based update mode.
 func (a *App) SetUseInformers(val bool) error {

@@ -20,6 +20,8 @@ const mockSetProxyConfig = vi.fn();
 const mockDetectSystemProxy = vi.fn();
 const mockGetUseInformers = vi.fn();
 const mockSetUseInformers = vi.fn();
+const mockGetCustomCAPath = vi.fn();
+const mockSetCustomCAPath = vi.fn();
 
 // Hooks mocks
 const mockGetHooksConfig = vi.fn();
@@ -47,6 +49,8 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   DetectSystemProxy: (...args: unknown[]) => mockDetectSystemProxy(...args),
   GetUseInformers: (...args: unknown[]) => mockGetUseInformers(...args),
   SetUseInformers: (...args: unknown[]) => mockSetUseInformers(...args),
+  GetCustomCAPath: (...args: unknown[]) => mockGetCustomCAPath(...args),
+  SetCustomCAPath: (...args: unknown[]) => mockSetCustomCAPath(...args),
 
   GetHooksConfig: (...args: unknown[]) => mockGetHooksConfig(...args),
   SaveHook: (...args: unknown[]) => mockSaveHook(...args),
@@ -114,6 +118,8 @@ describe('ConnectionWizard', () => {
     mockSetProxyConfig.mockResolvedValue(undefined);
     mockGetUseInformers.mockResolvedValue(false);
     mockSetUseInformers.mockResolvedValue(undefined);
+    mockGetCustomCAPath.mockResolvedValue('');
+    mockSetCustomCAPath.mockResolvedValue(undefined);
 
     mockGetHooksConfig.mockResolvedValue({ hooks: [] });
     mockSaveHook.mockResolvedValue({});
@@ -626,7 +632,7 @@ describe('ConnectionWizard', () => {
       fireEvent.click(globalProxyButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Global Proxy Settings/i)).toBeInTheDocument();
+        expect(screen.getByText(/Connection Settings/i)).toBeInTheDocument();
       });
     });
 
@@ -692,7 +698,7 @@ describe('ConnectionWizard', () => {
 
       await waitFor(() => {
         // Look for the specific overlay title which includes the config path
-        expect(screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
+        expect(screen.getByText(/Connection Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
       });
     });
   });
@@ -805,8 +811,8 @@ describe('KubernetesConnectionsList – hooks settings', () => {
     fireEvent.click(screen.getByTitle(/Proxy settings/i));
 
     await waitFor(() => {
-      // The overlay shows "Proxy Settings - <config path>"
-      expect(screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
+      // The overlay shows "Connection Settings - <config path>"
+      expect(screen.getByText(/Connection Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
     }, { timeout: 5000 });
   });
 });

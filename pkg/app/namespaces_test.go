@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
@@ -117,4 +119,97 @@ func TestGetNamespaces(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNamespaceFromKubeconfig verifies namespace extraction from kubeconfig.
+func TestNamespaceFromKubeconfig(t *testing.T) {
+	t.Run("returns namespace from context", func(t *testing.T) {
+		dir := t.TempDir()
+		kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://example.com
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+    user: my-user
+    namespace: custom-ns
+  name: my-context
+current-context: my-context
+users:
+- name: my-user
+  user: {}
+`
+		path := filepath.Join(dir, "kubeconfig")
+		if err := os.WriteFile(path, []byte(kubeconfigContent), 0600); err != nil {
+			t.Fatalf("failed to write kubeconfig: %v", err)
+		}
+
+		a := &App{
+			kubeConfig:         path,
+			currentKubeContext: "my-context",
+		}
+		ns := a.namespaceFromKubeconfig()
+		if ns != "custom-ns" {
+			t.Errorf("namespaceFromKubeconfig() = %q, want %q", ns, "custom-ns")
+		}
+	})
+
+	t.Run("returns empty when no namespace set", func(t *testing.T) {
+		dir := t.TempDir()
+		kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://example.com
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+    user: my-user
+  name: my-context
+current-context: my-context
+users:
+- name: my-user
+  user: {}
+`
+		path := filepath.Join(dir, "kubeconfig")
+		if err := os.WriteFile(path, []byte(kubeconfigContent), 0600); err != nil {
+			t.Fatalf("failed to write kubeconfig: %v", err)
+		}
+
+		a := &App{
+			kubeConfig:         path,
+			currentKubeContext: "my-context",
+		}
+		ns := a.namespaceFromKubeconfig()
+		if ns != "" {
+			t.Errorf("namespaceFromKubeconfig() = %q, want empty", ns)
+		}
+	})
+
+	t.Run("returns empty for unknown context", func(t *testing.T) {
+		dir := t.TempDir()
+		kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters: []
+contexts: []
+users: []
+`
+		path := filepath.Join(dir, "kubeconfig")
+		if err := os.WriteFile(path, []byte(kubeconfigContent), 0600); err != nil {
+			t.Fatalf("failed to write kubeconfig: %v", err)
+		}
+
+		a := &App{
+			kubeConfig:         path,
+			currentKubeContext: "nonexistent-context",
+		}
+		ns := a.namespaceFromKubeconfig()
+		if ns != "" {
+			t.Errorf("namespaceFromKubeconfig() = %q, want empty", ns)
+		}
+	})
 }

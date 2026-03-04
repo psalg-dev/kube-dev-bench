@@ -430,6 +430,10 @@ export function GetCurrentConfig() {
   return window['go']['main']['App']['GetCurrentConfig']();
 }
 
+export function GetCustomCAPath() {
+  return window['go']['main']['App']['GetCustomCAPath']();
+}
+
 export function GetCustomResourceDefinitionDetail(arg1) {
   return window['go']['main']['App']['GetCustomResourceDefinitionDetail'](arg1);
 }
@@ -1332,6 +1336,10 @@ export function SetCurrentKubeContext(arg1) {
 
 export function SetCurrentNamespace(arg1) {
   return window['go']['main']['App']['SetCurrentNamespace'](arg1);
+}
+
+export function SetCustomCAPath(arg1) {
+  return window['go']['main']['App']['SetCustomCAPath'](arg1);
 }
 
 export function SetHolmesConfig(arg1) {

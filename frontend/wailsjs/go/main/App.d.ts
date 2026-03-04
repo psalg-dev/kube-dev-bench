@@ -224,6 +224,8 @@ export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;
 
+export function GetCustomCAPath():Promise<string>;
+
 export function GetCustomResourceDefinitionDetail(arg1:string):Promise<app.CustomResourceDefinitionInfo>;
 
 export function GetCustomResourceDefinitions():Promise<Array<app.CustomResourceDefinitionInfo>>;
@@ -675,6 +677,8 @@ export function SendShellInput(arg1:string,arg2:string):Promise<void>;
 export function SetCurrentKubeContext(arg1:string):Promise<void>;
 
 export function SetCurrentNamespace(arg1:string):Promise<void>;
+
+export function SetCustomCAPath(arg1:string):Promise<void>;
 
 export function SetHolmesConfig(arg1:holmesgpt.HolmesConfigData):Promise<void>;
 

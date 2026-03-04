@@ -10,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/logger"
+
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -27,6 +29,7 @@ type App struct {
 	rememberNamespace    bool
 	isInsecureConnection bool      // tracks if we're using insecure TLS
 	insecureWarnOnce     sync.Once // ensures we log TLS fallback warning only once
+	customCAPath         string    // optional path to a custom CA cert for Kubernetes connections
 
 	// swarmVolumeHelpers caches per-volume helper container IDs for volume file browsing.
 	// This allows reuse across Browse/Read calls (Phase 1) without creating a new container each time.
@@ -165,9 +168,24 @@ func copyFile(src, dst string) error {
 // so we can call the runtime methods
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
-	if err := a.loadConfig(); err != nil {
-		fmt.Printf("Error loading config: %v\n", err)
+
+	// Initialize file logger. Logs are written to the working directory.
+	if err := logger.Init(""); err != nil {
+		fmt.Printf("Warning: could not initialize file logger: %v\n", err)
 	}
+	logger.Info("KubeDevBench starting up")
+
+	if err := a.loadConfig(); err != nil {
+		logger.Error("failed to load config", "error", err)
+	}
+
+	logger.Info("config loaded",
+		"context", a.currentKubeContext,
+		"namespace", a.currentNamespace,
+		"kubeconfig", a.kubeConfig,
+		"useInformers", a.useInformers,
+	)
+
 	// Start background aggregator goroutine
 	if a.countsRefreshCh == nil { // safety
 		a.countsRefreshCh = make(chan struct{}, 1)
@@ -180,8 +198,10 @@ func (a *App) Startup(ctx context.Context) {
 	}
 
 	if a.useInformers {
+		logger.Info("starting informer manager")
 		a.startInformerManager()
 	} else {
+		logger.Info("starting resource polling")
 		a.StartAllPolling()
 	}
 
@@ -189,11 +209,13 @@ func (a *App) Startup(ctx context.Context) {
 	a.initHolmes()
 	// Initialize MCP server if enabled
 	a.initMCP()
+	logger.Info("startup complete")
 }
 
 // Shutdown is called by Wails when the app is closing.
 // Best-effort cleanup only; errors are logged and ignored.
 func (a *App) Shutdown(ctx context.Context) {
+	logger.Info("KubeDevBench shutting down")
 	a.stopInformerManager()
 	a.StopAllPolling()
 
@@ -212,6 +234,9 @@ func (a *App) Shutdown(ctx context.Context) {
 
 	// Stop MCP server if running.
 	a.shutdownMCP()
+
+	logger.Info("shutdown complete")
+	logger.Close()
 }
 
 // GetCurrentConfig returns the currently loaded configuration

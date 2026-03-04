@@ -3,6 +3,7 @@ package registry
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -75,6 +77,22 @@ func NewV2Client(cfg RegistryConfig) (*v2Client, error) {
 	// Support both fields (DisableTLSVerification exists for forward/backward flexibility).
 	if cfg.InsecureSkipTLSVerify || cfg.DisableTLSVerification {
 		tlsCfg.InsecureSkipVerify = true
+	}
+
+	// Load custom CA certificate if provided
+	if cfg.CustomCACert != "" {
+		caCert, err := os.ReadFile(cfg.CustomCACert)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read custom CA certificate: %w", err)
+		}
+		caCertPool, sysErr := x509.SystemCertPool()
+		if sysErr != nil {
+			caCertPool = x509.NewCertPool()
+		}
+		if !caCertPool.AppendCertsFromPEM(caCert) {
+			return nil, fmt.Errorf("custom CA file %s contains no valid PEM certificates", cfg.CustomCACert)
+		}
+		tlsCfg.RootCAs = caCertPool
 	}
 
 	transport := http.DefaultTransport.(*http.Transport).Clone()

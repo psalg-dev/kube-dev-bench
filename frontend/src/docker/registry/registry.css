@@ -127,6 +127,12 @@
   width: auto;
 }
 
+.registry-modal__hint {
+  font-size: 11px;
+  color: var(--gh-text-muted, #888);
+  margin-top: 4px;
+}
+
 .registry-modal__footer {
   margin-top: 14px;
   padding-top: 14px;

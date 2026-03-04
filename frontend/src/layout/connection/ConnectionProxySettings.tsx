@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useConnectionsState, type ProxyConfig } from './ConnectionsStateContext';
+import { GetCustomCAPath, SetCustomCAPath } from '../../../wailsjs/go/main/App';
+import { showError, showSuccess } from '../../notification';
 import './ConnectionProxySettings.css';
 
 type ConnectionProxySettingsProps = {
@@ -20,6 +22,8 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
   const [username, setUsername] = useState(proxyConfig.username || '');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
+  const [customCAPath, setCustomCAPath] = useState('');
+  const [savedCAPath, setSavedCAPath] = useState('');
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -27,6 +31,11 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
       setUrl(proxyConfig.url || '');
       setUsername(proxyConfig.username || '');
     }, 0);
+    // Load custom CA path from backend
+    GetCustomCAPath().then((path) => {
+      setCustomCAPath(path || '');
+      setSavedCAPath(path || '');
+    }).catch(() => { /* ignore */ });
     return () => {
       window.clearTimeout(timerId);
     };
@@ -47,6 +56,22 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
       password: authType === 'basic' ? password : '',
     });
 
+    // Save custom CA path if changed
+    if (customCAPath !== savedCAPath) {
+      try {
+        await SetCustomCAPath(customCAPath.trim());
+        setSavedCAPath(customCAPath.trim());
+        if (customCAPath.trim()) {
+          showSuccess('Custom CA certificate configured');
+        } else {
+          showSuccess('Custom CA certificate cleared');
+        }
+      } catch (e) {
+        showError(`Failed to save custom CA: ${e}`);
+        return;
+      }
+    }
+
     if (success) {
       onClose();
     }
@@ -59,8 +84,8 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
   };
 
   const title = editingConnectionProxy
-    ? `🌐 Proxy Settings - ${editingConnectionProxy.path || editingConnectionProxy.name}`
-    : '🌐 Global Proxy Settings';
+    ? `⚙️ Connection Settings - ${editingConnectionProxy.path || editingConnectionProxy.name}`
+    : '⚙️ Connection Settings';
 
   return (
     <div
@@ -202,6 +227,32 @@ function ConnectionProxySettings({ onClose }: ConnectionProxySettingsProps) {
               </div>
             </>
           )}
+
+          <div className="proxy-settings-divider" />
+
+          <div className="proxy-settings-section">
+            <label className="proxy-settings-label">Custom CA Certificate</label>
+            <p className="proxy-settings-description">
+              Provide a path to a PEM-encoded CA certificate for clusters or registries
+              using certificates signed by a private or enterprise certificate authority.
+            </p>
+            <div className="proxy-settings-field">
+              <label className="proxy-settings-label" htmlFor="customCAPath">
+                CA Certificate File Path
+              </label>
+              <input
+                id="customCAPath"
+                type="text"
+                value={customCAPath}
+                onChange={(e) => setCustomCAPath(e.target.value)}
+                placeholder="/path/to/ca-bundle.crt"
+                className="proxy-settings-input"
+              />
+              <span className="proxy-settings-hint">
+                Leave empty to use the default system trust store
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="proxy-settings-footer">
