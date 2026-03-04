@@ -370,7 +370,7 @@ jobs:
   release:
     runs-on: ${{ matrix.os }}
     needs: e2e
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write
     strategy:
@@ -521,17 +521,17 @@ jobs:
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact }}
+          name: ${{ github.ref == 'refs/heads/dev' && format('snapshot-{0}', matrix.artifact) || matrix.artifact }}
           path: build/bin/${{ matrix.artifact }}
-          retention-days: 30
+          retention-days: ${{ github.ref == 'refs/heads/dev' && 7 || 30 }}
 
       - name: Upload release artifact (macOS/Linux)
         if: matrix.platform != 'windows'
         uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.artifact }}
+          name: ${{ github.ref == 'refs/heads/dev' && format('snapshot-{0}', matrix.artifact) || matrix.artifact }}
           path: build/bin/${{ matrix.artifact }}
-          retention-days: 30
+          retention-days: ${{ github.ref == 'refs/heads/dev' && 7 || 30 }}
 
       - name: Upload to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
