@@ -177,6 +177,7 @@ func (a *App) ConnectInsecure(context string) error {
 		return fmt.Errorf("context name required")
 	}
 	a.allowInsecure = true
+	a.invalidateCachedClient()
 	logger.Warn("ConnectInsecure: user opted into insecure TLS", "context", context)
 
 	// Re-attempt connection via SetCurrentKubeContext which will call getRESTConfig
@@ -184,12 +185,46 @@ func (a *App) ConnectInsecure(context string) error {
 }
 
 // getKubernetesClient returns a clientset using getRESTConfig.
+// It caches the clientset to avoid creating a new HTTP transport and TLS
+// handshake on every API call. The cache is invalidated when the kube context
+// changes (see invalidateCachedClient).
 func (a *App) getKubernetesClient() (*kubernetes.Clientset, error) {
+	a.cachedClientMu.Lock()
+	defer a.cachedClientMu.Unlock()
+
+	if a.cachedClientset != nil && a.cachedClientCtx == a.currentKubeContext {
+		return a.cachedClientset, nil
+	}
+
 	rc, err := a.getRESTConfig()
 	if err != nil {
 		return nil, err
 	}
-	return kubernetes.NewForConfig(rc)
+
+	// Apply rate limiting to prevent excessive API traffic.
+	if rc.QPS == 0 {
+		rc.QPS = 50
+	}
+	if rc.Burst == 0 {
+		rc.Burst = 100
+	}
+
+	cs, err := kubernetes.NewForConfig(rc)
+	if err != nil {
+		return nil, err
+	}
+	a.cachedClientset = cs
+	a.cachedClientCtx = a.currentKubeContext
+	return cs, nil
+}
+
+// invalidateCachedClient clears the cached kubernetes clientset.
+// Must be called when the kube context, proxy, or TLS settings change.
+func (a *App) invalidateCachedClient() {
+	a.cachedClientMu.Lock()
+	defer a.cachedClientMu.Unlock()
+	a.cachedClientset = nil
+	a.cachedClientCtx = ""
 }
 
 // getKubernetesInterface returns a kubernetes.Interface for use with testClientset.

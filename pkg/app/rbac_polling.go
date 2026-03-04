@@ -19,7 +19,7 @@ func (a *App) StartRBACPolling() {
 
 func startClusterRBACPolling[T any](a *App, eventName string, fetchFn func() ([]T, error)) {
 	go func() {
-		ticker := time.NewTicker(time.Second)
+		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
 		for {

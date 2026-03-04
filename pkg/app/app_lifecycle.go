@@ -102,6 +102,11 @@ type App struct {
 	informerMu      sync.Mutex
 	informerManager *InformerManager
 
+	// Cached kubernetes clientset to avoid creating a new one per API call.
+	cachedClientMu  sync.Mutex
+	cachedClientset *kubernetes.Clientset
+	cachedClientCtx string // kube context the cached client was built for
+
 	pollingMu      sync.Mutex
 	pollingStarted bool
 	pollingStopCh  chan struct{}
@@ -151,7 +156,7 @@ func NewApp() *App {
 		isInsecureConnection: false, // Initialize to secure by default
 		countsRefreshCh:      make(chan struct{}, 1),
 		swarmVolumeHelpers:   make(map[string]string),
-		useInformers:         false,
+		useInformers:         true,
 	}
 }
 
