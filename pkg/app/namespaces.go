@@ -48,7 +48,7 @@ func (a *App) GetNamespaces() ([]string, error) {
 		logger.Warn("GetNamespaces: cluster-wide list failed, attempting RBAC fallback", "error", err)
 		// RBAC fallback: if the user cannot list namespaces cluster-wide,
 		// derive a usable namespace list from the kubeconfig context.
-		if isPermissionError(err) {
+		if isPermissionError(err) || isAuthDiscoveryRecoverableError(err) {
 			ns := a.namespaceFromKubeconfig()
 			if ns != "" {
 				logger.Info("GetNamespaces: RBAC fallback succeeded", "namespace", ns)

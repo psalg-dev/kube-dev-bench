@@ -220,6 +220,29 @@ func TestIsPermissionError_StatusError(t *testing.T) {
 	}
 }
 
+func TestIsAuthDiscoveryRecoverableError(t *testing.T) {
+	tests := []struct {
+		name     string
+		err      error
+		expected bool
+	}{
+		{name: "nil", err: nil, expected: false},
+		{name: "generic network error", err: errors.New("connection refused"), expected: false},
+		{name: "auth provider missing", err: errors.New("No Auth Provider found for name oidc"), expected: true},
+		{name: "oidc refresh token missing", err: errors.New("oidc: no valid id-token, and cannot refresh without refresh token"), expected: true},
+		{name: "k8s logged in prompt", err: errors.New("You must be logged in to the server"), expected: true},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isAuthDiscoveryRecoverableError(tc.err)
+			if got != tc.expected {
+				t.Errorf("isAuthDiscoveryRecoverableError(%v) = %v, want %v", tc.err, got, tc.expected)
+			}
+		})
+	}
+}
+
 func TestApplyCustomCA_NoPath(t *testing.T) {
 	a := &App{customCAPath: ""}
 	rc := &rest.Config{}

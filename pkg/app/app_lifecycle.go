@@ -169,8 +169,8 @@ func copyFile(src, dst string) error {
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Initialize file logger. Logs are written to the working directory.
-	if err := logger.Init(""); err != nil {
+	// Initialize file logger in a user-writable app directory.
+	if err := logger.Init(a.logDirectory()); err != nil {
 		fmt.Printf("Warning: could not initialize file logger: %v\n", err)
 	}
 	logger.Info("KubeDevBench starting up")
@@ -210,6 +210,19 @@ func (a *App) Startup(ctx context.Context) {
 	// Initialize MCP server if enabled
 	a.initMCP()
 	logger.Info("startup complete")
+}
+
+func (a *App) logDirectory() string {
+	base := filepath.Dir(a.configPath)
+	if base == "" || base == "." {
+		home, err := os.UserHomeDir()
+		if err == nil {
+			base = filepath.Join(home, "KubeDevBench")
+		} else {
+			base = "."
+		}
+	}
+	return filepath.Join(base, "logs")
 }
 
 // Shutdown is called by Wails when the app is closing.

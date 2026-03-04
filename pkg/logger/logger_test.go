@@ -1,11 +1,11 @@
 package logger
 
 import (
+	"errors"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 )
 
@@ -13,9 +13,16 @@ func resetGlobal() {
 	Close()
 	globalFile = nil
 	globalPath = ""
-	once = sync.Once{}
+	initialized = false
+	stdoutWriter = os.Stdout
 	// Reset slog default to a basic handler so tests are isolated.
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, nil)))
+}
+
+type alwaysFailWriter struct{}
+
+func (alwaysFailWriter) Write([]byte) (int, error) {
+	return 0, errors.New("simulated stdout failure")
 }
 
 func TestInit_CreatesLogFile(t *testing.T) {
@@ -33,6 +40,21 @@ func TestInit_CreatesLogFile(t *testing.T) {
 
 	if FilePath() != logPath {
 		t.Errorf("FilePath() = %q, want %q", FilePath(), logPath)
+	}
+}
+
+func TestInit_CreatesDirectoryWhenMissing(t *testing.T) {
+	resetGlobal()
+	base := t.TempDir()
+	dir := filepath.Join(base, "nested", "logs")
+
+	if err := Init(dir); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer resetGlobal()
+
+	if _, err := os.Stat(filepath.Join(dir, "kubedevbench.log")); err != nil {
+		t.Fatalf("expected log file in created directory, stat error: %v", err)
 	}
 }
 
@@ -111,10 +133,37 @@ func TestFilePath_BeforeInit(t *testing.T) {
 
 func TestInit_InvalidDir(t *testing.T) {
 	resetGlobal()
-	err := Init("/nonexistent/path/that/should/not/exist/12345")
+	base := t.TempDir()
+	filePath := filepath.Join(base, "not-a-dir")
+	if err := os.WriteFile(filePath, []byte("x"), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+	err := Init(filePath)
 	if err == nil {
 		resetGlobal()
 		t.Fatal("expected error for invalid directory")
+	}
+}
+
+func TestInit_WritesFileWhenStdoutFails(t *testing.T) {
+	resetGlobal()
+	dir := t.TempDir()
+	stdoutWriter = alwaysFailWriter{}
+
+	if err := Init(dir); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+	defer resetGlobal()
+
+	Info("message should still reach file", "component", "logger")
+	Close()
+
+	data, err := os.ReadFile(filepath.Join(dir, "kubedevbench.log"))
+	if err != nil {
+		t.Fatalf("failed to read log file: %v", err)
+	}
+	if !strings.Contains(string(data), "message should still reach file") {
+		t.Fatal("expected log message to be written to file even when stdout writer fails")
 	}
 }
 

@@ -16,35 +16,44 @@ import (
 var (
 	globalFile *os.File
 	globalPath string
-	once       sync.Once
+	initMu     sync.Mutex
+	initialized bool
+	stdoutWriter io.Writer = os.Stdout
 )
 
 // Init initializes the global slog logger. It creates a log file named
 // "kubedevbench.log" in the given directory. If dir is empty, the current
 // working directory is used. Output goes to both stdout and the file.
 func Init(dir string) error {
-	var initErr error
-	once.Do(func() {
-		if dir == "" {
-			dir = "."
-		}
-		logPath := filepath.Join(dir, "kubedevbench.log")
-		f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			initErr = fmt.Errorf("failed to open log file %s: %w", logPath, err)
-			return
-		}
-		globalFile = f
-		globalPath = logPath
+	initMu.Lock()
+	defer initMu.Unlock()
 
-		multi := io.MultiWriter(os.Stdout, f)
-		handler := slog.NewJSONHandler(multi, &slog.HandlerOptions{
-			Level: slog.LevelInfo,
-		})
-		slog.SetDefault(slog.New(handler))
-		slog.Info("logger initialized", "path", logPath)
+	if initialized {
+		return nil
+	}
+
+	if dir == "" {
+		dir = "."
+	}
+	dir = filepath.Clean(dir)
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		return fmt.Errorf("failed to create log directory %s: %w", dir, err)
+	}
+	logPath := filepath.Join(dir, "kubedevbench.log")
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return fmt.Errorf("failed to open log file %s: %w", logPath, err)
+	}
+	globalFile = f
+	globalPath = logPath
+
+	handler := slog.NewJSONHandler(writerFromDefault(), &slog.HandlerOptions{
+		Level: slog.LevelInfo,
 	})
-	return initErr
+	slog.SetDefault(slog.New(handler))
+	initialized = true
+	slog.Info("logger initialized", "path", logPath)
+	return nil
 }
 
 // SetLevel changes the minimum log level at runtime.
@@ -72,9 +81,37 @@ func FilePath() string {
 // writerFromDefault returns the multi-writer (stdout + file) or just stdout.
 func writerFromDefault() io.Writer {
 	if globalFile != nil {
-		return io.MultiWriter(os.Stdout, globalFile)
+		return resilientMultiWriter{writers: []io.Writer{globalFile, stdoutWriter}}
 	}
-	return os.Stdout
+	return stdoutWriter
+}
+
+type resilientMultiWriter struct {
+	writers []io.Writer
+}
+
+func (w resilientMultiWriter) Write(p []byte) (int, error) {
+	var firstErr error
+	wroteAny := false
+	for _, writer := range w.writers {
+		if writer == nil {
+			continue
+		}
+		if _, err := writer.Write(p); err != nil {
+			if firstErr == nil {
+				firstErr = err
+			}
+			continue
+		}
+		wroteAny = true
+	}
+	if wroteAny {
+		return len(p), nil
+	}
+	if firstErr != nil {
+		return 0, firstErr
+	}
+	return len(p), nil
 }
 
 // ---- Convenience wrappers around slog (keep call sites short) ----

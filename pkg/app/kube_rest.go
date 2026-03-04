@@ -73,6 +73,11 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 			a.isInsecureConnection = false
 			return restConfig, nil
 		}
+		if isAuthDiscoveryRecoverableError(err) {
+			logger.Warn("getRESTConfig: cluster probe returned auth-provider error; allowing kubeconfig-scoped namespace fallback", "context", a.currentKubeContext, "error", err)
+			a.isInsecureConnection = false
+			return restConfig, nil
+		}
 		logger.Error("getRESTConfig: probe failed with non-recoverable error", "context", a.currentKubeContext, "error", err)
 		return nil, err
 	}
@@ -187,4 +192,31 @@ func isPermissionError(err error) bool {
 	// Fallback: some wrapped errors lose the structured status code.
 	le := strings.ToLower(err.Error())
 	return strings.Contains(le, "forbidden") || strings.Contains(le, "unauthorized")
+}
+
+// isAuthDiscoveryRecoverableError returns true for auth-provider / OIDC errors
+// where we should still allow connection setup and let namespace fallback logic
+// proceed from kubeconfig context defaults.
+func isAuthDiscoveryRecoverableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	le := strings.ToLower(err.Error())
+	authIndicators := []string{
+		"auth-provider",
+		"no auth provider found",
+		"you must be logged in",
+		"provide credentials",
+		"oidc",
+		"id-token",
+		"refresh token",
+		"token is expired",
+		"oauth2",
+	}
+	for _, indicator := range authIndicators {
+		if strings.Contains(le, indicator) {
+			return true
+		}
+	}
+	return false
 }
