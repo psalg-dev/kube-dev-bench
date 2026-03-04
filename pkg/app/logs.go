@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
 // StopPodLogs stops an active log stream for the given pod if running
@@ -272,28 +272,13 @@ func (a *App) GetPodContainerLog(podName, container string) (string, error) {
 	return string(data), nil
 }
 
-// getPodContainerNames returns all container names for the given pod,
-// including both init containers and regular containers.
+// getPodContainerNames returns all regular container names for the given pod.
 // The second return value indicates whether the pod has more than one container.
+// Delegates to GetPodContainers (pod_details.go) to avoid duplicating the API call.
 func (a *App) getPodContainerNames(podName string) ([]string, bool) {
-	if a.currentNamespace == "" {
+	names, err := a.GetPodContainers(podName)
+	if err != nil || len(names) == 0 {
 		return nil, false
-	}
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return nil, false
-	}
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	pod, err := clientset.CoreV1().Pods(a.currentNamespace).Get(ctx, podName, metav1.GetOptions{})
-	if err != nil {
-		return nil, false
-	}
-	names := make([]string, 0, len(pod.Spec.Containers))
-	for _, c := range pod.Spec.Containers {
-		names = append(names, c.Name)
 	}
 	return names, len(names) > 1
 }
@@ -301,12 +286,17 @@ func (a *App) getPodContainerNames(podName string) ([]string, bool) {
 // streamAllContainerLogs streams logs from all containers concurrently
 // with each line prefixed by [container-name]. Used for follow=true streaming.
 func (a *App) streamAllContainerLogs(ctx context.Context, podName string, containers []string, follow bool) {
+	cs, err := a.getKubernetesClient()
+	if err != nil {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[error] client: %s", err.Error()))
+		return
+	}
 	var wg sync.WaitGroup
 	for _, c := range containers {
 		wg.Add(1)
 		go func(container string) {
 			defer wg.Done()
-			a.streamContainerWithPrefix(ctx, podName, container, nil, follow)
+			a.streamContainerWithPrefix(ctx, cs, podName, container, nil, follow)
 		}(c)
 	}
 	wg.Wait()
@@ -317,6 +307,11 @@ func (a *App) streamAllContainerLogs(ctx context.Context, podName string, contai
 
 // streamAllContainerLogsWith streams logs from all containers with tail/follow options.
 func (a *App) streamAllContainerLogsWith(ctx context.Context, podName string, containers []string, tailLines int, follow bool) {
+	cs, err := a.getKubernetesClient()
+	if err != nil {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[error] client: %s", err.Error()))
+		return
+	}
 	var tl *int64
 	if tailLines > 0 {
 		v := int64(tailLines)
@@ -327,7 +322,7 @@ func (a *App) streamAllContainerLogsWith(ctx context.Context, podName string, co
 		wg.Add(1)
 		go func(container string) {
 			defer wg.Done()
-			a.streamContainerWithPrefix(ctx, podName, container, tl, follow)
+			a.streamContainerWithPrefix(ctx, cs, podName, container, tl, follow)
 		}(c)
 	}
 	wg.Wait()
@@ -338,14 +333,11 @@ func (a *App) streamAllContainerLogsWith(ctx context.Context, podName string, co
 
 // streamContainerWithPrefix streams logs for a single container
 // and prefixes each line with [container-name].
-func (a *App) streamContainerWithPrefix(ctx context.Context, podName, container string, tailLines *int64, follow bool) {
+// The clientset is passed in by the caller (streamAllContainerLogs / streamAllContainerLogsWith)
+// so that a single shared client is reused across all container goroutines.
+func (a *App) streamContainerWithPrefix(ctx context.Context, clientset kubernetes.Interface, podName, container string, tailLines *int64, follow bool) {
 	if a.currentNamespace == "" {
 		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[%s] [error] no namespace selected", container))
-		return
-	}
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[%s] [error] client: %s", container, err.Error()))
 		return
 	}
 	opts := &v1.PodLogOptions{Follow: follow, Container: container, TailLines: tailLines}

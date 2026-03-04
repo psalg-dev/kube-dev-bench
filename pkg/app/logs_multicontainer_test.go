@@ -407,10 +407,11 @@ func TestStreamContainerWithPrefix_NoNamespace(t *testing.T) {
 		logCancels:       make(map[string]context.CancelFunc),
 		currentNamespace: "",
 	}
-	app.streamContainerWithPrefix(context.Background(), "pod1", "app", nil, false)
+	// clientset is nil because the function returns early when namespace is empty
+	app.streamContainerWithPrefix(context.Background(), nil, "pod1", "app", nil, false)
 }
 
-func TestStreamContainerWithPrefix_NoK8s(t *testing.T) {
+func TestStreamContainerWithPrefix_NoPod(t *testing.T) {
 	disableWailsEvents = true
 	defer func() { disableWailsEvents = false }()
 
@@ -418,9 +419,9 @@ func TestStreamContainerWithPrefix_NoK8s(t *testing.T) {
 		ctx:              context.Background(),
 		logCancels:       make(map[string]context.CancelFunc),
 		currentNamespace: "default",
-		kubeConfig:       "/nonexistent-kubeconfig",
 	}
-	app.streamContainerWithPrefix(context.Background(), "pod1", "app", nil, false)
+	// Fake clientset has no pods — exercises the "stream open fails" path
+	app.streamContainerWithPrefix(context.Background(), fake.NewSimpleClientset(), "pod1", "app", nil, false)
 }
 
 func TestStreamContainerWithPrefix_CanceledContext(t *testing.T) {
@@ -434,9 +435,8 @@ func TestStreamContainerWithPrefix_CanceledContext(t *testing.T) {
 		ctx:              context.Background(),
 		logCancels:       make(map[string]context.CancelFunc),
 		currentNamespace: "default",
-		kubeConfig:       "/nonexistent-kubeconfig",
 	}
-	app.streamContainerWithPrefix(ctx, "pod1", "app", nil, true)
+	app.streamContainerWithPrefix(ctx, fake.NewSimpleClientset(), "pod1", "app", nil, true)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -170,6 +170,9 @@ Each List call returns the full resource list. With many workloads, Secrets (whi
 - [x] **Monitor uses shared client** — `checkPodIssues`/`checkEventIssues` now use `getClient()` instead of `createKubernetesClient()`
 - [x] **Add field selectors** for events (`type=Warning`) with client-side safety net
 - [x] **Client cache invalidation** on `SetCurrentKubeContext`, `ConnectInsecure`, `SetProxyConfig`
+- [x] **Client cache invalidation** on `SetKubeConfigPath`, `SetCustomCAPath` (added during code review)
+- [x] **overview.go** migrated from `createKubernetesClient()` to `getClient()` (code review fix)
+- [x] **Fixed misleading doc comment** on `getPodContainerNames` (said "init containers" but only returns regular containers)
 
 ### Remaining
 
@@ -177,8 +180,14 @@ Each List call returns the full resource list. With many workloads, Secrets (whi
 - [ ] **Remove duplicate data paths**: counts aggregator should read from the same data the polling goroutines already fetched, not re-List.
 - [ ] **Exclude Secret data** from list calls where only counts are needed (use `metav1.ListOptions{Limit: 0}` or metadata-only lists).
 - [ ] **Reuse a single shared clientset** instead of creating new clients in monitor functions.
+- [x] **Deduplicate `getPodContainerNames`** in `logs.go` with `GetPodContainers` in `pod_details.go` — `getPodContainerNames` now delegates to `GetPodContainers`.
+- [x] **Protect `currentKubeContext` with RWMutex** — added `kubeContextMu sync.RWMutex` with `getKubeContext()`/`setKubeContext()` accessor methods; converted write paths in `config.go`, cache comparison in `kube_rest.go`, and `GetCurrentConfig` read.
+- [x] **Pass shared clientset to `streamContainerWithPrefix`** — container goroutines now receive a pre-fetched client instead of each goroutine calling `getKubernetesClient()` independently.
+- [x] **Frontend `containerPrefixRegex` moved to module level** — avoids re-creation every render.
+- [x] **Frontend `containerColorMapRef` cleared on pod change** — prevents stale color assignments from accumulating.
 - [ ] **Frontend ResourcePodsTab** could subscribe to Wails events instead of 5s polling.
 - [ ] Users with existing `config.json` containing `"useInformers": false` will continue using polling — consider a migration notification
+- [ ] **Incrementally convert remaining `a.currentKubeContext` reads** to `getKubeContext()` in background goroutines (counts.go, informer_manager.go, session_probe.go, etc.)
 
 ---
 

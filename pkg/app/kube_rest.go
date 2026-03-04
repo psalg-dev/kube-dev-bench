@@ -192,7 +192,8 @@ func (a *App) getKubernetesClient() (*kubernetes.Clientset, error) {
 	a.cachedClientMu.Lock()
 	defer a.cachedClientMu.Unlock()
 
-	if a.cachedClientset != nil && a.cachedClientCtx == a.currentKubeContext {
+	kubeCtx := a.getKubeContext()
+	if a.cachedClientset != nil && a.cachedClientCtx == kubeCtx {
 		return a.cachedClientset, nil
 	}
 
@@ -214,7 +215,7 @@ func (a *App) getKubernetesClient() (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	a.cachedClientset = cs
-	a.cachedClientCtx = a.currentKubeContext
+	a.cachedClientCtx = kubeCtx
 	return cs, nil
 }
 
