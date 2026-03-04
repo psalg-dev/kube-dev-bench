@@ -3,6 +3,8 @@ package app
 import (
 	"os"
 	"testing"
+
+	"k8s.io/client-go/rest"
 )
 
 func TestSetProxyConfig(t *testing.T) {
@@ -439,3 +441,45 @@ func containsStringHelper(s, substr string) bool {
 }
 
 // Tests for sanitizeProxyURL function
+
+// --- Gap 6: NTLM proxy mode ---
+
+func TestSetProxyConfig_AcceptsNtlmLocal(t *testing.T) {
+	dir := t.TempDir()
+	a := &App{
+		configPath: dir + "/config.json",
+	}
+	err := a.SetProxyConfig("http://127.0.0.1:3128", "ntlm-local", "", "")
+	if err != nil {
+		t.Fatalf("SetProxyConfig should accept ntlm-local, got: %v", err)
+	}
+	if a.proxyAuthType != "ntlm-local" {
+		t.Errorf("proxyAuthType = %q, want %q", a.proxyAuthType, "ntlm-local")
+	}
+	if a.proxyURL != "http://127.0.0.1:3128" {
+		t.Errorf("proxyURL = %q, want %q", a.proxyURL, "http://127.0.0.1:3128")
+	}
+}
+
+func TestGetProxyURL_NtlmLocalReturnsURL(t *testing.T) {
+	a := &App{
+		proxyURL:      "http://127.0.0.1:3128",
+		proxyAuthType: "ntlm-local",
+	}
+	got := a.getProxyURL()
+	if got != "http://127.0.0.1:3128" {
+		t.Errorf("getProxyURL() = %q, want %q", got, "http://127.0.0.1:3128")
+	}
+}
+
+func TestApplyProxyConfig_NtlmLocalBehavesLikeBasic(t *testing.T) {
+	a := &App{
+		proxyURL:      "http://127.0.0.1:3128",
+		proxyAuthType: "ntlm-local",
+	}
+	rc := &rest.Config{}
+	a.applyProxyConfig(rc)
+	if rc.Proxy == nil {
+		t.Fatal("Proxy function should be set for ntlm-local mode")
+	}
+}

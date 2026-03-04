@@ -56,7 +56,9 @@ const appFunctionNames = [
   // Monitor enhancements
   'ScanClusterHealth','AnalyzeMonitorIssue','AnalyzeMonitorIssueStream','AnalyzeAllMonitorIssues','DismissMonitorIssue','SaveMonitorIssueAnalysis','GetDismissedIssues',
   // Prometheus alerts
-  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory'
+  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory',
+  // Enterprise auth (Gaps 2-7)
+  'ConnectInsecure','RefreshCredentials','GetKubeconfigPaths','SetKubeconfigPaths','DetectKubeconfigEnvPaths','SetSessionProbeInterval','GetSessionProbeInterval'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {

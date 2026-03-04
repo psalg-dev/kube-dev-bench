@@ -30,6 +30,19 @@ type App struct {
 	isInsecureConnection bool      // tracks if we're using insecure TLS
 	insecureWarnOnce     sync.Once // ensures we log TLS fallback warning only once
 	customCAPath         string    // optional path to a custom CA cert for Kubernetes connections
+	allowInsecure        bool      // user has explicitly opted into insecure TLS for current context
+
+	// Auth expiry debounce state
+	authExpiredMu       sync.Mutex
+	lastAuthExpiredEmit time.Time
+
+	// Session probe (Gap 7)
+	sessionProbeMu       sync.Mutex
+	sessionProbeCancel   context.CancelFunc
+	sessionProbeInterval time.Duration // 0 = disabled
+
+	// Multi-kubeconfig paths (Gap 4)
+	kubeconfigPaths []string
 
 	// swarmVolumeHelpers caches per-volume helper container IDs for volume file browsing.
 	// This allows reuse across Browse/Read calls (Phase 1) without creating a new container each time.
@@ -68,7 +81,7 @@ type App struct {
 	testPodLogsFetcher func(namespace, podName, containerName string, lines int) (string, error)
 
 	// Exported test exec stubs for other packages to set
-	TestExecInPod func(namespace, pod, container string, command []string, timeout time.Duration) (string, error)
+	TestExecInPod        func(namespace, pod, container string, command []string, timeout time.Duration) (string, error)
 	TestExecInPodLimited func(namespace, pod, container string, command []string, timeout time.Duration, maxBytes int64) (string, error)
 
 	// testExecInPod allows tests to override execInPod behavior without needing a real cluster
@@ -169,6 +182,9 @@ func copyFile(src, dst string) error {
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
 
+	// Gap 5: augment PATH on Windows to include common credential-provider locations.
+	supplementWindowsPath()
+
 	// Initialize file logger in a user-writable app directory.
 	if err := logger.Init(a.logDirectory()); err != nil {
 		fmt.Printf("Warning: could not initialize file logger: %v\n", err)
@@ -209,6 +225,10 @@ func (a *App) Startup(ctx context.Context) {
 	a.initHolmes()
 	// Initialize MCP server if enabled
 	a.initMCP()
+
+	// Gap 7: start session probe if configured
+	a.startSessionProbe()
+
 	logger.Info("startup complete")
 }
 
@@ -229,6 +249,7 @@ func (a *App) logDirectory() string {
 // Best-effort cleanup only; errors are logged and ignored.
 func (a *App) Shutdown(ctx context.Context) {
 	logger.Info("KubeDevBench shutting down")
+	a.stopSessionProbe()
 	a.stopInformerManager()
 	a.StopAllPolling()
 
