@@ -540,3 +540,33 @@ jobs:
           files: build/bin/${{ matrix.artifact }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-dev-snapshot:
+    runs-on: ubuntu-22.04
+    needs: release
+    if: github.ref == 'refs/heads/dev'
+    permissions:
+      contents: write
+    steps:
+      - name: Download snapshot artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: snapshot-*
+          path: snapshots
+          merge-multiple: true
+
+      - name: List snapshot files
+        run: ls -la snapshots
+
+      - name: Publish rolling dev snapshot release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: dev-snapshot
+          name: Development Snapshot
+          prerelease: true
+          make_latest: false
+          target_commitish: ${{ github.sha }}
+          files: snapshots/*
+          overwrite_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
