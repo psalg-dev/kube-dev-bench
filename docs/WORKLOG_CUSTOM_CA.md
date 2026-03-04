@@ -43,6 +43,8 @@ connections trust the internal CA.
   assertions for the renamed overlay title.
 - [x] **frontend/src/__tests__/wailsMocks.ts** — Added `GetCustomCAPath` /
   `SetCustomCAPath` to the centralized mock.
+- [x] **e2e/tests/85-proxy-settings.spec.ts** — Updated heading assertions from
+  `/proxy settings/i` to `/connection settings/i` to match renamed overlay.
 
 ## Test Results
 

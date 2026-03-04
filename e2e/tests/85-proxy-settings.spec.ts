@@ -21,9 +21,9 @@ test.describe.serial('proxy settings', () => {
     ]).catch(() => null);
 
     if (wizardVisible === 'new') {
-      // New wizard flow - open global proxy settings
+      // New wizard flow - open global proxy / connection settings
       await page.locator('#global-proxy-settings-btn').click();
-      await expect(page.getByRole('heading', { name: /proxy settings/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /connection settings/i })).toBeVisible();
 
       // Select manual configuration
       await page.locator('input[name="proxyAuthType"][value="basic"]').check();
@@ -58,7 +58,7 @@ test.describe.serial('proxy settings', () => {
       await page.locator('#show-wizard-btn').click();
       await expect(page.locator('.connection-wizard-layout')).toBeVisible({ timeout: 10_000 });
       await page.locator('#global-proxy-settings-btn').click();
-      await expect(page.getByRole('heading', { name: /proxy settings/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /connection settings/i })).toBeVisible();
 
       // Check that basic/manual is selected and values persist
       await expect(page.locator('#proxyURL')).toHaveValue(state.proxyBaseURL);
@@ -74,7 +74,7 @@ test.describe.serial('proxy settings', () => {
       });
 
       await page.locator('#global-proxy-settings-btn').click();
-      await expect(page.getByRole('heading', { name: /proxy settings/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /connection settings/i })).toBeVisible();
       // Verify No Proxy is selected (the first radio option with No Proxy text should be selected)
       await expect(page.locator('input[name="proxyAuthType"][value="none"]')).toBeChecked();
 
