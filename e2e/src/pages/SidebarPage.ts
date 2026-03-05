@@ -130,7 +130,7 @@ export class SidebarPage {
   }
 
   async selectContext(contextName: string) {
-    const root = this.page.locator('#kubecontext-root');
+    const root = this.page.locator('#kubecontext-root, #sidebar').first();
     await expect(root).toBeVisible({ timeout: 60_000 });
     await root.scrollIntoViewIfNeeded();
 
@@ -140,7 +140,17 @@ export class SidebarPage {
     }
 
     const listbox = this.page.locator('#react-select-context-select-listbox');
-    const combobox = root.getByRole('combobox');
+    const contextInput = this.page.locator('#react-select-context-select-input').first();
+    const rootCombo = this.page.locator('#kubecontext-root [role="combobox"]').first();
+    const sidebarContextCombo = this.page.locator('#sidebar [role="combobox"]').first();
+
+    let combobox = contextInput;
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = rootCombo;
+    }
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = sidebarContextCombo;
+    }
 
     // Open menu reliably: click wrapper first (better viewport behavior), then ArrowDown fallback.
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -160,7 +170,7 @@ export class SidebarPage {
   }
 
   async selectNamespace(namespace: string) {
-    const root = this.page.locator('#namespace-root');
+    const root = this.page.locator('#namespace-root, #sidebar').first();
     await expect(root).toBeVisible({ timeout: 60_000 });
     await root.scrollIntoViewIfNeeded();
 
@@ -169,7 +179,17 @@ export class SidebarPage {
     }
 
     const listbox = this.page.locator('#react-select-namespace-multi-listbox');
-    const combobox = root.getByRole('combobox');
+    const namespaceInput = this.page.locator('#react-select-namespace-multi-input').first();
+    const rootCombo = this.page.locator('#namespace-root [role="combobox"]').first();
+    const sidebarNamespaceCombo = this.page.locator('#sidebar [role="combobox"]').nth(1);
+
+    let combobox = namespaceInput;
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = rootCombo;
+    }
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = sidebarNamespaceCombo;
+    }
 
     // Keep trying until the namespace appears (namespaces list can lag in CI).
     const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
