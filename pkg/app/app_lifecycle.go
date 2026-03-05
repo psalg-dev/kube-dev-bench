@@ -283,6 +283,12 @@ func (a *App) Startup(ctx context.Context) {
 	// Gap 7: start session probe if configured
 	a.startSessionProbe()
 
+	// SUG-3: start shell session idle reaper
+	a.startShellSessionReaper(ctx)
+
+	// SUG-5: start graph cache periodic sweeper
+	a.startGraphCacheSweeper(ctx)
+
 	logger.Info("startup complete")
 }
 
