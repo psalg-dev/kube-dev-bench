@@ -391,10 +391,12 @@ test.describe('Holmes Error Handling', () => {
         // The global Holmes panel (HolmesPanel.tsx) renders "Thinking..." initially
         // and "Streaming..." once chunks arrive, using .holmes-spinner / .holmes-loading
         // classes and data-testid="holmes-spinner".
+        // Use .first() to avoid strict mode violation when the .or() combinator
+        // matches multiple elements (text + class selector both satisfied).
         await expect(
           holmesPanel.getByText(/loading|analyzing|thinking|streaming|processing/i).or(
             holmesPanel.locator('.holmes-loading, .holmes-spinner, [data-testid="holmes-spinner"]')
-          )
+          ).first()
         ).toBeVisible({ timeout: 15_000 });
       });
 

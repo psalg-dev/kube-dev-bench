@@ -169,9 +169,12 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 
 // emitResourceUpdateEvents emits update events for the created resource type
 func (a *App) emitResourceUpdateEvents(ns, kind string) {
-	// Give the API server a brief moment to persist the object so our
-	// snapshot events include the newly created resource.
-	time.Sleep(500 * time.Millisecond)
+	// Wait long enough for the Kubernetes Watch stream to deliver the newly
+	// created object to the informer cache. On CI environments with KinD,
+	// Watch delivery can take 500ms–2s. Using 2.5s ensures the informer has
+	// the new resource before we query it, preventing a stale-list emission
+	// that would otherwise clear the frontend table.
+	time.Sleep(2500 * time.Millisecond)
 
 	if a.ctx == nil || ns == "" {
 		return

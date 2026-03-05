@@ -3,7 +3,6 @@ import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { waitForTableRow } from '../src/support/wait-helpers.js';
-import { SidebarPage } from '../src/pages/SidebarPage.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -30,34 +29,20 @@ test('creates a ConfigMap via overlay and table refreshes', async ({ page, conte
   await successNote.locator('.gh-notification__close').click();
   await expect(successNote).toHaveCount(0);
 
-  // The newly created ConfigMap should appear in the table. On CI, the KinD
-  // API server can be temporarily slow to return updated lists, so we apply
-  // a multi-level fallback strategy:
-  //   1. Wait for the row in the current table state (backend push event).
-  //   2. Re-navigate to configmaps to force a fresh fetchConfigMaps().
-  //   3. Full page reload to reset all app state and refetch everything.
+  // Wait for all notifications to clear – this adds a natural buffer (~3s)
+  // for the backend configmaps:update event (emitted ~2.5s after create) to
+  // arrive and refresh the table before we start polling for the row.
+  await notifications.waitForClear();
+
+  // The newly created ConfigMap should appear in the table. On CI the KinD
+  // Watch stream can be slow, so allow 60s; if missing, navigate away/back
+  // to force a fresh fetchConfigMaps() and check once more.
   const rowPattern = new RegExp(name);
-  let found = false;
-  for (let attempt = 0; attempt < 3 && !found; attempt++) {
-    try {
-      if (attempt === 0) {
-        await waitForTableRow(page, rowPattern, { timeout: 30_000 });
-      } else if (attempt === 1) {
-        await sidebar.goToSection('pods');
-        await sidebar.goToSection('configmaps');
-        await waitForTableRow(page, rowPattern, { timeout: 30_000 });
-      } else {
-        await page.reload({ waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(2_000);
-        const freshSidebar = new SidebarPage(page);
-        await freshSidebar.selectContext(contextName);
-        await freshSidebar.selectNamespace(namespace);
-        await freshSidebar.goToSection('configmaps');
-        await waitForTableRow(page, rowPattern, { timeout: 30_000 });
-      }
-      found = true;
-    } catch {
-      if (attempt === 2) throw new Error(`ConfigMap row '${name}' not found after 3 attempts (create succeeded).`);
-    }
+  try {
+    await waitForTableRow(page, rowPattern, { timeout: 60_000 });
+  } catch {
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('configmaps');
+    await waitForTableRow(page, rowPattern, { timeout: 60_000 });
   }
 });
