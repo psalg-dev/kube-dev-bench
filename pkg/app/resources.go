@@ -115,6 +115,8 @@ func (a *App) CreateResource(namespace string, yamlContent string) error {
 		return err
 	}
 
+	a.auditf("create", kind+"/"+u.GetName(), "namespace=%s apiVersion=%s", namespace, apiVersion)
+
 	if a.currentKubeContext == "" {
 		return fmt.Errorf("no kube context selected")
 	}

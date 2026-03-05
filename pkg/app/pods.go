@@ -214,6 +214,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 	if shellSessionCount() >= maxShellSessions {
 		return fmt.Errorf("maximum number of shell sessions (%d) reached", maxShellSessions)
 	}
+	a.auditf("exec", "pod/"+podName, "namespace=%s shell=%s sessionID=%s", namespace, shell, sessionID)
 	if namespace == "" {
 		if a.currentNamespace == "" {
 			return fmt.Errorf("no namespace selected")

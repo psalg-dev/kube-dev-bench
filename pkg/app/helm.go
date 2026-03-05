@@ -364,6 +364,7 @@ func (a *App) GetHelmChartVersions(repoName, chartName string) ([]HelmChartVersi
 
 // InstallHelmChart installs a Helm chart
 func (a *App) InstallHelmChart(req HelmInstallRequest) error {
+	a.auditf("helm-install", "release/"+req.ReleaseName, "namespace=%s chart=%s", req.Namespace, req.ChartRef)
 	actionConfig, err := a.getHelmActionConfig(req.Namespace)
 	if err != nil {
 		return err
@@ -488,6 +489,7 @@ func (a *App) UpgradeHelmRelease(req HelmUpgradeRequest) error {
 
 // UninstallHelmRelease uninstalls a Helm release
 func (a *App) UninstallHelmRelease(namespace, releaseName string) error {
+	a.auditf("helm-uninstall", "release/"+releaseName, "namespace=%s", namespace)
 	actionConfig, err := a.getHelmActionConfig(namespace)
 	if err != nil {
 		return err
@@ -513,6 +515,7 @@ func (a *App) UninstallHelmRelease(namespace, releaseName string) error {
 
 // RollbackHelmRelease rolls back a Helm release to a previous revision
 func (a *App) RollbackHelmRelease(namespace, releaseName string, revision int) error {
+	a.auditf("helm-rollback", "release/"+releaseName, "namespace=%s revision=%d", namespace, revision)
 	actionConfig, err := a.getHelmActionConfig(namespace)
 	if err != nil {
 		return err

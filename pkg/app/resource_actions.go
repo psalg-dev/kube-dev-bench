@@ -19,6 +19,7 @@ import (
 // restartWorkload patches the pod template annotation to trigger a rolling restart.
 // Supported kinds: deployment, statefulset, daemonset.
 func (a *App) restartWorkload(kind, namespace, name string) error {
+	a.auditf("restart", kind+"/"+name, "namespace=%s", namespace)
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
@@ -62,6 +63,7 @@ func (a *App) DeleteDeployment(namespace, name string) error {
 // RollbackDeploymentToRevision updates the Deployment's pod template to match a previous ReplicaSet revision.
 // This is a best-effort rollback similar to kubectl rollout undo.
 func (a *App) RollbackDeploymentToRevision(namespace, name string, revision int64) error {
+	a.auditf("rollback", "deployment/"+name, "namespace=%s revision=%d", namespace, revision)
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
@@ -193,6 +195,7 @@ func (a *App) DeleteIngress(namespace, name string) error {
 
 // ScaleResource updates the replica count for supported workload controllers via the scale subresource.
 func (a *App) ScaleResource(kind, namespace, name string, replicas int) error {
+	a.auditf("scale", kind+"/"+name, "namespace=%s replicas=%d", namespace, replicas)
 	if replicas < 0 {
 		return fmt.Errorf("replicas must be non-negative")
 	}

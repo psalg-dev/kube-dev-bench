@@ -279,6 +279,8 @@ func (a *App) Startup(ctx context.Context) {
 	a.initHolmes()
 	// Initialize MCP server if enabled
 	a.initMCP()
+	// SUG-1: Initialize audit log
+	a.initAudit()
 
 	// Gap 7: start session probe if configured
 	a.startSessionProbe()
@@ -331,6 +333,9 @@ func (a *App) Shutdown(ctx context.Context) {
 
 	// Stop MCP server if running.
 	a.shutdownMCP()
+
+	// SUG-1: Close audit log.
+	closeAudit()
 
 	logger.Info("shutdown complete")
 	logger.Close()
