@@ -12,6 +12,7 @@
 - [x] IMP-1: Fix context.Background() in Helm operations
 - [x] IMP-2: Rate limit probe clients (QPS=50, Burst=100)
 - [x] IMP-3: Add pagination to list operations (Limit=500)
+- [x] IMP-3 (follow-up): Fix 11 missed unpaginated getter fallback paths
 - [x] IMP-4: Cap secret value size in GetSecretData (64KiB)
 - [x] IMP-5: Hook script path validation (validateHookScriptPath)
 - [x] IMP-6: Fix monitor polling timer (time.After → ticker + backpressure)
@@ -19,6 +20,7 @@
 - [ ] IMP-8: Auth plugin support — out of scope
 - [x] IMP-9: Configurable Swarm helper image (KDB_SWARM_HELPER_IMAGE env)
 - [x] SUG-1: Add audit log for mutating operations (JSONL)
+- [x] SUG-2: Cap informer namespace count (max 10, emit warning)
 - [x] SUG-3: Shell session reaper (30min idle, 20 max)
 - [x] SUG-5: Graph cache eviction sweep (60s interval)
 - [x] SUG-7: Log stream rate limiting (5ms min interval)

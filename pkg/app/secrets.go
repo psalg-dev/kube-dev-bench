@@ -100,7 +100,7 @@ func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 		return secrets, err
 	}
 
-	secretList, err := clientset.CoreV1().Secrets(ns).List(a.ctx, metav1.ListOptions{})
+	secretList, err := clientset.CoreV1().Secrets(ns).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return secrets, err
 	}

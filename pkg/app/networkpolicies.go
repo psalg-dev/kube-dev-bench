@@ -63,7 +63,7 @@ func (a *App) GetNetworkPolicies(namespace string) ([]NetworkPolicyInfo, error) 
 		return nil, err
 	}
 
-	networkPolicies, err := clientset.NetworkingV1().NetworkPolicies(namespace).List(a.ctx, metav1.ListOptions{})
+	networkPolicies, err := clientset.NetworkingV1().NetworkPolicies(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

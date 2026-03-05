@@ -51,7 +51,7 @@ func (a *App) GetRoles(namespace string) ([]RoleInfo, error) {
 		return nil, err
 	}
 
-	roles, err := clientset.RbacV1().Roles(namespace).List(a.ctx, metav1.ListOptions{})
+	roles, err := clientset.RbacV1().Roles(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func (a *App) GetClusterRoles() ([]RoleInfo, error) {
 		return nil, err
 	}
 
-	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(a.ctx, metav1.ListOptions{})
+	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

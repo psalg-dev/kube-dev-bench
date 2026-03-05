@@ -5,12 +5,21 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/logger"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
 const informerResyncPeriod = 10 * time.Minute
+
+// maxInformerNamespaces caps the number of namespaces that use active Watch
+// connections via SharedInformerFactories (SUG-2). Beyond this limit the
+// namespaces are silently excluded from informer mode and fall back to
+// polling-based list calls. Each watched namespace opens ~14 Watch streams,
+// so capping at 10 keeps the total under 140 concurrent API connections.
+const maxInformerNamespaces = 10
 
 type informerSnapshotEmitter func() error
 
@@ -31,10 +40,25 @@ type InformerManager struct {
 }
 
 func NewInformerManager(clientset kubernetes.Interface, namespaces []string, app *App) *InformerManager {
+	normalized := normalizeNamespaces(namespaces)
+	capped := normalized
+	if len(normalized) > maxInformerNamespaces {
+		capped = normalized[:maxInformerNamespaces]
+		logger.Warn("informer namespace count exceeds cap; extra namespaces will use polling",
+			"requested", len(normalized), "cap", maxInformerNamespaces,
+			"polling", normalized[maxInformerNamespaces:])
+		if app != nil && app.ctx != nil {
+			emitEvent(app.ctx, "k8s:informer:ns-capped", map[string]interface{}{
+				"cap":     maxInformerNamespaces,
+				"total":   len(normalized),
+				"polling": normalized[maxInformerNamespaces:],
+			})
+		}
+	}
 	return &InformerManager{
 		app:        app,
 		clientset:  clientset,
-		namespaces: normalizeNamespaces(namespaces),
+		namespaces: capped,
 		timers:     make(map[string]*time.Timer),
 	}
 }

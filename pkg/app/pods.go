@@ -737,7 +737,7 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 		return nil, err
 	}
 
-	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}
@@ -846,7 +846,7 @@ func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
 	if err != nil {
 		return PodStatusCounts{}, err
 	}
-	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return PodStatusCounts{}, err
 	}
