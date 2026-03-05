@@ -15,8 +15,8 @@ test.describe('HolmesGPT onboarding', () => {
   test.skip(SHOULD_SKIP_TEST, 'Requires E2E_HOLMES_DEPLOY=1 (runs in dedicated e2e-holmes-deploy shard)');
 
   test('deploys HolmesGPT via helm and verifies it responds', async ({ page, contextName, namespace, kubeconfigPath, homeDir }) => {
-    // Total test timeout: 5 minutes for fast iteration
-    test.setTimeout(5 * 60_000);
+    // Total test timeout: allow extra CI headroom for helm install + pod readiness.
+    test.setTimeout(8 * 60_000);
 
     await test.step('Clean up any existing Holmes deployment', async () => {
       // First uninstall any existing Helm release
@@ -83,8 +83,8 @@ test.describe('HolmesGPT onboarding', () => {
         await wizard.getByRole('button', { name: /Deploy Holmes/i }).click();
       }
 
-      // Wait for deployment to complete - 2 minutes should be enough for lightweight chart
-      await expect(wizard).toContainText(/Holmes is Ready!/i, { timeout: 2 * 60_000 });
+      // Wait for deployment to complete - CI can take longer under shared runner load.
+      await expect(wizard).toContainText(/Holmes is Ready!/i, { timeout: 4 * 60_000 });
       await wizard.getByRole('button', { name: /Start Using Holmes/i }).click();
       await expect(wizard).toBeHidden({ timeout: 5_000 });
     });

@@ -214,6 +214,10 @@ export function ConnectToDocker(arg1) {
   return window['go']['main']['App']['ConnectToDocker'](arg1);
 }
 
+export function ConnectInsecure(arg1) {
+  return window['go']['main']['App']['ConnectInsecure'](arg1);
+}
+
 export function CreateKindCluster(arg1) {
   return window['go']['main']['App']['CreateKindCluster'](arg1);
 }
@@ -318,6 +322,10 @@ export function DetectLogPatterns(arg1) {
   return window['go']['main']['App']['DetectLogPatterns'](arg1);
 }
 
+export function DetectKubeconfigEnvPaths() {
+  return window['go']['main']['App']['DetectKubeconfigEnvPaths']();
+}
+
 export function DetectSystemProxy() {
   return window['go']['main']['App']['DetectSystemProxy']();
 }
@@ -336,6 +344,10 @@ export function DownloadFromSwarmVolume(arg1, arg2) {
 
 export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
+}
+
+export function RefreshCredentials(arg1) {
+  return window['go']['main']['App']['RefreshCredentials'](arg1);
 }
 
 export function ExportSwarmConfig(arg1, arg2) {
@@ -764,6 +776,14 @@ export function GetPrometheusAlerts(arg1) {
 
 export function GetProxyConfig() {
   return window['go']['main']['App']['GetProxyConfig']();
+}
+
+export function GetKubeconfigPaths() {
+  return window['go']['main']['App']['GetKubeconfigPaths']();
+}
+
+export function GetSessionProbeInterval() {
+  return window['go']['main']['App']['GetSessionProbeInterval']();
 }
 
 export function GetProxyDisplayURL() {
@@ -1354,6 +1374,10 @@ export function SetKubeConfigPath(arg1) {
   return window['go']['main']['App']['SetKubeConfigPath'](arg1);
 }
 
+export function SetKubeconfigPaths(arg1) {
+  return window['go']['main']['App']['SetKubeconfigPaths'](arg1);
+}
+
 export function SetMCPConfig(arg1) {
   return window['go']['main']['App']['SetMCPConfig'](arg1);
 }
@@ -1372,6 +1396,10 @@ export function SetRememberContext(arg1) {
 
 export function SetRememberNamespace(arg1) {
   return window['go']['main']['App']['SetRememberNamespace'](arg1);
+}
+
+export function SetSessionProbeInterval(arg1) {
+  return window['go']['main']['App']['SetSessionProbeInterval'](arg1);
 }
 
 export function SetUseInformers(arg1) {

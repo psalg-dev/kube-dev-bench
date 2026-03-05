@@ -118,9 +118,14 @@ export class CreateOverlay {
   async create() {
     const maxAttempts = 3;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      const overlay = this.page.locator('[data-testid="create-manifest-overlay"]').first();
-      const overlayVisible = await overlay.isVisible().catch(() => false);
-      const overlayScope = overlayVisible ? overlay : this.page;
+      const overlay = this.page
+        .locator('[data-testid="create-manifest-overlay"], [role="dialog"]')
+        .filter({ has: this.page.locator('.cm-content') })
+        .first();
+      await overlay.waitFor({ state: 'visible', timeout: 10_000 });
+      const overlayScope = overlay;
+      const successToasts = this.page.locator('#gh-notification-container .gh-notification--success .gh-notification__text');
+      const successBaseline = await successToasts.count().catch(() => 0);
 
       // Wait for the Create button to be visible and clickable, then click.
       // Try several candidate selectors for the overlay submit button.
@@ -175,9 +180,6 @@ export class CreateOverlay {
       const errorToast = this.page
         .locator('#gh-notification-container .gh-notification--error .gh-notification__text')
         .first();
-      const successToast = this.page
-        .locator('#gh-notification-container .gh-notification--success .gh-notification__text')
-        .first();
 
       const closeOverlay = async () => {
         const isOpen = await overlay.isVisible().catch(() => false);
@@ -205,7 +207,17 @@ export class CreateOverlay {
 
       while (Date.now() - start < timeoutMs) {
         const stillOpen = await overlay.isVisible().catch(() => false);
-        if (!stillOpen) return; // success
+        if (!stillOpen) {
+          const successCount = await successToasts.count().catch(() => 0);
+          if (successCount > successBaseline) {
+            return;
+          }
+          if (attempt < maxAttempts) {
+            await this.page.waitForTimeout(1000 * attempt);
+            break;
+          }
+          throw new Error('Create dialog closed without success notification.');
+        }
 
         const parseVisible = await parseError.isVisible().catch(() => false);
         if (parseVisible) {
@@ -260,8 +272,8 @@ export class CreateOverlay {
           throw new Error(`Create failed: ${msg || 'Notification error'}`);
         }
 
-        const successVisible = await successToast.isVisible().catch(() => false);
-        if (successVisible) {
+        const successCount = await successToasts.count().catch(() => 0);
+        if (successCount > successBaseline) {
           await closeOverlay();
           return;
         }

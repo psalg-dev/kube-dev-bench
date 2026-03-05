@@ -5,15 +5,22 @@ async function waitForReconnectOverlayToClear(page: Page, timeout: number) {
   await expect(reconnectOverlay).toHaveCount(0, { timeout });
 }
 
+function visibleResourceTable(page: Page) {
+  return page
+    .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
+    .filter({ has: page.locator('thead tr') })
+    .first();
+}
+
 /**
  * Wait for a table row with specific text to be visible and stable
  */
 export async function waitForTableRow(page: Page, rowText: string | RegExp, opts: { timeout?: number } = {}) {
   const timeout = opts.timeout ?? 60_000;
-  const tables = page.locator('#main-panels > div:visible table.gh-table');
-  await expect(tables.first()).toBeVisible({ timeout: 30_000 });
+  const table = visibleResourceTable(page);
+  await expect(table).toBeVisible({ timeout: 30_000 });
 
-  const rows = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText });
+  const rows = table.locator('tbody tr').filter({ hasText: rowText });
   await expect.poll(async () => rows.count(), { timeout }).toBeGreaterThan(0);
   await expect(rows.first()).toBeVisible({ timeout: 5_000 });
 
@@ -26,10 +33,10 @@ export async function waitForTableRow(page: Page, rowText: string | RegExp, opts
  */
 export async function waitForTableRowRemoved(page: Page, rowText: string | RegExp, opts: { timeout?: number } = {}) {
   const timeout = opts.timeout ?? 60_000;
-  const tables = page.locator('#main-panels > div:visible table.gh-table');
-  await expect(tables.first()).toBeVisible({ timeout: 30_000 });
+  const table = visibleResourceTable(page);
+  await expect(table).toBeVisible({ timeout: 30_000 });
 
-  const rows = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText });
+  const rows = table.locator('tbody tr').filter({ hasText: rowText });
   await expect(rows).toHaveCount(0, { timeout });
 
   // Wait for table to stabilize
@@ -47,7 +54,7 @@ export async function openRowDetailsByName(page: Page, name: string, opts: { tim
   await waitForReconnectOverlayToClear(page, 10_000);
   
   const table = page
-    .locator('#main-panels > div:visible table.gh-table')
+    .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
     .filter({ has: page.locator('tbody tr') })
     .first();
   await expect(table).toBeVisible({ timeout: 30_000 });
@@ -114,7 +121,7 @@ export async function waitForResourceStatus(
 ) {
   const timeout = opts.timeout ?? 90_000;
   const table = page
-    .locator('#main-panels > div:visible table.gh-table')
+    .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
     .filter({ has: page.locator('tbody tr') })
     .first();
   await expect(table).toBeVisible({ timeout: 30_000 });

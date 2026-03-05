@@ -12,6 +12,10 @@ export type OpenWizardIfHiddenStatus =
 export class ConnectionWizardPage {
   constructor(private readonly page: Page) {}
 
+  private async waitForMainAppVisible(timeout = 90_000): Promise<void> {
+    await expect(this.page.locator('#kubecontext-root, #sidebar, #maincontent').first()).toBeVisible({ timeout });
+  }
+
   /**
    * Ensure Wails Go bindings are available before triggering a connect action.
    * This prevents silent failures when `window.go.main.App` is not yet populated.
@@ -175,7 +179,7 @@ export class ConnectionWizardPage {
         await expect(connectBtn).toBeVisible({ timeout: 10_000 });
         await connectBtn.click();
         // Wait for the wizard to close (main app should now be visible)
-        await expect(this.page.locator('#kubecontext-root')).toBeVisible({ timeout: 60_000 });
+        await this.waitForMainAppVisible();
         return;
       }
 
@@ -231,7 +235,7 @@ export class ConnectionWizardPage {
       }
 
       // Wait for the main app to be visible
-      await expect(this.page.locator('#kubecontext-root')).toBeVisible({ timeout: 60_000 });
+      await this.waitForMainAppVisible();
       return;
     }
 
