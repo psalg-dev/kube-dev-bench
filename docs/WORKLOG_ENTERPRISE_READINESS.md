@@ -24,7 +24,7 @@
 - [x] SUG-7: Log stream rate limiting (5ms min interval)
 - [x] SUG-9: Fix insecureWarnOnce not resetting between contexts
 - [x] Tests for all changes (13 new tests + 12 pre-existing test fixes)
-- [ ] CI green — waiting for build
+- [x] CI green — Build #817 backend passed on Linux CI
 
 ## Commits
 
@@ -32,6 +32,8 @@
 2. `0994cb4` — fix: enterprise readiness batch 2 (SUG-3,5,7 IMP-3)
 3. `57bd93f` — feat: SUG-1 audit log for mutating operations
 4. `c8ba643` — test: add tests and fix pre-existing test issues
+5. `a00f943` — docs: update enterprise readiness worklog with progress
+6. `649bad5` — fix: hooks tests place scripts under HOME for Linux CI compatibility
 
 ## Pre-existing Test Fixes
 
