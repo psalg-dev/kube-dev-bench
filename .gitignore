@@ -50,3 +50,5 @@ e2e-test-results*.zip
 *.txt
 **/**/*.log
 **/**/*.txt
+
+.github/hooks
