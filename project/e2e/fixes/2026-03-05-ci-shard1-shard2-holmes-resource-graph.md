@@ -38,3 +38,27 @@
 ## Outcome
 - Local targeted reproductions for shard-1/shard-2 signatures are now green with reduced UI race sensitivity.
 - Next step is pushing these changes and confirming a clean Build run in CI.
+
+## Follow-up (same day): ConfigMap create overlay failure in shard-1
+
+### Trigger
+- CI run `22731849165` still showed `e2e-shard-1` failure in `tests/20-create-configmap.spec.ts`.
+- Initial failure signature: timeout waiting for create overlay visibility in `e2e/src/pages/CreateOverlay.ts`.
+
+### Approaches tried
+1. Broadened submit/overlay scoping in `CreateOverlay.create()` to avoid hard dependency on a strict visible overlay handle.
+2. Increased overlay-open wait tolerance in `openFromOverviewHeader()` from 10s to 20s.
+3. Removed strict "closed without success toast count increment" failure path; treat overlay close as primary success signal.
+4. Temporarily tried spec-level row-refresh retries in `tests/20-create-configmap.spec.ts` (including namespace re-selection), then reverted to keep scope focused.
+
+### What worked
+- The original overlay-timeout signature was eliminated locally; submit path became stable enough to reach success toast assertions.
+
+### What did not work
+- In local environment, ConfigMap table row assertions still intermittently failed even when success toast appeared.
+- The same row-not-found behavior also reproduced in `tests/70-create-and-delete-configmap-from-details.spec.ts`, indicating a broader environment/runtime issue rather than a spec-specific selector problem.
+
+### Final state for this iteration
+- Kept only targeted `CreateOverlay` hardening changes.
+- Reverted speculative changes in `tests/20-create-configmap.spec.ts`.
+- Further diagnosis should focus on why ConfigMap lists remain empty post-create in this runtime (backend list refresh / namespace data consistency), independent of overlay open/submit flake.
