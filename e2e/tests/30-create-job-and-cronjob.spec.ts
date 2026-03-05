@@ -2,6 +2,7 @@ import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
+import { waitForTableRow } from '../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -28,9 +29,9 @@ test('creates a Job and a CronJob', async ({ page, contextName, namespace }) => 
     await notifications.expectSuccessContains('created successfully', { timeoutMs: 10_000 });
   } catch {
     // Notification already dismissed — verify the row appeared instead.
-    await expect(page.getByRole('row', { name: new RegExp(jobName) })).toBeVisible({ timeout: 60_000 });
+    await waitForTableRow(page, new RegExp(jobName), { timeout: 60_000 });
   }
-  await expect(page.getByRole('row', { name: new RegExp(jobName) })).toBeVisible({ timeout: 60_000 });
+  await waitForTableRow(page, new RegExp(jobName), { timeout: 60_000 });
 
   // CronJob
   await sidebar.goToSection('cronjobs');
@@ -45,7 +46,7 @@ test('creates a Job and a CronJob', async ({ page, contextName, namespace }) => 
   try {
     await notifications.expectSuccessContains('created successfully', { timeoutMs: 10_000 });
   } catch {
-    await expect(page.getByRole('row', { name: new RegExp(cronName) })).toBeVisible({ timeout: 60_000 });
+    await waitForTableRow(page, new RegExp(cronName), { timeout: 60_000 });
   }
-  await expect(page.getByRole('row', { name: new RegExp(cronName) })).toBeVisible({ timeout: 60_000 });
+  await waitForTableRow(page, new RegExp(cronName), { timeout: 60_000 });
 });

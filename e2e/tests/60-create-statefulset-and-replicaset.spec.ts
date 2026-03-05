@@ -2,6 +2,7 @@ import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
+import { waitForTableRow } from '../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -23,7 +24,7 @@ test('creates a StatefulSet and a ReplicaSet', async ({ page, contextName, names
   await overlay.create();
 
   await notifications.expectSuccessContains('created successfully');
-  await expect(page.getByRole('row', { name: new RegExp(stsName) })).toBeVisible({ timeout: 60_000 });
+  await waitForTableRow(page, new RegExp(stsName), { timeout: 60_000 });
 
   // ReplicaSet
   await sidebar.goToSection('replicasets');
@@ -35,5 +36,5 @@ test('creates a StatefulSet and a ReplicaSet', async ({ page, contextName, names
   await overlay.create();
 
   await notifications.expectSuccessContains('created successfully');
-  await expect(page.getByRole('row', { name: new RegExp(rsName) })).toBeVisible({ timeout: 60_000 });
+  await waitForTableRow(page, new RegExp(rsName), { timeout: 60_000 });
 });

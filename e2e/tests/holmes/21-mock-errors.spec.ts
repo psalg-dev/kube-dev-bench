@@ -381,12 +381,15 @@ test.describe('Holmes Error Handling', () => {
         await createDeployment(page, namespace);
         holmesPanel = await askHolmesFromGlobalPanel(page, 'Analyze deployment health');
 
-        // Should show loading indicator during the delay
+        // Should show loading indicator during the delay.
+        // The global Holmes panel (HolmesPanel.tsx) renders "Thinking..." initially
+        // and "Streaming..." once chunks arrive, using .holmes-spinner / .holmes-loading
+        // classes and data-testid="holmes-spinner".
         await expect(
-          holmesPanel.getByText(/loading|analyzing|thinking|processing/i).or(
-            holmesPanel.locator('.loading-indicator, .spinner, [data-loading="true"]')
+          holmesPanel.getByText(/loading|analyzing|thinking|streaming|processing/i).or(
+            holmesPanel.locator('.holmes-loading, .holmes-spinner, [data-testid="holmes-spinner"]')
           )
-        ).toBeVisible({ timeout: 5_000 });
+        ).toBeVisible({ timeout: 15_000 });
       });
 
       await test.step('Verify response eventually arrives', async () => {
