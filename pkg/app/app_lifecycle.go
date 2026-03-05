@@ -28,10 +28,11 @@ type App struct {
 	configPath           string
 	rememberContext      bool
 	rememberNamespace    bool
-	isInsecureConnection bool      // tracks if we're using insecure TLS
-	insecureWarnOnce     sync.Once // ensures we log TLS fallback warning only once
-	customCAPath         string    // optional path to a custom CA cert for Kubernetes connections
-	allowInsecure        bool      // user has explicitly opted into insecure TLS for current context
+	isInsecureConnection bool   // tracks if we're using insecure TLS
+	insecureWarnCtx      string // context name for which the insecure warning was last logged (SUG-9)
+	customCAPath         string // optional path to a custom CA cert for Kubernetes connections
+	// allowInsecure is per-context: maps context name → user opted into insecure TLS (CRIT-4)
+	allowInsecure map[string]bool
 
 	// Auth expiry debounce state
 	authExpiredMu       sync.Mutex
@@ -49,6 +50,11 @@ type App struct {
 	// This allows reuse across Browse/Read calls (Phase 1) without creating a new container each time.
 	swarmVolumeHelpersMu sync.Mutex
 	swarmVolumeHelpers   map[string]string
+
+	// pvcHelperPods tracks K8s PVC browse helper pods created by the app (CRIT-3).
+	// Key: "namespace/podName",  cleaned up on Shutdown.
+	pvcHelperPodsMu sync.Mutex
+	pvcHelperPods   map[string]string
 
 	// Proxy configuration
 	proxyURL      string // HTTP/HTTPS proxy URL (e.g., http://proxy.example.com:8080)
@@ -192,8 +198,10 @@ func NewApp() *App {
 		configPath:           newCfg,
 		logCancels:           make(map[string]context.CancelFunc),
 		isInsecureConnection: false, // Initialize to secure by default
+		allowInsecure:        make(map[string]bool),
 		countsRefreshCh:      make(chan struct{}, 1),
 		swarmVolumeHelpers:   make(map[string]string),
+		pvcHelperPods:        make(map[string]string),
 		useInformers:         true,
 		holmesConfig:         holmesgpt.DefaultConfig(),
 	}
@@ -311,6 +319,9 @@ func (a *App) Shutdown(ctx context.Context) {
 
 	// Remove any helper containers created for Swarm volume browsing.
 	_ = a.cleanupSwarmVolumeHelpers(ctx)
+
+	// Clean up any PVC browse helper pods created in Kubernetes clusters (CRIT-3).
+	a.cleanupPVCHelperPods()
 
 	// Stop MCP server if running.
 	a.shutdownMCP()

@@ -409,10 +409,10 @@ func (a *App) InstallHelmChart(req HelmInstallRequest) error {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
-	// Run the install with context for better control
-	ctx := context.Background()
-	if a.ctx != nil {
-		ctx = a.ctx
+	// Run the install with context for better control (IMP-1: respect app shutdown)
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	_, err = installAction.RunWithContext(ctx, chart, req.Values)
 	if err != nil {
@@ -470,10 +470,10 @@ func (a *App) UpgradeHelmRelease(req HelmUpgradeRequest) error {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
-	// Run the upgrade with context
-	ctx := context.Background()
-	if a.ctx != nil {
-		ctx = a.ctx
+	// Run the upgrade with context (IMP-1: respect app shutdown)
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	_, err = upgradeAction.RunWithContext(ctx, req.ReleaseName, chart, req.Values)
 	if err != nil {
