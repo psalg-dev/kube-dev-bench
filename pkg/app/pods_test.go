@@ -693,3 +693,42 @@ func TestCollectContainerPorts_Dedup(t *testing.T) {
 		t.Errorf("ports = %v, want [80 443]", ports)
 	}
 }
+
+func TestShellSessionCount(t *testing.T) {
+	// Clean up any leftover sessions from other tests.
+	shellSessions.Range(func(key, _ interface{}) bool {
+		shellSessions.Delete(key)
+		return true
+	})
+
+	if got := shellSessionCount(); got != 0 {
+		t.Fatalf("expected 0 sessions, got %d", got)
+	}
+
+	shellSessions.Store("sess-1", &ShellSession{LastActivity: time.Now()})
+	shellSessions.Store("sess-2", &ShellSession{LastActivity: time.Now()})
+
+	if got := shellSessionCount(); got != 2 {
+		t.Fatalf("expected 2 sessions, got %d", got)
+	}
+
+	shellSessions.Delete("sess-1")
+	shellSessions.Delete("sess-2")
+}
+
+func TestTouchSession_UpdatesLastActivity(t *testing.T) {
+	past := time.Now().Add(-time.Hour)
+	sess := &ShellSession{LastActivity: past}
+	shellSessions.Store("touch-test", sess)
+	defer shellSessions.Delete("touch-test")
+
+	touchSession("touch-test")
+	if sess.LastActivity.Before(past.Add(time.Minute)) {
+		t.Error("expected LastActivity to be updated to recent time")
+	}
+}
+
+func TestTouchSession_MissingSessionNoPanic(t *testing.T) {
+	// Should not panic when session doesn't exist.
+	touchSession("nonexistent-session")
+}

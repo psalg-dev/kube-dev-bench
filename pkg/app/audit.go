@@ -27,12 +27,15 @@ var (
 )
 
 // initAudit opens (or creates) the audit log file at
-// ~/.KubeDevBench/audit.jsonl. Safe to call multiple times.
+// ~/.KubeDevBench/audit.jsonl. Safe to call multiple times;
+// closes any previously opened file first.
 func (a *App) initAudit() {
 	auditMu.Lock()
 	defer auditMu.Unlock()
 	if auditFile != nil {
-		return
+		// Close previous file (e.g. from prior test or re-init).
+		_ = auditFile.Close()
+		auditFile = nil
 	}
 	dir := filepath.Dir(a.configPath)
 	if dir == "" || dir == "." {

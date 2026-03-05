@@ -114,6 +114,10 @@ func TestScanClusterHealth_NodeNotReady(t *testing.T) {
 }
 
 func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
 			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "Analysis body"})
@@ -177,6 +181,10 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 }
 
 func TestDismissMonitorIssue_Success(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "monitor_issues.json")
 	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
@@ -444,6 +452,10 @@ func TestLoadPersistedIssues_NonExistent(t *testing.T) {
 }
 
 func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
 			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "Batch response"})
