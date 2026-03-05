@@ -139,7 +139,6 @@ export class SidebarPage {
       return;
     }
 
-    const listbox = this.page.locator('#react-select-context-select-listbox');
     const contextInput = this.page.locator('#react-select-context-select-input').first();
     const rootCombo = this.page.locator('#kubecontext-root [role="combobox"]').first();
     const sidebarContextCombo = this.page.locator('#sidebar [role="combobox"]').first();
@@ -152,21 +151,31 @@ export class SidebarPage {
       combobox = sidebarContextCombo;
     }
 
-    // Open menu reliably: click wrapper first (better viewport behavior), then ArrowDown fallback.
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
+    const deadline = Date.now() + selectionTimeoutMs;
+    while (Date.now() < deadline) {
       await root.click({ force: true });
-      if (await listbox.isVisible()) break;
       await combobox.press('ArrowDown').catch(() => {});
-      if (await listbox.isVisible()) break;
-      await this.page.waitForTimeout(250);
+      await combobox.fill(contextName).catch(() => {});
+
+      const option = this.page.getByRole('option', { name: contextName, exact: true }).first();
+      if (await option.isVisible().catch(() => false)) {
+        await option.click();
+        await expect(root).toContainText(contextName, { timeout: 30_000 });
+        return;
+      }
+
+      await combobox.press('Enter').catch(() => {});
+      if ((await root.innerText()).includes(contextName)) {
+        await expect(root).toContainText(contextName, { timeout: 30_000 });
+        return;
+      }
+
+      await this.page.keyboard.press('Escape').catch(() => {});
+      await this.page.waitForTimeout(500);
     }
-    await expect(listbox).toBeVisible({ timeout: 30_000 });
 
-    const option = listbox.getByRole('option', { name: contextName, exact: true });
-    await expect(option).toBeVisible({ timeout: 30_000 });
-    await option.click();
-
-    await expect(root).toContainText(contextName);
+    throw new Error(`Failed to select context: ${contextName}`);
   }
 
   async selectNamespace(namespace: string) {
@@ -178,7 +187,6 @@ export class SidebarPage {
       return;
     }
 
-    const listbox = this.page.locator('#react-select-namespace-multi-listbox');
     const namespaceInput = this.page.locator('#react-select-namespace-multi-input').first();
     const rootCombo = this.page.locator('#namespace-root [role="combobox"]').first();
     const sidebarNamespaceCombo = this.page.locator('#sidebar [role="combobox"]').nth(1);
@@ -196,19 +204,14 @@ export class SidebarPage {
     const deadline = Date.now() + selectionTimeoutMs;
     while (Date.now() < deadline) {
       await root.click({ force: true });
-      if (!(await listbox.isVisible())) {
-        await combobox.press('ArrowDown').catch(() => {});
-      }
+      await combobox.press('ArrowDown').catch(() => {});
+      await combobox.fill(namespace).catch(() => {});
 
-      if (await listbox.isVisible()) {
-        // Type-ahead nudges react-select to refresh visible options in some race windows.
-        await combobox.fill(namespace).catch(() => {});
-        const option = listbox.getByRole('option', { name: namespace, exact: true });
-        if (await option.isVisible().catch(() => false)) {
-          await option.click();
-          await expect(root).toContainText(namespace, { timeout: 30_000 });
-          break;
-        }
+      const option = this.page.getByRole('option', { name: namespace, exact: true }).first();
+      if (await option.isVisible().catch(() => false)) {
+        await option.click();
+        await expect(root).toContainText(namespace, { timeout: 30_000 });
+        break;
       }
 
       // Close menu + backoff a bit before retry.

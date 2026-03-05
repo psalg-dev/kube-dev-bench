@@ -17,12 +17,11 @@ function visibleResourceTable(page: Page) {
  */
 export async function waitForTableRow(page: Page, rowText: string | RegExp, opts: { timeout?: number } = {}) {
   const timeout = opts.timeout ?? 60_000;
-  const table = visibleResourceTable(page);
-  await expect(table).toBeVisible({ timeout: 30_000 });
-
-  const rows = table.locator('tbody tr').filter({ hasText: rowText });
+  const rows = page
+    .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
+    .filter({ hasText: rowText });
   await expect.poll(async () => rows.count(), { timeout }).toBeGreaterThan(0);
-  await expect(rows.first()).toBeVisible({ timeout: 5_000 });
+  await expect(rows.first()).toBeVisible({ timeout: Math.min(timeout, 15_000) });
 
   // Wait for table to stabilize
   await page.waitForTimeout(500);
@@ -53,20 +52,19 @@ export async function openRowDetailsByName(page: Page, name: string, opts: { tim
   await expect(page.locator('#gh-notification-container .gh-notification')).toHaveCount(0, { timeout: 10_000 });
   await waitForReconnectOverlayToClear(page, 10_000);
   
-  const table = page
-    .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
-    .filter({ has: page.locator('tbody tr') })
-    .first();
-  await expect(table).toBeVisible({ timeout: 30_000 });
-  
-  const row = table.locator('tbody tr').filter({ hasText: name }).first();
-  await expect(row).toBeVisible({ timeout });
+  await waitForTableRow(page, new RegExp(name), { timeout });
 
   const detailsPanel = page
     .locator('.bottom-panel')
     .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
 
   for (let attempt = 0; attempt < 3; attempt++) {
+    const row = page
+      .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
+      .filter({ hasText: name })
+      .first();
+    await expect(row).toBeVisible({ timeout: 30_000 });
+
     const nameCell = row.locator('td').first();
     await nameCell.waitFor({ state: 'visible', timeout: 30_000 });
     await waitForReconnectOverlayToClear(page, 10_000);

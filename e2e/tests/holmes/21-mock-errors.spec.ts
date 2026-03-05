@@ -303,6 +303,8 @@ test.describe('Holmes Error Handling', () => {
   });
 
   test('handles connection refused gracefully', async ({ page, namespace }) => {
+    let holmesPanel = page.locator('#holmes-panel');
+
     await test.step('Configure Holmes with unreachable endpoint', async () => {
       // Use an unreachable private IP to avoid the auto-reconnection logic
       // that triggers when connection is refused on localhost endpoints.
@@ -315,13 +317,11 @@ test.describe('Holmes Error Handling', () => {
     });
 
     await test.step('Ask Holmes a question', async () => {
-      await analyzeWithHolmesFromDeployment(page, namespace);
+      await createDeployment(page, namespace);
+      holmesPanel = await askHolmesFromGlobalPanel(page, 'Analyze deployment health');
     });
 
     await test.step('Verify connection error is handled', async () => {
-      const panel = new BottomPanel(page);
-      const holmesPanel = panel.root;
-
       // Should show the "Analysis failed" error container or error text containing connection-related keywords
       // The Go error message may contain: "dial tcp", "connect", "refused", "connectex", "target machine",
       // "timeout", "context deadline exceeded", "i/o timeout", "no route to host", etc.
@@ -356,6 +356,7 @@ test.describe('Holmes Error Handling', () => {
 
   test('handles slow response with loading indicator', async ({ page, namespace }) => {
     let slowMockServer: HolmesMockInstance | null = null;
+    let holmesPanel = page.locator('#holmes-panel');
 
     try {
       await test.step('Start mock server with delay', async () => {
@@ -377,8 +378,8 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Ask Holmes and verify loading state', async () => {
-        const panel = await analyzeWithHolmesFromDeployment(page, namespace);
-        const holmesPanel = panel.root;
+        await createDeployment(page, namespace);
+        holmesPanel = await askHolmesFromGlobalPanel(page, 'Analyze deployment health');
 
         // Should show loading indicator during the delay
         await expect(
@@ -389,9 +390,6 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Verify response eventually arrives', async () => {
-        const panel = new BottomPanel(page);
-        const holmesPanel = panel.root;
-
         // After delay, should show actual response
         await expect(holmesPanel).toContainText('Deployment health check completed', {
           timeout: 30_000,
