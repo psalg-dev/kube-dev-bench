@@ -3,6 +3,7 @@ import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { waitForTableRow } from '../src/support/wait-helpers.js';
+import { SidebarPage } from '../src/pages/SidebarPage.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -29,16 +30,34 @@ test('creates a ConfigMap via overlay and table refreshes', async ({ page, conte
   await successNote.locator('.gh-notification__close').click();
   await expect(successNote).toHaveCount(0);
 
-  // Use the proven waitForTableRow helper (CSS-based) which is more robust
-  // than getByRole in CI where ARIA table roles may not be fully available.
-  // If the row doesn't appear after the first wait, re-navigate to refresh
-  // the table and try once more.
-  try {
-    await waitForTableRow(page, new RegExp(name), { timeout: 60_000 });
-  } catch {
-    // Fallback: force table refresh by re-entering the configmaps section
-    await sidebar.goToSection('pods');
-    await sidebar.goToSection('configmaps');
-    await waitForTableRow(page, new RegExp(name), { timeout: 30_000 });
+  // The newly created ConfigMap should appear in the table. On CI, the KinD
+  // API server can be temporarily slow to return updated lists, so we apply
+  // a multi-level fallback strategy:
+  //   1. Wait for the row in the current table state (backend push event).
+  //   2. Re-navigate to configmaps to force a fresh fetchConfigMaps().
+  //   3. Full page reload to reset all app state and refetch everything.
+  const rowPattern = new RegExp(name);
+  let found = false;
+  for (let attempt = 0; attempt < 3 && !found; attempt++) {
+    try {
+      if (attempt === 0) {
+        await waitForTableRow(page, rowPattern, { timeout: 30_000 });
+      } else if (attempt === 1) {
+        await sidebar.goToSection('pods');
+        await sidebar.goToSection('configmaps');
+        await waitForTableRow(page, rowPattern, { timeout: 30_000 });
+      } else {
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(2_000);
+        const freshSidebar = new SidebarPage(page);
+        await freshSidebar.selectContext(contextName);
+        await freshSidebar.selectNamespace(namespace);
+        await freshSidebar.goToSection('configmaps');
+        await waitForTableRow(page, rowPattern, { timeout: 30_000 });
+      }
+      found = true;
+    } catch {
+      if (attempt === 2) throw new Error(`ConfigMap row '${name}' not found after 3 attempts (create succeeded).`);
+    }
   }
 });

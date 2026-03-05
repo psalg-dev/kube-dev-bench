@@ -1584,6 +1584,9 @@ func (a *App) SetHolmesConfig(config holmesgpt.HolmesConfigData) error {
 		holmesMu.Unlock()
 	}
 
+	// Notify the frontend that the Holmes config has changed so it can reload state
+	emitEvent(a.ctx, "holmes:config-changed", nil)
+
 	return nil
 }
 

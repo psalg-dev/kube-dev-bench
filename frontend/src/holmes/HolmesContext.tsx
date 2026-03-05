@@ -9,6 +9,7 @@ import {
     DeployHolmesGPT,
     GetHolmesConfig,
     onHolmesChatStream,
+    onHolmesConfigChanged,
     onHolmesDeploymentStatus,
     ReconnectHolmes,
     SetHolmesConfig,
@@ -254,6 +255,15 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
           loadConfig();
         }
       }
+    });
+    return unsubscribe;
+  }, [loadConfig]);
+
+  // Reload Holmes config when the Go backend notifies us of a change
+  // (e.g. SetHolmesConfig called via Wails RPC or E2E test helper)
+  useEffect(() => {
+    const unsubscribe = onHolmesConfigChanged(() => {
+      loadConfig();
     });
     return unsubscribe;
   }, [loadConfig]);

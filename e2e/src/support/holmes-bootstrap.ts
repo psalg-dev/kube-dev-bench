@@ -65,6 +65,10 @@ export async function configureHolmesMock(opts: {
   if (result !== null && result !== undefined) {
     throw new Error(`Failed to configure Holmes: ${result}`);
   }
+
+  // Wait for the frontend to process the holmes:config-changed event
+  // emitted by the Go backend via Wails
+  await page.waitForTimeout(500);
 }
 
 /**

@@ -232,9 +232,15 @@ async function analyzeWithHolmesFromDeployment(page: Page, namespace: string) {
 async function askHolmesFromGlobalPanel(page: Page, question: string) {
   const toggle = page.locator('#holmes-toggle-btn');
   await expect(toggle).toBeVisible({ timeout: 30_000 });
-  await toggle.click();
 
   const holmesPanel = page.locator('#holmes-panel');
+
+  // If panel is already open, close and reopen to ensure fresh state
+  if (await holmesPanel.isVisible().catch(() => false)) {
+    await toggle.click();
+    await expect(holmesPanel).not.toBeVisible({ timeout: 5_000 });
+  }
+  await toggle.click();
   await expect(holmesPanel).toBeVisible({ timeout: 30_000 });
 
   const input = page.getByPlaceholder('Ask about your cluster...');
@@ -365,7 +371,7 @@ test.describe('Holmes Error Handling', () => {
         slowMockServer = await startHolmesMockServer({
           repoRoot: withinRepo(),
           port,
-          delayMs: 3000,
+          delayMs: 8000,
           readyTimeoutMs: 30_000,
         });
       });
