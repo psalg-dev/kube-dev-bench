@@ -41,9 +41,6 @@ var holmesMu sync.RWMutex
 var holmesStreamCancels = map[string]context.CancelFunc{}
 var holmesStreamMu sync.Mutex
 
-// holmesConfig holds the Holmes configuration
-var holmesConfig = holmesgpt.DefaultConfig()
-
 func isLocalHolmesEndpoint(endpoint string) bool {
 	if endpoint == "" {
 		return false
@@ -308,10 +305,12 @@ func (a *App) ensureHolmesPortForward(endpoint string) error {
 		return pfErr
 	}
 
-	holmesConfig.Endpoint = localURL
-	holmesConfig.Enabled = true
+	cfg := a.getHolmesConfig()
+	cfg.Endpoint = localURL
+	cfg.Enabled = true
+	a.setHolmesConfig(cfg)
 
-	client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(holmesConfig, nil))
+	client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(cfg, nil))
 	if err != nil {
 		return err
 	}
@@ -355,16 +354,17 @@ func (a *App) initHolmes() {
 
 	log.Info("initHolmes: starting initialization")
 
-	if !holmesConfig.IsConfigured() {
+	cfg := a.getHolmesConfig()
+	if !cfg.IsConfigured() {
 		log.Info("initHolmes: Holmes not configured, skipping")
 		return
 	}
 
 	log.Info("initHolmes: Holmes is configured",
-		"endpoint", holmesConfig.Endpoint,
-		"enabled", holmesConfig.Enabled)
+		"endpoint", cfg.Endpoint,
+		"enabled", cfg.Enabled)
 
-	endpoint := holmesConfig.Endpoint
+	endpoint := cfg.Endpoint
 	var transport http.RoundTripper
 
 	// If the endpoint is an in-cluster URL, use the API server proxy instead of port-forward
@@ -382,7 +382,8 @@ func (a *App) initHolmes() {
 		}
 		endpoint = newEndpoint
 		transport = newTransport
-		holmesConfig.Endpoint = endpoint
+		cfg.Endpoint = endpoint
+		a.setHolmesConfig(cfg)
 		_ = a.saveConfig() // Save the API server proxy endpoint
 		log.Info("initHolmes: API server proxy established",
 			"endpoint", endpoint)
@@ -406,7 +407,8 @@ func (a *App) initHolmes() {
 		} else {
 			endpoint = newEndpoint
 			transport = newTransport
-			holmesConfig.Endpoint = endpoint
+			cfg.Endpoint = endpoint
+			a.setHolmesConfig(cfg)
 			_ = a.saveConfig()
 			log.Info("initHolmes: proxy endpoint refreshed",
 				"endpoint", endpoint)
@@ -417,7 +419,7 @@ func (a *App) initHolmes() {
 	}
 
 	log.Debug("initHolmes: creating Holmes client")
-	client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(holmesConfig, transport))
+	client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(cfg, transport))
 	if err != nil {
 		log.Error("initHolmes: failed to create client",
 			"error", err)
@@ -1526,10 +1528,7 @@ func (a *App) CancelHolmesStream(streamID string) error {
 // GetHolmesConfig returns the current Holmes configuration with API key masked.
 // This is a Wails RPC method callable from the frontend.
 func (a *App) GetHolmesConfig() (holmesgpt.HolmesConfigData, error) {
-	holmesMu.RLock()
-	config := holmesConfig
-	holmesMu.RUnlock()
-
+	config := a.getHolmesConfig()
 	return config.MaskAPIKey(), nil
 }
 
@@ -1542,27 +1541,27 @@ func (a *App) SetHolmesConfig(config holmesgpt.HolmesConfigData) error {
 	}
 
 	// Update the configuration
-	holmesConfig = config
-
 	var transport http.RoundTripper
 
-	if isInClusterEndpoint(holmesConfig.Endpoint) {
-		namespace := holmesNamespaceFromEndpoint(holmesConfig.Endpoint)
+	if isInClusterEndpoint(config.Endpoint) {
+		namespace := holmesNamespaceFromEndpoint(config.Endpoint)
 		endpoint, newTransport, err := a.buildHolmesProxyEndpoint(namespace)
 		if err != nil {
 			return fmt.Errorf("failed to build Holmes proxy endpoint: %w", err)
 		}
-		holmesConfig.Endpoint = endpoint
+		config.Endpoint = endpoint
 		transport = newTransport
-	} else if isKubeProxyEndpoint(holmesConfig.Endpoint) {
-		namespace := holmesNamespaceFromProxyEndpoint(holmesConfig.Endpoint)
+	} else if isKubeProxyEndpoint(config.Endpoint) {
+		namespace := holmesNamespaceFromProxyEndpoint(config.Endpoint)
 		endpoint, newTransport, err := a.buildHolmesProxyEndpoint(namespace)
 		if err != nil {
 			return fmt.Errorf("failed to refresh Holmes proxy endpoint: %w", err)
 		}
-		holmesConfig.Endpoint = endpoint
+		config.Endpoint = endpoint
 		transport = newTransport
 	}
+
+	a.setHolmesConfig(config)
 
 	// Save to persistent storage
 	if err := a.saveConfig(); err != nil {
@@ -1571,7 +1570,7 @@ func (a *App) SetHolmesConfig(config holmesgpt.HolmesConfigData) error {
 
 	// Reinitialize the client
 	if config.IsConfigured() {
-		client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(holmesConfig, transport))
+		client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(config, transport))
 		if err != nil {
 			return fmt.Errorf("failed to create Holmes client: %w", err)
 		}
@@ -1592,7 +1591,7 @@ func (a *App) SetHolmesConfig(config holmesgpt.HolmesConfigData) error {
 // This is a Wails RPC method callable from the frontend.
 func (a *App) ClearHolmesConfig() error {
 	// Reset to default (unconfigured)
-	holmesConfig = holmesgpt.DefaultConfig()
+	a.setHolmesConfig(holmesgpt.DefaultConfig())
 
 	// Clear the client
 	holmesMu.Lock()
@@ -1641,11 +1640,12 @@ func (a *App) TestHolmesConnection() (*holmesgpt.HolmesConnectionStatus, error) 
 // This is a Wails RPC method callable from the frontend.
 func (a *App) ReconnectHolmes() (*holmesgpt.HolmesConnectionStatus, error) {
 	// Rebuild proxy endpoint via API server
+	cfg := a.getHolmesConfig()
 	namespace := holmesDefaultNamespace
-	if isInClusterEndpoint(holmesConfig.Endpoint) {
-		namespace = holmesNamespaceFromEndpoint(holmesConfig.Endpoint)
-	} else if isKubeProxyEndpoint(holmesConfig.Endpoint) {
-		namespace = holmesNamespaceFromProxyEndpoint(holmesConfig.Endpoint)
+	if isInClusterEndpoint(cfg.Endpoint) {
+		namespace = holmesNamespaceFromEndpoint(cfg.Endpoint)
+	} else if isKubeProxyEndpoint(cfg.Endpoint) {
+		namespace = holmesNamespaceFromProxyEndpoint(cfg.Endpoint)
 	}
 
 	endpoint, transport, err := a.buildHolmesProxyEndpoint(namespace)
@@ -1657,11 +1657,12 @@ func (a *App) ReconnectHolmes() (*holmesgpt.HolmesConnectionStatus, error) {
 	}
 
 	// Update the configuration with the new endpoint
-	holmesConfig.Endpoint = endpoint
-	holmesConfig.Enabled = true
+	cfg.Endpoint = endpoint
+	cfg.Enabled = true
+	a.setHolmesConfig(cfg)
 
 	// Create/update the client with the new endpoint
-	client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(holmesConfig, transport))
+	client, err := holmesgpt.NewHolmesClient(buildHolmesClientConfig(cfg, transport))
 	if err != nil {
 		return &holmesgpt.HolmesConnectionStatus{
 			Connected: false,

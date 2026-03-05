@@ -280,13 +280,13 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 	a.emitHolmesDeploymentStatus(status)
 
 	// Auto-configure Holmes with the detected endpoint
-	holmesConfig = holmesgpt.HolmesConfigData{
+	a.setHolmesConfig(holmesgpt.HolmesConfigData{
 		Enabled:        true,
 		Endpoint:       endpoint,
 		APIKey:         "", // In-cluster doesn't need separate API key
 		ModelKey:       "",
 		ResponseFormat: "",
-	}
+	})
 
 	// Save and initialize
 	if err := a.saveConfig(); err != nil {
@@ -621,7 +621,7 @@ func (a *App) UndeployHolmesGPT(namespace, releaseName string) error {
 	}
 
 	// Clear local Holmes config
-	holmesConfig = holmesgpt.DefaultConfig()
+	a.setHolmesConfig(holmesgpt.DefaultConfig())
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()

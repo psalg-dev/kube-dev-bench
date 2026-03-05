@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/app/holmesgpt"
 	"gowails/pkg/logger"
 
 	"k8s.io/client-go/kubernetes"
@@ -115,6 +116,10 @@ type App struct {
 	pollingMu      sync.Mutex
 	pollingStarted bool
 	pollingStopCh  chan struct{}
+
+	// holmesConfig holds the Holmes configuration, protected by holmesConfigMu.
+	holmesConfigMu sync.RWMutex
+	holmesConfig   holmesgpt.HolmesConfigData
 }
 
 // getKubeContext returns the current kube context name in a thread-safe manner.
@@ -129,6 +134,20 @@ func (a *App) setKubeContext(name string) {
 	a.kubeContextMu.Lock()
 	defer a.kubeContextMu.Unlock()
 	a.currentKubeContext = name
+}
+
+// getHolmesConfig returns a snapshot of the Holmes configuration in a thread-safe manner.
+func (a *App) getHolmesConfig() holmesgpt.HolmesConfigData {
+	a.holmesConfigMu.RLock()
+	defer a.holmesConfigMu.RUnlock()
+	return a.holmesConfig
+}
+
+// setHolmesConfig stores the Holmes configuration in a thread-safe manner.
+func (a *App) setHolmesConfig(cfg holmesgpt.HolmesConfigData) {
+	a.holmesConfigMu.Lock()
+	defer a.holmesConfigMu.Unlock()
+	a.holmesConfig = cfg
 }
 
 // NewApp creates a new App application struct
@@ -176,6 +195,7 @@ func NewApp() *App {
 		countsRefreshCh:      make(chan struct{}, 1),
 		swarmVolumeHelpers:   make(map[string]string),
 		useInformers:         true,
+		holmesConfig:         holmesgpt.DefaultConfig(),
 	}
 }
 

@@ -32,11 +32,9 @@ func TestAnalyzeLogs_DefaultLines_Uses200(t *testing.T) {
 	}))
 	defer server.Close()
 
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
-
 	captured := 0
 	app := &App{ctx: context.Background()}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.testPodLogsFetcher = func(namespace, podName, containerName string, lines int) (string, error) {
 		captured = lines
 		return "log line", nil

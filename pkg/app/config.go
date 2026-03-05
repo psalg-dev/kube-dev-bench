@@ -71,7 +71,7 @@ func (a *App) loadConfig() error {
 	a.proxyUsername = config.ProxyUsername
 	a.proxyPassword = config.ProxyPassword
 	// Load Holmes configuration
-	holmesConfig = config.HolmesConfig
+	a.setHolmesConfig(config.HolmesConfig)
 	return nil
 }
 
@@ -99,7 +99,7 @@ func (a *App) saveConfig() error {
 		ProxyUsername: a.proxyUsername,
 		ProxyPassword: a.proxyPassword,
 		// Holmes AI configuration
-		HolmesConfig: holmesConfig,
+		HolmesConfig: a.getHolmesConfig(),
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

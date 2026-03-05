@@ -130,9 +130,6 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 	}
 	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
 
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
-
 	clientset := fake.NewSimpleClientset(&v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "crash-pod", Namespace: "default"},
 		Status: v1.PodStatus{
@@ -149,6 +146,7 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 	})
 
 	app := &App{ctx: context.Background(), testClientset: clientset, preferredNamespaces: []string{"default"}}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	info := app.collectMonitorInfo([]string{"default"})
@@ -462,9 +460,6 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	}
 	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
 
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
-
 	clientset := fake.NewSimpleClientset(
 		&v1.Pod{
 			ObjectMeta: metav1.ObjectMeta{Name: "crash-pod", Namespace: "default"},
@@ -497,6 +492,7 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	)
 
 	app := &App{ctx: context.Background(), testClientset: clientset, preferredNamespaces: []string{"default"}}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	if err := app.AnalyzeAllMonitorIssues(); err != nil {
