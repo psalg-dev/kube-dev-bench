@@ -3,6 +3,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { kubectl } from '../src/support/kind.js';
 
 test.describe.configure({ timeout: 180_000 });
 
@@ -42,7 +43,7 @@ async function expectAndClickTabs(panel: BottomPanel, labels: string[]) {
   }
 }
 
-test('bottom panels: config (ConfigMap/Secret)', async ({ page, contextName, namespace }) => {
+test('bottom panels: config (ConfigMap/Secret)', async ({ page, contextName, namespace, kubeconfigPath }) => {
   test.setTimeout(180_000);
 
   const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -60,6 +61,24 @@ test('bottom panels: config (ConfigMap/Secret)', async ({ page, contextName, nam
   await overlay.fillYaml(cmYaml);
   await overlay.create();
   await notifications.waitForClear();
+
+  // Verify via kubectl before relying on the table
+  await expect
+    .poll(
+      async () => {
+        const res = await kubectl(
+          ['get', 'configmap', cmName, '-n', namespace, '-o', 'name', '--ignore-not-found'],
+          { kubeconfigPath, timeoutMs: 15_000 }
+        );
+        return (res.stdout || '').trim();
+      },
+      { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }
+    )
+    .toBe(`configmap/${cmName}`);
+
+  // Re-navigate to force fresh table data
+  await sidebar.goToSection('pods');
+  await sidebar.goToSection('configmaps');
 
   await openRowDetailsByName(page, cmName);
   await panel.expectVisible();
@@ -80,6 +99,24 @@ test('bottom panels: config (ConfigMap/Secret)', async ({ page, contextName, nam
   await overlay.fillYaml(secretYaml);
   await overlay.create();
   await notifications.waitForClear();
+
+  // Verify via kubectl before relying on the table
+  await expect
+    .poll(
+      async () => {
+        const res = await kubectl(
+          ['get', 'secret', secretName, '-n', namespace, '-o', 'name', '--ignore-not-found'],
+          { kubeconfigPath, timeoutMs: 15_000 }
+        );
+        return (res.stdout || '').trim();
+      },
+      { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }
+    )
+    .toBe(`secret/${secretName}`);
+
+  // Re-navigate to force fresh table data
+  await sidebar.goToSection('pods');
+  await sidebar.goToSection('secrets');
 
   await openRowDetailsByName(page, secretName);
   await panel.expectVisible();

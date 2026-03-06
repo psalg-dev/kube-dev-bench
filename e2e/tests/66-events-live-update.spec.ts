@@ -3,6 +3,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { kubectl } from '../src/support/kind.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -23,7 +24,7 @@ async function openRowDetailsByName(page: any, name: string) {
 }
 
 test.describe('Events live updates', () => {
-  test('ResourceEventsTab refreshes after deployment scale action without panel reload', async ({ page, contextName, namespace }) => {
+  test('ResourceEventsTab refreshes after deployment scale action without panel reload', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(180_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -60,6 +61,14 @@ spec:
     await overlay.fillYaml(deployYaml);
     await overlay.create();
     await notifications.waitForClear();
+
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'deployment', deployName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`deployment.apps/${deployName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('deployments');
 
     await openRowDetailsByName(page, deployName);
     await panel.expectVisible();

@@ -3,6 +3,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { kubectl } from '../src/support/kind.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -19,7 +20,7 @@ async function openRowDetailsByName(page: any, name: string) {
 }
 
 test.describe('Tab counts and empty states', () => {
-  test('ConfigMap shows count badges for Events and Consumers tabs', async ({ page, contextName, namespace }) => {
+  test('ConfigMap shows count badges for Events and Consumers tabs', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(120_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -46,6 +47,14 @@ data:
     await overlay.create();
     await notifications.waitForClear();
 
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'configmap', configMapName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`configmap/${configMapName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('configmaps');
+
     // Open the ConfigMap details
     await openRowDetailsByName(page, configMapName);
     await panel.expectVisible();
@@ -71,7 +80,7 @@ data:
     await panel.closeByClickingOutside();
   });
 
-  test('Deployment shows Pods tab with count badge', async ({ page, contextName, namespace }) => {
+  test('Deployment shows Pods tab with count badge', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(120_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -110,8 +119,13 @@ spec:
     await overlay.create();
     await notifications.waitForClear();
 
-    // Wait a bit for the pod to be created
-    await page.waitForTimeout(5000);
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'deployment', deployName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`deployment.apps/${deployName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('deployments');
 
     // Open the Deployment details
     await openRowDetailsByName(page, deployName);
@@ -129,7 +143,7 @@ spec:
     await panel.closeByClickingOutside();
   });
 
-  test('Secret shows empty Consumers tab with appropriate message', async ({ page, contextName, namespace }) => {
+  test('Secret shows empty Consumers tab with appropriate message', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(120_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -157,6 +171,14 @@ data:
     await overlay.create();
     await notifications.waitForClear();
 
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'secret', secretName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`secret/${secretName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('secrets');
+
     // Open the Secret details
     await openRowDetailsByName(page, secretName);
     await panel.expectVisible();
@@ -173,7 +195,7 @@ data:
     await panel.closeByClickingOutside();
   });
 
-  test('CronJob shows History tab with count badge', async ({ page, contextName, namespace }) => {
+  test('CronJob shows History tab with count badge', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(180_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -208,6 +230,14 @@ spec:
     await overlay.create();
     await notifications.waitForClear();
 
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'cronjob', cronJobName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`cronjob.batch/${cronJobName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('cronjobs');
+
     // Open the CronJob details
     await openRowDetailsByName(page, cronJobName);
     await panel.expectVisible();
@@ -224,7 +254,7 @@ spec:
     await panel.closeByClickingOutside();
   });
 
-  test('Tab labels show loading state while counts are being fetched', async ({ page, contextName, namespace }) => {
+  test('Tab labels show loading state while counts are being fetched', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(120_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -249,6 +279,14 @@ data:
     await overlay.fillYaml(configMapYaml);
     await overlay.create();
     await notifications.waitForClear();
+
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'configmap', configMapName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`configmap/${configMapName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('configmaps');
 
     // Open the ConfigMap details
     await openRowDetailsByName(page, configMapName);

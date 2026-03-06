@@ -3,6 +3,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
+import { kubectl } from '../src/support/kind.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -23,7 +24,7 @@ async function openRowDetailsByName(page: any, name: string) {
 }
 
 test.describe('Events live updates (StatefulSet)', () => {
-  test('ResourceEventsTab refreshes after statefulset scale action without panel reload', async ({ page, contextName, namespace }) => {
+  test('ResourceEventsTab refreshes after statefulset scale action without panel reload', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(240_000);
 
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
@@ -53,6 +54,11 @@ spec:
     await overlay.create();
     await notifications.waitForClear();
 
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'service', serviceName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`service/${serviceName}`);
+
     await sidebar.goToSection('statefulsets');
     const stsYaml = `apiVersion: apps/v1
 kind: StatefulSet
@@ -80,6 +86,14 @@ spec:
     await overlay.fillYaml(stsYaml);
     await overlay.create();
     await notifications.waitForClear();
+
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'statefulset', stsName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }).toBe(`statefulset.apps/${stsName}`);
+
+    await sidebar.goToSection('pods');
+    await sidebar.goToSection('statefulsets');
 
     await openRowDetailsByName(page, stsName);
     await panel.expectVisible();
