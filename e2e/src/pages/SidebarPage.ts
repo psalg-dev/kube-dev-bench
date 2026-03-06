@@ -43,6 +43,13 @@ export class SidebarPage {
     clusterroles: 'Cluster Roles',
     rolebindings: 'Role Bindings',
     clusterrolebindings: 'Cluster Role Bindings',
+    persistentvolumeclaims: 'Persistent Volume Claims',
+    persistentvolumes: 'Persistent Volumes',
+    services: 'Services',
+    ingresses: 'Ingresses',
+    configmaps: 'Config Maps',
+    secrets: 'Secrets',
+    helmreleases: 'Helm Releases',
   };
 
   private readonly childGroupBySection: Record<string, string> = {
