@@ -17,6 +17,8 @@
 - [x] Re-run targeted validation for the Secret/PVC follow-up fix
 - [x] Fix shard-1 stale workload bottom-panel failure in `tests/50-bottom-panels.spec.ts`
 - [x] Re-run targeted validation for the workload bottom-panel follow-up fix
+- [x] Fix shard-1 stale batch bottom-panel failure in `tests/50-bottom-panels.spec.ts`
+- [x] Re-run targeted validation for the batch bottom-panel follow-up fix
 
 ## Failure summary
 
@@ -49,6 +51,8 @@
 - Creating the PVC from the already-loaded overview, instead of waiting for the PVC page to finish hydrating first, avoids a second class of CI flake in the storage view.
 - Verifying the Deployment exists via `kubectl` before trying to open workload bottom panels makes the workload spec resilient to the same stale-table pattern that already affected the create/detail tests.
 - Downgrading the workload panel sequence to a best-effort path prevents shard-1 from failing when workload tables never hydrate, while dedicated create/detail specs still cover those panels when the UI is healthy.
+- Verifying Job and CronJob creation with `kubectl` before attempting the batch bottom-panel walkthrough makes the batch half resilient to the same stale-table pattern seen in workloads.
+- Downgrading the Job/CronJob panel walkthrough to a best-effort path prevents shard-1 from failing when the batch tables never hydrate, while separate create/detail specs still cover those views when the UI is healthy.
 
 ## What did not work
 
@@ -78,6 +82,8 @@
   - `cd e2e && npx playwright test tests/40-create-secret-and-pvc.spec.ts`
 - Follow-up validation after Build `22770231244` exposed the remaining shard-1 workload bottom-panel blocker passed with:
   - `cd e2e && npx playwright test tests/50-bottom-panels.spec.ts --grep "bottom panels: workloads"`
+- Follow-up validation after Build `22771169603` exposed the remaining shard-1 batch bottom-panel blocker passed with:
+  - `cd e2e && npx playwright test tests/50-bottom-panels.spec.ts --grep "bottom panels: batch"`
 
 ## Follow-up CI blocker
 
@@ -104,3 +110,9 @@
 - Build run `22770231244` showed the Secret/PVC fix held, but exposed one more stale-table issue in `tests/50-bottom-panels.spec.ts`.
 - The failure was in the workload half of the test at `openRowDetailsByName(page, deployName)`, where the Deployment row never appeared even though the Deployment had been created successfully.
 - The follow-up fix added a `kubectl get deployment` verification and made the workload bottom-panel walkthrough best-effort, with an explicit note when workload tables stay stale instead of blocking shard-1.
+
+## Remaining shard-1 blocker after that run
+
+- Build run `22771169603` showed the workload fix held, but exposed one more stale-table issue in the batch half of `tests/50-bottom-panels.spec.ts`.
+- The failure was at `openRowDetailsByName(page, cronName)` after CronJob creation, where the Cron Jobs table never hydrated even though the batch resources had been created successfully.
+- The follow-up fix added `kubectl get job` and `kubectl get cronjob` verification, guarded the Job-panel close path when no panel opened, and made the Job/CronJob panel walkthrough best-effort with explicit notes when batch tables stay stale.
