@@ -13,6 +13,8 @@
 - [x] Fix shard-1 stale Jobs/CronJobs table failure in `tests/30-create-job-and-cronjob.spec.ts`
 - [x] Fix shard-2 stale Pods table failure in `tests/holmes/40-log-analysis.spec.ts`
 - [x] Re-run targeted validation for the shard-1 and shard-2 fixes
+- [x] Fix shard-1 stale Secrets/PVC flow failure in `tests/40-create-secret-and-pvc.spec.ts`
+- [x] Re-run targeted validation for the Secret/PVC follow-up fix
 
 ## Failure summary
 
@@ -41,6 +43,8 @@
 - Adding Wails readiness and timeout guards in `ConnectionsStateContext` prevents kubeconfig discovery and connection from hanging indefinitely.
 - Polling `kubectl get job`, `kubectl get cronjob`, and pod names by label removes the shard-1 and shard-2 dependency on UI tables hydrating immediately in CI.
 - Keeping table-row checks as best-effort while shifting Holmes prompts to the global panel preserves user-path coverage without failing on stale tables.
+- Polling `kubectl get secret` and `kubectl get persistentvolumeclaim` lets the Secret/PVC creation spec pass even when the Secrets table stays stale and the PVC view remains stuck in a loading state.
+- Creating the PVC from the already-loaded overview, instead of waiting for the PVC page to finish hydrating first, avoids a second class of CI flake in the storage view.
 
 ## What did not work
 
@@ -66,6 +70,8 @@
   - `cd frontend && npm run build`
 - Follow-up validation after Build `22767682647` exposed shard-1 and shard-2 stale-table failures passed with:
   - `cd e2e && npx playwright test tests/30-create-job-and-cronjob.spec.ts tests/holmes/40-log-analysis.spec.ts`
+- Follow-up validation after Build `22768837267` exposed the remaining shard-1 Secret/PVC blocker passed with:
+  - `cd e2e && npx playwright test tests/40-create-secret-and-pvc.spec.ts`
 
 ## Follow-up CI blocker
 
@@ -79,3 +85,10 @@
 - `tests/30-create-job-and-cronjob.spec.ts` was still hard-failing on `waitForTableRow()` even though the Job and CronJob were created successfully in the cluster.
 - `tests/holmes/40-log-analysis.spec.ts` was still hard-failing on a missing pod row in the Pods table before Holmes analysis could run.
 - The fixes switched both tests to verify cluster truth with `kubectl`, left table-row checks as best-effort annotations, and used the global Holmes panel with the resolved pod name when the Pods table remained stale.
+
+## Remaining shard-1 blocker after that run
+
+- Build run `22768837267` proved the previous shard-1/shard-2 fixes were good, but exposed one more stale-view failure in `tests/40-create-secret-and-pvc.spec.ts`.
+- The original failure was the Secrets table row never appearing, despite successful resource creation.
+- After the first patch, the deeper issue became visible: the PVC section route could stay stuck on `Loading Persistent Volume Claims...`, which made the create button unavailable if the test waited on that page before creating the PVC.
+- The final fix switched Secret and PVC creation checks to `kubectl`, kept table assertions best-effort, and created the PVC from the already-loaded overview instead of depending on the PVC list page to hydrate first.
