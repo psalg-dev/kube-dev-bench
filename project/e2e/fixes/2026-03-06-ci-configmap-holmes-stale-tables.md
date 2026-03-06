@@ -9,6 +9,7 @@
 - [x] Patch tests to avoid stale-table-only assertions
 - [x] Re-run targeted local validation
 - [x] Stabilize bootstrap flake in `tests/00-connect-and-select.spec.ts`
+- [x] Fix follow-up frontend CI failure in `connectionHooksSettings.test.tsx`
 
 ## Failure summary
 
@@ -54,3 +55,13 @@
   - `cd frontend && npm run build`
   - `npx playwright test tests/00-connect-and-select.spec.ts --repeat-each=2`
   - `npx playwright test tests/20-create-configmap.spec.ts`
+- Follow-up validation after the next Build workflow exposed a frontend blocker passed with:
+  - `cd frontend && npm test -- --run src/__tests__/connectionHooksSettings.test.tsx`
+  - `cd frontend && npm test -- --coverage`
+  - `cd frontend && npm run build`
+
+## Follow-up CI blocker
+
+- Build run `22767161908` failed before backend/e2e because frontend test `frontend/src/__tests__/connectionHooksSettings.test.tsx` expected a `Save` button while the form was disabled in a transient `Saving...` state.
+- The root cause was `ConnectionHooksSettings` using the provider-wide `loading` flag for its form actions, so unrelated initialization work could disable the hook save button.
+- The fix introduced a hook-form-local `isSaving` state in `ConnectionHooksSettings` and hardened the test to accept the transient button label while waiting for the button to become enabled.
