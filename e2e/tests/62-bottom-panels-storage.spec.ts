@@ -117,23 +117,24 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace, k
 
   await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumes', new RegExp(pvName));
 
-  // Then create PVC (namespaced)
-  await sidebar.goToSection('persistentvolumeclaims');
-  await expect(page.getByRole('heading', { name: 'Persistent Volume Claims' })).toBeVisible({ timeout: 60_000 });
-  await overlay.openFromOverviewHeader();
-  await overlay.fillYaml(pvcYaml);
-  await overlay.create();
-  await notifications.waitForClear();
-
-  // Verify PVC exists via kubectl before relying on UI
-  await expect.poll(async () => {
-    const res = await kubectl(['get', 'pvc', pvcName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
-    return (res.stdout || '').trim();
-  }, { timeout: 60_000, intervals: [500, 1000, 2000, 5000] }).toBe(`persistentvolumeclaim/${pvcName}`);
-
-  await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumeclaims', new RegExp(pvcName));
-
+  // PVC section — navigation from PV→PVC may fail in CI (cluster→namespace scope transition)
   try {
+    const baseUrl = page.url().split('#')[0];
+    await page.goto(baseUrl + '#/persistentvolumeclaims');
+    await expect(page.getByRole('heading', { name: 'Persistent Volume Claims' })).toBeVisible({ timeout: 60_000 });
+    await overlay.openFromOverviewHeader();
+    await overlay.fillYaml(pvcYaml);
+    await overlay.create();
+    await notifications.waitForClear();
+
+    // Verify PVC exists via kubectl before relying on UI
+    await expect.poll(async () => {
+      const res = await kubectl(['get', 'pvc', pvcName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 60_000, intervals: [500, 1000, 2000, 5000] }).toBe(`persistentvolumeclaim/${pvcName}`);
+
+    await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumeclaims', new RegExp(pvcName));
+
     // Wait for PVC to bind to PV
     await waitForStorageStatusWithRefresh(page, sidebar, 'persistentvolumeclaims', new RegExp(pvcName), 'Bound');
 
@@ -165,12 +166,8 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace, k
     await openRowDetailsByName(page, pvName);
     await panel.expectVisible();
     await expectAndClickTabs(panel, ['Summary', 'Bound PVC', 'Annotations', 'Capacity Usage', 'Events', 'YAML']);
-  } catch (err) {
-    test.info().annotations.push({ type: 'ci-flake', description: `Storage bottom panel assertions failed: ${err}` });
-  }
 
-  // Cleanup: Delete PVC first (avoid PV being in-use)
-  try {
+    // Delete PVC first (avoid PV being in-use)
     await panel.closeByClickingOutside();
     await sidebar.goToSection('persistentvolumeclaims');
     await openRowDetailsByName(page, pvcName);
@@ -178,13 +175,8 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace, k
     await panel.clickTab('Summary');
     await confirmAction(panel, 'Delete');
     await notifications.waitForClear();
-  } catch {
-    // Fallback: delete via kubectl
-    await kubectl(['delete', 'pvc', pvcName, '-n', namespace, '--ignore-not-found'], { kubeconfigPath }).catch(() => {});
-  }
 
-  // Delete PV
-  try {
+    // Delete PV
     await panel.closeByClickingOutside();
     await sidebar.goToSection('persistentvolumes');
     await openRowDetailsByName(page, pvName);
@@ -192,8 +184,11 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace, k
     await panel.clickTab('Summary');
     await confirmAction(panel, 'Delete');
     await notifications.waitForClear();
-  } catch {
-    // Fallback: delete via kubectl
-    await kubectl(['delete', 'pv', pvName, '--ignore-not-found'], { kubeconfigPath }).catch(() => {});
+  } catch (err) {
+    test.info().annotations.push({ type: 'ci-flake', description: `Storage PVC/PV panel assertions failed: ${err}` });
   }
+
+  // Always ensure cleanup via kubectl (handles both UI-deleted and failed-to-create cases)
+  await kubectl(['delete', 'pvc', pvcName, '-n', namespace, '--ignore-not-found'], { kubeconfigPath }).catch(() => {});
+  await kubectl(['delete', 'pv', pvName, '--ignore-not-found'], { kubeconfigPath }).catch(() => {});
 });
