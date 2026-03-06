@@ -111,11 +111,9 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace, k
 
   // Verify PV exists via kubectl before relying on UI
   await expect.poll(async () => {
-    try {
-      const out = await kubectl(['get', 'pv', pvName, '-o', 'name'], { kubeconfigPath });
-      return out.trim().length > 0;
-    } catch { return false; }
-  }, { timeout: 30_000, message: `kubectl: PV ${pvName} not found` }).toBe(true);
+    const res = await kubectl(['get', 'pv', pvName, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+    return (res.stdout || '').trim();
+  }, { timeout: 60_000, intervals: [500, 1000, 2000, 5000] }).toBe(`persistentvolume/${pvName}`);
 
   await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumes', new RegExp(pvName));
 
@@ -129,11 +127,9 @@ test('bottom panels: storage (PV/PVC)', async ({ page, contextName, namespace, k
 
   // Verify PVC exists via kubectl before relying on UI
   await expect.poll(async () => {
-    try {
-      const out = await kubectl(['get', 'pvc', pvcName, '-n', namespace, '-o', 'name'], { kubeconfigPath });
-      return out.trim().length > 0;
-    } catch { return false; }
-  }, { timeout: 30_000, message: `kubectl: PVC ${pvcName} not found` }).toBe(true);
+    const res = await kubectl(['get', 'pvc', pvcName, '-n', namespace, '-o', 'name', '--ignore-not-found'], { kubeconfigPath, timeoutMs: 15_000 });
+    return (res.stdout || '').trim();
+  }, { timeout: 60_000, intervals: [500, 1000, 2000, 5000] }).toBe(`persistentvolumeclaim/${pvcName}`);
 
   await waitForStorageRowWithRefresh(page, sidebar, 'persistentvolumeclaims', new RegExp(pvcName));
 
