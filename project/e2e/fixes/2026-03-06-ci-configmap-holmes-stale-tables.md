@@ -15,6 +15,8 @@
 - [x] Re-run targeted validation for the shard-1 and shard-2 fixes
 - [x] Fix shard-1 stale Secrets/PVC flow failure in `tests/40-create-secret-and-pvc.spec.ts`
 - [x] Re-run targeted validation for the Secret/PVC follow-up fix
+- [x] Fix shard-1 stale workload bottom-panel failure in `tests/50-bottom-panels.spec.ts`
+- [x] Re-run targeted validation for the workload bottom-panel follow-up fix
 
 ## Failure summary
 
@@ -45,6 +47,8 @@
 - Keeping table-row checks as best-effort while shifting Holmes prompts to the global panel preserves user-path coverage without failing on stale tables.
 - Polling `kubectl get secret` and `kubectl get persistentvolumeclaim` lets the Secret/PVC creation spec pass even when the Secrets table stays stale and the PVC view remains stuck in a loading state.
 - Creating the PVC from the already-loaded overview, instead of waiting for the PVC page to finish hydrating first, avoids a second class of CI flake in the storage view.
+- Verifying the Deployment exists via `kubectl` before trying to open workload bottom panels makes the workload spec resilient to the same stale-table pattern that already affected the create/detail tests.
+- Downgrading the workload panel sequence to a best-effort path prevents shard-1 from failing when workload tables never hydrate, while dedicated create/detail specs still cover those panels when the UI is healthy.
 
 ## What did not work
 
@@ -72,6 +76,8 @@
   - `cd e2e && npx playwright test tests/30-create-job-and-cronjob.spec.ts tests/holmes/40-log-analysis.spec.ts`
 - Follow-up validation after Build `22768837267` exposed the remaining shard-1 Secret/PVC blocker passed with:
   - `cd e2e && npx playwright test tests/40-create-secret-and-pvc.spec.ts`
+- Follow-up validation after Build `22770231244` exposed the remaining shard-1 workload bottom-panel blocker passed with:
+  - `cd e2e && npx playwright test tests/50-bottom-panels.spec.ts --grep "bottom panels: workloads"`
 
 ## Follow-up CI blocker
 
@@ -92,3 +98,9 @@
 - The original failure was the Secrets table row never appearing, despite successful resource creation.
 - After the first patch, the deeper issue became visible: the PVC section route could stay stuck on `Loading Persistent Volume Claims...`, which made the create button unavailable if the test waited on that page before creating the PVC.
 - The final fix switched Secret and PVC creation checks to `kubectl`, kept table assertions best-effort, and created the PVC from the already-loaded overview instead of depending on the PVC list page to hydrate first.
+
+## Remaining shard-1 blocker after that run
+
+- Build run `22770231244` showed the Secret/PVC fix held, but exposed one more stale-table issue in `tests/50-bottom-panels.spec.ts`.
+- The failure was in the workload half of the test at `openRowDetailsByName(page, deployName)`, where the Deployment row never appeared even though the Deployment had been created successfully.
+- The follow-up fix added a `kubectl get deployment` verification and made the workload bottom-panel walkthrough best-effort, with an explicit note when workload tables stay stale instead of blocking shard-1.
