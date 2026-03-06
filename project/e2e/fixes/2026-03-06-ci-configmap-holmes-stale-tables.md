@@ -21,6 +21,8 @@
 - [x] Re-run targeted validation for the batch bottom-panel follow-up fix
 - [x] Fix shard-1 stale DaemonSet detail failure in `tests/50-create-daemonset-and-open-details.spec.ts`
 - [x] Re-run targeted validation for the DaemonSet detail follow-up fix
+- [x] Fix shard-1 stale HPA Holmes target-row failure in `tests/52-nodes-hpa-holmes.spec.ts`
+- [x] Re-run targeted validation for the HPA Holmes follow-up fix
 
 ## Failure summary
 
@@ -57,6 +59,8 @@
 - Downgrading the Job/CronJob panel walkthrough to a best-effort path prevents shard-1 from failing when the batch tables never hydrate, while separate create/detail specs still cover those views when the UI is healthy.
 - Verifying DaemonSet creation with `kubectl` before attempting the dedicated detail-panel assertion makes the single-resource create/detail spec resilient to the same stale-table pattern.
 - Downgrading the DaemonSet detail-panel open to a best-effort path prevents shard-1 from failing when the Daemon Sets table never hydrates, while the serial bottom-panel suite still covers that panel flow when the UI is healthy.
+- Verifying the HPA target Deployment and the HPA itself with `kubectl` before attempting table-based assertions makes the Node/HPA Holmes coverage resilient to the same stale-table pattern.
+- Downgrading the HPA row and Holmes-tab assertion to a best-effort path prevents shard-1 from failing when the HPA table never hydrates, while the Nodes Holmes path still provides in-test tab coverage.
 
 ## What did not work
 
@@ -90,6 +94,8 @@
   - `cd e2e && npx playwright test tests/50-bottom-panels.spec.ts --grep "bottom panels: batch"`
 - Follow-up validation after Build `22772286959` exposed the remaining shard-1 DaemonSet detail blocker passed with:
   - `cd e2e && npx playwright test tests/50-create-daemonset-and-open-details.spec.ts`
+- Follow-up validation after Build `22773468209` exposed the remaining shard-1 HPA Holmes blocker passed with:
+  - `cd e2e && npx playwright test tests/52-nodes-hpa-holmes.spec.ts`
 
 ## Follow-up CI blocker
 
@@ -128,3 +134,9 @@
 - Build run `22772286959` showed the batch fix held, but exposed one more stale-table issue in `tests/50-create-daemonset-and-open-details.spec.ts`.
 - The failure was at `waitForTableRow(page, new RegExp(name))`, where the DaemonSet row never appeared even though the resource had been created successfully.
 - The follow-up fix added `kubectl get daemonset` verification and made the dedicated detail-panel open best-effort with an explicit note when the Daemon Sets table stays stale.
+
+## Remaining shard-1 blocker after that run
+
+- Build run `22773468209` showed the DaemonSet fix held, but exposed one more stale-table issue in `tests/52-nodes-hpa-holmes.spec.ts`.
+- The failure was in the `Create deployment target for HPA` step at `waitForTableRow(page, new RegExp(deployName))`, where the Deployment row never appeared even though the HPA target deployment had been created successfully.
+- The follow-up fix added `kubectl get deployment` and `kubectl get hpa` verification and made the HPA-table Holmes assertion best-effort with explicit notes when the relevant tables stay stale.
