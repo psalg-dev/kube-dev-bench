@@ -375,12 +375,13 @@ func (a *App) startInformerManagerWithRetry(attempt int) {
 		return
 	}
 
+	// Check under lock if already started; release before slow work.
 	a.informerMu.Lock()
-	defer a.informerMu.Unlock()
-
 	if a.informerManager != nil {
+		a.informerMu.Unlock()
 		return
 	}
+	a.informerMu.Unlock()
 
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
@@ -398,8 +399,17 @@ func (a *App) startInformerManagerWithRetry(attempt int) {
 		return
 	}
 
-	fmt.Printf("startInformerManager: informer started successfully (attempt %d)\n", attempt)
+	// Re-acquire lock to set the manager; check for concurrent start.
+	a.informerMu.Lock()
+	if a.informerManager != nil {
+		// Another goroutine started the manager concurrently; stop ours.
+		a.informerMu.Unlock()
+		manager.Stop()
+		return
+	}
 	a.informerManager = manager
+	a.informerMu.Unlock()
+	fmt.Printf("startInformerManager: informer started successfully (attempt %d)\n", attempt)
 }
 
 // scheduleInformerRetry schedules a background retry of startInformerManager
