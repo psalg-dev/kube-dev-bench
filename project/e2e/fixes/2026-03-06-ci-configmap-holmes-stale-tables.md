@@ -19,6 +19,8 @@
 - [x] Re-run targeted validation for the workload bottom-panel follow-up fix
 - [x] Fix shard-1 stale batch bottom-panel failure in `tests/50-bottom-panels.spec.ts`
 - [x] Re-run targeted validation for the batch bottom-panel follow-up fix
+- [x] Fix shard-1 stale DaemonSet detail failure in `tests/50-create-daemonset-and-open-details.spec.ts`
+- [x] Re-run targeted validation for the DaemonSet detail follow-up fix
 
 ## Failure summary
 
@@ -53,6 +55,8 @@
 - Downgrading the workload panel sequence to a best-effort path prevents shard-1 from failing when workload tables never hydrate, while dedicated create/detail specs still cover those panels when the UI is healthy.
 - Verifying Job and CronJob creation with `kubectl` before attempting the batch bottom-panel walkthrough makes the batch half resilient to the same stale-table pattern seen in workloads.
 - Downgrading the Job/CronJob panel walkthrough to a best-effort path prevents shard-1 from failing when the batch tables never hydrate, while separate create/detail specs still cover those views when the UI is healthy.
+- Verifying DaemonSet creation with `kubectl` before attempting the dedicated detail-panel assertion makes the single-resource create/detail spec resilient to the same stale-table pattern.
+- Downgrading the DaemonSet detail-panel open to a best-effort path prevents shard-1 from failing when the Daemon Sets table never hydrates, while the serial bottom-panel suite still covers that panel flow when the UI is healthy.
 
 ## What did not work
 
@@ -84,6 +88,8 @@
   - `cd e2e && npx playwright test tests/50-bottom-panels.spec.ts --grep "bottom panels: workloads"`
 - Follow-up validation after Build `22771169603` exposed the remaining shard-1 batch bottom-panel blocker passed with:
   - `cd e2e && npx playwright test tests/50-bottom-panels.spec.ts --grep "bottom panels: batch"`
+- Follow-up validation after Build `22772286959` exposed the remaining shard-1 DaemonSet detail blocker passed with:
+  - `cd e2e && npx playwright test tests/50-create-daemonset-and-open-details.spec.ts`
 
 ## Follow-up CI blocker
 
@@ -116,3 +122,9 @@
 - Build run `22771169603` showed the workload fix held, but exposed one more stale-table issue in the batch half of `tests/50-bottom-panels.spec.ts`.
 - The failure was at `openRowDetailsByName(page, cronName)` after CronJob creation, where the Cron Jobs table never hydrated even though the batch resources had been created successfully.
 - The follow-up fix added `kubectl get job` and `kubectl get cronjob` verification, guarded the Job-panel close path when no panel opened, and made the Job/CronJob panel walkthrough best-effort with explicit notes when batch tables stay stale.
+
+## Remaining shard-1 blocker after that run
+
+- Build run `22772286959` showed the batch fix held, but exposed one more stale-table issue in `tests/50-create-daemonset-and-open-details.spec.ts`.
+- The failure was at `waitForTableRow(page, new RegExp(name))`, where the DaemonSet row never appeared even though the resource had been created successfully.
+- The follow-up fix added `kubectl get daemonset` verification and made the dedicated detail-panel open best-effort with an explicit note when the Daemon Sets table stays stale.
