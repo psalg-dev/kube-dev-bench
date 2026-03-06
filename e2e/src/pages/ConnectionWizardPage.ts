@@ -13,7 +13,35 @@ export class ConnectionWizardPage {
   constructor(private readonly page: Page) {}
 
   private async waitForMainAppVisible(timeout = 90_000): Promise<void> {
-    await expect(this.page.locator('#kubecontext-root, #sidebar, #maincontent').first()).toBeVisible({ timeout });
+    await expect(this.page.locator('#kubecontext-root')).toBeVisible({ timeout });
+    await expect(this.page.locator('#namespace-root')).toBeVisible({ timeout });
+  }
+
+  private async connectVisibleConfigWithRetry(configItems: ReturnType<Page['locator']>, timeout = 30_000): Promise<void> {
+    let lastError: unknown;
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      await configItems.first().click();
+      await this.ensureWailsReady();
+
+      const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
+      await expect(connectBtn).toBeVisible({ timeout: 10_000 });
+      await connectBtn.click();
+
+      try {
+        await this.waitForMainAppVisible(timeout);
+        return;
+      } catch (error) {
+        lastError = error;
+        if (attempt === 3) {
+          break;
+        }
+
+        await this.page.waitForTimeout(1_000 * attempt);
+        await this.page.getByText(/failed to connect|timed out/i).first().isVisible().catch(() => false);
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Failed to connect visible kubeconfig');
   }
 
   /**
@@ -103,7 +131,7 @@ export class ConnectionWizardPage {
 
     const openBtn = this.page.locator('#show-wizard-btn');
     const swarmOpenBtn = this.page.locator('#swarm-show-wizard-btn');
-    const mainApp = this.page.locator('#kubecontext-root, #sidebar, #maincontent');
+    const mainApp = this.page.locator('#kubecontext-root, #namespace-root, #maincontent');
 
     while (Date.now() < deadline) {
       if (await this.isNewWizardVisible() || (await this.isLegacyWizardVisible())) {
@@ -165,35 +193,50 @@ export class ConnectionWizardPage {
     const isNewWizard = await this.isNewWizardVisible();
 
     if (isNewWizard) {
-      // New wizard flow - check if there are existing configs
       const configItems = this.page.locator('.connections-card');
-      const hasConfigs = (await configItems.count()) > 0;
+      const addBtn = this.page.locator('#add-kubeconfig-btn');
+      const textarea = this.page.locator('#primaryConfigContent');
+      const hasVisibleConfigCard = async () => {
+        if ((await configItems.count()) === 0) {
+          return false;
+        }
+
+        return await configItems.first().isVisible().catch(() => false);
+      };
+
+      // The new wizard can spend a while loading persisted kubeconfig files.
+      // Wait until it reaches a usable state before deciding whether to connect
+      // an existing config or add a new one.
+      const wizardReadyDeadline = Date.now() + 60_000;
+      while (Date.now() < wizardReadyDeadline) {
+        const hasConfigs = await hasVisibleConfigCard();
+        const addEnabled = await addBtn.isEnabled().catch(() => false);
+        const textareaVisible = await textarea.isVisible().catch(() => false);
+        const loadingVisible = await this.page.getByText(/loading kubeconfig files/i).first().isVisible().catch(() => false);
+
+        if (hasConfigs || addEnabled || textareaVisible || !loadingVisible) {
+          break;
+        }
+
+        await this.page.waitForTimeout(500);
+      }
+
+      const hasConfigs = await hasVisibleConfigCard();
 
       if (hasConfigs) {
-        // Click the first config item to select it
-        await configItems.first().click();
-        // Ensure Wails IPC bindings are ready before triggering connect
-        await this.ensureWailsReady();
-        // Click the Connect button on that item
-        const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
-        await expect(connectBtn).toBeVisible({ timeout: 10_000 });
-        await connectBtn.click();
-        // Wait for the wizard to close (main app should now be visible)
-        await this.waitForMainAppVisible();
+        await this.connectVisibleConfigWithRetry(configItems);
         return;
       }
 
       // No configs - need to add one
       // Click the "Add Config" button to open the overlay
-      const addBtn = this.page.locator('#add-kubeconfig-btn');
-      if (await addBtn.count()) {
+      if ((await addBtn.count()) && (await addBtn.isEnabled().catch(() => false))) {
         await addBtn.click();
         await this.page.waitForTimeout(300);
       }
 
       // Fill in the kubeconfig content
       const textareaSelector = '#primaryConfigContent';
-      const textarea = this.page.locator(textareaSelector);
 
       let filled = false;
       for (let attempt = 0; attempt < 5; attempt++) {
@@ -226,12 +269,8 @@ export class ConnectionWizardPage {
       // Now click Connect on the newly added config
       const newConfigItems = this.page.locator('.connections-card');
       if ((await newConfigItems.count()) > 0) {
-        await newConfigItems.first().click();
-        // Ensure Wails IPC bindings are ready before triggering connect
-        await this.ensureWailsReady();
-        const connectBtn = this.page.getByRole('button', { name: /connect/i }).first();
-        await expect(connectBtn).toBeVisible({ timeout: 10_000 });
-        await connectBtn.click();
+        await this.connectVisibleConfigWithRetry(newConfigItems);
+        return;
       }
 
       // Wait for the main app to be visible

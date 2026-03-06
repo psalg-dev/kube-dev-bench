@@ -130,12 +130,12 @@ export class SidebarPage {
   }
 
   async selectContext(contextName: string) {
-    const root = this.page.locator('#kubecontext-root, #sidebar').first();
+    const rootSelector = '#kubecontext-root';
+    let root = this.page.locator(rootSelector).first();
     await expect(root).toBeVisible({ timeout: 60_000 });
-    await root.scrollIntoViewIfNeeded();
 
     // If already selected, don't churn the menu (helps in parallel runs).
-    if (await root.isVisible() && (await root.innerText()).includes(contextName)) {
+    if (await root.isVisible() && ((await root.innerText().catch(() => '')) || '').includes(contextName)) {
       return;
     }
 
@@ -154,6 +154,9 @@ export class SidebarPage {
     const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
     const deadline = Date.now() + selectionTimeoutMs;
     while (Date.now() < deadline) {
+      root = this.page.locator(rootSelector).first();
+      await expect(root).toBeVisible({ timeout: 60_000 });
+
       await root.click({ force: true });
       await combobox.press('ArrowDown').catch(() => {});
       await combobox.fill(contextName).catch(() => {});
@@ -166,7 +169,7 @@ export class SidebarPage {
       }
 
       await combobox.press('Enter').catch(() => {});
-      if ((await root.innerText()).includes(contextName)) {
+      if (((await root.innerText().catch(() => '')) || '').includes(contextName)) {
         await expect(root).toContainText(contextName, { timeout: 30_000 });
         return;
       }
@@ -179,11 +182,11 @@ export class SidebarPage {
   }
 
   async selectNamespace(namespace: string) {
-    const root = this.page.locator('#namespace-root, #sidebar').first();
+    const rootSelector = '#namespace-root';
+    let root = this.page.locator(rootSelector).first();
     await expect(root).toBeVisible({ timeout: 60_000 });
-    await root.scrollIntoViewIfNeeded();
 
-    if (await root.isVisible() && (await root.innerText()).includes(namespace)) {
+    if (await root.isVisible() && ((await root.innerText().catch(() => '')) || '').includes(namespace)) {
       return;
     }
 
@@ -203,6 +206,9 @@ export class SidebarPage {
     const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
     const deadline = Date.now() + selectionTimeoutMs;
     while (Date.now() < deadline) {
+      root = this.page.locator(rootSelector).first();
+      await expect(root).toBeVisible({ timeout: 60_000 });
+
       await root.click({ force: true });
       await combobox.press('ArrowDown').catch(() => {});
       await combobox.fill(namespace).catch(() => {});

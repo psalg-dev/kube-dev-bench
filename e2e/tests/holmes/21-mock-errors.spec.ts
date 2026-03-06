@@ -224,6 +224,24 @@ async function expectHolmesSuccessWithRetry(page: Page, deployName: string) {
   }
 }
 
+async function expectHolmesGlobalSuccessWithRetry(page: Page, question: string) {
+  const expectedText = 'Deployment health check completed';
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const holmesPanel = await askHolmesFromGlobalPanel(page, question);
+    try {
+      await expect(holmesPanel).toContainText(expectedText, { timeout: 30_000 });
+      return;
+    } catch (err) {
+      const content = (await holmesPanel.textContent()) || '';
+      const transient = /connectex|proxyconnect|dial tcp|Only one usage of each socket address|timeout|timed out|deadline exceeded|i\/o timeout/i.test(content);
+      if (!transient || attempt === 3) throw err;
+      await page.keyboard.press('Escape').catch(() => undefined);
+      await page.waitForTimeout(1000 * attempt);
+    }
+  }
+}
+
 async function analyzeWithHolmesFromDeployment(page: Page, namespace: string) {
   const deployName = await createDeployment(page, namespace);
   return analyzeDeploymentByName(page, deployName);
@@ -414,6 +432,7 @@ test.describe('Holmes Error Handling', () => {
   test('recovers after error and shows new responses', async ({ page, namespace }) => {
     let errorMockServer: HolmesMockInstance | null = null;
     let deployName = '';
+    let holmesPanel = page.locator('#holmes-panel');
 
     try {
       deployName = await createDeployment(page, namespace);
@@ -424,14 +443,10 @@ test.describe('Holmes Error Handling', () => {
           endpoint: 'http://127.0.0.1:19999', // Unreachable
         });
 
-        const panel = await analyzeDeploymentByName(page, deployName);
-
-        const holmesPanel = panel.root;
+        holmesPanel = await askHolmesFromGlobalPanel(page, `Analyze deployment health for ${deployName}`);
         await expect(
           holmesPanel.getByText(/failed to send request|error|connect/i).first()
         ).toBeVisible({ timeout: 60_000 });
-
-        await panel.closeByClickingOutside();
       });
 
       await test.step('Start working mock server', async () => {
@@ -452,7 +467,7 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Ask again and verify success', async () => {
-        await expectHolmesSuccessWithRetry(page, deployName);
+        await expectHolmesGlobalSuccessWithRetry(page, `Analyze deployment health for ${deployName}`);
       });
     } finally {
       await killMockServer(errorMockServer);
