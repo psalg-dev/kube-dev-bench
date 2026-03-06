@@ -13,7 +13,7 @@ type ResourcePollingConfig[T any] struct {
 	// FetchFn is the function to call to fetch resources for a given namespace
 	FetchFn func(namespace string) ([]T, error)
 
-	// Interval is the polling interval. Defaults to 1 second if not specified.
+	// Interval is the polling interval. Defaults to 5 seconds if not specified.
 	Interval time.Duration
 }
 
@@ -83,7 +83,7 @@ func (a *App) StopAllPolling() {
 func startResourcePolling[T any](a *App, config ResourcePollingConfig[T]) {
 	interval := config.Interval
 	if interval == 0 {
-		interval = time.Second
+		interval = 5 * time.Second
 	}
 
 	go func() {

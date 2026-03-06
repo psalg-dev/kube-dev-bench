@@ -357,7 +357,17 @@ func (im *InformerManager) emitClusterRoleBindingsSnapshot() error {
 	return nil
 }
 
+// informerRetryInterval is the delay before retrying a failed informer start.
+const informerRetryInterval = 10 * time.Second
+
+// maxInformerRetries caps the number of automatic retry attempts for informer start.
+const maxInformerRetries = 6
+
 func (a *App) startInformerManager() {
+	a.startInformerManagerWithRetry(0)
+}
+
+func (a *App) startInformerManagerWithRetry(attempt int) {
 	if !a.useInformers {
 		return
 	}
@@ -365,26 +375,58 @@ func (a *App) startInformerManager() {
 		return
 	}
 
+	// Check under lock if already started; release before slow work.
 	a.informerMu.Lock()
-	defer a.informerMu.Unlock()
-
 	if a.informerManager != nil {
+		a.informerMu.Unlock()
 		return
 	}
+	a.informerMu.Unlock()
 
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
-		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "5s"})
+		fmt.Printf("startInformerManager: failed to get client: %v (attempt %d)\n", err, attempt)
+		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "10s"})
+		a.scheduleInformerRetry(attempt)
 		return
 	}
 
 	manager := NewInformerManager(clientset, a.getPollingNamespaces(), a)
 	if err := manager.Start(); err != nil {
-		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "5s"})
+		fmt.Printf("startInformerManager: failed to start: %v (attempt %d)\n", err, attempt)
+		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "10s"})
+		a.scheduleInformerRetry(attempt)
 		return
 	}
 
+	// Re-acquire lock to set the manager; check for concurrent start.
+	a.informerMu.Lock()
+	if a.informerManager != nil {
+		// Another goroutine started the manager concurrently; stop ours.
+		a.informerMu.Unlock()
+		manager.Stop()
+		return
+	}
 	a.informerManager = manager
+	a.informerMu.Unlock()
+	fmt.Printf("startInformerManager: informer started successfully (attempt %d)\n", attempt)
+}
+
+// scheduleInformerRetry schedules a background retry of startInformerManager
+// if the maximum retry count has not been reached.
+func (a *App) scheduleInformerRetry(attempt int) {
+	if attempt >= maxInformerRetries {
+		fmt.Printf("startInformerManager: max retries reached, falling back to polling (attempts %d)\n", attempt)
+		return
+	}
+	go func() {
+		select {
+		case <-a.ctx.Done():
+			return
+		case <-time.After(informerRetryInterval):
+			a.startInformerManagerWithRetry(attempt + 1)
+		}
+	}()
 }
 
 func (a *App) stopInformerManager() {

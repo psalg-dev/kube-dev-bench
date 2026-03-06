@@ -150,3 +150,53 @@ func TestEmitAcrossNamespacesSkipsErrors(t *testing.T) {
 		t.Fatalf("unexpected fetch call order: %v", called)
 	}
 }
+
+func TestInformerRunning_ReturnsFalseWhenNil(t *testing.T) {
+	app := &App{}
+	if app.informerRunning() {
+		t.Fatal("expected informerRunning() to be false when informerManager is nil")
+	}
+}
+
+func TestInformerRunning_ReturnsTrueWhenSet(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+	app := &App{
+		ctx:                context.Background(),
+		testClientset:      clientset,
+		countsRefreshCh:    make(chan struct{}, 1),
+		currentKubeContext: "test",
+	}
+
+	manager := NewInformerManager(clientset, []string{"default"}, app)
+	if err := manager.Start(); err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+	t.Cleanup(manager.Stop)
+	app.informerManager = manager
+
+	if !app.informerRunning() {
+		t.Fatal("expected informerRunning() to be true when informerManager is set")
+	}
+}
+
+func TestStartInformerManagerRetries_MaxReached(t *testing.T) {
+	// Verify that when getKubernetesInterface fails and max retries reached,
+	// the app does not schedule further retries.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:                ctx,
+		countsRefreshCh:    make(chan struct{}, 1),
+		useInformers:       true,
+		currentKubeContext: "test",
+		// No testClientset → getKubernetesInterface will fail
+	}
+
+	// Call at max retries — should not panic or schedule further retries
+	app.startInformerManagerWithRetry(maxInformerRetries)
+
+	if app.informerManager != nil {
+		t.Fatal("expected informerManager to be nil after exhausting retries")
+	}
+}

@@ -87,4 +87,56 @@ describe('useResourceWatch', () => {
       expect(result.current.data).toEqual([{ metadata: { uid: '2' }, name: 'two' }]);
     });
   });
+
+  it('retries on initial fetch error with exponential backoff', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const initialFetch = vi
+      .fn<() => Promise<TestItem[]>>()
+      .mockRejectedValueOnce(new Error('connection refused'))
+      .mockResolvedValueOnce([{ metadata: { uid: '1' }, name: 'one' }]);
+
+    const { result } = renderHook(() =>
+      useResourceWatch<TestItem>('pods:update', initialFetch)
+    );
+
+    // Wait for first failed attempt — shouldAdvanceTime lets waitFor's real timers work
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.error).toBeTruthy();
+      expect(result.current.data).toEqual([]);
+    });
+
+    // Advance timer past the first retry delay (3000ms)
+    await act(async () => {
+      vi.advanceTimersByTime(3500);
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toHaveLength(1);
+      expect(result.current.error).toBeNull();
+    });
+
+    vi.useRealTimers();
+  });
+
+  it('clears error state when event arrives after failed fetch', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const initialFetch = vi.fn<() => Promise<TestItem[]>>().mockRejectedValue(new Error('fail'));
+
+    const { result } = renderHook(() =>
+      useResourceWatch<TestItem>('pods:update', initialFetch)
+    );
+
+    await waitFor(() => {
+      expect(result.current.error).toBeTruthy();
+    });
+
+    act(() => {
+      eventHandler?.([{ metadata: { uid: '1' }, name: 'recovered' }]);
+    });
+
+    expect(result.current.error).toBeNull();
+    expect(result.current.data).toEqual([{ metadata: { uid: '1' }, name: 'recovered' }]);
+    vi.useRealTimers();
+  });
 });

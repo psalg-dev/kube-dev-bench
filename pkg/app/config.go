@@ -52,7 +52,7 @@ func (a *App) loadConfig() error {
 	if err := json.Unmarshal(data, &config); err != nil {
 		return err
 	}
-	a.currentKubeContext = config.CurrentContext
+	a.setKubeContext(config.CurrentContext)
 	a.currentNamespace = config.CurrentNamespace
 	a.preferredNamespaces = append([]string(nil), config.PreferredNamespaces...)
 	a.useInformers = config.UseInformers
@@ -82,7 +82,7 @@ func (a *App) saveConfig() error {
 		probeMinutes = int(a.sessionProbeInterval / time.Minute)
 	}
 	config := AppConfig{
-		CurrentContext:       a.currentKubeContext,
+		CurrentContext:       a.getKubeContext(),
 		CurrentNamespace:     a.currentNamespace,
 		PreferredNamespaces:  append([]string(nil), a.preferredNamespaces...),
 		UseInformers:         a.useInformers,
@@ -150,6 +150,8 @@ func (a *App) SetKubeConfigPath(path string) error {
 
 	// Store the path in our app config
 	a.kubeConfig = path
+	// Invalidate cached client since the kubeconfig source has changed.
+	a.invalidateCachedClient()
 	if err := a.saveConfig(); err != nil {
 		return err
 	}
@@ -161,7 +163,8 @@ func (a *App) SetKubeConfigPath(path string) error {
 
 // SetCurrentKubeContext stores the selected context name
 func (a *App) SetCurrentKubeContext(name string) error {
-	a.currentKubeContext = name
+	a.setKubeContext(name)
+	a.invalidateCachedClient()
 	a.restartInformerManager()
 	// Trigger a counts refresh (context switch invalidates prior data)
 	a.requestCountsRefresh()
@@ -236,6 +239,8 @@ func (a *App) SetCustomCAPath(path string) error {
 		}
 	}
 	a.customCAPath = path
+	// Invalidate cached client so new connections pick up the CA change.
+	a.invalidateCachedClient()
 	return a.saveConfig()
 }
 
