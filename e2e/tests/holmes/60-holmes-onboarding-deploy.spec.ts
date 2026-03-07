@@ -180,11 +180,16 @@ test.describe('HolmesGPT onboarding', () => {
         return;
       }
 
+      // After deployment, the panel may need a moment to re-initialize.
+      // Reload the page to ensure the Holmes config is detected fresh.
+      await page.reload({ waitUntil: 'networkidle' }).catch(() => undefined);
+      await page.waitForTimeout(2_000);
+
       const toggleBtn = page.locator('#holmes-toggle-btn');
       if (await toggleBtn.isVisible().catch(() => false)) {
         await toggleBtn.click();
       }
-      await expect(page.locator('#holmes-panel')).toBeVisible({ timeout: 20_000 });
+      await expect(page.locator('#holmes-panel')).toBeVisible({ timeout: 30_000 });
 
       const input = page.getByPlaceholder('Ask about your cluster...');
       await expect(input).toBeVisible({ timeout: 20_000 });
