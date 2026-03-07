@@ -21,6 +21,7 @@ import {
 } from '@codemirror/view';
 import { CreateResource } from '../wailsjs/go/main/App';
 import { showError, showSuccess } from './notification';
+import { EventsEmit } from '../wailsjs/runtime/runtime';
 
 type ResourceOverlayOptions = {
   onSuccess?: () => void;
@@ -104,6 +105,17 @@ export function showResourceOverlay(resourceType: string, options: ResourceOverl
         try {
             await CreateResource(namespace || 'default', yamlText);
             showSuccess(`${title} was created successfully!`);
+
+            // Emit resource-updated event to trigger table refresh
+            // (matches CreateManifestOverlay.tsx behaviour)
+            try {
+              const kindMatch = yamlText.match(/^kind:\s*(\S+)/m);
+              const nsMatch = yamlText.match(/^\s*namespace:\s*(\S+)/m);
+              const kind = (kindMatch?.[1] || resourceType || '').toLowerCase();
+              const ns = nsMatch?.[1] || namespace || 'default';
+              EventsEmit('resource-updated', { resource: kind, namespace: ns });
+            } catch { /* best-effort */ }
+
             closeOverlay();
             if (onSuccess) onSuccess();
         } catch (err) {

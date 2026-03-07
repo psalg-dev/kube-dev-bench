@@ -36,12 +36,16 @@ func TestHook_ExecutesScript(t *testing.T) {
 
 	app := NewApp()
 
-	tmp := t.TempDir()
+	// Scripts must live under home so validateHookScriptPath accepts them on all OSes.
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
 	var scriptPath string
 	if runtime.GOOS == "windows" {
-		scriptPath = writeExecutableScript(t, tmp, "ok.cmd", "@echo off\r\necho hook-ok\r\nexit /b 0\r\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "ok.cmd", "@echo off\r\necho hook-ok\r\nexit /b 0\r\n")
 	} else {
-		scriptPath = writeExecutableScript(t, tmp, "ok.sh", "#!/bin/sh\necho hook-ok\nexit 0\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "ok.sh", "#!/bin/sh\necho hook-ok\nexit 0\n")
 	}
 
 	hook, err := app.SaveHook(HookConfig{
@@ -92,15 +96,19 @@ func TestRunPreConnectHooks_Success(t *testing.T) {
 	app := NewApp()
 	app.ctx = context.Background()
 
-	tmp := t.TempDir()
+	// Scripts must live under home so validateHookScriptPath accepts them on all OSes.
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
 	var scriptOne string
 	var scriptTwo string
 	if runtime.GOOS == "windows" {
-		scriptOne = writeExecutableScript(t, tmp, "hook-one.cmd", "@echo off\r\necho one\r\nexit /b 0\r\n")
-		scriptTwo = writeExecutableScript(t, tmp, "hook-two.cmd", "@echo off\r\necho two\r\nexit /b 0\r\n")
+		scriptOne = writeExecutableScript(t, scriptsDir, "hook-one.cmd", "@echo off\r\necho one\r\nexit /b 0\r\n")
+		scriptTwo = writeExecutableScript(t, scriptsDir, "hook-two.cmd", "@echo off\r\necho two\r\nexit /b 0\r\n")
 	} else {
-		scriptOne = writeExecutableScript(t, tmp, "hook-one.sh", "#!/bin/sh\necho one\nexit 0\n")
-		scriptTwo = writeExecutableScript(t, tmp, "hook-two.sh", "#!/bin/sh\necho two\nexit 0\n")
+		scriptOne = writeExecutableScript(t, scriptsDir, "hook-one.sh", "#!/bin/sh\necho one\nexit 0\n")
+		scriptTwo = writeExecutableScript(t, scriptsDir, "hook-two.sh", "#!/bin/sh\necho two\nexit 0\n")
 	}
 
 	_, err := app.SaveHook(HookConfig{
@@ -156,12 +164,16 @@ func TestRunPreConnectHooks_AbortOnFailure(t *testing.T) {
 	app := NewApp()
 	app.ctx = context.Background()
 
-	tmp := t.TempDir()
+	// Scripts must live under home so validateHookScriptPath accepts them on all OSes.
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
 	var scriptPath string
 	if runtime.GOOS == "windows" {
-		scriptPath = writeExecutableScript(t, tmp, "hook-fail.cmd", "@echo off\r\necho fail\r\nexit /b 5\r\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "hook-fail.cmd", "@echo off\r\necho fail\r\nexit /b 5\r\n")
 	} else {
-		scriptPath = writeExecutableScript(t, tmp, "hook-fail.sh", "#!/bin/sh\necho fail\nexit 5\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "hook-fail.sh", "#!/bin/sh\necho fail\nexit 5\n")
 	}
 
 	_, err := app.SaveHook(HookConfig{
@@ -203,21 +215,25 @@ func TestRunPostConnectHooksAsync_Executes(t *testing.T) {
 	app := NewApp()
 	app.ctx = context.Background()
 
-	tmp := t.TempDir()
-	outFile := filepath.Join(tmp, "post-hook.txt")
+	// Scripts must live under home so validateHookScriptPath accepts them on all OSes.
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
+	outFile := filepath.Join(scriptsDir, "post-hook.txt")
 
 	var scriptPath string
 	if runtime.GOOS == "windows" {
 		scriptPath = writeExecutableScript(
 			t,
-			tmp,
+			scriptsDir,
 			"hook-post.cmd",
 			fmt.Sprintf("@echo off\r\necho ok> \"%s\"\r\nexit /b 0\r\n", outFile),
 		)
 	} else {
 		scriptPath = writeExecutableScript(
 			t,
-			tmp,
+			scriptsDir,
 			"hook-post.sh",
 			fmt.Sprintf("#!/bin/sh\necho ok > \"%s\"\nexit 0\n", outFile),
 		)

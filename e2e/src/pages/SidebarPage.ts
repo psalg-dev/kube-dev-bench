@@ -43,6 +43,13 @@ export class SidebarPage {
     clusterroles: 'Cluster Roles',
     rolebindings: 'Role Bindings',
     clusterrolebindings: 'Cluster Role Bindings',
+    persistentvolumeclaims: 'Persistent Volume Claims',
+    persistentvolumes: 'Persistent Volumes',
+    services: 'Services',
+    ingresses: 'Ingresses',
+    configmaps: 'Config Maps',
+    secrets: 'Secrets',
+    helmreleases: 'Helm Releases',
   };
 
   private readonly childGroupBySection: Record<string, string> = {
@@ -130,65 +137,94 @@ export class SidebarPage {
   }
 
   async selectContext(contextName: string) {
-    const root = this.page.locator('#kubecontext-root');
+    const rootSelector = '#kubecontext-root';
+    let root = this.page.locator(rootSelector).first();
     await expect(root).toBeVisible({ timeout: 60_000 });
-    await root.scrollIntoViewIfNeeded();
 
     // If already selected, don't churn the menu (helps in parallel runs).
-    if (await root.isVisible() && (await root.innerText()).includes(contextName)) {
+    if (await root.isVisible() && ((await root.innerText().catch(() => '')) || '').includes(contextName)) {
       return;
     }
 
-    const listbox = this.page.locator('#react-select-context-select-listbox');
-    const combobox = root.getByRole('combobox');
+    const contextInput = this.page.locator('#react-select-context-select-input').first();
+    const rootCombo = this.page.locator('#kubecontext-root [role="combobox"]').first();
+    const sidebarContextCombo = this.page.locator('#sidebar [role="combobox"]').first();
 
-    // Open menu reliably: click wrapper first (better viewport behavior), then ArrowDown fallback.
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      await root.click({ force: true });
-      if (await listbox.isVisible()) break;
-      await combobox.press('ArrowDown').catch(() => {});
-      if (await listbox.isVisible()) break;
-      await this.page.waitForTimeout(250);
+    let combobox = contextInput;
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = rootCombo;
     }
-    await expect(listbox).toBeVisible({ timeout: 30_000 });
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = sidebarContextCombo;
+    }
 
-    const option = listbox.getByRole('option', { name: contextName, exact: true });
-    await expect(option).toBeVisible({ timeout: 30_000 });
-    await option.click();
+    const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
+    const deadline = Date.now() + selectionTimeoutMs;
+    while (Date.now() < deadline) {
+      root = this.page.locator(rootSelector).first();
+      await expect(root).toBeVisible({ timeout: 60_000 });
 
-    await expect(root).toContainText(contextName);
+      await root.click({ force: true });
+      await combobox.press('ArrowDown').catch(() => {});
+      await combobox.fill(contextName).catch(() => {});
+
+      const option = this.page.getByRole('option', { name: contextName, exact: true }).first();
+      if (await option.isVisible().catch(() => false)) {
+        await option.click();
+        await expect(root).toContainText(contextName, { timeout: 30_000 });
+        return;
+      }
+
+      await combobox.press('Enter').catch(() => {});
+      if (((await root.innerText().catch(() => '')) || '').includes(contextName)) {
+        await expect(root).toContainText(contextName, { timeout: 30_000 });
+        return;
+      }
+
+      await this.page.keyboard.press('Escape').catch(() => {});
+      await this.page.waitForTimeout(500);
+    }
+
+    throw new Error(`Failed to select context: ${contextName}`);
   }
 
   async selectNamespace(namespace: string) {
-    const root = this.page.locator('#namespace-root');
+    const rootSelector = '#namespace-root';
+    let root = this.page.locator(rootSelector).first();
     await expect(root).toBeVisible({ timeout: 60_000 });
-    await root.scrollIntoViewIfNeeded();
 
-    if (await root.isVisible() && (await root.innerText()).includes(namespace)) {
+    if (await root.isVisible() && ((await root.innerText().catch(() => '')) || '').includes(namespace)) {
       return;
     }
 
-    const listbox = this.page.locator('#react-select-namespace-multi-listbox');
-    const combobox = root.getByRole('combobox');
+    const namespaceInput = this.page.locator('#react-select-namespace-multi-input').first();
+    const rootCombo = this.page.locator('#namespace-root [role="combobox"]').first();
+    const sidebarNamespaceCombo = this.page.locator('#sidebar [role="combobox"]').nth(1);
+
+    let combobox = namespaceInput;
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = rootCombo;
+    }
+    if (!(await combobox.isVisible().catch(() => false))) {
+      combobox = sidebarNamespaceCombo;
+    }
 
     // Keep trying until the namespace appears (namespaces list can lag in CI).
     const selectionTimeoutMs = process.env.CI ? 90_000 : 30_000;
     const deadline = Date.now() + selectionTimeoutMs;
     while (Date.now() < deadline) {
-      await root.click({ force: true });
-      if (!(await listbox.isVisible())) {
-        await combobox.press('ArrowDown').catch(() => {});
-      }
+      root = this.page.locator(rootSelector).first();
+      await expect(root).toBeVisible({ timeout: 60_000 });
 
-      if (await listbox.isVisible()) {
-        // Type-ahead nudges react-select to refresh visible options in some race windows.
-        await combobox.fill(namespace).catch(() => {});
-        const option = listbox.getByRole('option', { name: namespace, exact: true });
-        if (await option.isVisible().catch(() => false)) {
-          await option.click();
-          await expect(root).toContainText(namespace, { timeout: 30_000 });
-          break;
-        }
+      await root.click({ force: true });
+      await combobox.press('ArrowDown').catch(() => {});
+      await combobox.fill(namespace).catch(() => {});
+
+      const option = this.page.getByRole('option', { name: namespace, exact: true }).first();
+      if (await option.isVisible().catch(() => false)) {
+        await option.click();
+        await expect(root).toContainText(namespace, { timeout: 30_000 });
+        break;
       }
 
       // Close menu + backoff a bit before retry.

@@ -8,6 +8,7 @@ import (
 // Supported types: pod, deployment, statefulset, daemonset, replicaset, job,
 // cronjob, configmap, secret, pvc, persistentvolumeclaim, pv, ingress, service, serviceaccount.
 func (a *App) DeleteResource(resourceType, namespace, name string) error {
+	a.auditf("delete", resourceType+"/"+name, "namespace=%s", namespace)
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err

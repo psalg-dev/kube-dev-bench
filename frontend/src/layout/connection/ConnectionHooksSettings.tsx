@@ -75,6 +75,7 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
 
   const [testRunningId, setTestRunningId] = useState<string | null>(null);
   const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const title = editingConnectionHooks
     ? `🪝 Hooks - ${(editingConnectionHooks as EditingConnection).path || (editingConnectionHooks as EditingConnection).name || (editingConnectionHooks as EditingConnection).host || (editingConnectionHooks as EditingConnection).id}`
@@ -201,11 +202,16 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
       connectionId: form.scope === 'connection' ? connId || form.connectionId : '',
     };
 
-    const saved = await actions.saveHook(normalized);
-    if (saved) {
-      setFormOpen(false);
-      setActiveHookId(saved.id);
-      await actions.loadHooks();
+    setIsSaving(true);
+    try {
+      const saved = await actions.saveHook(normalized);
+      if (saved) {
+        setFormOpen(false);
+        setActiveHookId(saved.id);
+        await actions.loadHooks();
+      }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -535,17 +541,17 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
                         setLocalError('');
                         setTestResult(null);
                       }}
-                      disabled={loading}
+                      disabled={isSaving}
                     >
                       Cancel
                     </button>
                     <button
                       id="hook-save-btn"
-                      className={`connection-hooks-button connection-hooks-button--primary${loading ? ' is-loading' : ''}`}
+                      className={`connection-hooks-button connection-hooks-button--primary${isSaving ? ' is-loading' : ''}`}
                       onClick={handleSave}
-                      disabled={loading}
+                      disabled={isSaving}
                     >
-                      {loading ? 'Saving...' : 'Save'}
+                      {isSaving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
 

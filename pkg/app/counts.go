@@ -7,8 +7,8 @@ import (
 // runResourceCountsAggregator periodically polls the cluster for the selected namespaces
 // and emits a consolidated snapshot over the Wails event bus.
 func (a *App) runResourceCountsAggregator() {
-	fullTicker := time.NewTicker(4 * time.Second)
-	podsTicker := time.NewTicker(1 * time.Second) // faster pod status updates
+	fullTicker := time.NewTicker(10 * time.Second)
+	podsTicker := time.NewTicker(5 * time.Second) // pod status updates
 	defer fullTicker.Stop()
 	defer podsTicker.Stop()
 	// Initial immediate attempt
@@ -19,10 +19,8 @@ func (a *App) runResourceCountsAggregator() {
 		case <-a.ctx.Done():
 			return
 		case <-fullTicker.C:
-			if !a.useInformers {
-				a.refreshResourceCounts()
-				emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:full"})
-			}
+			a.refreshResourceCounts()
+			emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:full"})
 		case <-podsTicker.C:
 			if !a.useInformers {
 				a.refreshPodStatusOnly()

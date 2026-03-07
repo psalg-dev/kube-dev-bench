@@ -64,17 +64,31 @@ export async function bootstrapApp(opts: {
     if (lastError) throw lastError;
   };
 
+  const ensureConnectedAppVisible = async () => {
+    const wizard = new ConnectionWizardPage(page);
+    const wizardStatus = await wizard.openWizardIfHidden();
+    const wizardVisible = await page
+      .locator('.connection-wizard-layout, .connection-wizard-overlay, .swarm-connection-wizard-overlay')
+      .first()
+      .isVisible()
+      .catch(() => false);
+
+    if (wizardVisible || wizardStatus !== 'already-visible') {
+      await wizard.pastePrimaryKubeconfigAndContinue(state.kubeconfigYaml);
+    }
+
+    await page.locator('#kubecontext-root').waitFor({ state: 'visible', timeout: 60_000 });
+    await page.locator('#namespace-root').waitFor({ state: 'visible', timeout: 60_000 });
+    return new SidebarPage(page);
+  };
+
   await gotoWithRetry();
 
   // Gate on Wails IPC readiness — the Go-bound functions must be injected
   // into `window.go.main.App` before we try to connect to a cluster.
   await waitForWailsBindings(page);
 
-  const wizard = new ConnectionWizardPage(page);
-  await wizard.openWizardIfHidden();
-  await wizard.pastePrimaryKubeconfigAndContinue(state.kubeconfigYaml);
-
-  const sidebar = new SidebarPage(page);
+  let sidebar = await ensureConnectedAppVisible();
   let lastSelectionError: unknown;
   for (let attempt = 1; attempt <= 3; attempt += 1) {
     try {
@@ -88,7 +102,15 @@ export async function bootstrapApp(opts: {
         break;
       }
 
+      if (page.isClosed()) {
+        throw error;
+      }
+
       await page.waitForTimeout(1_000 * attempt);
+      await waitForWailsBindings(page);
+      await page.locator('#kubecontext-root').waitFor({ state: 'visible', timeout: 60_000 });
+      await page.locator('#namespace-root').waitFor({ state: 'visible', timeout: 60_000 });
+      sidebar = new SidebarPage(page);
     }
   }
 

@@ -76,6 +76,14 @@ func (a *App) probeSessionLiveness(ctx context.Context) {
 		return
 	}
 
+	// IMP-2: apply rate limiting to probe clients.
+	if rc.QPS == 0 {
+		rc.QPS = 50
+	}
+	if rc.Burst == 0 {
+		rc.Burst = 100
+	}
+
 	cs, err := kubernetes.NewForConfig(rc)
 	if err != nil {
 		logger.Debug("session probe: failed to create clientset", "error", err)

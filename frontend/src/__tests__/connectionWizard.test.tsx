@@ -108,6 +108,18 @@ import ConnectionWizard from '../layout/connection/ConnectionWizard';
 describe('ConnectionWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const win = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+    win.go = win.go || { main: { App: {} } };
+    win.go.main = win.go.main || { App: {} };
+    win.go.main.App = win.go.main.App || {};
+    win.go.main.App.GetKubeConfigs = vi.fn();
+    win.go.main.App.SetKubeConfigPath = vi.fn();
+    win.go.main.App.GetCurrentConfig = vi.fn();
+    win.go.main.App.GetKubeContexts = vi.fn();
+    win.go.main.App.GetNamespaces = vi.fn();
+    win.go.main.App.SetCurrentKubeContext = vi.fn();
+    win.go.main.App.SetCurrentNamespace = vi.fn();
+
     mockGetCurrentConfig.mockResolvedValue({});
     mockGetKubeContexts.mockResolvedValue(['default']);
     mockGetNamespaces.mockResolvedValue(['default']);
@@ -558,6 +570,36 @@ describe('ConnectionWizard', () => {
         // Error might appear in multiple places
         const errorMessages = screen.getAllByText(/Failed to save kubeconfig/i);
         expect(errorMessages.length).toBeGreaterThan(0);
+      });
+    });
+
+    it('waits for the GetKubeConfigs Wails binding before leaving the loading state', async () => {
+      const win = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+      if (win.go?.main?.App) {
+        delete win.go.main.App.GetKubeConfigs;
+      }
+      mockGetKubeConfigs.mockResolvedValue([]);
+
+      render(<ConnectionWizard onComplete={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Loading kubeconfig files/i)).toBeInTheDocument();
+      });
+
+      setTimeout(() => {
+        const delayedWin = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+        delayedWin.go = delayedWin.go || { main: { App: {} } };
+        delayedWin.go.main = delayedWin.go.main || { App: {} };
+        delayedWin.go.main.App = delayedWin.go.main.App || {};
+        delayedWin.go.main.App.GetKubeConfigs = vi.fn();
+      }, 50);
+
+      await waitFor(() => {
+        expect(mockGetKubeConfigs).toHaveBeenCalledTimes(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Add Config/i })).not.toBeDisabled();
       });
     });
   });

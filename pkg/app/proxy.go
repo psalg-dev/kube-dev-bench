@@ -45,6 +45,9 @@ func (a *App) SetProxyConfig(proxyURL, authType, username, password string) erro
 	}
 	a.proxyAuthType = authType
 
+	// Invalidate cached client so new connections pick up the proxy settings.
+	a.invalidateCachedClient()
+
 	return a.saveConfig()
 }
 

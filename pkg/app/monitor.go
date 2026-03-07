@@ -27,26 +27,33 @@ func formatAge(t time.Time) string {
 // StartMonitorPolling emits monitor:update events every 5 seconds with warnings and errors
 func (a *App) StartMonitorPolling() {
 	go func() {
+		// IMP-6: use a ticker instead of time.After to avoid per-iteration allocations.
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		var collecting bool // guard against overlapping iterations
 		for {
 			select {
-			case <-time.After(5 * time.Second):
+			case <-ticker.C:
 			case <-a.pollingStopCh:
 				return
 			}
-			if a.ctx == nil {
+			if a.ctx == nil || collecting {
 				continue
 			}
+			collecting = true
 			// Determine namespaces to monitor
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
 				nsList = []string{a.currentNamespace}
 			}
 			if len(nsList) == 0 {
+				collecting = false
 				continue
 			}
 
 			info := a.collectMonitorInfo(nsList)
 			emitEvent(a.ctx, EventMonitorUpdate, info)
+			collecting = false
 		}
 	}()
 }
@@ -230,7 +237,7 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 	if a.testClientset != nil {
 		clientset = a.testClientset.(kubernetes.Interface)
 	} else {
-		clientset, err = a.createKubernetesClient()
+		clientset, err = a.getClient()
 		if err != nil {
 			return issues
 		}
@@ -251,13 +258,15 @@ func (a *App) checkPodIssues(namespace string) []MonitorIssue {
 // processCoreV1Events collects warning events from CoreV1 Events API
 func processCoreV1Events(clientset kubernetes.Interface, ctx context.Context, namespace string, cutoff time.Time) []MonitorIssue {
 	var issues []MonitorIssue
-	list, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	list, err := clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "type=Warning",
+	})
 	if err != nil {
 		return issues
 	}
 	for _, e := range list.Items {
 		if e.Type != "Warning" {
-			continue
+			continue // safety net: field selector may not be enforced by all backends
 		}
 		lastTime := e.LastTimestamp.Time
 		if lastTime.IsZero() && !e.EventTime.Time.IsZero() {
@@ -282,13 +291,15 @@ func processCoreV1Events(clientset kubernetes.Interface, ctx context.Context, na
 // processEventsV1Events collects warning events from EventsV1 API
 func processEventsV1Events(clientset kubernetes.Interface, ctx context.Context, namespace string, cutoff time.Time) []MonitorIssue {
 	var issues []MonitorIssue
-	list, err := clientset.EventsV1().Events(namespace).List(ctx, metav1.ListOptions{})
+	list, err := clientset.EventsV1().Events(namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "type=Warning",
+	})
 	if err != nil {
 		return issues
 	}
 	for _, e := range list.Items {
 		if e.Type != "Warning" {
-			continue
+			continue // safety net: field selector may not be enforced by all backends
 		}
 		lastTime := e.EventTime.Time
 		if lastTime.IsZero() && !e.DeprecatedLastTimestamp.Time.IsZero() {
@@ -317,7 +328,7 @@ func (a *App) checkEventIssues(namespace string) []MonitorIssue {
 	if a.testClientset != nil {
 		clientset = a.testClientset.(kubernetes.Interface)
 	} else {
-		clientset, err = a.createKubernetesClient()
+		clientset, err = a.getClient()
 		if err != nil {
 			return nil
 		}

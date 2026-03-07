@@ -33,6 +33,7 @@ vi.mock('../holmes/holmesApi', () => ({
   DeployHolmesGPT: vi.fn(() => Promise.resolve()),
   UndeployHolmesGPT: vi.fn(() => Promise.resolve()),
   onHolmesDeploymentStatus: vi.fn(() => () => {}),
+  onHolmesConfigChanged: vi.fn(() => () => {}),
   onHolmesChatStream: vi.fn(() => () => {}),
 }));
 

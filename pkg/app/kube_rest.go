@@ -64,15 +64,18 @@ func (a *App) getRESTConfig() (*rest.Config, error) {
 	if err := a.probeRESTConfig(restConfig); err != nil {
 		// Gap 2: TLS cert errors → require explicit user consent instead of auto-degrade
 		if isCertError(err) {
-			if a.allowInsecure {
-				// User has previously opted in via ConnectInsecure
+			kubeCtx := a.currentKubeContext
+			if a.allowInsecure[kubeCtx] {
+				// User has previously opted in via ConnectInsecure for this context
 				restConfig.TLSClientConfig.Insecure = true
 				restConfig.TLSClientConfig.CAData = nil
 				restConfig.TLSClientConfig.CAFile = ""
 				a.isInsecureConnection = true
-				a.insecureWarnOnce.Do(func() {
-					logger.Warn("TLS error detected, using insecure mode (user opted in)", "context", a.currentKubeContext)
-				})
+				// SUG-9: log once per context instead of global sync.Once
+				if a.insecureWarnCtx != kubeCtx {
+					a.insecureWarnCtx = kubeCtx
+					logger.Warn("TLS error detected, using insecure mode (user opted in)", "context", kubeCtx)
+				}
 				// Re-probe
 				if perr := a.probeRESTConfig(restConfig); perr != nil && isCertError(perr) {
 					logger.Error("getRESTConfig: insecure re-probe also failed with cert error", "error", perr)
@@ -176,7 +179,11 @@ func (a *App) ConnectInsecure(context string) error {
 	if context == "" {
 		return fmt.Errorf("context name required")
 	}
-	a.allowInsecure = true
+	if a.allowInsecure == nil {
+		a.allowInsecure = make(map[string]bool)
+	}
+	a.allowInsecure[context] = true
+	a.invalidateCachedClient()
 	logger.Warn("ConnectInsecure: user opted into insecure TLS", "context", context)
 
 	// Re-attempt connection via SetCurrentKubeContext which will call getRESTConfig
@@ -184,12 +191,47 @@ func (a *App) ConnectInsecure(context string) error {
 }
 
 // getKubernetesClient returns a clientset using getRESTConfig.
+// It caches the clientset to avoid creating a new HTTP transport and TLS
+// handshake on every API call. The cache is invalidated when the kube context
+// changes (see invalidateCachedClient).
 func (a *App) getKubernetesClient() (*kubernetes.Clientset, error) {
+	a.cachedClientMu.Lock()
+	defer a.cachedClientMu.Unlock()
+
+	kubeCtx := a.getKubeContext()
+	if a.cachedClientset != nil && a.cachedClientCtx == kubeCtx {
+		return a.cachedClientset, nil
+	}
+
 	rc, err := a.getRESTConfig()
 	if err != nil {
 		return nil, err
 	}
-	return kubernetes.NewForConfig(rc)
+
+	// Apply rate limiting to prevent excessive API traffic.
+	if rc.QPS == 0 {
+		rc.QPS = 50
+	}
+	if rc.Burst == 0 {
+		rc.Burst = 100
+	}
+
+	cs, err := kubernetes.NewForConfig(rc)
+	if err != nil {
+		return nil, err
+	}
+	a.cachedClientset = cs
+	a.cachedClientCtx = kubeCtx
+	return cs, nil
+}
+
+// invalidateCachedClient clears the cached kubernetes clientset.
+// Must be called when the kube context, proxy, or TLS settings change.
+func (a *App) invalidateCachedClient() {
+	a.cachedClientMu.Lock()
+	defer a.cachedClientMu.Unlock()
+	a.cachedClientset = nil
+	a.cachedClientCtx = ""
 }
 
 // getKubernetesInterface returns a kubernetes.Interface for use with testClientset.
@@ -206,6 +248,13 @@ func (a *App) getKubernetesInterface() (kubernetes.Interface, error) {
 
 // probeRESTConfig attempts a minimal API call to detect TLS / auth issues.
 func (a *App) probeRESTConfig(rc *rest.Config) error {
+	// IMP-2: apply rate limiting to probe clients.
+	if rc.QPS == 0 {
+		rc.QPS = 50
+	}
+	if rc.Burst == 0 {
+		rc.Burst = 100
+	}
 	cs, err := kubernetes.NewForConfig(rc)
 	if err != nil {
 		return err

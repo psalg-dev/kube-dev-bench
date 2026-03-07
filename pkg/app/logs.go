@@ -4,9 +4,17 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"strings"
+	"sync"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes"
 )
+
+// logEmitMinInterval is the minimum time between log event emissions
+// to prevent overwhelming the frontend event loop (SUG-7).
+const logEmitMinInterval = 5 * time.Millisecond
 
 // StopPodLogs stops an active log stream for the given pod if running
 func (a *App) StopPodLogs(podName string) {
@@ -22,7 +30,9 @@ func (a *App) StopPodLogs(podName string) {
 	}
 }
 
-// StreamPodLogs streams logs for a pod and emits each line as a Wails event
+// StreamPodLogs streams logs for a pod and emits each line as a Wails event.
+// For multi-container pods, logs from all containers are streamed concurrently
+// with each line prefixed by the container name (e.g. "[container-name] line").
 func (a *App) StreamPodLogs(podName string) {
 	// stop any previous stream for this pod
 	a.StopPodLogs(podName)
@@ -50,6 +60,14 @@ func (a *App) StreamPodLogs(podName string) {
 			emitEvent(a.ctx, PodLogsEvent(podName), "[error] client: "+err.Error())
 			return
 		}
+
+		// Detect multi-container pod
+		containers, multiContainer := a.getPodContainerNames(podName)
+		if multiContainer {
+			a.streamAllContainerLogs(streamCtx, podName, containers, true)
+			return
+		}
+
 		opts := &v1.PodLogOptions{Follow: true}
 		stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(streamCtx)
 		if err != nil {
@@ -141,6 +159,15 @@ func (a *App) streamPodLogsInternal(podName, container string, tailLines int, fo
 		a.registerLogCancel(podName, cancel)
 		defer a.unregisterLogCancel(podName, cancel)
 
+		// If no specific container requested, detect multi-container pod
+		if container == "" {
+			containers, multiContainer := a.getPodContainerNames(podName)
+			if multiContainer {
+				a.streamAllContainerLogsWith(ctx, podName, containers, tailLines, follow)
+				return
+			}
+		}
+
 		if err := a.streamLogsToEvents(ctx, podName, container, tailLines, follow); err != nil {
 			emitEvent(a.ctx, PodLogsEvent(podName), "[error] "+err.Error())
 		}
@@ -180,13 +207,18 @@ func (a *App) streamLogsToEvents(ctx context.Context, podName, container string,
 	defer stream.Close()
 
 	scanner := bufio.NewScanner(stream)
+	var lastEmit time.Time
 	for scanner.Scan() {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 		}
+		if elapsed := time.Since(lastEmit); elapsed < logEmitMinInterval {
+			time.Sleep(logEmitMinInterval - elapsed)
+		}
 		emitEvent(a.ctx, PodLogsEvent(podName), scanner.Text())
+		lastEmit = time.Now()
 	}
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("scan error: %w", err)
@@ -207,7 +239,9 @@ func (a *App) buildLogOptions(container string, tailLines int, follow bool) *v1.
 	return opts
 }
 
-// GetPodLog returns the full log content of a pod (no follow)
+// GetPodLog returns the full log content of a pod (no follow).
+// For multi-container pods, logs from all containers are aggregated
+// with each section prefixed by the container name.
 func (a *App) GetPodLog(podName string) (string, error) {
 	if a.currentNamespace == "" {
 		return "", fmt.Errorf("no namespace selected")
@@ -216,6 +250,13 @@ func (a *App) GetPodLog(podName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
+	// Detect multi-container pod
+	containers, multiContainer := a.getPodContainerNames(podName)
+	if multiContainer {
+		return a.getAggregatedContainerLogs(podName, containers)
+	}
+
 	opts := &v1.PodLogOptions{Follow: false}
 	data, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Do(a.ctx).Raw()
 	if err != nil {
@@ -239,4 +280,130 @@ func (a *App) GetPodContainerLog(podName, container string) (string, error) {
 		return "", err
 	}
 	return string(data), nil
+}
+
+// getPodContainerNames returns all regular container names for the given pod.
+// The second return value indicates whether the pod has more than one container.
+// Delegates to GetPodContainers (pod_details.go) to avoid duplicating the API call.
+func (a *App) getPodContainerNames(podName string) ([]string, bool) {
+	names, err := a.GetPodContainers(podName)
+	if err != nil || len(names) == 0 {
+		return nil, false
+	}
+	return names, len(names) > 1
+}
+
+// streamAllContainerLogs streams logs from all containers concurrently
+// with each line prefixed by [container-name]. Used for follow=true streaming.
+func (a *App) streamAllContainerLogs(ctx context.Context, podName string, containers []string, follow bool) {
+	cs, err := a.getKubernetesClient()
+	if err != nil {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[error] client: %s", err.Error()))
+		return
+	}
+	var wg sync.WaitGroup
+	for _, c := range containers {
+		wg.Add(1)
+		go func(container string) {
+			defer wg.Done()
+			a.streamContainerWithPrefix(ctx, cs, podName, container, nil, follow)
+		}(c)
+	}
+	wg.Wait()
+	if follow {
+		emitEvent(a.ctx, PodLogsEvent(podName), "[stream closed]")
+	}
+}
+
+// streamAllContainerLogsWith streams logs from all containers with tail/follow options.
+func (a *App) streamAllContainerLogsWith(ctx context.Context, podName string, containers []string, tailLines int, follow bool) {
+	cs, err := a.getKubernetesClient()
+	if err != nil {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[error] client: %s", err.Error()))
+		return
+	}
+	var tl *int64
+	if tailLines > 0 {
+		v := int64(tailLines)
+		tl = &v
+	}
+	var wg sync.WaitGroup
+	for _, c := range containers {
+		wg.Add(1)
+		go func(container string) {
+			defer wg.Done()
+			a.streamContainerWithPrefix(ctx, cs, podName, container, tl, follow)
+		}(c)
+	}
+	wg.Wait()
+	if follow {
+		emitEvent(a.ctx, PodLogsEvent(podName), "[stream closed]")
+	}
+}
+
+// streamContainerWithPrefix streams logs for a single container
+// and prefixes each line with [container-name].
+// The clientset is passed in by the caller (streamAllContainerLogs / streamAllContainerLogsWith)
+// so that a single shared client is reused across all container goroutines.
+func (a *App) streamContainerWithPrefix(ctx context.Context, clientset kubernetes.Interface, podName, container string, tailLines *int64, follow bool) {
+	if a.currentNamespace == "" {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[%s] [error] no namespace selected", container))
+		return
+	}
+	opts := &v1.PodLogOptions{Follow: follow, Container: container, TailLines: tailLines}
+	stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(ctx)
+	if err != nil {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[%s] [error] log stream: %s", container, err.Error()))
+		return
+	}
+	defer stream.Close()
+
+	prefix := fmt.Sprintf("[%s] ", container)
+	scanner := bufio.NewScanner(stream)
+	var lastEmit time.Time
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		if elapsed := time.Since(lastEmit); elapsed < logEmitMinInterval {
+			time.Sleep(logEmitMinInterval - elapsed)
+		}
+		emitEvent(a.ctx, PodLogsEvent(podName), prefix+scanner.Text())
+		lastEmit = time.Now()
+	}
+	if err := scanner.Err(); err != nil {
+		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[%s] [error] scan error: %s", container, err.Error()))
+	}
+}
+
+// getAggregatedContainerLogs fetches logs from all containers in a pod
+// and returns them as a single string with container name prefixes.
+func (a *App) getAggregatedContainerLogs(podName string, containers []string) (string, error) {
+	clientset, err := a.getKubernetesClient()
+	if err != nil {
+		return "", err
+	}
+
+	var b strings.Builder
+	for _, c := range containers {
+		opts := &v1.PodLogOptions{Follow: false, Container: c}
+		data, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Do(a.ctx).Raw()
+		if err != nil {
+			b.WriteString(fmt.Sprintf("[%s] [error] %s\n", c, err.Error()))
+			continue
+		}
+		lines := strings.Split(string(data), "\n")
+		prefix := fmt.Sprintf("[%s] ", c)
+		for _, line := range lines {
+			if line == "" {
+				continue
+			}
+			b.WriteString(prefix)
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+	}
+	return b.String(), nil
 }
