@@ -268,8 +268,8 @@ func (a *App) Startup(ctx context.Context) {
 	}
 
 	if a.useInformers {
-		logger.Info("starting informer manager")
-		a.startInformerManager()
+		logger.Info("starting informer manager (background)")
+		go a.startInformerManager()
 	} else {
 		logger.Info("starting resource polling")
 		a.StartAllPolling()

@@ -19,10 +19,8 @@ func (a *App) runResourceCountsAggregator() {
 		case <-a.ctx.Done():
 			return
 		case <-fullTicker.C:
-			if !a.useInformers {
-				a.refreshResourceCounts()
-				emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:full"})
-			}
+			a.refreshResourceCounts()
+			emitEvent(a.ctx, EventResourceEventsUpdate, map[string]string{"source": "counts:full"})
 		case <-podsTicker.C:
 			if !a.useInformers {
 				a.refreshPodStatusOnly()
