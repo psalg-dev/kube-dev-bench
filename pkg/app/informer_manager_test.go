@@ -150,3 +150,70 @@ func TestEmitAcrossNamespacesSkipsErrors(t *testing.T) {
 		t.Fatalf("unexpected fetch call order: %v", called)
 	}
 }
+
+func TestInformerRunning_ReturnsFalseWhenNil(t *testing.T) {
+	app := &App{}
+	if app.informerRunning() {
+		t.Fatal("expected informerRunning() to be false when informerManager is nil")
+	}
+}
+
+func TestInformerRunning_ReturnsTrueWhenSet(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+	app := &App{
+		ctx:                context.Background(),
+		testClientset:      clientset,
+		countsRefreshCh:    make(chan struct{}, 1),
+		currentKubeContext: "test",
+	}
+
+	manager := NewInformerManager(clientset, []string{"default"}, app)
+	if err := manager.Start(); err != nil {
+		t.Fatalf("Start() error = %v", err)
+	}
+	t.Cleanup(manager.Stop)
+
+	app.informerManager = manager
+	if !app.informerRunning() {
+		t.Fatal("expected informerRunning() to be true when informerManager is set")
+	}
+}
+
+func TestStartInformerManagerWithRetry_StartsManager(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+	app := &App{
+		ctx:                context.Background(),
+		testClientset:      clientset,
+		countsRefreshCh:    make(chan struct{}, 1),
+		useInformers:       true,
+		currentKubeContext: "test",
+	}
+
+	app.startInformerManagerWithRetry(0)
+	t.Cleanup(app.stopInformerManager)
+
+	app.informerMu.Lock()
+	manager := app.informerManager
+	app.informerMu.Unlock()
+	if manager == nil {
+		t.Fatal("expected informerManager to be set after successful start")
+	}
+}
+
+func TestStartInformerManagerWithRetry_MaxReached(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	app := &App{
+		ctx:                ctx,
+		countsRefreshCh:    make(chan struct{}, 1),
+		useInformers:       true,
+		currentKubeContext: "test",
+	}
+
+	app.startInformerManagerWithRetry(maxInformerRetries)
+
+	if app.informerManager != nil {
+		t.Fatal("expected informerManager to remain nil after retry limit is reached")
+	}
+}

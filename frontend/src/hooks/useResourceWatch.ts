@@ -48,6 +48,7 @@ export function useResourceWatch<T>(
 ) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   const mergeStrategy = options?.mergeStrategy ?? 'replace';
   const filter = options?.filter;
@@ -60,12 +61,42 @@ export function useResourceWatch<T>(
 
   useEffect(() => {
     let mounted = true;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let retryCount = 0;
+    const maxRetries = 5;
+    const baseDelay = 3000;
+
+    const clearRetryTimer = () => {
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+    };
 
     const load = () => {
       initialFetch()
         .then((items) => {
           if (!mounted) return;
           setData(applyFilter(Array.isArray(items) ? items : []));
+          setError(null);
+          retryCount = 0;
+          clearRetryTimer();
+        })
+        .catch((err) => {
+          if (!mounted) return;
+          setError(err instanceof Error ? err : new Error(String(err)));
+          clearRetryTimer();
+          if (retryCount >= maxRetries) {
+            return;
+          }
+          const delay = baseDelay * (2 ** retryCount);
+          retryCount += 1;
+          retryTimer = setTimeout(() => {
+            retryTimer = null;
+            if (mounted) {
+              load();
+            }
+          }, delay);
         })
         .finally(() => {
           if (mounted) {
@@ -78,6 +109,9 @@ export function useResourceWatch<T>(
 
     const unsubscribe = EventsOn(eventName, (eventPayload: ResourceWatchEvent<T> | T[] | null | undefined) => {
       if (!mounted) return;
+      setError(null);
+      retryCount = 0;
+      clearRetryTimer();
 
       if (Array.isArray(eventPayload)) {
         setData(applyFilter(eventPayload));
@@ -131,9 +165,10 @@ export function useResourceWatch<T>(
 
     return () => {
       mounted = false;
+      clearRetryTimer();
       try { unsubscribe?.(); } catch {}
     };
   }, [eventName, initialFetch, mergeStrategy, applyFilter, refetchOnSignal]);
 
-  return useMemo(() => ({ data, loading }), [data, loading]);
+  return useMemo(() => ({ data, loading, error }), [data, loading, error]);
 }
