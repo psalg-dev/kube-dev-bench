@@ -7,9 +7,7 @@ import (
 // runResourceCountsAggregator periodically polls the cluster for the selected namespaces
 // and emits a consolidated snapshot over the Wails event bus.
 func (a *App) informerRunning() bool {
-	if !a.informerMu.TryLock() {
-		return false
-	}
+	a.informerMu.Lock()
 	manager := a.informerManager
 	a.informerMu.Unlock()
 	return manager != nil

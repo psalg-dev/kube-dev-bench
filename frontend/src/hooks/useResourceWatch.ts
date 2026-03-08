@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { EventsOn } from '../../wailsjs/runtime/runtime';
 
 type ResourceItemWithUID = {
@@ -49,6 +49,7 @@ export function useResourceWatch<T>(
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const retryCountRef = useRef(0);
 
   const mergeStrategy = options?.mergeStrategy ?? 'replace';
   const filter = options?.filter;
@@ -62,7 +63,6 @@ export function useResourceWatch<T>(
   useEffect(() => {
     let mounted = true;
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
-    let retryCount = 0;
     const maxRetries = 5;
     const baseDelay = 3000;
 
@@ -79,18 +79,18 @@ export function useResourceWatch<T>(
           if (!mounted) return;
           setData(applyFilter(Array.isArray(items) ? items : []));
           setError(null);
-          retryCount = 0;
+          retryCountRef.current = 0;
           clearRetryTimer();
         })
         .catch((err) => {
           if (!mounted) return;
           setError(err instanceof Error ? err : new Error(String(err)));
           clearRetryTimer();
-          if (retryCount >= maxRetries) {
+          if (retryCountRef.current >= maxRetries) {
             return;
           }
-          const delay = baseDelay * (2 ** retryCount);
-          retryCount += 1;
+          const delay = Math.min(baseDelay * (2 ** retryCountRef.current), 30000);
+          retryCountRef.current += 1;
           retryTimer = setTimeout(() => {
             retryTimer = null;
             if (mounted) {
@@ -110,7 +110,7 @@ export function useResourceWatch<T>(
     const unsubscribe = EventsOn(eventName, (eventPayload: ResourceWatchEvent<T> | T[] | null | undefined) => {
       if (!mounted) return;
       setError(null);
-      retryCount = 0;
+      retryCountRef.current = 0;
       clearRetryTimer();
 
       if (Array.isArray(eventPayload)) {

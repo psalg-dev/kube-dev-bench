@@ -470,13 +470,11 @@ func (a *App) scheduleInformerRetry(attempt int) {
 		return
 	}
 
-	go func(nextAttempt int) {
-		if a.ctx == nil {
-			time.Sleep(informerRetryInterval)
-			a.startInformerManagerWithRetry(nextAttempt)
-			return
-		}
+	if a.ctx == nil {
+		return
+	}
 
+	go func(nextAttempt int) {
 		select {
 		case <-a.ctx.Done():
 			return
