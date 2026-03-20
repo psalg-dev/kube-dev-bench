@@ -51,31 +51,15 @@ test.describe('Resource view scrollability', () => {
       const mainPanels = document.getElementById('main-panels');
       if (!mainPanels) throw new Error('#main-panels not found');
 
-      // Find the first table body in main-panels
-      const tbody = mainPanels.querySelector('table tbody');
-      if (!tbody) {
-        // Fallback: create a tall filler div if no table is present
-        const filler = document.createElement('div');
-        filler.id = 'e2e-scroll-filler';
-        filler.style.height = '5000px';
-        filler.style.flexShrink = '0';
-        mainPanels.appendChild(filler);
-        return;
-      }
-
-      // Add enough rows to guarantee overflow (50 rows × ~42px ≈ 2100px)
-      const FILLER_ROWS = 50;
-      const colCount = tbody.querySelector('tr')?.querySelectorAll('td')?.length ?? 5;
-      for (let i = 0; i < FILLER_ROWS; i++) {
-        const tr = document.createElement('tr');
-        tr.className = 'e2e-scroll-filler-row';
-        for (let c = 0; c < colCount; c++) {
-          const td = document.createElement('td');
-          td.textContent = `filler-${i}-${c}`;
-          tr.appendChild(td);
-        }
-        tbody.appendChild(tr);
-      }
+      // Append a tall filler element directly to #main-panels (not inside a
+      // nested table/panel) so its height contributes to #main-panels scrollHeight.
+      // flex-shrink:0 prevents the flex layout from compressing it away.
+      const filler = document.createElement('div');
+      filler.id = 'e2e-scroll-filler';
+      filler.style.height = '5000px';
+      filler.style.minHeight = '5000px';
+      filler.style.flexShrink = '0';
+      mainPanels.appendChild(filler);
     });
 
     // Verify that #main-panels has overflow content (scrollHeight > clientHeight),
