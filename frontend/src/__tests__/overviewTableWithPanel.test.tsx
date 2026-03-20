@@ -128,6 +128,11 @@ describe('OverviewTableWithPanel', () => {
     expect(screen.getByTestId('create-overlay')).toHaveTextContent('overlay-k8s-pod');
   });
 
+  it('renders a dedicated scroll container for resource tables', () => {
+    setup();
+    expect(screen.getByTestId('overview-table-scroll-container')).toBeInTheDocument();
+  });
+
   it('shows create notice (warning) before opening overlay', () => {
     setup({
       createNotice: 'This is an informational notice.',

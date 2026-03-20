@@ -423,8 +423,10 @@ export default function OverviewTableWithPanel({
     ];
   };
 
+  const scrollContainerTestId = tableTestId ? `${tableTestId}-scroll-container` : 'overview-table-scroll-container';
+
   return (
-    <div>
+    <div className="overview-table-with-panel">
       <div className="overview-header">
         {/* Left: create button */}
         <div className="overview-left">
@@ -458,161 +460,163 @@ export default function OverviewTableWithPanel({
         </div>
       </div>
 
-      <table className="gh-table" data-testid={tableTestId}>
-        <colgroup>
-          {bulkEnabled && <col className="bulk-checkbox-col" />}
-          {columns.map((col, idx) => (
-            <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
-          ))}
-          <col className="overview-actions-col" />
-        </colgroup>
-        <thead>
-          <tr>
-            {bulkEnabled && (
-              <th className="bulk-checkbox-col" aria-label="Select all">
-                <input
-                  ref={selectAllRef}
-                  className="bulk-select-all"
-                  type="checkbox"
-                  checked={selection.isAllSelected}
-                  onChange={() => selection.toggleAll()}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </th>
-            )}
-            {columns.map((col) => {
-              const key = col.accessorKey || col.key;
-              const isActive = key && sortState?.key === key;
-              const direction = isActive ? sortState?.direction : undefined;
-              return (
-                <th key={key || col.header || col.label} aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
-                  <button
-                    type="button"
-                    className="sortable-header"
-                    onClick={() => key && setSortState((cur) => toggleSortState(cur, key))}
-                  >
-                    <span>{col.header || col.label}</span>
-                    <span className="sortable-indicator" aria-hidden="true">
-                      {isActive ? (direction === 'asc' ? '▲' : '▼') : '↕'}
-                    </span>
-                  </button>
-                </th>
-              );
-            })}
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.length === 0 && !loading && (
+      <div className="overview-table-scroll" data-testid={scrollContainerTestId}>
+        <table className="gh-table" data-testid={tableTestId}>
+          <colgroup>
+            {bulkEnabled && <col className="bulk-checkbox-col" />}
+            {columns.map((col, idx) => (
+              <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
+            ))}
+            <col className="overview-actions-col" />
+          </colgroup>
+          <thead>
             <tr>
-              <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
-                No {title || resourceKind} deployed in this namespace
-              </td>
-            </tr>
-          )}
-          {sortedData.map((row: any, idx: number) => (
-            !row ? null : (
-              <tr
-                key={getRowKey(row, idx)}
-                className={bulkEnabled && selection.isSelected(getRowKey(row, idx)) ? 'bulk-selected' : undefined}
-                onClick={(e) => {
-                  if (bulkEnabled && e.shiftKey) {
-                    e.preventDefault();
-                    selection.toggleRow(getRowKey(row, idx), idx, true);
-                    return;
-                  }
-                  openBottomPanel(row);
-                }}
-              >
-                {bulkEnabled && (
-                  <td className="bulk-checkbox-col" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      className="bulk-row-checkbox"
-                      type="checkbox"
-                      checked={selection.isSelected(getRowKey(row, idx))}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        selection.toggleRow(getRowKey(row, idx), idx, e.shiftKey);
-                      }}
-                      onChange={() => {}}
-                    />
-                  </td>
-                )}
-                {columns.map((col, colIdx) => (
-                  <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
-                    {(() => {
-                      const key = col.accessorKey || col.key;
-                      const rawValue = key ? row[key] : undefined;
-                      if (!col.cell && key && STATUS_BADGE_KEYS.has(String(key).toLowerCase())) {
-                        if (rawValue === null || rawValue === undefined || rawValue === '') return '-';
-                        return <StatusBadge status={String(rawValue)} size="small" />;
-                      }
-                      if (!key) return rawValue;
-                      return col.cell ? col.cell({ getValue: () => row[key] }) : rawValue;
-                    })()}
-                  </td>
-                ))}
-                <td className="row-actions-cell">
-                  <button
-                    type="button"
-                    className="row-actions-button"
-                    aria-label="Row actions"
-                    title="Actions"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const key = getRowKey(row, idx);
-                      setOpenMenuKey((cur) => (cur === key ? null : key));
-                    }}
-                  >···
-                  </button>
-
-                  {openMenuKey === getRowKey(row, idx) && (
-                    <div
-                      className="menu-content row-actions-menu"
-                      onClick={(e) => e.stopPropagation()}
+              {bulkEnabled && (
+                <th className="bulk-checkbox-col" aria-label="Select all">
+                  <input
+                    ref={selectAllRef}
+                    className="bulk-select-all"
+                    type="checkbox"
+                    checked={selection.isAllSelected}
+                    onChange={() => selection.toggleAll()}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </th>
+              )}
+              {columns.map((col) => {
+                const key = col.accessorKey || col.key;
+                const isActive = key && sortState?.key === key;
+                const direction = isActive ? sortState?.direction : undefined;
+                return (
+                  <th key={key || col.header || col.label} aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
+                    <button
+                      type="button"
+                      className="sortable-header"
+                      onClick={() => key && setSortState((cur) => toggleSortState(cur, key))}
                     >
-                      {(() => {
-                        const menuActions = buildMenuActions(row);
-                        return menuActions.map((a: RowAction, i: number) => {
-                        const disabled = Boolean(a?.disabled);
-                        const danger = Boolean(a?.danger);
-                        const itemClassName = `context-menu-item${disabled ? ' is-disabled' : ''}${danger ? ' is-danger' : ''}`;
-                        return (
-                          <div
-                            key={`${a?.label || 'action'}-${i}`}
-                            className={itemClassName}
-                            onClick={() => {
-                              if (disabled) return;
-                              try {
-                                a?.onClick?.(row);
-                              } finally {
-                                closeRowMenu();
-                              }
-                            }}
-                          >
-                            {a?.icon ? (
-                              <span aria-hidden="true" className="context-menu-icon">{a.icon}</span>
-                            ) : (
-                              <span aria-hidden="true" className="context-menu-icon" />
-                            )}
-                            <span>{a?.label}</span>
-                          </div>
-                        );
-                        });
-                      })()}
-                    </div>
-                  )}
+                      <span>{col.header || col.label}</span>
+                      <span className="sortable-indicator" aria-hidden="true">
+                        {isActive ? (direction === 'asc' ? '▲' : '▼') : '↕'}
+                      </span>
+                    </button>
+                  </th>
+                );
+              })}
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.length === 0 && !loading && (
+              <tr>
+                <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
+                  No {title || resourceKind} deployed in this namespace
                 </td>
               </tr>
-            )
-          ))}
-          {filteredData.length === 0 && data.length > 0 && (
-            <tr>
-              <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading">No rows match the filter.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+            {sortedData.map((row: any, idx: number) => (
+              !row ? null : (
+                <tr
+                  key={getRowKey(row, idx)}
+                  className={bulkEnabled && selection.isSelected(getRowKey(row, idx)) ? 'bulk-selected' : undefined}
+                  onClick={(e) => {
+                    if (bulkEnabled && e.shiftKey) {
+                      e.preventDefault();
+                      selection.toggleRow(getRowKey(row, idx), idx, true);
+                      return;
+                    }
+                    openBottomPanel(row);
+                  }}
+                >
+                  {bulkEnabled && (
+                    <td className="bulk-checkbox-col" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        className="bulk-row-checkbox"
+                        type="checkbox"
+                        checked={selection.isSelected(getRowKey(row, idx))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selection.toggleRow(getRowKey(row, idx), idx, e.shiftKey);
+                        }}
+                        onChange={() => {}}
+                      />
+                    </td>
+                  )}
+                  {columns.map((col, colIdx) => (
+                    <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
+                      {(() => {
+                        const key = col.accessorKey || col.key;
+                        const rawValue = key ? row[key] : undefined;
+                        if (!col.cell && key && STATUS_BADGE_KEYS.has(String(key).toLowerCase())) {
+                          if (rawValue === null || rawValue === undefined || rawValue === '') return '-';
+                          return <StatusBadge status={String(rawValue)} size="small" />;
+                        }
+                        if (!key) return rawValue;
+                        return col.cell ? col.cell({ getValue: () => row[key] }) : rawValue;
+                      })()}
+                    </td>
+                  ))}
+                  <td className="row-actions-cell">
+                    <button
+                      type="button"
+                      className="row-actions-button"
+                      aria-label="Row actions"
+                      title="Actions"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const key = getRowKey(row, idx);
+                        setOpenMenuKey((cur) => (cur === key ? null : key));
+                      }}
+                    >···
+                    </button>
+
+                    {openMenuKey === getRowKey(row, idx) && (
+                      <div
+                        className="menu-content row-actions-menu"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {(() => {
+                          const menuActions = buildMenuActions(row);
+                          return menuActions.map((a: RowAction, i: number) => {
+                          const disabled = Boolean(a?.disabled);
+                          const danger = Boolean(a?.danger);
+                          const itemClassName = `context-menu-item${disabled ? ' is-disabled' : ''}${danger ? ' is-danger' : ''}`;
+                          return (
+                            <div
+                              key={`${a?.label || 'action'}-${i}`}
+                              className={itemClassName}
+                              onClick={() => {
+                                if (disabled) return;
+                                try {
+                                  a?.onClick?.(row);
+                                } finally {
+                                  closeRowMenu();
+                                }
+                              }}
+                            >
+                              {a?.icon ? (
+                                <span aria-hidden="true" className="context-menu-icon">{a.icon}</span>
+                              ) : (
+                                <span aria-hidden="true" className="context-menu-icon" />
+                              )}
+                              <span>{a?.label}</span>
+                            </div>
+                          );
+                          });
+                        })()}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )
+            ))}
+            {filteredData.length === 0 && data.length > 0 && (
+              <tr>
+                <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading">No rows match the filter.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
       <BottomPanel
         open={bottomOpen}
         onClose={closeBottomPanel}

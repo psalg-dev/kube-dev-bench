@@ -1,10 +1,25 @@
 /* Styles for the overview header area (title centered, actions right) */
+.overview-table-with-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
 .overview-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr; /* left, title, right */
   align-items: center;
   gap: 8px;
   margin: 4px 0 8px 0;
+  flex-shrink: 0;
+}
+
+.overview-table-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
 }
 
 .overview-title {
