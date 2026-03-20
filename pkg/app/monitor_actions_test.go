@@ -114,6 +114,10 @@ func TestScanClusterHealth_NodeNotReady(t *testing.T) {
 }
 
 func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
 			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "Analysis body"})
@@ -129,9 +133,6 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 		t.Fatalf("failed to set env: %v", err)
 	}
 	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
-
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
 
 	clientset := fake.NewSimpleClientset(&v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "crash-pod", Namespace: "default"},
@@ -149,6 +150,7 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 	})
 
 	app := &App{ctx: context.Background(), testClientset: clientset, preferredNamespaces: []string{"default"}}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	info := app.collectMonitorInfo([]string{"default"})
@@ -179,6 +181,10 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 }
 
 func TestDismissMonitorIssue_Success(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "monitor_issues.json")
 	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
@@ -446,6 +452,10 @@ func TestLoadPersistedIssues_NonExistent(t *testing.T) {
 }
 
 func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
 			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "Batch response"})
@@ -461,9 +471,6 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 		t.Fatalf("failed to set env: %v", err)
 	}
 	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
-
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
 
 	clientset := fake.NewSimpleClientset(
 		&v1.Pod{
@@ -497,6 +504,7 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	)
 
 	app := &App{ctx: context.Background(), testClientset: clientset, preferredNamespaces: []string{"default"}}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	if err := app.AnalyzeAllMonitorIssues(); err != nil {
@@ -514,4 +522,27 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
+}
+
+// TestLoadPersistedIssues_NullJSON covers the branch that converts a JSON null
+// result into an empty (non-nil) map.
+func TestLoadPersistedIssues_NullJSON(t *testing.T) {
+	f, err := os.CreateTemp(t.TempDir(), "issues-*.json")
+	if err != nil {
+		t.Fatalf("os.CreateTemp: %v", err)
+	}
+	path := f.Name()
+	f.Close()
+	if werr := os.WriteFile(path, []byte("null"), 0o600); werr != nil {
+		t.Fatalf("write: %v", werr)
+	}
+	t.Setenv("KDB_MONITOR_ISSUES_PATH", path)
+
+	issues, err := loadPersistedIssues()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if issues == nil {
+		t.Error("expected non-nil map after null-JSON load")
+	}
 }

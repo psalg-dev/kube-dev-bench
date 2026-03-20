@@ -48,6 +48,15 @@ const (
 	EventHookCompleted = "hook:completed"
 )
 
+// Connection / auth events.
+const (
+	EventTLSCertError          = "connection:tls-cert-error"
+	EventConnectionAuthExpired = "connection:auth-expired"
+	EventSessionAuthExpired    = "session:auth-expired"
+	EventExecProviderNotFound  = "connection:exec-provider-not-found"
+	EventProxyAuthRequired     = "connection:proxy-auth-required"
+)
+
 // Docker / Swarm events.
 const (
 	EventDockerConnected           = "docker:connected"

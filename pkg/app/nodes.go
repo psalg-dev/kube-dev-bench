@@ -42,7 +42,7 @@ func (a *App) GetNodes() ([]NodeInfo, error) {
 		return nil, err
 	}
 
-	nodes, err := clientset.CoreV1().Nodes().List(a.ctx, metav1.ListOptions{})
+	nodes, err := clientset.CoreV1().Nodes().List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

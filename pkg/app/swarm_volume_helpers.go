@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"time"
 
 	"github.com/docker/docker/api/types/container"
@@ -14,7 +15,16 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 )
 
-const swarmVolumeHelperImage = "debian:bookworm-slim"
+// defaultSwarmVolumeHelperImage is the default image used for Swarm volume browse helper containers.
+const defaultSwarmVolumeHelperImage = "debian:bookworm-slim"
+
+// swarmVolumeHelperImage returns the configured or default helper image (IMP-9).
+func swarmVolumeHelperImage() string {
+	if img := os.Getenv("KDB_SWARM_HELPER_IMAGE"); img != "" {
+		return img
+	}
+	return defaultSwarmVolumeHelperImage
+}
 
 func ensureDockerImage(ctx context.Context, cli *client.Client, image string) error {
 	_, _, err := cli.ImageInspectWithRaw(ctx, image)
@@ -49,7 +59,7 @@ func (a *App) ensureSwarmVolumeHelper(volumeName string) (string, error) {
 
 	pullCtx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	if err := ensureDockerImage(pullCtx, cli, swarmVolumeHelperImage); err != nil {
+	if err := ensureDockerImage(pullCtx, cli, swarmVolumeHelperImage()); err != nil {
 		return "", fmt.Errorf("ensure helper image: %w", err)
 	}
 
@@ -69,7 +79,7 @@ func (a *App) ensureSwarmVolumeHelper(volumeName string) (string, error) {
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: swarmVolumeHelperImage,
+		Image: swarmVolumeHelperImage(),
 		Cmd:   []string{"sh", "-c", "trap : TERM INT; sleep infinity"},
 		Tty:   false,
 		Env:   []string{"LC_ALL=C"},

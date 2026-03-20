@@ -4017,6 +4017,7 @@ export namespace registry {
 	    insecureSkipTlsVerify: boolean;
 	    allowInsecureHttp: boolean;
 	    disableTlsVerification: boolean;
+	    customCACert: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new RegistryConfig(source);
@@ -4032,6 +4033,7 @@ export namespace registry {
 	        this.insecureSkipTlsVerify = source["insecureSkipTlsVerify"];
 	        this.allowInsecureHttp = source["allowInsecureHttp"];
 	        this.disableTlsVerification = source["disableTlsVerification"];
+	        this.customCACert = source["customCACert"];
 	    }
 	
 		convertValues(a: any, classs: any, asMap: boolean = false): any {

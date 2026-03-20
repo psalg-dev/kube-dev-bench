@@ -34,10 +34,11 @@ type RegistryConfig struct { //nolint:revive
 	Credentials RegistryCredentials `json:"credentials"`
 
 	// HTTP/TLS settings (kept intentionally minimal; can be extended later).
-	TimeoutSeconds         int  `json:"timeoutSeconds"`
-	InsecureSkipTLSVerify  bool `json:"insecureSkipTlsVerify"`
-	AllowInsecureHTTP      bool `json:"allowInsecureHttp"`
-	DisableTLSVerification bool `json:"disableTlsVerification"` // legacy alias-ish; keep for future compatibility
+	TimeoutSeconds         int    `json:"timeoutSeconds"`
+	InsecureSkipTLSVerify  bool   `json:"insecureSkipTlsVerify"`
+	AllowInsecureHTTP      bool   `json:"allowInsecureHttp"`
+	DisableTLSVerification bool   `json:"disableTlsVerification"` // legacy alias-ish; keep for future compatibility
+	CustomCACert           string `json:"customCACert,omitempty"` // path to a PEM-encoded CA certificate file
 }
 
 // RegistryImage is a registry image reference with basic metadata.

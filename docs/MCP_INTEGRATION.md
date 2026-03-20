@@ -1,3 +1,9 @@
+---
+layout: default
+title: MCP Integration
+nav_order: 5
+---
+
 # MCP Server Integration
 
 KubeDevBench includes a built-in [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server that enables AI assistants like Claude, ChatGPT, and other MCP-compatible clients to interact directly with your Kubernetes clusters and Docker Swarm environments.

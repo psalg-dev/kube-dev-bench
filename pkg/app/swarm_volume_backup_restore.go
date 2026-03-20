@@ -284,12 +284,12 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 	// Ensure helper image exists.
 	pullCtx, cancel := context.WithTimeout(a.ctx, 60*time.Second)
 	defer cancel()
-	if err := ensureDockerImage(pullCtx, cli, swarmVolumeHelperImage); err != nil {
+	if err := ensureDockerImage(pullCtx, cli, swarmVolumeHelperImage()); err != nil {
 		return "", fmt.Errorf("ensure helper image: %w", err)
 	}
 
 	resp, err := cli.ContainerCreate(a.ctx, &container.Config{
-		Image: swarmVolumeHelperImage,
+		Image: swarmVolumeHelperImage(),
 		Cmd:   []string{"sh", "-c", "set -e; cd /src; tar cf - . | tar xf - -C /dst"},
 		Tty:   false,
 		Env:   []string{"LC_ALL=C"},

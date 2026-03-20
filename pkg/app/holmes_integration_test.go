@@ -52,12 +52,11 @@ func TestAskHolmes_Configured(t *testing.T) {
 	defer server.Close()
 
 	// Configure Holmes
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: server.URL,
 	}
-
-	app := NewApp()
 	app.initHolmes()
 
 	resp, err := app.AskHolmes("test question")
@@ -72,18 +71,16 @@ func TestAskHolmes_Configured(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func TestGetHolmesConfig_MasksAPIKey(t *testing.T) {
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: "http://localhost:8080",
 		APIKey:   "super-secret-key",
 	}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
 
-	app := NewApp()
 	config, err := app.GetHolmesConfig()
 	if err != nil {
 		t.Fatalf("GetHolmesConfig() unexpected error: %v", err)
@@ -177,7 +174,6 @@ func TestSetHolmesConfig_PersistsToFile(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func TestTestHolmesConnection_NotConfigured(t *testing.T) {
@@ -208,12 +204,11 @@ func TestTestHolmesConnection_Healthy(t *testing.T) {
 	defer server.Close()
 
 	// Configure Holmes
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: server.URL,
 	}
-
-	app := NewApp()
 	app.initHolmes()
 
 	status, err := app.TestHolmesConnection()
@@ -231,7 +226,6 @@ func TestTestHolmesConnection_Healthy(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func TestTestHolmesConnection_Unhealthy(t *testing.T) {
@@ -242,12 +236,11 @@ func TestTestHolmesConnection_Unhealthy(t *testing.T) {
 	defer server.Close()
 
 	// Configure Holmes
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: server.URL,
 	}
-
-	app := NewApp()
 	app.initHolmes()
 
 	status, err := app.TestHolmesConnection()
@@ -265,7 +258,6 @@ func TestTestHolmesConnection_Unhealthy(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func TestInitHolmes_CreatesClient(t *testing.T) {
@@ -273,12 +265,11 @@ func TestInitHolmes_CreatesClient(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 	defer server.Close()
 
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: server.URL,
 	}
-
-	app := NewApp()
 	app.initHolmes()
 
 	holmesMu.RLock()
@@ -293,7 +284,6 @@ func TestInitHolmes_CreatesClient(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func TestGetPodContext_BasicFields(t *testing.T) {
@@ -414,8 +404,8 @@ func TestAnalyzePod_WithFakeHolmes(t *testing.T) {
 	}))
 	defer server.Close()
 
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	resp, err := app.AnalyzePod("default", "test-pod")
@@ -429,7 +419,6 @@ func TestAnalyzePod_WithFakeHolmes(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func TestAnalyzeDeployment_WithFakeHolmes(t *testing.T) {
@@ -458,8 +447,8 @@ func TestAnalyzeDeployment_WithFakeHolmes(t *testing.T) {
 	}))
 	defer server.Close()
 
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	resp, err := app.AnalyzeDeployment("default", "deploy")
@@ -473,7 +462,6 @@ func TestAnalyzeDeployment_WithFakeHolmes(t *testing.T) {
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
-	holmesConfig = holmesgpt.DefaultConfig()
 }
 
 func int32Ptr(i int32) *int32 {
@@ -481,16 +469,15 @@ func int32Ptr(i int32) *int32 {
 }
 
 func TestInitHolmes_SkipsWhenDisabled(t *testing.T) {
-	holmesConfig = holmesgpt.HolmesConfigData{
-		Enabled: false,
-	}
-
 	// Reset client first
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
 
 	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
+		Enabled: false,
+	}
 	app.initHolmes()
 
 	holmesMu.RLock()

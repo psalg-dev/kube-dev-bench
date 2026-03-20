@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SwarmResourceCountsContextValue } from '../docker/SwarmResourceCountsContext';

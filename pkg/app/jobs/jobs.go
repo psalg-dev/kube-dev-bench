@@ -114,9 +114,17 @@ func buildJobInfo(job *batchv1.Job, now time.Time) JobInfo {
 	}
 }
 
-// GetJobs returns all jobs in a namespace using the provided ResourceClient
-func GetJobs(client ResourceClient, namespace string) ([]JobInfo, error) {
-	jobsList, err := client.BatchV1().Jobs(namespace).List(context.Background(), metav1.ListOptions{})
+// listPageSize caps server-side response size for paginated List calls (IMP-3).
+const listPageSize int64 = 500
+
+// GetJobs returns all jobs in a namespace using the provided ResourceClient.
+// ctx should be the app-level context so List respects shutdown signals (IMP-1).
+func GetJobs(client ResourceClient, namespace string, ctx ...context.Context) ([]JobInfo, error) {
+	listCtx := context.Background()
+	if len(ctx) > 0 && ctx[0] != nil {
+		listCtx = ctx[0]
+	}
+	jobsList, err := client.BatchV1().Jobs(namespace).List(listCtx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

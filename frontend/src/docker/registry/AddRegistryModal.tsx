@@ -28,6 +28,7 @@ type RegistryForm = {
   timeoutSeconds: number | string;
   insecureSkipTlsVerify: boolean;
   allowInsecureHttp: boolean;
+  customCACert: string;
 };
 
 function defaultStateForType(type: string): RegistryForm {
@@ -43,6 +44,7 @@ function defaultStateForType(type: string): RegistryForm {
       timeoutSeconds: 30,
       insecureSkipTlsVerify: false,
       allowInsecureHttp: false,
+      customCACert: '',
     };
   }
 
@@ -58,6 +60,7 @@ function defaultStateForType(type: string): RegistryForm {
       timeoutSeconds: 30,
       insecureSkipTlsVerify: false,
       allowInsecureHttp: false,
+      customCACert: '',
     };
   }
 
@@ -72,6 +75,7 @@ function defaultStateForType(type: string): RegistryForm {
     timeoutSeconds: 30,
     insecureSkipTlsVerify: false,
     allowInsecureHttp: false,
+    customCACert: '',
   };
 }
 
@@ -120,6 +124,7 @@ export default function AddRegistryModal({ open, onClose, onSaved }: AddRegistry
       insecureSkipTlsVerify: !!form.insecureSkipTlsVerify,
       allowInsecureHttp: !!form.allowInsecureHttp,
       disableTlsVerification: false,
+      customCACert: form.customCACert?.trim() || '',
     });
   };
 
@@ -346,6 +351,20 @@ export default function AddRegistryModal({ open, onClose, onSaved }: AddRegistry
               />
               Allow Insecure HTTP
             </label>
+          </div>
+
+          <div>
+            <div className="registry-modal__label">Custom CA Certificate Path</div>
+            <input
+              id="registry-custom-ca-cert"
+              value={form.customCACert}
+              onChange={(e) => setForm((s) => ({ ...s, customCACert: e.target.value }))}
+              disabled={busy}
+              placeholder="/path/to/ca-bundle.crt"
+            />
+            <div className="registry-modal__hint">
+              PEM-encoded CA certificate for registries using a private certificate authority
+            </div>
           </div>
         </div>
 

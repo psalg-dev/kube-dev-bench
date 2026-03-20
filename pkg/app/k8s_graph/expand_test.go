@@ -652,16 +652,16 @@ func TestExpandStatefulSetEdgeCount(t *testing.T) {
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "sts-edge-0",
-				Namespace: "ns",
+				Name:            "sts-edge-0",
+				Namespace:       "ns",
 				OwnerReferences: []metav1.OwnerReference{{Kind: "StatefulSet", Name: "sts-edge"}},
 			},
 			Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "app", Image: "nginx"}}},
 		},
 		&corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "sts-edge-1",
-				Namespace: "ns",
+				Name:            "sts-edge-1",
+				Namespace:       "ns",
 				OwnerReferences: []metav1.OwnerReference{{Kind: "StatefulSet", Name: "sts-edge"}},
 			},
 			Spec: corev1.PodSpec{Containers: []corev1.Container{{Name: "app", Image: "nginx"}}},

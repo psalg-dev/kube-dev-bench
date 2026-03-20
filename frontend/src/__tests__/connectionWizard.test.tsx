@@ -20,6 +20,8 @@ const mockSetProxyConfig = vi.fn();
 const mockDetectSystemProxy = vi.fn();
 const mockGetUseInformers = vi.fn();
 const mockSetUseInformers = vi.fn();
+const mockGetCustomCAPath = vi.fn();
+const mockSetCustomCAPath = vi.fn();
 
 // Hooks mocks
 const mockGetHooksConfig = vi.fn();
@@ -47,6 +49,8 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   DetectSystemProxy: (...args: unknown[]) => mockDetectSystemProxy(...args),
   GetUseInformers: (...args: unknown[]) => mockGetUseInformers(...args),
   SetUseInformers: (...args: unknown[]) => mockSetUseInformers(...args),
+  GetCustomCAPath: (...args: unknown[]) => mockGetCustomCAPath(...args),
+  SetCustomCAPath: (...args: unknown[]) => mockSetCustomCAPath(...args),
 
   GetHooksConfig: (...args: unknown[]) => mockGetHooksConfig(...args),
   SaveHook: (...args: unknown[]) => mockSaveHook(...args),
@@ -104,6 +108,18 @@ import ConnectionWizard from '../layout/connection/ConnectionWizard';
 describe('ConnectionWizard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const win = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+    win.go = win.go || { main: { App: {} } };
+    win.go.main = win.go.main || { App: {} };
+    win.go.main.App = win.go.main.App || {};
+    win.go.main.App.GetKubeConfigs = vi.fn();
+    win.go.main.App.SetKubeConfigPath = vi.fn();
+    win.go.main.App.GetCurrentConfig = vi.fn();
+    win.go.main.App.GetKubeContexts = vi.fn();
+    win.go.main.App.GetNamespaces = vi.fn();
+    win.go.main.App.SetCurrentKubeContext = vi.fn();
+    win.go.main.App.SetCurrentNamespace = vi.fn();
+
     mockGetCurrentConfig.mockResolvedValue({});
     mockGetKubeContexts.mockResolvedValue(['default']);
     mockGetNamespaces.mockResolvedValue(['default']);
@@ -114,6 +130,8 @@ describe('ConnectionWizard', () => {
     mockSetProxyConfig.mockResolvedValue(undefined);
     mockGetUseInformers.mockResolvedValue(false);
     mockSetUseInformers.mockResolvedValue(undefined);
+    mockGetCustomCAPath.mockResolvedValue('');
+    mockSetCustomCAPath.mockResolvedValue(undefined);
 
     mockGetHooksConfig.mockResolvedValue({ hooks: [] });
     mockSaveHook.mockResolvedValue({});
@@ -554,6 +572,36 @@ describe('ConnectionWizard', () => {
         expect(errorMessages.length).toBeGreaterThan(0);
       });
     });
+
+    it('waits for the GetKubeConfigs Wails binding before leaving the loading state', async () => {
+      const win = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+      if (win.go?.main?.App) {
+        delete win.go.main.App.GetKubeConfigs;
+      }
+      mockGetKubeConfigs.mockResolvedValue([]);
+
+      render(<ConnectionWizard onComplete={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Loading kubeconfig files/i)).toBeInTheDocument();
+      });
+
+      setTimeout(() => {
+        const delayedWin = window as Window & { go?: { main?: { App?: Record<string, unknown> } } };
+        delayedWin.go = delayedWin.go || { main: { App: {} } };
+        delayedWin.go.main = delayedWin.go.main || { App: {} };
+        delayedWin.go.main.App = delayedWin.go.main.App || {};
+        delayedWin.go.main.App.GetKubeConfigs = vi.fn();
+      }, 50);
+
+      await waitFor(() => {
+        expect(mockGetKubeConfigs).toHaveBeenCalledTimes(1);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Add Config/i })).not.toBeDisabled();
+      });
+    });
   });
 
   describe('Sidebar navigation', () => {
@@ -626,7 +674,7 @@ describe('ConnectionWizard', () => {
       fireEvent.click(globalProxyButton);
 
       await waitFor(() => {
-        expect(screen.getByText(/Global Proxy Settings/i)).toBeInTheDocument();
+        expect(screen.getByText(/Connection Settings/i)).toBeInTheDocument();
       });
     });
 
@@ -692,7 +740,7 @@ describe('ConnectionWizard', () => {
 
       await waitFor(() => {
         // Look for the specific overlay title which includes the config path
-        expect(screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
+        expect(screen.getByText(/Connection Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
       });
     });
   });
@@ -805,8 +853,8 @@ describe('KubernetesConnectionsList – hooks settings', () => {
     fireEvent.click(screen.getByTitle(/Proxy settings/i));
 
     await waitFor(() => {
-      // The overlay shows "Proxy Settings - <config path>"
-      expect(screen.getByText(/Proxy Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
+      // The overlay shows "Connection Settings - <config path>"
+      expect(screen.getByText(/Connection Settings - \/home\/user\/.kube\/config/i)).toBeInTheDocument();
     }, { timeout: 5000 });
   });
 });

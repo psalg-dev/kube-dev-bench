@@ -99,3 +99,19 @@ func TestUpdateSecretDataKey(t *testing.T) {
 		t.Fatalf("expected key updated to '2', got %q", string(sec.Data["a"]))
 	}
 }
+
+func TestGetSecretConsumers_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetSecretConsumers("default", "my-secret")
+	if err == nil {
+		t.Error("expected error from GetSecretConsumers with no K8s context")
+	}
+}
+
+func TestUpdateSecretDataKey_SecretNotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	err := app.UpdateSecretDataKey("default", "missing-secret", "key", "val")
+	if err == nil {
+		t.Error("expected not-found error for missing secret")
+	}
+}

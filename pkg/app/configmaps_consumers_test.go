@@ -101,3 +101,53 @@ func TestUpdateConfigMapDataKey(t *testing.T) {
 		t.Fatalf("expected key updated to '2', got %q", cm.Data["a"])
 	}
 }
+
+// TestGetConfigMapConsumers_WithConsumers verifies that a pod referencing a
+// ConfigMap via both a volume and envFrom is reported as a consumer.
+func TestGetConfigMapConsumers_WithConsumers(t *testing.T) {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
+		Spec: corev1.PodSpec{
+			Volumes: []corev1.Volume{
+				{
+					Name: "cfg-vol",
+					VolumeSource: corev1.VolumeSource{
+						ConfigMap: &corev1.ConfigMapVolumeSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "my-cm"},
+						},
+					},
+				},
+			},
+			Containers: []corev1.Container{
+				{
+					Name:  "c1",
+					Image: "busybox",
+					EnvFrom: []corev1.EnvFromSource{
+						{ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{Name: "my-cm"},
+						}},
+					},
+				},
+			},
+		},
+	}
+	cs := fake.NewSimpleClientset(pod)
+	app := &App{ctx: context.Background(), testClientset: cs}
+	consumers, err := app.GetConfigMapConsumers("default", "my-cm")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(consumers) == 0 {
+		t.Error("expected at least one consumer (pod) to be found")
+	}
+}
+
+// TestUpdateConfigMapDataKey_CMNotFound verifies that updating a key on a
+// non-existent ConfigMap returns an error.
+func TestUpdateConfigMapDataKey_CMNotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	err := app.UpdateConfigMapDataKey("default", "missing-cm", "key", "val")
+	if err == nil {
+		t.Error("expected not-found error for missing configmap")
+	}
+}

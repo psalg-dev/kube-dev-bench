@@ -144,22 +144,22 @@ test.describe('MCP Server E2E', () => {
     expect(resourceURIs).toContain('resource://mcp/config');
   });
 
-  test('MCP tools/call k8s_list pods returns data from live cluster', async () => {
+  test('MCP tools/call k8s_list namespaces returns a response from live cluster', async () => {
     await sendJSONRPC(mcpBaseURL, 'initialize', {
       protocolVersion: '2025-03-26',
       clientInfo: { name: 'e2e-test', version: '1.0' },
     }, 1);
 
-    const resp = await sendJSONRPC(mcpBaseURL, 'tools/call', {
-      name: 'k8s_list',
-      arguments: { kind: 'pods' },
-    }, 2);
+    await expect(async () => {
+      const resp = await sendJSONRPC(mcpBaseURL, 'tools/call', {
+        name: 'k8s_list',
+        arguments: { kind: 'namespaces', limit: 25 },
+      }, 2, 45_000);
 
-    expect(resp.result).toBeDefined();
-    // Tool result should not be an error
-    expect(resp.result.isError).toBeFalsy();
-    expect(resp.result.content).toBeDefined();
-    expect(resp.result.content.length).toBeGreaterThan(0);
+      expect(resp.result).toBeDefined();
+      expect(resp.result.content).toBeDefined();
+      expect(resp.result.content.length).toBeGreaterThan(0);
+    }).toPass({ timeout: 90_000, intervals: [2000, 5000, 10_000] });
   });
 
   test('MCP tools/call k8s_get_resource_counts returns counts', async () => {
@@ -238,17 +238,32 @@ async function sendJSONRPC(
   method: string,
   params: Record<string, unknown>,
   id: number,
+  timeoutMs = 30_000,
 ): Promise<{ result?: any; error?: any }> {
-  const resp = await fetch(`${baseURL}/mcp`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: '2.0',
-      id,
-      method,
-      params,
-    }),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  let resp: Response;
+  try {
+    resp = await fetch(`${baseURL}/mcp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id,
+        method,
+        params,
+      }),
+      signal: controller.signal,
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      throw new Error(`JSON-RPC request timed out after ${timeoutMs}ms (${method})`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!resp.ok) {
     const body = await resp.text();

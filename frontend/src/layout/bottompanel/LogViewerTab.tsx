@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
-import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
+import { EditorView, Decoration, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view';
+import { EditorState, RangeSetBuilder } from '@codemirror/state';
 import { EventsOn, EventsOff } from '../../../wailsjs/runtime';
 import {
   StreamPodLogs,
@@ -9,6 +9,7 @@ import {
   GetPodLog,
   StreamPodContainerLogs,
   GetPodContainerLog,
+  GetPodContainers,
 } from '../../../wailsjs/go/main/App';
 import { AnalyzePodLogs, AskHolmesStream, CancelHolmesStream, onHolmesChatStream } from '../../holmes/holmesApi';
 import HolmesResponseRenderer, { type HolmesResponse } from '../../holmes/HolmesResponseRenderer';
@@ -19,6 +20,10 @@ import '../../holmes/HolmesPanel.css';
 const MAX_LINES = 10000;
 const BATCH_SIZE = 100;
 const UPDATE_INTERVAL = 100;
+
+// Container prefix regex: matches "[container-name] " at line start (module-level for reuse)
+const containerPrefixRegex = /^\[([^\]]+)\] /;
+const containerColorCount = 8;
 
 type LogViewerTabProps = {
   podName?: string;
@@ -94,6 +99,8 @@ export default function LogViewerTab({
   const analysisRequestIdRef = useRef(0);
   const followupStreamRef = useRef<HolmesStreamState>({ streamId: null, text: '', canceledStreamId: null });
   const followupScrollRef = useRef<HTMLDivElement | null>(null);
+  const [containerList, setContainerList] = useState<string[]>([]);
+  const [selectedContainer, setSelectedContainer] = useState<string | null>(null);
   const [panelHeight, setPanelHeight] = useState(() => {
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem('logviewer.height') : null;
     const v = saved ? parseInt(saved, 10) : 320;
@@ -135,6 +142,36 @@ export default function LogViewerTab({
     followupStreamRef.current = { streamId: null, text: '', canceledStreamId: null };
   }, []);
 
+  // Fetch container list when podName changes (to detect multi-container pods)
+  useEffect(() => {
+    if (!podName) {
+      setContainerList([]);
+      setSelectedContainer(null);
+      return;
+    }
+    // Clear container color assignments when switching pods
+    containerColorMapRef.current.clear();
+    let cancelled = false;
+    GetPodContainers(podName)
+      .then((containers) => {
+        if (cancelled) return;
+        setContainerList(containers || []);
+        // Reset selected container when pod changes
+        setSelectedContainer(null);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setContainerList([]);
+          setSelectedContainer(null);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [podName]);
+
+  // Derive the effective container to stream: if user selected a specific container, use it;
+  // otherwise use the prop container (or null for all containers on multi-container pods).
+  const effectiveContainer = selectedContainer || container || null;
+
   useEffect(() => {
     pausedRef.current = paused;
   }, [paused]);
@@ -148,15 +185,74 @@ export default function LogViewerTab({
           '.cm-line': { textAlign: 'left' },
           '&.cm-editor': { height: '100%' },
           '.cm-scroller': { fontFamily: 'monospace', lineHeight: '1.35' },
+          '.log-container-prefix-0': { color: '#58a6ff', fontWeight: 'bold' },
+          '.log-container-prefix-1': { color: '#f0883e', fontWeight: 'bold' },
+          '.log-container-prefix-2': { color: '#56d364', fontWeight: 'bold' },
+          '.log-container-prefix-3': { color: '#bc8cff', fontWeight: 'bold' },
+          '.log-container-prefix-4': { color: '#f778ba', fontWeight: 'bold' },
+          '.log-container-prefix-5': { color: '#79c0ff', fontWeight: 'bold' },
+          '.log-container-prefix-6': { color: '#ffd33d', fontWeight: 'bold' },
+          '.log-container-prefix-7': { color: '#ff7b72', fontWeight: 'bold' },
         },
         { dark: true }
       ),
     []
   );
 
+  // Build a stable color index map for container names
+  const containerColorMapRef = useRef(new Map<string, number>());
+
+  const containerPrefixPlugin = useMemo(
+    () => {
+      const colorMap = containerColorMapRef.current;
+      let nextIdx = colorMap.size % containerColorCount;
+
+      function buildDecorations(view: EditorView): DecorationSet {
+        const builder = new RangeSetBuilder<Decoration>();
+        for (const { from, to } of view.visibleRanges) {
+          for (let pos = from; pos <= to; ) {
+            const line = view.state.doc.lineAt(pos);
+            const text = line.text;
+            const match = containerPrefixRegex.exec(text);
+            if (match) {
+              const containerName = match[1];
+              if (!colorMap.has(containerName)) {
+                colorMap.set(containerName, nextIdx);
+                nextIdx = (nextIdx + 1) % containerColorCount;
+              }
+              const colorIdx = colorMap.get(containerName)!;
+              const deco = Decoration.mark({ class: `log-container-prefix-${colorIdx}` });
+              // Decorate the prefix portion including brackets
+              builder.add(line.from, line.from + match[0].length, deco);
+            }
+            pos = line.to + 1;
+          }
+        }
+        return builder.finish();
+      }
+
+      return ViewPlugin.fromClass(
+        class {
+          decorations: DecorationSet;
+          constructor(view: EditorView) {
+            this.decorations = buildDecorations(view);
+          }
+          update(update: ViewUpdate) {
+            if (update.docChanged || update.viewportChanged) {
+              this.decorations = buildDecorations(update.view);
+            }
+          }
+        },
+        { decorations: (v) => v.decorations }
+      );
+    },
+    []
+  );
+
   const extensions = useMemo(
     () => [
       darkTheme,
+      containerPrefixPlugin,
       EditorView.editable.of(false),
       EditorState.readOnly.of(true),
       EditorView.lineWrapping,
@@ -167,7 +263,7 @@ export default function LogViewerTab({
       }),
       EditorState.allowMultipleSelections.of(false),
     ],
-    [darkTheme]
+    [darkTheme, containerPrefixPlugin]
   );
 
   const lineMatches = useCallback(
@@ -361,8 +457,8 @@ export default function LogViewerTab({
     if (paused) {
       StopPodLogs(podName);
     } else {
-      if (container) {
-        StreamPodContainerLogs(podName, container);
+      if (effectiveContainer) {
+        StreamPodContainerLogs(podName, effectiveContainer);
       } else {
         StreamPodLogs(podName);
       }
@@ -370,7 +466,7 @@ export default function LogViewerTab({
     return () => {
       StopPodLogs(podName);
     };
-  }, [podName, paused, container]);
+  }, [podName, paused, effectiveContainer]);
 
   useEffect(() => {
     if (!viewRef.current) return;
@@ -390,7 +486,7 @@ export default function LogViewerTab({
       clearTimeout(batchTimeoutRef.current);
       batchTimeoutRef.current = null;
     }
-  }, [podName, container, resetFollowup]);
+  }, [podName, effectiveContainer, resetFollowup]);
 
   useEffect(() => {
     if (!paused) flushPending();
@@ -502,13 +598,13 @@ export default function LogViewerTab({
     try {
       if (!podName) return;
       let content: string | undefined;
-      if (container) content = await GetPodContainerLog(podName, container);
+      if (effectiveContainer) content = await GetPodContainerLog(podName, effectiveContainer);
       else content = await GetPodLog(podName);
       const blob = new Blob([content ?? ''], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       const date = new Date().toISOString().replace(/[:.]/g, '-');
-      const safeContainer = container ? `-${container}` : '';
+      const safeContainer = effectiveContainer ? `-${effectiveContainer}` : '';
       a.href = url;
       a.download = `pod-${podName}${safeContainer}-logs-${date}.txt`;
       document.body.appendChild(a);
@@ -568,7 +664,7 @@ export default function LogViewerTab({
     followupStreamRef.current = { streamId, text: '', canceledStreamId: null };
 
     const analysisText = getAnalysisText(holmesAnalysis as Record<string, unknown>);
-    const podLabel = `${namespace || 'default'}/${podName}${container ? ` (container: ${container})` : ''}`;
+    const podLabel = `${namespace || 'default'}/${podName}${effectiveContainer ? ` (container: ${effectiveContainer})` : ''}`;
     const prompt = [
       `We previously analyzed logs for pod ${podLabel}.`,
       analysisText ? `\nAnalysis:\n${analysisText}` : '',
@@ -969,6 +1065,27 @@ export default function LogViewerTab({
         gap: 12,
       }}
     >
+      {containerList.length > 1 && (
+        <select
+          value={selectedContainer || ''}
+          onChange={(e) => setSelectedContainer(e.target.value || null)}
+          aria-label="Container filter"
+          style={{
+            padding: '6px 8px',
+            fontSize: 13,
+            background: '#181c20',
+            color: '#e0e0e0',
+            border: '1px solid #444',
+            borderRadius: 4,
+            minWidth: 130,
+          }}
+        >
+          <option value="">All containers</option>
+          {containerList.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+      )}
       <input
         type="text"
         value={filter}
@@ -1061,7 +1178,7 @@ export default function LogViewerTab({
       >
         <span>
           Logs: {podName}
-          {container ? ` (${container})` : ''}
+          {effectiveContainer ? ` (${effectiveContainer})` : containerList.length > 1 ? ' (all containers)' : ''}
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button

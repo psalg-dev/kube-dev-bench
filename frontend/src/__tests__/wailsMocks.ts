@@ -25,6 +25,8 @@ const appFunctionNames = [
   'CreateResource','DeletePod','DeleteResource','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','GetRoles','GetClusterRoles','GetRoleBindings','GetClusterRoleBindings','ResizePersistentVolumeClaim','GetServiceSummary','GetServices','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetUseInformers','GetReplicaSets','GetResourceCounts','GetResourceGraph','GetNamespaceGraph','GetStorageGraph','GetNetworkPolicyGraph','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','SetUseInformers','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
   // Proxy functions
   'GetProxyConfig','SetProxyConfig','DetectSystemProxy','ClearProxyConfig',
+  // Custom CA
+  'GetCustomCAPath','SetCustomCAPath',
   // Hooks functions
   'GetHooksConfig','SaveHook','DeleteHook','TestHook','SelectHookScript',
   // Docker / Swarm functions
@@ -54,7 +56,9 @@ const appFunctionNames = [
   // Monitor enhancements
   'ScanClusterHealth','AnalyzeMonitorIssue','AnalyzeMonitorIssueStream','AnalyzeAllMonitorIssues','DismissMonitorIssue','SaveMonitorIssueAnalysis','GetDismissedIssues',
   // Prometheus alerts
-  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory'
+  'GetPrometheusAlerts','InvestigatePrometheusAlert','GetAlertInvestigationHistory',
+  // Enterprise auth (Gaps 2-7)
+  'ConnectInsecure','RefreshCredentials','GetKubeconfigPaths','SetKubeconfigPaths','DetectKubeconfigEnvPaths','SetSessionProbeInterval','GetSessionProbeInterval'
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {

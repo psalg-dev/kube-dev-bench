@@ -16,8 +16,8 @@ import {
   getHolmesMockURL,
   getHolmesInput,
 } from '../../src/support/holmes-bootstrap.js';
+import { kubectl } from '../../src/support/kind.js';
 import type { SidebarPage } from '../../src/pages/SidebarPage.js';
-import { waitForTableRow, waitForResourceStatus } from '../../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -39,9 +39,10 @@ test.describe('Holmes Mock Analysis', () => {
     });
   });
 
-  test('Pod analysis returns mock crash response', async ({ page, namespace }) => {
+  test('Pod analysis returns mock crash response', async ({ page, namespace, kubeconfigPath }) => {
     const overlay = new CreateOverlay(page);
     const notifications = new Notifications(page);
+    await notifications.waitForClear({ timeoutMs: 30_000 });
 
     await test.step('Create a test deployment', async () => {
       await sidebar.goToSection('deployments');
@@ -72,8 +73,22 @@ spec:
       await overlay.openFromOverviewHeader();
       await overlay.fillYaml(deployYaml);
       await overlay.create();
+      await notifications.expectSuccessContains(/created|success/i, { timeoutMs: 90_000 });
       await notifications.waitForClear();
-      await waitForTableRow(page, new RegExp(deployName));
+      await sidebar.goToSection('pods');
+      await sidebar.goToSection('deployments');
+      await expect
+        .poll(
+          async () => {
+            const res = await kubectl(
+              ['get', 'deployment', deployName, '-n', namespace, '-o', 'name', '--ignore-not-found'],
+              { kubeconfigPath, timeoutMs: 15_000 }
+            );
+            return (res.stdout || '').trim();
+          },
+          { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }
+        )
+        .toBe(`deployment.apps/${deployName}`);
     });
 
     await test.step('Ask Holmes about pod crash', async () => {
@@ -97,7 +112,7 @@ spec:
     });
   });
 
-  test('Deployment analysis returns mock deployment response', async ({ page, namespace }) => {
+  test('Deployment analysis returns mock deployment response', async ({ page, namespace, kubeconfigPath }) => {
     const overlay = new CreateOverlay(page);
     const notifications = new Notifications(page);
 
@@ -128,8 +143,22 @@ spec:
       await overlay.openFromOverviewHeader();
       await overlay.fillYaml(deployYaml);
       await overlay.create();
+      await notifications.expectSuccessContains(/created|success/i, { timeoutMs: 90_000 });
       await notifications.waitForClear();
-      await waitForTableRow(page, new RegExp(deployName));
+      await sidebar.goToSection('pods');
+      await sidebar.goToSection('deployments');
+      await expect
+        .poll(
+          async () => {
+            const res = await kubectl(
+              ['get', 'deployment', deployName, '-n', namespace, '-o', 'name', '--ignore-not-found'],
+              { kubeconfigPath, timeoutMs: 15_000 }
+            );
+            return (res.stdout || '').trim();
+          },
+          { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }
+        )
+        .toBe(`deployment.apps/${deployName}`);
     });
 
     await test.step('Ask Holmes about deployment', async () => {

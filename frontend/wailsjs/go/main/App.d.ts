@@ -116,6 +116,8 @@ export function CloneSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function ConnectToDocker(arg1:docker.DockerConfig):Promise<docker.DockerConnectionStatus>;
 
+export function ConnectInsecure(arg1:string):Promise<void>;
+
 export function CreateKindCluster(arg1:string):Promise<app.KindClusterResult>;
 
 export function CreateResource(arg1:string,arg2:string):Promise<void>;
@@ -168,6 +170,8 @@ export function DeployHolmesGPT(arg1:holmesgpt.HolmesDeploymentRequest):Promise<
 
 export function DetectLogPatterns(arg1:string):Promise<Array<app.LogPattern>>;
 
+export function DetectKubeconfigEnvPaths():Promise<Array<string>>;
+
 export function DetectSystemProxy():Promise<Record<string, string>>;
 
 export function DisconnectDocker():Promise<void>;
@@ -177,6 +181,8 @@ export function DismissMonitorIssue(arg1:string):Promise<void>;
 export function DownloadFromSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function ExecCommand(arg1:string):Promise<void>;
+
+export function RefreshCredentials(arg1:string):Promise<void>;
 
 export function ExportSwarmConfig(arg1:string,arg2:string):Promise<string>;
 
@@ -223,6 +229,8 @@ export function GetCronJobYAML(arg1:string,arg2:string):Promise<string>;
 export function GetCronJobs(arg1:string):Promise<Array<app.CronJobInfo>>;
 
 export function GetCurrentConfig():Promise<app.AppConfig>;
+
+export function GetCustomCAPath():Promise<string>;
 
 export function GetCustomResourceDefinitionDetail(arg1:string):Promise<app.CustomResourceDefinitionInfo>;
 
@@ -388,7 +396,11 @@ export function GetPodsOnNode(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetPrometheusAlerts(arg1:string):Promise<Array<app.PrometheusAlert>>;
 
+export function GetKubeconfigPaths():Promise<Array<string>>;
+
 export function GetProxyConfig():Promise<app.ProxyConfig>;
+
+export function GetSessionProbeInterval():Promise<number>;
 
 export function GetProxyDisplayURL():Promise<string>;
 
@@ -676,11 +688,15 @@ export function SetCurrentKubeContext(arg1:string):Promise<void>;
 
 export function SetCurrentNamespace(arg1:string):Promise<void>;
 
+export function SetCustomCAPath(arg1:string):Promise<void>;
+
 export function SetHolmesConfig(arg1:holmesgpt.HolmesConfigData):Promise<void>;
 
 export function SetImageUpdateSettings(arg1:docker.ImageUpdateSettings):Promise<void>;
 
 export function SetKubeConfigPath(arg1:string):Promise<void>;
+
+export function SetKubeconfigPaths(arg1:Array<string>):Promise<void>;
 
 export function SetMCPConfig(arg1:mcp.MCPConfigData):Promise<void>;
 
@@ -691,6 +707,8 @@ export function SetProxyConfig(arg1:string,arg2:string,arg3:string,arg4:string):
 export function SetRememberContext(arg1:boolean):Promise<void>;
 
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
+
+export function SetSessionProbeInterval(arg1:number):Promise<void>;
 
 export function SetUseInformers(arg1:boolean):Promise<void>;
 

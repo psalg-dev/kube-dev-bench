@@ -9,7 +9,11 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-// GetSecretData fetches a Secret by name in the current namespace and returns its data as base64 strings
+// maxSecretValueSize is the maximum size of a single secret key value returned to the frontend (IMP-4).
+const maxSecretValueSize = 64 * 1024 // 64 KiB
+
+// GetSecretData fetches a Secret by name in the current namespace and returns its data as base64 strings.
+// Individual key values are capped at maxSecretValueSize; larger values are truncated.
 func (a *App) GetSecretData(secretName string) (map[string]string, error) {
 	out := make(map[string]string)
 
@@ -28,13 +32,22 @@ func (a *App) GetSecretData(secretName string) (map[string]string, error) {
 		return out, err
 	}
 
-	// Convert data to base64 strings for transport
+	// Convert data to base64 strings for transport (IMP-4: cap at 64 KiB per key)
 	for k, v := range s.Data {
 		if len(v) == 0 {
 			out[k] = ""
 			continue
 		}
-		out[k] = base64.StdEncoding.EncodeToString(v)
+		truncated := len(v) > maxSecretValueSize
+		if truncated {
+			v = v[:maxSecretValueSize]
+		}
+		encoded := base64.StdEncoding.EncodeToString(v)
+		if truncated {
+			out[k] = encoded + "[TRUNCATED]"
+		} else {
+			out[k] = encoded
+		}
 	}
 
 	return out, nil
@@ -87,7 +100,7 @@ func (a *App) GetSecrets(namespace string) ([]map[string]interface{}, error) {
 		return secrets, err
 	}
 
-	secretList, err := clientset.CoreV1().Secrets(ns).List(a.ctx, metav1.ListOptions{})
+	secretList, err := clientset.CoreV1().Secrets(ns).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return secrets, err
 	}

@@ -2,11 +2,16 @@ package app
 
 import (
 	"context"
+	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	k8stesting "k8s.io/client-go/testing"
 )
 
 // Tests for GetConnectionStatus
@@ -116,5 +121,143 @@ func TestGetNamespaces(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestNamespaceFromKubeconfig verifies namespace extraction from kubeconfig.
+func TestNamespaceFromKubeconfig(t *testing.T) {
+	t.Run("returns namespace from context", func(t *testing.T) {
+		dir := t.TempDir()
+		kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://example.com
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+    user: my-user
+    namespace: custom-ns
+  name: my-context
+current-context: my-context
+users:
+- name: my-user
+  user: {}
+`
+		path := filepath.Join(dir, "kubeconfig")
+		if err := os.WriteFile(path, []byte(kubeconfigContent), 0600); err != nil {
+			t.Fatalf("failed to write kubeconfig: %v", err)
+		}
+
+		a := &App{
+			kubeConfig:         path,
+			currentKubeContext: "my-context",
+		}
+		ns := a.namespaceFromKubeconfig()
+		if ns != "custom-ns" {
+			t.Errorf("namespaceFromKubeconfig() = %q, want %q", ns, "custom-ns")
+		}
+	})
+
+	t.Run("returns empty when no namespace set", func(t *testing.T) {
+		dir := t.TempDir()
+		kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://example.com
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+    user: my-user
+  name: my-context
+current-context: my-context
+users:
+- name: my-user
+  user: {}
+`
+		path := filepath.Join(dir, "kubeconfig")
+		if err := os.WriteFile(path, []byte(kubeconfigContent), 0600); err != nil {
+			t.Fatalf("failed to write kubeconfig: %v", err)
+		}
+
+		a := &App{
+			kubeConfig:         path,
+			currentKubeContext: "my-context",
+		}
+		ns := a.namespaceFromKubeconfig()
+		if ns != "" {
+			t.Errorf("namespaceFromKubeconfig() = %q, want empty", ns)
+		}
+	})
+
+	t.Run("returns empty for unknown context", func(t *testing.T) {
+		dir := t.TempDir()
+		kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters: []
+contexts: []
+users: []
+`
+		path := filepath.Join(dir, "kubeconfig")
+		if err := os.WriteFile(path, []byte(kubeconfigContent), 0600); err != nil {
+			t.Fatalf("failed to write kubeconfig: %v", err)
+		}
+
+		a := &App{
+			kubeConfig:         path,
+			currentKubeContext: "nonexistent-context",
+		}
+		ns := a.namespaceFromKubeconfig()
+		if ns != "" {
+			t.Errorf("namespaceFromKubeconfig() = %q, want empty", ns)
+		}
+	})
+}
+
+func TestGetNamespaces_AuthProviderFallbackToKubeconfigNamespace(t *testing.T) {
+	dir := t.TempDir()
+	kubeconfigContent := `apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://example.com
+  name: my-cluster
+contexts:
+- context:
+    cluster: my-cluster
+    user: my-user
+    namespace: tkgi-team-a
+  name: my-context
+current-context: my-context
+users:
+- name: my-user
+  user: {}
+`
+	path := filepath.Join(dir, "kubeconfig")
+	if err := os.WriteFile(path, []byte(kubeconfigContent), 0o600); err != nil {
+		t.Fatalf("failed to write kubeconfig: %v", err)
+	}
+
+	clientset := fake.NewSimpleClientset()
+	clientset.Fake.PrependReactor("list", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, errors.New("oidc: no valid id-token, and cannot refresh without refresh token")
+	})
+
+	app := &App{
+		ctx:                context.Background(),
+		testClientset:      clientset,
+		kubeConfig:         path,
+		currentKubeContext: "my-context",
+	}
+
+	ns, err := app.GetNamespaces()
+	if err != nil {
+		t.Fatalf("GetNamespaces failed: %v", err)
+	}
+	if len(ns) != 1 || ns[0] != "tkgi-team-a" {
+		t.Fatalf("expected fallback namespace [tkgi-team-a], got %v", ns)
 	}
 }

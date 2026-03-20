@@ -1,0 +1,119 @@
+/* TLS Certificate Error Dialog — scoped to .tls-dialog-overlay */
+.tls-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.tls-dialog {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 500px;
+  width: 90%;
+  color: #c9d1d9;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.tls-dialog-title {
+  margin: 0 0 12px;
+  font-size: 18px;
+  color: #f85149;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tls-dialog-title::before {
+  content: '⚠';
+}
+
+.tls-dialog-message {
+  margin: 0 0 16px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.tls-dialog-message code {
+  background: #0d1117;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.tls-dialog-details {
+  margin: 0 0 20px;
+  font-size: 12px;
+}
+
+.tls-dialog-details summary {
+  cursor: pointer;
+  color: #8b949e;
+  margin-bottom: 8px;
+}
+
+.tls-dialog-details pre {
+  background: #0d1117;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  font-size: 11px;
+  max-height: 120px;
+  overflow-y: auto;
+  color: #8b949e;
+}
+
+.tls-dialog-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.tls-btn {
+  padding: 8px 16px;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.tls-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tls-btn-primary {
+  background: #238636;
+  color: #fff;
+  border-color: #238636;
+}
+
+.tls-btn-primary:hover:not(:disabled) {
+  background: #2ea043;
+}
+
+.tls-btn-danger {
+  background: #21262d;
+  color: #f85149;
+  border-color: #f85149;
+}
+
+.tls-btn-danger:hover:not(:disabled) {
+  background: #3d1c1e;
+}
+
+.tls-btn-secondary {
+  background: #21262d;
+  color: #c9d1d9;
+}
+
+.tls-btn-secondary:hover:not(:disabled) {
+  background: #30363d;
+}

@@ -575,3 +575,109 @@ func TestGetPodLogsInNamespace_ReturnsFetcherError(t *testing.T) {
 		t.Fatalf("expected error %v, got %v", expected, err)
 	}
 }
+
+// TestGetPodLogsInNamespace_NilCtx covers the nil-ctx safety branch and the
+// GetLogs.DoRaw error when falling back to real API (fake clientset).
+func TestGetPodLogsInNamespace_NilCtx(t *testing.T) {
+	app := &App{ctx: nil, testClientset: fake.NewSimpleClientset()}
+	_, err := app.getPodLogsInNamespace("default", "no-pod", 0)
+	// Fake clientset doesn't support GetLogs().DoRaw(); error is expected.
+	_ = err
+}
+
+func TestGetDeploymentLogs_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetDeploymentLogs("default", "x")
+	if err == nil {
+		t.Error("expected error from GetDeploymentLogs with no K8s context")
+	}
+}
+
+func TestGetStatefulSetLogs_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetStatefulSetLogs("default", "x")
+	if err == nil {
+		t.Error("expected error from GetStatefulSetLogs with no K8s context")
+	}
+}
+
+func TestGetStatefulSetLogs_NotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	_, err := app.GetStatefulSetLogs("default", "missing-ss")
+	if err == nil {
+		t.Error("expected not-found error for missing statefulset")
+	}
+}
+
+func TestGetDaemonSetLogs_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetDaemonSetLogs("default", "x")
+	if err == nil {
+		t.Error("expected error from GetDaemonSetLogs with no K8s context")
+	}
+}
+
+func TestGetDaemonSetLogs_NotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	_, err := app.GetDaemonSetLogs("default", "missing-ds")
+	if err == nil {
+		t.Error("expected not-found error for missing daemonset")
+	}
+}
+
+func TestGetJobLogs_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetJobLogs("default", "x")
+	if err == nil {
+		t.Error("expected error from GetJobLogs with no K8s context")
+	}
+}
+
+func TestGetJobLogs_NotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	_, err := app.GetJobLogs("default", "missing-job")
+	if err == nil {
+		t.Error("expected not-found error for missing job")
+	}
+}
+
+func TestGetReplicaSetLogs_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetReplicaSetLogs("default", "x")
+	if err == nil {
+		t.Error("expected error from GetReplicaSetLogs with no K8s context")
+	}
+}
+
+func TestGetReplicaSetLogs_NotFound(t *testing.T) {
+	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
+	_, err := app.GetReplicaSetLogs("default", "missing-rs")
+	if err == nil {
+		t.Error("expected not-found error for missing replicaset")
+	}
+}
+
+// TestAggregatePodsLogs_WithPod exercises the aggregatePodsLogs loop body using
+// testPodLogsFetcher, covering the continue path when one pod errors.
+func TestAggregatePodsLogs_WithPod(t *testing.T) {
+	app := &App{
+		ctx: context.Background(),
+		testPodLogsFetcher: func(ns, name, container string, tailLines int) (string, error) {
+			if name == "pod1" {
+				return "log line 1\nlog line 2\n", nil
+			}
+			return "", fmt.Errorf("pod not found: %s", name)
+		},
+	}
+	pods := []corev1.Pod{
+		{ObjectMeta: metav1.ObjectMeta{Name: "pod1", Namespace: "default"}},
+		{ObjectMeta: metav1.ObjectMeta{Name: "pod2-err", Namespace: "default"}},
+	}
+	result, err := app.aggregatePodsLogs("default", pods)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result == "" {
+		t.Error("expected non-empty log output")
+	}
+}

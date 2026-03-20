@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"gowails/pkg/app/holmesgpt"
 )
@@ -23,6 +24,16 @@ type AppConfig struct {
 	ProxyAuthType string `json:"proxyAuthType"` // "none", "basic", "system"
 	ProxyUsername string `json:"proxyUsername"`
 	ProxyPassword string `json:"proxyPassword"`
+	// Custom CA certificate path for Kubernetes API connections
+	CustomCAPath string `json:"customCAPath,omitempty"`
+	// KubeconfigPaths holds explicit kubeconfig file paths for multi-file merge (Gap 4).
+	// When empty, falls back to KUBECONFIG env var or the single KubeConfigPath.
+	KubeconfigPaths []string `json:"kubeconfigPaths,omitempty"`
+	// SessionProbeInterval is the background liveness probe interval in minutes.
+	// 0 disables the probe (default).
+	SessionProbeInterval int `json:"sessionProbeInterval,omitempty"`
+	// AllowInsecure remembers user's per-context opt-in to insecure TLS (CRIT-4).
+	AllowInsecure map[string]bool `json:"allowInsecure,omitempty"`
 	// Holmes AI configuration
 	HolmesConfig holmesgpt.HolmesConfigData `json:"holmesConfig,omitempty"`
 }
@@ -41,40 +52,58 @@ func (a *App) loadConfig() error {
 	if err := json.Unmarshal(data, &config); err != nil {
 		return err
 	}
-	a.currentKubeContext = config.CurrentContext
+	a.setKubeContext(config.CurrentContext)
 	a.currentNamespace = config.CurrentNamespace
 	a.preferredNamespaces = append([]string(nil), config.PreferredNamespaces...)
 	a.useInformers = config.UseInformers
 	a.rememberContext = config.RememberContext
 	a.rememberNamespace = config.RememberNamespace
 	a.kubeConfig = config.KubeConfigPath
+	a.customCAPath = config.CustomCAPath
+	a.kubeconfigPaths = append([]string(nil), config.KubeconfigPaths...)
+	if config.AllowInsecure != nil {
+		a.allowInsecure = config.AllowInsecure
+	} else {
+		a.allowInsecure = make(map[string]bool)
+	}
+	if config.SessionProbeInterval > 0 {
+		a.sessionProbeInterval = time.Duration(config.SessionProbeInterval) * time.Minute
+	}
 	// Load proxy configuration
 	a.proxyURL = config.ProxyURL
 	a.proxyAuthType = config.ProxyAuthType
 	a.proxyUsername = config.ProxyUsername
 	a.proxyPassword = config.ProxyPassword
 	// Load Holmes configuration
-	holmesConfig = config.HolmesConfig
+	a.setHolmesConfig(config.HolmesConfig)
 	return nil
 }
 
 // saveConfig persists the current configuration to disk
 func (a *App) saveConfig() error {
+	probeMinutes := 0
+	if a.sessionProbeInterval > 0 {
+		probeMinutes = int(a.sessionProbeInterval / time.Minute)
+	}
 	config := AppConfig{
-		CurrentContext:      a.currentKubeContext,
-		CurrentNamespace:    a.currentNamespace,
-		PreferredNamespaces: append([]string(nil), a.preferredNamespaces...),
-		UseInformers:        a.useInformers,
-		RememberContext:     a.rememberContext,
-		RememberNamespace:   a.rememberNamespace,
-		KubeConfigPath:      a.kubeConfig,
+		CurrentContext:       a.getKubeContext(),
+		CurrentNamespace:     a.currentNamespace,
+		PreferredNamespaces:  append([]string(nil), a.preferredNamespaces...),
+		UseInformers:         a.useInformers,
+		RememberContext:      a.rememberContext,
+		RememberNamespace:    a.rememberNamespace,
+		KubeConfigPath:       a.kubeConfig,
+		CustomCAPath:         a.customCAPath,
+		KubeconfigPaths:      append([]string(nil), a.kubeconfigPaths...),
+		SessionProbeInterval: probeMinutes,
+		AllowInsecure:        a.allowInsecure,
 		// Proxy configuration
 		ProxyURL:      a.proxyURL,
 		ProxyAuthType: a.proxyAuthType,
 		ProxyUsername: a.proxyUsername,
 		ProxyPassword: a.proxyPassword,
 		// Holmes AI configuration
-		HolmesConfig: holmesConfig,
+		HolmesConfig: a.getHolmesConfig(),
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
@@ -125,6 +154,8 @@ func (a *App) SetKubeConfigPath(path string) error {
 
 	// Store the path in our app config
 	a.kubeConfig = path
+	// Invalidate cached client since the kubeconfig source has changed.
+	a.invalidateCachedClient()
 	if err := a.saveConfig(); err != nil {
 		return err
 	}
@@ -136,7 +167,8 @@ func (a *App) SetKubeConfigPath(path string) error {
 
 // SetCurrentKubeContext stores the selected context name
 func (a *App) SetCurrentKubeContext(name string) error {
-	a.currentKubeContext = name
+	a.setKubeContext(name)
+	a.invalidateCachedClient()
 	a.restartInformerManager()
 	// Trigger a counts refresh (context switch invalidates prior data)
 	a.requestCountsRefresh()
@@ -196,6 +228,25 @@ func (a *App) GetRememberNamespace() bool { return a.rememberNamespace }
 
 // GetUseInformers returns whether informer-based updates are enabled.
 func (a *App) GetUseInformers() bool { return a.useInformers }
+
+// GetCustomCAPath returns the configured custom CA certificate path for Kubernetes connections.
+func (a *App) GetCustomCAPath() string { return a.customCAPath }
+
+// SetCustomCAPath sets an optional custom CA certificate file path used for TLS
+// verification when connecting to Kubernetes clusters whose server certificate
+// is signed by a private / enterprise CA not in the system trust store.
+// Pass an empty string to clear.
+func (a *App) SetCustomCAPath(path string) error {
+	if path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return fmt.Errorf("custom CA file not accessible: %w", err)
+		}
+	}
+	a.customCAPath = path
+	// Invalidate cached client so new connections pick up the CA change.
+	a.invalidateCachedClient()
+	return a.saveConfig()
+}
 
 // SetUseInformers switches between polling and informer-based update mode.
 func (a *App) SetUseInformers(val bool) error {

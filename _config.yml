@@ -1,0 +1,72 @@
+title: KubeDevBench
+description: Desktop Kubernetes + Docker Swarm client with AI-powered diagnostics
+url: "https://psalg-dev.github.io"
+baseurl: "/kube-dev-bench"
+
+remote_theme: pages-themes/cayman@v0.2.0
+
+# Apply default layout without requiring front matter in each file
+defaults:
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: default
+  - scope:
+      path: "README.md"
+    values:
+      layout: default
+      title: Home
+      nav_order: 1
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+# Navigation links shown in the Cayman theme header
+header_pages:
+  - docs/setup.md
+  - docs/DEVELOPMENT.md
+  - docs/informer-architecture.md
+  - docs/MCP_INTEGRATION.md
+  - docs/registry-e2e-suite.md
+
+# Exclude build artifacts and source code directories
+exclude:
+  - "*.go"
+  - "main.go"
+  - "go.mod"
+  - "go.sum"
+  - "wails.json"
+  - "stack.yml"
+  - "renovate.json"
+  - "*.syso"
+  - "Gemfile"
+  - "Gemfile.lock"
+  - "build/"
+  - "frontend/"
+  - "pkg/"
+  - "e2e/"
+  - "scripts/"
+  - "kind/"
+  - "registry/"
+  - "quality/"
+  - "project/"
+  - "kube-dev-bench.code-workspace"
+  - "docs/BASELINE_COVERAGE.txt"
+  - "docs/e2e-test-fixes.md"
+  - "docs/e2e-test-progress.md"
+  - "docs/holmes-e2e-testing-plan.md"
+  - "docs/replace-jfrog-with-docker-registry.md"
+  - "docs/TEST_PLAN_TASK05.md"
+  - "docs/COVERAGE_PRIORITIES.md"
+
+# Markdown settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# GitHub metadata
+github:
+  repository_url: "https://github.com/psalg-dev/kube-dev-bench"

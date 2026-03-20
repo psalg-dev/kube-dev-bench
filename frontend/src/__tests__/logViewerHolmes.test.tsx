@@ -25,7 +25,13 @@ vi.mock('@codemirror/view', () => {
     destroy = vi.fn();
     dom = document.createElement('div');
   }
-  return { EditorView };
+  const Decoration = {
+    mark: () => ({}),
+  };
+  const ViewPlugin = {
+    fromClass: () => ({}),
+  };
+  return { EditorView, Decoration, ViewPlugin };
 });
 
 vi.mock('@codemirror/state', () => ({
@@ -34,6 +40,10 @@ vi.mock('@codemirror/state', () => ({
     readOnly: { of: () => ({}) },
     allowMultipleSelections: { of: () => ({}) },
   },
+  RangeSetBuilder: vi.fn().mockImplementation(() => ({
+    add: vi.fn(),
+    finish: vi.fn().mockReturnValue({}),
+  })),
 }));
 
 vi.mock('../../wailsjs/runtime', () => ({
@@ -47,6 +57,7 @@ vi.mock('../../wailsjs/go/main/App', () => ({
   GetPodLog: vi.fn(),
   StreamPodContainerLogs: vi.fn(),
   GetPodContainerLog: vi.fn(),
+  GetPodContainers: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../holmes/holmesApi', () => holmesApiMocks);

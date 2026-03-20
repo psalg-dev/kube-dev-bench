@@ -158,6 +158,59 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, timeoutMessage: 
   });
 }
 
+async function waitForKubeConfigBinding(timeoutMs = 10_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const win = window as Window & {
+      go?: { main?: { App?: { GetKubeConfigs?: () => Promise<unknown> } } };
+    };
+
+    if (typeof win.go?.main?.App?.GetKubeConfigs === 'function') {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  throw new Error('Wails bindings not ready for kubeconfig discovery');
+}
+
+async function waitForKubeConnectBindings(timeoutMs = 10_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const win = window as Window & {
+      go?: {
+        main?: {
+          App?: {
+            SetKubeConfigPath?: (_path: string) => Promise<unknown>;
+            GetCurrentConfig?: () => Promise<unknown>;
+            GetKubeContexts?: () => Promise<unknown>;
+            GetNamespaces?: () => Promise<unknown>;
+            SetCurrentKubeContext?: (_context: string) => Promise<unknown>;
+            SetCurrentNamespace?: (_namespace: string) => Promise<unknown>;
+          };
+        };
+      };
+    };
+
+    const app = win.go?.main?.App;
+    if (
+      typeof app?.SetKubeConfigPath === 'function' &&
+      typeof app?.GetCurrentConfig === 'function' &&
+      typeof app?.GetKubeContexts === 'function' &&
+      typeof app?.GetNamespaces === 'function' &&
+      typeof app?.SetCurrentKubeContext === 'function' &&
+      typeof app?.SetCurrentNamespace === 'function'
+    ) {
+      return;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+
+  throw new Error('Wails bindings not ready for kubeconfig connection');
+}
+
 function getCreateKindClusterFn() {
   const win = window as unknown as KindClusterWails;
   const fn = win?.go?.main?.App?.CreateKindCluster;
@@ -359,7 +412,8 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
   const loadKubeConfigs = useCallback(async () => {
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
-      const configs = await GetKubeConfigs();
+      await waitForKubeConfigBinding();
+      const configs = await withTimeout(GetKubeConfigs(), 30_000, 'Timed out loading kubeconfig files');
       const safe = Array.isArray(configs) ? configs : [];
       dispatch({ type: 'SET_KUBE_CONFIGS', configs: safe });
       if (safe.length > 0 && !state.selectedKubeConfig) {
@@ -481,35 +535,40 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
     try {
       dispatch({ type: 'SET_LOADING', loading: true });
       dispatch({ type: 'SET_ERROR', error: '' });
-      await SetKubeConfigPath(config.path);
+      await waitForKubeConnectBindings();
+      await withTimeout(
+        (async () => {
+          await SetKubeConfigPath(config.path);
 
-      const currentConfig = await GetCurrentConfig();
-      let contextWasSet = !!currentConfig.currentContext;
+          const currentConfig = await GetCurrentConfig();
+          let contextWasSet = !!currentConfig.currentContext;
 
-      if (!contextWasSet) {
-        const contexts = await GetKubeContexts();
-        if (Array.isArray(contexts) && contexts.length > 0) {
-          await SetCurrentKubeContext(contexts[0]);
-          contextWasSet = true;
-        }
-      }
-
-      if (contextWasSet) {
-        try {
-          const namespaces = await GetNamespaces();
-          if (Array.isArray(namespaces) && namespaces.length > 0) {
-            if (!currentConfig.currentNamespace) {
-              const firstNs = namespaces[0];
-              await SetCurrentNamespace(firstNs);
-              if (window?.go?.main?.App?.SetPreferredNamespaces) {
-                await window.go.main.App.SetPreferredNamespaces([firstNs]);
-              }
+          if (!contextWasSet) {
+            const contexts = await GetKubeContexts();
+            if (Array.isArray(contexts) && contexts.length > 0) {
+              await SetCurrentKubeContext(contexts[0]);
+              contextWasSet = true;
             }
           }
-        } catch {
-          /* ignore namespace failures */
-        }
-      }
+
+          if (contextWasSet) {
+            try {
+              const namespaces = await GetNamespaces();
+              if (Array.isArray(namespaces) && namespaces.length > 0 && !currentConfig.currentNamespace) {
+                const firstNs = namespaces[0];
+                await SetCurrentNamespace(firstNs);
+                if (window?.go?.main?.App?.SetPreferredNamespaces) {
+                  await window.go.main.App.SetPreferredNamespaces([firstNs]);
+                }
+              }
+            } catch {
+              /* ignore namespace failures */
+            }
+          }
+        })(),
+        30_000,
+        'Connecting to kubeconfig timed out'
+      );
 
       return true;
     } catch (err) {

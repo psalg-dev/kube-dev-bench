@@ -136,6 +136,7 @@ func TestStartup_LoadsConfig(t *testing.T) {
 
 	ctx := context.Background()
 	app.Startup(ctx)
+	app.Shutdown(ctx)
 
 	if app.ctx != ctx {
 		t.Error("Context was not set")
@@ -160,5 +161,52 @@ func TestGetCurrentConfig_PreferredNamespacesCopy(t *testing.T) {
 	config2 := app.GetCurrentConfig()
 	if config2.PreferredNamespaces[0] != "ns1" {
 		t.Error("GetCurrentConfig should return a copy of PreferredNamespaces")
+	}
+}
+
+// TestStartup_LoadConfigError_CountsRefreshChNil covers the loadConfig error
+// path (bad JSON) and the nil countsRefreshCh safety assignment in Startup.
+func TestStartup_LoadConfigError_CountsRefreshChNil(t *testing.T) {
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "bad-cfg.json")
+	if err := os.WriteFile(configPath, []byte("{bad json!!}"), 0o600); err != nil {
+		t.Fatalf("setup: %v", err)
+	}
+
+	app := &App{
+		configPath:           configPath,
+		countsRefreshCh:      nil, // triggers nil-safety branch
+		disableStartupDocker: true,
+		logCancels:           make(map[string]context.CancelFunc),
+		swarmVolumeHelpers:   make(map[string]string),
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	app.Startup(ctx)
+	app.Shutdown(ctx)
+}
+
+func TestLogDirectory_FromConfigPath(t *testing.T) {
+	dir := t.TempDir()
+	a := &App{configPath: filepath.Join(dir, "config.json")}
+
+	got := a.logDirectory()
+	want := filepath.Join(dir, "logs")
+	if got != want {
+		t.Fatalf("logDirectory() = %q, want %q", got, want)
+	}
+}
+
+func TestLogDirectory_FallbackToHome(t *testing.T) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		t.Fatalf("UserHomeDir: %v", err)
+	}
+	a := &App{}
+
+	got := a.logDirectory()
+	want := filepath.Join(home, "KubeDevBench", "logs")
+	if got != want {
+		t.Fatalf("logDirectory() = %q, want %q", got, want)
 	}
 }

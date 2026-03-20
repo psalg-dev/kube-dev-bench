@@ -231,3 +231,19 @@ func TestBuildCRDInfo_ClusterScoped(t *testing.T) {
 		t.Errorf("expected scope 'Cluster', got '%s'", info.Scope)
 	}
 }
+
+func TestGetCustomResourceDefinitions_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetCustomResourceDefinitions()
+	if err == nil {
+		t.Error("expected error from GetCustomResourceDefinitions with no K8s context")
+	}
+}
+
+func TestGetCustomResourceDefinitionDetail_GetK8sError(t *testing.T) {
+	app := newAppNoCtx()
+	_, err := app.GetCustomResourceDefinitionDetail("my-crd.example.com")
+	if err == nil {
+		t.Error("expected error from GetCustomResourceDefinitionDetail with no K8s context")
+	}
+}
