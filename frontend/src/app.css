@@ -221,6 +221,8 @@ body, #layout {
   display: flex;
   flex-direction: column;
   position: relative; /* ensure absolute children (notifications) anchor here */
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Result area containment */
@@ -241,7 +243,8 @@ body, #layout {
   display: flex;
   flex-direction: column;
   gap: var(--panel-gap);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
   padding-bottom: calc(var(--footer-height) + 15px);
 }
