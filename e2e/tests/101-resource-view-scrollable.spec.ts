@@ -1,80 +1,213 @@
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
+import { kubectl } from '../src/support/kind.js';
+import { waitForTableRow } from '../src/support/wait-helpers.js';
 
-/**
- * Regression test: resource view tables must be vertically scrollable.
- *
- * Previously, #main-panels had `overflow: hidden` which silently clipped rows
- * that extended beyond the visible area on large clusters. This test guards
- * against that regression by verifying:
- *   1. The scroll container (#main-panels) does not have overflow-y: hidden.
- *   2. The container can actually be scrolled to a non-zero position when its
- *      content is taller than the viewport.
- */
+function resourceName(prefix: string, index: number) {
+  return `${prefix}-${String(index).padStart(3, '0')}`;
+}
 
-test.describe('Resource view scrollability', () => {
-  test('main panels container is not overflow-hidden', async ({ page, contextName, namespace }) => {
-    const { sidebar } = await bootstrapApp({ page, contextName, namespace });
+function buildConfigMapsManifest(namespace: string, prefix: string, count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const name = resourceName(prefix, index);
+    return [
+      'apiVersion: v1',
+      'kind: ConfigMap',
+      'metadata:',
+      `  name: ${name}`,
+      `  namespace: ${namespace}`,
+      '  labels:',
+      `    e2e-suite: ${prefix}`,
+      'data:',
+      `  value: ${name}`,
+    ].join('\n');
+  }).join('\n---\n');
+}
 
-    // Navigate to Deployments – always present (even empty) so the table renders.
-    await sidebar.goToSection('deployments');
-    await expect(page.locator('h2.overview-title:visible')).toHaveText(/deployments/i, {
-      timeout: 30_000,
-    });
+function buildPodsManifest(namespace: string, prefix: string, count: number) {
+  return Array.from({ length: count }, (_, index) => {
+    const name = resourceName(prefix, index);
+    return [
+      'apiVersion: v1',
+      'kind: Pod',
+      'metadata:',
+      `  name: ${name}`,
+      `  namespace: ${namespace}`,
+      '  labels:',
+      `    app: ${prefix}`,
+      `    e2e-suite: ${prefix}`,
+      'spec:',
+      '  terminationGracePeriodSeconds: 0',
+      '  containers:',
+      '  - name: pause',
+      '    image: registry.k8s.io/pause:3.9',
+    ].join('\n');
+  }).join('\n---\n');
+}
 
-    const overflowY = await page.evaluate(() => {
-      const el = document.getElementById('main-panels');
-      if (!el) return null;
-      return window.getComputedStyle(el).overflowY;
-    });
+async function writeManifest(prefix: string, contents: string) {
+  const filePath = path.join(os.tmpdir(), `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}.yaml`);
+  await fs.writeFile(filePath, contents, 'utf-8');
+  return filePath;
+}
 
-    expect(overflowY, '#main-panels must allow vertical scroll (not "hidden")').not.toBe('hidden');
-    expect(overflowY, '#main-panels overflow-y should be "auto" or "scroll"').toMatch(/^(auto|scroll)$/);
+async function applyManifest(kubeconfigPath: string, filePath: string) {
+  const result = await kubectl(['apply', '-f', filePath], { kubeconfigPath, timeoutMs: 180_000 });
+  expect(result.code, result.stderr || result.stdout).toBe(0);
+}
+
+async function waitForResourceCount(
+  kubeconfigPath: string,
+  namespace: string,
+  kind: 'configmaps' | 'pods',
+  labelSelector: string,
+  expectedCount: number,
+) {
+  await expect.poll(async () => {
+    const result = await kubectl(
+      ['get', kind, '-n', namespace, '-l', labelSelector, '-o', 'name'],
+      { kubeconfigPath, timeoutMs: 30_000 },
+    );
+    if (result.code !== 0) {
+      return -1;
+    }
+    return (result.stdout || '')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean).length;
+  }, {
+    timeout: 180_000,
+    intervals: [500, 1000, 2000, 5000],
+  }).toBe(expectedCount);
+}
+
+async function ensureNameSortAscending(page: import('@playwright/test').Page) {
+  const nameButton = page.getByRole('button', { name: /^Name$/ }).first();
+  const nameHeader = nameButton.locator('xpath=ancestor::th[1]');
+
+  await expect(nameButton).toBeVisible({ timeout: 30_000 });
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const ariaSort = await nameHeader.getAttribute('aria-sort');
+    if (ariaSort === 'ascending') {
+      return;
+    }
+    await nameButton.click();
+    await page.waitForTimeout(150);
+  }
+
+  await expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+}
+
+async function scrollUntilRowVisible(
+  page: import('@playwright/test').Page,
+  containerSelector: string,
+  rowText: string,
+) {
+  const container = page.locator(containerSelector).first();
+  const targetRow = page
+    .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
+    .filter({ hasText: rowText })
+    .first();
+
+  await expect(container).toBeVisible({ timeout: 30_000 });
+  await container.evaluate((element) => {
+    element.scrollTop = 0;
   });
 
-  test('resource view table scrolls when content overflows viewport', async ({
+  const overflowState = await container.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+  expect(overflowState.scrollHeight).toBeGreaterThan(overflowState.clientHeight);
+
+  let observedScrollTop = 0;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const count = await targetRow.count();
+    if (count > 0) {
+      const [containerBox, rowBox] = await Promise.all([
+        container.boundingBox(),
+        targetRow.boundingBox(),
+      ]);
+
+      if (
+        containerBox &&
+        rowBox &&
+        rowBox.y >= containerBox.y &&
+        rowBox.y + rowBox.height <= containerBox.y + containerBox.height
+      ) {
+        expect(observedScrollTop).toBeGreaterThan(0);
+        return;
+      }
+    }
+
+    const nextState = await container.evaluate((element) => {
+      const maxScrollTop = Math.max(0, element.scrollHeight - element.clientHeight);
+      const nextScrollTop = Math.min(maxScrollTop, element.scrollTop + Math.max(120, Math.floor(element.clientHeight * 0.85)));
+      element.scrollTop = nextScrollTop;
+      return { scrollTop: element.scrollTop, maxScrollTop };
+    });
+
+    observedScrollTop = nextState.scrollTop;
+    await page.waitForTimeout(120);
+
+    if (nextState.scrollTop >= nextState.maxScrollTop && nextState.maxScrollTop > 0) {
+      break;
+    }
+  }
+
+  const [containerBox, rowBox] = await Promise.all([
+    container.boundingBox(),
+    targetRow.boundingBox(),
+  ]);
+  expect(containerBox).not.toBeNull();
+  expect(rowBox).not.toBeNull();
+  expect(observedScrollTop).toBeGreaterThan(0);
+  if (containerBox && rowBox) {
+    expect(rowBox.y).toBeGreaterThanOrEqual(containerBox.y);
+    expect(rowBox.y + rowBox.height).toBeLessThanOrEqual(containerBox.y + containerBox.height);
+  }
+}
+
+test.describe('Resource view scrollability', () => {
+  test('resource views remain scrollable with 100 items', async ({
     page,
     contextName,
     namespace,
+    kubeconfigPath,
   }) => {
+    test.setTimeout(420_000);
+
+    const configMapPrefix = `scroll-cm-${Date.now()}`;
+    const podPrefix = `scroll-pod-${Date.now()}`;
+    const configMapManifest = await writeManifest(configMapPrefix, buildConfigMapsManifest(namespace, configMapPrefix, 100));
+    const podManifest = await writeManifest(podPrefix, buildPodsManifest(namespace, podPrefix, 100));
+
+    await applyManifest(kubeconfigPath, configMapManifest);
+    await applyManifest(kubeconfigPath, podManifest);
+
+    await waitForResourceCount(kubeconfigPath, namespace, 'configmaps', `e2e-suite=${configMapPrefix}`, 100);
+    await waitForResourceCount(kubeconfigPath, namespace, 'pods', `e2e-suite=${podPrefix}`, 100);
+
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
 
-    // Navigate to Pods; inject extra rows so the table definitely overflows.
+    await sidebar.goToSection('configmaps');
+    await expect(page.locator('h2.overview-title:visible')).toHaveText(/config\s*maps/i, {
+      timeout: 30_000,
+    });
+    await waitForTableRow(page, resourceName(configMapPrefix, 0), { timeout: 120_000 });
+    await ensureNameSortAscending(page);
+    await scrollUntilRowVisible(page, '[data-testid="overview-table-scroll-container"]:visible', resourceName(configMapPrefix, 99));
+
     await sidebar.goToSection('pods');
     await expect(page.locator('h2.overview-title:visible')).toHaveText(/pods/i, {
       timeout: 30_000,
     });
-
-    // Inject synthetic rows directly into the table body so we force overflow
-    // regardless of how many real pods exist in the test namespace.
-    await page.evaluate(() => {
-      const mainPanels = document.getElementById('main-panels');
-      if (!mainPanels) throw new Error('#main-panels not found');
-
-      // Append a tall filler element directly to #main-panels (not inside a
-      // nested table/panel) so its height contributes to #main-panels scrollHeight.
-      // flex-shrink:0 prevents the flex layout from compressing it away.
-      const filler = document.createElement('div');
-      filler.id = 'e2e-scroll-filler';
-      filler.style.height = '5000px';
-      filler.style.minHeight = '5000px';
-      filler.style.flexShrink = '0';
-      mainPanels.appendChild(filler);
-    });
-
-    // Verify that #main-panels has overflow content (scrollHeight > clientHeight),
-    // meaning the container actually needs to scroll.  This is more reliable than
-    // checking scrollTop because it doesn't depend on the browser having completed
-    // a programmatic scroll before the assertion runs.
-    const { scrollHeight, clientHeight } = await page.evaluate(() => {
-      const el = document.getElementById('main-panels');
-      if (!el) return { scrollHeight: 0, clientHeight: 0 };
-      return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight };
-    });
-
-    expect(
-      scrollHeight,
-      `#main-panels scrollHeight (${scrollHeight}) should be > clientHeight (${clientHeight}), meaning the container overflows and can scroll`,
-    ).toBeGreaterThan(clientHeight);
+    await waitForTableRow(page, new RegExp(podPrefix), { timeout: 180_000 });
+    await ensureNameSortAscending(page);
+    await scrollUntilRowVisible(page, '[data-testid="pods-table-scroll-container"]:visible', resourceName(podPrefix, 99));
   });
 });

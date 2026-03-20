@@ -3,15 +3,13 @@ import {
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     useReactTable,
     type ColumnDef,
     type ColumnFiltersState,
-    type PaginationState,
     type SortingState,
 } from '@tanstack/react-table';
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type UIEvent as ReactUIEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
 import { EventsOff, EventsOn } from '../../../../wailsjs/runtime';
@@ -109,7 +107,6 @@ export default function PodOverviewTable({
   const [now, setNow] = useState(Date.now());
   // Default sorting: uptime ascending (youngest at top)
   const [sorting, setSorting] = useState<SortingState>([{ id: 'uptime', desc: false }]);
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [openMenuIndex, setOpenMenuIndex] = useState<number | null>(null);
   const [bottomOpen, setBottomOpen] = useState(false);
@@ -528,17 +525,13 @@ export default function PodOverviewTable({
     columns: baseColumns,
     state: {
       sorting,
-      pagination,
       columnFilters,
     },
     onSortingChange: setSorting,
-    onPaginationChange: setPagination,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    manualPagination: false,
     manualSorting: false,
   });
 
@@ -923,62 +916,6 @@ export default function PodOverviewTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bottomActiveTab, bottomPodName, bottomNamespace]);
 
-  const ROW_HEIGHT = 44; // px, adjust to match your row height
-  const VISIBLE_COUNT = 20; // number of rows to show at once
-  const [scrollTop, setScrollTop] = useState(0);
-
-  // Calculate which rows to show
-  const totalRows = table.getRowModel().rows.length;
-  const visibleRowStart = Math.floor(scrollTop / ROW_HEIGHT);
-  const visibleRows = table.getRowModel().rows.slice(visibleRowStart, visibleRowStart + VISIBLE_COUNT);
-  const topPadHeight = visibleRowStart * ROW_HEIGHT;
-  const bottomPadHeight = Math.max(0, (totalRows - (visibleRowStart + VISIBLE_COUNT)) * ROW_HEIGHT);
-
-  // Scroll handler
-  const handleScroll = (e: ReactUIEvent<HTMLDivElement>) => {
-    setScrollTop(e.currentTarget.scrollTop);
-  };
-
-  // Dynamically adjust scrollable div height based on BottomPanel
-  const scrollDivRef = useRef<HTMLDivElement | null>(null);
-  const bottomPanelRef = useRef<HTMLDivElement | null>(null);
-  const headerRef = useRef<HTMLTableElement | null>(null);
-  const topHeaderRef = useRef<HTMLDivElement | null>(null);
-  function updateScrollDivHeight() {
-    const windowHeight = window.innerHeight;
-    let headerHeight = 0;
-    if (headerRef.current) {
-      headerHeight = headerRef.current.offsetHeight;
-    }
-    let topHeaderHeight = 0;
-    if (topHeaderRef.current) {
-      topHeaderHeight = topHeaderRef.current.offsetHeight;
-    }
-    let bottomPanelHeight = 0;
-    if (bottomOpen && bottomPanelRef.current) {
-      bottomPanelHeight = bottomPanelRef.current.offsetHeight;
-    }
-    const margin = 100;
-    const newHeight = windowHeight - headerHeight - topHeaderHeight - bottomPanelHeight - margin;
-    if (scrollDivRef.current) {
-      scrollDivRef.current.style.height = `${newHeight}px`;
-    }
-  }
-  useEffect(() => {
-    window.addEventListener('resize', updateScrollDivHeight);
-    updateScrollDivHeight();
-    let observer: ResizeObserver | undefined;
-    if (bottomOpen && bottomPanelRef.current) {
-      observer = new window.ResizeObserver(updateScrollDivHeight);
-      observer.observe(bottomPanelRef.current);
-    }
-    return () => {
-      window.removeEventListener('resize', updateScrollDivHeight);
-      if (observer) observer.disconnect();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bottomOpen]);
-
   useEffect(() => {
     if (!notification.message) return;
     const timer = setTimeout(() => setNotification({ message: '', type: '' }), 3000);
@@ -1002,7 +939,9 @@ export default function PodOverviewTable({
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
-        minHeight: 0
+        minHeight: 0,
+        height: '100%',
+        overflow: 'hidden',
       }}>
         {notification.message && (
           <div style={{
@@ -1043,7 +982,7 @@ export default function PodOverviewTable({
             >×</button>
           </div>
         )}
-        <div ref={topHeaderRef} className="overview-header">
+        <div className="overview-header">
           <div className="overview-left">
             <button
               className="overview-create-btn menu-button"
@@ -1110,7 +1049,7 @@ export default function PodOverviewTable({
         {loading && <div>Loading...</div>}
         {/* Fixed header table */}
         {/* Column widths: Name(25%), Namespace(12% if multiNs), Status(15%), Ports(15%), Restarts(8%), Uptime(10-15%), Actions(15-20%) */}
-        <table id="pod-table-header" className="gh-table" ref={headerRef} style={{ width: '100%', tableLayout: 'fixed' }}>
+        <table id="pod-table-header" className="gh-table" style={{ width: '100%', tableLayout: 'fixed', flexShrink: 0 }}>
           <colgroup>
             {bulkEnabled && <col className="bulk-checkbox-col" />}
             <col style={{ width: '25%' }} />
@@ -1185,7 +1124,7 @@ export default function PodOverviewTable({
             )}
           </tbody>
         </table>
-        {tableData.length > 0 && <div ref={scrollDivRef} style={{ overflowY: 'auto', width: '100%', marginBottom: '50px' }} onScroll={handleScroll}>
+        {tableData.length > 0 && <div data-testid="pods-table-scroll-container" style={{ flex: 1, minHeight: 0, overflowY: 'auto', width: '100%', marginBottom: '50px' }}>
           <table className="gh-table" style={{ width: '100%', tableLayout: 'fixed' }}>
             <colgroup>
               {bulkEnabled && <col className="bulk-checkbox-col" />}
@@ -1198,29 +1137,21 @@ export default function PodOverviewTable({
               <col style={{ width: multiNs ? '15%' : '20%' }} />
             </colgroup>
             <tbody>
-            {topPadHeight > 0 && (
-                <tr style={{height: topPadHeight}}>
-                  <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} style={{padding: 0, border: 'none', background: 'transparent'}}/>
-                </tr>
-            )}
-            {visibleRows.map((row, i) => {
-                const rowKey = getRowKey(row.original, visibleRowStart + i);
+            {table.getRowModel().rows.map((row) => {
+                const rowKey = getRowKey(row.original, row.index);
                 return (
                 <tr
                     key={rowKey}
                     onClick={(e) => {
                       if (bulkEnabled && e.shiftKey) {
                         e.preventDefault();
-                        selection.toggleRow(getRowKey(row.original, visibleRowStart + i), visibleRowStart + i, true);
+                        selection.toggleRow(getRowKey(row.original, row.index), row.index, true);
                         return;
                       }
                       openDetails(row.original.name, row.original.namespace);
                     }}
                     className={bulkEnabled && selection.isSelected(getRowKey(row.original, row.index)) ? 'bulk-selected' : undefined}
-                    style={{
-                      transition: 'background 0.2s',
-                      height: ROW_HEIGHT
-                    }}
+                    style={{ transition: 'background 0.2s' }}
                 >
                   {bulkEnabled && (
                     <td className="bulk-checkbox-col" onClick={(e) => e.stopPropagation()}>
@@ -1230,7 +1161,7 @@ export default function PodOverviewTable({
                         checked={selection.isSelected(getRowKey(row.original, row.index))}
                         onClick={(e) => {
                           e.stopPropagation();
-                          selection.toggleRow(getRowKey(row.original, visibleRowStart + i), visibleRowStart + i, e.shiftKey);
+                          selection.toggleRow(getRowKey(row.original, row.index), row.index, e.shiftKey);
                         }}
                         onChange={() => {}}
                       />
@@ -1251,11 +1182,11 @@ export default function PodOverviewTable({
                       className="row-actions-button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        handleMenuClickRow(visibleRowStart + i);
+                        handleMenuClickRow(row.index);
                       }}
                     >···
                     </button>
-                    {openMenuIndex === (visibleRowStart + i) && (
+                    {openMenuIndex === row.index && (
                         <div
                             className="menu-content"
                             style={{
@@ -1398,26 +1329,12 @@ export default function PodOverviewTable({
                 </tr>
                 );
               })}
-            {bottomPadHeight > 0 && (
-                <tr style={{height: bottomPadHeight}}>
-                  <td colSpan={baseColumns.length + 1 + (bulkEnabled ? 1 : 0)} style={{padding: 0, border: 'none', background: 'transparent'}}/>
-                </tr>
-            )}
             </tbody>
           </table>
         </div>}
-        {tableData.length >= 20 && (
-          <div style={{marginTop:8, display:'flex', alignItems:'center', gap:8}}>
-            <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanPreviousPage() ? 'pointer' : 'not-allowed'}}>Previous</button>
-            <span style={{margin:'0 8px', fontSize:14, color:'var(--gh-table-text, #e0e0e0)'}}>Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}</span>
-            <button onClick={() => table.nextPage()} disabled={!table.getCanNextPage()} style={{padding:'6px 14px', borderRadius:0, border:'1px solid #353a42', background:'var(--gh-table-header-bg, #2d323b)', color:'var(--gh-table-header-text, #fff)', cursor: table.getCanNextPage() ? 'pointer' : 'not-allowed'}}>Next</button>
-          </div>
-        )}
-
         {/* Bottom panel with tabs - only render if open, and use ref */}
         {bottomOpen && (
           <BottomPanel
-            ref={bottomPanelRef}
             open={bottomOpen}
             onClose={closeBottomPanel}
             tabs={tabs}
