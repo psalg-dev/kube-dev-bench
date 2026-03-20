@@ -221,6 +221,8 @@ body, #layout {
   display: flex;
   flex-direction: column;
   position: relative; /* ensure absolute children (notifications) anchor here */
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* Result area containment */

@@ -78,14 +78,19 @@ test.describe('Resource view scrollability', () => {
       }
     });
 
-    // Scroll to the bottom of #main-panels
-    await page.evaluate(() => {
+    // Verify that #main-panels has overflow content (scrollHeight > clientHeight),
+    // meaning the container actually needs to scroll.  This is more reliable than
+    // checking scrollTop because it doesn't depend on the browser having completed
+    // a programmatic scroll before the assertion runs.
+    const { scrollHeight, clientHeight } = await page.evaluate(() => {
       const el = document.getElementById('main-panels');
-      if (el) el.scrollTop = el.scrollHeight;
+      if (!el) return { scrollHeight: 0, clientHeight: 0 };
+      return { scrollHeight: el.scrollHeight, clientHeight: el.clientHeight };
     });
 
-    // The scroll position must be greater than 0, proving the element scrolls.
-    const scrollTop = await page.evaluate(() => document.getElementById('main-panels')?.scrollTop ?? 0);
-    expect(scrollTop, '#main-panels scrollTop should be > 0 after scrolling').toBeGreaterThan(0);
+    expect(
+      scrollHeight,
+      `#main-panels scrollHeight (${scrollHeight}) should be > clientHeight (${clientHeight}), meaning the container overflows and can scroll`,
+    ).toBeGreaterThan(clientHeight);
   });
 });
