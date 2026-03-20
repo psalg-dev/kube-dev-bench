@@ -26,6 +26,9 @@ const cacheSyncTimeout = 15 * time.Second
 // so capping at 10 keeps the total under 140 concurrent API connections.
 const maxInformerNamespaces = 10
 
+const informerRetryInterval = 10 * time.Second
+const maxInformerRetries = 6
+
 type informerSnapshotEmitter func() error
 
 type InformerManager struct {
@@ -417,6 +420,10 @@ func (im *InformerManager) emitClusterRoleBindingsSnapshot() error {
 }
 
 func (a *App) startInformerManager() {
+	a.startInformerManagerWithRetry(0)
+}
+
+func (a *App) startInformerManagerWithRetry(attempt int) {
 	if !a.useInformers {
 		return
 	}
@@ -433,7 +440,8 @@ func (a *App) startInformerManager() {
 
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
-		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "5s"})
+		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": informerRetryInterval.String()})
+		a.scheduleInformerRetry(attempt)
 		return
 	}
 
@@ -442,13 +450,38 @@ func (a *App) startInformerManager() {
 	// so that getInformerNamespaceFactory callers can fall back to direct API.
 	if err := manager.Start(); err != nil {
 		logger.Warn("informer manager start failed, falling back to direct API", "error", err)
-		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "5s"})
+		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": informerRetryInterval.String()})
+		a.scheduleInformerRetry(attempt)
 		return
 	}
 
 	a.informerMu.Lock()
+	if a.informerManager != nil {
+		a.informerMu.Unlock()
+		manager.Stop()
+		return
+	}
 	a.informerManager = manager
 	a.informerMu.Unlock()
+}
+
+func (a *App) scheduleInformerRetry(attempt int) {
+	if attempt >= maxInformerRetries {
+		return
+	}
+
+	if a.ctx == nil {
+		return
+	}
+
+	go func(nextAttempt int) {
+		select {
+		case <-a.ctx.Done():
+			return
+		case <-time.After(informerRetryInterval):
+			a.startInformerManagerWithRetry(nextAttempt)
+		}
+	}(attempt + 1)
 }
 
 func (a *App) stopInformerManager() {
