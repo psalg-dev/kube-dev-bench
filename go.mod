@@ -8,7 +8,7 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/wailsapp/wails/v2 v2.11.0
+	github.com/wailsapp/wails/v2 v2.12.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v4 v4.1.3
 	k8s.io/api v0.35.3
@@ -20,6 +20,7 @@ require github.com/wailsapp/go-webview2 v1.0.22 // indirect
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
+	git.sr.ht/~jackmordaunt/go-toast/v2 v2.0.3 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/BurntSushi/toml v1.6.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
