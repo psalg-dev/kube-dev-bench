@@ -241,7 +241,11 @@ func (a *App) GetRolloutStatus(kind, namespace, name string) (*RolloutStatus, er
 			return nil, fmt.Errorf("failed to get statefulset: %w", err)
 		}
 
-		status.Replicas = *sts.Spec.Replicas
+		var desiredReplicas int32 = 1
+		if sts.Spec.Replicas != nil {
+			desiredReplicas = *sts.Spec.Replicas
+		}
+		status.Replicas = desiredReplicas
 		status.UpdatedReplicas = sts.Status.UpdatedReplicas
 		status.ReadyReplicas = sts.Status.ReadyReplicas
 		status.AvailableReplicas = sts.Status.AvailableReplicas
@@ -249,15 +253,15 @@ func (a *App) GetRolloutStatus(kind, namespace, name string) (*RolloutStatus, er
 		if sts.Status.ObservedGeneration < sts.Generation {
 			status.Status = "in_progress"
 			status.Message = "Waiting for statefulset spec update to be observed"
-		} else if sts.Status.UpdatedReplicas < *sts.Spec.Replicas {
+		} else if sts.Status.UpdatedReplicas < desiredReplicas {
 			status.Status = "in_progress"
-			status.Message = fmt.Sprintf("Waiting for replicas to be updated (%d/%d)", sts.Status.UpdatedReplicas, *sts.Spec.Replicas)
+			status.Message = fmt.Sprintf("Waiting for replicas to be updated (%d/%d)", sts.Status.UpdatedReplicas, desiredReplicas)
 		} else if sts.Status.CurrentReplicas > sts.Status.UpdatedReplicas {
 			status.Status = "in_progress"
 			status.Message = "Waiting for old replicas to be terminated"
-		} else if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
+		} else if sts.Status.ReadyReplicas < desiredReplicas {
 			status.Status = "in_progress"
-			status.Message = fmt.Sprintf("Waiting for replicas to be ready (%d/%d)", sts.Status.ReadyReplicas, *sts.Spec.Replicas)
+			status.Message = fmt.Sprintf("Waiting for replicas to be ready (%d/%d)", sts.Status.ReadyReplicas, desiredReplicas)
 		} else {
 			status.Status = "complete"
 			status.Message = "StatefulSet successfully rolled out"
