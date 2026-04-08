@@ -209,7 +209,7 @@ jobs:
         run: chmod +x build/bin/kube-dev-bench-e2e
 
       - name: Install kubectl
-        uses: azure/setup-kubectl@v4
+        uses: azure/setup-kubectl@v5
         with:
           version: 'v1.29.0'
 
