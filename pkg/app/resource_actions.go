@@ -26,12 +26,20 @@ func (a *App) restartWorkload(kind, namespace, name string) error {
 	}
 	patch := []byte(fmt.Sprintf(
 		`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`,
-		time.Now().Format(time.RFC3339),
+		time.Now().UTC().Format(time.RFC3339Nano),
 	))
 	switch strings.ToLower(kind) {
 	case "deployment", "deployments":
 		_, err = clientset.AppsV1().Deployments(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
 	case "statefulset", "statefulsets":
+		var sts *appsv1.StatefulSet
+		sts, err = clientset.AppsV1().StatefulSets(namespace).Get(a.ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if sts.Spec.UpdateStrategy.Type == appsv1.OnDeleteStatefulSetStrategyType {
+			return fmt.Errorf("restart is not supported for StatefulSet %q: update strategy is OnDelete (pods must be deleted manually to pick up template changes)", name)
+		}
 		_, err = clientset.AppsV1().StatefulSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
 	case "daemonset", "daemonsets":
 		_, err = clientset.AppsV1().DaemonSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
