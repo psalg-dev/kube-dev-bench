@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 )
@@ -11,7 +12,7 @@ import (
 func Test_getSwarmStacks_groupsByStackLabel(t *testing.T) {
 	ctx := context.Background()
 
-	cli := &fakeDockerClient{ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
+	cli := &fakeDockerClient{ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
 		return []swarm.Service{
 			{Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "a", Labels: map[string]string{"com.docker.stack.namespace": "stack-1"}}}},
 			{Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "b", Labels: map[string]string{"com.docker.stack.namespace": "stack-1"}}}},
@@ -37,7 +38,7 @@ func Test_removeSwarmStack_removesServicesNetworksConfigsSecrets(t *testing.T) {
 	removedSecrets := 0
 
 	cli := &fakeDockerClient{
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
+		ServiceListFn: func(context.Context, types.ServiceListOptions) ([]swarm.Service, error) {
 			return []swarm.Service{
 				{ID: "svc-1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Labels: map[string]string{"com.docker.stack.namespace": "stack-a"}}}},
 				{ID: "svc-2", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Labels: map[string]string{"com.docker.stack.namespace": "stack-b"}}}},

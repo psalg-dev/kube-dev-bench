@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -22,9 +23,9 @@ type swarmConfigsClient interface {
 
 type swarmConfigEditClient interface {
 	swarmConfigsClient
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 }
 
 // GetSwarmConfigs returns all Swarm configs
@@ -144,7 +145,7 @@ func getSwarmConfigUsage(ctx context.Context, cli swarmConfigEditClient, configI
 	}
 	configName := cfg.Spec.Name
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +193,7 @@ func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClie
 	}
 
 	// Migrate all services referencing old config.
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -202,7 +203,7 @@ func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClie
 		if !serviceReferencesConfig(svc, oldCfg.ID, oldName) {
 			continue
 		}
-		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, swarm.ServiceInspectOptions{})
+		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, types.ServiceInspectOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("inspect %s: %v", svc.Spec.Name, err))
 			continue
@@ -213,7 +214,7 @@ func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClie
 		}
 		// Ensure tasks roll if Docker doesn't consider config ref a task template change.
 		inspected.Spec.TaskTemplate.ForceUpdate++
-		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, swarm.ServiceUpdateOptions{})
+		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, types.ServiceUpdateOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspected.Spec.Name, err))
 			continue

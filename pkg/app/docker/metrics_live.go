@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
@@ -19,15 +20,15 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}

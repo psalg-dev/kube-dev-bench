@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"sort"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
 
 type swarmNetworkConnectionsClient interface {
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	TaskList(context.Context, types.TaskListOptions) ([]swarm.Task, error)
+	NodeList(context.Context, types.NodeListOptions) ([]swarm.Node, error)
 	NetworkInspect(context.Context, string, network.InspectOptions) (network.Inspect, error)
 }
 
@@ -30,7 +31,7 @@ func getSwarmNetworkServices(ctx context.Context, cli swarmNetworkConnectionsCli
 		}
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -60,12 +61,12 @@ func GetSwarmNetworkContainers(ctx context.Context, cli *client.Client, networkI
 }
 
 func getSwarmNetworkContainers(ctx context.Context, cli swarmNetworkConnectionsClient, networkID string) ([]SwarmTaskInfo, error) {
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	serviceNames := make(map[string]string)
 	if err == nil {
 		for _, svc := range services {
@@ -73,7 +74,7 @@ func getSwarmNetworkContainers(ctx context.Context, cli swarmNetworkConnectionsC
 		}
 	}
 
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
 	nodeNames := make(map[string]string)
 	if err == nil {
 		for _, n := range nodes {

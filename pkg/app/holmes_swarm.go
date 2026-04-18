@@ -9,6 +9,7 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/swarm"
@@ -190,7 +191,7 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	serviceCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	service, _, err := dockerClient.ServiceInspectWithRaw(serviceCtx, serviceID, swarm.ServiceInspectOptions{})
+	service, _, err := dockerClient.ServiceInspectWithRaw(serviceCtx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Fetching service details", "error", err.Error())
 		return "", fmt.Errorf("failed to inspect service: %w", err)
@@ -208,7 +209,7 @@ func (a *App) getSwarmServiceContext(serviceID string) (string, error) {
 	// Get tasks for this service
 	a.emitHolmesContextProgress("Swarm Service", "swarm", serviceID, "Listing tasks", "running", "")
 	listCtx, listCancel := context.WithTimeout(ctx, 8*time.Second)
-	tasks, err := dockerClient.TaskList(listCtx, swarm.TaskListOptions{
+	tasks, err := dockerClient.TaskList(listCtx, types.TaskListOptions{
 		Filters: filters.NewArgs(filters.Arg("service", serviceID)),
 	})
 	listCancel()
@@ -526,7 +527,7 @@ func (a *App) getSwarmNodeContext(nodeID string) (string, error) {
 	// Get tasks on this node
 	a.emitHolmesContextProgress("Swarm Node", "swarm", nodeID, "Listing tasks on node", "running", "")
 	listCtx, listCancel := context.WithTimeout(ctx, 8*time.Second)
-	tasks, err := dockerClient.TaskList(listCtx, swarm.TaskListOptions{
+	tasks, err := dockerClient.TaskList(listCtx, types.TaskListOptions{
 		Filters: filters.NewArgs(filters.Arg("node", nodeID)),
 	})
 	listCancel()
@@ -624,7 +625,7 @@ func (a *App) getSwarmStackContext(stackName string) (string, error) {
 	// Get services in this stack
 	a.emitHolmesContextProgress("Swarm Stack", "swarm", stackName, "Listing stack services", "running", "")
 	svcCtx, svcCancel := context.WithTimeout(ctx, 10*time.Second)
-	services, err := dockerClient.ServiceList(svcCtx, swarm.ServiceListOptions{
+	services, err := dockerClient.ServiceList(svcCtx, types.ServiceListOptions{
 		Filters: filters.NewArgs(filters.Arg("label", fmt.Sprintf("com.docker.stack.namespace=%s", stackName))),
 	})
 	svcCancel()
@@ -641,7 +642,7 @@ func (a *App) getSwarmStackContext(stackName string) (string, error) {
 	taskCtx, taskCancel := context.WithTimeout(ctx, 10*time.Second)
 	var allTasks []swarm.Task
 	for _, svc := range services {
-		tasks, taskErr := dockerClient.TaskList(taskCtx, swarm.TaskListOptions{
+		tasks, taskErr := dockerClient.TaskList(taskCtx, types.TaskListOptions{
 			Filters: filters.NewArgs(filters.Arg("service", svc.ID)),
 		})
 		if taskErr == nil {

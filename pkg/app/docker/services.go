@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/swarm"
@@ -12,10 +13,10 @@ import (
 )
 
 type swarmServicesClient interface {
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceCreate(context.Context, swarm.ServiceSpec, swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceCreate(context.Context, swarm.ServiceSpec, types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 	ServiceRemove(context.Context, string) error
 	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
 }
@@ -112,7 +113,7 @@ func createSwarmService(ctx context.Context, cli swarmServicesClient, opts Creat
 		spec.EndpointSpec = &swarm.EndpointSpec{Ports: portConfigs}
 	}
 
-	resp, err := cli.ServiceCreate(ctx, spec, swarm.ServiceCreateOptions{})
+	resp, err := cli.ServiceCreate(ctx, spec, types.ServiceCreateOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -125,7 +126,7 @@ func GetSwarmServices(ctx context.Context, cli *client.Client) ([]SwarmServiceIn
 }
 
 func getSwarmServices(ctx context.Context, cli swarmServicesClient) ([]SwarmServiceInfo, error) {
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +160,7 @@ func GetSwarmService(ctx context.Context, cli *client.Client, serviceID string) 
 }
 
 func getSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) (*SwarmServiceInfo, error) {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +346,7 @@ func ScaleSwarmService(ctx context.Context, cli *client.Client, serviceID string
 }
 
 func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string, replicas uint64) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -358,7 +359,7 @@ func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID s
 	// Update the replica count
 	svc.Spec.Mode.Replicated.Replicas = &replicas
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
 	return err
 }
 
@@ -377,7 +378,7 @@ func UpdateSwarmServiceImage(ctx context.Context, cli *client.Client, serviceID 
 }
 
 func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, serviceID string, image string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -389,7 +390,7 @@ func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, servi
 	svc.Spec.TaskTemplate.ContainerSpec.Image = image
 	svc.Spec.TaskTemplate.ForceUpdate++
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
 	return err
 }
 
@@ -399,7 +400,7 @@ func RestartSwarmService(ctx context.Context, cli *client.Client, serviceID stri
 }
 
 func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -407,7 +408,7 @@ func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID
 	// Increment ForceUpdate to trigger a rolling restart
 	svc.Spec.TaskTemplate.ForceUpdate++
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
 	return err
 }
 
@@ -418,11 +419,11 @@ func RollbackSwarmService(ctx context.Context, cli *client.Client, serviceID str
 }
 
 func rollbackSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
+	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, swarm.ServiceUpdateOptions{Rollback: "previous"})
+	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{Rollback: "previous"})
 	return err
 }

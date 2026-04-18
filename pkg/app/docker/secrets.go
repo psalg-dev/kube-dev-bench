@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/swarm"
 	"github.com/docker/docker/client"
 )
@@ -21,9 +22,9 @@ type swarmSecretsClient interface {
 
 type swarmSecretEditClient interface {
 	swarmSecretsClient
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
+	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 }
 
 // GetSwarmSecrets returns all Swarm secrets (metadata only, not the actual secret data)
@@ -128,7 +129,7 @@ func getSwarmSecretUsage(ctx context.Context, cli swarmSecretEditClient, secretI
 	}
 	secretName := sec.Spec.Name
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +175,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 		Updated:       []SwarmServiceRef{},
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -184,7 +185,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 		if !serviceReferencesSecret(svc, oldSec.ID, oldName) {
 			continue
 		}
-		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, swarm.ServiceInspectOptions{})
+		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, types.ServiceInspectOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("inspect %s: %v", svc.Spec.Name, err))
 			continue
@@ -194,7 +195,7 @@ func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClie
 			continue
 		}
 		inspected.Spec.TaskTemplate.ForceUpdate++
-		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, swarm.ServiceUpdateOptions{})
+		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, types.ServiceUpdateOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspected.Spec.Name, err))
 			continue

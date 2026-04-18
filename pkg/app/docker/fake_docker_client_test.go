@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
@@ -24,10 +25,10 @@ type fakeDockerClient struct {
 	VolumeRemoveFn  func(context.Context, string, bool) error
 	VolumesPruneFn  func(context.Context, filters.Args) (volume.PruneReport, error)
 
-	ServiceListFn           func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRawFn func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceCreateFn         func(context.Context, swarm.ServiceSpec, swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
-	ServiceUpdateFn         func(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
+	ServiceListFn           func(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
+	ServiceInspectWithRawFn func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
+	ServiceCreateFn         func(context.Context, swarm.ServiceSpec, types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
+	ServiceUpdateFn         func(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
 	ServiceRemoveFn         func(context.Context, string) error
 
 	TaskListFn           func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
@@ -131,28 +132,28 @@ func (f *fakeDockerClient) VolumesPrune(ctx context.Context, args filters.Args) 
 	return f.VolumesPruneFn(ctx, args)
 }
 
-func (f *fakeDockerClient) ServiceList(ctx context.Context, opts swarm.ServiceListOptions) ([]swarm.Service, error) {
+func (f *fakeDockerClient) ServiceList(ctx context.Context, opts types.ServiceListOptions) ([]swarm.Service, error) {
 	if f.ServiceListFn == nil {
 		return nil, nil
 	}
 	return f.ServiceListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) ServiceInspectWithRaw(ctx context.Context, serviceID string, opts swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
+func (f *fakeDockerClient) ServiceInspectWithRaw(ctx context.Context, serviceID string, opts types.ServiceInspectOptions) (swarm.Service, []byte, error) {
 	if f.ServiceInspectWithRawFn == nil {
 		return swarm.Service{}, nil, nil
 	}
 	return f.ServiceInspectWithRawFn(ctx, serviceID, opts)
 }
 
-func (f *fakeDockerClient) ServiceCreate(ctx context.Context, spec swarm.ServiceSpec, opts swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
+func (f *fakeDockerClient) ServiceCreate(ctx context.Context, spec swarm.ServiceSpec, opts types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
 	if f.ServiceCreateFn == nil {
 		return swarm.ServiceCreateResponse{}, nil
 	}
 	return f.ServiceCreateFn(ctx, spec, opts)
 }
 
-func (f *fakeDockerClient) ServiceUpdate(ctx context.Context, serviceID string, version swarm.Version, spec swarm.ServiceSpec, opts swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+func (f *fakeDockerClient) ServiceUpdate(ctx context.Context, serviceID string, version swarm.Version, spec swarm.ServiceSpec, opts types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
 	if f.ServiceUpdateFn == nil {
 		return swarm.ServiceUpdateResponse{}, nil
 	}

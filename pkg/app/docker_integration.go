@@ -18,6 +18,7 @@ import (
 	"gowails/pkg/app/docker/registry"
 	"gowails/pkg/app/docker/topology"
 
+	"github.com/docker/docker/api/types"
 	imagetypes "github.com/docker/docker/api/types/image"
 	registrytypes "github.com/docker/docker/api/types/registry"
 	"github.com/docker/docker/api/types/swarm"
@@ -1437,7 +1438,7 @@ func (a *App) pollImageUpdatesOnce(settings docker.ImageUpdateSettings) {
 		return
 	}
 
-	services, err := cli.ServiceList(a.ctx, swarm.ServiceListOptions{})
+	services, err := cli.ServiceList(a.ctx, types.ServiceListOptions{})
 	if err != nil {
 		return
 	}
