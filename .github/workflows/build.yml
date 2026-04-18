@@ -406,6 +406,10 @@ jobs:
           #   arch: arm64
           #   artifact: KubeDevBench-linux-arm64
 
+    env:
+      CODE_SIGN_PFX: ${{ secrets.CODE_SIGN_PFX }}
+      CODE_SIGN_PASSWORD: ${{ secrets.CODE_SIGN_PASSWORD }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -459,6 +463,55 @@ jobs:
       - name: List build output
         run: ls -laR build/bin/
         shell: bash
+
+      - name: Sign Windows executable
+        if: matrix.platform == 'windows' && env.CODE_SIGN_PFX != '' && env.CODE_SIGN_PASSWORD != ''
+        shell: pwsh
+        run: |
+          # Decode the base64-encoded PFX certificate stored as a GitHub secret
+          $pfxPath = Join-Path $env:TEMP "codesign.pfx"
+          try {
+            [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:CODE_SIGN_PFX))
+
+            # Locate signtool.exe from the Windows SDK (pre-installed on windows-latest)
+            $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" `
+              -Recurse -Filter "signtool.exe" -ErrorAction SilentlyContinue |
+              Where-Object { $_.FullName -match "x64" } |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1 -ExpandProperty FullName
+
+            if (-not $signtool) {
+              throw "signtool.exe not found. Ensure the Windows SDK is installed."
+            }
+
+            Write-Host "Using signtool: $signtool"
+
+            # Sign with SHA-256, dual-timestamp via DigiCert RFC 3161 server
+            & $signtool sign `
+              /fd SHA256 `
+              /f $pfxPath `
+              /p $env:CODE_SIGN_PASSWORD `
+              /tr http://timestamp.digicert.com `
+              /td SHA256 `
+              "build/bin/${{ matrix.artifact }}"
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool signing failed with exit code $LASTEXITCODE"
+            }
+
+            # Verify the signature
+            & $signtool verify /pa /v "build/bin/${{ matrix.artifact }}"
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "signtool verification failed with exit code $LASTEXITCODE"
+            }
+
+            Write-Host "Signing complete."
+          }
+          finally {
+            # Never leave the PFX on disk.
+            Remove-Item $pfxPath -Force -ErrorAction SilentlyContinue
+          }
 
       - name: Ad-hoc sign macOS app bundle
         if: matrix.platform == 'darwin'
