@@ -5,6 +5,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   frontend:
     runs-on: ubuntu-22.04
@@ -262,7 +265,7 @@ jobs:
           version: 1.0
 
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 
       - name: Install e2e dependencies
         working-directory: e2e
@@ -406,10 +409,6 @@ jobs:
           #   arch: arm64
           #   artifact: KubeDevBench-linux-arm64
 
-    env:
-      CODE_SIGN_PFX: ${{ secrets.CODE_SIGN_PFX }}
-      CODE_SIGN_PASSWORD: ${{ secrets.CODE_SIGN_PASSWORD }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -440,7 +439,7 @@ jobs:
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Install Wails CLI
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0
 
       - name: Install frontend dependencies
         working-directory: frontend
@@ -465,13 +464,24 @@ jobs:
         shell: bash
 
       - name: Sign Windows executable
-        if: matrix.platform == 'windows' && env.CODE_SIGN_PFX != '' && env.CODE_SIGN_PASSWORD != ''
+        if: matrix.platform == 'windows'
         shell: pwsh
+        env:
+          AVAILABLE_SECRETS_JSON: ${{ toJson(secrets) }}
         run: |
+          $availableSecrets = ConvertFrom-Json $env:AVAILABLE_SECRETS_JSON
+          $codeSignPfx = $availableSecrets.CODE_SIGN_PFX
+          $codeSignPassword = $availableSecrets.CODE_SIGN_PASSWORD
+
+          if ([string]::IsNullOrWhiteSpace($codeSignPfx) -or [string]::IsNullOrWhiteSpace($codeSignPassword)) {
+            Write-Host "Skipping signing because code signing secrets are not configured."
+            exit 0
+          }
+
           # Decode the base64-encoded PFX certificate stored as a GitHub secret
           $pfxPath = Join-Path $env:TEMP "codesign.pfx"
           try {
-            [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($env:CODE_SIGN_PFX))
+            [System.IO.File]::WriteAllBytes($pfxPath, [System.Convert]::FromBase64String($codeSignPfx))
 
             # Locate signtool.exe from the Windows SDK (pre-installed on windows-latest)
             $signtool = Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits\10\bin" `
@@ -490,7 +500,7 @@ jobs:
             & $signtool sign `
               /fd SHA256 `
               /f $pfxPath `
-              /p $env:CODE_SIGN_PASSWORD `
+              /p $codeSignPassword `
               /tr http://timestamp.digicert.com `
               /td SHA256 `
               "build/bin/${{ matrix.artifact }}"
