@@ -55,7 +55,13 @@ async function waitForHolmesStatusWithRefresh(
 }
 
 async function openRowActionsAndAskHolmes(page: any, rowText: string) {
-  const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText }).first();
+  const table = page
+    .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
+    .filter({ has: page.locator('tbody tr') })
+    .first();
+  await expect(table).toBeVisible({ timeout: 30_000 });
+
+  const row = table.locator('tbody tr').filter({ hasText: rowText }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
 
   // Use retry pattern to handle potential popups intercepting clicks

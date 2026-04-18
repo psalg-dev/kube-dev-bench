@@ -8,7 +8,7 @@ async function waitForReconnectOverlayToClear(page: Page, timeout: number) {
 function visibleResourceTable(page: Page) {
   return page
     .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
-    .filter({ has: page.locator('thead tr') })
+    .filter({ has: page.locator('tbody tr') })
     .first();
 }
 
@@ -17,9 +17,10 @@ function visibleResourceTable(page: Page) {
  */
 export async function waitForTableRow(page: Page, rowText: string | RegExp, opts: { timeout?: number } = {}) {
   const timeout = opts.timeout ?? 60_000;
-  const rows = page
-    .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
-    .filter({ hasText: rowText });
+  const table = visibleResourceTable(page);
+  await expect(table).toBeVisible({ timeout: 30_000 });
+
+  const rows = table.locator('tbody tr').filter({ hasText: rowText });
   await expect.poll(async () => rows.count(), { timeout }).toBeGreaterThan(0);
   await expect(rows.first()).toBeVisible({ timeout: Math.min(timeout, 15_000) });
 
@@ -53,16 +54,15 @@ export async function openRowDetailsByName(page: Page, name: string, opts: { tim
   await waitForReconnectOverlayToClear(page, 10_000);
   
   await waitForTableRow(page, new RegExp(name), { timeout });
+  const table = visibleResourceTable(page);
+  await expect(table).toBeVisible({ timeout: 30_000 });
 
   const detailsPanel = page
     .locator('.bottom-panel')
     .filter({ has: page.getByRole('button', { name: 'Summary', exact: true }) });
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    const row = page
-      .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
-      .filter({ hasText: name })
-      .first();
+    const row = table.locator('tbody tr').filter({ hasText: name }).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
 
     const nameCell = row.locator('td').first();
