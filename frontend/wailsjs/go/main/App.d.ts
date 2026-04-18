@@ -114,9 +114,9 @@ export function CloneSwarmSecret(arg1:string,arg2:string,arg3:string):Promise<st
 
 export function CloneSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
-export function ConnectToDocker(arg1:docker.DockerConfig):Promise<docker.DockerConnectionStatus>;
-
 export function ConnectInsecure(arg1:string):Promise<void>;
+
+export function ConnectToDocker(arg1:docker.DockerConfig):Promise<docker.DockerConnectionStatus>;
 
 export function CreateKindCluster(arg1:string):Promise<app.KindClusterResult>;
 
@@ -168,9 +168,9 @@ export function DeleteSwarmVolumeFile(arg1:string,arg2:string,arg3:boolean):Prom
 
 export function DeployHolmesGPT(arg1:holmesgpt.HolmesDeploymentRequest):Promise<holmesgpt.HolmesDeploymentStatus>;
 
-export function DetectLogPatterns(arg1:string):Promise<Array<app.LogPattern>>;
-
 export function DetectKubeconfigEnvPaths():Promise<Array<string>>;
+
+export function DetectLogPatterns(arg1:string):Promise<Array<app.LogPattern>>;
 
 export function DetectSystemProxy():Promise<Record<string, string>>;
 
@@ -181,8 +181,6 @@ export function DismissMonitorIssue(arg1:string):Promise<void>;
 export function DownloadFromSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
 export function ExecCommand(arg1:string):Promise<void>;
-
-export function RefreshCredentials(arg1:string):Promise<void>;
 
 export function ExportSwarmConfig(arg1:string,arg2:string):Promise<string>;
 
@@ -320,6 +318,8 @@ export function GetKubeContexts():Promise<Array<string>>;
 
 export function GetKubeContextsFromFile(arg1:string):Promise<Array<string>>;
 
+export function GetKubeconfigPaths():Promise<Array<string>>;
+
 export function GetMCPConfig():Promise<mcp.MCPConfigData>;
 
 export function GetMCPStatus():Promise<mcp.MCPStatus>;
@@ -396,11 +396,7 @@ export function GetPodsOnNode(arg1:string):Promise<Array<app.PodInfo>>;
 
 export function GetPrometheusAlerts(arg1:string):Promise<Array<app.PrometheusAlert>>;
 
-export function GetKubeconfigPaths():Promise<Array<string>>;
-
 export function GetProxyConfig():Promise<app.ProxyConfig>;
-
-export function GetSessionProbeInterval():Promise<number>;
 
 export function GetProxyDisplayURL():Promise<string>;
 
@@ -481,6 +477,8 @@ export function GetServiceSummary(arg1:string,arg2:string):Promise<app.ServiceSu
 export function GetServiceYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetServices(arg1:string):Promise<Array<app.ServiceInfo>>;
+
+export function GetSessionProbeInterval():Promise<number>;
 
 export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.StatefulSetDetail>;
 
@@ -611,6 +609,8 @@ export function PruneSwarmVolumes():Promise<docker.PruneSwarmVolumesResult>;
 export function PullDockerImageLatest(arg1:string,arg2:string):Promise<void>;
 
 export function ReconnectHolmes():Promise<holmesgpt.HolmesConnectionStatus>;
+
+export function RefreshCredentials(arg1:string):Promise<void>;
 
 export function RemoveHelmRepository(arg1:string):Promise<void>;
 

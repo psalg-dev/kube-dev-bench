@@ -210,12 +210,12 @@ export function CloneSwarmVolume(arg1, arg2) {
   return window['go']['main']['App']['CloneSwarmVolume'](arg1, arg2);
 }
 
-export function ConnectToDocker(arg1) {
-  return window['go']['main']['App']['ConnectToDocker'](arg1);
-}
-
 export function ConnectInsecure(arg1) {
   return window['go']['main']['App']['ConnectInsecure'](arg1);
+}
+
+export function ConnectToDocker(arg1) {
+  return window['go']['main']['App']['ConnectToDocker'](arg1);
 }
 
 export function CreateKindCluster(arg1) {
@@ -318,12 +318,12 @@ export function DeployHolmesGPT(arg1) {
   return window['go']['main']['App']['DeployHolmesGPT'](arg1);
 }
 
-export function DetectLogPatterns(arg1) {
-  return window['go']['main']['App']['DetectLogPatterns'](arg1);
-}
-
 export function DetectKubeconfigEnvPaths() {
   return window['go']['main']['App']['DetectKubeconfigEnvPaths']();
+}
+
+export function DetectLogPatterns(arg1) {
+  return window['go']['main']['App']['DetectLogPatterns'](arg1);
 }
 
 export function DetectSystemProxy() {
@@ -344,10 +344,6 @@ export function DownloadFromSwarmVolume(arg1, arg2) {
 
 export function ExecCommand(arg1) {
   return window['go']['main']['App']['ExecCommand'](arg1);
-}
-
-export function RefreshCredentials(arg1) {
-  return window['go']['main']['App']['RefreshCredentials'](arg1);
 }
 
 export function ExportSwarmConfig(arg1, arg2) {
@@ -622,6 +618,10 @@ export function GetKubeContextsFromFile(arg1) {
   return window['go']['main']['App']['GetKubeContextsFromFile'](arg1);
 }
 
+export function GetKubeconfigPaths() {
+  return window['go']['main']['App']['GetKubeconfigPaths']();
+}
+
 export function GetMCPConfig() {
   return window['go']['main']['App']['GetMCPConfig']();
 }
@@ -776,14 +776,6 @@ export function GetPrometheusAlerts(arg1) {
 
 export function GetProxyConfig() {
   return window['go']['main']['App']['GetProxyConfig']();
-}
-
-export function GetKubeconfigPaths() {
-  return window['go']['main']['App']['GetKubeconfigPaths']();
-}
-
-export function GetSessionProbeInterval() {
-  return window['go']['main']['App']['GetSessionProbeInterval']();
 }
 
 export function GetProxyDisplayURL() {
@@ -944,6 +936,10 @@ export function GetServiceYAML(arg1, arg2) {
 
 export function GetServices(arg1) {
   return window['go']['main']['App']['GetServices'](arg1);
+}
+
+export function GetSessionProbeInterval() {
+  return window['go']['main']['App']['GetSessionProbeInterval']();
 }
 
 export function GetStatefulSetDetail(arg1, arg2) {
@@ -1204,6 +1200,10 @@ export function PullDockerImageLatest(arg1, arg2) {
 
 export function ReconnectHolmes() {
   return window['go']['main']['App']['ReconnectHolmes']();
+}
+
+export function RefreshCredentials(arg1) {
+  return window['go']['main']['App']['RefreshCredentials'](arg1);
 }
 
 export function RemoveHelmRepository(arg1) {
