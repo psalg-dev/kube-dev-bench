@@ -53,7 +53,7 @@
     "@dagrejs/dagre": "^3.0.0",
     "@tanstack/react-table": "^8.21.3",
     "@xyflow/react": "^12.10.0",
-    "diff": "^8.0.0",
+    "diff": "^9.0.0",
     "html-to-image": "^1.11.13",
     "js-yaml": "^4.1.0",
     "png-to-ico": "^3.0.1",
