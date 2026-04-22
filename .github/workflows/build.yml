@@ -598,7 +598,7 @@ jobs:
 
       - name: Upload to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: build/bin/${{ matrix.artifact }}
         env:
@@ -622,7 +622,7 @@ jobs:
         run: ls -la snapshots
 
       - name: Publish rolling dev snapshot release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: dev-snapshot
           name: Development Snapshot
