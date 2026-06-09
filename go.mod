@@ -167,7 +167,7 @@ require (
 
 require (
 	github.com/mark3labs/mcp-go v0.54.1
-	golang.org/x/sync v0.20.0
+	golang.org/x/sync v0.21.0
 	k8s.io/apiextensions-apiserver v0.36.1
 	k8s.io/metrics v0.36.1
 )
