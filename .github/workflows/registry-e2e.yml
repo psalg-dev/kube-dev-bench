@@ -47,7 +47,7 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v5
         with:
-          version: 'v3.14.0'
+          version: 'v3.21.1'
 
       - name: Install KinD
         run: |
