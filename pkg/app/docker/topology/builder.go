@@ -5,13 +5,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type swarmTopologyClient interface {
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	NodeList(context.Context, client.NodeListOptions) (client.NodeListResult, error)
 }
 
 // buildNodeLookup creates a map of node IDs to hostnames and a slice of TopologyNodes
@@ -162,18 +163,21 @@ func BuildClusterTopology(ctx context.Context, cli swarmTopologyClient) (Cluster
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	servicesResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return ClusterTopology{}, err
 	}
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	services := servicesResult.Items
+	tasksResult, err := cli.TaskList(ctx, client.TaskListOptions{})
 	if err != nil {
 		return ClusterTopology{}, err
 	}
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	tasks := tasksResult.Items
+	nodesResult, err := cli.NodeList(ctx, client.NodeListOptions{})
 	if err != nil {
 		return ClusterTopology{}, err
 	}
+	nodes := nodesResult.Items
 
 	nodeHost, outNodes := buildNodeLookup(nodes)
 	serviceName, _, serviceDesired, outServices := buildServiceLookup(services)

@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 	"gopkg.in/yaml.v3"
 )
 
@@ -47,10 +47,11 @@ type composeRestartPolicy struct {
 // GetSwarmStackComposeYAML generates a best-effort docker-compose YAML derived from current service specs.
 // It is NOT source-of-truth; it only includes fields we can reliably infer.
 func GetSwarmStackComposeYAML(ctx context.Context, cli *client.Client, stackName string) (string, error) {
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return "", err
 	}
+	services := svcResult.Items
 
 	cf := composeFile{
 		Version:  "3.8",
@@ -158,10 +159,10 @@ func buildComposeUpdateConfig(uc *swarm.UpdateConfig) *composeUpdateConfig {
 		cu.Delay = uc.Delay.String()
 	}
 	if uc.FailureAction != "" {
-		cu.FailureAction = uc.FailureAction
+		cu.FailureAction = string(uc.FailureAction)
 	}
 	if uc.Order != "" {
-		cu.Order = uc.Order
+		cu.Order = string(uc.Order)
 	}
 
 	// Only return if any field is set

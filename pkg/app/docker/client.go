@@ -8,19 +8,16 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/system"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 var newDockerClientWithOpts = client.NewClientWithOpts
 
 type dockerConnectionClient interface {
-	Ping(context.Context) (types.Ping, error)
-	ServerVersion(context.Context) (types.Version, error)
-	SwarmInspect(context.Context) (swarm.Swarm, error)
-	Info(context.Context) (system.Info, error)
+	Ping(context.Context, client.PingOptions) (client.PingResult, error)
+	ServerVersion(context.Context, client.ServerVersionOptions) (client.ServerVersionResult, error)
+	SwarmInspect(context.Context, client.SwarmInspectOptions) (client.SwarmInspectResult, error)
+	Info(context.Context, client.InfoOptions) (client.SystemInfoResult, error)
 	Close() error
 }
 
@@ -112,7 +109,7 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 	defer cli.Close()
 
 	// Ping the Docker daemon
-	_, err = cli.Ping(ctx)
+	_, err = cli.Ping(ctx, client.PingOptions{})
 	if err != nil {
 		return &DockerConnectionStatus{
 			Connected: false,
@@ -121,7 +118,7 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 	}
 
 	// Get server version
-	version, err := cli.ServerVersion(ctx)
+	version, err := cli.ServerVersion(ctx, client.ServerVersionOptions{})
 	if err != nil {
 		return &DockerConnectionStatus{
 			Connected:     true,
@@ -131,7 +128,7 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 	}
 
 	// Check if Swarm is active
-	swarmInfo, err := cli.SwarmInspect(ctx)
+	swarmInfo, err := cli.SwarmInspect(ctx, client.SwarmInspectOptions{})
 	if err != nil {
 		// Swarm not active or not a manager node
 		return &DockerConnectionStatus{
@@ -142,7 +139,7 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 	}
 
 	// Get node info to determine if this is a manager
-	info, err := cli.Info(ctx)
+	infoResult, err := cli.Info(ctx, client.InfoOptions{})
 	if err != nil {
 		return &DockerConnectionStatus{
 			Connected:     true,
@@ -154,8 +151,8 @@ func TestConnection(ctx context.Context, config DockerConfig) (*DockerConnection
 	return &DockerConnectionStatus{
 		Connected:     true,
 		SwarmActive:   true,
-		NodeID:        swarmInfo.ID,
-		IsManager:     info.Swarm.ControlAvailable,
+		NodeID:        swarmInfo.Swarm.ID,
+		IsManager:     infoResult.Info.Swarm.ControlAvailable,
 		ServerVersion: version.Version,
 	}, nil
 }
@@ -166,10 +163,10 @@ func IsSwarmActive(ctx context.Context, cli *client.Client) bool {
 }
 
 type dockerSwarmInspector interface {
-	SwarmInspect(context.Context) (swarm.Swarm, error)
+	SwarmInspect(context.Context, client.SwarmInspectOptions) (client.SwarmInspectResult, error)
 }
 
 func isSwarmActive(ctx context.Context, cli dockerSwarmInspector) bool {
-	_, err := cli.SwarmInspect(ctx)
+	_, err := cli.SwarmInspect(ctx, client.SwarmInspectOptions{})
 	return err == nil
 }

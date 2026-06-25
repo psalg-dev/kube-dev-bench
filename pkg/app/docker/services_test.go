@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/swarm"
 )
 
 func TestServiceToInfo_ReplicatedModePortsAndImage(t *testing.T) {
@@ -21,7 +22,7 @@ func TestServiceToInfo_ReplicatedModePortsAndImage(t *testing.T) {
 			Mode:         swarm.ServiceMode{Replicated: &swarm.ReplicatedService{Replicas: &replicas}},
 		},
 		Endpoint: swarm.Endpoint{
-			Ports: []swarm.PortConfig{{Protocol: swarm.PortConfigProtocolTCP, TargetPort: 80, PublishedPort: 8080, PublishMode: swarm.PortConfigPublishModeIngress}},
+			Ports: []swarm.PortConfig{{Protocol: network.TCP, TargetPort: 80, PublishedPort: 8080, PublishMode: swarm.PortConfigPublishModeIngress}},
 		},
 	}
 

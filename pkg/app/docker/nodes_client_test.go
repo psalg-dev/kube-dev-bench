@@ -5,15 +5,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/system"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/api/types/system"
+	"github.com/moby/moby/client"
 )
 
 func Test_getSwarmNodes_listsAndConverts(t *testing.T) {
 	ctx := context.Background()
 
 	node := swarm.Node{ID: "n1", Spec: swarm.NodeSpec{Role: swarm.NodeRoleWorker}, Description: swarm.NodeDescription{Hostname: "h1"}}
-	cli := &fakeDockerClient{NodeListFn: func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) { return []swarm.Node{node}, nil }}
+	cli := &fakeDockerClient{NodeListFn: func(context.Context, client.NodeListOptions) (client.NodeListResult, error) { return client.NodeListResult{Items: []swarm.Node{node}}, nil }}
 
 	items, err := getSwarmNodes(ctx, cli)
 	if err != nil {
@@ -31,14 +32,14 @@ func Test_updateSwarmNodeAvailability_updatesSpec(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NodeInspectWithRawFn: func(context.Context, string) (swarm.Node, []byte, error) {
-			return swarm.Node{ID: "n1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.NodeSpec{Availability: swarm.NodeAvailabilityActive}}, nil, nil
+		NodeInspectFn: func(ctx context.Context, id string, opts client.NodeInspectOptions) (client.NodeInspectResult, error) {
+			return client.NodeInspectResult{Node: swarm.Node{ID: "n1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.NodeSpec{Availability: swarm.NodeAvailabilityActive}}}, nil
 		},
-		NodeUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.NodeSpec) error {
-			if spec.Availability != swarm.NodeAvailabilityDrain {
-				t.Fatalf("expected drain, got %q", spec.Availability)
+		NodeUpdateFn: func(_ context.Context, _ string, opts client.NodeUpdateOptions) (client.NodeUpdateResult, error) {
+			if opts.Spec.Availability != swarm.NodeAvailabilityDrain {
+				t.Fatalf("expected drain, got %q", opts.Spec.Availability)
 			}
-			return nil
+			return client.NodeUpdateResult{}, nil
 		},
 	}
 
@@ -51,14 +52,14 @@ func Test_updateSwarmNodeRole_updatesSpec(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NodeInspectWithRawFn: func(context.Context, string) (swarm.Node, []byte, error) {
-			return swarm.Node{ID: "n1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.NodeSpec{Role: swarm.NodeRoleWorker}}, nil, nil
+		NodeInspectFn: func(ctx context.Context, id string, opts client.NodeInspectOptions) (client.NodeInspectResult, error) {
+			return client.NodeInspectResult{Node: swarm.Node{ID: "n1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.NodeSpec{Role: swarm.NodeRoleWorker}}}, nil
 		},
-		NodeUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.NodeSpec) error {
-			if spec.Role != swarm.NodeRoleManager {
-				t.Fatalf("expected manager, got %q", spec.Role)
+		NodeUpdateFn: func(_ context.Context, _ string, opts client.NodeUpdateOptions) (client.NodeUpdateResult, error) {
+			if opts.Spec.Role != swarm.NodeRoleManager {
+				t.Fatalf("expected manager, got %q", opts.Spec.Role)
 			}
-			return nil
+			return client.NodeUpdateResult{}, nil
 		},
 	}
 
@@ -71,14 +72,14 @@ func Test_updateSwarmNodeLabels_updatesSpec(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NodeInspectWithRawFn: func(context.Context, string) (swarm.Node, []byte, error) {
-			return swarm.Node{ID: "n1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.NodeSpec{Annotations: swarm.Annotations{Labels: map[string]string{"a": "b"}}}}, nil, nil
+		NodeInspectFn: func(ctx context.Context, id string, opts client.NodeInspectOptions) (client.NodeInspectResult, error) {
+			return client.NodeInspectResult{Node: swarm.Node{ID: "n1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.NodeSpec{Annotations: swarm.Annotations{Labels: map[string]string{"a": "b"}}}}}, nil
 		},
-		NodeUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.NodeSpec) error {
-			if spec.Labels["x"] != "y" {
+		NodeUpdateFn: func(_ context.Context, _ string, opts client.NodeUpdateOptions) (client.NodeUpdateResult, error) {
+			if opts.Spec.Labels["x"] != "y" {
 				t.Fatalf("expected labels to be updated")
 			}
-			return nil
+			return client.NodeUpdateResult{}, nil
 		},
 	}
 
@@ -91,9 +92,9 @@ func Test_removeSwarmNode_callsRemoveWithForce(t *testing.T) {
 	ctx := context.Background()
 
 	var gotForce bool
-	cli := &fakeDockerClient{NodeRemoveFn: func(_ context.Context, _ string, opts swarm.NodeRemoveOptions) error {
+	cli := &fakeDockerClient{NodeRemoveFn: func(_ context.Context, _ string, opts client.NodeRemoveOptions) (client.NodeRemoveResult, error) {
 		gotForce = opts.Force
-		return nil
+		return client.NodeRemoveResult{}, nil
 	}}
 
 	if err := removeSwarmNode(ctx, cli, "n1", true); err != nil {
@@ -109,19 +110,22 @@ func Test_getSwarmNodeTasks_usesNodeFilter(t *testing.T) {
 
 	var gotFiltersLen int
 	cli := &fakeDockerClient{
-		TaskListFn: func(_ context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
-			gotFiltersLen = opts.Filters.Len()
-			values := opts.Filters.Get("node")
+		TaskListFn: func(_ context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
+			gotFiltersLen = len(opts.Filters)
+			values := make([]string, 0)
+			for k := range opts.Filters["node"] {
+				values = append(values, k)
+			}
 			if len(values) != 1 || values[0] != "n1" {
 				t.Fatalf("expected node filter n1, got %v", values)
 			}
-			return []swarm.Task{{ID: "t1", ServiceID: "s1", NodeID: "n1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}}}, nil
+			return client.TaskListResult{Items: []swarm.Task{{ID: "t1", ServiceID: "s1", NodeID: "n1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}}}}, nil
 		},
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{{ID: "s1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svc"}}}}, nil
+		ServiceListFn: func(context.Context, client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{{ID: "s1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svc"}}}}}, nil
 		},
-		NodeListFn: func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) {
-			return []swarm.Node{{ID: "n1", Description: swarm.NodeDescription{Hostname: "h"}}}, nil
+		NodeListFn: func(context.Context, client.NodeListOptions) (client.NodeListResult, error) {
+			return client.NodeListResult{Items: []swarm.Node{{ID: "n1", Description: swarm.NodeDescription{Hostname: "h"}}}}, nil
 		},
 	}
 
@@ -146,8 +150,8 @@ func Test_formatNodeAge_zeroIsDash(t *testing.T) {
 func Test_getSwarmNode_returnsConvertedNode(t *testing.T) {
 	ctx := context.Background()
 
-	cli := &fakeDockerClient{NodeInspectWithRawFn: func(context.Context, string) (swarm.Node, []byte, error) {
-		return swarm.Node{ID: "n1", Description: swarm.NodeDescription{Hostname: "h1"}, Spec: swarm.NodeSpec{Role: swarm.NodeRoleWorker}}, nil, nil
+	cli := &fakeDockerClient{NodeInspectFn: func(ctx context.Context, id string, opts client.NodeInspectOptions) (client.NodeInspectResult, error) {
+		return client.NodeInspectResult{Node: swarm.Node{ID: "n1", Description: swarm.NodeDescription{Hostname: "h1"}, Spec: swarm.NodeSpec{Role: swarm.NodeRoleWorker}}}, nil
 	}}
 
 	item, err := getSwarmNode(ctx, cli, "n1")
@@ -174,18 +178,18 @@ type fakeSwarmJoinTokensClient struct {
 	infoErr   error
 }
 
-func (f *fakeSwarmJoinTokensClient) SwarmInspect(context.Context) (swarm.Swarm, error) {
+func (f *fakeSwarmJoinTokensClient) SwarmInspect(ctx context.Context, opts client.SwarmInspectOptions) (client.SwarmInspectResult, error) {
 	if f.swarmErr != nil {
-		return swarm.Swarm{}, f.swarmErr
+		return client.SwarmInspectResult{}, f.swarmErr
 	}
-	return f.swarmInfo, nil
+	return client.SwarmInspectResult{Swarm: f.swarmInfo}, nil
 }
 
-func (f *fakeSwarmJoinTokensClient) Info(context.Context) (system.Info, error) {
+func (f *fakeSwarmJoinTokensClient) Info(ctx context.Context, opts client.InfoOptions) (client.SystemInfoResult, error) {
 	if f.infoErr != nil {
-		return system.Info{}, f.infoErr
+		return client.SystemInfoResult{}, f.infoErr
 	}
-	return f.info, nil
+	return client.SystemInfoResult{Info: f.info}, nil
 }
 
 func Test_getSwarmJoinTokens_returnsTokensAndCommands(t *testing.T) {

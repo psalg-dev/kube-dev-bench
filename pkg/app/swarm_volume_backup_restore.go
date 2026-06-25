@@ -11,10 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/client"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -124,13 +123,13 @@ func (a *App) BackupSwarmVolume(volumeName string) (string, error) {
 		return "", nil
 	}
 
-	reader, _, err := cli.CopyFromContainer(a.ctx, containerID, "/mnt")
+	result, err := cli.CopyFromContainer(a.ctx, containerID, client.CopyFromContainerOptions{SourcePath: "/mnt"})
 	if err != nil {
 		return "", err
 	}
-	defer reader.Close()
+	defer result.Content.Close()
 
-	norm := normalizeTarStream(reader)
+	norm := normalizeTarStream(result.Content)
 
 	// #nosec G304 -- destination path is chosen by the user.
 	out, err := os.Create(destPath)
@@ -207,9 +206,12 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 
 	norm := normalizeTarStream(r)
 
-	if err := cli.CopyToContainer(a.ctx, containerID, "/mnt", norm, container.CopyToContainerOptions{
+	_, err = cli.CopyToContainer(a.ctx, containerID, client.CopyToContainerOptions{
+		DestinationPath:           "/mnt",
+		Content:                   norm,
 		AllowOverwriteDirWithFile: true,
-	}); err != nil {
+	})
+	if err != nil {
 		return "", err
 	}
 
@@ -218,13 +220,13 @@ func (a *App) RestoreSwarmVolume(volumeName string) (string, error) {
 
 // waitForCloneContainer waits for the clone container to finish and returns an error if it fails.
 func (a *App) waitForCloneContainer(cli *client.Client, containerID string) error {
-	statusCh, errCh := cli.ContainerWait(a.ctx, containerID, container.WaitConditionNotRunning)
+	waitResult := cli.ContainerWait(a.ctx, containerID, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
 	select {
-	case st := <-statusCh:
+	case st := <-waitResult.Result:
 		if st.StatusCode != 0 {
 			return a.getContainerExitError(cli, containerID, st.StatusCode)
 		}
-	case err := <-errCh:
+	case err := <-waitResult.Error:
 		if err != nil {
 			return err
 		}
@@ -234,7 +236,7 @@ func (a *App) waitForCloneContainer(cli *client.Client, containerID string) erro
 
 // getContainerExitError retrieves the error message from container logs.
 func (a *App) getContainerExitError(cli *client.Client, containerID string, exitCode int64) error {
-	logs, _ := cli.ContainerLogs(a.ctx, containerID, container.LogsOptions{ShowStdout: true, ShowStderr: true, Tail: "200"})
+	logs, _ := cli.ContainerLogs(a.ctx, containerID, client.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Tail: "200"})
 	if logs != nil {
 		defer logs.Close()
 		b, _ := io.ReadAll(logs)
@@ -262,21 +264,21 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 		return "", err
 	}
 
-	src, err := cli.VolumeInspect(a.ctx, sourceVolumeName)
+	src, err := cli.VolumeInspect(a.ctx, sourceVolumeName, client.VolumeInspectOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	// Fail if the target exists.
-	if _, err := cli.VolumeInspect(a.ctx, newVolumeName); err == nil {
+	if _, err := cli.VolumeInspect(a.ctx, newVolumeName, client.VolumeInspectOptions{}); err == nil {
 		return "", fmt.Errorf("target volume already exists")
 	}
 
-	if _, err := cli.VolumeCreate(a.ctx, volume.CreateOptions{
+	if _, err := cli.VolumeCreate(a.ctx, client.VolumeCreateOptions{
 		Name:       newVolumeName,
-		Driver:     src.Driver,
-		Labels:     src.Labels,
-		DriverOpts: src.Options,
+		Driver:     src.Volume.Driver,
+		Labels:     src.Volume.Labels,
+		DriverOpts: src.Volume.Options,
 	}); err != nil {
 		return "", err
 	}
@@ -288,23 +290,26 @@ func (a *App) CloneSwarmVolume(sourceVolumeName string, newVolumeName string) (s
 		return "", fmt.Errorf("ensure helper image: %w", err)
 	}
 
-	resp, err := cli.ContainerCreate(a.ctx, &container.Config{
-		Image: swarmVolumeHelperImage(),
-		Cmd:   []string{"sh", "-c", "set -e; cd /src; tar cf - . | tar xf - -C /dst"},
-		Tty:   false,
-		Env:   []string{"LC_ALL=C"},
-	}, &container.HostConfig{
-		AutoRemove: true,
-		Mounts: []mount.Mount{
-			{Type: mount.TypeVolume, Source: sourceVolumeName, Target: "/src", ReadOnly: true},
-			{Type: mount.TypeVolume, Source: newVolumeName, Target: "/dst", ReadOnly: false},
+	resp, err := cli.ContainerCreate(a.ctx, client.ContainerCreateOptions{
+		Config: &container.Config{
+			Image: swarmVolumeHelperImage(),
+			Cmd:   []string{"sh", "-c", "set -e; cd /src; tar cf - . | tar xf - -C /dst"},
+			Tty:   false,
+			Env:   []string{"LC_ALL=C"},
 		},
-	}, nil, nil, "")
+		HostConfig: &container.HostConfig{
+			AutoRemove: true,
+			Mounts: []mount.Mount{
+				{Type: mount.TypeVolume, Source: sourceVolumeName, Target: "/src", ReadOnly: true},
+				{Type: mount.TypeVolume, Source: newVolumeName, Target: "/dst", ReadOnly: false},
+			},
+		},
+	})
 	if err != nil {
 		return "", err
 	}
 
-	if err := cli.ContainerStart(a.ctx, resp.ID, container.StartOptions{}); err != nil {
+	if _, err := cli.ContainerStart(a.ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
 		return "", err
 	}
 

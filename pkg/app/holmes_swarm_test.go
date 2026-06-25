@@ -10,8 +10,8 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 func TestAnalyzeSwarmServiceAndTask(t *testing.T) {

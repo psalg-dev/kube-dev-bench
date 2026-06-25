@@ -5,19 +5,17 @@ import (
 	"encoding/base64"
 	"time"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/system"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type swarmNodesClient interface {
-	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
-	NodeInspectWithRaw(context.Context, string) (swarm.Node, []byte, error)
-	NodeUpdate(context.Context, string, swarm.Version, swarm.NodeSpec) error
-	NodeRemove(context.Context, string, swarm.NodeRemoveOptions) error
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	NodeList(context.Context, client.NodeListOptions) (client.NodeListResult, error)
+	NodeInspect(context.Context, string, client.NodeInspectOptions) (client.NodeInspectResult, error)
+	NodeUpdate(context.Context, string, client.NodeUpdateOptions) (client.NodeUpdateResult, error)
+	NodeRemove(context.Context, string, client.NodeRemoveOptions) (client.NodeRemoveResult, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
 }
 
 // GetSwarmNodes returns all Swarm nodes
@@ -26,10 +24,11 @@ func GetSwarmNodes(ctx context.Context, cli *client.Client) ([]SwarmNodeInfo, er
 }
 
 func getSwarmNodes(ctx context.Context, cli swarmNodesClient) ([]SwarmNodeInfo, error) {
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	nodesResult, err := cli.NodeList(ctx, client.NodeListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	nodes := nodesResult.Items
 
 	result := make([]SwarmNodeInfo, 0, len(nodes))
 	for _, node := range nodes {
@@ -46,12 +45,12 @@ func GetSwarmNode(ctx context.Context, cli *client.Client, nodeID string) (*Swar
 }
 
 func getSwarmNode(ctx context.Context, cli swarmNodesClient, nodeID string) (*SwarmNodeInfo, error) {
-	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
+	nodeResult, err := cli.NodeInspect(ctx, nodeID, client.NodeInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	info := nodeToInfo(node)
+	info := nodeToInfo(nodeResult.Node)
 	return &info, nil
 }
 
@@ -98,7 +97,7 @@ func UpdateSwarmNodeAvailability(ctx context.Context, cli *client.Client, nodeID
 }
 
 func updateSwarmNodeAvailability(ctx context.Context, cli swarmNodesClient, nodeID string, availability string) error {
-	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
+	nodeResult, err := cli.NodeInspect(ctx, nodeID, client.NodeInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -115,8 +114,9 @@ func updateSwarmNodeAvailability(ctx context.Context, cli swarmNodesClient, node
 		avail = swarm.NodeAvailability(availability)
 	}
 
-	node.Spec.Availability = avail
-	return cli.NodeUpdate(ctx, nodeID, node.Version, node.Spec)
+	nodeResult.Node.Spec.Availability = avail
+	_, err = cli.NodeUpdate(ctx, nodeID, client.NodeUpdateOptions{Version: nodeResult.Node.Version, Spec: nodeResult.Node.Spec})
+	return err
 }
 
 // UpdateSwarmNodeRole updates a node's role (worker, manager)
@@ -125,7 +125,7 @@ func UpdateSwarmNodeRole(ctx context.Context, cli *client.Client, nodeID string,
 }
 
 func updateSwarmNodeRole(ctx context.Context, cli swarmNodesClient, nodeID string, role string) error {
-	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
+	nodeResult, err := cli.NodeInspect(ctx, nodeID, client.NodeInspectOptions{})
 	if err != nil {
 		return err
 	}
@@ -140,8 +140,9 @@ func updateSwarmNodeRole(ctx context.Context, cli swarmNodesClient, nodeID strin
 		nodeRole = swarm.NodeRole(role)
 	}
 
-	node.Spec.Role = nodeRole
-	return cli.NodeUpdate(ctx, nodeID, node.Version, node.Spec)
+	nodeResult.Node.Spec.Role = nodeRole
+	_, err = cli.NodeUpdate(ctx, nodeID, client.NodeUpdateOptions{Version: nodeResult.Node.Version, Spec: nodeResult.Node.Spec})
+	return err
 }
 
 // UpdateSwarmNodeLabels updates a node's labels
@@ -150,13 +151,14 @@ func UpdateSwarmNodeLabels(ctx context.Context, cli *client.Client, nodeID strin
 }
 
 func updateSwarmNodeLabels(ctx context.Context, cli swarmNodesClient, nodeID string, labels map[string]string) error {
-	node, _, err := cli.NodeInspectWithRaw(ctx, nodeID)
+	nodeResult, err := cli.NodeInspect(ctx, nodeID, client.NodeInspectOptions{})
 	if err != nil {
 		return err
 	}
 
-	node.Spec.Labels = labels
-	return cli.NodeUpdate(ctx, nodeID, node.Version, node.Spec)
+	nodeResult.Node.Spec.Labels = labels
+	_, err = cli.NodeUpdate(ctx, nodeID, client.NodeUpdateOptions{Version: nodeResult.Node.Version, Spec: nodeResult.Node.Spec})
+	return err
 }
 
 // RemoveSwarmNode removes a node from the swarm
@@ -165,7 +167,8 @@ func RemoveSwarmNode(ctx context.Context, cli *client.Client, nodeID string, for
 }
 
 func removeSwarmNode(ctx context.Context, cli swarmNodesClient, nodeID string, force bool) error {
-	return cli.NodeRemove(ctx, nodeID, swarm.NodeRemoveOptions{Force: force})
+	_, err := cli.NodeRemove(ctx, nodeID, client.NodeRemoveOptions{Force: force})
+	return err
 }
 
 // GetSwarmNodeTasks returns all tasks running on a specific node
@@ -175,25 +178,26 @@ func GetSwarmNodeTasks(ctx context.Context, cli *client.Client, nodeID string) (
 
 func getSwarmNodeTasks(ctx context.Context, cli swarmNodesClient, nodeID string) ([]SwarmTaskInfo, error) {
 	// Use TaskList with filter for the node
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filters.NewArgs(filters.Arg("node", nodeID))})
+	tasksResult, err := cli.TaskList(ctx, client.TaskListOptions{Filters: client.Filters{"node": {nodeID: true}}})
 	if err != nil {
 		return nil, err
 	}
+	tasks := tasksResult.Items
 
 	// Get services to map service IDs to names
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	servicesResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	serviceNames := make(map[string]string)
 	if err == nil {
-		for _, svc := range services {
+		for _, svc := range servicesResult.Items {
 			serviceNames[svc.ID] = svc.Spec.Name
 		}
 	}
 
 	// Get nodes to map node IDs to hostnames
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	nodesResult, err := cli.NodeList(ctx, client.NodeListOptions{})
 	nodeNames := make(map[string]string)
 	if err == nil {
-		for _, node := range nodes {
+		for _, node := range nodesResult.Items {
 			nodeNames[node.ID] = node.Description.Hostname
 		}
 	}
@@ -242,8 +246,8 @@ type SwarmJoinTokens struct {
 }
 
 type swarmJoinTokensClient interface {
-	SwarmInspect(context.Context) (swarm.Swarm, error)
-	Info(context.Context) (system.Info, error)
+	SwarmInspect(context.Context, client.SwarmInspectOptions) (client.SwarmInspectResult, error)
+	Info(context.Context, client.InfoOptions) (client.SystemInfoResult, error)
 }
 
 // GetSwarmJoinTokens returns the swarm join tokens and commands
@@ -252,32 +256,32 @@ func GetSwarmJoinTokens(ctx context.Context, cli *client.Client) (*SwarmJoinToke
 }
 
 func getSwarmJoinTokens(ctx context.Context, cli swarmJoinTokensClient) (*SwarmJoinTokens, error) {
-	swarmInfo, err := cli.SwarmInspect(ctx)
+	swarmInfo, err := cli.SwarmInspect(ctx, client.SwarmInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	info, err := cli.Info(ctx)
+	info, err := cli.Info(ctx, client.InfoOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	// Get the manager address for join command
 	managerAddr := ""
-	if len(info.Swarm.RemoteManagers) > 0 {
-		managerAddr = info.Swarm.RemoteManagers[0].Addr
+	if len(info.Info.Swarm.RemoteManagers) > 0 {
+		managerAddr = info.Info.Swarm.RemoteManagers[0].Addr
 	}
 
 	tokens := &SwarmJoinTokens{
-		Worker:  swarmInfo.JoinTokens.Worker,
-		Manager: swarmInfo.JoinTokens.Manager,
+		Worker:  swarmInfo.Swarm.JoinTokens.Worker,
+		Manager: swarmInfo.Swarm.JoinTokens.Manager,
 		Addr:    managerAddr,
 	}
 
 	// Construct the join commands
 	if managerAddr != "" {
-		tokens.Commands.Worker = "docker swarm join --token " + swarmInfo.JoinTokens.Worker + " " + managerAddr
-		tokens.Commands.Manager = "docker swarm join --token " + swarmInfo.JoinTokens.Manager + " " + managerAddr
+		tokens.Commands.Worker = "docker swarm join --token " + swarmInfo.Swarm.JoinTokens.Worker + " " + managerAddr
+		tokens.Commands.Manager = "docker swarm join --token " + swarmInfo.Swarm.JoinTokens.Manager + " " + managerAddr
 	}
 
 	return tokens, nil

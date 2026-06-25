@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 func prettyJSON(raw []byte) string {
@@ -27,14 +27,14 @@ func prettyJSON(raw []byte) string {
 
 // GetSwarmConfigInspectJSON returns an indented JSON representation of Docker's config inspect payload.
 func GetSwarmConfigInspectJSON(ctx context.Context, cli *client.Client, configID string) (string, error) {
-	cfg, raw, err := cli.ConfigInspectWithRaw(ctx, configID)
+	result, err := cli.ConfigInspect(ctx, configID, client.ConfigInspectOptions{})
 	if err != nil {
 		return "", err
 	}
-	if len(raw) > 0 {
-		return prettyJSON(raw), nil
+	if len(result.Raw) > 0 {
+		return prettyJSON(result.Raw), nil
 	}
-	b, err := json.MarshalIndent(cfg, "", "  ")
+	b, err := json.MarshalIndent(result.Config, "", "  ")
 	if err != nil {
 		return "", err
 	}
@@ -44,14 +44,14 @@ func GetSwarmConfigInspectJSON(ctx context.Context, cli *client.Client, configID
 // GetSwarmSecretInspectJSON returns an indented JSON representation of Docker's secret inspect payload.
 // Note: Docker Swarm secrets cannot be read back (their value/data is not returned).
 func GetSwarmSecretInspectJSON(ctx context.Context, cli *client.Client, secretID string) (string, error) {
-	sec, raw, err := cli.SecretInspectWithRaw(ctx, secretID)
+	result, err := cli.SecretInspect(ctx, secretID, client.SecretInspectOptions{})
 	if err != nil {
 		return "", err
 	}
-	if len(raw) > 0 {
-		return prettyJSON(raw), nil
+	if len(result.Raw) > 0 {
+		return prettyJSON(result.Raw), nil
 	}
-	b, err := json.MarshalIndent(sec, "", "  ")
+	b, err := json.MarshalIndent(result.Secret, "", "  ")
 	if err != nil {
 		return "", err
 	}
@@ -60,11 +60,11 @@ func GetSwarmSecretInspectJSON(ctx context.Context, cli *client.Client, secretID
 
 // GetSwarmVolumeInspectJSON returns an indented JSON representation of Docker's volume inspect payload.
 func GetSwarmVolumeInspectJSON(ctx context.Context, cli *client.Client, volumeName string) (string, error) {
-	vol, err := cli.VolumeInspect(ctx, volumeName)
+	result, err := cli.VolumeInspect(ctx, volumeName, client.VolumeInspectOptions{})
 	if err != nil {
 		return "", err
 	}
-	b, err := json.MarshalIndent(vol, "", "  ")
+	b, err := json.MarshalIndent(result.Volume, "", "  ")
 	if err != nil {
 		return "", err
 	}

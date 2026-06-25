@@ -3,22 +3,19 @@ package docker
 import (
 	"context"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 type swarmStacksClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	ServiceRemove(context.Context, string) error
-	NetworkList(context.Context, network.ListOptions) ([]network.Summary, error)
-	NetworkRemove(context.Context, string) error
-	ConfigList(context.Context, swarm.ConfigListOptions) ([]swarm.Config, error)
-	ConfigRemove(context.Context, string) error
-	SecretList(context.Context, swarm.SecretListOptions) ([]swarm.Secret, error)
-	SecretRemove(context.Context, string) error
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	ServiceRemove(context.Context, string, client.ServiceRemoveOptions) (client.ServiceRemoveResult, error)
+	NetworkList(context.Context, client.NetworkListOptions) (client.NetworkListResult, error)
+	NetworkRemove(context.Context, string, client.NetworkRemoveOptions) (client.NetworkRemoveResult, error)
+	ConfigList(context.Context, client.ConfigListOptions) (client.ConfigListResult, error)
+	ConfigRemove(context.Context, string, client.ConfigRemoveOptions) (client.ConfigRemoveResult, error)
+	SecretList(context.Context, client.SecretListOptions) (client.SecretListResult, error)
+	SecretRemove(context.Context, string, client.SecretRemoveOptions) (client.SecretRemoveResult, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
 }
 
 // GetSwarmStacks returns all Docker Stacks
@@ -28,10 +25,11 @@ func GetSwarmStacks(ctx context.Context, cli *client.Client) ([]SwarmStackInfo, 
 }
 
 func getSwarmStacks(ctx context.Context, cli swarmStacksClient) ([]SwarmStackInfo, error) {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	services := svcResult.Items
 
 	// Group services by stack namespace label
 	stackMap := make(map[string]int)
@@ -79,13 +77,13 @@ func RemoveSwarmStack(ctx context.Context, cli *client.Client, stackName string)
 
 // removeStackServices removes all services belonging to the stack
 func removeStackServices(ctx context.Context, cli swarmStacksClient, stackName string) error {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return err
 	}
-	for _, svc := range services {
+	for _, svc := range svcResult.Items {
 		if svc.Spec.Labels["com.docker.stack.namespace"] == stackName {
-			if err := cli.ServiceRemove(ctx, svc.ID); err != nil {
+			if _, err := cli.ServiceRemove(ctx, svc.ID, client.ServiceRemoveOptions{}); err != nil {
 				return err
 			}
 		}
@@ -95,39 +93,39 @@ func removeStackServices(ctx context.Context, cli swarmStacksClient, stackName s
 
 // removeStackNetworks removes all networks belonging to the stack (best-effort)
 func removeStackNetworks(ctx context.Context, cli swarmStacksClient, stackName string) {
-	networks, err := cli.NetworkList(ctx, network.ListOptions{})
+	netResult, err := cli.NetworkList(ctx, client.NetworkListOptions{})
 	if err != nil {
 		return
 	}
-	for _, net := range networks {
+	for _, net := range netResult.Items {
 		if net.Labels["com.docker.stack.namespace"] == stackName {
-			_ = cli.NetworkRemove(ctx, net.ID)
+			_, _ = cli.NetworkRemove(ctx, net.ID, client.NetworkRemoveOptions{})
 		}
 	}
 }
 
 // removeStackConfigs removes all configs belonging to the stack (best-effort)
 func removeStackConfigs(ctx context.Context, cli swarmStacksClient, stackName string) {
-	configs, err := cli.ConfigList(ctx, swarm.ConfigListOptions{})
+	cfgResult, err := cli.ConfigList(ctx, client.ConfigListOptions{})
 	if err != nil {
 		return
 	}
-	for _, cfg := range configs {
+	for _, cfg := range cfgResult.Items {
 		if cfg.Spec.Labels["com.docker.stack.namespace"] == stackName {
-			_ = cli.ConfigRemove(ctx, cfg.ID)
+			_, _ = cli.ConfigRemove(ctx, cfg.ID, client.ConfigRemoveOptions{})
 		}
 	}
 }
 
 // removeStackSecrets removes all secrets belonging to the stack (best-effort)
 func removeStackSecrets(ctx context.Context, cli swarmStacksClient, stackName string) {
-	secrets, err := cli.SecretList(ctx, swarm.SecretListOptions{})
+	secResult, err := cli.SecretList(ctx, client.SecretListOptions{})
 	if err != nil {
 		return
 	}
-	for _, secret := range secrets {
+	for _, secret := range secResult.Items {
 		if secret.Spec.Labels["com.docker.stack.namespace"] == stackName {
-			_ = cli.SecretRemove(ctx, secret.ID)
+			_, _ = cli.SecretRemove(ctx, secret.ID, client.SecretRemoveOptions{})
 		}
 	}
 }
@@ -145,12 +143,12 @@ func removeSwarmStack(ctx context.Context, cli swarmStacksClient, stackName stri
 // RollbackSwarmStack performs a best-effort rollback of all services in a stack.
 // Note: Swarm does not have a native "stack rollback" primitive; this iterates services.
 func RollbackSwarmStack(ctx context.Context, cli *client.Client, stackName string) error {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return err
 	}
 
-	for _, svc := range services {
+	for _, svc := range svcResult.Items {
 		if svc.Spec.Labels["com.docker.stack.namespace"] != stackName {
 			continue
 		}

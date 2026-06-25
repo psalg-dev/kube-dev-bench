@@ -8,11 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 
 	"gowails/pkg/app/docker/registry"
 )
@@ -229,10 +226,10 @@ func CheckImageUpdate(ctx context.Context, image string) (ImageUpdateInfo, error
 }
 
 type swarmServiceInspector interface {
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	ContainerInspect(context.Context, string) (container.InspectResponse, error)
-	ImageInspectWithRaw(context.Context, string) (image.InspectResponse, []byte, error)
+	ServiceInspect(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	ContainerInspect(context.Context, string, client.ContainerInspectOptions) (client.ContainerInspectResult, error)
+	ImageInspect(context.Context, string, ...client.ImageInspectOption) (client.ImageInspectResult, error)
 }
 
 func repoDigestForRef(ref parsedImageRef, repoDigests []string) string {
@@ -298,32 +295,34 @@ func resolveLocalDigestForService(ctx context.Context, cli swarmServiceInspector
 		return "", "service id missing"
 	}
 
-	filter := filters.NewArgs()
-	filter.Add("service", serviceID)
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filter})
+	filter := client.Filters{}
+	filter["service"] = map[string]bool{"serviceID": true}
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{Filters: filter})
 	if err != nil {
 		return "", err.Error()
 	}
+	tasks := taskResult.Items
 
 	containerID := findRunningContainerID(tasks)
 	if containerID == "" {
 		return "", "no task container found"
 	}
 
-	ci, err := cli.ContainerInspect(ctx, containerID)
+	ciResult, err := cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 	if err != nil {
 		return "", err.Error()
 	}
+	ci := ciResult.Container
 	imageID := strings.TrimSpace(ci.Image)
 	if imageID == "" {
 		return "", "container image id missing"
 	}
 
-	inspect, _, err := cli.ImageInspectWithRaw(ctx, imageID)
+	inspectResult, err := cli.ImageInspect(ctx, imageID)
 	if err != nil {
 		return "", err.Error()
 	}
-	d := repoDigestForRef(ref, inspect.RepoDigests)
+	d := repoDigestForRef(ref, inspectResult.RepoDigests)
 	if d == "" {
 		return "", "local digest not found"
 	}
@@ -372,7 +371,7 @@ func checkSwarmServiceImageUpdates(ctx context.Context, cli swarmServiceInspecto
 
 	out := make(map[string]ImageUpdateInfo, len(ids))
 	for _, id := range ids {
-		svc, _, err := cli.ServiceInspectWithRaw(ctx, id, swarm.ServiceInspectOptions{})
+		svcResult, err := cli.ServiceInspect(ctx, id, client.ServiceInspectOptions{})
 		if err != nil {
 			info := ImageUpdateInfo{Image: "", CheckedAt: time.Now().UTC().Format(time.RFC3339), Error: err.Error()}
 			setCachedImageUpdate(id, info)
@@ -380,8 +379,8 @@ func checkSwarmServiceImageUpdates(ctx context.Context, cli swarmServiceInspecto
 			continue
 		}
 		img := ""
-		if svc.Spec.TaskTemplate.ContainerSpec != nil {
-			img = svc.Spec.TaskTemplate.ContainerSpec.Image
+		if svcResult.Service.Spec.TaskTemplate.ContainerSpec != nil {
+			img = svcResult.Service.Spec.TaskTemplate.ContainerSpec.Image
 		}
 		info, _ := CheckImageUpdate(ctx, img)
 		ref, refErr := parseImageReference(img)

@@ -4,15 +4,13 @@ import (
 	"context"
 	"io"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 type swarmLogsClient interface {
-	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
-	ContainerLogs(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
-	ServiceLogs(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
+	TaskInspect(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error)
+	ContainerLogs(context.Context, string, client.ContainerLogsOptions) (client.ContainerLogsResult, error)
+	ServiceLogs(context.Context, string, client.ServiceLogsOptions) (client.ServiceLogsResult, error)
 }
 
 // GetTaskLogs streams logs from a task's container
@@ -22,21 +20,21 @@ func GetTaskLogs(ctx context.Context, cli *client.Client, taskID string, tail st
 
 func getTaskLogs(ctx context.Context, cli swarmLogsClient, taskID string, tail string, follow bool) (io.ReadCloser, error) {
 	// Get the task to find its container ID
-	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
+	taskResult, err := cli.TaskInspect(ctx, taskID, client.TaskInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	containerID := ""
-	if task.Status.ContainerStatus != nil {
-		containerID = task.Status.ContainerStatus.ContainerID
+	if taskResult.Task.Status.ContainerStatus != nil {
+		containerID = taskResult.Task.Status.ContainerStatus.ContainerID
 	}
 
 	if containerID == "" {
 		return nil, ErrNoContainerSpec
 	}
 
-	options := container.LogsOptions{
+	options := client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     follow,
@@ -53,7 +51,7 @@ func GetServiceLogs(ctx context.Context, cli *client.Client, serviceID string, t
 }
 
 func getServiceLogs(ctx context.Context, cli swarmLogsClient, serviceID string, tail string, follow bool) (io.ReadCloser, error) {
-	options := container.LogsOptions{
+	options := client.ServiceLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     follow,

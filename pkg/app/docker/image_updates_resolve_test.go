@@ -5,46 +5,46 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/image"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 // fakeSwarmInspector implements swarmServiceInspector for testing.
 type fakeSwarmInspector struct {
-	serviceInspectFn func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	taskListFn       func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	containerInspect func(context.Context, string) (container.InspectResponse, error)
-	imageInspect     func(context.Context, string) (image.InspectResponse, []byte, error)
+	serviceInspectFn func(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	taskListFn       func(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	containerInspect func(context.Context, string, client.ContainerInspectOptions) (client.ContainerInspectResult, error)
+	imageInspect     func(context.Context, string, ...client.ImageInspectOption) (client.ImageInspectResult, error)
 }
 
-func (f *fakeSwarmInspector) ServiceInspectWithRaw(ctx context.Context, id string, opts swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
+func (f *fakeSwarmInspector) ServiceInspect(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
 	if f.serviceInspectFn != nil {
 		return f.serviceInspectFn(ctx, id, opts)
 	}
-	return swarm.Service{}, nil, nil
+	return client.ServiceInspectResult{}, nil
 }
 
-func (f *fakeSwarmInspector) TaskList(ctx context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
+func (f *fakeSwarmInspector) TaskList(ctx context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
 	if f.taskListFn != nil {
 		return f.taskListFn(ctx, opts)
 	}
-	return nil, nil
+	return client.TaskListResult{}, nil
 }
 
-func (f *fakeSwarmInspector) ContainerInspect(ctx context.Context, id string) (container.InspectResponse, error) {
+func (f *fakeSwarmInspector) ContainerInspect(ctx context.Context, id string, opts client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
 	if f.containerInspect != nil {
-		return f.containerInspect(ctx, id)
+		return f.containerInspect(ctx, id, opts)
 	}
-	return container.InspectResponse{}, nil
+	return client.ContainerInspectResult{}, nil
 }
 
-func (f *fakeSwarmInspector) ImageInspectWithRaw(ctx context.Context, id string) (image.InspectResponse, []byte, error) {
+func (f *fakeSwarmInspector) ImageInspect(ctx context.Context, id string, opts ...client.ImageInspectOption) (client.ImageInspectResult, error) {
 	if f.imageInspect != nil {
-		return f.imageInspect(ctx, id)
+		return f.imageInspect(ctx, id, opts...)
 	}
-	return image.InspectResponse{}, nil, nil
+	return client.ImageInspectResult{}, nil
 }
 
 func TestResolveLocalDigestForService_EmptyServiceID(t *testing.T) {
@@ -62,8 +62,8 @@ func TestResolveLocalDigestForService_TaskListError(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
-			return nil, errors.New("daemon error")
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{}, errors.New("daemon error")
 		},
 	}
 	ref := parsedImageRef{registryHost: "docker.io", repository: "library/nginx", tag: "1.25"}
@@ -77,8 +77,8 @@ func TestResolveLocalDigestForService_NoTaskContainer(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
-			return []swarm.Task{}, nil // no tasks
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{}, nil // no tasks
 		},
 	}
 	ref := parsedImageRef{registryHost: "docker.io", repository: "library/nginx", tag: "1.25"}
@@ -95,18 +95,20 @@ func TestResolveLocalDigestForService_ContainerInspectError(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
-			return []swarm.Task{
-				{
-					Status: swarm.TaskStatus{
-						State:           swarm.TaskStateRunning,
-						ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{
+				Items: []swarm.Task{
+					{
+						Status: swarm.TaskStatus{
+							State:           swarm.TaskStateRunning,
+							ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+						},
 					},
 				},
 			}, nil
 		},
-		containerInspect: func(_ context.Context, _ string) (container.InspectResponse, error) {
-			return container.InspectResponse{}, errors.New("container gone")
+		containerInspect: func(_ context.Context, _ string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+			return client.ContainerInspectResult{}, errors.New("container gone")
 		},
 	}
 	ref := parsedImageRef{registryHost: "docker.io", repository: "library/nginx", tag: "1.25"}
@@ -123,21 +125,23 @@ func TestResolveLocalDigestForService_NoRepoDigestFound(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
-			return []swarm.Task{
-				{
-					Status: swarm.TaskStatus{
-						State:           swarm.TaskStateRunning,
-						ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{
+				Items: []swarm.Task{
+					{
+						Status: swarm.TaskStatus{
+							State:           swarm.TaskStateRunning,
+							ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+						},
 					},
 				},
 			}, nil
 		},
-		containerInspect: func(_ context.Context, _ string) (container.InspectResponse, error) {
-			return container.InspectResponse{ContainerJSONBase: &container.ContainerJSONBase{Image: "sha256:abc123"}}, nil
+		containerInspect: func(_ context.Context, _ string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+			return client.ContainerInspectResult{Container: container.InspectResponse{Image: "sha256:abc123"}}, nil
 		},
-		imageInspect: func(_ context.Context, _ string) (image.InspectResponse, []byte, error) {
-			return image.InspectResponse{RepoDigests: []string{}}, nil, nil
+		imageInspect: func(_ context.Context, _ string, _ ...client.ImageInspectOption) (client.ImageInspectResult, error) {
+			return client.ImageInspectResult{InspectResponse: image.InspectResponse{RepoDigests: []string{}}}, nil
 		},
 	}
 	ref := parsedImageRef{registryHost: "docker.io", repository: "library/nginx", tag: "1.25"}
@@ -154,23 +158,25 @@ func TestResolveLocalDigestForService_DigestFoundInRepoDigests(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
-			return []swarm.Task{
-				{
-					Status: swarm.TaskStatus{
-						State:           swarm.TaskStateRunning,
-						ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{
+				Items: []swarm.Task{
+					{
+						Status: swarm.TaskStatus{
+							State:           swarm.TaskStateRunning,
+							ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+						},
 					},
 				},
 			}, nil
 		},
-		containerInspect: func(_ context.Context, _ string) (container.InspectResponse, error) {
-			return container.InspectResponse{ContainerJSONBase: &container.ContainerJSONBase{Image: "sha256:abc123"}}, nil
+		containerInspect: func(_ context.Context, _ string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+			return client.ContainerInspectResult{Container: container.InspectResponse{Image: "sha256:abc123"}}, nil
 		},
-		imageInspect: func(_ context.Context, _ string) (image.InspectResponse, []byte, error) {
-			return image.InspectResponse{
+		imageInspect: func(_ context.Context, _ string, _ ...client.ImageInspectOption) (client.ImageInspectResult, error) {
+			return client.ImageInspectResult{InspectResponse: image.InspectResponse{
 				RepoDigests: []string{"docker.io/library/nginx@sha256:digestvalue"},
-			}, nil, nil
+			}}, nil
 		},
 	}
 	ref := parsedImageRef{registryHost: "docker.io", repository: "library/nginx", tag: "1.25"}
@@ -184,9 +190,9 @@ func TestResolveAndUpdateLocalDigest_SkipsWhenLocalDigestAlreadySet(t *testing.T
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
+		taskListFn: func(_ context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
 			t.Fatal("expected TaskList not to be called when local digest already set")
-			return nil, nil
+			return client.TaskListResult{}, nil
 		},
 	}
 
@@ -203,9 +209,9 @@ func TestResolveAndUpdateLocalDigest_SkipsWhenNoTag(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
 			t.Fatal("expected TaskList not to be called without a tag")
-			return nil, nil
+			return client.TaskListResult{}, nil
 		},
 	}
 
@@ -218,23 +224,25 @@ func TestResolveAndUpdateLocalDigest_SetsUpdateAvailableWhenDigestsDiffer(t *tes
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		taskListFn: func(_ context.Context, _ swarm.TaskListOptions) ([]swarm.Task, error) {
-			return []swarm.Task{
-				{
-					Status: swarm.TaskStatus{
-						State:           swarm.TaskStateRunning,
-						ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+		taskListFn: func(_ context.Context, _ client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{
+				Items: []swarm.Task{
+					{
+						Status: swarm.TaskStatus{
+							State:           swarm.TaskStateRunning,
+							ContainerStatus: &swarm.ContainerStatus{ContainerID: "ctr-1"},
+						},
 					},
 				},
 			}, nil
 		},
-		containerInspect: func(_ context.Context, _ string) (container.InspectResponse, error) {
-			return container.InspectResponse{ContainerJSONBase: &container.ContainerJSONBase{Image: "sha256:abc"}}, nil
+		containerInspect: func(_ context.Context, _ string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+			return client.ContainerInspectResult{Container: container.InspectResponse{Image: "sha256:abc"}}, nil
 		},
-		imageInspect: func(_ context.Context, _ string) (image.InspectResponse, []byte, error) {
-			return image.InspectResponse{
+		imageInspect: func(_ context.Context, _ string, _ ...client.ImageInspectOption) (client.ImageInspectResult, error) {
+			return client.ImageInspectResult{InspectResponse: image.InspectResponse{
 				RepoDigests: []string{"docker.io/library/nginx@sha256:localdigest"},
-			}, nil, nil
+			}}, nil
 		},
 	}
 
@@ -322,8 +330,8 @@ func TestCheckSwarmServiceImageUpdates_ServiceInspectError(t *testing.T) {
 	t.Parallel()
 
 	cli := &fakeSwarmInspector{
-		serviceInspectFn: func(_ context.Context, _ string, _ swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return swarm.Service{}, nil, errors.New("not found")
+		serviceInspectFn: func(_ context.Context, _ string, _ client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{}, errors.New("not found")
 		},
 	}
 
@@ -340,7 +348,6 @@ func TestCheckSwarmServiceImageUpdates_ServiceInspectError(t *testing.T) {
 }
 
 // Ensure fakeSwarmInspector can be used where swarmServiceInspector is required.
-// This is needed because TaskListOptions uses swarm.TaskListOptions which includes filters.
 func TestTaskListOptionsFilters(t *testing.T) {
-	_ = filters.NewArgs()
+	_ = client.Filters{}
 }

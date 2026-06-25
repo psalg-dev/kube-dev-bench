@@ -4,282 +4,300 @@ import (
 	"context"
 	"io"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/volume"
+	"github.com/moby/moby/client"
 )
 
 type fakeDockerClient struct {
-	NetworkListFn    func(context.Context, network.ListOptions) ([]network.Summary, error)
-	NetworkInspectFn func(context.Context, string, network.InspectOptions) (network.Inspect, error)
-	NetworkCreateFn  func(context.Context, string, network.CreateOptions) (network.CreateResponse, error)
-	NetworkRemoveFn  func(context.Context, string) error
-	NetworksPruneFn  func(context.Context, filters.Args) (network.PruneReport, error)
+	NetworkListFn    func(context.Context, client.NetworkListOptions) (client.NetworkListResult, error)
+	NetworkInspectFn func(context.Context, string, client.NetworkInspectOptions) (client.NetworkInspectResult, error)
+	NetworkCreateFn  func(context.Context, string, client.NetworkCreateOptions) (client.NetworkCreateResult, error)
+	NetworkRemoveFn  func(context.Context, string, client.NetworkRemoveOptions) (client.NetworkRemoveResult, error)
+	NetworkPruneFn  func(context.Context, client.NetworkPruneOptions) (client.NetworkPruneResult, error)
 
-	VolumeListFn    func(context.Context, volume.ListOptions) (volume.ListResponse, error)
-	VolumeInspectFn func(context.Context, string) (volume.Volume, error)
-	VolumeCreateFn  func(context.Context, volume.CreateOptions) (volume.Volume, error)
-	VolumeRemoveFn  func(context.Context, string, bool) error
-	VolumesPruneFn  func(context.Context, filters.Args) (volume.PruneReport, error)
+	VolumeListFn    func(context.Context, client.VolumeListOptions) (client.VolumeListResult, error)
+	VolumeInspectFn func(context.Context, string, client.VolumeInspectOptions) (client.VolumeInspectResult, error)
+	VolumeCreateFn  func(context.Context, client.VolumeCreateOptions) (client.VolumeCreateResult, error)
+	VolumeRemoveFn  func(context.Context, string, client.VolumeRemoveOptions) (client.VolumeRemoveResult, error)
+	VolumePruneFn   func(context.Context, client.VolumePruneOptions) (client.VolumePruneResult, error)
 
-	ServiceListFn           func(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRawFn func(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceCreateFn         func(context.Context, swarm.ServiceSpec, types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
-	ServiceUpdateFn         func(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
-	ServiceRemoveFn         func(context.Context, string) error
+	ServiceListFn           func(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	ServiceInspectFn        func(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	ServiceInspectWithRawFn func(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	ServiceCreateFn         func(context.Context, client.ServiceCreateOptions) (client.ServiceCreateResult, error)
+	ServiceUpdateFn         func(context.Context, string, client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)
+	ServiceRemoveFn         func(context.Context, string, client.ServiceRemoveOptions) (client.ServiceRemoveResult, error)
 
-	TaskListFn           func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	TaskInspectWithRawFn func(context.Context, string) (swarm.Task, []byte, error)
+	TaskListFn           func(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	TaskInspectFn        func(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error)
+	TaskInspectWithRawFn func(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error)
 
-	NodeListFn           func(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
-	NodeInspectWithRawFn func(context.Context, string) (swarm.Node, []byte, error)
-	NodeUpdateFn         func(context.Context, string, swarm.Version, swarm.NodeSpec) error
-	NodeRemoveFn         func(context.Context, string, swarm.NodeRemoveOptions) error
+	NodeListFn           func(context.Context, client.NodeListOptions) (client.NodeListResult, error)
+	NodeInspectFn func(context.Context, string, client.NodeInspectOptions) (client.NodeInspectResult, error)
+	NodeUpdateFn         func(context.Context, string, client.NodeUpdateOptions) (client.NodeUpdateResult, error)
+	NodeRemoveFn         func(context.Context, string, client.NodeRemoveOptions) (client.NodeRemoveResult, error)
 
-	ConfigListFn           func(context.Context, swarm.ConfigListOptions) ([]swarm.Config, error)
-	ConfigInspectWithRawFn func(context.Context, string) (swarm.Config, []byte, error)
-	ConfigCreateFn         func(context.Context, swarm.ConfigSpec) (swarm.ConfigCreateResponse, error)
-	ConfigUpdateFn         func(context.Context, string, swarm.Version, swarm.ConfigSpec) error
-	ConfigRemoveFn         func(context.Context, string) error
+	ConfigListFn           func(context.Context, client.ConfigListOptions) (client.ConfigListResult, error)
+	ConfigInspectFn func(context.Context, string, client.ConfigInspectOptions) (client.ConfigInspectResult, error)
+	ConfigCreateFn         func(context.Context, client.ConfigCreateOptions) (client.ConfigCreateResult, error)
+	ConfigUpdateFn         func(context.Context, string, client.ConfigUpdateOptions) (client.ConfigUpdateResult, error)
+	ConfigRemoveFn         func(context.Context, string, client.ConfigRemoveOptions) (client.ConfigRemoveResult, error)
 
-	SecretListFn           func(context.Context, swarm.SecretListOptions) ([]swarm.Secret, error)
-	SecretInspectWithRawFn func(context.Context, string) (swarm.Secret, []byte, error)
-	SecretCreateFn         func(context.Context, swarm.SecretSpec) (swarm.SecretCreateResponse, error)
-	SecretRemoveFn         func(context.Context, string) error
+	SecretListFn           func(context.Context, client.SecretListOptions) (client.SecretListResult, error)
+	SecretInspectWithRawFn func(context.Context, string, client.SecretInspectOptions) (client.SecretInspectResult, error)
+	SecretCreateFn         func(context.Context, client.SecretCreateOptions) (client.SecretCreateResult, error)
+	SecretRemoveFn         func(context.Context, string, client.SecretRemoveOptions) (client.SecretRemoveResult, error)
 
-	ContainerLogsFn    func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
-	ServiceLogsFn      func(context.Context, string, container.LogsOptions) (io.ReadCloser, error)
-	ContainerInspectFn func(context.Context, string) (container.InspectResponse, error)
+	ContainerLogsFn    func(context.Context, string, client.ContainerLogsOptions) (client.ContainerLogsResult, error)
+	ServiceLogsFn      func(context.Context, string, client.ServiceLogsOptions) (client.ServiceLogsResult, error)
+	ContainerInspectFn func(context.Context, string, client.ContainerInspectOptions) (client.ContainerInspectResult, error)
 }
 
-func (f *fakeDockerClient) ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error) {
+func (f *fakeDockerClient) ContainerInspect(ctx context.Context, containerID string, opts client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
 	if f.ContainerInspectFn == nil {
-		return container.InspectResponse{}, nil
+		return client.ContainerInspectResult{}, nil
 	}
-	return f.ContainerInspectFn(ctx, containerID)
+	return f.ContainerInspectFn(ctx, containerID, opts)
 }
 
-func (f *fakeDockerClient) NetworkList(ctx context.Context, opts network.ListOptions) ([]network.Summary, error) {
+func (f *fakeDockerClient) NetworkList(ctx context.Context, opts client.NetworkListOptions) (client.NetworkListResult, error) {
 	if f.NetworkListFn == nil {
-		return nil, nil
+		return client.NetworkListResult{}, nil
 	}
 	return f.NetworkListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) NetworkInspect(ctx context.Context, networkID string, opts network.InspectOptions) (network.Inspect, error) {
+func (f *fakeDockerClient) NetworkInspect(ctx context.Context, networkID string, opts client.NetworkInspectOptions) (client.NetworkInspectResult, error) {
 	if f.NetworkInspectFn == nil {
-		return network.Inspect{}, nil
+		return client.NetworkInspectResult{}, nil
 	}
 	return f.NetworkInspectFn(ctx, networkID, opts)
 }
 
-func (f *fakeDockerClient) NetworkCreate(ctx context.Context, name string, opts network.CreateOptions) (network.CreateResponse, error) {
+func (f *fakeDockerClient) NetworkCreate(ctx context.Context, name string, opts client.NetworkCreateOptions) (client.NetworkCreateResult, error) {
 	if f.NetworkCreateFn == nil {
-		return network.CreateResponse{}, nil
+		return client.NetworkCreateResult{}, nil
 	}
 	return f.NetworkCreateFn(ctx, name, opts)
 }
 
-func (f *fakeDockerClient) NetworkRemove(ctx context.Context, networkID string) error {
+func (f *fakeDockerClient) NetworkRemove(ctx context.Context, networkID string, opts client.NetworkRemoveOptions) (client.NetworkRemoveResult, error) {
 	if f.NetworkRemoveFn == nil {
-		return nil
+		return client.NetworkRemoveResult{}, nil
 	}
-	return f.NetworkRemoveFn(ctx, networkID)
+	return f.NetworkRemoveFn(ctx, networkID, opts)
 }
 
-func (f *fakeDockerClient) NetworksPrune(ctx context.Context, args filters.Args) (network.PruneReport, error) {
-	if f.NetworksPruneFn == nil {
-		return network.PruneReport{}, nil
+func (f *fakeDockerClient) NetworkPrune(ctx context.Context, opts client.NetworkPruneOptions) (client.NetworkPruneResult, error) {
+	if f.NetworkPruneFn == nil {
+		return client.NetworkPruneResult{}, nil
 	}
-	return f.NetworksPruneFn(ctx, args)
+	return f.NetworkPruneFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) VolumeList(ctx context.Context, opts volume.ListOptions) (volume.ListResponse, error) {
+func (f *fakeDockerClient) VolumeList(ctx context.Context, opts client.VolumeListOptions) (client.VolumeListResult, error) {
 	if f.VolumeListFn == nil {
-		return volume.ListResponse{}, nil
+		return client.VolumeListResult{}, nil
 	}
 	return f.VolumeListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) VolumeInspect(ctx context.Context, volumeName string) (volume.Volume, error) {
+func (f *fakeDockerClient) VolumeInspect(ctx context.Context, volumeName string, opts client.VolumeInspectOptions) (client.VolumeInspectResult, error) {
 	if f.VolumeInspectFn == nil {
-		return volume.Volume{}, nil
+		return client.VolumeInspectResult{}, nil
 	}
-	return f.VolumeInspectFn(ctx, volumeName)
+	return f.VolumeInspectFn(ctx, volumeName, opts)
 }
 
-func (f *fakeDockerClient) VolumeCreate(ctx context.Context, opts volume.CreateOptions) (volume.Volume, error) {
+func (f *fakeDockerClient) VolumeCreate(ctx context.Context, opts client.VolumeCreateOptions) (client.VolumeCreateResult, error) {
 	if f.VolumeCreateFn == nil {
-		return volume.Volume{}, nil
+		return client.VolumeCreateResult{}, nil
 	}
 	return f.VolumeCreateFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) VolumeRemove(ctx context.Context, volumeName string, force bool) error {
+func (f *fakeDockerClient) VolumeRemove(ctx context.Context, volumeName string, opts client.VolumeRemoveOptions) (client.VolumeRemoveResult, error) {
 	if f.VolumeRemoveFn == nil {
-		return nil
+		return client.VolumeRemoveResult{}, nil
 	}
-	return f.VolumeRemoveFn(ctx, volumeName, force)
+	return f.VolumeRemoveFn(ctx, volumeName, opts)
 }
 
-func (f *fakeDockerClient) VolumesPrune(ctx context.Context, args filters.Args) (volume.PruneReport, error) {
-	if f.VolumesPruneFn == nil {
-		return volume.PruneReport{}, nil
+func (f *fakeDockerClient) VolumePrune(ctx context.Context, opts client.VolumePruneOptions) (client.VolumePruneResult, error) {
+	if f.VolumePruneFn == nil {
+		return client.VolumePruneResult{}, nil
 	}
-	return f.VolumesPruneFn(ctx, args)
+	return f.VolumePruneFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) ServiceList(ctx context.Context, opts types.ServiceListOptions) ([]swarm.Service, error) {
+func (f *fakeDockerClient) ServiceList(ctx context.Context, opts client.ServiceListOptions) (client.ServiceListResult, error) {
 	if f.ServiceListFn == nil {
-		return nil, nil
+		return client.ServiceListResult{}, nil
 	}
 	return f.ServiceListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) ServiceInspectWithRaw(ctx context.Context, serviceID string, opts types.ServiceInspectOptions) (swarm.Service, []byte, error) {
+func (f *fakeDockerClient) ServiceInspect(ctx context.Context, serviceID string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+	if f.ServiceInspectFn == nil {
+		return client.ServiceInspectResult{}, nil
+	}
+	return f.ServiceInspectFn(ctx, serviceID, opts)
+}
+
+func (f *fakeDockerClient) ServiceInspectWithRaw(ctx context.Context, serviceID string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
 	if f.ServiceInspectWithRawFn == nil {
-		return swarm.Service{}, nil, nil
+		return client.ServiceInspectResult{}, nil
 	}
 	return f.ServiceInspectWithRawFn(ctx, serviceID, opts)
 }
 
-func (f *fakeDockerClient) ServiceCreate(ctx context.Context, spec swarm.ServiceSpec, opts types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
+func (f *fakeDockerClient) ServiceCreate(ctx context.Context, opts client.ServiceCreateOptions) (client.ServiceCreateResult, error) {
 	if f.ServiceCreateFn == nil {
-		return swarm.ServiceCreateResponse{}, nil
+		return client.ServiceCreateResult{}, nil
 	}
-	return f.ServiceCreateFn(ctx, spec, opts)
+	return f.ServiceCreateFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) ServiceUpdate(ctx context.Context, serviceID string, version swarm.Version, spec swarm.ServiceSpec, opts types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+func (f *fakeDockerClient) ServiceUpdate(ctx context.Context, serviceID string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
 	if f.ServiceUpdateFn == nil {
-		return swarm.ServiceUpdateResponse{}, nil
+		return client.ServiceUpdateResult{}, nil
 	}
-	return f.ServiceUpdateFn(ctx, serviceID, version, spec, opts)
+	return f.ServiceUpdateFn(ctx, serviceID, opts)
 }
 
-func (f *fakeDockerClient) ServiceRemove(ctx context.Context, serviceID string) error {
+func (f *fakeDockerClient) ServiceRemove(ctx context.Context, serviceID string, opts client.ServiceRemoveOptions) (client.ServiceRemoveResult, error) {
 	if f.ServiceRemoveFn == nil {
-		return nil
+		return client.ServiceRemoveResult{}, nil
 	}
-	return f.ServiceRemoveFn(ctx, serviceID)
+	return f.ServiceRemoveFn(ctx, serviceID, opts)
 }
 
-func (f *fakeDockerClient) TaskList(ctx context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
+func (f *fakeDockerClient) TaskList(ctx context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
 	if f.TaskListFn == nil {
-		return nil, nil
+		return client.TaskListResult{}, nil
 	}
 	return f.TaskListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) TaskInspectWithRaw(ctx context.Context, taskID string) (swarm.Task, []byte, error) {
-	if f.TaskInspectWithRawFn == nil {
-		return swarm.Task{}, nil, nil
+func (f *fakeDockerClient) TaskInspect(ctx context.Context, taskID string, opts client.TaskInspectOptions) (client.TaskInspectResult, error) {
+	if f.TaskInspectFn == nil {
+		return client.TaskInspectResult{}, nil
 	}
-	return f.TaskInspectWithRawFn(ctx, taskID)
+	return f.TaskInspectFn(ctx, taskID, opts)
 }
 
-func (f *fakeDockerClient) NodeList(ctx context.Context, opts swarm.NodeListOptions) ([]swarm.Node, error) {
+func (f *fakeDockerClient) TaskInspectWithRaw(ctx context.Context, taskID string, opts client.TaskInspectOptions) (client.TaskInspectResult, error) {
+	if f.TaskInspectWithRawFn == nil {
+		return client.TaskInspectResult{}, nil
+	}
+	return f.TaskInspectWithRawFn(ctx, taskID, opts)
+}
+
+func (f *fakeDockerClient) NodeList(ctx context.Context, opts client.NodeListOptions) (client.NodeListResult, error) {
 	if f.NodeListFn == nil {
-		return nil, nil
+		return client.NodeListResult{}, nil
 	}
 	return f.NodeListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) NodeInspectWithRaw(ctx context.Context, nodeID string) (swarm.Node, []byte, error) {
-	if f.NodeInspectWithRawFn == nil {
-		return swarm.Node{}, nil, nil
+func (f *fakeDockerClient) NodeInspect(ctx context.Context, nodeID string, opts client.NodeInspectOptions) (client.NodeInspectResult, error) {
+	if f.NodeInspectFn == nil {
+		return client.NodeInspectResult{}, nil
 	}
-	return f.NodeInspectWithRawFn(ctx, nodeID)
+	return f.NodeInspectFn(ctx, nodeID, opts)
 }
 
-func (f *fakeDockerClient) NodeUpdate(ctx context.Context, nodeID string, version swarm.Version, spec swarm.NodeSpec) error {
+func (f *fakeDockerClient) NodeUpdate(ctx context.Context, nodeID string, opts client.NodeUpdateOptions) (client.NodeUpdateResult, error) {
 	if f.NodeUpdateFn == nil {
-		return nil
+		return client.NodeUpdateResult{}, nil
 	}
-	return f.NodeUpdateFn(ctx, nodeID, version, spec)
+	return f.NodeUpdateFn(ctx, nodeID, opts)
 }
 
-func (f *fakeDockerClient) NodeRemove(ctx context.Context, nodeID string, opts swarm.NodeRemoveOptions) error {
+func (f *fakeDockerClient) NodeRemove(ctx context.Context, nodeID string, opts client.NodeRemoveOptions) (client.NodeRemoveResult, error) {
 	if f.NodeRemoveFn == nil {
-		return nil
+		return client.NodeRemoveResult{}, nil
 	}
 	return f.NodeRemoveFn(ctx, nodeID, opts)
 }
 
-func (f *fakeDockerClient) ConfigList(ctx context.Context, opts swarm.ConfigListOptions) ([]swarm.Config, error) {
+func (f *fakeDockerClient) ConfigList(ctx context.Context, opts client.ConfigListOptions) (client.ConfigListResult, error) {
 	if f.ConfigListFn == nil {
-		return nil, nil
+		return client.ConfigListResult{}, nil
 	}
 	return f.ConfigListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) ConfigInspectWithRaw(ctx context.Context, configID string) (swarm.Config, []byte, error) {
-	if f.ConfigInspectWithRawFn == nil {
-		return swarm.Config{}, nil, nil
+func (f *fakeDockerClient) ConfigInspect(ctx context.Context, configID string, opts client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+	if f.ConfigInspectFn == nil {
+		return client.ConfigInspectResult{}, nil
 	}
-	return f.ConfigInspectWithRawFn(ctx, configID)
+	return f.ConfigInspectFn(ctx, configID, opts)
 }
 
-func (f *fakeDockerClient) ConfigCreate(ctx context.Context, spec swarm.ConfigSpec) (swarm.ConfigCreateResponse, error) {
+func (f *fakeDockerClient) ConfigCreate(ctx context.Context, opts client.ConfigCreateOptions) (client.ConfigCreateResult, error) {
 	if f.ConfigCreateFn == nil {
-		return swarm.ConfigCreateResponse{}, nil
+		return client.ConfigCreateResult{}, nil
 	}
-	return f.ConfigCreateFn(ctx, spec)
+	return f.ConfigCreateFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) ConfigUpdate(ctx context.Context, configID string, version swarm.Version, spec swarm.ConfigSpec) error {
+func (f *fakeDockerClient) ConfigUpdate(ctx context.Context, configID string, opts client.ConfigUpdateOptions) (client.ConfigUpdateResult, error) {
 	if f.ConfigUpdateFn == nil {
-		return nil
+		return client.ConfigUpdateResult{}, nil
 	}
-	return f.ConfigUpdateFn(ctx, configID, version, spec)
+	return f.ConfigUpdateFn(ctx, configID, opts)
 }
 
-func (f *fakeDockerClient) ConfigRemove(ctx context.Context, configID string) error {
+func (f *fakeDockerClient) ConfigRemove(ctx context.Context, configID string, opts client.ConfigRemoveOptions) (client.ConfigRemoveResult, error) {
 	if f.ConfigRemoveFn == nil {
-		return nil
+		return client.ConfigRemoveResult{}, nil
 	}
-	return f.ConfigRemoveFn(ctx, configID)
+	return f.ConfigRemoveFn(ctx, configID, opts)
 }
 
-func (f *fakeDockerClient) SecretList(ctx context.Context, opts swarm.SecretListOptions) ([]swarm.Secret, error) {
+func (f *fakeDockerClient) SecretList(ctx context.Context, opts client.SecretListOptions) (client.SecretListResult, error) {
 	if f.SecretListFn == nil {
-		return nil, nil
+		return client.SecretListResult{}, nil
 	}
 	return f.SecretListFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) SecretInspectWithRaw(ctx context.Context, secretID string) (swarm.Secret, []byte, error) {
+func (f *fakeDockerClient) SecretInspectWithRaw(ctx context.Context, secretID string, opts client.SecretInspectOptions) (client.SecretInspectResult, error) {
 	if f.SecretInspectWithRawFn == nil {
-		return swarm.Secret{}, nil, nil
+		return client.SecretInspectResult{}, nil
 	}
-	return f.SecretInspectWithRawFn(ctx, secretID)
+	return f.SecretInspectWithRawFn(ctx, secretID, opts)
 }
 
-func (f *fakeDockerClient) SecretCreate(ctx context.Context, spec swarm.SecretSpec) (swarm.SecretCreateResponse, error) {
+func (f *fakeDockerClient) SecretCreate(ctx context.Context, opts client.SecretCreateOptions) (client.SecretCreateResult, error) {
 	if f.SecretCreateFn == nil {
-		return swarm.SecretCreateResponse{}, nil
+		return client.SecretCreateResult{}, nil
 	}
-	return f.SecretCreateFn(ctx, spec)
+	return f.SecretCreateFn(ctx, opts)
 }
 
-func (f *fakeDockerClient) SecretRemove(ctx context.Context, secretID string) error {
+func (f *fakeDockerClient) SecretRemove(ctx context.Context, secretID string, opts client.SecretRemoveOptions) (client.SecretRemoveResult, error) {
 	if f.SecretRemoveFn == nil {
-		return nil
+		return client.SecretRemoveResult{}, nil
 	}
-	return f.SecretRemoveFn(ctx, secretID)
+	return f.SecretRemoveFn(ctx, secretID, opts)
 }
 
-func (f *fakeDockerClient) ContainerLogs(ctx context.Context, containerID string, opts container.LogsOptions) (io.ReadCloser, error) {
+func (f *fakeDockerClient) SecretInspect(ctx context.Context, secretID string, opts client.SecretInspectOptions) (client.SecretInspectResult, error) {
+	if f.SecretInspectWithRawFn == nil {
+		return client.SecretInspectResult{}, nil
+	}
+	return f.SecretInspectWithRawFn(ctx, secretID, opts)
+}
+
+func (f *fakeDockerClient) ContainerLogs(ctx context.Context, containerID string, opts client.ContainerLogsOptions) (client.ContainerLogsResult, error) {
 	if f.ContainerLogsFn == nil {
 		return io.NopCloser(&emptyReader{}), nil
 	}
 	return f.ContainerLogsFn(ctx, containerID, opts)
 }
 
-func (f *fakeDockerClient) ServiceLogs(ctx context.Context, serviceID string, opts container.LogsOptions) (io.ReadCloser, error) {
+func (f *fakeDockerClient) ServiceLogs(ctx context.Context, serviceID string, opts client.ServiceLogsOptions) (client.ServiceLogsResult, error) {
 	if f.ServiceLogsFn == nil {
 		return io.NopCloser(&emptyReader{}), nil
 	}

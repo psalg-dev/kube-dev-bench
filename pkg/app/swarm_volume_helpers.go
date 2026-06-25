@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	imagetypes "github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/stdcopy"
+	"github.com/containerd/errdefs"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/client"
+	"github.com/moby/moby/api/pkg/stdcopy"
 )
 
 // defaultSwarmVolumeHelperImage is the default image used for Swarm volume browse helper containers.
@@ -27,14 +27,14 @@ func swarmVolumeHelperImage() string {
 }
 
 func ensureDockerImage(ctx context.Context, cli *client.Client, image string) error {
-	_, _, err := cli.ImageInspectWithRaw(ctx, image)
+	_, err := cli.ImageInspect(ctx, image)
 	if err == nil {
 		return nil
 	}
-	if !client.IsErrNotFound(err) {
+	if !errdefs.IsNotFound(err) {
 		return err
 	}
-	reader, err := cli.ImagePull(ctx, image, imagetypes.PullOptions{})
+	reader, err := cli.ImagePull(ctx, image, client.ImagePullOptions{})
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (a *App) ensureSwarmVolumeHelper(volumeName string) (string, error) {
 	if volumeName == "" {
 		return "", fmt.Errorf("volume name required")
 	}
-	if _, err := cli.VolumeInspect(ctx, volumeName); err != nil {
+	if _, err := cli.VolumeInspect(ctx, volumeName, client.VolumeInspectOptions{}); err != nil {
 		return "", err
 	}
 
@@ -71,29 +71,32 @@ func (a *App) ensureSwarmVolumeHelper(volumeName string) (string, error) {
 	}
 
 	if existingID, ok := a.swarmVolumeHelpers[volumeName]; ok && existingID != "" {
-		inspect, err := cli.ContainerInspect(ctx, existingID)
-		if err == nil && inspect.State != nil && inspect.State.Running {
+		inspect, err := cli.ContainerInspect(ctx, existingID, client.ContainerInspectOptions{})
+		if err == nil && inspect.Container.State != nil && inspect.Container.State.Running {
 			return existingID, nil
 		}
 		delete(a.swarmVolumeHelpers, volumeName)
 	}
 
-	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: swarmVolumeHelperImage(),
-		Cmd:   []string{"sh", "-c", "trap : TERM INT; sleep infinity"},
-		Tty:   false,
-		Env:   []string{"LC_ALL=C"},
-	}, &container.HostConfig{
-		Mounts: []mount.Mount{
-			{Type: mount.TypeVolume, Source: volumeName, Target: "/mnt", ReadOnly: false},
+	resp, err := cli.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config: &container.Config{
+			Image: swarmVolumeHelperImage(),
+			Cmd:   []string{"sh", "-c", "trap : TERM INT; sleep infinity"},
+			Tty:   false,
+			Env:   []string{"LC_ALL=C"},
 		},
-	}, nil, nil, "")
+		HostConfig: &container.HostConfig{
+			Mounts: []mount.Mount{
+				{Type: mount.TypeVolume, Source: volumeName, Target: "/mnt", ReadOnly: false},
+			},
+		},
+	})
 	if err != nil {
 		return "", err
 	}
 
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
-		_ = cli.ContainerRemove(ctx, resp.ID, container.RemoveOptions{Force: true, RemoveVolumes: true})
+	if _, err := cli.ContainerStart(ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
+		_, _ = cli.ContainerRemove(ctx, resp.ID, client.ContainerRemoveOptions{Force: true, RemoveVolumes: true})
 		return "", err
 	}
 
@@ -105,17 +108,17 @@ func execInContainer(ctx context.Context, cli *client.Client, containerID string
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	createResp, err := cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
+	createResp, err := cli.ExecCreate(ctx, containerID, client.ExecCreateOptions{
 		AttachStdout: true,
 		AttachStderr: true,
-		Tty:          false,
+		TTY:          false,
 		Cmd:          cmd,
 	})
 	if err != nil {
 		return "", "", 0, err
 	}
 
-	attach, err := cli.ContainerExecAttach(ctx, createResp.ID, container.ExecAttachOptions{Tty: false})
+	attach, err := cli.ExecAttach(ctx, createResp.ID, client.ExecAttachOptions{})
 	if err != nil {
 		return "", "", 0, err
 	}
@@ -125,7 +128,7 @@ func execInContainer(ctx context.Context, cli *client.Client, containerID string
 	var errBuf bytes.Buffer
 	_, _ = stdcopy.StdCopy(&outBuf, &errBuf, attach.Reader)
 
-	inspect, err := cli.ContainerExecInspect(ctx, createResp.ID)
+	inspect, err := cli.ExecInspect(ctx, createResp.ID, client.ExecInspectOptions{})
 	if err != nil {
 		return outBuf.String(), errBuf.String(), 0, err
 	}
@@ -162,7 +165,7 @@ func (a *App) cleanupSwarmVolumeHelpers(ctx context.Context) error {
 	a.swarmVolumeHelpersMu.Unlock()
 
 	for _, id := range ids {
-		_ = cli.ContainerRemove(ctx, id, container.RemoveOptions{Force: true, RemoveVolumes: false})
+		_, _ = cli.ContainerRemove(ctx, id, client.ContainerRemoveOptions{Force: true, RemoveVolumes: false})
 	}
 
 	return nil

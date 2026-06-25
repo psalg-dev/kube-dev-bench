@@ -10,8 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
@@ -53,8 +52,8 @@ func (a *App) prepareSwarmDownload(volumeName, srcPath string) (containerID, con
 // getDefaultDownloadName determines the default filename based on source type
 func (a *App) getDefaultDownloadName(containerID, containerPath, base string, cli *client.Client) string {
 	defaultName := base
-	if st, statErr := cli.ContainerStatPath(a.ctx, containerID, containerPath); statErr == nil {
-		if statModeIsDir(st.Mode) {
+	if st, statErr := cli.ContainerStatPath(a.ctx, containerID, client.ContainerStatPathOptions{Path: containerPath}); statErr == nil {
+		if statModeIsDir(st.Stat.Mode) {
 			defaultName = base + ".tar"
 		}
 	}
@@ -148,10 +147,11 @@ func (a *App) DownloadFromSwarmVolume(volumeName string, srcPath string) (string
 		return "", nil
 	}
 
-	reader, _, err := cli.CopyFromContainer(a.ctx, containerID, containerPath)
+	result, err := cli.CopyFromContainer(a.ctx, containerID, client.CopyFromContainerOptions{SourcePath: containerPath})
 	if err != nil {
 		return "", err
 	}
+	reader := result.Content
 	defer reader.Close()
 
 	if isTarPath(destPath) {
@@ -310,7 +310,10 @@ func (a *App) copyLocalFileToContainer(cli *client.Client, containerID, localPat
 		}
 	}()
 
-	return cli.CopyToContainer(a.ctx, containerID, "/mnt"+destDir, pr, container.CopyToContainerOptions{
+	_, err = cli.CopyToContainer(a.ctx, containerID, client.CopyToContainerOptions{
+		DestinationPath:           "/mnt" + destDir,
+		Content:                   pr,
 		AllowOverwriteDirWithFile: true,
 	})
+	return err
 }

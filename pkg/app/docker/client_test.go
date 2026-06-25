@@ -8,41 +8,40 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/system"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/api/types/system"
+	"github.com/moby/moby/client"
 )
 
 type fakeConnClient struct {
 	pingErr       error
-	serverVersion types.Version
+	serverVersion client.ServerVersionResult
 	serverErr     error
-	swarmInfo     swarm.Swarm
+	swarmInfo     client.SwarmInspectResult
 	swarmErr      error
-	info          system.Info
+	infoResult    client.SystemInfoResult
 	infoErr       error
 	closed        bool
 }
 
-func (f *fakeConnClient) Ping(context.Context) (types.Ping, error) { return types.Ping{}, f.pingErr }
-func (f *fakeConnClient) ServerVersion(context.Context) (types.Version, error) {
+func (f *fakeConnClient) Ping(_ context.Context, _ client.PingOptions) (client.PingResult, error) { return client.PingResult{}, f.pingErr }
+func (f *fakeConnClient) ServerVersion(_ context.Context, _ client.ServerVersionOptions) (client.ServerVersionResult, error) {
 	if f.serverErr != nil {
-		return types.Version{}, f.serverErr
+		return client.ServerVersionResult{}, f.serverErr
 	}
 	return f.serverVersion, nil
 }
-func (f *fakeConnClient) SwarmInspect(context.Context) (swarm.Swarm, error) {
+func (f *fakeConnClient) SwarmInspect(_ context.Context, _ client.SwarmInspectOptions) (client.SwarmInspectResult, error) {
 	if f.swarmErr != nil {
-		return swarm.Swarm{}, f.swarmErr
+		return client.SwarmInspectResult{}, f.swarmErr
 	}
 	return f.swarmInfo, nil
 }
-func (f *fakeConnClient) Info(context.Context) (system.Info, error) {
+func (f *fakeConnClient) Info(_ context.Context, _ client.InfoOptions) (client.SystemInfoResult, error) {
 	if f.infoErr != nil {
-		return system.Info{}, f.infoErr
+		return client.SystemInfoResult{}, f.infoErr
 	}
-	return f.info, nil
+	return f.infoResult, nil
 }
 func (f *fakeConnClient) Close() error { f.closed = true; return nil }
 
@@ -155,9 +154,9 @@ func Test_TestConnection_happyPathSetsSwarmAndManager(t *testing.T) {
 	defer func() { newDockerConnectionClient = old }()
 
 	fc := &fakeConnClient{
-		serverVersion: types.Version{Version: "1.2.3"},
-		swarmInfo:     swarm.Swarm{ClusterInfo: swarm.ClusterInfo{ID: "node-id"}},
-		info:          system.Info{Swarm: swarm.Info{ControlAvailable: true}},
+		serverVersion: client.ServerVersionResult{Version: "1.2.3"},
+		swarmInfo:     client.SwarmInspectResult{Swarm: swarm.Swarm{ClusterInfo: swarm.ClusterInfo{ID: "node-id"}}},
+		infoResult:    client.SystemInfoResult{Info: system.Info{Swarm: swarm.Info{ControlAvailable: true}}},
 	}
 
 	newDockerConnectionClient = func(DockerConfig) (dockerConnectionClient, error) {
@@ -177,7 +176,7 @@ func Test_TestConnection_happyPathSetsSwarmAndManager(t *testing.T) {
 }
 
 func Test_isSwarmActive(t *testing.T) {
-	ok := isSwarmActive(context.Background(), &fakeConnClient{swarmInfo: swarm.Swarm{ClusterInfo: swarm.ClusterInfo{ID: "x"}}})
+	ok := isSwarmActive(context.Background(), &fakeConnClient{swarmInfo: client.SwarmInspectResult{Swarm: swarm.Swarm{ClusterInfo: swarm.ClusterInfo{ID: "x"}}}})
 	if !ok {
 		t.Fatalf("expected true")
 	}

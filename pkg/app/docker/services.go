@@ -5,20 +5,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type swarmServicesClient interface {
-	ServiceList(context.Context, types.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, types.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceCreate(context.Context, swarm.ServiceSpec, types.ServiceCreateOptions) (swarm.ServiceCreateResponse, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, types.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
-	ServiceRemove(context.Context, string) error
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	ServiceInspect(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	ServiceCreate(context.Context, client.ServiceCreateOptions) (client.ServiceCreateResult, error)
+	ServiceUpdate(context.Context, string, client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)
+	ServiceRemove(context.Context, string, client.ServiceRemoveOptions) (client.ServiceRemoveResult, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
 }
 
 // CreateServiceOptions holds common options for creating a Swarm service.
@@ -57,9 +56,9 @@ func buildPortConfigs(ports []SwarmPortInfo) []swarm.PortConfig {
 	}
 	result := make([]swarm.PortConfig, 0, len(ports))
 	for _, p := range ports {
-		proto := swarm.PortConfigProtocolTCP
+		proto := network.TCP
 		if p.Protocol == "udp" {
-			proto = swarm.PortConfigProtocolUDP
+			proto = network.UDP
 		}
 		publishMode := swarm.PortConfigPublishModeIngress
 		if p.PublishMode == "host" {
@@ -113,7 +112,7 @@ func createSwarmService(ctx context.Context, cli swarmServicesClient, opts Creat
 		spec.EndpointSpec = &swarm.EndpointSpec{Ports: portConfigs}
 	}
 
-	resp, err := cli.ServiceCreate(ctx, spec, types.ServiceCreateOptions{})
+	resp, err := cli.ServiceCreate(ctx, client.ServiceCreateOptions{Spec: spec})
 	if err != nil {
 		return "", err
 	}
@@ -126,16 +125,18 @@ func GetSwarmServices(ctx context.Context, cli *client.Client) ([]SwarmServiceIn
 }
 
 func getSwarmServices(ctx context.Context, cli swarmServicesClient) ([]SwarmServiceInfo, error) {
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	services := svcResult.Items
 
 	// Get tasks to count running tasks per service
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{})
 	if err != nil {
-		tasks = []swarm.Task{} // Continue without task counts
+		taskResult = client.TaskListResult{} // Continue without task counts
 	}
+	tasks := taskResult.Items
 
 	// Count running tasks per service
 	runningTasksMap := make(map[string]uint64)
@@ -160,19 +161,20 @@ func GetSwarmService(ctx context.Context, cli *client.Client, serviceID string) 
 }
 
 func getSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) (*SwarmServiceInfo, error) {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, serviceID, client.ServiceInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
+	svc := svcResult.Service
 
 	// Get running tasks count for this service
-	taskFilter := filters.NewArgs()
-	taskFilter.Add("service", serviceID)
-	taskFilter.Add("desired-state", "running")
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: taskFilter})
+	taskFilter := client.Filters{}
+	taskFilter["service"] = map[string]bool{serviceID: true}
+	taskFilter["desired-state"] = map[string]bool{"running": true}
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{Filters: taskFilter})
 	runningTasks := uint64(0)
 	if err == nil {
-		for _, task := range tasks {
+		for _, task := range taskResult.Items {
 			if task.Status.State == swarm.TaskStateRunning {
 				runningTasks++
 			}
@@ -207,10 +209,10 @@ func extractUpdateConfig(svc *swarm.Service) *SwarmUpdateConfigInfo {
 	return &SwarmUpdateConfigInfo{
 		Parallelism:     uc.Parallelism,
 		Delay:           uc.Delay.String(),
-		FailureAction:   uc.FailureAction,
+		FailureAction:   string(uc.FailureAction),
 		Monitor:         uc.Monitor.String(),
 		MaxFailureRatio: float64(uc.MaxFailureRatio),
-		Order:           uc.Order,
+		Order:           string(uc.Order),
 	}
 }
 
@@ -346,10 +348,11 @@ func ScaleSwarmService(ctx context.Context, cli *client.Client, serviceID string
 }
 
 func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string, replicas uint64) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, serviceID, client.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
+	svc := svcResult.Service
 
 	// Only replicated services can be scaled
 	if svc.Spec.Mode.Replicated == nil {
@@ -359,7 +362,7 @@ func scaleSwarmService(ctx context.Context, cli swarmServicesClient, serviceID s
 	// Update the replica count
 	svc.Spec.Mode.Replicated.Replicas = &replicas
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, client.ServiceUpdateOptions{Version: svc.Version, Spec: svc.Spec})
 	return err
 }
 
@@ -369,7 +372,8 @@ func RemoveSwarmService(ctx context.Context, cli *client.Client, serviceID strin
 }
 
 func removeSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	return cli.ServiceRemove(ctx, serviceID)
+	_, err := cli.ServiceRemove(ctx, serviceID, client.ServiceRemoveOptions{})
+	return err
 }
 
 // UpdateSwarmServiceImage updates the image of a Swarm service
@@ -378,10 +382,11 @@ func UpdateSwarmServiceImage(ctx context.Context, cli *client.Client, serviceID 
 }
 
 func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, serviceID string, image string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, serviceID, client.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
+	svc := svcResult.Service
 
 	if svc.Spec.TaskTemplate.ContainerSpec == nil {
 		return ErrNoContainerSpec
@@ -390,7 +395,7 @@ func updateSwarmServiceImage(ctx context.Context, cli swarmServicesClient, servi
 	svc.Spec.TaskTemplate.ContainerSpec.Image = image
 	svc.Spec.TaskTemplate.ForceUpdate++
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, client.ServiceUpdateOptions{Version: svc.Version, Spec: svc.Spec})
 	return err
 }
 
@@ -400,15 +405,16 @@ func RestartSwarmService(ctx context.Context, cli *client.Client, serviceID stri
 }
 
 func restartSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, serviceID, client.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
+	svc := svcResult.Service
 
 	// Increment ForceUpdate to trigger a rolling restart
 	svc.Spec.TaskTemplate.ForceUpdate++
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{})
+	_, err = cli.ServiceUpdate(ctx, serviceID, client.ServiceUpdateOptions{Version: svc.Version, Spec: svc.Spec})
 	return err
 }
 
@@ -419,11 +425,12 @@ func RollbackSwarmService(ctx context.Context, cli *client.Client, serviceID str
 }
 
 func rollbackSwarmService(ctx context.Context, cli swarmServicesClient, serviceID string) error {
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, types.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, serviceID, client.ServiceInspectOptions{})
 	if err != nil {
 		return err
 	}
+	svc := svcResult.Service
 
-	_, err = cli.ServiceUpdate(ctx, serviceID, svc.Version, svc.Spec, types.ServiceUpdateOptions{Rollback: "previous"})
+	_, err = cli.ServiceUpdate(ctx, serviceID, client.ServiceUpdateOptions{Rollback: "previous", Version: svc.Version, Spec: svc.Spec})
 	return err
 }

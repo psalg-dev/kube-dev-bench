@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	dockerswarm "github.com/docker/docker/api/types/swarm"
+	dockerswarm "github.com/moby/moby/api/types/swarm"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/client-go/rest"

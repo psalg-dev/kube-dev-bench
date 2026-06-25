@@ -5,10 +5,9 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 func CollectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (SwarmMetricsPoint, SwarmMetricsBreakdown, error) {
@@ -20,18 +19,21 @@ func collectSwarmMetricsWithBreakdown(ctx context.Context, cli *client.Client) (
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, types.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
-	tasks, err := cli.TaskList(ctx, types.TaskListOptions{})
+	services := svcResult.Items
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
-	nodes, err := cli.NodeList(ctx, types.NodeListOptions{})
+	tasks := taskResult.Items
+	nodeResult, err := cli.NodeList(ctx, client.NodeListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, SwarmMetricsBreakdown{}, err
 	}
+	nodes := nodeResult.Items
 
 	// Compute node capacity metrics
 	readyNodes, cpuCap, memCap := computeNodeCapacity(nodes)
@@ -221,7 +223,7 @@ func collectContainerStats(ctx context.Context, cli *client.Client, tasks []swar
 
 // getContainerStats fetches stats for a single container
 func getContainerStats(ctx context.Context, cli *client.Client, cid string) *containerStatsResult {
-	statsResp, err := cli.ContainerStats(ctx, cid, false)
+	statsResp, err := cli.ContainerStats(ctx, cid, client.ContainerStatsOptions{})
 	if err != nil {
 		return nil
 	}

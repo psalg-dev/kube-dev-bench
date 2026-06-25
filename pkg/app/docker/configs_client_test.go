@@ -2,10 +2,12 @@ package docker
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 func Test_getSwarmConfigs_listsAndConverts(t *testing.T) {
@@ -18,8 +20,8 @@ func Test_getSwarmConfigs_listsAndConverts(t *testing.T) {
 	}
 
 	cli := &fakeDockerClient{
-		ConfigListFn: func(context.Context, swarm.ConfigListOptions) ([]swarm.Config, error) {
-			return []swarm.Config{cfg}, nil
+		ConfigListFn: func(context.Context, client.ConfigListOptions) (client.ConfigListResult, error) {
+			return client.ConfigListResult{Items: []swarm.Config{cfg}}, nil
 		},
 	}
 
@@ -39,8 +41,8 @@ func Test_getSwarmConfig_returnsItem(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
-			return swarm.Config{ID: "cfg-1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "c1"}}}, nil, nil
+		ConfigInspectFn: func(ctx context.Context, id string, opts client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+			return client.ConfigInspectResult{Config: swarm.Config{ID: "cfg-1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "c1"}}}}, nil
 		},
 	}
 
@@ -57,8 +59,8 @@ func Test_getSwarmConfigData_returnsBytes(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
-			return swarm.Config{Spec: swarm.ConfigSpec{Data: []byte("xyz")}}, nil, nil
+		ConfigInspectFn: func(ctx context.Context, id string, opts client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+			return client.ConfigInspectResult{Config: swarm.Config{Spec: swarm.ConfigSpec{Data: []byte("xyz")}}}, nil
 		},
 	}
 
@@ -75,11 +77,11 @@ func Test_createSwarmConfig_callsConfigCreate(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigCreateFn: func(_ context.Context, spec swarm.ConfigSpec) (swarm.ConfigCreateResponse, error) {
-			if spec.Annotations.Name != "c1" {
-				t.Fatalf("unexpected name: %q", spec.Annotations.Name)
+		ConfigCreateFn: func(_ context.Context, opts client.ConfigCreateOptions) (client.ConfigCreateResult, error) {
+			if opts.Spec.Annotations.Name != "c1" {
+				t.Fatalf("unexpected name: %q", opts.Spec.Annotations.Name)
 			}
-			return swarm.ConfigCreateResponse{ID: "new-id"}, nil
+			return client.ConfigCreateResult{ID: "new-id"}, nil
 		},
 	}
 
@@ -96,14 +98,14 @@ func Test_updateSwarmConfig_updatesData(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
-			return swarm.Config{ID: "cfg-1", Meta: swarm.Meta{Version: swarm.Version{Index: 2}}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "c1"}, Data: []byte("old")}}, nil, nil
+		ConfigInspectFn: func(ctx context.Context, id string, opts client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+			return client.ConfigInspectResult{Config: swarm.Config{ID: "cfg-1", Meta: swarm.Meta{Version: swarm.Version{Index: 2}}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "c1"}, Data: []byte("old")}}}, nil
 		},
-		ConfigUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ConfigSpec) error {
-			if string(spec.Data) != "new" {
+		ConfigUpdateFn: func(_ context.Context, _ string, opts client.ConfigUpdateOptions) (client.ConfigUpdateResult, error) {
+			if string(opts.Spec.Data) != "new" {
 				t.Fatalf("expected new data")
 			}
-			return nil
+			return client.ConfigUpdateResult{}, nil
 		},
 	}
 
@@ -116,7 +118,7 @@ func Test_removeSwarmConfig_callsRemove(t *testing.T) {
 	ctx := context.Background()
 
 	called := false
-	cli := &fakeDockerClient{ConfigRemoveFn: func(context.Context, string) error { called = true; return nil }}
+	cli := &fakeDockerClient{ConfigRemoveFn: func(context.Context, string, client.ConfigRemoveOptions) (client.ConfigRemoveResult, error) { called = true; return client.ConfigRemoveResult{}, nil }}
 
 	if err := removeSwarmConfig(ctx, cli, "cfg-1"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -136,14 +138,14 @@ func Test_getSwarmConfigUsage_findsReferencingServices(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
-			return swarm.Config{ID: "cfg-1", Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "config1"}}}, nil, nil
+		ConfigInspectFn: func(ctx context.Context, id string, opts client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+			return client.ConfigInspectResult{Config: swarm.Config{ID: "cfg-1", Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "config1"}}}}, nil
 		},
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{
+		ServiceListFn: func(ctx context.Context, opts client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{
 				{ID: "svc-1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-1"}}}}}},
 				{ID: "svc-2", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service2"}}},
-			}, nil
+			}}, nil
 		},
 	}
 
@@ -160,31 +162,31 @@ func Test_updateSwarmConfigDataImmutable_createsNewConfigAndMigrates(t *testing.
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ConfigInspectWithRawFn: func(context.Context, string) (swarm.Config, []byte, error) {
-			return swarm.Config{ID: "cfg-old", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "myconfig"}, Data: []byte("old")}}, nil, nil
+		ConfigInspectFn: func(ctx context.Context, id string, opts client.ConfigInspectOptions) (client.ConfigInspectResult, error) {
+			return client.ConfigInspectResult{Config: swarm.Config{ID: "cfg-old", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ConfigSpec{Annotations: swarm.Annotations{Name: "myconfig"}, Data: []byte("old")}}}, nil
 		},
-		ConfigCreateFn: func(_ context.Context, spec swarm.ConfigSpec) (swarm.ConfigCreateResponse, error) {
-			if string(spec.Data) != "new" {
-				t.Fatalf("expected new data, got %q", string(spec.Data))
+		ConfigCreateFn: func(_ context.Context, opts client.ConfigCreateOptions) (client.ConfigCreateResult, error) {
+			if !strings.HasPrefix(opts.Spec.Annotations.Name, "myconfig_") {
+				t.Fatalf("unexpected name: %q", opts.Spec.Annotations.Name)
 			}
-			return swarm.ConfigCreateResponse{ID: "cfg-new"}, nil
+					return client.ConfigCreateResult{ID: "cfg-new"}, nil
 		},
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{
+		ServiceListFn: func(ctx context.Context, opts client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{
 				{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-old", ConfigName: "myconfig"}}}}}},
-			}, nil
+			}}, nil
 		},
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return swarm.Service{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-old", ConfigName: "myconfig"}}}}}}, nil, nil
+		ServiceInspectFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: swarm.Service{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Configs: []*swarm.ConfigReference{{ConfigID: "cfg-old", ConfigName: "myconfig"}}}}}}}, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
-			if spec.TaskTemplate.ContainerSpec.Configs[0].ConfigID != "cfg-new" {
+		ServiceUpdateFn: func(_ context.Context, _ string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
+			if opts.Spec.TaskTemplate.ContainerSpec.Configs[0].ConfigID != "cfg-new" {
 				t.Fatalf("expected new config ID")
 			}
-			return swarm.ServiceUpdateResponse{}, nil
+			return client.ServiceUpdateResult{}, nil
 		},
-		ConfigRemoveFn: func(context.Context, string) error {
-			return nil
+		ConfigRemoveFn: func(ctx context.Context, id string, opts client.ConfigRemoveOptions) (client.ConfigRemoveResult, error) {
+			return client.ConfigRemoveResult{}, nil
 		},
 	}
 

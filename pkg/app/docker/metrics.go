@@ -5,14 +5,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type swarmMetricsClient interface {
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	NodeList(context.Context, client.NodeListOptions) (client.NodeListResult, error)
 }
 
 var swarmMetricsStore = struct {
@@ -101,18 +101,21 @@ func collectSwarmMetrics(ctx context.Context, cli swarmMetricsClient) (SwarmMetr
 		ctx = context.Background()
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, err
 	}
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	services := svcResult.Items
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, err
 	}
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	tasks := taskResult.Items
+	nodeResult, err := cli.NodeList(ctx, client.NodeListOptions{})
 	if err != nil {
 		return SwarmMetricsPoint{}, err
 	}
+	nodes := nodeResult.Items
 
 	readyNodes, cpuCap, memCap := countReadyNodesAndCapacity(nodes)
 	runningTasks := countRunningTasks(tasks)

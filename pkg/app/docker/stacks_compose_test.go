@@ -4,7 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/swarm"
 )
 
 // ---------------------------------------------------------------------------
@@ -15,8 +16,8 @@ func TestBuildServicePorts_BasicPorts(t *testing.T) {
 	t.Parallel()
 
 	ports := []swarm.PortConfig{
-		{Protocol: swarm.PortConfigProtocolTCP, PublishedPort: 8080, TargetPort: 80},
-		{Protocol: swarm.PortConfigProtocolUDP, PublishedPort: 5353, TargetPort: 53},
+		{Protocol: network.TCP, PublishedPort: 8080, TargetPort: 80},
+		{Protocol: network.UDP, PublishedPort: 5353, TargetPort: 53},
 	}
 
 	result := buildServicePorts(ports)
@@ -51,9 +52,9 @@ func TestBuildServicePorts_FiltersZeroPorts(t *testing.T) {
 	t.Parallel()
 
 	ports := []swarm.PortConfig{
-		{Protocol: swarm.PortConfigProtocolTCP, PublishedPort: 0, TargetPort: 80},  // no published port
-		{Protocol: swarm.PortConfigProtocolTCP, PublishedPort: 8080, TargetPort: 0}, // no target port
-		{Protocol: swarm.PortConfigProtocolTCP, PublishedPort: 443, TargetPort: 443}, // valid
+		{Protocol: network.TCP, PublishedPort: 0, TargetPort: 80},  // no published port
+		{Protocol: network.TCP, PublishedPort: 8080, TargetPort: 0}, // no target port
+		{Protocol: network.TCP, PublishedPort: 443, TargetPort: 443}, // valid
 	}
 
 	result := buildServicePorts(ports)
@@ -323,7 +324,7 @@ func TestBuildComposeService_Basic(t *testing.T) {
 		Endpoint: swarm.Endpoint{
 			Spec: swarm.EndpointSpec{
 				Ports: []swarm.PortConfig{
-					{Protocol: swarm.PortConfigProtocolTCP, PublishedPort: 6379, TargetPort: 6379},
+					{Protocol: network.TCP, PublishedPort: 6379, TargetPort: 6379},
 				},
 			},
 		},

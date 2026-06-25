@@ -6,20 +6,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type swarmTasksClient interface {
-	TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error)
-	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error)
-	NodeInspectWithRaw(context.Context, string) (swarm.Node, []byte, error)
-	ContainerInspect(context.Context, string) (container.InspectResponse, error)
+	TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error)
+	TaskInspect(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	ServiceInspect(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	NodeList(context.Context, client.NodeListOptions) (client.NodeListResult, error)
+	NodeInspect(context.Context, string, client.NodeInspectOptions) (client.NodeInspectResult, error)
+	ContainerInspect(context.Context, string, client.ContainerInspectOptions) (client.ContainerInspectResult, error)
 }
 
 type cachedHealthStatus struct {
@@ -46,31 +45,33 @@ func getSwarmTasks(ctx context.Context, cli swarmTasksClient) ([]SwarmTaskInfo, 
 		return nil, nil
 	}
 
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	// Get services to map service IDs to names
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
 	serviceNames := make(map[string]string)
-	if err == nil {
-		for _, svc := range services {
-			serviceNames[svc.ID] = svc.Spec.Name
-		}
+	for _, svc := range svcResult.Items {
+		serviceNames[svc.ID] = svc.Spec.Name
 	}
 
-	// Get nodes to map node IDs to hostnames
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	nodeResult, err := cli.NodeList(ctx, client.NodeListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
 	nodeNames := make(map[string]string)
-	if err == nil {
-		for _, node := range nodes {
-			nodeNames[node.ID] = node.Description.Hostname
-		}
+	for _, n := range nodeResult.Items {
+		nodeNames[n.ID] = n.Description.Hostname
 	}
 
-	result := make([]SwarmTaskInfo, 0, len(tasks))
-	for _, task := range tasks {
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]SwarmTaskInfo, 0, len(taskResult.Items))
+	for _, task := range taskResult.Items {
 		info := taskToInfo(task, serviceNames, nodeNames)
 		populateSwarmTaskHealth(ctx, cli, &info)
 		result = append(result, info)
@@ -85,27 +86,28 @@ func GetSwarmTasksByService(ctx context.Context, cli *client.Client, serviceID s
 }
 
 func getSwarmTasksByService(ctx context.Context, cli swarmTasksClient, serviceID string) ([]SwarmTaskInfo, error) {
-	filter := filters.NewArgs()
-	filter.Add("service", serviceID)
+	filter := client.Filters{}
+	filter["service"] = map[string]bool{serviceID: true}
 
-	tasks, err := cli.TaskList(ctx, swarm.TaskListOptions{Filters: filter})
+	taskResult, err := cli.TaskList(ctx, client.TaskListOptions{Filters: filter})
 	if err != nil {
 		return nil, err
 	}
+	tasks := taskResult.Items
 
 	// Get the service name
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, serviceID, swarm.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, serviceID, client.ServiceInspectOptions{})
 	serviceName := ""
 	if err == nil {
-		serviceName = svc.Spec.Name
+		serviceName = svcResult.Service.Spec.Name
 	}
 	serviceNames := map[string]string{serviceID: serviceName}
 
 	// Get nodes to map node IDs to hostnames
-	nodes, err := cli.NodeList(ctx, swarm.NodeListOptions{})
+	nodeResult, err := cli.NodeList(ctx, client.NodeListOptions{})
 	nodeNames := make(map[string]string)
 	if err == nil {
-		for _, node := range nodes {
+		for _, node := range nodeResult.Items {
 			nodeNames[node.ID] = node.Description.Hostname
 		}
 	}
@@ -132,25 +134,26 @@ func GetSwarmTaskHealthLogs(ctx context.Context, cli *client.Client, taskID stri
 }
 
 func getSwarmTask(ctx context.Context, cli swarmTasksClient, taskID string) (*SwarmTaskInfo, error) {
-	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
+	taskResult, err := cli.TaskInspect(ctx, taskID, client.TaskInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
+	task := taskResult.Task
 
 	// Get service name
-	svc, _, err := cli.ServiceInspectWithRaw(ctx, task.ServiceID, swarm.ServiceInspectOptions{})
+	svcResult, err := cli.ServiceInspect(ctx, task.ServiceID, client.ServiceInspectOptions{})
 	serviceName := ""
 	if err == nil {
-		serviceName = svc.Spec.Name
+		serviceName = svcResult.Service.Spec.Name
 	}
 	serviceNames := map[string]string{task.ServiceID: serviceName}
 
 	// Get node name
 	nodeNames := make(map[string]string)
 	if task.NodeID != "" {
-		node, _, err := cli.NodeInspectWithRaw(ctx, task.NodeID)
+		nodeResult, err := cli.NodeInspect(ctx, task.NodeID, client.NodeInspectOptions{})
 		if err == nil {
-			nodeNames[task.NodeID] = node.Description.Hostname
+			nodeNames[task.NodeID] = nodeResult.Node.Description.Hostname
 		}
 	}
 
@@ -176,18 +179,20 @@ func getSwarmTaskHealthLogs(ctx context.Context, cli swarmTasksClient, taskID st
 		return out, nil
 	}
 
-	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
+	taskResult, err := cli.TaskInspect(ctx, taskID, client.TaskInspectOptions{})
 	if err != nil {
 		return out, err
 	}
+	task := taskResult.Task
 	if task.Status.ContainerStatus == nil || task.Status.ContainerStatus.ContainerID == "" {
 		return out, nil
 	}
 
-	ci, err := cli.ContainerInspect(ctx, task.Status.ContainerStatus.ContainerID)
+	ciResult, err := cli.ContainerInspect(ctx, task.Status.ContainerStatus.ContainerID, client.ContainerInspectOptions{})
 	if err != nil {
 		return out, nil
 	}
+	ci := ciResult.Container
 	if ci.State == nil || ci.State.Health == nil {
 		return out, nil
 	}
@@ -245,7 +250,10 @@ func taskToInfo(task swarm.Task, serviceNames, nodeNames map[string]string) Swar
 			if na.Network.ID == "" {
 				continue
 			}
-			addrs := append([]string{}, na.Addresses...)
+			addrs := make([]string, len(na.Addresses))
+			for i, a := range na.Addresses {
+				addrs[i] = a.String()
+			}
 			nets = append(nets, SwarmTaskNetworkInfo{
 				NetworkID: na.Network.ID,
 				Addresses: addrs,
@@ -316,12 +324,12 @@ func setCachedHealthStatus(containerID, status string) {
 
 // fetchContainerHealthStatus fetches health status from container inspect
 func fetchContainerHealthStatus(ctx context.Context, cli swarmTasksClient, containerID string) string {
-	ci, err := cli.ContainerInspect(ctx, containerID)
+	ciResult, err := cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 	if err != nil {
 		return "none"
 	}
-	if ci.State != nil && ci.State.Health != nil && ci.State.Health.Status != "" {
-		return ci.State.Health.Status
+	if ciResult.Container.State != nil && ciResult.Container.State.Health != nil && ciResult.Container.State.Health.Status != "" {
+		return string(ciResult.Container.State.Health.Status)
 	}
 	return "none"
 }
