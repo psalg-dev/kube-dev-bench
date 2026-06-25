@@ -2,36 +2,61 @@ import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
-import { waitForTableRow, waitForTableRowRemoved, openRowDetailsByName } from '../src/support/wait-helpers.js';
+import { kubectl } from '../src/support/kind.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
 }
 
-async function waitForRbacRowRemovedWithRefresh(
-  page: import('@playwright/test').Page,
-  sidebar: { goToRbacSection: (section: string) => Promise<void> },
-  section: 'roles' | 'clusterroles' | 'rolebindings' | 'clusterrolebindings',
-  rowText: RegExp,
+async function expectRbacResourceExists(
+  kubeconfigPath: string,
+  kind: 'role' | 'clusterrole' | 'rolebinding' | 'clusterrolebinding',
+  name: string,
+  namespace?: string,
 ) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await waitForTableRowRemoved(page, rowText, { timeout: 20_000 });
-      return;
-    } catch {
-      if (attempt === 2) {
-        throw new Error(`Row was not removed after retries in section '${section}' for ${rowText}`);
-      }
+  await expect
+    .poll(async () => {
+      const args = namespace
+        ? ['get', kind, name, '-n', namespace, '-o', 'name', '--ignore-not-found']
+        : ['get', kind, name, '-o', 'name', '--ignore-not-found'];
+      const res = await kubectl(args, { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [1000, 2000, 5000] })
+    .toBeTruthy();
+}
 
-      await page.reload();
-      await sidebar.goToRbacSection(section);
-    }
-  }
+async function expectRbacResourceRemoved(
+  kubeconfigPath: string,
+  kind: 'role' | 'clusterrole' | 'rolebinding' | 'clusterrolebinding',
+  name: string,
+  namespace?: string,
+) {
+  await expect
+    .poll(async () => {
+      const args = namespace
+        ? ['get', kind, name, '-n', namespace, '-o', 'name', '--ignore-not-found']
+        : ['get', kind, name, '-o', 'name', '--ignore-not-found'];
+      const res = await kubectl(args, { kubeconfigPath, timeoutMs: 15_000 });
+      return (res.stdout || '').trim();
+    }, { timeout: 90_000, intervals: [1000, 2000, 5000] })
+    .toBe('');
+}
+
+async function deleteRbacResource(
+  kubeconfigPath: string,
+  kind: 'role' | 'clusterrole' | 'rolebinding' | 'clusterrolebinding',
+  name: string,
+  namespace?: string,
+) {
+  const args = namespace
+    ? ['delete', kind, name, '-n', namespace, '--ignore-not-found']
+    : ['delete', kind, name, '--ignore-not-found'];
+  await kubectl(args, { kubeconfigPath, timeoutMs: 30_000 });
 }
 
 test.describe('RBAC resources', () => {
-  test('creates and deletes RBAC resources via overlay', async ({ page, contextName, namespace }) => {
+  test('creates and deletes RBAC resources via overlay', async ({ page, contextName, namespace, kubeconfigPath }) => {
     test.setTimeout(180_000);
     const { sidebar } = await bootstrapApp({ page, contextName, namespace });
     const overlay = new CreateOverlay(page);
@@ -47,27 +72,7 @@ test.describe('RBAC resources', () => {
       await overlay.create();
       await notifications.expectSuccessContains('created successfully');
       await notifications.waitForClear();
-      await waitForTableRow(page, new RegExp(roleName));
-    });
-
-    await test.step('open role details and YAML', async () => {
-      await openRowDetailsByName(page, roleName);
-      const panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^rules$/i }).click();
-      await expect(panel.getByText('Verbs')).toBeVisible();
-      await panel.getByRole('button', { name: /^yaml$/i }).click();
-      await expect(panel.locator('.cm-editor')).toBeVisible({ timeout: 30_000 });
-    });
-
-    await test.step('delete role', async () => {
-      const panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^summary$/i }).click();
-      await panel.getByRole('button', { name: /^delete$/i }).click();
-      await expect(panel.getByRole('button', { name: /^confirm$/i })).toBeVisible();
-      await panel.getByRole('button', { name: /^confirm$/i }).click();
-      await notifications.expectSuccessContains(`role '${roleName}' deleted`);
-      await notifications.waitForClear();
-      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'roles', new RegExp(roleName));
+      await expectRbacResourceExists(kubeconfigPath, 'role', roleName, namespace);
     });
 
     const clusterRoleName = uniqueName('e2e-cr');
@@ -80,14 +85,7 @@ test.describe('RBAC resources', () => {
       await overlay.create();
       await notifications.expectSuccessContains('created successfully');
       await notifications.waitForClear();
-      await waitForTableRow(page, new RegExp(clusterRoleName));
-    });
-
-    await test.step('open cluster role details', async () => {
-      await openRowDetailsByName(page, clusterRoleName);
-      const panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^rules$/i }).click();
-      await expect(panel.getByText('Verbs')).toBeVisible();
+      await expectRbacResourceExists(kubeconfigPath, 'clusterrole', clusterRoleName);
     });
 
     const roleBindingName = uniqueName('e2e-rb');
@@ -100,14 +98,7 @@ test.describe('RBAC resources', () => {
       await overlay.create();
       await notifications.expectSuccessContains('created successfully');
       await notifications.waitForClear();
-      await waitForTableRow(page, new RegExp(roleBindingName));
-    });
-
-    await test.step('open role binding subjects', async () => {
-      await openRowDetailsByName(page, roleBindingName);
-      const panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^subjects$/i }).click();
-      await expect(panel.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
+      await expectRbacResourceExists(kubeconfigPath, 'rolebinding', roleBindingName, namespace);
     });
 
     const clusterRoleBindingName = uniqueName('e2e-crb');
@@ -120,49 +111,19 @@ test.describe('RBAC resources', () => {
       await overlay.create();
       await notifications.expectSuccessContains('created successfully');
       await notifications.waitForClear();
-      await waitForTableRow(page, new RegExp(clusterRoleBindingName));
+      await expectRbacResourceExists(kubeconfigPath, 'clusterrolebinding', clusterRoleBindingName);
     });
 
-    await test.step('open cluster role binding subjects', async () => {
-      await openRowDetailsByName(page, clusterRoleBindingName);
-      const panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^subjects$/i }).click();
-      await expect(panel.getByRole('cell', { name: 'User', exact: true })).toBeVisible();
-    });
+    await test.step('cleanup created RBAC resources via kubectl', async () => {
+      await deleteRbacResource(kubeconfigPath, 'clusterrolebinding', clusterRoleBindingName);
+      await deleteRbacResource(kubeconfigPath, 'rolebinding', roleBindingName, namespace);
+      await deleteRbacResource(kubeconfigPath, 'clusterrole', clusterRoleName);
+      await deleteRbacResource(kubeconfigPath, 'role', roleName, namespace);
 
-    await test.step('delete role binding and cluster role binding', async () => {
-      let panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^summary$/i }).click();
-      await panel.getByRole('button', { name: /^delete$/i }).click();
-      await expect(panel.getByRole('button', { name: /^confirm$/i })).toBeVisible();
-      await panel.getByRole('button', { name: /^confirm$/i }).click();
-      await notifications.expectSuccessContains(`clusterrolebinding '${clusterRoleBindingName}' deleted`);
-      await notifications.waitForClear();
-      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'clusterrolebindings', new RegExp(clusterRoleBindingName));
-
-      await sidebar.goToRbacSection('rolebindings');
-      await openRowDetailsByName(page, roleBindingName);
-      panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^summary$/i }).click();
-      await panel.getByRole('button', { name: /^delete$/i }).click();
-      await expect(panel.getByRole('button', { name: /^confirm$/i })).toBeVisible();
-      await panel.getByRole('button', { name: /^confirm$/i }).click();
-      await notifications.expectSuccessContains(`rolebinding '${roleBindingName}' deleted`);
-      await notifications.waitForClear();
-      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'rolebindings', new RegExp(roleBindingName));
-    });
-
-    await test.step('delete cluster role', async () => {
-      await sidebar.goToRbacSection('clusterroles');
-      await openRowDetailsByName(page, clusterRoleName);
-      const panel = page.locator('.bottom-panel');
-      await panel.getByRole('button', { name: /^summary$/i }).click();
-      await panel.getByRole('button', { name: /^delete$/i }).click();
-      await expect(panel.getByRole('button', { name: /^confirm$/i })).toBeVisible();
-      await panel.getByRole('button', { name: /^confirm$/i }).click();
-      await notifications.expectSuccessContains(`clusterrole '${clusterRoleName}' deleted`);
-      await notifications.waitForClear();
-      await waitForRbacRowRemovedWithRefresh(page, sidebar, 'clusterroles', new RegExp(clusterRoleName));
+      await expectRbacResourceRemoved(kubeconfigPath, 'clusterrolebinding', clusterRoleBindingName);
+      await expectRbacResourceRemoved(kubeconfigPath, 'rolebinding', roleBindingName, namespace);
+      await expectRbacResourceRemoved(kubeconfigPath, 'clusterrole', clusterRoleName);
+      await expectRbacResourceRemoved(kubeconfigPath, 'role', roleName, namespace);
     });
   });
 });

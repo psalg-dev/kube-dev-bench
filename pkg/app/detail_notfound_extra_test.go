@@ -212,6 +212,7 @@ func TestStartup_LoadConfigError(t *testing.T) {
 
 	// Startup should not panic even when loadConfig fails.
 	app.Startup(ctx)
+	defer app.Shutdown(ctx) // ensure resources (audit log, pollers) are cleaned up
 	// ctx should be set on the app.
 	if app.ctx == nil {
 		t.Error("expected app.ctx to be set")

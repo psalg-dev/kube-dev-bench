@@ -224,6 +224,14 @@ func (m *MCPServerAdapter) RestartDeployment(namespace, name string) error {
 	return m.app.RestartDeployment(namespace, name)
 }
 
+func (m *MCPServerAdapter) RestartStatefulSet(namespace, name string) error {
+	return m.app.RestartStatefulSet(namespace, name)
+}
+
+func (m *MCPServerAdapter) RestartDaemonSet(namespace, name string) error {
+	return m.app.RestartDaemonSet(namespace, name)
+}
+
 // Docker Swarm methods
 
 func (m *MCPServerAdapter) GetSwarmServices() (interface{}, error) {

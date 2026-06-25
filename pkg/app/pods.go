@@ -13,6 +13,8 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/logger"
+
 	"github.com/creack/pty"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,13 +31,24 @@ import (
 // Robust session management
 
 type ShellSession struct {
-	Cmd      *exec.Cmd
-	PTY      io.ReadWriteCloser // PTY for interactive local shell
-	Stdin    io.WriteCloser     // For in-cluster exec or non-PTY shells
-	Cancel   context.CancelFunc // For stopping session
-	SizeQ    *terminalSizeQueue // For in-cluster exec resize handling
-	ResizeFn func(cols, rows int) error
+	Cmd          *exec.Cmd
+	PTY          io.ReadWriteCloser // PTY for interactive local shell
+	Stdin        io.WriteCloser     // For in-cluster exec or non-PTY shells
+	Cancel       context.CancelFunc // For stopping session
+	SizeQ        *terminalSizeQueue // For in-cluster exec resize handling
+	ResizeFn     func(cols, rows int) error
+	LastActivity time.Time // last time input/output was observed (SUG-3)
 }
+
+const (
+	// shellSessionIdleTimeout is the maximum time a shell session can be idle
+	// before being automatically reaped (SUG-3).
+	shellSessionIdleTimeout = 30 * time.Minute
+	// shellSessionReaperInterval is how often the reaper checks for idle sessions.
+	shellSessionReaperInterval = 60 * time.Second
+	// maxShellSessions is the maximum number of concurrent shell sessions allowed (SUG-3).
+	maxShellSessions = 20
+)
 
 // terminalSizeQueue implements remotecommand.TerminalSizeQueue
 // allowing us to push resize events from the frontend.
@@ -90,8 +103,69 @@ var shellSessions sync.Map // sessionID -> *ShellSession
 func termOutputEvent(sessionID string) string { return TerminalOutputEvent(sessionID) }
 func termExitEvent(sessionID string) string   { return TerminalExitEvent(sessionID) }
 
+// shellSessionCount returns the current number of active sessions in the map.
+func shellSessionCount() int {
+	count := 0
+	shellSessions.Range(func(_, _ interface{}) bool {
+		count++
+		return true
+	})
+	return count
+}
+
+// touchSession updates the LastActivity timestamp for the given session.
+func touchSession(sessionID string) {
+	if v, ok := shellSessions.Load(sessionID); ok {
+		sess := v.(*ShellSession)
+		sess.LastActivity = time.Now()
+	}
+}
+
+// startShellSessionReaper starts a background goroutine that periodically
+// removes idle shell sessions (SUG-3). It stops when ctx is cancelled.
+func (a *App) startShellSessionReaper(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(shellSessionReaperInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				now := time.Now()
+				shellSessions.Range(func(key, value interface{}) bool {
+					sess := value.(*ShellSession)
+					if now.Sub(sess.LastActivity) > shellSessionIdleTimeout {
+						logger.Info("reaping idle shell session", "sessionID", key)
+						if sess.Cancel != nil {
+							sess.Cancel()
+						}
+						if sess.SizeQ != nil {
+							sess.SizeQ.Close()
+						}
+						if sess.PTY != nil {
+							_ = sess.PTY.Close()
+						}
+						if sess.Stdin != nil {
+							_ = sess.Stdin.Close()
+						}
+						if sess.Cmd != nil && sess.Cmd.Process != nil {
+							_ = sess.Cmd.Process.Kill()
+						}
+						shellSessions.Delete(key)
+					}
+					return true
+				})
+			}
+		}
+	}()
+}
+
 // StartShellSession starts a local shell (cmd.exe or bash) with PTY for xterm.js
 func (a *App) StartShellSession(sessionID, shellCmd string) error {
+	if shellSessionCount() >= maxShellSessions {
+		return fmt.Errorf("maximum number of shell sessions (%d) reached", maxShellSessions)
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
@@ -110,13 +184,14 @@ func (a *App) StartShellSession(sessionID, shellCmd string) error {
 		cancel()
 		return err
 	}
-	shellSessions.Store(sessionID, &ShellSession{Cmd: cmd, PTY: ptyFile, Cancel: cancel})
+	shellSessions.Store(sessionID, &ShellSession{Cmd: cmd, PTY: ptyFile, Cancel: cancel, LastActivity: time.Now()})
 	// stream output to per-session event
 	go func() {
 		buf := make([]byte, 4096)
 		for {
 			n, err := ptyFile.Read(buf)
 			if n > 0 {
+				touchSession(sessionID)
 				emitEvent(a.ctx, termOutputEvent(sessionID), string(buf[:n]))
 			}
 			if err != nil {
@@ -124,6 +199,7 @@ func (a *App) StartShellSession(sessionID, shellCmd string) error {
 			}
 		}
 		emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
+		shellSessions.Delete(sessionID) // cleanup leaked entry (SUG-3)
 	}()
 	// Optionally send initial command
 	if shellCmd != "" {
@@ -135,6 +211,10 @@ func (a *App) StartShellSession(sessionID, shellCmd string) error {
 // StartPodExecSession starts an in-cluster exec shell in a pod with TTY for xterm.js
 // This implementation uses client-go SPDY executor for robustness and cross-platform support.
 func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) error {
+	if shellSessionCount() >= maxShellSessions {
+		return fmt.Errorf("maximum number of shell sessions (%d) reached", maxShellSessions)
+	}
+	a.auditf("exec", "pod/"+podName, "namespace=%s shell=%s sessionID=%s", namespace, shell, sessionID)
 	if namespace == "" {
 		if a.currentNamespace == "" {
 			return fmt.Errorf("no namespace selected")
@@ -166,7 +246,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 		return err
 	}
 
-	sess := &ShellSession{Cancel: cancel, Stdin: pw, SizeQ: sizeQ}
+	sess := &ShellSession{Cancel: cancel, Stdin: pw, SizeQ: sizeQ, LastActivity: time.Now()}
 	shellSessions.Store(sessionID, sess)
 
 	stdoutWriter := &eventWriter{app: a, sessionID: sessionID}
@@ -179,6 +259,7 @@ func (a *App) StartPodExecSession(sessionID, namespace, podName, shell string) e
 	go func() {
 		defer func() {
 			emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
+			shellSessions.Delete(sessionID) // cleanup leaked entry (SUG-3)
 		}()
 		streamErr := executor.StreamWithContext(ctx, streamOpts)
 		if streamErr != nil && ctx.Err() == nil && shell != "/bin/sh" {
@@ -219,6 +300,7 @@ type eventWriter struct {
 }
 
 func (w *eventWriter) Write(p []byte) (int, error) {
+	touchSession(w.sessionID)
 	emitEvent(w.app.ctx, termOutputEvent(w.sessionID), string(p))
 	return len(p), nil
 }
@@ -230,6 +312,7 @@ func (a *App) SendShellInput(sessionID, input string) error {
 		return fmt.Errorf("session not found")
 	}
 	sess := v.(*ShellSession)
+	sess.LastActivity = time.Now() // keep session alive on input (SUG-3)
 	if sess.PTY != nil {
 		_, err := sess.PTY.Write([]byte(input))
 		return err
@@ -654,7 +737,7 @@ func (a *App) GetRunningPods(namespace string) ([]PodInfo, error) {
 		return nil, err
 	}
 
-	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}
@@ -763,7 +846,7 @@ func (a *App) GetPodStatusCounts(namespace string) (PodStatusCounts, error) {
 	if err != nil {
 		return PodStatusCounts{}, err
 	}
-	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{})
+	pods, err := clientset.CoreV1().Pods(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return PodStatusCounts{}, err
 	}

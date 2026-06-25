@@ -91,6 +91,7 @@ vi.mock('../../wailsjs/go/main/App', () => {
 
 // Mock Wails runtime EventsEmit and EventsOn
 vi.mock('../../wailsjs/runtime', () => ({
+  EventsOn: (...args: unknown[]) => eventsOnMock(...args),
   EventsEmit: (...args: unknown[]) => eventsEmitMock(...args),
 }));
 

@@ -59,7 +59,7 @@ func (a *App) GetRoleBindings(namespace string) ([]RoleBindingInfo, error) {
 		return nil, err
 	}
 
-	roleBindings, err := clientset.RbacV1().RoleBindings(namespace).List(a.ctx, metav1.ListOptions{})
+	roleBindings, err := clientset.RbacV1().RoleBindings(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (a *App) GetClusterRoleBindings() ([]RoleBindingInfo, error) {
 		return nil, err
 	}
 
-	clusterRoleBindings, err := clientset.RbacV1().ClusterRoleBindings().List(a.ctx, metav1.ListOptions{})
+	clusterRoleBindings, err := clientset.RbacV1().ClusterRoleBindings().List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

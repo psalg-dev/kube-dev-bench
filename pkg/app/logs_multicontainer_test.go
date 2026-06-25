@@ -208,8 +208,9 @@ func TestGetAggregatedContainerLogs_WithFetcher(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestStreamPodLogs_MultiContainer_EmptyNamespace(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	app := &App{
 		ctx:              context.Background(),
@@ -221,8 +222,9 @@ func TestStreamPodLogs_MultiContainer_EmptyNamespace(t *testing.T) {
 }
 
 func TestStreamPodLogs_MultiContainer_NoK8sClient(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	app := &App{
 		ctx:              context.Background(),
@@ -235,8 +237,9 @@ func TestStreamPodLogs_MultiContainer_NoK8sClient(t *testing.T) {
 }
 
 func TestStreamPodLogs_MultiContainer_PodDetected(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "multi-pod", Namespace: "default"},
@@ -264,8 +267,9 @@ func TestStreamPodLogs_MultiContainer_PodDetected(t *testing.T) {
 }
 
 func TestStreamPodLogsWith_MultiContainer(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "multi-pod", Namespace: "default"},
@@ -290,8 +294,9 @@ func TestStreamPodLogsWith_MultiContainer(t *testing.T) {
 }
 
 func TestStreamPodLogsWith_SpecificContainer_NoMulti(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "multi-pod", Namespace: "default"},
@@ -399,8 +404,9 @@ func TestGetPodLog_MultiContainer(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestStreamContainerWithPrefix_NoNamespace(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	app := &App{
 		ctx:              context.Background(),
@@ -412,8 +418,9 @@ func TestStreamContainerWithPrefix_NoNamespace(t *testing.T) {
 }
 
 func TestStreamContainerWithPrefix_NoPod(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	app := &App{
 		ctx:              context.Background(),
@@ -425,8 +432,9 @@ func TestStreamContainerWithPrefix_NoPod(t *testing.T) {
 }
 
 func TestStreamContainerWithPrefix_CanceledContext(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
@@ -444,8 +452,9 @@ func TestStreamContainerWithPrefix_CanceledContext(t *testing.T) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 func TestStopPodLogs_CancelsMultiContainerStream(t *testing.T) {
+	previous := disableWailsEvents
 	disableWailsEvents = true
-	defer func() { disableWailsEvents = false }()
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	canceled := false
 	app := &App{

@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type fakeTopologyClient struct {
@@ -13,14 +14,14 @@ type fakeTopologyClient struct {
 	nodes    []swarm.Node
 }
 
-func (f *fakeTopologyClient) ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-	return f.services, nil
+func (f *fakeTopologyClient) ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error) {
+	return client.ServiceListResult{Items: f.services}, nil
 }
-func (f *fakeTopologyClient) TaskList(context.Context, swarm.TaskListOptions) ([]swarm.Task, error) {
-	return f.tasks, nil
+func (f *fakeTopologyClient) TaskList(context.Context, client.TaskListOptions) (client.TaskListResult, error) {
+	return client.TaskListResult{Items: f.tasks}, nil
 }
-func (f *fakeTopologyClient) NodeList(context.Context, swarm.NodeListOptions) ([]swarm.Node, error) {
-	return f.nodes, nil
+func (f *fakeTopologyClient) NodeList(context.Context, client.NodeListOptions) (client.NodeListResult, error) {
+	return client.NodeListResult{Items: f.nodes}, nil
 }
 
 func TestBuildClusterTopology_BuildsLinksForRunningTasks(t *testing.T) {

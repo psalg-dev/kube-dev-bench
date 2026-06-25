@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,11 @@ import (
 )
 
 const graphCacheTTL = 8 * time.Second
+
+// graphCacheSweepInterval is how often the background sweeper removes expired
+// entries from graphCache so they don't linger after a cache miss stops
+// triggering lazy eviction (SUG-5).
+const graphCacheSweepInterval = 60 * time.Second
 
 type graphCacheEntry struct {
 	graph     *k8s_graph.ResourceGraph
@@ -47,6 +53,33 @@ func (a *App) setCachedGraph(key string, graph *k8s_graph.ResourceGraph) {
 		graph:     cloneResourceGraph(graph),
 		expiresAt: time.Now().Add(graphCacheTTL),
 	})
+}
+
+// startGraphCacheSweeper starts a background goroutine that periodically
+// removes expired entries from graphCache (SUG-5). Stops when ctx is cancelled.
+func (a *App) startGraphCacheSweeper(ctx context.Context) {
+	go func() {
+		ticker := time.NewTicker(graphCacheSweepInterval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				now := time.Now()
+				a.graphCache.Range(func(key, value interface{}) bool {
+					if entry, ok := value.(graphCacheEntry); ok {
+						if now.After(entry.expiresAt) {
+							a.graphCache.Delete(key)
+						}
+					} else {
+						a.graphCache.Delete(key) // invalid entry type
+					}
+					return true
+				})
+			}
+		}
+	}()
 }
 
 func normalizeGraphDepth(depth int) int {

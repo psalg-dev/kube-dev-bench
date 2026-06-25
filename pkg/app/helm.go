@@ -364,6 +364,7 @@ func (a *App) GetHelmChartVersions(repoName, chartName string) ([]HelmChartVersi
 
 // InstallHelmChart installs a Helm chart
 func (a *App) InstallHelmChart(req HelmInstallRequest) error {
+	a.auditf("helm-install", "release/"+req.ReleaseName, "namespace=%s chart=%s", req.Namespace, req.ChartRef)
 	actionConfig, err := a.getHelmActionConfig(req.Namespace)
 	if err != nil {
 		return err
@@ -409,10 +410,10 @@ func (a *App) InstallHelmChart(req HelmInstallRequest) error {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
-	// Run the install with context for better control
-	ctx := context.Background()
-	if a.ctx != nil {
-		ctx = a.ctx
+	// Run the install with context for better control (IMP-1: respect app shutdown)
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	_, err = installAction.RunWithContext(ctx, chart, req.Values)
 	if err != nil {
@@ -470,10 +471,10 @@ func (a *App) UpgradeHelmRelease(req HelmUpgradeRequest) error {
 		return fmt.Errorf("failed to load chart: %w", err)
 	}
 
-	// Run the upgrade with context
-	ctx := context.Background()
-	if a.ctx != nil {
-		ctx = a.ctx
+	// Run the upgrade with context (IMP-1: respect app shutdown)
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
 	}
 	_, err = upgradeAction.RunWithContext(ctx, req.ReleaseName, chart, req.Values)
 	if err != nil {
@@ -488,6 +489,7 @@ func (a *App) UpgradeHelmRelease(req HelmUpgradeRequest) error {
 
 // UninstallHelmRelease uninstalls a Helm release
 func (a *App) UninstallHelmRelease(namespace, releaseName string) error {
+	a.auditf("helm-uninstall", "release/"+releaseName, "namespace=%s", namespace)
 	actionConfig, err := a.getHelmActionConfig(namespace)
 	if err != nil {
 		return err
@@ -513,6 +515,7 @@ func (a *App) UninstallHelmRelease(namespace, releaseName string) error {
 
 // RollbackHelmRelease rolls back a Helm release to a previous revision
 func (a *App) RollbackHelmRelease(namespace, releaseName string, revision int) error {
+	a.auditf("helm-rollback", "release/"+releaseName, "namespace=%s revision=%d", namespace, revision)
 	actionConfig, err := a.getHelmActionConfig(namespace)
 	if err != nil {
 		return err

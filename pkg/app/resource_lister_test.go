@@ -144,3 +144,49 @@ func TestListResources_NoClientReturnsError(t *testing.T) {
 		t.Fatal("expected error when client is unavailable")
 	}
 }
+
+func TestListResources_PassesLimitInOptions(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{
+		ctx:           context.Background(),
+		testClientset: cs,
+	}
+
+	type item struct{ Name string }
+	var capturedOpts metav1.ListOptions
+
+	_, _ = listResources(app, "default",
+		func(cs kubernetes.Interface, ns string, opts metav1.ListOptions) ([]item, error) {
+			capturedOpts = opts
+			return nil, nil
+		},
+		func(item *item, now time.Time) string { return item.Name },
+	)
+
+	if capturedOpts.Limit != listPageSize {
+		t.Errorf("expected Limit=%d in ListOptions, got %d", listPageSize, capturedOpts.Limit)
+	}
+}
+
+func TestListClusterResources_PassesLimitInOptions(t *testing.T) {
+	cs := fake.NewSimpleClientset()
+	app := &App{
+		ctx:           context.Background(),
+		testClientset: cs,
+	}
+
+	type item struct{ ID string }
+	var capturedOpts metav1.ListOptions
+
+	_, _ = listClusterResources(app,
+		func(cs kubernetes.Interface, opts metav1.ListOptions) ([]item, error) {
+			capturedOpts = opts
+			return nil, nil
+		},
+		func(item *item, now time.Time) string { return item.ID },
+	)
+
+	if capturedOpts.Limit != listPageSize {
+		t.Errorf("expected Limit=%d in ListOptions, got %d", listPageSize, capturedOpts.Limit)
+	}
+}

@@ -56,7 +56,7 @@ func (a *App) GetServices(namespace string) ([]ServiceInfo, error) {
 		return nil, err
 	}
 
-	services, err := clientset.CoreV1().Services(namespace).List(a.ctx, metav1.ListOptions{})
+	services, err := clientset.CoreV1().Services(namespace).List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

@@ -5,8 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 func Test_getSwarmServices_countsRunningTasksAndDefaultsLabels(t *testing.T) {
@@ -40,16 +41,16 @@ func Test_getSwarmServices_countsRunningTasksAndDefaultsLabels(t *testing.T) {
 	}
 
 	cli := &fakeDockerClient{
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{svc1, svc2}, nil
+		ServiceListFn: func(context.Context, client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{svc1, svc2}}, nil
 		},
-		TaskListFn: func(context.Context, swarm.TaskListOptions) ([]swarm.Task, error) {
-			return []swarm.Task{
+		TaskListFn: func(context.Context, client.TaskListOptions) (client.TaskListResult, error) {
+			return client.TaskListResult{Items: []swarm.Task{
 				{ServiceID: "svc-1", Status: swarm.TaskStatus{State: swarm.TaskStateRunning}},
 				{ServiceID: "svc-1", Status: swarm.TaskStatus{State: swarm.TaskStateRunning}},
 				{ServiceID: "svc-1", Status: swarm.TaskStatus{State: swarm.TaskStateFailed}},
 				{ServiceID: "svc-2", Status: swarm.TaskStatus{State: swarm.TaskStateRunning}},
-			}, nil
+			}}, nil
 		},
 	}
 
@@ -96,12 +97,12 @@ func Test_scaleSwarmService_replicatedUpdatesReplicas(t *testing.T) {
 
 	var updatedReplicas *uint64
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return svc, nil, nil
+		ServiceInspectFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: svc}, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
-			updatedReplicas = spec.Mode.Replicated.Replicas
-			return swarm.ServiceUpdateResponse{}, nil
+		ServiceUpdateFn: func(_ context.Context, _ string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
+			updatedReplicas = opts.Spec.Mode.Replicated.Replicas
+			return client.ServiceUpdateResult{}, nil
 		},
 	}
 
@@ -126,8 +127,8 @@ func Test_scaleSwarmService_globalReturnsError(t *testing.T) {
 	}
 
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return svc, nil, nil
+		ServiceInspectFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: svc}, nil
 		},
 	}
 
@@ -150,13 +151,13 @@ func Test_updateSwarmServiceImage_updatesImageAndForceUpdate(t *testing.T) {
 	var updatedImage string
 	var updatedForce uint64
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return svc, nil, nil
+		ServiceInspectFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: svc}, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
-			updatedImage = spec.TaskTemplate.ContainerSpec.Image
-			updatedForce = spec.TaskTemplate.ForceUpdate
-			return swarm.ServiceUpdateResponse{}, nil
+		ServiceUpdateFn: func(_ context.Context, _ string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
+			updatedImage = opts.Spec.TaskTemplate.ContainerSpec.Image
+			updatedForce = opts.Spec.TaskTemplate.ForceUpdate
+			return client.ServiceUpdateResult{}, nil
 		},
 	}
 
@@ -184,12 +185,12 @@ func Test_restartSwarmService_incrementsForceUpdate(t *testing.T) {
 
 	var updatedForce uint64
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return svc, nil, nil
+		ServiceInspectFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: svc}, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
-			updatedForce = spec.TaskTemplate.ForceUpdate
-			return swarm.ServiceUpdateResponse{}, nil
+		ServiceUpdateFn: func(_ context.Context, _ string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
+			updatedForce = opts.Spec.TaskTemplate.ForceUpdate
+			return client.ServiceUpdateResult{}, nil
 		},
 	}
 
@@ -205,26 +206,29 @@ func Test_getSwarmService_countsOnlyRunningTasks(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return swarm.Service{
+		ServiceInspectWithRawFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: swarm.Service{
 				ID: "svc-1",
 				Meta: swarm.Meta{
 					CreatedAt: time.Unix(1, 0),
 					UpdatedAt: time.Unix(2, 0),
 				},
 				Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "svc"}, Mode: swarm.ServiceMode{Replicated: &swarm.ReplicatedService{Replicas: uint64Ptr(1)}}},
-			}, nil, nil
+			}}, nil
 		},
-		TaskListFn: func(_ context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
+		TaskListFn: func(_ context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
 			// Should include desired-state=running.
-			vals := opts.Filters.Get("desired-state")
+			vals := make([]string, 0)
+			for k := range opts.Filters["desired-state"] {
+				vals = append(vals, k)
+			}
 			if len(vals) != 1 || vals[0] != "running" {
 				t.Fatalf("expected desired-state=running, got %v", vals)
 			}
-			return []swarm.Task{
+			return client.TaskListResult{Items: []swarm.Task{
 				{Status: swarm.TaskStatus{State: swarm.TaskStateRunning}},
 				{Status: swarm.TaskStatus{State: swarm.TaskStateFailed}},
-			}, nil
+			}}, nil
 		},
 	}
 
@@ -241,7 +245,7 @@ func Test_removeSwarmService_callsRemove(t *testing.T) {
 	ctx := context.Background()
 
 	called := false
-	cli := &fakeDockerClient{ServiceRemoveFn: func(context.Context, string) error { called = true; return nil }}
+	cli := &fakeDockerClient{ServiceRemoveFn: func(context.Context, string, client.ServiceRemoveOptions) (client.ServiceRemoveResult, error) { called = true; return client.ServiceRemoveResult{}, nil }}
 
 	if err := removeSwarmService(ctx, cli, "svc-1"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -257,14 +261,14 @@ func Test_rollbackSwarmService_setsRollback(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return swarm.Service{ID: "s1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ServiceSpec{}}, nil, nil
+		ServiceInspectWithRawFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: swarm.Service{ID: "s1", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.ServiceSpec{}}}, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, _ swarm.ServiceSpec, opts swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
+		ServiceUpdateFn: func(_ context.Context, _ string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
 			if opts.Rollback != "previous" {
 				t.Fatalf("expected rollback='previous', got %q", opts.Rollback)
 			}
-			return swarm.ServiceUpdateResponse{}, nil
+			return client.ServiceUpdateResult{}, nil
 		},
 	}
 
@@ -277,14 +281,14 @@ func Test_createSwarmService_withPorts(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
-			if len(spec.EndpointSpec.Ports) != 1 {
-				t.Fatalf("expected 1 port, got %d", len(spec.EndpointSpec.Ports))
+		ServiceCreateFn: func(_ context.Context, opts client.ServiceCreateOptions) (client.ServiceCreateResult, error) {
+			if len(opts.Spec.EndpointSpec.Ports) != 1 {
+				t.Fatalf("expected 1 port, got %d", len(opts.Spec.EndpointSpec.Ports))
 			}
-			if spec.EndpointSpec.Ports[0].TargetPort != 80 {
-				t.Fatalf("expected target port 80, got %d", spec.EndpointSpec.Ports[0].TargetPort)
+			if opts.Spec.EndpointSpec.Ports[0].TargetPort != 80 {
+				t.Fatalf("expected target port 80, got %d", opts.Spec.EndpointSpec.Ports[0].TargetPort)
 			}
-			return swarm.ServiceCreateResponse{ID: "svc-id"}, nil
+			return client.ServiceCreateResult{ID: "svc-id"}, nil
 		},
 	}
 
@@ -306,11 +310,11 @@ func Test_createSwarmService_globalMode(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceCreateFn: func(_ context.Context, spec swarm.ServiceSpec, _ swarm.ServiceCreateOptions) (swarm.ServiceCreateResponse, error) {
-			if spec.Mode.Global == nil {
+		ServiceCreateFn: func(_ context.Context, opts client.ServiceCreateOptions) (client.ServiceCreateResult, error) {
+			if opts.Spec.Mode.Global == nil {
 				t.Fatalf("expected global mode")
 			}
-			return swarm.ServiceCreateResponse{ID: "svc-id"}, nil
+			return client.ServiceCreateResult{ID: "svc-id"}, nil
 		},
 	}
 

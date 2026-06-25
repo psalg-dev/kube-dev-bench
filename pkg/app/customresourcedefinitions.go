@@ -53,7 +53,7 @@ func (a *App) GetCustomResourceDefinitions() ([]CustomResourceDefinitionInfo, er
 		}
 	}
 
-	crds, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().List(a.ctx, metav1.ListOptions{})
+	crds, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().List(a.ctx, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

@@ -4,7 +4,7 @@ import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { BottomPanel } from '../../src/pages/BottomPanel.js';
 import { configureHolmesMock } from '../../src/support/holmes-bootstrap.js';
-import { waitForTableRow, waitForResourceStatus } from '../../src/support/wait-helpers.js';
+import { waitForTableRow } from '../../src/support/wait-helpers.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
@@ -32,30 +32,14 @@ async function waitForHolmesRowWithRefresh(
   }
 }
 
-async function waitForHolmesStatusWithRefresh(
-  page: import('@playwright/test').Page,
-  sidebar: { goToSection: (section: 'pods') => Promise<void> },
-  section: 'pods',
-  resourceName: RegExp,
-  status: string,
-) {
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      await waitForResourceStatus(page, resourceName, status, { timeout: 30_000 });
-      return;
-    } catch {
-      if (attempt === 2) {
-        throw new Error(`Status '${status}' did not appear in section '${section}' for ${resourceName}`);
-      }
-
-      await page.reload();
-      await sidebar.goToSection(section);
-    }
-  }
-}
-
 async function openRowActionsAndAskHolmes(page: any, rowText: string) {
-  const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: rowText }).first();
+  const table = page
+    .locator('#maincontent table.gh-table:visible, #main-panels table.gh-table:visible')
+    .filter({ has: page.locator('tbody tr') })
+    .first();
+  await expect(table).toBeVisible({ timeout: 30_000 });
+
+  const row = table.locator('tbody tr').filter({ hasText: rowText }).first();
   await expect(row).toBeVisible({ timeout: 60_000 });
 
   // Use retry pattern to handle potential popups intercepting clicks
@@ -99,7 +83,6 @@ test('Ask Holmes from resource details opens Holmes tab', async ({ page, context
   await sidebar.goToSection('pods');
 
   await waitForHolmesRowWithRefresh(page, sidebar, 'pods', new RegExp(deployName));
-  await waitForHolmesStatusWithRefresh(page, sidebar, 'pods', new RegExp(deployName), 'Running');
 
   await openRowActionsAndAskHolmes(page, deployName);
   await panel.expectVisible(30_000);

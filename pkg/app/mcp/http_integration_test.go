@@ -104,8 +104,8 @@ func TestMCPHTTP_ListTools(t *testing.T) {
 		t.Fatalf("ListTools failed: %v", err)
 	}
 
-	if len(result.Tools) != 14 {
-		t.Errorf("expected 14 tools, got %d", len(result.Tools))
+	if len(result.Tools) != 16 {
+		t.Errorf("expected 16 tools, got %d", len(result.Tools))
 	}
 
 	for _, tool := range result.Tools {

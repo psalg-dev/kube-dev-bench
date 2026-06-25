@@ -51,4 +51,4 @@ e2e-test-results*.zip
 **/**/*.log
 **/**/*.txt
 
-.github/hooks
+.github/hookstmp-e2e-results/

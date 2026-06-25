@@ -115,6 +115,29 @@ Use rolling dev snapshots (public, no GitHub login required):
 
 ---
 
+## 🪟 Windows Installation
+
+> **Important:** Windows SmartScreen may show a *"Windows protected your PC"* warning when running KubeDevBench for the first time, because the executable is not yet signed with a trusted code-signing certificate. This is normal for open-source apps distributed outside the Microsoft Store.
+
+You will see the dialog: *"Windows protected your PC — Microsoft Defender SmartScreen prevented an unrecognized app from starting."*
+
+**Fix — bypass SmartScreen for this download:**
+
+1. Click **More info** in the SmartScreen dialog.
+2. Click **Run anyway**.
+
+You only need to do this once; Windows remembers the choice.
+
+**Alternative fix — unblock via file properties:**
+
+1. Right-click `KubeDevBench-windows-amd64.exe` and select **Properties**.
+2. On the **General** tab, tick the **Unblock** checkbox at the bottom.
+3. Click **OK**, then launch the app normally.
+
+> **Why does this happen?** Windows SmartScreen flags executables that lack a code-signing certificate issued by a trusted Certificate Authority, or that have not yet built up enough download reputation. The app itself is not malicious — you can verify the release checksum in the GitHub release notes.
+
+---
+
 ## 🍎 macOS Installation
 
 > **Important:** macOS will block KubeDevBench on first launch because the app is not yet signed with an Apple Developer ID. This is normal for open-source desktop apps distributed outside the Mac App Store.
@@ -215,6 +238,7 @@ cd frontend && npm test
 ## System Requirements
 
 - **OS:** Windows 10+, macOS 11+ (arm64) / macOS 10.15+ (amd64), or Linux (Ubuntu 20.04+, Fedora 34+)
+- **Windows note:** First launch may trigger a SmartScreen warning — see [Windows Installation](#-windows-installation) above
 - **macOS note:** First launch requires removing the Gatekeeper quarantine — see [macOS Installation](#-macos-installation) above
 - **Memory:** 4 GB RAM minimum, 8 GB recommended
 - **Disk:** 200 MB for installation

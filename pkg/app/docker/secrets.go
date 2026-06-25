@@ -6,24 +6,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 var swarmSecretNowUTC = func() time.Time { return time.Now().UTC() }
 
 type swarmSecretsClient interface {
-	SecretList(context.Context, swarm.SecretListOptions) ([]swarm.Secret, error)
-	SecretInspectWithRaw(context.Context, string) (swarm.Secret, []byte, error)
-	SecretCreate(context.Context, swarm.SecretSpec) (swarm.SecretCreateResponse, error)
-	SecretRemove(context.Context, string) error
+	SecretList(context.Context, client.SecretListOptions) (client.SecretListResult, error)
+	SecretInspect(context.Context, string, client.SecretInspectOptions) (client.SecretInspectResult, error)
+	SecretCreate(context.Context, client.SecretCreateOptions) (client.SecretCreateResult, error)
+	SecretRemove(context.Context, string, client.SecretRemoveOptions) (client.SecretRemoveResult, error)
 }
 
 type swarmSecretEditClient interface {
 	swarmSecretsClient
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	ServiceInspect(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	ServiceUpdate(context.Context, string, client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)
 }
 
 // GetSwarmSecrets returns all Swarm secrets (metadata only, not the actual secret data)
@@ -32,13 +32,13 @@ func GetSwarmSecrets(ctx context.Context, cli *client.Client) ([]SwarmSecretInfo
 }
 
 func getSwarmSecrets(ctx context.Context, cli swarmSecretsClient) ([]SwarmSecretInfo, error) {
-	secrets, err := cli.SecretList(ctx, swarm.SecretListOptions{})
+	secretResult, err := cli.SecretList(ctx, client.SecretListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]SwarmSecretInfo, 0, len(secrets))
-	for _, secret := range secrets {
+	result := make([]SwarmSecretInfo, 0, len(secretResult.Items))
+	for _, secret := range secretResult.Items {
 		info := secretToInfo(secret)
 		result = append(result, info)
 	}
@@ -52,12 +52,12 @@ func GetSwarmSecret(ctx context.Context, cli *client.Client, secretID string) (*
 }
 
 func getSwarmSecret(ctx context.Context, cli swarmSecretsClient, secretID string) (*SwarmSecretInfo, error) {
-	secret, _, err := cli.SecretInspectWithRaw(ctx, secretID)
+	result, err := cli.SecretInspect(ctx, secretID, client.SecretInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	info := secretToInfo(secret)
+	info := secretToInfo(result.Secret)
 	return &info, nil
 }
 
@@ -92,15 +92,17 @@ func CreateSwarmSecret(ctx context.Context, cli *client.Client, name string, dat
 }
 
 func createSwarmSecret(ctx context.Context, cli swarmSecretsClient, name string, data []byte, labels map[string]string) (string, error) {
-	spec := swarm.SecretSpec{
-		Annotations: swarm.Annotations{
-			Name:   name,
-			Labels: labels,
+	options := client.SecretCreateOptions{
+		Spec: swarm.SecretSpec{
+			Annotations: swarm.Annotations{
+				Name:   name,
+				Labels: labels,
+			},
+			Data: data,
 		},
-		Data: data,
 	}
 
-	resp, err := cli.SecretCreate(ctx, spec)
+	resp, err := cli.SecretCreate(ctx, options)
 	if err != nil {
 		return "", err
 	}
@@ -113,7 +115,8 @@ func RemoveSwarmSecret(ctx context.Context, cli *client.Client, secretID string)
 }
 
 func removeSwarmSecret(ctx context.Context, cli swarmSecretsClient, secretID string) error {
-	return cli.SecretRemove(ctx, secretID)
+	_, err := cli.SecretRemove(ctx, secretID, client.SecretRemoveOptions{})
+	return err
 }
 
 // GetSwarmSecretUsage returns services that reference the given secret (by ID or name).
@@ -122,16 +125,17 @@ func GetSwarmSecretUsage(ctx context.Context, cli *client.Client, secretID strin
 }
 
 func getSwarmSecretUsage(ctx context.Context, cli swarmSecretEditClient, secretID string) ([]SwarmServiceRef, error) {
-	sec, _, err := cli.SecretInspectWithRaw(ctx, secretID)
+	secResult, err := cli.SecretInspect(ctx, secretID, client.SecretInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
-	secretName := sec.Spec.Name
+	secretName := secResult.Secret.Spec.Name
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	services := svcResult.Items
 
 	out := make([]SwarmServiceRef, 0)
 	for _, svc := range services {
@@ -149,64 +153,64 @@ func UpdateSwarmSecretDataImmutable(ctx context.Context, cli *client.Client, sec
 }
 
 func updateSwarmSecretDataImmutable(ctx context.Context, cli swarmSecretEditClient, secretID string, newData []byte) (*SwarmSecretUpdateResult, error) {
-	oldSec, _, err := cli.SecretInspectWithRaw(ctx, secretID)
+	oldResult, err := cli.SecretInspect(ctx, secretID, client.SecretInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
-	oldName := oldSec.Spec.Name
+	oldName := oldResult.Secret.Spec.Name
 
 	stamp := swarmSecretNowUTC().Format("2006-01-02T150405Z")
 	newName := swarmTimestampedName(oldName, stamp)
-	newSpec := oldSec.Spec
+	newSpec := oldResult.Secret.Spec
 	newSpec.Annotations.Name = newName
 	newSpec.Data = newData
 
-	createResp, err := cli.SecretCreate(ctx, newSpec)
+	createResp, err := cli.SecretCreate(ctx, client.SecretCreateOptions{Spec: newSpec})
 	if err != nil {
 		return nil, err
 	}
 
 	result := &SwarmSecretUpdateResult{
-		OldSecretID:   oldSec.ID,
+		OldSecretID:   oldResult.Secret.ID,
 		OldSecretName: oldName,
 		NewSecretID:   createResp.ID,
 		NewSecretName: newName,
 		Updated:       []SwarmServiceRef{},
 	}
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	var updateErrs []string
-	for _, svc := range services {
-		if !serviceReferencesSecret(svc, oldSec.ID, oldName) {
+	for _, svc := range svcResult.Items {
+		if !serviceReferencesSecret(svc, oldResult.Secret.ID, oldName) {
 			continue
 		}
-		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, swarm.ServiceInspectOptions{})
+		inspectResult, err := cli.ServiceInspect(ctx, svc.ID, client.ServiceInspectOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("inspect %s: %v", svc.Spec.Name, err))
 			continue
 		}
-		changed := replaceServiceSecretRefs(&inspected.Spec, oldSec.ID, oldName, createResp.ID, newName)
+		changed := replaceServiceSecretRefs(&inspectResult.Service.Spec, oldResult.Secret.ID, oldName, createResp.ID, newName)
 		if !changed {
 			continue
 		}
-		inspected.Spec.TaskTemplate.ForceUpdate++
-		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, swarm.ServiceUpdateOptions{})
+		inspectResult.Service.Spec.TaskTemplate.ForceUpdate++
+		_, err = cli.ServiceUpdate(ctx, inspectResult.Service.ID, client.ServiceUpdateOptions{Version: inspectResult.Service.Version, Spec: inspectResult.Service.Spec})
 		if err != nil {
-			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspected.Spec.Name, err))
+			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspectResult.Service.Spec.Name, err))
 			continue
 		}
-		result.Updated = append(result.Updated, SwarmServiceRef{ServiceID: inspected.ID, ServiceName: inspected.Spec.Name})
+		result.Updated = append(result.Updated, SwarmServiceRef{ServiceID: inspectResult.Service.ID, ServiceName: inspectResult.Service.Spec.Name})
 	}
 
 	if len(updateErrs) > 0 {
 		return nil, fmt.Errorf("created new secret %q but failed to migrate all services: %s", newName, strings.Join(updateErrs, "; "))
 	}
 
-	if err := cli.SecretRemove(ctx, oldSec.ID); err != nil {
+	if _, err := cli.SecretRemove(ctx, oldResult.Secret.ID, client.SecretRemoveOptions{}); err != nil {
 		return nil, fmt.Errorf("migrated services to %q but failed to delete old secret %q: %w", newName, oldName, err)
 	}
 

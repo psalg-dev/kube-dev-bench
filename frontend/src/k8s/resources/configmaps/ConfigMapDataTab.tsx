@@ -270,6 +270,7 @@ export default function ConfigMapDataTab({ namespace, configMapName }: ConfigMap
 										color: 'var(--gh-text, #c9d1d9)',
 										whiteSpace: 'pre-wrap',
 										wordBreak: 'break-all',
+										textAlign: 'left',
 									}}>
 										{displayValue}
 									</pre>

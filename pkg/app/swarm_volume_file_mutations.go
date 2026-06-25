@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/client"
 )
 
 // createFileTarPipe creates a pipe that streams a single-file tar archive.
@@ -94,7 +94,12 @@ func (a *App) WriteSwarmVolumeFile(volumeName string, filePath string, content s
 	}
 
 	pr := createFileTarPipe(name, data)
-	return cli.CopyToContainer(a.ctx, containerID, "/mnt"+dir, pr, container.CopyToContainerOptions{AllowOverwriteDirWithFile: true})
+	_, err = cli.CopyToContainer(a.ctx, containerID, client.CopyToContainerOptions{
+		Content:                   pr,
+		DestinationPath:           "/mnt" + dir,
+		AllowOverwriteDirWithFile: true,
+	})
+	return err
 }
 
 // DeleteSwarmVolumeFile deletes a path within the volume.

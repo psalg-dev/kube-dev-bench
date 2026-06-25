@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/app/holmesgpt"
 	"gowails/pkg/logger"
 
 	"k8s.io/client-go/kubernetes"
@@ -27,10 +28,11 @@ type App struct {
 	configPath           string
 	rememberContext      bool
 	rememberNamespace    bool
-	isInsecureConnection bool      // tracks if we're using insecure TLS
-	insecureWarnOnce     sync.Once // ensures we log TLS fallback warning only once
-	customCAPath         string    // optional path to a custom CA cert for Kubernetes connections
-	allowInsecure        bool      // user has explicitly opted into insecure TLS for current context
+	isInsecureConnection bool   // tracks if we're using insecure TLS
+	insecureWarnCtx      string // context name for which the insecure warning was last logged (SUG-9)
+	customCAPath         string // optional path to a custom CA cert for Kubernetes connections
+	// allowInsecure is per-context: maps context name → user opted into insecure TLS (CRIT-4)
+	allowInsecure map[string]bool
 
 	// Auth expiry debounce state
 	authExpiredMu       sync.Mutex
@@ -48,6 +50,11 @@ type App struct {
 	// This allows reuse across Browse/Read calls (Phase 1) without creating a new container each time.
 	swarmVolumeHelpersMu sync.Mutex
 	swarmVolumeHelpers   map[string]string
+
+	// pvcHelperPods tracks K8s PVC browse helper pods created by the app (CRIT-3).
+	// Key: "namespace/podName",  cleaned up on Shutdown.
+	pvcHelperPodsMu sync.Mutex
+	pvcHelperPods   map[string]string
 
 	// Proxy configuration
 	proxyURL      string // HTTP/HTTPS proxy URL (e.g., http://proxy.example.com:8080)
@@ -115,6 +122,10 @@ type App struct {
 	pollingMu      sync.Mutex
 	pollingStarted bool
 	pollingStopCh  chan struct{}
+
+	// holmesConfig holds the Holmes configuration, protected by holmesConfigMu.
+	holmesConfigMu sync.RWMutex
+	holmesConfig   holmesgpt.HolmesConfigData
 }
 
 // getKubeContext returns the current kube context name in a thread-safe manner.
@@ -129,6 +140,20 @@ func (a *App) setKubeContext(name string) {
 	a.kubeContextMu.Lock()
 	defer a.kubeContextMu.Unlock()
 	a.currentKubeContext = name
+}
+
+// getHolmesConfig returns a snapshot of the Holmes configuration in a thread-safe manner.
+func (a *App) getHolmesConfig() holmesgpt.HolmesConfigData {
+	a.holmesConfigMu.RLock()
+	defer a.holmesConfigMu.RUnlock()
+	return a.holmesConfig
+}
+
+// setHolmesConfig stores the Holmes configuration in a thread-safe manner.
+func (a *App) setHolmesConfig(cfg holmesgpt.HolmesConfigData) {
+	a.holmesConfigMu.Lock()
+	defer a.holmesConfigMu.Unlock()
+	a.holmesConfig = cfg
 }
 
 // NewApp creates a new App application struct
@@ -173,9 +198,12 @@ func NewApp() *App {
 		configPath:           newCfg,
 		logCancels:           make(map[string]context.CancelFunc),
 		isInsecureConnection: false, // Initialize to secure by default
+		allowInsecure:        make(map[string]bool),
 		countsRefreshCh:      make(chan struct{}, 1),
 		swarmVolumeHelpers:   make(map[string]string),
+		pvcHelperPods:        make(map[string]string),
 		useInformers:         true,
+		holmesConfig:         holmesgpt.DefaultConfig(),
 	}
 }
 
@@ -240,8 +268,8 @@ func (a *App) Startup(ctx context.Context) {
 	}
 
 	if a.useInformers {
-		logger.Info("starting informer manager")
-		a.startInformerManager()
+		logger.Info("starting informer manager (background)")
+		go a.startInformerManager()
 	} else {
 		logger.Info("starting resource polling")
 		a.StartAllPolling()
@@ -251,9 +279,17 @@ func (a *App) Startup(ctx context.Context) {
 	a.initHolmes()
 	// Initialize MCP server if enabled
 	a.initMCP()
+	// SUG-1: Initialize audit log
+	a.initAudit()
 
 	// Gap 7: start session probe if configured
 	a.startSessionProbe()
+
+	// SUG-3: start shell session idle reaper
+	a.startShellSessionReaper(ctx)
+
+	// SUG-5: start graph cache periodic sweeper
+	a.startGraphCacheSweeper(ctx)
 
 	logger.Info("startup complete")
 }
@@ -292,8 +328,14 @@ func (a *App) Shutdown(ctx context.Context) {
 	// Remove any helper containers created for Swarm volume browsing.
 	_ = a.cleanupSwarmVolumeHelpers(ctx)
 
+	// Clean up any PVC browse helper pods created in Kubernetes clusters (CRIT-3).
+	a.cleanupPVCHelperPods()
+
 	// Stop MCP server if running.
 	a.shutdownMCP()
+
+	// SUG-1: Close audit log.
+	closeAudit()
 
 	logger.Info("shutdown complete")
 	logger.Close()

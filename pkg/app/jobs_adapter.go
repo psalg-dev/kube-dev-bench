@@ -64,7 +64,7 @@ func (a *App) GetJobs(namespace string) ([]jobs.JobInfo, error) {
 		return nil, err
 	}
 	adapter := &clientAdapter{clientset: clientset}
-	return jobs.GetJobs(adapter, namespace)
+	return jobs.GetJobs(adapter, namespace, a.ctx)
 }
 
 // clientAdapter adapts a kubernetes.Interface to jobs.ResourceClient

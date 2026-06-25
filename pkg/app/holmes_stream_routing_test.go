@@ -43,8 +43,9 @@ func TestAnalyzeResource_RoutesNodeAndHPA(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "route ok")
+	_, holmesCfg := setupHolmesServer(t, "route ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	nodeResp, err := app.AnalyzeResource("nodes", "", "node-a")
@@ -319,12 +320,12 @@ func TestClearHolmesConfig_ResetsClient(t *testing.T) {
 		t.Fatalf("NewHolmesClient unexpected error: %v", err)
 	}
 
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: "http://127.0.0.1:1", APIKey: "key"}
 	holmesMu.Lock()
 	holmesClient = client
 	holmesMu.Unlock()
 
 	app := &App{ctx: context.Background(), configPath: t.TempDir() + "/cfg.json"}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: "http://127.0.0.1:1", APIKey: "key"}
 	if err := app.ClearHolmesConfig(); err != nil {
 		t.Fatalf("ClearHolmesConfig unexpected error: %v", err)
 	}
@@ -335,8 +336,8 @@ func TestClearHolmesConfig_ResetsClient(t *testing.T) {
 	if current != nil {
 		t.Fatal("ClearHolmesConfig expected Holmes client to be nil")
 	}
-	if holmesConfig.Enabled || holmesConfig.Endpoint != "" || holmesConfig.APIKey != "" {
-		t.Fatalf("ClearHolmesConfig expected default config, got %+v", holmesConfig)
+	if app.holmesConfig.Enabled || app.holmesConfig.Endpoint != "" || app.holmesConfig.APIKey != "" {
+		t.Fatalf("ClearHolmesConfig expected default config, got %+v", app.holmesConfig)
 	}
 }
 

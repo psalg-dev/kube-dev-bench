@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 // SwarmEvent represents a Docker event for the frontend
@@ -29,22 +27,23 @@ func GetRecentEvents(ctx context.Context, cli *client.Client, since time.Duratio
 
 	sinceTime := time.Now().Add(-since)
 
-	options := events.ListOptions{
+	options := client.EventsListOptions{
 		Since: sinceTime.Format(time.RFC3339),
 		Until: time.Now().Format(time.RFC3339),
-		Filters: filters.NewArgs(
-			// Include relevant event types for Swarm
-			filters.Arg("type", "container"),
-			filters.Arg("type", "service"),
-			filters.Arg("type", "node"),
-			filters.Arg("type", "network"),
-			filters.Arg("type", "volume"),
-			filters.Arg("type", "config"),
-			filters.Arg("type", "secret"),
-		),
+		Filters: client.Filters{
+			"type": {
+				"container": true,
+				"service":   true,
+				"node":      true,
+				"network":   true,
+				"volume":    true,
+				"config":    true,
+				"secret":    true,
+			},
+		},
 	}
 
-	messageChan, errChan := cli.Events(ctx, options)
+	resultChan := cli.Events(ctx, options)
 
 	var result []SwarmEvent
 
@@ -54,7 +53,7 @@ func GetRecentEvents(ctx context.Context, cli *client.Client, since time.Duratio
 
 	for {
 		select {
-		case event, ok := <-messageChan:
+		case event, ok := <-resultChan.Messages:
 			if !ok {
 				// Channel closed, return what we have
 				return result, nil
@@ -78,7 +77,7 @@ func GetRecentEvents(ctx context.Context, cli *client.Client, since time.Duratio
 
 			result = append(result, swarmEvent)
 
-		case err := <-errChan:
+		case err := <-resultChan.Err:
 			if err != nil && err != context.Canceled {
 				return result, fmt.Errorf("error reading events: %w", err)
 			}
@@ -99,16 +98,20 @@ func GetSwarmServiceEvents(ctx context.Context, cli *client.Client, serviceID st
 
 	sinceTime := time.Now().Add(-since)
 
-	options := events.ListOptions{
+	options := client.EventsListOptions{
 		Since: sinceTime.Format(time.RFC3339),
 		Until: time.Now().Format(time.RFC3339),
-		Filters: filters.NewArgs(
-			filters.Arg("type", "service"),
-			filters.Arg("service", serviceID),
-		),
+		Filters: client.Filters{
+			"type": {
+				"service": true,
+			},
+			"service": {
+				serviceID: true,
+			},
+		},
 	}
 
-	messageChan, errChan := cli.Events(ctx, options)
+	resultChan := cli.Events(ctx, options)
 
 	var result []SwarmEvent
 
@@ -117,7 +120,7 @@ func GetSwarmServiceEvents(ctx context.Context, cli *client.Client, serviceID st
 
 	for {
 		select {
-		case event, ok := <-messageChan:
+		case event, ok := <-resultChan.Messages:
 			if !ok {
 				return result, nil
 			}
@@ -138,7 +141,7 @@ func GetSwarmServiceEvents(ctx context.Context, cli *client.Client, serviceID st
 
 			result = append(result, swarmEvent)
 
-		case err := <-errChan:
+		case err := <-resultChan.Err:
 			if err != nil && err != context.Canceled {
 				return result, fmt.Errorf("error reading events: %w", err)
 			}

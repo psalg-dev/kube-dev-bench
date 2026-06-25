@@ -18,10 +18,9 @@ import (
 	"gowails/pkg/app/docker/registry"
 	"gowails/pkg/app/docker/topology"
 
-	imagetypes "github.com/docker/docker/api/types/image"
-	registrytypes "github.com/docker/docker/api/types/registry"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	registrytypes "github.com/moby/moby/api/types/registry"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 // ==================== Registry Integration (Swarm) ====================
@@ -222,9 +221,9 @@ func (a *App) PullDockerImageLatest(image string, registryName string) error {
 		}
 	}
 
-	pullCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
-	r, err := cli.ImagePull(pullCtx, image, imagetypes.PullOptions{RegistryAuth: registryAuth})
+	r, err := cli.ImagePull(ctx, image, client.ImagePullOptions{RegistryAuth: registryAuth})
 	if err != nil {
 		return err
 	}
@@ -1437,12 +1436,12 @@ func (a *App) pollImageUpdatesOnce(settings docker.ImageUpdateSettings) {
 		return
 	}
 
-	services, err := cli.ServiceList(a.ctx, swarm.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(a.ctx, client.ServiceListOptions{})
 	if err != nil {
 		return
 	}
 
-	ids := collectServiceIDs(services)
+	ids := collectServiceIDs(svcResult.Items)
 	updates, _ := docker.CheckSwarmServiceImageUpdates(a.ctx, cli, ids)
 	emitEvent(a.ctx, EventSwarmImageUpdates, updates)
 }

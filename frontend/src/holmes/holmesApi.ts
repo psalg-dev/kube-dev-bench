@@ -377,6 +377,13 @@ export function onHolmesDeploymentStatus(callback: (_status: HolmesDeploymentSta
 }
 
 /**
+ * Subscribe to Holmes config change events (fired by Go backend after SetHolmesConfig)
+ */
+export function onHolmesConfigChanged(callback: () => void): () => void {
+  return EventsOn('holmes:config-changed', callback);
+}
+
+/**
  * Subscribe to Holmes chat stream events
  */
 export function onHolmesChatStream(callback: (_event: HolmesStreamEvent) => void): () => void {

@@ -146,7 +146,11 @@ describe('ConnectionHooksSettings', () => {
       expect(screen.getByLabelText(/script/i)).toHaveValue('/tmp/newhook.sh');
     });
 
-    await user.click(screen.getByRole('button', { name: /^save$/i }));
+    const saveButton = await screen.findByRole('button', { name: /^(save|saving\.\.\.)$/i });
+    await waitFor(() => {
+      expect(saveButton).toBeEnabled();
+    });
+    await user.click(saveButton);
 
     // Ensure backend SaveHook called with normalized fields (type is current tab).
     await waitFor(() => {

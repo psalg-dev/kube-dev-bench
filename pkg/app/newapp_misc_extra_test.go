@@ -55,6 +55,9 @@ func TestNewApp_MigrationPath(t *testing.T) {
 // TestStartup_NilCountsRefreshCh verifies the nil-safety guard that initialises
 // countsRefreshCh inside Startup when the caller forgot to do so.
 func TestStartup_NilCountsRefreshCh(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
 
 	dir := t.TempDir()
 	configPath := filepath.Join(dir, "config.json")
@@ -73,6 +76,7 @@ func TestStartup_NilCountsRefreshCh(t *testing.T) {
 	defer cancel()
 
 	app.Startup(ctx)
+	defer app.Shutdown(ctx) // ensure background goroutines and resources are cleaned up
 
 	if app.countsRefreshCh == nil {
 		t.Error("countsRefreshCh should have been initialised by Startup")

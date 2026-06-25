@@ -120,6 +120,50 @@ func TestRestartStatefulSet(t *testing.T) {
 	if err != nil {
 		t.Errorf("RestartStatefulSet failed: %v", err)
 	}
+
+	// Verify the annotation was actually set on the StatefulSet pod template
+	updated, err := clientset.AppsV1().StatefulSets("default").Get(context.Background(), "test-sts", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("failed to get statefulset after restart: %v", err)
+	}
+	if updated.Spec.Template.Annotations == nil {
+		t.Error("expected pod template annotations to be set after restart")
+	}
+}
+
+// Test for RestartStatefulSet with OnDelete strategy
+func TestRestartStatefulSetOnDeleteStrategy(t *testing.T) {
+	clientset := fake.NewSimpleClientset()
+
+	sts := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-sts-ondel", Namespace: "default"},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: int32Ptr(1),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": "test"},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "test"}},
+				Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "nginx", Image: "nginx"}}},
+			},
+			UpdateStrategy: appsv1.StatefulSetUpdateStrategy{
+				Type: appsv1.OnDeleteStatefulSetStrategyType,
+			},
+		},
+	}
+	_, err := clientset.AppsV1().StatefulSets("default").Create(context.Background(), sts, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create statefulset: %v", err)
+	}
+
+	app := &App{ctx: context.Background(), testClientset: clientset}
+	err = app.RestartStatefulSet("default", "test-sts-ondel")
+	if err == nil {
+		t.Error("expected error for StatefulSet with OnDelete update strategy, got nil")
+	}
+	if err != nil && !strings.Contains(err.Error(), "OnDelete") {
+		t.Errorf("expected error message to mention OnDelete, got: %v", err)
+	}
 }
 
 // Tests for DeleteStatefulSet

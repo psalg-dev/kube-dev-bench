@@ -66,18 +66,15 @@ func TestAnalyzeLogs_WithPodLogs(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Configure Holmes
-	holmesConfig = holmesgpt.HolmesConfigData{
-		Enabled:  true,
-		Endpoint: server.URL,
-	}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
-
 	app := &App{
 		ctx: context.Background(),
 		testPodLogsFetcher: func(namespace, podName, containerName string, lines int) (string, error) {
 			return "error: connection refused", nil
 		},
+	}
+	app.holmesConfig = holmesgpt.HolmesConfigData{
+		Enabled:  true,
+		Endpoint: server.URL,
 	}
 	app.initHolmes()
 

@@ -11,17 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 type swarmExecClient interface {
-	TaskInspectWithRaw(context.Context, string) (swarm.Task, []byte, error)
-	ContainerExecCreate(context.Context, string, container.ExecOptions) (container.ExecCreateResponse, error)
-	ContainerExecAttach(context.Context, string, container.ExecAttachOptions) (types.HijackedResponse, error)
-	ContainerExecResize(context.Context, string, container.ResizeOptions) error
+	TaskInspect(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error)
+	ExecCreate(context.Context, string, client.ExecCreateOptions) (client.ExecCreateResult, error)
+	ExecAttach(context.Context, string, client.ExecAttachOptions) (client.ExecAttachResult, error)
+	ExecInspect(context.Context, string, client.ExecInspectOptions) (client.ExecInspectResult, error)
+	ExecResize(context.Context, string, client.ExecResizeOptions) (client.ExecResizeResult, error)
 }
 
 // StartSwarmTaskExecSession starts an interactive shell in the container backing a Swarm task.
@@ -69,7 +67,11 @@ func getShellCandidates(shell string) []string {
 
 // getTaskContainerID extracts container ID from a task
 func getTaskContainerID(ctx context.Context, cli swarmExecClient, taskID string) (string, error) {
-	task, _, err := cli.TaskInspectWithRaw(ctx, taskID)
+	taskResult, err := cli.TaskInspect(ctx, taskID, client.TaskInspectOptions{})
+	if err != nil {
+		return "", err
+	}
+	task := taskResult.Task
 	if err != nil {
 		return "", err
 	}
@@ -80,7 +82,7 @@ func getTaskContainerID(ctx context.Context, cli swarmExecClient, taskID string)
 }
 
 // tryAttachShell attempts to attach to container with shell candidates
-func (a *App) tryAttachShell(sessCtx context.Context, cli swarmExecClient, containerID, sessionID, shell string, candidates []string) (attach types.HijackedResponse, execID string, initial []byte, err error) {
+func (a *App) tryAttachShell(sessCtx context.Context, cli swarmExecClient, containerID, sessionID, shell string, candidates []string) (attach client.ExecAttachResult, execID string, initial []byte, err error) {
 	for i, candidate := range candidates {
 		attach, execID, initial, err = swarmExecAttachTTYWithProbe(sessCtx, cli, containerID, candidate)
 		if err == nil {
@@ -90,11 +92,11 @@ func (a *App) tryAttachShell(sessCtx context.Context, cli swarmExecClient, conta
 			return attach, execID, initial, nil
 		}
 	}
-	return types.HijackedResponse{}, "", nil, err
+	return client.ExecAttachResult{}, "", nil, err
 }
 
 // createSwarmShellSession creates and registers a shell session
-func (a *App) createSwarmShellSession(sessCtx context.Context, cancel context.CancelFunc, cli swarmExecClient, attach types.HijackedResponse, execID, sessionID string, initial []byte) {
+func (a *App) createSwarmShellSession(sessCtx context.Context, cancel context.CancelFunc, cli swarmExecClient, attach client.ExecAttachResult, execID, sessionID string, initial []byte) {
 	sess := &ShellSession{
 		Cancel: cancel,
 		PTY:    attach.Conn,
@@ -102,7 +104,8 @@ func (a *App) createSwarmShellSession(sessCtx context.Context, cancel context.Ca
 			if cols <= 0 || rows <= 0 {
 				return nil
 			}
-			return cli.ContainerExecResize(sessCtx, execID, container.ResizeOptions{Width: uint(cols), Height: uint(rows)})
+			_, err := cli.ExecResize(sessCtx, execID, client.ExecResizeOptions{Width: uint(cols), Height: uint(rows)})
+			return err
 		},
 	}
 	shellSessions.Store(sessionID, sess)
@@ -116,7 +119,7 @@ func (a *App) createSwarmShellSession(sessCtx context.Context, cancel context.Ca
 }
 
 // streamSwarmExecOutput reads and emits output from the exec session
-func (a *App) streamSwarmExecOutput(sessCtx context.Context, reader io.Reader, attach types.HijackedResponse, sessionID string) {
+func (a *App) streamSwarmExecOutput(sessCtx context.Context, reader io.Reader, attach client.ExecAttachResult, sessionID string) {
 	defer func() {
 		emitEvent(a.ctx, termExitEvent(sessionID), "[session closed]")
 	}()
@@ -162,28 +165,30 @@ func (a *App) startSwarmTaskExecSessionWithClient(parentCtx context.Context, cli
 	return nil
 }
 
-func swarmExecAttachTTY(ctx context.Context, cli swarmExecClient, containerID, shell string) (types.HijackedResponse, string, error) {
-	createResp, err := cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
+func swarmExecAttachTTY(ctx context.Context, cli swarmExecClient, containerID, shell string) (client.ExecAttachResult, string, error) {
+	execConfig := client.ExecCreateOptions{
 		AttachStdin:  true,
 		AttachStdout: true,
 		AttachStderr: true,
-		Tty:          true,
+		TTY:          true,
 		Cmd:          []string{shell},
-	})
-	if err != nil {
-		return types.HijackedResponse{}, "", err
 	}
-	attach, err := cli.ContainerExecAttach(ctx, createResp.ID, container.ExecAttachOptions{Tty: true})
+	execCreateResp, err := cli.ExecCreate(ctx, containerID, execConfig)
 	if err != nil {
-		return types.HijackedResponse{}, "", err
+		return client.ExecAttachResult{}, "", err
 	}
-	return attach, createResp.ID, nil
+	execID := execCreateResp.ID
+	hijackResp, err := cli.ExecAttach(ctx, execID, client.ExecAttachOptions{TTY: true})
+	if err != nil {
+		return client.ExecAttachResult{}, "", err
+	}
+	return hijackResp, execID, nil
 }
 
-func swarmExecAttachTTYWithProbe(ctx context.Context, cli swarmExecClient, containerID, shell string) (types.HijackedResponse, string, []byte, error) {
+func swarmExecAttachTTYWithProbe(ctx context.Context, cli swarmExecClient, containerID, shell string) (client.ExecAttachResult, string, []byte, error) {
 	attach, execID, err := swarmExecAttachTTY(ctx, cli, containerID, shell)
 	if err != nil {
-		return types.HijackedResponse{}, "", nil, err
+		return client.ExecAttachResult{}, "", nil, err
 	}
 
 	// Probe: some engines report exec failures by writing an error string to the hijacked stream
@@ -208,9 +213,9 @@ func swarmExecAttachTTYWithProbe(ctx context.Context, cli swarmExecClient, conta
 		// If the exec ended immediately, treat as failure.
 		attach.Close()
 		if len(initial) > 0 {
-			return types.HijackedResponse{}, "", nil, errors.New(strings.TrimSpace(string(initial)))
+			return client.ExecAttachResult{}, "", nil, errors.New(strings.TrimSpace(string(initial)))
 		}
-		return types.HijackedResponse{}, "", nil, fmt.Errorf("exec session closed")
+		return client.ExecAttachResult{}, "", nil, fmt.Errorf("exec session closed")
 	}
 
 	lower := strings.ToLower(string(initial))
@@ -220,7 +225,7 @@ func swarmExecAttachTTYWithProbe(ctx context.Context, cli swarmExecClient, conta
 		strings.Contains(lower, "shell error") ||
 		strings.Contains(lower, "unsupported") {
 		attach.Close()
-		return types.HijackedResponse{}, "", nil, errors.New(strings.TrimSpace(string(initial)))
+		return client.ExecAttachResult{}, "", nil, errors.New(strings.TrimSpace(string(initial)))
 	}
 
 	// Success. Preserve the initial output for the main stream reader.

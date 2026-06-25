@@ -3,7 +3,7 @@ package docker
 import (
 	"context"
 
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 // SwarmStackResources groups resources related to a stack.

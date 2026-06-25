@@ -87,6 +87,11 @@ export function renderPodsMainContent(selectedNamespaces: string[]) {
     if (!podOverviewContainer) {
         podOverviewContainer = document.createElement('div');
         podOverviewContainer.id = podInnerId;
+        podOverviewContainer.style.height = '100%';
+        podOverviewContainer.style.minHeight = '0';
+        podOverviewContainer.style.display = 'flex';
+        podOverviewContainer.style.flexDirection = 'column';
+        podOverviewContainer.style.flex = '1';
         panel.appendChild(podOverviewContainer);
     }
 

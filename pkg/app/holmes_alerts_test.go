@@ -64,13 +64,11 @@ func TestInvestigatePrometheusAlert_AddsHistory(t *testing.T) {
 	alertHistory = nil
 	alertHistoryMu.Unlock()
 
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := NewApp()
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: server.URL,
 	}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
-
-	app := NewApp()
 	app.initHolmes()
 
 	alert := PrometheusAlert{Name: "DiskFull", State: "firing", Value: "1", ActiveAt: time.Now()}

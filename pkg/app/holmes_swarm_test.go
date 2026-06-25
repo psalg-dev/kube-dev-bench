@@ -10,8 +10,8 @@ import (
 
 	"gowails/pkg/app/holmesgpt"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 func TestAnalyzeSwarmServiceAndTask(t *testing.T) {
@@ -106,13 +106,11 @@ func TestAnalyzeSwarmServiceAndTask(t *testing.T) {
 	}))
 	defer holmesServer.Close()
 
-	holmesConfig = holmesgpt.HolmesConfigData{
+	app := &App{ctx: context.Background()}
+	app.holmesConfig = holmesgpt.HolmesConfigData{
 		Enabled:  true,
 		Endpoint: holmesServer.URL,
 	}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
-
-	app := &App{ctx: context.Background()}
 	app.initHolmes()
 
 	respSvc, err := app.AnalyzeSwarmService(serviceID)

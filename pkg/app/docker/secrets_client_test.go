@@ -5,15 +5,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 func Test_getSwarmSecrets_listsAndConverts(t *testing.T) {
 	ctx := context.Background()
 
 	sec := swarm.Secret{ID: "sec-1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}, Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "s1"}}}
-	cli := &fakeDockerClient{SecretListFn: func(context.Context, swarm.SecretListOptions) ([]swarm.Secret, error) {
-		return []swarm.Secret{sec}, nil
+	cli := &fakeDockerClient{SecretListFn: func(context.Context, client.SecretListOptions) (client.SecretListResult, error) {
+		return client.SecretListResult{Items: []swarm.Secret{sec}}, nil
 	}}
 
 	items, err := getSwarmSecrets(ctx, cli)
@@ -31,11 +32,11 @@ func Test_getSwarmSecrets_listsAndConverts(t *testing.T) {
 func Test_createSwarmSecret_callsSecretCreate(t *testing.T) {
 	ctx := context.Background()
 
-	cli := &fakeDockerClient{SecretCreateFn: func(_ context.Context, spec swarm.SecretSpec) (swarm.SecretCreateResponse, error) {
-		if spec.Annotations.Name != "s1" {
-			t.Fatalf("unexpected name %q", spec.Annotations.Name)
+	cli := &fakeDockerClient{SecretCreateFn: func(_ context.Context, opts client.SecretCreateOptions) (client.SecretCreateResult, error) {
+		if opts.Spec.Annotations.Name != "s1" {
+			t.Fatalf("unexpected name %q", opts.Spec.Annotations.Name)
 		}
-		return swarm.SecretCreateResponse{ID: "id-1"}, nil
+		return client.SecretCreateResult{ID: "id-1"}, nil
 	}}
 
 	id, err := createSwarmSecret(ctx, cli, "s1", []byte("x"), nil)
@@ -51,7 +52,7 @@ func Test_removeSwarmSecret_callsRemove(t *testing.T) {
 	ctx := context.Background()
 
 	called := false
-	cli := &fakeDockerClient{SecretRemoveFn: func(context.Context, string) error { called = true; return nil }}
+	cli := &fakeDockerClient{SecretRemoveFn: func(context.Context, string, client.SecretRemoveOptions) (client.SecretRemoveResult, error) { called = true; return client.SecretRemoveResult{}, nil }}
 
 	if err := removeSwarmSecret(ctx, cli, "sec-1"); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -64,8 +65,8 @@ func Test_removeSwarmSecret_callsRemove(t *testing.T) {
 func Test_getSwarmSecret_returnsItem(t *testing.T) {
 	ctx := context.Background()
 
-	cli := &fakeDockerClient{SecretInspectWithRawFn: func(context.Context, string) (swarm.Secret, []byte, error) {
-		return swarm.Secret{ID: "sec-1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}, Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "s1"}}}, nil, nil
+	cli := &fakeDockerClient{SecretInspectWithRawFn: func(ctx context.Context, id string, opts client.SecretInspectOptions) (client.SecretInspectResult, error) {
+		return client.SecretInspectResult{Secret: swarm.Secret{ID: "sec-1", Meta: swarm.Meta{CreatedAt: time.Unix(1, 0), UpdatedAt: time.Unix(2, 0)}, Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "s1"}}}}, nil
 	}}
 
 	item, err := getSwarmSecret(ctx, cli, "sec-1")
@@ -86,14 +87,14 @@ func Test_getSwarmSecretUsage_findsReferencingServices(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		SecretInspectWithRawFn: func(context.Context, string) (swarm.Secret, []byte, error) {
-			return swarm.Secret{ID: "sec-1", Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "secret1"}}}, nil, nil
+		SecretInspectWithRawFn: func(ctx context.Context, id string, opts client.SecretInspectOptions) (client.SecretInspectResult, error) {
+			return client.SecretInspectResult{Secret: swarm.Secret{ID: "sec-1", Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "secret1"}}}}, nil
 		},
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{
+		ServiceListFn: func(context.Context, client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{
 				{ID: "svc-1", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Secrets: []*swarm.SecretReference{{SecretID: "sec-1"}}}}}},
 				{ID: "svc-2", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service2"}}},
-			}, nil
+			}}, nil
 		},
 	}
 
@@ -110,31 +111,31 @@ func Test_updateSwarmSecretDataImmutable_createsNewSecretAndMigrates(t *testing.
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		SecretInspectWithRawFn: func(context.Context, string) (swarm.Secret, []byte, error) {
-			return swarm.Secret{ID: "sec-old", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "mysecret"}, Data: []byte("old")}}, nil, nil
+		SecretInspectWithRawFn: func(ctx context.Context, id string, opts client.SecretInspectOptions) (client.SecretInspectResult, error) {
+			return client.SecretInspectResult{Secret: swarm.Secret{ID: "sec-old", Meta: swarm.Meta{Version: swarm.Version{Index: 1}}, Spec: swarm.SecretSpec{Annotations: swarm.Annotations{Name: "mysecret"}, Data: []byte("old")}}}, nil
 		},
-		SecretCreateFn: func(_ context.Context, spec swarm.SecretSpec) (swarm.SecretCreateResponse, error) {
-			if string(spec.Data) != "new" {
-				t.Fatalf("expected new data, got %q", string(spec.Data))
+		SecretCreateFn: func(_ context.Context, opts client.SecretCreateOptions) (client.SecretCreateResult, error) {
+			if string(opts.Spec.Data) != "new" {
+				t.Fatalf("expected new data, got %q", string(opts.Spec.Data))
 			}
-			return swarm.SecretCreateResponse{ID: "sec-new"}, nil
+			return client.SecretCreateResult{ID: "sec-new"}, nil
 		},
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{
+		ServiceListFn: func(context.Context, client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{
 				{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Secrets: []*swarm.SecretReference{{SecretID: "sec-old", SecretName: "mysecret"}}}}}},
-			}, nil
+			}}, nil
 		},
-		ServiceInspectWithRawFn: func(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error) {
-			return swarm.Service{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Secrets: []*swarm.SecretReference{{SecretID: "sec-old", SecretName: "mysecret"}}}}}}, nil, nil
+		ServiceInspectFn: func(ctx context.Context, id string, opts client.ServiceInspectOptions) (client.ServiceInspectResult, error) {
+			return client.ServiceInspectResult{Service: swarm.Service{ID: "svc-1", Meta: swarm.Meta{Version: swarm.Version{Index: 5}}, Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service1"}, TaskTemplate: swarm.TaskSpec{ContainerSpec: &swarm.ContainerSpec{Secrets: []*swarm.SecretReference{{SecretID: "sec-old", SecretName: "mysecret"}}}}}}}, nil
 		},
-		ServiceUpdateFn: func(_ context.Context, _ string, _ swarm.Version, spec swarm.ServiceSpec, _ swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error) {
-			if spec.TaskTemplate.ContainerSpec.Secrets[0].SecretID != "sec-new" {
+		ServiceUpdateFn: func(_ context.Context, _ string, opts client.ServiceUpdateOptions) (client.ServiceUpdateResult, error) {
+			if opts.Spec.TaskTemplate.ContainerSpec.Secrets[0].SecretID != "sec-new" {
 				t.Fatalf("expected new secret ID")
 			}
-			return swarm.ServiceUpdateResponse{}, nil
+			return client.ServiceUpdateResult{}, nil
 		},
-		SecretRemoveFn: func(context.Context, string) error {
-			return nil
+		SecretRemoveFn: func(context.Context, string, client.SecretRemoveOptions) (client.SecretRemoveResult, error) {
+			return client.SecretRemoveResult{}, nil
 		},
 	}
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderWithProviders, mockAppApi, resetMocks, flushPromises } from './test-utils.jsx';
+import { renderWithProviders, resetMocks, flushPromises } from './test-utils.jsx';
 import PortForwardDialog from '../k8s/resources/pods/PortForwardDialog.jsx';
 import { fireEvent } from '@testing-library/react';
 

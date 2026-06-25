@@ -317,6 +317,54 @@ func (s *MCPServer) registerTools() {
 	}
 
 	// =====================
+	// 10a. k8s_restart_statefulset — Restart statefulset
+	// =====================
+	s.tools["k8s_restart_statefulset"] = &ToolDefinition{
+		Name:        "k8s_restart_statefulset",
+		Description: "Trigger a rolling restart of a statefulset by updating the pod template. Only supported for StatefulSets with RollingUpdate update strategy.",
+		Security:    SecurityWrite,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the statefulset to restart.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the statefulset. Omit to use current namespace.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleRestartStatefulSet,
+	}
+
+	// =====================
+	// 10b. k8s_restart_daemonset — Restart daemonset
+	// =====================
+	s.tools["k8s_restart_daemonset"] = &ToolDefinition{
+		Name:        "k8s_restart_daemonset",
+		Description: "Trigger a rolling restart of a daemonset by updating the pod template.",
+		Security:    SecurityWrite,
+		InputSchema: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"name": map[string]interface{}{
+					"type":        "string",
+					"description": "Name of the daemonset to restart.",
+				},
+				"namespace": map[string]interface{}{
+					"type":        "string",
+					"description": "Namespace of the daemonset. Omit to use current namespace.",
+				},
+			},
+			"required": []string{"name"},
+		},
+		Handler: s.handleRestartDaemonSet,
+	}
+
+	// =====================
 	// 11. swarm_list — List Docker Swarm resources by kind
 	// =====================
 	s.tools["swarm_list"] = &ToolDefinition{
@@ -718,6 +766,44 @@ func (s *MCPServer) handleRestartDeployment(ctx context.Context, input map[strin
 	return map[string]interface{}{
 		"success":   true,
 		"message":   fmt.Sprintf("Deployment %s/%s restart initiated", namespace, name),
+		"namespace": namespace,
+		"name":      name,
+	}, nil
+}
+
+func (s *MCPServer) handleRestartStatefulSet(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name := getStringParam(input, "name")
+	if name == "" {
+		return nil, fmt.Errorf("statefulset name is required")
+	}
+
+	if err := s.app.RestartStatefulSet(namespace, name); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"success":   true,
+		"message":   fmt.Sprintf("StatefulSet %s/%s restart initiated", namespace, name),
+		"namespace": namespace,
+		"name":      name,
+	}, nil
+}
+
+func (s *MCPServer) handleRestartDaemonSet(ctx context.Context, input map[string]interface{}) (any, error) {
+	namespace := s.getNamespaceParam(input)
+	name := getStringParam(input, "name")
+	if name == "" {
+		return nil, fmt.Errorf("daemonset name is required")
+	}
+
+	if err := s.app.RestartDaemonSet(namespace, name); err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"success":   true,
+		"message":   fmt.Sprintf("DaemonSet %s/%s restart initiated", namespace, name),
 		"namespace": namespace,
 		"name":      name,
 	}, nil

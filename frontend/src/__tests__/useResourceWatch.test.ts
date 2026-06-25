@@ -21,6 +21,7 @@ vi.mock('../../wailsjs/runtime/runtime', () => ({
 describe('useResourceWatch', () => {
   beforeEach(() => {
     eventHandler = null;
+    vi.useRealTimers();
   });
 
   it('loads initial data and updates on array payloads', async () => {
@@ -86,5 +87,48 @@ describe('useResourceWatch', () => {
     await waitFor(() => {
       expect(result.current.data).toEqual([{ metadata: { uid: '2' }, name: 'two' }]);
     });
+  });
+
+  it('retries after an initial fetch error and clears the error on success', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const initialFetch = vi
+      .fn<() => Promise<TestItem[]>>()
+      .mockRejectedValueOnce(new Error('connection refused'))
+      .mockResolvedValueOnce([{ metadata: { uid: '1' }, name: 'one' }]);
+
+    const { result } = renderHook(() => useResourceWatch<TestItem>('pods:update', initialFetch));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+      expect(result.current.error?.message).toBe('connection refused');
+      expect(result.current.data).toEqual([]);
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    await waitFor(() => {
+      expect(result.current.data).toEqual([{ metadata: { uid: '1' }, name: 'one' }]);
+      expect(result.current.error).toBeNull();
+    });
+  });
+
+  it('clears the error when a backend event arrives after a failed fetch', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const initialFetch = vi.fn<() => Promise<TestItem[]>>().mockRejectedValue(new Error('fetch failed'));
+
+    const { result } = renderHook(() => useResourceWatch<TestItem>('pods:update', initialFetch));
+
+    await waitFor(() => {
+      expect(result.current.error?.message).toBe('fetch failed');
+    });
+
+    act(() => {
+      eventHandler?.([{ metadata: { uid: '2' }, name: 'two' }]);
+    });
+
+    expect(result.current.data).toEqual([{ metadata: { uid: '2' }, name: 'two' }]);
+    expect(result.current.error).toBeNull();
   });
 });

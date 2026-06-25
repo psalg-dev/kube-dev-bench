@@ -235,6 +235,13 @@ func executeHook(hook HookConfig, env map[string]string) (HookExecutionResult, e
 		res.Error = "scriptPath required"
 		return res, errors.New(res.Error)
 	}
+
+	// IMP-5: validate script path resolves to a real file under user's home directory
+	if err := validateHookScriptPath(script); err != nil {
+		res.Error = err.Error()
+		return res, err
+	}
+
 	if _, err := os.Stat(script); err != nil {
 		res.Error = fmt.Sprintf("script not accessible: %v", err)
 		return res, err
@@ -451,4 +458,49 @@ func (a *App) runPostConnectHooksAsync(connectionType, connectionID string, conn
 			a.emitHookCompleted(h, res, connectionType, connectionID)
 		}
 	}()
+}
+
+// validateHookScriptPath validates that a hook script path resolves to a real
+// file under the user's home directory to prevent local privilege escalation (IMP-5).
+func validateHookScriptPath(scriptPath string) error {
+	// Resolve to absolute and follow symlinks
+	resolved, err := filepath.EvalSymlinks(scriptPath)
+	if err != nil {
+		return fmt.Errorf("cannot resolve script path: %w", err)
+	}
+	resolved, err = filepath.Abs(resolved)
+	if err != nil {
+		return fmt.Errorf("cannot resolve absolute script path: %w", err)
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("cannot determine home directory: %w", err)
+	}
+	home, _ = filepath.Abs(home)
+
+	// Allow scripts under the user's home directory or common program directories
+	allowedPrefixes := []string{
+		home,
+	}
+	if runtime.GOOS == "windows" {
+		allowedPrefixes = append(allowedPrefixes,
+			filepath.Join(os.Getenv("ProgramFiles"), ""),
+			filepath.Join(os.Getenv("ProgramFiles(x86)"), ""),
+			filepath.Join(os.Getenv("LocalAppData"), ""),
+		)
+	} else {
+		allowedPrefixes = append(allowedPrefixes, "/usr/local/bin", "/usr/bin", "/opt")
+	}
+
+	for _, prefix := range allowedPrefixes {
+		if prefix == "" {
+			continue
+		}
+		if strings.HasPrefix(resolved, prefix) {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("hook script %q is outside allowed directories (home directory or standard program paths)", scriptPath)
 }

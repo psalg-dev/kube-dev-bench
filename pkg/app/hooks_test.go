@@ -55,13 +55,19 @@ func TestHookConfig_JSONRoundTrip(t *testing.T) {
 }
 
 func TestExecuteHook_SuccessAndEnv(t *testing.T) {
-	tmp := t.TempDir()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
 	var scriptPath string
 	if runtime.GOOS == "windows" {
-		scriptPath = writeExecutableScript(t, tmp, "ok.cmd", "@echo off\r\necho hello\r\necho KUBECONFIG=%KUBECONFIG%\r\nexit /b 0\r\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "ok.cmd", "@echo off\r\necho hello\r\necho KUBECONFIG=%KUBECONFIG%\r\nexit /b 0\r\n")
 	} else {
-		scriptPath = writeExecutableScript(t, tmp, "ok.sh", "#!/bin/sh\necho hello\necho KUBECONFIG=$KUBECONFIG\nexit 0\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "ok.sh", "#!/bin/sh\necho hello\necho KUBECONFIG=$KUBECONFIG\nexit 0\n")
 	}
 
 	h := HookConfig{ID: "1", Name: "ok", ScriptPath: scriptPath, TimeoutSeconds: 5}
@@ -81,14 +87,20 @@ func TestExecuteHook_SuccessAndEnv(t *testing.T) {
 }
 
 func TestExecuteHook_Timeout(t *testing.T) {
-	tmp := t.TempDir()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
 	var scriptPath string
 	if runtime.GOOS == "windows" {
 		// ping -n 6 ~ 5 seconds
-		scriptPath = writeExecutableScript(t, tmp, "sleep.cmd", "@echo off\r\nping -n 6 127.0.0.1 > nul\r\nexit /b 0\r\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "sleep.cmd", "@echo off\r\nping -n 6 127.0.0.1 > nul\r\nexit /b 0\r\n")
 	} else {
-		scriptPath = writeExecutableScript(t, tmp, "sleep.sh", "#!/bin/sh\nsleep 5\nexit 0\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "sleep.sh", "#!/bin/sh\nsleep 5\nexit 0\n")
 	}
 
 	h := HookConfig{ID: "1", Name: "sleep", ScriptPath: scriptPath, TimeoutSeconds: 1}
@@ -114,13 +126,19 @@ func TestExecuteHook_NotFound(t *testing.T) {
 }
 
 func TestExecuteHook_NonZeroExit(t *testing.T) {
-	tmp := t.TempDir()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 
+	scriptsDir := filepath.Join(home, "scripts")
+	if err := os.MkdirAll(scriptsDir, 0o755); err != nil {
+		t.Fatalf("mkdir scripts: %v", err)
+	}
 	var scriptPath string
 	if runtime.GOOS == "windows" {
-		scriptPath = writeExecutableScript(t, tmp, "bad.cmd", "@echo off\r\necho nope\r\nexit /b 5\r\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "bad.cmd", "@echo off\r\necho nope\r\nexit /b 5\r\n")
 	} else {
-		scriptPath = writeExecutableScript(t, tmp, "bad.sh", "#!/bin/sh\necho nope\nexit 5\n")
+		scriptPath = writeExecutableScript(t, scriptsDir, "bad.sh", "#!/bin/sh\necho nope\nexit 5\n")
 	}
 
 	h := HookConfig{ID: "1", Name: "bad", ScriptPath: scriptPath, TimeoutSeconds: 5}

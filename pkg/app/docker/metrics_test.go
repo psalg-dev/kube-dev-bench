@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type fakeSwarmMetricsClient struct {
@@ -13,16 +14,16 @@ type fakeSwarmMetricsClient struct {
 	nodes    []swarm.Node
 }
 
-func (f *fakeSwarmMetricsClient) ServiceList(ctx context.Context, opts swarm.ServiceListOptions) ([]swarm.Service, error) {
-	return f.services, nil
+func (f *fakeSwarmMetricsClient) ServiceList(ctx context.Context, opts client.ServiceListOptions) (client.ServiceListResult, error) {
+	return client.ServiceListResult{Items: f.services}, nil
 }
 
-func (f *fakeSwarmMetricsClient) TaskList(ctx context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
-	return f.tasks, nil
+func (f *fakeSwarmMetricsClient) TaskList(ctx context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
+	return client.TaskListResult{Items: f.tasks}, nil
 }
 
-func (f *fakeSwarmMetricsClient) NodeList(ctx context.Context, opts swarm.NodeListOptions) ([]swarm.Node, error) {
-	return f.nodes, nil
+func (f *fakeSwarmMetricsClient) NodeList(ctx context.Context, opts client.NodeListOptions) (client.NodeListResult, error) {
+	return client.NodeListResult{Items: f.nodes}, nil
 }
 
 func TestCollectSwarmMetrics_ComputesCountsAndResources(t *testing.T) {

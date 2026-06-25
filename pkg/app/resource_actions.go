@@ -19,18 +19,27 @@ import (
 // restartWorkload patches the pod template annotation to trigger a rolling restart.
 // Supported kinds: deployment, statefulset, daemonset.
 func (a *App) restartWorkload(kind, namespace, name string) error {
+	a.auditf("restart", kind+"/"+name, "namespace=%s", namespace)
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
 	}
 	patch := []byte(fmt.Sprintf(
 		`{"spec":{"template":{"metadata":{"annotations":{"kube-dev-bench/restartedAt":"%s"}}}}}`,
-		time.Now().Format(time.RFC3339),
+		time.Now().UTC().Format(time.RFC3339Nano),
 	))
 	switch strings.ToLower(kind) {
 	case "deployment", "deployments":
 		_, err = clientset.AppsV1().Deployments(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
 	case "statefulset", "statefulsets":
+		var sts *appsv1.StatefulSet
+		sts, err = clientset.AppsV1().StatefulSets(namespace).Get(a.ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		if sts.Spec.UpdateStrategy.Type == appsv1.OnDeleteStatefulSetStrategyType {
+			return fmt.Errorf("restart is not supported for StatefulSet %q: update strategy is OnDelete (pods must be deleted manually to pick up template changes)", name)
+		}
 		_, err = clientset.AppsV1().StatefulSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
 	case "daemonset", "daemonsets":
 		_, err = clientset.AppsV1().DaemonSets(namespace).Patch(a.ctx, name, types.MergePatchType, patch, metav1.PatchOptions{})
@@ -62,6 +71,7 @@ func (a *App) DeleteDeployment(namespace, name string) error {
 // RollbackDeploymentToRevision updates the Deployment's pod template to match a previous ReplicaSet revision.
 // This is a best-effort rollback similar to kubectl rollout undo.
 func (a *App) RollbackDeploymentToRevision(namespace, name string, revision int64) error {
+	a.auditf("rollback", "deployment/"+name, "namespace=%s revision=%d", namespace, revision)
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
 		return err
@@ -193,6 +203,7 @@ func (a *App) DeleteIngress(namespace, name string) error {
 
 // ScaleResource updates the replica count for supported workload controllers via the scale subresource.
 func (a *App) ScaleResource(kind, namespace, name string, replicas int) error {
+	a.auditf("scale", kind+"/"+name, "namespace=%s replicas=%d", namespace, replicas)
 	if replicas < 0 {
 		return fmt.Errorf("replicas must be non-negative")
 	}

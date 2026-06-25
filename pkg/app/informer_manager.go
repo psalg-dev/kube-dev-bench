@@ -5,12 +5,29 @@ import (
 	"sync"
 	"time"
 
+	"gowails/pkg/logger"
+
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
 const informerResyncPeriod = 10 * time.Minute
+
+// cacheSyncTimeout limits how long Start() blocks waiting for informer caches
+// to sync. If exceeded, Start() fails gracefully so callers fall back to
+// direct API calls instead of hanging.
+const cacheSyncTimeout = 15 * time.Second
+
+// maxInformerNamespaces caps the number of namespaces that use active Watch
+// connections via SharedInformerFactories (SUG-2). Beyond this limit the
+// namespaces are silently excluded from informer mode and fall back to
+// polling-based list calls. Each watched namespace opens ~14 Watch streams,
+// so capping at 10 keeps the total under 140 concurrent API connections.
+const maxInformerNamespaces = 10
+
+const informerRetryInterval = 10 * time.Second
+const maxInformerRetries = 6
 
 type informerSnapshotEmitter func() error
 
@@ -31,10 +48,25 @@ type InformerManager struct {
 }
 
 func NewInformerManager(clientset kubernetes.Interface, namespaces []string, app *App) *InformerManager {
+	normalized := normalizeNamespaces(namespaces)
+	capped := normalized
+	if len(normalized) > maxInformerNamespaces {
+		capped = normalized[:maxInformerNamespaces]
+		logger.Warn("informer namespace count exceeds cap; extra namespaces will use polling",
+			"requested", len(normalized), "cap", maxInformerNamespaces,
+			"polling", normalized[maxInformerNamespaces:])
+		if app != nil && app.ctx != nil {
+			emitEvent(app.ctx, "k8s:informer:ns-capped", map[string]interface{}{
+				"cap":     maxInformerNamespaces,
+				"total":   len(normalized),
+				"polling": normalized[maxInformerNamespaces:],
+			})
+		}
+	}
 	return &InformerManager{
 		app:        app,
 		clientset:  clientset,
-		namespaces: normalizeNamespaces(namespaces),
+		namespaces: capped,
 		timers:     make(map[string]*time.Timer),
 	}
 }
@@ -108,8 +140,34 @@ func (im *InformerManager) Start() error {
 		im.clFactory.Rbac().V1().ClusterRoleBindings().Informer().HasSynced,
 	)
 
-	if len(hasSynced) > 0 && !cache.WaitForCacheSync(im.stopCh, hasSynced...) {
-		close(im.stopCh)
+	// Save references before releasing the lock for WaitForCacheSync.
+	stopCh := im.stopCh
+	im.mu.Unlock()
+
+	// Run WaitForCacheSync WITHOUT holding im.mu so that callers of
+	// namespaceFactory() are not blocked — they fall back to the direct
+	// API path while the cache warms up.
+	synced := false
+	if len(hasSynced) > 0 {
+		syncDone := make(chan bool, 1)
+		go func() {
+			syncDone <- cache.WaitForCacheSync(stopCh, hasSynced...)
+		}()
+		select {
+		case synced = <-syncDone:
+		case <-time.After(cacheSyncTimeout):
+			logger.Warn("informer cache sync timed out, falling back to direct API",
+				"timeout", cacheSyncTimeout)
+		}
+	} else {
+		synced = true
+	}
+
+	im.mu.Lock()
+	if !synced {
+		if im.stopCh != nil {
+			close(im.stopCh)
+		}
 		im.stopCh = nil
 		im.nsFactories = nil
 		im.clFactory = nil
@@ -241,7 +299,11 @@ func (im *InformerManager) selectedNamespaces() []string {
 }
 
 func (im *InformerManager) namespaceFactory(namespace string) (informers.SharedInformerFactory, bool) {
-	im.mu.RLock()
+	// TryRLock avoids blocking when Start() holds the write lock during
+	// WaitForCacheSync — callers fall back to the direct API path.
+	if !im.mu.TryRLock() {
+		return nil, false
+	}
 	defer im.mu.RUnlock()
 	if !im.started || im.nsFactories == nil {
 		return nil, false
@@ -358,6 +420,10 @@ func (im *InformerManager) emitClusterRoleBindingsSnapshot() error {
 }
 
 func (a *App) startInformerManager() {
+	a.startInformerManagerWithRetry(0)
+}
+
+func (a *App) startInformerManagerWithRetry(attempt int) {
 	if !a.useInformers {
 		return
 	}
@@ -366,25 +432,56 @@ func (a *App) startInformerManager() {
 	}
 
 	a.informerMu.Lock()
-	defer a.informerMu.Unlock()
-
 	if a.informerManager != nil {
+		a.informerMu.Unlock()
 		return
 	}
+	a.informerMu.Unlock()
 
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {
-		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "5s"})
+		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": informerRetryInterval.String()})
+		a.scheduleInformerRetry(attempt)
 		return
 	}
 
 	manager := NewInformerManager(clientset, a.getPollingNamespaces(), a)
+	// Start() may block during WaitForCacheSync — do NOT hold informerMu
+	// so that getInformerNamespaceFactory callers can fall back to direct API.
 	if err := manager.Start(); err != nil {
-		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": "5s"})
+		logger.Warn("informer manager start failed, falling back to direct API", "error", err)
+		emitEvent(a.ctx, "k8s:informer:error", map[string]string{"error": err.Error(), "backoff": informerRetryInterval.String()})
+		a.scheduleInformerRetry(attempt)
 		return
 	}
 
+	a.informerMu.Lock()
+	if a.informerManager != nil {
+		a.informerMu.Unlock()
+		manager.Stop()
+		return
+	}
 	a.informerManager = manager
+	a.informerMu.Unlock()
+}
+
+func (a *App) scheduleInformerRetry(attempt int) {
+	if attempt >= maxInformerRetries {
+		return
+	}
+
+	if a.ctx == nil {
+		return
+	}
+
+	go func(nextAttempt int) {
+		select {
+		case <-a.ctx.Done():
+			return
+		case <-time.After(informerRetryInterval):
+			a.startInformerManagerWithRetry(nextAttempt)
+		}
+	}(attempt + 1)
 }
 
 func (a *App) stopInformerManager() {
@@ -415,7 +512,10 @@ func (a *App) restartInformerManager() {
 }
 
 func (a *App) getInformerNamespaceFactory(namespace string) (informers.SharedInformerFactory, bool) {
-	a.informerMu.Lock()
+	// TryLock avoids blocking when startInformerManager holds the lock.
+	if !a.informerMu.TryLock() {
+		return nil, false
+	}
 	manager := a.informerManager
 	a.informerMu.Unlock()
 	if manager == nil || namespace == "" {
@@ -425,14 +525,18 @@ func (a *App) getInformerNamespaceFactory(namespace string) (informers.SharedInf
 }
 
 func (a *App) getInformerClusterFactory() (informers.SharedInformerFactory, bool) {
-	a.informerMu.Lock()
+	if !a.informerMu.TryLock() {
+		return nil, false
+	}
 	manager := a.informerManager
 	a.informerMu.Unlock()
 	if manager == nil {
 		return nil, false
 	}
 
-	manager.mu.RLock()
+	if !manager.mu.TryRLock() {
+		return nil, false
+	}
 	defer manager.mu.RUnlock()
 	if !manager.started || manager.clFactory == nil {
 		return nil, false

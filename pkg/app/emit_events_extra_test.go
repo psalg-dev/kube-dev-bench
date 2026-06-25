@@ -76,7 +76,7 @@ func TestEmitResourceUpdateEvents_WithNamespace(t *testing.T) {
 		ctx:           context.Background(),
 		testClientset: fake.NewSimpleClientset(),
 	}
-	// calls time.Sleep(500 ms) then emits events
+	// calls time.Sleep(2500 ms) then emits events
 	app.emitResourceUpdateEvents("default", "deployment")
 }
 

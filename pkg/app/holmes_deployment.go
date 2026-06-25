@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -280,13 +281,13 @@ func (a *App) DeployHolmesGPT(req holmesgpt.HolmesDeploymentRequest) (*holmesgpt
 	a.emitHolmesDeploymentStatus(status)
 
 	// Auto-configure Holmes with the detected endpoint
-	holmesConfig = holmesgpt.HolmesConfigData{
+	a.setHolmesConfig(holmesgpt.HolmesConfigData{
 		Enabled:        true,
 		Endpoint:       endpoint,
 		APIKey:         "", // In-cluster doesn't need separate API key
 		ModelKey:       "",
 		ResponseFormat: "",
-	}
+	})
 
 	// Save and initialize
 	if err := a.saveConfig(); err != nil {
@@ -621,7 +622,7 @@ func (a *App) UndeployHolmesGPT(namespace, releaseName string) error {
 	}
 
 	// Clear local Holmes config
-	holmesConfig = holmesgpt.DefaultConfig()
+	a.setHolmesConfig(holmesgpt.DefaultConfig())
 	holmesMu.Lock()
 	holmesClient = nil
 	holmesMu.Unlock()
@@ -684,7 +685,7 @@ func (a *App) StartHolmesPortForward(namespace string) (string, error) {
 
 func waitForLocalPort(host string, port int, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-	addr := fmt.Sprintf("%s:%d", host, port)
+		addr := net.JoinHostPort(host, strconv.Itoa(port))
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond)
 		if err == nil {

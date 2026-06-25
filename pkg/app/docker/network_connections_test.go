@@ -2,10 +2,12 @@ package docker
 
 import (
 	"context"
+	"net/netip"
 	"testing"
 
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type fakeNetworkConnectionsClient struct {
@@ -15,23 +17,23 @@ type fakeNetworkConnectionsClient struct {
 	networks map[string]network.Inspect
 }
 
-func (f *fakeNetworkConnectionsClient) ServiceList(ctx context.Context, opts swarm.ServiceListOptions) ([]swarm.Service, error) {
-	return f.services, nil
+func (f *fakeNetworkConnectionsClient) ServiceList(ctx context.Context, opts client.ServiceListOptions) (client.ServiceListResult, error) {
+	return client.ServiceListResult{Items: f.services}, nil
 }
 
-func (f *fakeNetworkConnectionsClient) TaskList(ctx context.Context, opts swarm.TaskListOptions) ([]swarm.Task, error) {
-	return f.tasks, nil
+func (f *fakeNetworkConnectionsClient) TaskList(ctx context.Context, opts client.TaskListOptions) (client.TaskListResult, error) {
+	return client.TaskListResult{Items: f.tasks}, nil
 }
 
-func (f *fakeNetworkConnectionsClient) NodeList(ctx context.Context, opts swarm.NodeListOptions) ([]swarm.Node, error) {
-	return f.nodes, nil
+func (f *fakeNetworkConnectionsClient) NodeList(ctx context.Context, opts client.NodeListOptions) (client.NodeListResult, error) {
+	return client.NodeListResult{Items: f.nodes}, nil
 }
 
-func (f *fakeNetworkConnectionsClient) NetworkInspect(ctx context.Context, networkID string, opts network.InspectOptions) (network.Inspect, error) {
+func (f *fakeNetworkConnectionsClient) NetworkInspect(ctx context.Context, networkID string, opts client.NetworkInspectOptions) (client.NetworkInspectResult, error) {
 	if net, ok := f.networks[networkID]; ok {
-		return net, nil
+		return client.NetworkInspectResult{Network: net}, nil
 	}
-	return network.Inspect{ID: networkID}, nil
+	return client.NetworkInspectResult{Network: network.Inspect{Network: network.Network{ID: networkID}}}, nil
 }
 
 func TestGetSwarmNetworkServices_ReturnsAttachedServices(t *testing.T) {
@@ -75,7 +77,7 @@ func TestGetSwarmNetworkServices_ReturnsAttachedServices(t *testing.T) {
 			},
 		},
 		networks: map[string]network.Inspect{
-			networkID: {ID: networkID, Name: "my-network"},
+			networkID: {Network: network.Network{ID: networkID, Name: "my-network"}},
 		},
 	}
 
@@ -117,7 +119,7 @@ func TestGetSwarmNetworkServices_MatchesByNetworkName(t *testing.T) {
 			},
 		},
 		networks: map[string]network.Inspect{
-			networkID: {ID: networkID, Name: networkName},
+			networkID: {Network: network.Network{ID: networkID, Name: networkName}},
 		},
 	}
 
@@ -281,14 +283,16 @@ func TestGetSwarmNetworkInspectJSON_ReturnsJSON(t *testing.T) {
 
 	cli := &fakeNetworkConnectionsClient{
 		networks: map[string]network.Inspect{
-			networkID: {
-				ID:     networkID,
-				Name:   "my-network",
-				Driver: "overlay",
-				Scope:  "swarm",
-				IPAM: network.IPAM{
-					Config: []network.IPAMConfig{
-						{Subnet: "10.0.0.0/24"},
+			networkID: network.Inspect{
+				Network: network.Network{
+					ID:     networkID,
+					Name:   "my-network",
+					Driver: "overlay",
+					Scope:  "swarm",
+					IPAM: network.IPAM{
+						Config: []network.IPAMConfig{
+							{Subnet: netip.MustParsePrefix("10.0.0.0/24")},
+						},
 					},
 				},
 			},

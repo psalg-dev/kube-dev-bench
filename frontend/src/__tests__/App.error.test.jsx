@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import App from '../App.jsx';
 import { renderWithProviders, resetMocks } from './test-utils.jsx';
 

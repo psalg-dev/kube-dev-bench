@@ -32,8 +32,8 @@ type AppConfig struct {
 	// SessionProbeInterval is the background liveness probe interval in minutes.
 	// 0 disables the probe (default).
 	SessionProbeInterval int `json:"sessionProbeInterval,omitempty"`
-	// AllowInsecure remembers user's opt-in to insecure TLS for the current context.
-	AllowInsecure bool `json:"allowInsecure,omitempty"`
+	// AllowInsecure remembers user's per-context opt-in to insecure TLS (CRIT-4).
+	AllowInsecure map[string]bool `json:"allowInsecure,omitempty"`
 	// Holmes AI configuration
 	HolmesConfig holmesgpt.HolmesConfigData `json:"holmesConfig,omitempty"`
 }
@@ -61,7 +61,11 @@ func (a *App) loadConfig() error {
 	a.kubeConfig = config.KubeConfigPath
 	a.customCAPath = config.CustomCAPath
 	a.kubeconfigPaths = append([]string(nil), config.KubeconfigPaths...)
-	a.allowInsecure = config.AllowInsecure
+	if config.AllowInsecure != nil {
+		a.allowInsecure = config.AllowInsecure
+	} else {
+		a.allowInsecure = make(map[string]bool)
+	}
 	if config.SessionProbeInterval > 0 {
 		a.sessionProbeInterval = time.Duration(config.SessionProbeInterval) * time.Minute
 	}
@@ -71,7 +75,7 @@ func (a *App) loadConfig() error {
 	a.proxyUsername = config.ProxyUsername
 	a.proxyPassword = config.ProxyPassword
 	// Load Holmes configuration
-	holmesConfig = config.HolmesConfig
+	a.setHolmesConfig(config.HolmesConfig)
 	return nil
 }
 
@@ -99,7 +103,7 @@ func (a *App) saveConfig() error {
 		ProxyUsername: a.proxyUsername,
 		ProxyPassword: a.proxyPassword,
 		// Holmes AI configuration
-		HolmesConfig: holmesConfig,
+		HolmesConfig: a.getHolmesConfig(),
 	}
 	data, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {

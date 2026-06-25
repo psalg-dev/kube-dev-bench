@@ -114,6 +114,8 @@ export function CloneSwarmSecret(arg1:string,arg2:string,arg3:string):Promise<st
 
 export function CloneSwarmVolume(arg1:string,arg2:string):Promise<string>;
 
+export function ConnectInsecure(arg1:string):Promise<void>;
+
 export function ConnectToDocker(arg1:docker.DockerConfig):Promise<docker.DockerConnectionStatus>;
 
 export function CreateKindCluster(arg1:string):Promise<app.KindClusterResult>;
@@ -165,6 +167,8 @@ export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
 export function DeleteSwarmVolumeFile(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function DeployHolmesGPT(arg1:holmesgpt.HolmesDeploymentRequest):Promise<holmesgpt.HolmesDeploymentStatus>;
+
+export function DetectKubeconfigEnvPaths():Promise<Array<string>>;
 
 export function DetectLogPatterns(arg1:string):Promise<Array<app.LogPattern>>;
 
@@ -313,6 +317,8 @@ export function GetKubeConfigs():Promise<Array<app.KubeConfigInfo>>;
 export function GetKubeContexts():Promise<Array<string>>;
 
 export function GetKubeContextsFromFile(arg1:string):Promise<Array<string>>;
+
+export function GetKubeconfigPaths():Promise<Array<string>>;
 
 export function GetMCPConfig():Promise<mcp.MCPConfigData>;
 
@@ -472,6 +478,8 @@ export function GetServiceYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetServices(arg1:string):Promise<Array<app.ServiceInfo>>;
 
+export function GetSessionProbeInterval():Promise<number>;
+
 export function GetStatefulSetDetail(arg1:string,arg2:string):Promise<app.StatefulSetDetail>;
 
 export function GetStatefulSetLogs(arg1:string,arg2:string):Promise<string>;
@@ -602,6 +610,8 @@ export function PullDockerImageLatest(arg1:string,arg2:string):Promise<void>;
 
 export function ReconnectHolmes():Promise<holmesgpt.HolmesConnectionStatus>;
 
+export function RefreshCredentials(arg1:string):Promise<void>;
+
 export function RemoveHelmRepository(arg1:string):Promise<void>;
 
 export function RemoveRegistry(arg1:string):Promise<void>;
@@ -686,6 +696,8 @@ export function SetImageUpdateSettings(arg1:docker.ImageUpdateSettings):Promise<
 
 export function SetKubeConfigPath(arg1:string):Promise<void>;
 
+export function SetKubeconfigPaths(arg1:Array<string>):Promise<void>;
+
 export function SetMCPConfig(arg1:mcp.MCPConfigData):Promise<void>;
 
 export function SetPreferredNamespaces(arg1:Array<string>):Promise<void>;
@@ -695,6 +707,8 @@ export function SetProxyConfig(arg1:string,arg2:string,arg3:string,arg4:string):
 export function SetRememberContext(arg1:boolean):Promise<void>;
 
 export function SetRememberNamespace(arg1:boolean):Promise<void>;
+
+export function SetSessionProbeInterval(arg1:number):Promise<void>;
 
 export function SetUseInformers(arg1:boolean):Promise<void>;
 

@@ -293,3 +293,67 @@ func TestGetSecrets_ListError(t *testing.T) {
 		t.Errorf("expected empty result on list error, got %d", len(result))
 	}
 }
+
+func TestGetSecretData_TruncatesLargeValues(t *testing.T) {
+	// Create a secret with a value exceeding maxSecretValueSize (64KiB).
+	largeValue := make([]byte, maxSecretValueSize+1024)
+	for i := range largeValue {
+		largeValue[i] = 'A'
+	}
+
+	clientset := fake.NewSimpleClientset()
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "large-secret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"big-key":   largeValue,
+			"small-key": []byte("short"),
+		},
+	}
+	_, err := clientset.CoreV1().Secrets("default").Create(
+		context.Background(), secret, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("failed to create secret: %v", err)
+	}
+
+	app := &App{
+		ctx:              context.Background(),
+		testClientset:    clientset,
+		currentNamespace: "default",
+	}
+
+	result, err := app.GetSecretData("large-secret")
+	if err != nil {
+		t.Fatalf("GetSecretData failed: %v", err)
+	}
+
+	// The small key should be unmodified.
+	expectedSmall := base64.StdEncoding.EncodeToString([]byte("short"))
+	if result["small-key"] != expectedSmall {
+		t.Errorf("small-key: got %q, want %q", result["small-key"], expectedSmall)
+	}
+
+	// The big key should be truncated and end with [TRUNCATED].
+	bigVal := result["big-key"]
+	if len(bigVal) == 0 {
+		t.Fatal("expected big-key to have a value")
+	}
+
+	// The [TRUNCATED] marker is appended to the base64 string, not to the raw bytes.
+	suffix := "[TRUNCATED]"
+	if len(bigVal) < len(suffix) || bigVal[len(bigVal)-len(suffix):] != suffix {
+		t.Errorf("expected big-key to end with %q, got ...%q", suffix, bigVal[len(bigVal)-20:])
+	}
+
+	// The base64 portion (before [TRUNCATED]) should decode to maxSecretValueSize bytes.
+	b64Part := bigVal[:len(bigVal)-len(suffix)]
+	decoded, err := base64.StdEncoding.DecodeString(b64Part)
+	if err != nil {
+		t.Fatalf("failed to decode base64 portion: %v", err)
+	}
+	if len(decoded) != maxSecretValueSize {
+		t.Errorf("expected decoded length %d, got %d", maxSecretValueSize, len(decoded))
+	}
+}

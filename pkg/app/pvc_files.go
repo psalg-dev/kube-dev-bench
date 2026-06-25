@@ -411,6 +411,10 @@ func (a *App) ensurePVCBrowseHelper(namespace, pvcName string) (string, string, 
 	if _, err := clientset.CoreV1().Pods(namespace).Create(a.ctx, podSpec, metav1.CreateOptions{}); err != nil {
 		return "", "", "", "", err
 	}
+
+	// CRIT-3: register helper pod for cleanup on shutdown
+	a.registerPVCHelperPod(namespace, name)
+
 	// Wait for running (timeout 20s)
 	deadline := time.Now().Add(20 * time.Second)
 	for time.Now().Before(deadline) {
@@ -614,5 +618,48 @@ func (a *App) findPodMountingPVC(namespace, pvcName string) (podName, containerN
 	}
 	err = errors.New("no running pod found mounting pvc")
 	return
+}
+
+// registerPVCHelperPod records a helper pod for later cleanup (CRIT-3).
+func (a *App) registerPVCHelperPod(namespace, name string) {
+	a.pvcHelperPodsMu.Lock()
+	defer a.pvcHelperPodsMu.Unlock()
+	if a.pvcHelperPods == nil {
+		a.pvcHelperPods = make(map[string]string)
+	}
+	a.pvcHelperPods[namespace+"/"+name] = name
+}
+
+// cleanupPVCHelperPods deletes all registered PVC browse helper pods (CRIT-3).
+// Called from Shutdown to prevent cluster resource leaks.
+func (a *App) cleanupPVCHelperPods() {
+	a.pvcHelperPodsMu.Lock()
+	pods := make(map[string]string, len(a.pvcHelperPods))
+	for k, v := range a.pvcHelperPods {
+		pods[k] = v
+	}
+	a.pvcHelperPods = make(map[string]string)
+	a.pvcHelperPodsMu.Unlock()
+
+	if len(pods) == 0 {
+		return
+	}
+
+	clientset, err := a.getKubernetesInterface()
+	if err != nil {
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	for key := range pods {
+		parts := strings.SplitN(key, "/", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		ns, name := parts[0], parts[1]
+		_ = clientset.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{})
+	}
 }
 

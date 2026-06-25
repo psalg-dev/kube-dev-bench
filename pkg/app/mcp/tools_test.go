@@ -272,6 +272,14 @@ func (m *mockServerInterface) RestartDeployment(namespace, name string) error {
 	return nil
 }
 
+func (m *mockServerInterface) RestartStatefulSet(namespace, name string) error {
+	return nil
+}
+
+func (m *mockServerInterface) RestartDaemonSet(namespace, name string) error {
+	return nil
+}
+
 // Docker Swarm methods
 func (m *mockServerInterface) GetSwarmServices() (interface{}, error) {
 	return []string{"service1"}, nil
@@ -399,7 +407,7 @@ func TestToolRegistration(t *testing.T) {
 
 func TestToolCount(t *testing.T) {
 	server := createTestServer()
-	expectedCount := 14
+	expectedCount := 16
 	if len(server.tools) != expectedCount {
 		t.Errorf("Expected %d tools, got %d", expectedCount, len(server.tools))
 		for name := range server.tools {

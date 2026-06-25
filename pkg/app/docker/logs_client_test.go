@@ -5,8 +5,8 @@ import (
 	"io"
 	"testing"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 type nopCloser struct{ io.Reader }
@@ -17,10 +17,10 @@ func Test_getTaskLogs_callsContainerLogs(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		TaskInspectWithRawFn: func(context.Context, string) (swarm.Task, []byte, error) {
-			return swarm.Task{Status: swarm.TaskStatus{ContainerStatus: &swarm.ContainerStatus{ContainerID: "cid"}}}, nil, nil
+		TaskInspectFn: func(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error) {
+			return client.TaskInspectResult{Task: swarm.Task{Status: swarm.TaskStatus{ContainerStatus: &swarm.ContainerStatus{ContainerID: "cid"}}}}, nil
 		},
-		ContainerLogsFn: func(_ context.Context, containerID string, opts container.LogsOptions) (io.ReadCloser, error) {
+		ContainerLogsFn: func(_ context.Context, containerID string, opts client.ContainerLogsOptions) (client.ContainerLogsResult, error) {
 			if containerID != "cid" {
 				t.Fatalf("expected cid, got %q", containerID)
 			}
@@ -41,8 +41,8 @@ func Test_getTaskLogs_callsContainerLogs(t *testing.T) {
 func Test_getTaskLogs_noContainerReturnsError(t *testing.T) {
 	ctx := context.Background()
 
-	cli := &fakeDockerClient{TaskInspectWithRawFn: func(context.Context, string) (swarm.Task, []byte, error) {
-		return swarm.Task{}, nil, nil
+	cli := &fakeDockerClient{TaskInspectFn: func(context.Context, string, client.TaskInspectOptions) (client.TaskInspectResult, error) {
+		return client.TaskInspectResult{}, nil
 	}}
 
 	if _, err := getTaskLogs(ctx, cli, "task-1", "10", false); err == nil {
@@ -54,7 +54,7 @@ func Test_getServiceLogs_callsServiceLogs(t *testing.T) {
 	ctx := context.Background()
 
 	called := false
-	cli := &fakeDockerClient{ServiceLogsFn: func(_ context.Context, serviceID string, opts container.LogsOptions) (io.ReadCloser, error) {
+	cli := &fakeDockerClient{ServiceLogsFn: func(_ context.Context, serviceID string, opts client.ServiceLogsOptions) (client.ServiceLogsResult, error) {
 		called = true
 		if serviceID != "svc-1" {
 			t.Fatalf("expected svc-1")

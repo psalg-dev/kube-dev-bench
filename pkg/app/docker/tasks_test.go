@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/swarm"
 )
 
 func TestTaskToInfo_PopulatesContainerIDAndError(t *testing.T) {

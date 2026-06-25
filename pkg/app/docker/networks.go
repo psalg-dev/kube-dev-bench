@@ -2,22 +2,22 @@ package docker
 
 import (
 	"context"
+	"net/netip"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 )
 
 type swarmNetworksClient interface {
-	NetworkList(context.Context, network.ListOptions) ([]network.Summary, error)
-	NetworkInspect(context.Context, string, network.InspectOptions) (network.Inspect, error)
-	NetworkCreate(context.Context, string, network.CreateOptions) (network.CreateResponse, error)
-	NetworkRemove(context.Context, string) error
-	NetworksPrune(context.Context, filters.Args) (network.PruneReport, error)
+	NetworkList(context.Context, client.NetworkListOptions) (client.NetworkListResult, error)
+	NetworkInspect(context.Context, string, client.NetworkInspectOptions) (client.NetworkInspectResult, error)
+	NetworkCreate(context.Context, string, client.NetworkCreateOptions) (client.NetworkCreateResult, error)
+	NetworkRemove(context.Context, string, client.NetworkRemoveOptions) (client.NetworkRemoveResult, error)
+	NetworkPrune(context.Context, client.NetworkPruneOptions) (client.NetworkPruneResult, error)
 }
 
-func buildNetworkCreateOptions(driver string, opts CreateNetworkOptions) network.CreateOptions {
-	createOpts := network.CreateOptions{
+func buildNetworkCreateOptions(driver string, opts CreateNetworkOptions) client.NetworkCreateOptions {
+	createOpts := client.NetworkCreateOptions{
 		Driver:     driver,
 		Scope:      opts.Scope,
 		Attachable: opts.Attachable,
@@ -37,10 +37,10 @@ func buildNetworkCreateOptions(driver string, opts CreateNetworkOptions) network
 		ipamConfig := []network.IPAMConfig{}
 		if opts.Subnet != "" {
 			config := network.IPAMConfig{
-				Subnet: opts.Subnet,
+				Subnet: netip.MustParsePrefix(opts.Subnet),
 			}
 			if opts.Gateway != "" {
-				config.Gateway = opts.Gateway
+				config.Gateway = netip.MustParseAddr(opts.Gateway)
 			}
 			ipamConfig = append(ipamConfig, config)
 		}
@@ -58,10 +58,11 @@ func GetSwarmNetworks(ctx context.Context, cli *client.Client) ([]SwarmNetworkIn
 }
 
 func getSwarmNetworks(ctx context.Context, cli swarmNetworksClient) ([]SwarmNetworkInfo, error) {
-	networks, err := cli.NetworkList(ctx, network.ListOptions{})
+	listResult, err := cli.NetworkList(ctx, client.NetworkListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	networks := listResult.Items
 
 	result := make([]SwarmNetworkInfo, 0, len(networks))
 	for _, net := range networks {
@@ -78,10 +79,11 @@ func GetSwarmNetwork(ctx context.Context, cli *client.Client, networkID string) 
 }
 
 func getSwarmNetwork(ctx context.Context, cli swarmNetworksClient, networkID string) (*SwarmNetworkInfo, error) {
-	net, err := cli.NetworkInspect(ctx, networkID, network.InspectOptions{})
+	inspectResult, err := cli.NetworkInspect(ctx, networkID, client.NetworkInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
+	net := inspectResult.Network
 
 	info := networkResourceToInfo(net)
 	return &info, nil
@@ -89,7 +91,27 @@ func getSwarmNetwork(ctx context.Context, cli swarmNetworksClient, networkID str
 
 // networkToInfo converts a network.Summary to SwarmNetworkInfo (from list)
 func networkToInfo(net network.Summary) SwarmNetworkInfo {
-	return networkResourceToInfo(net)
+	info := SwarmNetworkInfo{
+		ID:         net.ID,
+		Name:       net.Name,
+		Driver:     net.Driver,
+		Scope:      net.Scope,
+		Attachable: net.Attachable,
+		Internal:   net.Internal,
+		Labels:     net.Labels,
+		Options:    net.Options,
+		CreatedAt:  net.Created.Format("2006-01-02T15:04:05Z07:00"),
+	}
+
+	if info.Options == nil {
+		info.Options = make(map[string]string)
+	}
+
+	if info.Labels == nil {
+		info.Labels = make(map[string]string)
+	}
+
+	return info
 }
 
 // networkResourceToInfo converts a network.Inspect to SwarmNetworkInfo
@@ -113,9 +135,9 @@ func networkResourceToInfo(net network.Inspect) SwarmNetworkInfo {
 	if len(net.IPAM.Config) > 0 {
 		for _, cfg := range net.IPAM.Config {
 			info.IPAM = append(info.IPAM, SwarmNetworkIPAMConfig{
-				Subnet:       cfg.Subnet,
-				Gateway:      cfg.Gateway,
-				IPRange:      cfg.IPRange,
+				Subnet:       cfg.Subnet.String(),
+				Gateway:      cfg.Gateway.String(),
+				IPRange:      cfg.IPRange.String(),
 				AuxAddresses: map[string]string{},
 			})
 		}
@@ -159,7 +181,8 @@ func RemoveSwarmNetwork(ctx context.Context, cli *client.Client, networkID strin
 }
 
 func removeSwarmNetwork(ctx context.Context, cli swarmNetworksClient, networkID string) error {
-	return cli.NetworkRemove(ctx, networkID)
+	_, err := cli.NetworkRemove(ctx, networkID, client.NetworkRemoveOptions{})
+	return err
 }
 
 // PruneSwarmNetworks removes all unused networks
@@ -168,9 +191,9 @@ func PruneSwarmNetworks(ctx context.Context, cli *client.Client) ([]string, erro
 }
 
 func pruneSwarmNetworks(ctx context.Context, cli swarmNetworksClient) ([]string, error) {
-	report, err := cli.NetworksPrune(ctx, filters.Args{})
+	result, err := cli.NetworkPrune(ctx, client.NetworkPruneOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return report.NetworksDeleted, nil
+	return result.Report.NetworksDeleted, nil
 }

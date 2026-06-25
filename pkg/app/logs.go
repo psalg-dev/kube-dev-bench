@@ -6,10 +6,15 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 )
+
+// logEmitMinInterval is the minimum time between log event emissions
+// to prevent overwhelming the frontend event loop (SUG-7).
+const logEmitMinInterval = 5 * time.Millisecond
 
 // StopPodLogs stops an active log stream for the given pod if running
 func (a *App) StopPodLogs(podName string) {
@@ -202,13 +207,18 @@ func (a *App) streamLogsToEvents(ctx context.Context, podName, container string,
 	defer stream.Close()
 
 	scanner := bufio.NewScanner(stream)
+	var lastEmit time.Time
 	for scanner.Scan() {
 		select {
 		case <-ctx.Done():
 			return nil
 		default:
 		}
+		if elapsed := time.Since(lastEmit); elapsed < logEmitMinInterval {
+			time.Sleep(logEmitMinInterval - elapsed)
+		}
 		emitEvent(a.ctx, PodLogsEvent(podName), scanner.Text())
+		lastEmit = time.Now()
 	}
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("scan error: %w", err)
@@ -350,13 +360,18 @@ func (a *App) streamContainerWithPrefix(ctx context.Context, clientset kubernete
 
 	prefix := fmt.Sprintf("[%s] ", container)
 	scanner := bufio.NewScanner(stream)
+	var lastEmit time.Time
 	for scanner.Scan() {
 		select {
 		case <-ctx.Done():
 			return
 		default:
 		}
+		if elapsed := time.Since(lastEmit); elapsed < logEmitMinInterval {
+			time.Sleep(logEmitMinInterval - elapsed)
+		}
 		emitEvent(a.ctx, PodLogsEvent(podName), prefix+scanner.Text())
+		lastEmit = time.Now()
 	}
 	if err := scanner.Err(); err != nil {
 		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[%s] [error] scan error: %s", container, err.Error()))

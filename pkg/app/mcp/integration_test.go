@@ -57,7 +57,7 @@ func TestMCPInProcess_Ping(t *testing.T) {
 	}
 }
 
-// TestMCPInProcess_ListTools verifies all 14 tools are discoverable.
+// TestMCPInProcess_ListTools verifies all 16 tools are discoverable.
 func TestMCPInProcess_ListTools(t *testing.T) {
 	client := newInitializedInProcessClient(t)
 	defer client.Close()
@@ -71,6 +71,7 @@ func TestMCPInProcess_ListTools(t *testing.T) {
 		"k8s_list", "k8s_describe", "k8s_get_resource_yaml", "k8s_get_pod_logs",
 		"k8s_get_events", "k8s_get_resource_counts", "k8s_top", "k8s_rollout",
 		"k8s_scale_deployment", "k8s_restart_deployment",
+		"k8s_restart_statefulset", "k8s_restart_daemonset",
 		"swarm_list", "swarm_inspect", "swarm_get_service_logs", "swarm_scale_service",
 	}
 

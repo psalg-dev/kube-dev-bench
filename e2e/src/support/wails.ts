@@ -201,12 +201,20 @@ export async function startWailsDev(opts: {
   // this prefers Docker Desktop's dockerDesktopLinuxEngine pipe when present).
   const dockerHostOverride = process.env.E2E_DOCKER_HOST;
   const frontendDevServerURL = process.env.E2E_FRONTEND_DEVSERVER_URL || 'http://127.0.0.1:5173/';
+  const useFrontendDevServer = !opts.assetDir && isWin32;
+  const childEnv: NodeJS.ProcessEnv = { ...process.env };
+  if (useFrontendDevServer) {
+    childEnv.frontenddevserverurl = frontendDevServerURL;
+  } else {
+    delete childEnv.frontenddevserverurl;
+    delete childEnv.FRONTENDDEVSERVERURL;
+    delete childEnv.frontendDevServerURL;
+  }
 
   const child = spawn('wails', args, {
     cwd: repoRoot,
     env: {
-      ...process.env,
-      ...(isWin32 ? { frontenddevserverurl: frontendDevServerURL } : {}),
+      ...childEnv,
       // Let the Go backend bypass native OS file dialogs during E2E.
       KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),

@@ -82,6 +82,8 @@ type ServerInterface interface {
 	// Mutation methods
 	ScaleResource(kind, namespace, name string, replicas int) error
 	RestartDeployment(namespace, name string) error
+	RestartStatefulSet(namespace, name string) error
+	RestartDaemonSet(namespace, name string) error
 
 	// Docker Swarm methods
 	GetSwarmServices() (interface{}, error)

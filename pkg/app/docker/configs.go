@@ -6,25 +6,25 @@ import (
 	"strings"
 	"time"
 
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 var swarmConfigNowUTC = func() time.Time { return time.Now().UTC() }
 
 type swarmConfigsClient interface {
-	ConfigList(context.Context, swarm.ConfigListOptions) ([]swarm.Config, error)
-	ConfigInspectWithRaw(context.Context, string) (swarm.Config, []byte, error)
-	ConfigCreate(context.Context, swarm.ConfigSpec) (swarm.ConfigCreateResponse, error)
-	ConfigUpdate(context.Context, string, swarm.Version, swarm.ConfigSpec) error
-	ConfigRemove(context.Context, string) error
+	ConfigList(context.Context, client.ConfigListOptions) (client.ConfigListResult, error)
+	ConfigInspect(context.Context, string, client.ConfigInspectOptions) (client.ConfigInspectResult, error)
+	ConfigCreate(context.Context, client.ConfigCreateOptions) (client.ConfigCreateResult, error)
+	ConfigUpdate(context.Context, string, client.ConfigUpdateOptions) (client.ConfigUpdateResult, error)
+	ConfigRemove(context.Context, string, client.ConfigRemoveOptions) (client.ConfigRemoveResult, error)
 }
 
 type swarmConfigEditClient interface {
 	swarmConfigsClient
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
-	ServiceInspectWithRaw(context.Context, string, swarm.ServiceInspectOptions) (swarm.Service, []byte, error)
-	ServiceUpdate(context.Context, string, swarm.Version, swarm.ServiceSpec, swarm.ServiceUpdateOptions) (swarm.ServiceUpdateResponse, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
+	ServiceInspect(context.Context, string, client.ServiceInspectOptions) (client.ServiceInspectResult, error)
+	ServiceUpdate(context.Context, string, client.ServiceUpdateOptions) (client.ServiceUpdateResult, error)
 }
 
 // GetSwarmConfigs returns all Swarm configs
@@ -33,10 +33,11 @@ func GetSwarmConfigs(ctx context.Context, cli *client.Client) ([]SwarmConfigInfo
 }
 
 func getSwarmConfigs(ctx context.Context, cli swarmConfigsClient) ([]SwarmConfigInfo, error) {
-	configs, err := cli.ConfigList(ctx, swarm.ConfigListOptions{})
+	configsResult, err := cli.ConfigList(ctx, client.ConfigListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	configs := configsResult.Items
 
 	result := make([]SwarmConfigInfo, 0, len(configs))
 	for _, cfg := range configs {
@@ -53,12 +54,12 @@ func GetSwarmConfig(ctx context.Context, cli *client.Client, configID string) (*
 }
 
 func getSwarmConfig(ctx context.Context, cli swarmConfigsClient, configID string) (*SwarmConfigInfo, error) {
-	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
+	cfgResult, err := cli.ConfigInspect(ctx, configID, client.ConfigInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	info := configToInfo(cfg)
+	info := configToInfo(cfgResult.Config)
 	return &info, nil
 }
 
@@ -68,11 +69,11 @@ func GetSwarmConfigData(ctx context.Context, cli *client.Client, configID string
 }
 
 func getSwarmConfigData(ctx context.Context, cli swarmConfigsClient, configID string) ([]byte, error) {
-	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
+	cfgResult, err := cli.ConfigInspect(ctx, configID, client.ConfigInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
-	return cfg.Spec.Data, nil
+	return cfgResult.Config.Spec.Data, nil
 }
 
 // configToInfo converts a swarm.Config to SwarmConfigInfo
@@ -107,7 +108,7 @@ func createSwarmConfig(ctx context.Context, cli swarmConfigsClient, name string,
 		Data: data,
 	}
 
-	resp, err := cli.ConfigCreate(ctx, spec)
+	resp, err := cli.ConfigCreate(ctx, client.ConfigCreateOptions{Spec: spec})
 	if err != nil {
 		return "", err
 	}
@@ -121,15 +122,16 @@ func UpdateSwarmConfig(ctx context.Context, cli *client.Client, configID string,
 
 func updateSwarmConfig(ctx context.Context, cli swarmConfigsClient, configID string, newData []byte) error {
 	// Get the current config
-	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
+	cfgResult, err := cli.ConfigInspect(ctx, configID, client.ConfigInspectOptions{})
 	if err != nil {
 		return err
 	}
 
 	// Update the config spec
-	cfg.Spec.Data = newData
+	cfgResult.Config.Spec.Data = newData
 
-	return cli.ConfigUpdate(ctx, configID, cfg.Version, cfg.Spec)
+	_, err = cli.ConfigUpdate(ctx, configID, client.ConfigUpdateOptions{Version: cfgResult.Config.Version, Spec: cfgResult.Config.Spec})
+	return err
 }
 
 // GetSwarmConfigUsage returns services that reference the given config (by ID or name).
@@ -138,16 +140,17 @@ func GetSwarmConfigUsage(ctx context.Context, cli *client.Client, configID strin
 }
 
 func getSwarmConfigUsage(ctx context.Context, cli swarmConfigEditClient, configID string) ([]SwarmServiceRef, error) {
-	cfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
+	cfgResult, err := cli.ConfigInspect(ctx, configID, client.ConfigInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
-	configName := cfg.Spec.Name
+	configName := cfgResult.Config.Spec.Name
 
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	servicesResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	services := servicesResult.Items
 
 	out := make([]SwarmServiceRef, 0)
 	for _, svc := range services {
@@ -165,26 +168,26 @@ func UpdateSwarmConfigDataImmutable(ctx context.Context, cli *client.Client, con
 }
 
 func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClient, configID string, newData []byte) (*SwarmConfigUpdateResult, error) {
-	oldCfg, _, err := cli.ConfigInspectWithRaw(ctx, configID)
+	oldCfg, err := cli.ConfigInspect(ctx, configID, client.ConfigInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
-	oldName := oldCfg.Spec.Name
+	oldName := oldCfg.Config.Spec.Name
 
 	// Create a new config with timestamp-suffixed name.
 	stamp := swarmConfigNowUTC().Format("2006-01-02T150405Z")
 	newName := swarmTimestampedName(oldName, stamp)
-	newSpec := oldCfg.Spec
+	newSpec := oldCfg.Config.Spec
 	newSpec.Annotations.Name = newName
 	newSpec.Data = newData
 
-	createResp, err := cli.ConfigCreate(ctx, newSpec)
+	createResp, err := cli.ConfigCreate(ctx, client.ConfigCreateOptions{Spec: newSpec})
 	if err != nil {
 		return nil, err
 	}
 
 	result := &SwarmConfigUpdateResult{
-		OldConfigID:   oldCfg.ID,
+		OldConfigID:   oldCfg.Config.ID,
 		OldConfigName: oldName,
 		NewConfigID:   createResp.ID,
 		NewConfigName: newName,
@@ -192,33 +195,34 @@ func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClie
 	}
 
 	// Migrate all services referencing old config.
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	servicesResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
+	services := servicesResult.Items
 
 	var updateErrs []string
 	for _, svc := range services {
-		if !serviceReferencesConfig(svc, oldCfg.ID, oldName) {
+		if !serviceReferencesConfig(svc, oldCfg.Config.ID, oldName) {
 			continue
 		}
-		inspected, _, err := cli.ServiceInspectWithRaw(ctx, svc.ID, swarm.ServiceInspectOptions{})
+		inspected, err := cli.ServiceInspect(ctx, svc.ID, client.ServiceInspectOptions{})
 		if err != nil {
 			updateErrs = append(updateErrs, fmt.Sprintf("inspect %s: %v", svc.Spec.Name, err))
 			continue
 		}
-		changed := replaceServiceConfigRefs(&inspected.Spec, oldCfg.ID, oldName, createResp.ID, newName)
+		changed := replaceServiceConfigRefs(&inspected.Service.Spec, oldCfg.Config.ID, oldName, createResp.ID, newName)
 		if !changed {
 			continue
 		}
 		// Ensure tasks roll if Docker doesn't consider config ref a task template change.
-		inspected.Spec.TaskTemplate.ForceUpdate++
-		_, err = cli.ServiceUpdate(ctx, inspected.ID, inspected.Version, inspected.Spec, swarm.ServiceUpdateOptions{})
+		inspected.Service.Spec.TaskTemplate.ForceUpdate++
+		_, err = cli.ServiceUpdate(ctx, inspected.Service.ID, client.ServiceUpdateOptions{Version: inspected.Service.Version, Spec: inspected.Service.Spec})
 		if err != nil {
-			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspected.Spec.Name, err))
+			updateErrs = append(updateErrs, fmt.Sprintf("update %s: %v", inspected.Service.Spec.Name, err))
 			continue
 		}
-		result.Updated = append(result.Updated, SwarmServiceRef{ServiceID: inspected.ID, ServiceName: inspected.Spec.Name})
+		result.Updated = append(result.Updated, SwarmServiceRef{ServiceID: inspected.Service.ID, ServiceName: inspected.Service.Spec.Name})
 	}
 
 	if len(updateErrs) > 0 {
@@ -228,7 +232,7 @@ func updateSwarmConfigDataImmutable(ctx context.Context, cli swarmConfigEditClie
 	}
 
 	// Delete old config after successful migration.
-	if err := cli.ConfigRemove(ctx, oldCfg.ID); err != nil {
+	if _, err := cli.ConfigRemove(ctx, oldCfg.Config.ID, client.ConfigRemoveOptions{}); err != nil {
 		return nil, fmt.Errorf("migrated services to %q but failed to delete old config %q: %w", newName, oldName, err)
 	}
 
@@ -274,5 +278,6 @@ func RemoveSwarmConfig(ctx context.Context, cli *client.Client, configID string)
 }
 
 func removeSwarmConfig(ctx context.Context, cli swarmConfigsClient, configID string) error {
-	return cli.ConfigRemove(ctx, configID)
+	_, err := cli.ConfigRemove(ctx, configID, client.ConfigRemoveOptions{})
+	return err
 }

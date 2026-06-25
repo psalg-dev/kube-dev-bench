@@ -7,6 +7,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+// listPageSize is the number of items per page for paginated K8s List calls (IMP-3).
+const listPageSize int64 = 500
+
 // listResources is a generic helper that consolidates the common
 // client-init → list → transform pattern used by all resource Get* functions.
 //
@@ -17,6 +20,7 @@ import (
 //   - buildFn: transforms each raw item into the result type using current time
 //
 // This eliminates ~10 lines of identical boilerplate per handler.
+// List calls include Limit to cap server-side response size on large clusters (IMP-3).
 func listResources[K any, T any](
 	a *App,
 	namespace string,
@@ -28,7 +32,7 @@ func listResources[K any, T any](
 		return nil, err
 	}
 
-	items, err := listFn(clientset, namespace, metav1.ListOptions{})
+	items, err := listFn(clientset, namespace, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +47,7 @@ func listResources[K any, T any](
 
 // listClusterResources is like listResources but for cluster-scoped resources
 // that don't take a namespace parameter.
+// List calls include Limit to cap server-side response size on large clusters (IMP-3).
 func listClusterResources[K any, T any](
 	a *App,
 	listFn func(clientset kubernetes.Interface, opts metav1.ListOptions) ([]K, error),
@@ -53,7 +58,7 @@ func listClusterResources[K any, T any](
 		return nil, err
 	}
 
-	items, err := listFn(clientset, metav1.ListOptions{})
+	items, err := listFn(clientset, metav1.ListOptions{Limit: listPageSize})
 	if err != nil {
 		return nil, err
 	}

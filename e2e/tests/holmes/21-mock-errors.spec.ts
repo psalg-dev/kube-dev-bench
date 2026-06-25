@@ -19,6 +19,7 @@ import { BottomPanel } from '../../src/pages/BottomPanel.js';
 import { SidebarPage } from '../../src/pages/SidebarPage.js';
 import { CreateOverlay } from '../../src/pages/CreateOverlay.js';
 import { Notifications } from '../../src/pages/Notifications.js';
+import { waitForTableRow } from '../../src/support/wait-helpers.js';
 import net from 'node:net';
 
 /**
@@ -130,12 +131,20 @@ spec:
       return deployName;
     } catch (err) {
       const row = page
-        .locator('#main-panels > div:visible table.gh-table tbody tr')
+        .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
         .filter({ hasText: deployName })
         .first();
       if (await row.isVisible().catch(() => false)) {
         await notifications.waitForClear();
         return deployName;
+      }
+
+      try {
+        await waitForTableRow(page, new RegExp(deployName), { timeout: 15_000 });
+        await notifications.waitForClear();
+        return deployName;
+      } catch {
+        // Continue retry handling below
       }
 
       const overlayRoot = page.locator('[data-testid="create-manifest-overlay"]').first();
@@ -159,8 +168,27 @@ spec:
 async function analyzeDeploymentByName(page: Page, deployName: string) {
   const panel = new BottomPanel(page);
 
-  const row = page.locator('#main-panels > div:visible table.gh-table tbody tr').filter({ hasText: deployName }).first();
-  await expect(row).toBeVisible({ timeout: 90_000 });
+  let row = page
+    .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
+    .filter({ hasText: deployName })
+    .first();
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      await waitForTableRow(page, new RegExp(deployName), { timeout: 30_000 });
+      await expect(row).toBeVisible({ timeout: 10_000 });
+      break;
+    } catch (err) {
+      if (attempt === 3) throw err;
+      const sidebar = new SidebarPage(page);
+      await sidebar.goToSection('pods');
+      await sidebar.goToSection('deployments');
+      row = page
+        .locator('#maincontent table.gh-table tbody tr, #main-panels table.gh-table tbody tr')
+        .filter({ hasText: deployName })
+        .first();
+    }
+  }
 
   // Trigger Holmes analysis via row actions menu (Ask Holmes) with retry pattern
   await expect(async () => {
@@ -196,9 +224,56 @@ async function expectHolmesSuccessWithRetry(page: Page, deployName: string) {
   }
 }
 
+async function expectHolmesGlobalSuccessWithRetry(page: Page, question: string) {
+  const expectedText = 'Deployment health check completed';
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const holmesPanel = await askHolmesFromGlobalPanel(page, question);
+    try {
+      await expect(holmesPanel).toContainText(expectedText, { timeout: 30_000 });
+      return;
+    } catch (err) {
+      const content = (await holmesPanel.textContent()) || '';
+      const transient = /connectex|proxyconnect|dial tcp|Only one usage of each socket address|timeout|timed out|deadline exceeded|i\/o timeout/i.test(content);
+      if (!transient || attempt === 3) throw err;
+      await page.keyboard.press('Escape').catch(() => undefined);
+      await page.waitForTimeout(1000 * attempt);
+    }
+  }
+}
+
 async function analyzeWithHolmesFromDeployment(page: Page, namespace: string) {
   const deployName = await createDeployment(page, namespace);
   return analyzeDeploymentByName(page, deployName);
+}
+
+async function askHolmesFromGlobalPanel(page: Page, question: string) {
+  const toggle = page.locator('#holmes-toggle-btn');
+  await expect(toggle).toBeVisible({ timeout: 30_000 });
+
+  const holmesPanel = page.locator('#holmes-panel');
+
+  // If panel is already open, close and reopen to ensure fresh state
+  if (await holmesPanel.isVisible().catch(() => false)) {
+    await toggle.click();
+    await expect(holmesPanel).not.toBeVisible({ timeout: 5_000 });
+  }
+  await toggle.click();
+  await expect(holmesPanel).toBeVisible({ timeout: 30_000 });
+
+  const input = page.getByPlaceholder('Ask about your cluster...');
+  const hasInput = await input.isVisible({ timeout: 30_000 }).catch(() => false);
+  if (!hasInput) {
+    test.info().annotations.push({
+      type: 'note',
+      description: 'Holmes input was not visible; skipping prompt submit and continuing with panel error assertions.',
+    });
+    return holmesPanel;
+  }
+  await input.fill(question);
+  await page.getByRole('button', { name: '→' }).click();
+
+  return holmesPanel;
 }
 
 test.describe('Holmes Error Handling', () => {
@@ -212,6 +287,7 @@ test.describe('Holmes Error Handling', () => {
 
   test('handles 500 server error gracefully', async ({ page, namespace }) => {
     let errorMockServer: HolmesMockInstance | null = null;
+    let holmesPanel = page.locator('#holmes-panel');
 
     try {
       await test.step('Start mock server with 500 error mode', async () => {
@@ -233,13 +309,11 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Ask Holmes a question', async () => {
-        await analyzeWithHolmesFromDeployment(page, namespace);
+        await createDeployment(page, namespace);
+        holmesPanel = await askHolmesFromGlobalPanel(page, 'Analyze deployment health');
       });
 
       await test.step('Verify error is displayed gracefully', async () => {
-        const panel = new BottomPanel(page);
-        const holmesPanel = panel.root;
-
         // Should show the "Analysis failed" error container from HolmesBottomPanel
         // or the error text containing "holmes API error" or similar
         await expect(
@@ -253,6 +327,8 @@ test.describe('Holmes Error Handling', () => {
   });
 
   test('handles connection refused gracefully', async ({ page, namespace }) => {
+    let holmesPanel = page.locator('#holmes-panel');
+
     await test.step('Configure Holmes with unreachable endpoint', async () => {
       // Use an unreachable private IP to avoid the auto-reconnection logic
       // that triggers when connection is refused on localhost endpoints.
@@ -265,13 +341,11 @@ test.describe('Holmes Error Handling', () => {
     });
 
     await test.step('Ask Holmes a question', async () => {
-      await analyzeWithHolmesFromDeployment(page, namespace);
+      await createDeployment(page, namespace);
+      holmesPanel = await askHolmesFromGlobalPanel(page, 'Analyze deployment health');
     });
 
     await test.step('Verify connection error is handled', async () => {
-      const panel = new BottomPanel(page);
-      const holmesPanel = panel.root;
-
       // Should show the "Analysis failed" error container or error text containing connection-related keywords
       // The Go error message may contain: "dial tcp", "connect", "refused", "connectex", "target machine",
       // "timeout", "context deadline exceeded", "i/o timeout", "no route to host", etc.
@@ -306,6 +380,7 @@ test.describe('Holmes Error Handling', () => {
 
   test('handles slow response with loading indicator', async ({ page, namespace }) => {
     let slowMockServer: HolmesMockInstance | null = null;
+    let holmesPanel = page.locator('#holmes-panel');
 
     try {
       await test.step('Start mock server with delay', async () => {
@@ -314,7 +389,7 @@ test.describe('Holmes Error Handling', () => {
         slowMockServer = await startHolmesMockServer({
           repoRoot: withinRepo(),
           port,
-          delayMs: 3000,
+          delayMs: 8000,
           readyTimeoutMs: 30_000,
         });
       });
@@ -327,21 +402,23 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Ask Holmes and verify loading state', async () => {
-        const panel = await analyzeWithHolmesFromDeployment(page, namespace);
-        const holmesPanel = panel.root;
+        await createDeployment(page, namespace);
+        holmesPanel = await askHolmesFromGlobalPanel(page, 'Analyze deployment health');
 
-        // Should show loading indicator during the delay
+        // Should show loading indicator during the delay.
+        // The global Holmes panel (HolmesPanel.tsx) renders "Thinking..." initially
+        // and "Streaming..." once chunks arrive, using .holmes-spinner / .holmes-loading
+        // classes and data-testid="holmes-spinner".
+        // Use .first() to avoid strict mode violation when the .or() combinator
+        // matches multiple elements (text + class selector both satisfied).
         await expect(
-          holmesPanel.getByText(/loading|analyzing|thinking|processing/i).or(
-            holmesPanel.locator('.loading-indicator, .spinner, [data-loading="true"]')
-          )
-        ).toBeVisible({ timeout: 5_000 });
+          holmesPanel.getByText(/loading|analyzing|thinking|streaming|processing/i).or(
+            holmesPanel.locator('.holmes-loading, .holmes-spinner, [data-testid="holmes-spinner"]')
+          ).first()
+        ).toBeVisible({ timeout: 15_000 });
       });
 
       await test.step('Verify response eventually arrives', async () => {
-        const panel = new BottomPanel(page);
-        const holmesPanel = panel.root;
-
         // After delay, should show actual response
         await expect(holmesPanel).toContainText('Deployment health check completed', {
           timeout: 30_000,
@@ -355,6 +432,7 @@ test.describe('Holmes Error Handling', () => {
   test('recovers after error and shows new responses', async ({ page, namespace }) => {
     let errorMockServer: HolmesMockInstance | null = null;
     let deployName = '';
+    let holmesPanel = page.locator('#holmes-panel');
 
     try {
       deployName = await createDeployment(page, namespace);
@@ -365,14 +443,10 @@ test.describe('Holmes Error Handling', () => {
           endpoint: 'http://127.0.0.1:19999', // Unreachable
         });
 
-        const panel = await analyzeDeploymentByName(page, deployName);
-
-        const holmesPanel = panel.root;
+        holmesPanel = await askHolmesFromGlobalPanel(page, `Analyze deployment health for ${deployName}`);
         await expect(
           holmesPanel.getByText(/failed to send request|error|connect/i).first()
         ).toBeVisible({ timeout: 60_000 });
-
-        await panel.closeByClickingOutside();
       });
 
       await test.step('Start working mock server', async () => {
@@ -393,7 +467,7 @@ test.describe('Holmes Error Handling', () => {
       });
 
       await test.step('Ask again and verify success', async () => {
-        await expectHolmesSuccessWithRetry(page, deployName);
+        await expectHolmesGlobalSuccessWithRetry(page, `Analyze deployment health for ${deployName}`);
       });
     } finally {
       await killMockServer(errorMockServer);

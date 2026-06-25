@@ -5,20 +5,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/volume"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/api/types/volume"
+	"github.com/moby/moby/client"
 )
 
 func Test_getSwarmVolumes_listsAndConverts(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		VolumeListFn: func(context.Context, volume.ListOptions) (volume.ListResponse, error) {
-			v1 := &volume.Volume{Name: "v1", Driver: "local", Labels: nil}
-			v2 := &volume.Volume{Name: "v2", Driver: "local", Labels: map[string]string{"a": "b"}}
-			return volume.ListResponse{Volumes: []*volume.Volume{v1, v2}}, nil
+		VolumeListFn: func(context.Context, client.VolumeListOptions) (client.VolumeListResult, error) {
+			v1 := volume.Volume{Name: "v1", Driver: "local", Labels: nil}
+			v2 := volume.Volume{Name: "v2", Driver: "local", Labels: map[string]string{"a": "b"}}
+			return client.VolumeListResult{Items: []volume.Volume{v1, v2}}, nil
 		},
 	}
 
@@ -38,8 +38,8 @@ func Test_getSwarmVolume_inspectsAndDefaultsLabels(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		VolumeInspectFn: func(context.Context, string) (volume.Volume, error) {
-			return volume.Volume{Name: "v1", Driver: "local", Labels: nil, CreatedAt: time.Now().Format(time.RFC3339)}, nil
+		VolumeInspectFn: func(_ context.Context, _ string, _ client.VolumeInspectOptions) (client.VolumeInspectResult, error) {
+			return client.VolumeInspectResult{Volume: volume.Volume{Name: "v1", Driver: "local", Labels: nil, CreatedAt: time.Now().Format(time.RFC3339)}}, nil
 		},
 	}
 
@@ -59,11 +59,11 @@ func Test_createSwarmVolume_buildsOptionsAndReturnsInfo(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		VolumeCreateFn: func(_ context.Context, opts volume.CreateOptions) (volume.Volume, error) {
+		VolumeCreateFn: func(_ context.Context, opts client.VolumeCreateOptions) (client.VolumeCreateResult, error) {
 			if opts.Name != "v1" || opts.Driver != "local" {
 				t.Fatalf("unexpected create opts: %+v", opts)
 			}
-			return volume.Volume{Name: opts.Name, Driver: opts.Driver, Labels: opts.Labels, CreatedAt: time.Now().Format(time.RFC3339)}, nil
+			return client.VolumeCreateResult{Volume: volume.Volume{Name: opts.Name, Driver: opts.Driver, Labels: opts.Labels, CreatedAt: time.Now().Format(time.RFC3339)}}, nil
 		},
 	}
 
@@ -80,8 +80,8 @@ func Test_pruneSwarmVolumes_returnsReport(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		VolumesPruneFn: func(context.Context, filters.Args) (volume.PruneReport, error) {
-			return volume.PruneReport{VolumesDeleted: []string{"v1"}, SpaceReclaimed: 123}, nil
+		VolumePruneFn: func(_ context.Context, _ client.VolumePruneOptions) (client.VolumePruneResult, error) {
+			return client.VolumePruneResult{Report: volume.PruneReport{VolumesDeleted: []string{"v1"}, SpaceReclaimed: 123}}, nil
 		},
 	}
 
@@ -99,9 +99,9 @@ func Test_removeSwarmVolume_callsRemove(t *testing.T) {
 
 	called := false
 	cli := &fakeDockerClient{
-		VolumeRemoveFn: func(context.Context, string, bool) error {
+		VolumeRemoveFn: func(_ context.Context, _ string, _ client.VolumeRemoveOptions) (client.VolumeRemoveResult, error) {
 			called = true
-			return nil
+			return client.VolumeRemoveResult{}, nil
 		},
 	}
 
@@ -135,8 +135,8 @@ func Test_getSwarmVolumeUsage_findsServicesUsingVolume(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		ServiceListFn: func(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error) {
-			return []swarm.Service{
+		ServiceListFn: func(_ context.Context, _ client.ServiceListOptions) (client.ServiceListResult, error) {
+			return client.ServiceListResult{Items: []swarm.Service{
 				{
 					ID: "svc-1",
 					Spec: swarm.ServiceSpec{
@@ -151,7 +151,7 @@ func Test_getSwarmVolumeUsage_findsServicesUsingVolume(t *testing.T) {
 					},
 				},
 				{ID: "svc-2", Spec: swarm.ServiceSpec{Annotations: swarm.Annotations{Name: "service2"}}},
-			}, nil
+			}}, nil
 		},
 	}
 

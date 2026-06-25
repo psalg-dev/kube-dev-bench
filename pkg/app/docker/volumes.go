@@ -4,27 +4,25 @@ import (
 	"context"
 	"time"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/swarm"
-	"github.com/docker/docker/api/types/volume"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/api/types/volume"
+	"github.com/moby/moby/client"
 )
 
 type swarmVolumesClient interface {
-	VolumeList(context.Context, volume.ListOptions) (volume.ListResponse, error)
-	VolumeInspect(context.Context, string) (volume.Volume, error)
-	VolumeCreate(context.Context, volume.CreateOptions) (volume.Volume, error)
-	VolumeRemove(context.Context, string, bool) error
-	VolumesPrune(context.Context, filters.Args) (volume.PruneReport, error)
+	VolumeList(context.Context, client.VolumeListOptions) (client.VolumeListResult, error)
+	VolumeInspect(context.Context, string, client.VolumeInspectOptions) (client.VolumeInspectResult, error)
+	VolumeCreate(context.Context, client.VolumeCreateOptions) (client.VolumeCreateResult, error)
+	VolumeRemove(context.Context, string, client.VolumeRemoveOptions) (client.VolumeRemoveResult, error)
+	VolumePrune(context.Context, client.VolumePruneOptions) (client.VolumePruneResult, error)
 }
 
 type swarmVolumeUsageClient interface {
-	ServiceList(context.Context, swarm.ServiceListOptions) ([]swarm.Service, error)
+	ServiceList(context.Context, client.ServiceListOptions) (client.ServiceListResult, error)
 }
 
-func buildVolumeCreateOptions(name string, driver string, labels map[string]string, driverOpts map[string]string) volume.CreateOptions {
-	return volume.CreateOptions{
+func buildVolumeCreateOptions(name string, driver string, labels map[string]string, driverOpts map[string]string) client.VolumeCreateOptions {
+	return client.VolumeCreateOptions{
 		Name:       name,
 		Driver:     driver,
 		Labels:     labels,
@@ -38,14 +36,14 @@ func GetSwarmVolumes(ctx context.Context, cli *client.Client) ([]SwarmVolumeInfo
 }
 
 func getSwarmVolumes(ctx context.Context, cli swarmVolumesClient) ([]SwarmVolumeInfo, error) {
-	resp, err := cli.VolumeList(ctx, volume.ListOptions{})
+	resp, err := cli.VolumeList(ctx, client.VolumeListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]SwarmVolumeInfo, 0, len(resp.Volumes))
-	for _, vol := range resp.Volumes {
-		info := volumeToInfo(vol)
+	result := make([]SwarmVolumeInfo, 0, len(resp.Items))
+	for _, vol := range resp.Items {
+		info := volumeToInfo(&vol)
 		result = append(result, info)
 	}
 
@@ -58,12 +56,12 @@ func GetSwarmVolume(ctx context.Context, cli *client.Client, volumeName string) 
 }
 
 func getSwarmVolume(ctx context.Context, cli swarmVolumesClient, volumeName string) (*SwarmVolumeInfo, error) {
-	vol, err := cli.VolumeInspect(ctx, volumeName)
+	volResult, err := cli.VolumeInspect(ctx, volumeName, client.VolumeInspectOptions{})
 	if err != nil {
 		return nil, err
 	}
 
-	info := volumeToInfo(&vol)
+	info := volumeToInfo(&volResult.Volume)
 	return &info, nil
 }
 
@@ -93,12 +91,12 @@ func CreateSwarmVolume(ctx context.Context, cli *client.Client, name string, dri
 func createSwarmVolume(ctx context.Context, cli swarmVolumesClient, name string, driver string, labels map[string]string, driverOpts map[string]string) (*SwarmVolumeInfo, error) {
 	options := buildVolumeCreateOptions(name, driver, labels, driverOpts)
 
-	vol, err := cli.VolumeCreate(ctx, options)
+	volResult, err := cli.VolumeCreate(ctx, options)
 	if err != nil {
 		return nil, err
 	}
 
-	info := volumeToInfo(&vol)
+	info := volumeToInfo(&volResult.Volume)
 	return &info, nil
 }
 
@@ -108,7 +106,8 @@ func RemoveSwarmVolume(ctx context.Context, cli *client.Client, volumeName strin
 }
 
 func removeSwarmVolume(ctx context.Context, cli swarmVolumesClient, volumeName string, force bool) error {
-	return cli.VolumeRemove(ctx, volumeName, force)
+	_, err := cli.VolumeRemove(ctx, volumeName, client.VolumeRemoveOptions{})
+	return err
 }
 
 // PruneSwarmVolumes removes all unused volumes
@@ -117,11 +116,11 @@ func PruneSwarmVolumes(ctx context.Context, cli *client.Client) ([]string, uint6
 }
 
 func pruneSwarmVolumes(ctx context.Context, cli swarmVolumesClient) ([]string, uint64, error) {
-	report, err := cli.VolumesPrune(ctx, filters.Args{})
+	report, err := cli.VolumePrune(ctx, client.VolumePruneOptions{})
 	if err != nil {
 		return nil, 0, err
 	}
-	return report.VolumesDeleted, report.SpaceReclaimed, nil
+	return report.Report.VolumesDeleted, report.Report.SpaceReclaimed, nil
 }
 
 // GetSwarmVolumeUsage returns services that reference the given volume (by mount source).
@@ -130,13 +129,13 @@ func GetSwarmVolumeUsage(ctx context.Context, cli *client.Client, volumeName str
 }
 
 func getSwarmVolumeUsage(ctx context.Context, cli swarmVolumeUsageClient, volumeName string) ([]SwarmServiceRef, error) {
-	services, err := cli.ServiceList(ctx, swarm.ServiceListOptions{})
+	svcResult, err := cli.ServiceList(ctx, client.ServiceListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	out := make([]SwarmServiceRef, 0)
-	for _, svc := range services {
+	for _, svc := range svcResult.Items {
 		cs := svc.Spec.TaskTemplate.ContainerSpec
 		if cs == nil {
 			continue

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import type { app } from '../../../../wailsjs/go/models';
+import { EventsOn } from '../../../../wailsjs/runtime/runtime';
 import AggregateLogsTab from '../../../components/AggregateLogsTab';
 import ResourceActions from '../../../components/ResourceActions';
 import ResourceEventsTab from '../../../components/ResourceEventsTab';
@@ -258,6 +259,7 @@ type DeploymentsOverviewTableProps = {
 };
 
 export default function DeploymentsOverviewTable({ namespaces, namespace }: DeploymentsOverviewTableProps) {
+  const [refreshTick, setRefreshTick] = useState(0);
   const [holmesState, setHolmesState] = useState<HolmesState>({
     loading: false,
     response: null,
@@ -286,13 +288,31 @@ export default function DeploymentsOverviewTable({ namespaces, namespace }: Depl
       selectedNamespaces.map((ns) => AppAPI.GetDeployments(ns).catch(() => [] as app.DeploymentInfo[]))
     );
     return normalizeDeployments(lists.flat() as DeploymentInfoRaw[]);
-  }, [selectedNamespaces]);
+  }, [selectedNamespaces, refreshTick]);
 
   const { data: deployments, loading } = useResourceWatch<DeploymentRow>(
     'deployments:update',
     initialFetchDeployments,
     { mergeStrategy: 'replace' }
   );
+
+  useEffect(() => {
+    const off = EventsOn('resource-updated', (eventData: { resource?: string; namespace?: string } | null | undefined) => {
+      const resource = (eventData?.resource || '').toLowerCase();
+      if (resource !== 'deployment' && resource !== 'deployments') return;
+
+      const updatedNamespace = eventData?.namespace;
+      if (updatedNamespace && selectedNamespaces.length > 0 && !selectedNamespaces.includes(updatedNamespace)) {
+        return;
+      }
+
+      setRefreshTick((prev) => prev + 1);
+    });
+
+    return () => {
+      try { off?.(); } catch {}
+    };
+  }, [selectedNamespaces]);
 
   // Subscribe to Holmes chat stream events
   useEffect(() => {

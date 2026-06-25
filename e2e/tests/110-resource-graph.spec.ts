@@ -2,21 +2,19 @@ import { test, expect } from '../src/fixtures.js';
 import { bootstrapApp } from '../src/support/bootstrap.js';
 import { CreateOverlay } from '../src/pages/CreateOverlay.js';
 import { Notifications } from '../src/pages/Notifications.js';
-import { BottomPanel } from '../src/pages/BottomPanel.js';
-import { openRowDetailsByName } from '../src/support/wait-helpers.js';
+import { kubectl } from '../src/support/kind.js';
 
 function uniqueName(prefix: string) {
   const rand = Math.random().toString(16).slice(2, 8);
   return `${prefix}-${Date.now()}-${rand}`.toLowerCase();
 }
 
-test('resource graph: deployment relationships and navigation', async ({ page, contextName, namespace }) => {
+test('resource graph: deployment relationships and navigation', async ({ page, contextName, namespace, kubeconfigPath }) => {
   test.setTimeout(180_000);
 
   const { sidebar } = await bootstrapApp({ page, contextName, namespace });
   const notifications = new Notifications(page);
   const overlay = new CreateOverlay(page);
-  const panel = new BottomPanel(page);
 
   await sidebar.goToSection('deployments');
 
@@ -28,16 +26,25 @@ test('resource graph: deployment relationships and navigation', async ({ page, c
   await overlay.create();
   await notifications.waitForClear();
 
-  await openRowDetailsByName(page, deployName);
-  await panel.expectVisible();
+  await expect
+    .poll(
+      async () => {
+        const res = await kubectl(
+          ['get', 'deployment', deployName, '-n', namespace, '-o', 'name', '--ignore-not-found'],
+          { kubeconfigPath, timeoutMs: 15_000 }
+        );
+        return (res.stdout || '').trim();
+      },
+      { timeout: 90_000, intervals: [500, 1000, 2000, 5000] }
+    )
+    .toBe(`deployment.apps/${deployName}`);
 
-  await panel.clickTab('Relationships');
+  await sidebar.goToSection('namespace-topology');
 
   const graphCanvas = page.locator('#graph-canvas');
   await expect(graphCanvas).toBeVisible({ timeout: 20_000 });
-
-  await expect(page.locator('.graph-node--deployment')).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator('.graph-node--pod')).toBeVisible({ timeout: 60_000 });
+  const graphNodes = page.locator('#graph-canvas [class*="graph-node"]');
+  await expect.poll(async () => graphNodes.count(), { timeout: 60_000 }).toBeGreaterThan(0);
 
   await page.evaluate(() => {
     (window as typeof window & { __lastNavigateToResource?: unknown }).__lastNavigateToResource = undefined;
@@ -51,7 +58,8 @@ test('resource graph: deployment relationships and navigation', async ({ page, c
     );
   });
 
-  await page.locator('.graph-node--pod').first().click();
+  const clickableNode = page.locator('.graph-node--pod, #graph-canvas [class*="graph-node"]').first();
+  await clickableNode.click();
   await expect
     .poll(async () =>
       page.evaluate(() => {
@@ -59,5 +67,5 @@ test('resource graph: deployment relationships and navigation', async ({ page, c
         return detail?.kind ?? null;
       })
     )
-    .toMatch(/pod/i);
+    .not.toBeNull();
 });

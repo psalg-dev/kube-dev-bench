@@ -3,12 +3,14 @@ package docker
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"testing"
 	"time"
 
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/swarm"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/api/types/swarm"
+	"github.com/moby/moby/client"
 )
 
 // TestTaskToInfo covers all 6+ swarm.Task state values via a table-driven test.
@@ -108,12 +110,12 @@ func TestTaskToInfo_NetworkAttachments(t *testing.T) {
 		NetworksAttachments: []swarm.NetworkAttachment{
 			{
 				Network:   swarm.Network{ID: "net1"},
-				Addresses: []string{"10.0.0.1/24", "10.0.0.2/24"},
+				Addresses: []netip.Prefix{netip.MustParsePrefix("10.0.0.1/24"), netip.MustParsePrefix("10.0.0.2/24")},
 			},
 			{
 				// Empty network ID should be filtered out
 				Network:   swarm.Network{ID: ""},
-				Addresses: []string{"192.168.1.1/16"},
+				Addresses: []netip.Prefix{netip.MustParsePrefix("192.168.1.1/16")},
 			},
 		},
 	}
@@ -399,29 +401,31 @@ func TestGetSwarmTaskHealthLogs_TaskInspectError(t *testing.T) {
 t.Parallel()
 
 cli := &fakeDockerClient{
-TaskInspectWithRawFn: func(_ context.Context, taskID string) (swarm.Task, []byte, error) {
-return swarm.Task{}, nil, fmt.Errorf("task not found")
-},
-}
+		TaskInspectFn: func(_ context.Context, taskID string, _ client.TaskInspectOptions) (client.TaskInspectResult, error) {
+			return client.TaskInspectResult{}, fmt.Errorf("task not found")
+		},
+	}
 
-_, err := getSwarmTaskHealthLogs(nil, cli, "missing-task")
-if err == nil {
-t.Error("expected non-nil error when task inspect fails")
-}
+	_, err := getSwarmTaskHealthLogs(nil, cli, "missing-task")
+	if err == nil {
+		t.Error("expected non-nil error when task inspect fails")
+	}
 }
 
 // TestGetSwarmTaskHealthLogs_NoContainerID verifies empty logs are returned
 // when the task has no container status.
 func TestGetSwarmTaskHealthLogs_NoContainerID(t *testing.T) {
-t.Parallel()
+	t.Parallel()
 
-cli := &fakeDockerClient{
-TaskInspectWithRawFn: func(_ context.Context, taskID string) (swarm.Task, []byte, error) {
-return swarm.Task{
-Status: swarm.TaskStatus{
-ContainerStatus: nil, // no container
-},
-}, nil, nil
+	cli := &fakeDockerClient{
+		TaskInspectFn: func(_ context.Context, taskID string, _ client.TaskInspectOptions) (client.TaskInspectResult, error) {
+			return client.TaskInspectResult{
+				Task: swarm.Task{
+					Status: swarm.TaskStatus{
+						ContainerStatus: nil, // no container
+					},
+				},
+			}, nil
 },
 }
 
@@ -440,15 +444,17 @@ func TestGetSwarmTaskHealthLogs_ContainerInspectError(t *testing.T) {
 t.Parallel()
 
 cli := &fakeDockerClient{
-TaskInspectWithRawFn: func(_ context.Context, taskID string) (swarm.Task, []byte, error) {
-return swarm.Task{
-Status: swarm.TaskStatus{
-ContainerStatus: &swarm.ContainerStatus{ContainerID: "cid-123"},
-},
-}, nil, nil
-},
-ContainerInspectFn: func(_ context.Context, containerID string) (container.InspectResponse, error) {
-return container.InspectResponse{}, fmt.Errorf("container inspect failed")
+		TaskInspectFn: func(_ context.Context, taskID string, _ client.TaskInspectOptions) (client.TaskInspectResult, error) {
+			return client.TaskInspectResult{
+				Task: swarm.Task{
+					Status: swarm.TaskStatus{
+						ContainerStatus: &swarm.ContainerStatus{ContainerID: "cid-123"},
+					},
+				},
+			}, nil
+		},
+		ContainerInspectFn: func(_ context.Context, containerID string, _ client.ContainerInspectOptions) (client.ContainerInspectResult, error) {
+					return client.ContainerInspectResult{Container: container.InspectResponse{}}, fmt.Errorf("container inspect failed")
 },
 }
 

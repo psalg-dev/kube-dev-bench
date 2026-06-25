@@ -114,6 +114,10 @@ func TestScanClusterHealth_NodeNotReady(t *testing.T) {
 }
 
 func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
 			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "Analysis body"})
@@ -129,9 +133,6 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 		t.Fatalf("failed to set env: %v", err)
 	}
 	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
-
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
 
 	clientset := fake.NewSimpleClientset(&v1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: "crash-pod", Namespace: "default"},
@@ -149,6 +150,7 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 	})
 
 	app := &App{ctx: context.Background(), testClientset: clientset, preferredNamespaces: []string{"default"}}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	info := app.collectMonitorInfo([]string{"default"})
@@ -179,6 +181,10 @@ func TestAnalyzeMonitorIssue_PersistsAnalysis(t *testing.T) {
 }
 
 func TestDismissMonitorIssue_Success(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	tmpDir := t.TempDir()
 	path := filepath.Join(tmpDir, "monitor_issues.json")
 	if err := os.Setenv("KDB_MONITOR_ISSUES_PATH", path); err != nil {
@@ -446,6 +452,10 @@ func TestLoadPersistedIssues_NonExistent(t *testing.T) {
 }
 
 func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
+	previous := disableWailsEvents
+	disableWailsEvents = true
+	t.Cleanup(func() { disableWailsEvents = previous })
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
 			json.NewEncoder(w).Encode(holmesgpt.HolmesResponse{Response: "Batch response"})
@@ -461,9 +471,6 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 		t.Fatalf("failed to set env: %v", err)
 	}
 	defer os.Unsetenv("KDB_MONITOR_ISSUES_PATH")
-
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
-	defer func() { holmesConfig = holmesgpt.DefaultConfig() }()
 
 	clientset := fake.NewSimpleClientset(
 		&v1.Pod{
@@ -497,6 +504,7 @@ func TestAnalyzeAllMonitorIssues_Batch(t *testing.T) {
 	)
 
 	app := &App{ctx: context.Background(), testClientset: clientset, preferredNamespaces: []string{"default"}}
+	app.holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	app.initHolmes()
 
 	if err := app.AnalyzeAllMonitorIssues(); err != nil {

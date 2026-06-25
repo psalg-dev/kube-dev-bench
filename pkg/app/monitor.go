@@ -27,26 +27,33 @@ func formatAge(t time.Time) string {
 // StartMonitorPolling emits monitor:update events every 5 seconds with warnings and errors
 func (a *App) StartMonitorPolling() {
 	go func() {
+		// IMP-6: use a ticker instead of time.After to avoid per-iteration allocations.
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		var collecting bool // guard against overlapping iterations
 		for {
 			select {
-			case <-time.After(5 * time.Second):
+			case <-ticker.C:
 			case <-a.pollingStopCh:
 				return
 			}
-			if a.ctx == nil {
+			if a.ctx == nil || collecting {
 				continue
 			}
+			collecting = true
 			// Determine namespaces to monitor
 			nsList := a.preferredNamespaces
 			if len(nsList) == 0 && a.currentNamespace != "" {
 				nsList = []string{a.currentNamespace}
 			}
 			if len(nsList) == 0 {
+				collecting = false
 				continue
 			}
 
 			info := a.collectMonitorInfo(nsList)
 			emitEvent(a.ctx, EventMonitorUpdate, info)
+			collecting = false
 		}
 	}()
 }

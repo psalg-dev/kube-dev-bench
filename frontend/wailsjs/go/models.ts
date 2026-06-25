@@ -47,6 +47,10 @@ export namespace app {
 	    proxyAuthType: string;
 	    proxyUsername: string;
 	    proxyPassword: string;
+	    customCAPath?: string;
+	    kubeconfigPaths?: string[];
+	    sessionProbeInterval?: number;
+	    allowInsecure?: Record<string, boolean>;
 	    holmesConfig?: holmesgpt.HolmesConfigData;
 	
 	    static createFrom(source: any = {}) {
@@ -66,6 +70,10 @@ export namespace app {
 	        this.proxyAuthType = source["proxyAuthType"];
 	        this.proxyUsername = source["proxyUsername"];
 	        this.proxyPassword = source["proxyPassword"];
+	        this.customCAPath = source["customCAPath"];
+	        this.kubeconfigPaths = source["kubeconfigPaths"];
+	        this.sessionProbeInterval = source["sessionProbeInterval"];
+	        this.allowInsecure = source["allowInsecure"];
 	        this.holmesConfig = this.convertValues(source["holmesConfig"], holmesgpt.HolmesConfigData);
 	    }
 	
@@ -2411,6 +2419,7 @@ export namespace app {
 		}
 	}
 	
+	
 	export class RolloutStatus {
 	    kind: string;
 	    name: string;
@@ -4017,7 +4026,7 @@ export namespace registry {
 	    insecureSkipTlsVerify: boolean;
 	    allowInsecureHttp: boolean;
 	    disableTlsVerification: boolean;
-	    customCACert: string;
+	    customCACert?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new RegistryConfig(source);

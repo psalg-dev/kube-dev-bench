@@ -4,19 +4,19 @@ import (
 	"context"
 	"testing"
 
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/docker/api/types/network"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 )
 
 func Test_getSwarmNetworks_returnsConvertedNetworks(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NetworkListFn: func(context.Context, network.ListOptions) ([]network.Summary, error) {
-			return []network.Summary{
-				{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"},
-				{ID: "net-2", Name: "n2", Driver: "bridge", Scope: "local"},
-			}, nil
+		NetworkListFn: func(context.Context, client.NetworkListOptions) (client.NetworkListResult, error) {
+			return client.NetworkListResult{Items: []network.Summary{
+				{Network: network.Network{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"}},
+				{Network: network.Network{ID: "net-2", Name: "n2", Driver: "bridge", Scope: "local"}},
+			}}, nil
 		},
 	}
 
@@ -36,8 +36,8 @@ func Test_getSwarmNetwork_returnsNetwork(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NetworkInspectFn: func(context.Context, string, network.InspectOptions) (network.Inspect, error) {
-			return network.Inspect{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"}, nil
+		NetworkInspectFn: func(context.Context, string, client.NetworkInspectOptions) (client.NetworkInspectResult, error) {
+			return client.NetworkInspectResult{Network: network.Inspect{Network: network.Network{ID: "net-1", Name: "n1", Driver: "overlay", Scope: "swarm"}}}, nil
 		},
 	}
 
@@ -54,12 +54,12 @@ func Test_createSwarmNetwork_passesDriverAndOptions(t *testing.T) {
 	ctx := context.Background()
 
 	var gotName string
-	var got network.CreateOptions
+	var got client.NetworkCreateOptions
 	cli := &fakeDockerClient{
-		NetworkCreateFn: func(_ context.Context, name string, opts network.CreateOptions) (network.CreateResponse, error) {
+		NetworkCreateFn: func(_ context.Context, name string, opts client.NetworkCreateOptions) (client.NetworkCreateResult, error) {
 			gotName = name
 			got = opts
-			return network.CreateResponse{ID: "net-123"}, nil
+			return client.NetworkCreateResult{ID: "net-123"}, nil
 		},
 	}
 
@@ -91,8 +91,8 @@ func Test_pruneSwarmNetworks_returnsDeletedIDs(t *testing.T) {
 	ctx := context.Background()
 
 	cli := &fakeDockerClient{
-		NetworksPruneFn: func(context.Context, filters.Args) (network.PruneReport, error) {
-			return network.PruneReport{NetworksDeleted: []string{"n1", "n2"}}, nil
+		NetworkPruneFn: func(context.Context, client.NetworkPruneOptions) (client.NetworkPruneResult, error) {
+			return client.NetworkPruneResult{Report: network.PruneReport{NetworksDeleted: []string{"n1", "n2"}}}, nil
 		},
 	}
 
@@ -110,9 +110,9 @@ func Test_removeSwarmNetwork_callsRemove(t *testing.T) {
 
 	called := false
 	cli := &fakeDockerClient{
-		NetworkRemoveFn: func(context.Context, string) error {
+		NetworkRemoveFn: func(context.Context, string, client.NetworkRemoveOptions) (client.NetworkRemoveResult, error) {
 			called = true
-			return nil
+			return client.NetworkRemoveResult{}, nil
 		},
 	}
 

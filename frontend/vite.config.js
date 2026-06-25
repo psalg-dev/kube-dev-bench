@@ -25,6 +25,42 @@ function stripAnsi(s) {
   return typeof s === 'string' ? s.replace(/\x1b\[[0-9;]*m/g, '') : s;
 }
 
+const manualChunkGroups = {
+  'codemirror-core': [
+    '@codemirror/view',
+    '@codemirror/state',
+    '@codemirror/language',
+  ],
+  'codemirror-lang': [
+    '@codemirror/lang-yaml',
+    '@codemirror/autocomplete',
+    '@codemirror/lint',
+  ],
+  'codemirror-extras': [
+    '@codemirror/commands',
+    '@codemirror/search',
+    '@codemirror/theme-one-dark',
+  ],
+  markdown: ['react-markdown', 'react-syntax-highlighter'],
+  terminal: ['xterm', 'xterm-addon-fit'],
+  'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+};
+
+function getManualChunk(id) {
+  if (!id.includes('node_modules')) {
+    return undefined;
+  }
+
+  const normalizedId = id.replace(/\\/g, '/');
+  for (const [chunkName, packages] of Object.entries(manualChunkGroups)) {
+    if (packages.some((pkg) => normalizedId.includes(`/node_modules/${pkg}/`))) {
+      return chunkName;
+    }
+  }
+
+  return undefined;
+}
+
 async function setupLogging(configEnv) {
   await ensureLogsDirectory();
   const logFile = getLogFilePath();
@@ -93,33 +129,7 @@ export default defineConfig(async ({ command, mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            // CodeMirror in separate chunks (loaded on demand)
-            'codemirror-core': [
-              '@codemirror/view',
-              '@codemirror/state',
-              '@codemirror/language',
-            ],
-            'codemirror-lang': [
-              '@codemirror/lang-yaml',
-              '@codemirror/autocomplete',
-              '@codemirror/lint',
-            ],
-            'codemirror-extras': [
-              '@codemirror/commands',
-              '@codemirror/search',
-              '@codemirror/theme-one-dark',
-            ],
-
-            // Holmes/markdown rendering
-            'markdown': ['react-markdown', 'react-syntax-highlighter'],
-
-            // Terminal
-            'terminal': ['xterm', 'xterm-addon-fit'],
-
-            // React core (vendor chunk)
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          },
+          manualChunks: getManualChunk,
         },
       },
       reportCompressedSize: true,

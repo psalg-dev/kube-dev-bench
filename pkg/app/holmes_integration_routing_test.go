@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-func setupHolmesServer(t *testing.T, response string) *httptest.Server {
+func setupHolmesServer(t *testing.T, response string) (*httptest.Server, holmesgpt.HolmesConfigData) {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {
@@ -26,15 +26,14 @@ func setupHolmesServer(t *testing.T, response string) *httptest.Server {
 		}
 		w.WriteHeader(http.StatusNotFound)
 	}))
-	holmesConfig = holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
+	cfg := holmesgpt.HolmesConfigData{Enabled: true, Endpoint: server.URL}
 	t.Cleanup(func() {
 		server.Close()
 		holmesMu.Lock()
 		holmesClient = nil
 		holmesMu.Unlock()
-		holmesConfig = holmesgpt.DefaultConfig()
 	})
-	return server
+	return server, cfg
 }
 
 func TestAnalyzeStatefulSet_WithFakeHolmes(t *testing.T) {
@@ -55,8 +54,9 @@ func TestAnalyzeStatefulSet_WithFakeHolmes(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "stateful ok")
+	_, holmesCfg := setupHolmesServer(t, "stateful ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzeStatefulSet("default", "db")
@@ -83,8 +83,9 @@ func TestAnalyzeDaemonSet_WithFakeHolmes(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "daemon ok")
+	_, holmesCfg := setupHolmesServer(t, "daemon ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzeDaemonSet("default", "ds")
@@ -112,8 +113,9 @@ func TestAnalyzeService_WithFakeHolmes(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "service ok")
+	_, holmesCfg := setupHolmesServer(t, "service ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzeService("default", "svc")
@@ -126,13 +128,14 @@ func TestAnalyzeService_WithFakeHolmes(t *testing.T) {
 }
 
 func TestAnalyzePodLogs_WithFakeHolmes(t *testing.T) {
-	setupHolmesServer(t, "logs ok")
+	_, holmesCfg := setupHolmesServer(t, "logs ok")
 	app := &App{
 		ctx: context.Background(),
 		testPodLogsFetcher: func(namespace, podName, containerName string, lines int) (string, error) {
 			return "pod logs", nil
 		},
 	}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzePodLogs("default", "pod", 50)
@@ -152,8 +155,9 @@ func TestAnalyzeResource_Routes(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "route ok")
+	_, holmesCfg := setupHolmesServer(t, "route ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzeResource("pod", "default", "pod")
@@ -174,8 +178,9 @@ func TestAnalyzeNode_WithFakeHolmes(t *testing.T) {
 		&corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "node-a"}},
 	)
 
-	setupHolmesServer(t, "node ok")
+	_, holmesCfg := setupHolmesServer(t, "node ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzeNode("node-a")
@@ -211,8 +216,9 @@ func TestAnalyzeHPA_WithFakeHolmes(t *testing.T) {
 		},
 	)
 
-	setupHolmesServer(t, "hpa ok")
+	_, holmesCfg := setupHolmesServer(t, "hpa ok")
 	app := &App{ctx: context.Background(), testClientset: clientset}
+	app.holmesConfig = holmesCfg
 	app.initHolmes()
 
 	resp, err := app.AnalyzeHPA("default", "web-hpa")
