@@ -306,6 +306,7 @@ describe('useHolmesStream', () => {
     await act(async () => {
       emitChatEvent({
         stream_id: result.current.state.streamId!,
+        event: 'error',
         error: 'Connection failed',
       });
     });
@@ -325,6 +326,7 @@ describe('useHolmesStream', () => {
     await act(async () => {
       emitChatEvent({
         stream_id: result.current.state.streamId!,
+        event: 'error',
         error: 'context canceled',
       });
     });
@@ -344,6 +346,7 @@ describe('useHolmesStream', () => {
     await act(async () => {
       emitChatEvent({
         stream_id: result.current.state.streamId!,
+        event: 'error',
         error: 'context cancelled',
       });
     });
@@ -518,6 +521,7 @@ describe('useHolmesStream', () => {
     await act(async () => {
       emitChatEvent({
         stream_id: result.current.state.streamId!,
+        event: 'error',
         error: 'Error from first run',
       });
     });
