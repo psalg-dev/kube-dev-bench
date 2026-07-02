@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { flexRender } from '@tanstack/react-table';
 import type { Header } from '@tanstack/react-table';
 
@@ -18,7 +18,6 @@ export function ColumnHeader<TRow>({
   onSort,
 }: ColumnHeaderProps<TRow>) {
   const [isDragOver, setIsDragOver] = useState(false);
-  const draggedOverColumn = useRef<string | null>(null);
 
   const handleDragStart = (e: React.DragEvent<HTMLTableCellElement>) => {
     if (!enableReorder || !e.dataTransfer) return;

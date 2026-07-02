@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import type { Row } from '@tanstack/react-table';
 import userEvent from '@testing-library/user-event';
 import { DataTable } from '../components/DataTable';
 import { UptimeCell } from '../components/DataTable';
@@ -191,28 +192,21 @@ describe('DataTable', () => {
       />
     );
 
-    const checkbox1 = container.querySelector('input[type="checkbox"][value="1"]') as HTMLInputElement;
-    const checkbox2 = container.querySelector('input[type="checkbox"][value="2"]') as HTMLInputElement;
-    const checkbox3 = container.querySelector('input[type="checkbox"][value="3"]') as HTMLInputElement;
+    const cb = (v: string) =>
+      container.querySelector(`input[type="checkbox"][value="${v}"]`) as HTMLInputElement;
 
-    // Click first row
-    fireEvent.click(checkbox1);
-    fireEvent.change(checkbox1, { target: { checked: true } });
-    expect(checkbox1.checked).toBe(true);
+    // Click row A (sets anchor + selects it via change)
+    fireEvent.click(cb('1'));
+    expect(cb('1').checked).toBe(true);
 
-    // Simulate shift-click on third row using the mouse event with shiftKey
-    // This tests that the click handler detects shiftKey
-    const mouseEvent = new MouseEvent('click', { bubbles: true, shiftKey: true });
-    Object.defineProperty(mouseEvent, 'shiftKey', { value: true });
-    checkbox3.dispatchEvent(mouseEvent);
+    // Shift-click row C — range logic alone must select A,B,C. No manual force.
+    // Re-query after the first click (React may have replaced the DOM node).
+    fireEvent.click(cb('3'), { shiftKey: true });
 
-    // After the click, the component should have selected the range
-    // Since we're in a test environment, we check if the handler was called
-    fireEvent.change(checkbox3, { target: { checked: true } });
-
-    // Verify all three are selected (if range selection worked)
-    expect(checkbox1.checked).toBe(true);
-    expect(checkbox3.checked).toBe(true);
+    // The middle row B is the whole point of a range — it must be selected.
+    expect(cb('1').checked).toBe(true);
+    expect(cb('2').checked).toBe(true);
+    expect(cb('3').checked).toBe(true);
   });
 
   it('calls onBulkAction with selected rows and clears selection', async () => {
@@ -353,6 +347,7 @@ describe('DataTable', () => {
 
   it('drag-reorder updates column order and persists', async () => {
     const persistKey = `test-table-${Date.now()}`;
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
     const { container } = render(
       <DataTable<TestRow>
         columns={testColumns}
@@ -363,18 +358,45 @@ describe('DataTable', () => {
       />
     );
 
-    // With jsdom, dataTransfer is not available, so we test that the component renders
-    // the draggable attribute and stores state
-    const headers = container.querySelectorAll('th[draggable="true"]');
-    expect(headers.length).toBeGreaterThan(0);
+    const headerText = () =>
+      Array.from(container.querySelectorAll('thead th')).map((th) => th.textContent?.replace(/[↕↑↓]/g, '').trim());
 
-    // Check if localStorage can store state (it's initialized empty but structure exists)
-    const stored = localStorage.getItem(persistKey);
-    if (stored) {
-      const state = JSON.parse(stored);
-      expect(state).toHaveProperty('columnOrder');
-      expect(state).toHaveProperty('columnVisibility');
-    }
+    // Initial visible order: Name, Duration, Created
+    expect(headerText()).toEqual(['Name', 'Duration', 'Created']);
+
+    const headers = container.querySelectorAll('th[draggable="true"]');
+    const nameHeader = headers[0]; // Name
+    const createdHeader = headers[2]; // Created
+
+    // jsdom has no real dataTransfer — supply a mock that round-trips the dragged id.
+    let dragged = '';
+    const dt = {
+      setData: vi.fn((_type: string, val: string) => {
+        dragged = val;
+      }),
+      getData: vi.fn(() => dragged),
+      dropEffect: '',
+      effectAllowed: '',
+    };
+
+    // Drag Name onto Created → Name moves to Created's slot.
+    fireEvent.dragStart(nameHeader, { dataTransfer: dt });
+    fireEvent.dragOver(createdHeader, { dataTransfer: dt });
+    fireEvent.drop(createdHeader, { dataTransfer: dt });
+
+    // Rendered order actually changed: Name is no longer first.
+    const after = headerText();
+    expect(after[0]).not.toBe('Name');
+    expect(after).toEqual(['Duration', 'Created', 'Name']);
+
+    // Persisted the new order under the canonical datatable: key.
+    const stored = localStorage.getItem(`datatable:${persistKey}`);
+    expect(stored).toBeTruthy();
+    const state = JSON.parse(stored!);
+    expect(state.columnOrder).toEqual(['duration', 'created', 'name']);
+    expect(setItemSpy).toHaveBeenCalledWith(`datatable:${persistKey}`, expect.any(String));
+
+    setItemSpy.mockRestore();
   });
 
   it('toggling column visibility hides column and persists', async () => {
@@ -440,6 +462,13 @@ describe('DataTable', () => {
   });
 
   it('preserves selection and sort when data array reference changes', async () => {
+    const rowNames = () =>
+      Array.from(container.querySelectorAll('tbody tr')).map((tr) =>
+        tr.querySelector('td:nth-child(2)')?.textContent
+      );
+    const nameSortIndicator = () =>
+      screen.getByText('Name').closest('th')?.querySelector('.sort-indicator')?.textContent;
+
     const { container, rerender } = render(
       <DataTable<TestRow>
         columns={testColumns}
@@ -454,11 +483,16 @@ describe('DataTable', () => {
     fireEvent.click(checkbox1);
     expect(checkbox1.checked).toBe(true);
 
-    // Sort by name
+    // Sort by name DESCENDING (click twice) so the order differs from insertion order.
     const nameHeader = screen.getByText('Name').closest('th');
     fireEvent.click(nameHeader!);
+    fireEvent.click(nameHeader!);
 
-    // Rerender with new data array reference but same rows
+    // Baseline: descending → Item C, Item B, Item A; indicator shows ↓.
+    expect(rowNames()).toEqual(['Item C', 'Item B', 'Item A']);
+    expect(nameSortIndicator()).toBe('↓');
+
+    // Rerender with a FRESH array reference, identical getRowIds.
     const newData = testData.map((row) => ({ ...row }));
     rerender(
       <DataTable<TestRow>
@@ -469,9 +503,13 @@ describe('DataTable', () => {
       />
     );
 
-    // Selection and sort should be preserved
+    // Selection survives.
     const newCheckbox1 = container.querySelector('input[type="checkbox"][value="1"]') as HTMLInputElement;
     expect(newCheckbox1.checked).toBe(true);
+
+    // Sort survives: same direction indicator AND same sorted row order (anti-flicker).
+    expect(nameSortIndicator()).toBe('↓');
+    expect(rowNames()).toEqual(['Item C', 'Item B', 'Item A']);
   });
 
   it('renders with loading state without crashing', () => {
@@ -500,8 +538,8 @@ describe('DataTable', () => {
 
   it('duration sorting parses various formats', () => {
     const durationData: TestRow[] = [
-      { id: '1', name: 'Item A', duration: '500ms', created: '2024-01-01T10:00:00Z', active: true },
-      { id: '2', name: 'Item B', duration: '30s', created: '2024-01-02T10:00:00Z', active: false },
+      { id: '1', name: 'Item A', duration: '45s', created: '2024-01-01T10:00:00Z', active: true },
+      { id: '2', name: 'Item B', duration: '1h', created: '2024-01-02T10:00:00Z', active: false },
       { id: '3', name: 'Item C', duration: '2m', created: '2024-01-03T10:00:00Z', active: true },
     ];
 
@@ -517,13 +555,15 @@ describe('DataTable', () => {
     fireEvent.click(durationHeader!);
 
     const rows = container.querySelectorAll('tbody tr');
-    // Should be sorted: 500ms, 30s, 2m
-    expect(rows[0].textContent).toContain('500ms');
+    // Should be sorted: 45s, 2m, 1h
+    expect(rows[0].textContent).toContain('45s');
+    expect(rows[1].textContent).toContain('2m');
+    expect(rows[2].textContent).toContain('1h');
   });
 
 
   it('column header renders without sortable prop', () => {
-    const { container } = render(
+    render(
       <DataTable<TestRow>
         columns={[{ id: 'name', header: 'Name', accessorKey: 'name', enableSorting: false }]}
         data={testData}
@@ -531,9 +571,10 @@ describe('DataTable', () => {
       />
     );
 
-    // Header should render without sort indicator
-    const header = screen.getByText('Name');
-    expect(header).toBeInTheDocument();
+    // Header renders; non-sortable column shows no sort indicator.
+    const th = screen.getByText('Name').closest('th');
+    expect(th).toBeInTheDocument();
+    expect(th?.querySelector('.sort-indicator')).toBeNull();
   });
 
   it('displays title and toolbar options', () => {
@@ -622,36 +663,26 @@ describe('DataTable', () => {
 });
 
 describe('Sorting Functions', () => {
-  it('textSortingFn sorts strings correctly', () => {
-    const mockRowA = { getValue: () => 'zebra' };
-    const mockRowB = { getValue: () => 'apple' };
+  // Minimal typed fake Row exposing only getValue, which is all these sort fns read.
+  const fakeRow = (v: unknown): Row<unknown> =>
+    ({ getValue: () => v } as Pick<Row<unknown>, 'getValue'>) as Row<unknown>;
 
-    const result = textSortingFn(mockRowA as any, mockRowB as any, 'name');
-    expect(result).toBeGreaterThan(0); // zebra > apple
+  it('textSortingFn sorts strings correctly', () => {
+    expect(textSortingFn(fakeRow('zebra'), fakeRow('apple'), 'name')).toBeGreaterThan(0);
   });
 
-  it('numberSortingFn sorts numbers correctly', () => {
-    const mockRowA = { getValue: () => 100 };
-    const mockRowB = { getValue: () => 50 };
-
-    const result = numberSortingFn(mockRowA as any, mockRowB as any, 'value');
-    expect(result).toBeGreaterThan(0); // 100 > 50
+  it('numberSortingFn sorts numbers numerically not lexically', () => {
+    expect(numberSortingFn(fakeRow(100), fakeRow(50), 'value')).toBeGreaterThan(0);
   });
 
   it('durationSortingFn parses and sorts durations', () => {
-    const mockRowA = { getValue: () => '1h' };
-    const mockRowB = { getValue: () => '30m' };
-
-    const result = durationSortingFn(mockRowA as any, mockRowB as any, 'duration');
-    expect(result).toBeGreaterThan(0); // 1h > 30m
+    expect(durationSortingFn(fakeRow('1h'), fakeRow('30m'), 'duration')).toBeGreaterThan(0);
   });
 
   it('datetimeSortingFn parses and sorts dates', () => {
-    const mockRowA = { getValue: () => '2024-03-01T10:00:00Z' };
-    const mockRowB = { getValue: () => '2024-01-01T10:00:00Z' };
-
-    const result = datetimeSortingFn(mockRowA as any, mockRowB as any, 'created');
-    expect(result).toBeGreaterThan(0); // March > January
+    expect(
+      datetimeSortingFn(fakeRow('2024-03-01T10:00:00Z'), fakeRow('2024-01-01T10:00:00Z'), 'created')
+    ).toBeGreaterThan(0);
   });
 });
 

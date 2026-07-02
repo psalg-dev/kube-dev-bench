@@ -8,9 +8,15 @@ import {
   createColumnHelper,
   flexRender,
   type ColumnDef,
-  type SortingState,
+  type SortingFn,
 } from '@tanstack/react-table';
-import type { DataTableProps, DataTableColumn, RowAction } from './types';
+import type { DataTableProps, ColumnAlign } from './types';
+
+// Per-column layout hints stashed on TanStack's column meta.
+interface DataTableColumnMeta {
+  align?: ColumnAlign;
+  width?: number | string;
+}
 import { sortTypeToFn } from './sortingFns';
 import { usePersistedTableState } from './usePersistedTableState';
 import { useRangeSelection } from './useRangeSelection';
@@ -45,7 +51,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
   const { columnOrder, setColumnOrder, columnVisibility, setColumnVisibility, sorting, setSorting } =
     usePersistedTableState(persistKey);
 
-  const { anchorId, setAnchor, rangeTo } = useRangeSelection();
+  const { setAnchor, rangeTo } = useRangeSelection();
   const [globalFilter, setGlobalFilter] = useState('');
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [visibilityMenuOpen, setVisibilityMenuOpen] = useState(false);
@@ -78,7 +84,6 @@ export function DataTable<TRow extends Record<string, unknown>>({
           ),
           cell: ({ row }) => {
             const handleCheckboxClick = (e: React.MouseEvent<HTMLInputElement>) => {
-              const input = e.currentTarget;
               if (e.shiftKey) {
                 const sortedIds = table.getSortedRowModel().rows.map((r) => r.id);
                 const range = rangeTo(sortedIds, row.id);
@@ -129,13 +134,16 @@ export function DataTable<TRow extends Record<string, unknown>>({
             id: col.id,
             header: col.header,
             enableSorting: col.enableSorting !== false,
-            sortingFn: col.sortType ? sortTypeToFn(col.sortType) : sortTypeToFn('text'),
+            // sortTypeToFn is SortingFn<unknown>; TanStack wants SortingFn<TRow> (compatible, generic bridge).
+            sortingFn: (col.sortType
+              ? sortTypeToFn(col.sortType)
+              : sortTypeToFn('text')) as SortingFn<TRow>,
             enableHiding: col.enableHiding !== false,
             meta: {
               align: col.align,
               width: col.width,
-            },
-          } as any
+            } satisfies DataTableColumnMeta,
+          }
         )
       );
     });
@@ -214,12 +222,6 @@ export function DataTable<TRow extends Record<string, unknown>>({
     },
   });
 
-  // Get sorted row IDs for shift-click range
-  const sortedRowIds = useMemo(
-    () => table.getSortedRowModel().rows.map((row) => row.id),
-    [table]
-  );
-
   // Handle bulk actions
   const handleBulkAction = useCallback(
     async (action: typeof bulkActions[number]) => {
@@ -235,7 +237,9 @@ export function DataTable<TRow extends Record<string, unknown>>({
   // Handle column reorder
   const handleColumnReorder = useCallback(
     (fromId: string, toId: string) => {
-      const currentOrder = columnOrder.length > 0 ? columnOrder : table.getState().columnOrder;
+      // columnOrder starts empty; fall back to actual leaf order so the first drag works.
+      const currentOrder =
+        columnOrder.length > 0 ? columnOrder : table.getAllLeafColumns().map((c) => c.id);
       const fromIdx = currentOrder.indexOf(fromId);
       const toIdx = currentOrder.indexOf(toId);
 
@@ -350,24 +354,27 @@ export function DataTable<TRow extends Record<string, unknown>>({
                   className={isRowActive?.(row.original) ? 'active' : ''}
                   onClick={() => onRowClick?.(row.original)}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className={
-                        cell.column.id === '_select'
-                          ? 'checkbox-cell'
-                          : cell.column.id === '_actions'
-                            ? 'row-actions-cell'
-                            : ''
-                      }
-                      style={{
-                        textAlign: (cell.column.columnDef.meta as any)?.align || 'left',
-                        width: (cell.column.columnDef.meta as any)?.width,
-                      }}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </td>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta as DataTableColumnMeta | undefined;
+                    return (
+                      <td
+                        key={cell.id}
+                        className={
+                          cell.column.id === '_select'
+                            ? 'checkbox-cell'
+                            : cell.column.id === '_actions'
+                              ? 'row-actions-cell'
+                              : ''
+                        }
+                        style={{
+                          textAlign: meta?.align || 'left',
+                          width: meta?.width,
+                        }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : (

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import type { RowAction } from './types';
 
 interface RowActionsMenuProps<TRow> {
@@ -9,7 +9,6 @@ interface RowActionsMenuProps<TRow> {
 
 export function RowActionsMenu<TRow>({ row, actions, onClose }: RowActionsMenuProps<TRow>) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -38,8 +37,7 @@ export function RowActionsMenu<TRow>({ row, actions, onClose }: RowActionsMenuPr
     try {
       await action.onClick(row);
     } finally {
-      setIsClosing(true);
-      setTimeout(onClose, 0);
+      onClose();
     }
   };
 

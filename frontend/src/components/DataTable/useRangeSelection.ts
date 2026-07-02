@@ -1,27 +1,44 @@
-import { useState } from 'react';
+import { useRef } from 'react';
 
-export function computeRange(orderedIds: string[], anchorId: string | null, targetId: string): string[] {
-  if (!anchorId) return [targetId];
+export function computeRange(
+  orderedIds: string[],
+  anchorId: string | null,
+  targetId: string
+): string[] {
+  // If anchor is null or not in the list, return just the target
+  if (anchorId === null) {
+    return [targetId];
+  }
 
-  const anchorIdx = orderedIds.indexOf(anchorId);
-  const targetIdx = orderedIds.indexOf(targetId);
+  const anchorIndex = orderedIds.indexOf(anchorId);
+  if (anchorIndex === -1) {
+    return [targetId];
+  }
 
-  if (anchorIdx === -1 || targetIdx === -1) return [targetId];
+  const targetIndex = orderedIds.indexOf(targetId);
+  if (targetIndex === -1) {
+    return [targetId];
+  }
 
-  const start = Math.min(anchorIdx, targetIdx);
-  const end = Math.max(anchorIdx, targetIdx);
+  // Get the range between anchor and target (inclusive)
+  const start = Math.min(anchorIndex, targetIndex);
+  const end = Math.max(anchorIndex, targetIndex);
 
   return orderedIds.slice(start, end + 1);
 }
 
 export function useRangeSelection() {
-  const [anchorId, setAnchor] = useState<string | null>(null);
+  const anchorRef = useRef<string | null>(null);
 
   return {
-    anchorId,
-    setAnchor,
+    get anchorId(): string | null {
+      return anchorRef.current;
+    },
+    setAnchor(id: string | null): void {
+      anchorRef.current = id;
+    },
     rangeTo(orderedIds: string[], targetId: string): string[] {
-      return computeRange(orderedIds, anchorId, targetId);
+      return computeRange(orderedIds, anchorRef.current, targetId);
     },
   };
 }
