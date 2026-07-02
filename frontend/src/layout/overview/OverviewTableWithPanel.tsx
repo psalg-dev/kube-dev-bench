@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { executeBulkAction } from '../../api/bulkOperations';
 import { fetchTabCounts } from '../../api/tabCounts';
-import { DataTable } from '../../components/DataTable';
+import { DataTable, type RowAction as RowActionType } from '../../components/DataTable';
 import { getBulkActionsForResource, type BulkAction } from '../../constants/bulkActions';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
 import { showError, showNotification, showSuccess } from '../../notification';
@@ -11,13 +11,18 @@ import { adaptColumnsForDataTable } from './columnAdapter';
 import './BulkSelection.css';
 import './OverviewTableWithPanel.css';
 
+// ponytail: temporary loose compat layer, delete after Slice 13. Internal helpers use Row;
+// the PUBLIC props below must keep `any` — 27 call sites pass concrete row types
+// (e.g. SwarmConfigInfo[]) and typed callbacks that are NOT assignable to Record<string, unknown>
+// (concrete arrays don't widen to it; callbacks break contravariantly). `any` is load-bearing here.
+type Row = Record<string, unknown>;
+
 type ColumnDef = {
   key?: string;
   label?: string;
   header?: string;
   accessorKey?: string;
   width?: string | number;
-  // ponytail: loose compat layer for cell signature; adapts to DataTable's row: TRow
   cell?: (_ctx: { getValue: () => any }) => ReactNode;
 };
 
@@ -92,7 +97,7 @@ export default function OverviewTableWithPanel({
   bulkResourceKind,
 }: OverviewTableWithPanelProps) {
   const [bottomOpen, setBottomOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
+  const [selectedRow, setSelectedRow] = useState<Row | null>(null);
   const safeTabs = useMemo(
     () => (Array.isArray(tabs) && tabs.length > 0 ? tabs : [{ key: 'summary', label: 'Summary' }]),
     [tabs]
@@ -103,13 +108,13 @@ export default function OverviewTableWithPanel({
   const [tabCountsLoading, setTabCountsLoading] = useState(false);
   const tabCountsInitializedRef = useRef(false);
 
-  const openBottomPanel = (row: any) => {
+  const openBottomPanel = (row: Row) => {
     setSelectedRow(row);
     setBottomOpen(true);
     setActiveTab(safeTabs[0]?.key || 'summary');
   };
 
-  const openBottomPanelAtTab = (row: any, tabKey?: string) => {
+  const openBottomPanelAtTab = (row: Row, tabKey?: string) => {
     setSelectedRow(row);
     setBottomOpen(true);
     if (tabKey) setActiveTab(tabKey);
@@ -166,8 +171,8 @@ export default function OverviewTableWithPanel({
     }
 
     const kind = resourceKind || 'Unknown';
-    const name = (selectedRow as any)?.name || (selectedRow as any)?.Name;
-    const ns = (selectedRow as any)?.namespace || (selectedRow as any)?.Namespace;
+    const name = selectedRow.name ?? selectedRow.Name;
+    const ns = selectedRow.namespace ?? selectedRow.Namespace;
 
     let cancelled = false;
     const isInitialLoad = !tabCountsInitializedRef.current;
@@ -182,7 +187,7 @@ export default function OverviewTableWithPanel({
       if (!name) {
         return {} as Record<string, number>;
       }
-      return fetchTabCounts(kind, ns, name);
+      return fetchTabCounts(kind, String(ns ?? ''), String(name));
     };
 
     Promise.resolve()
@@ -212,12 +217,13 @@ export default function OverviewTableWithPanel({
     };
   }, [selectedRow, enableTabCounts, resourceKind, safeTabs, tabCountsFetcher]);
 
-  const getRowKey = (row: any) => {
-    const ns = row?.namespace || row?.Namespace || '';
-    const uid = row?.uid ?? row?.UID ?? row?.metadata?.uid ?? null;
-    const name = row?.id ?? row?.name ?? row?.Name ?? null;
+  const getRowKey = (row: Row) => {
+    const meta = row.metadata as { uid?: unknown } | undefined;
+    const ns = row.namespace || row.Namespace || '';
+    const uid = row.uid ?? row.UID ?? meta?.uid ?? null;
+    const name = row.id ?? row.name ?? row.Name ?? null;
     if (uid) return String(uid);
-    if (name) return ns ? `${ns}/${String(name)}` : String(name);
+    if (name) return ns ? `${String(ns)}/${String(name)}` : String(name);
     return String(JSON.stringify(row));
   };
 
@@ -247,7 +253,7 @@ export default function OverviewTableWithPanel({
     setShowCreate(true);
   };
 
-  const handleBulkAction = useCallback(async (action: BulkAction, selectedRows: any[]) => {
+  const handleBulkAction = useCallback(async (action: BulkAction, selectedRows: Row[]) => {
     if (!bulkEnabled || !action) return;
     if (selectedRows.length === 0) return;
 
@@ -256,7 +262,7 @@ export default function OverviewTableWithPanel({
       if (!ok) return;
     }
 
-    const options: Record<string, any> = {};
+    const options: Record<string, unknown> = {};
     if (action.promptReplicas) {
       const current = selectedRows[0]?.replicas ?? selectedRows[0]?.Replicas ?? 0;
       const raw = window.prompt('Enter desired replica count:', String(current ?? 0));
@@ -282,27 +288,26 @@ export default function OverviewTableWithPanel({
       } else {
         showError(`${action.label} completed with ${summary.failed} failure(s).`);
       }
-    } catch (err: any) {
-      showError(`${action.label} failed: ${err?.message || String(err)}`);
+    } catch (err) {
+      showError(`${action.label} failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }, [bulkEnabled, createPlatform, resourceKind, createKind, bulkResourceKind]);
 
-  const buildRowActions = (row: Record<string, unknown>) => {
-    const rowAny = row as any; // ponytail: loose compat with legacy getRowActions signature
+  const buildRowActions = (row: Row): RowActionType<Row>[] => {
     const api = {
-      openDetails: (tabKey?: string) => openBottomPanelAtTab(rowAny, tabKey),
+      openDetails: (tabKey?: string) => openBottomPanelAtTab(row, tabKey),
       setActiveTab,
     };
-    const extra = typeof getRowActions === 'function' ? (getRowActions(rowAny, api) || []) : [];
+    const extra = typeof getRowActions === 'function' ? (getRowActions(row, api) || []) : [];
     const normalizedExtra = Array.isArray(extra) ? extra.filter(Boolean) : [];
-    // ponytail: map legacy RowAction to DataTable's RowAction<TRow>
+    // ponytail: map legacy RowAction to DataTable's RowAction<TRow> (onClick required)
     return [
-      { label: 'Details', icon: '🔎', onClick: () => openBottomPanel(rowAny) },
+      { label: 'Details', icon: '🔎', onClick: () => openBottomPanel(row) },
       ...normalizedExtra.map((a) => ({
         ...a,
         onClick: a.onClick || (() => {}),
       })),
-    ] as import('../../components/DataTable').RowAction<Record<string, unknown>>[];
+    ];
   };
 
   // Adapt column definitions from legacy format to DataTable format

@@ -8,7 +8,7 @@ type ColumnDef = {
   header?: string;
   accessorKey?: string;
   width?: string | number;
-  cell?: (ctx: { getValue: () => unknown }) => ReactNode;
+  cell?: (_ctx: { getValue: () => unknown }) => ReactNode;
 };
 
 const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);

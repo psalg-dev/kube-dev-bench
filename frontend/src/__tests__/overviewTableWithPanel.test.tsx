@@ -29,7 +29,7 @@ function setup(props: Record<string, unknown> = {}) {
     { key: 'summary', label: 'Summary' },
     { key: 'yaml', label: 'YAML' },
   ];
-  const renderPanelContent = (row: unknown, tab: string) => <div data-testid="panel-content">{row.name}-{tab}</div>;
+  const renderPanelContent = (row: { name?: string }, tab: string) => <div data-testid="panel-content">{row.name}-{tab}</div>;
   return render(
     <OverviewTableWithPanel
       title="Pods"
@@ -186,7 +186,7 @@ describe('OverviewTableWithPanel', () => {
 
   it('supports getRowActions using api.openDetails(tabKey)', () => {
     setup({
-      getRowActions: (_row: unknown, api: unknown) => ([
+      getRowActions: (_row: unknown, api: { openDetails: (_tabKey?: string) => void }) => ([
         { label: 'Open YAML', onClick: () => api.openDetails('yaml') },
       ]),
     });

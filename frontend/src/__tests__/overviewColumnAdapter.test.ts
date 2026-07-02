@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { adaptColumnsForDataTable } from '../layout/overview/columnAdapter.tsx';
+import { adaptColumnsForDataTable } from '../layout/overview/columnAdapter';
 
 describe('columnAdapter', () => {
   it('transforms basic column with key and label to DataTableColumn', () => {
