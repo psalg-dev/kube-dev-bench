@@ -92,8 +92,8 @@ describe('RoleBindingsOverviewTable', () => {
     render(<RoleBindingsOverviewTable namespaces={['ns']} namespace="ns" />);
     await screen.findByText('alpha');
 
-    const filter = screen.getByRole('searchbox', { name: /filter/i });
+    const filter = screen.getByRole('textbox', { name: /filter|search/i });
     fireEvent.change(filter, { target: { value: 'zzz' } });
-    expect(screen.getByText('No rows match the filter.')).toBeInTheDocument();
+    expect(screen.getByText(/no.*role bindings/i)).toBeInTheDocument();
   });
 });

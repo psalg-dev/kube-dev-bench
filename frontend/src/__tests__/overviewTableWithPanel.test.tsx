@@ -51,7 +51,7 @@ beforeEach(() => {
 describe('OverviewTableWithPanel', () => {
   it('filters rows by search input', () => {
     setup();
-    const filter = screen.getByRole('searchbox', { name: /filter/i });
+    const filter = screen.getByRole('textbox', { name: /filter|search/i });
     expect(screen.getAllByRole('row').length).toBeGreaterThan(2); // header + rows
     fireEvent.change(filter, { target: { value: 'bet' } });
     // Only beta row plus header + maybe message
@@ -62,9 +62,10 @@ describe('OverviewTableWithPanel', () => {
 
   it('shows no-match message when filter excludes all', () => {
     setup();
-    const filter = screen.getByRole('searchbox');
+    const filter = screen.getByRole('textbox', { name: /filter|search/i });
     fireEvent.change(filter, { target: { value: 'zzz' } });
-    expect(screen.getByText('No rows match the filter.')).toBeInTheDocument();
+    // DataTable shows the emptyMessage when no rows match
+    expect(screen.getByText(/no.*pod.*deployed/i)).toBeInTheDocument();
   });
 
   it('opens bottom panel on row click with default tab content', () => {
@@ -167,14 +168,15 @@ describe('OverviewTableWithPanel', () => {
     expect(document.querySelector('.bottom-panel')).toBeNull();
   });
 
-  it('closes row actions menu on window blur', async () => {
+  it('closes row actions menu on outside click', async () => {
     setup();
     const rowActionsButtons = screen.getAllByRole('button', { name: /row actions/i });
     fireEvent.click(rowActionsButtons[0]);
     expect(document.querySelector('.row-actions-menu')).not.toBeNull();
 
+    // Click outside the menu to close it (DataTable listens to 'click' not 'mousedown')
     await act(async () => {
-      window.dispatchEvent(new Event('blur'));
+      fireEvent.click(document.body);
     });
 
     await waitFor(() => {
@@ -196,5 +198,14 @@ describe('OverviewTableWithPanel', () => {
     const content = screen.getByTestId('panel-content');
     expect(content.textContent).toBe('alpha-yaml');
     expect(document.querySelector('.bottom-panel')).not.toBeNull();
+  });
+
+  it('renders draggable column headers for reordering', () => {
+    setup();
+    // Column headers should be draggable when column reorder is enabled
+    const dragHeaders = Array.from(document.querySelectorAll('th')).filter(
+      (th) => th.draggable === true
+    );
+    expect(dragHeaders.length).toBeGreaterThan(0);
   });
 });

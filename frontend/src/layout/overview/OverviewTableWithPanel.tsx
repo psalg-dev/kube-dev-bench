@@ -1,19 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { executeBulkAction } from '../../api/bulkOperations';
 import { fetchTabCounts } from '../../api/tabCounts';
-import BulkActionBar from '../../components/BulkActionBar';
-import StatusBadge from '../../components/StatusBadge';
+import { DataTable } from '../../components/DataTable';
 import { getBulkActionsForResource, type BulkAction } from '../../constants/bulkActions';
 import CreateManifestOverlay from '../../CreateManifestOverlay';
-import useTableSelection from '../../hooks/useTableSelection';
 import { showError, showNotification, showSuccess } from '../../notification';
-import { getColumnKey, pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
 import BottomPanel from '../bottompanel/BottomPanel';
+import { adaptColumnsForDataTable } from './columnAdapter';
 import './BulkSelection.css';
 import './OverviewTableWithPanel.css';
-const STATUS_BADGE_KEYS = new Set(['status', 'state', 'availability', 'phase']);
 
 type ColumnDef = {
   key?: string;
@@ -21,6 +17,7 @@ type ColumnDef = {
   header?: string;
   accessorKey?: string;
   width?: string | number;
+  // ponytail: loose compat layer for cell signature; adapts to DataTable's row: TRow
   cell?: (_ctx: { getValue: () => any }) => ReactNode;
 };
 
@@ -31,6 +28,7 @@ type TabDef = {
   countable?: boolean;
   testId?: string;
 };
+
 type RowAction = {
   label: string;
   onClick?: (_row: any) => void;
@@ -67,6 +65,7 @@ type OverviewTableWithPanelProps = {
 
 /**
  * Reusable overview table with bottom panel.
+ * Uses DataTable engine internally for sorting, filtering, column management.
  */
 export default function OverviewTableWithPanel({
   columns,
@@ -99,29 +98,10 @@ export default function OverviewTableWithPanel({
     [tabs]
   );
   const [activeTab, setActiveTab] = useState(safeTabs[0]?.key || 'summary');
-  // Filter text state
-  const [filterText, setFilterText] = useState('');
-  // Create overlay state
   const [showCreate, setShowCreate] = useState(false);
-  // Row actions menu
-  const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
-  // Tab counts state
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
   const [tabCountsLoading, setTabCountsLoading] = useState(false);
   const tabCountsInitializedRef = useRef(false);
-
-  const defaultSortKey = useMemo(() => pickDefaultSortKey(columns), [columns]);
-  const [sortState, setSortState] = useState(() => ({ key: defaultSortKey, direction: 'asc' as 'asc' | 'desc' }));
-
-  useEffect(() => {
-    if (!defaultSortKey) return;
-    setSortState((cur) => {
-      const curKey = cur?.key;
-      const hasKey = columns.some((col) => getColumnKey(col) === curKey);
-      if (curKey && hasKey) return cur;
-      return { key: defaultSortKey, direction: 'asc' };
-    });
-  }, [columns, defaultSortKey]);
 
   const openBottomPanel = (row: any) => {
     setSelectedRow(row);
@@ -139,19 +119,14 @@ export default function OverviewTableWithPanel({
   const closeBottomPanel = () => {
     setBottomOpen(false);
     setSelectedRow(null);
-    setActiveTab(safeTabs[0]?.key || 'summary'); // Reset to default tab
-    setTabCounts({}); // Clear tab counts when closing
-  };
-
-  const closeRowMenu = () => {
-    setOpenMenuKey(null);
+    setActiveTab(safeTabs[0]?.key || 'summary');
+    setTabCounts({});
   };
 
   useEffect(() => {
     if (!bottomOpen) return;
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement | null;
-      // Don't close if we're resizing or if the click is within the bottom panel
       if (target?.closest('.bottom-panel') ||
           target?.closest('[data-resizing]') ||
           document.body.style.cursor === 'ns-resize') {
@@ -172,46 +147,7 @@ export default function OverviewTableWithPanel({
       document.removeEventListener('mousedown', handleClick);
       document.removeEventListener('keydown', handleKeyDown);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bottomOpen]);
-
-  // Close the row actions menu when clicking outside or pressing Escape
-  useEffect(() => {
-    if (!openMenuKey) return;
-
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('.row-actions-menu') || target?.closest('.row-actions-button')) return;
-      closeRowMenu();
-    };
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        closeRowMenu();
-      }
-    };
-
-    const handleFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target?.closest('.row-actions-menu') || target?.closest('.row-actions-button')) return;
-      closeRowMenu();
-    };
-
-    const handleWindowBlur = () => {
-      closeRowMenu();
-    };
-
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('focusin', handleFocusIn);
-    window.addEventListener('blur', handleWindowBlur);
-    return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('focusin', handleFocusIn);
-      window.removeEventListener('blur', handleWindowBlur);
-    };
-  }, [openMenuKey]);
 
   // Fetch tab counts when a row is selected
   useEffect(() => {
@@ -220,7 +156,6 @@ export default function OverviewTableWithPanel({
       return;
     }
 
-    // Check if any tabs are countable
     const hasCountableTabs = safeTabs.some(t => t.countable !== false && t.countKey);
     if (!hasCountableTabs) {
       return;
@@ -235,8 +170,6 @@ export default function OverviewTableWithPanel({
     const ns = (selectedRow as any)?.namespace || (selectedRow as any)?.Namespace;
 
     let cancelled = false;
-    // Only show loading indicator on initial load (when no counts exist)
-    // This prevents badge flickering when counts are being refreshed
     const isInitialLoad = !tabCountsInitializedRef.current;
     if (isInitialLoad) {
       setTabCountsLoading(true);
@@ -262,8 +195,6 @@ export default function OverviewTableWithPanel({
       })
       .catch(() => {
         if (!cancelled) {
-          // Keep existing counts on error to prevent flicker
-          // Only clear if this was the initial load
           if (isInitialLoad) {
             setTabCounts({});
             tabCountsInitializedRef.current = true;
@@ -281,37 +212,12 @@ export default function OverviewTableWithPanel({
     };
   }, [selectedRow, enableTabCounts, resourceKind, safeTabs, tabCountsFetcher]);
 
-  // Memoized filter to avoid flicker and unnecessary recomputation
-  const normalizedFilter = filterText.trim().toLowerCase();
-  const filteredData = useMemo(() => {
-    if (!normalizedFilter) return data;
-    try {
-      return data.filter((row) =>
-        columns.some((col) => {
-          const value = (row as any)?.[col.accessorKey || col.key as string];
-          if (value === null || value === undefined) return false;
-          return String(value).toLowerCase().includes(normalizedFilter);
-        })
-      );
-    } catch {
-      return data;
-    }
-  }, [data, columns, normalizedFilter]);
-
-  const sortedData = useMemo(() => {
-    if (!sortState?.key) return filteredData;
-    return sortRows(filteredData, sortState.key, sortState.direction);
-  }, [filteredData, sortState]);
-
-  const getRowKey = (row: any, _idx: number) => {
-    // Prefer stable unique identifiers: metadata.uid or provided uid fields.
-    // Fallback to namespace + name which is also stable across sorts.
+  const getRowKey = (row: any) => {
     const ns = row?.namespace || row?.Namespace || '';
     const uid = row?.uid ?? row?.UID ?? row?.metadata?.uid ?? null;
     const name = row?.id ?? row?.name ?? row?.Name ?? null;
     if (uid) return String(uid);
     if (name) return ns ? `${ns}/${String(name)}` : String(name);
-    // Last resort: JSON-stringify the row to produce a deterministic key
     return String(JSON.stringify(row));
   };
 
@@ -322,32 +228,6 @@ export default function OverviewTableWithPanel({
   }, [bulkActions, bulkResourceKind, resourceKind, createKind, createPlatform]);
 
   const bulkEnabled = resolvedBulkActions.length > 0;
-  const selection: any = useTableSelection(data, getRowKey, sortedData);
-  const selectAllRef = useRef<HTMLInputElement | null>(null);
-
-  useEffect(() => {
-    if (!bulkEnabled || !selectAllRef.current) return;
-    selectAllRef.current.indeterminate = selection.isIndeterminate;
-  }, [bulkEnabled, selection.isIndeterminate, selection.isAllSelected]);
-
-  useEffect(() => {
-    if (!bulkEnabled) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        selection.toggleAll();
-        return;
-      }
-      if (e.key === 'Escape') {
-        selection.clearSelection();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [bulkEnabled, selection]);
 
   const handleOpenCreate = () => {
     if (typeof onCreateResource === 'function') {
@@ -367,9 +247,8 @@ export default function OverviewTableWithPanel({
     setShowCreate(true);
   };
 
-  const handleBulkAction = useCallback(async (action: BulkAction) => {
+  const handleBulkAction = useCallback(async (action: BulkAction, selectedRows: any[]) => {
     if (!bulkEnabled || !action) return;
-    const selectedRows = selection.getSelectedRows(sortedData);
     if (selectedRows.length === 0) return;
 
     if (action.confirm) {
@@ -403,32 +282,38 @@ export default function OverviewTableWithPanel({
       } else {
         showError(`${action.label} completed with ${summary.failed} failure(s).`);
       }
-      selection.clearSelection();
     } catch (err: any) {
       showError(`${action.label} failed: ${err?.message || String(err)}`);
     }
-  }, [bulkEnabled, selection, sortedData, createPlatform, resourceKind, createKind, bulkResourceKind]);
+  }, [bulkEnabled, createPlatform, resourceKind, createKind, bulkResourceKind]);
 
-  const buildMenuActions = (row: any) => {
+  const buildRowActions = (row: Record<string, unknown>) => {
+    const rowAny = row as any; // ponytail: loose compat with legacy getRowActions signature
     const api = {
-      openDetails: (tabKey?: string) => openBottomPanelAtTab(row, tabKey),
+      openDetails: (tabKey?: string) => openBottomPanelAtTab(rowAny, tabKey),
       setActiveTab,
     };
-    const extra = typeof getRowActions === 'function' ? (getRowActions(row, api) || []) : [];
+    const extra = typeof getRowActions === 'function' ? (getRowActions(rowAny, api) || []) : [];
     const normalizedExtra = Array.isArray(extra) ? extra.filter(Boolean) : [];
-    // Removed Close item - menu closes automatically on click outside, focus loss, or Escape
+    // ponytail: map legacy RowAction to DataTable's RowAction<TRow>
     return [
-      { label: 'Details', icon: '🔎', onClick: () => openBottomPanel(row) },
-      ...normalizedExtra,
-    ];
+      { label: 'Details', icon: '🔎', onClick: () => openBottomPanel(rowAny) },
+      ...normalizedExtra.map((a) => ({
+        ...a,
+        onClick: a.onClick || (() => {}),
+      })),
+    ] as import('../../components/DataTable').RowAction<Record<string, unknown>>[];
   };
 
+  // Adapt column definitions from legacy format to DataTable format
+  const adaptedColumns = useMemo(() => adaptColumnsForDataTable(columns), [columns]);
+
+  const persistKey = resourceKind ? `overview-${resourceKind}` : undefined;
   const scrollContainerTestId = tableTestId ? `${tableTestId}-scroll-container` : 'overview-table-scroll-container';
 
   return (
     <div className="overview-table-with-panel">
       <div className="overview-header">
-        {/* Left: create button */}
         <div className="overview-left">
           <button
             title={createButtonTitle || 'Create new'}
@@ -438,185 +323,36 @@ export default function OverviewTableWithPanel({
           >
             +
           </button>
-          {bulkEnabled && (
-            <BulkActionBar
-              selectedCount={selection.selectedCount}
-              actions={resolvedBulkActions}
-              onAction={handleBulkAction}
-              onClear={selection.clearSelection}
-            />
-          )}
         </div>
         <h2 className="overview-title">{title}</h2>
         <div className="overview-actions">
           {headerActions}
-          <input
-            type="search"
-            placeholder="Filter..."
-            aria-label="Filter table"
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-          />
         </div>
       </div>
 
       <div className="overview-table-scroll" data-testid={scrollContainerTestId}>
-        <table className="gh-table" data-testid={tableTestId}>
-          <colgroup>
-            {bulkEnabled && <col className="bulk-checkbox-col" />}
-            {columns.map((col, idx) => (
-              <col key={col.accessorKey || col.key || idx} style={{ width: col.width || 'auto' }} />
-            ))}
-            <col className="overview-actions-col" />
-          </colgroup>
-          <thead>
-            <tr>
-              {bulkEnabled && (
-                <th className="bulk-checkbox-col" aria-label="Select all">
-                  <input
-                    ref={selectAllRef}
-                    className="bulk-select-all"
-                    type="checkbox"
-                    checked={selection.isAllSelected}
-                    onChange={() => selection.toggleAll()}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </th>
-              )}
-              {columns.map((col) => {
-                const key = col.accessorKey || col.key;
-                const isActive = key && sortState?.key === key;
-                const direction = isActive ? sortState?.direction : undefined;
-                return (
-                  <th key={key || col.header || col.label} aria-sort={direction === 'asc' ? 'ascending' : direction === 'desc' ? 'descending' : 'none'}>
-                    <button
-                      type="button"
-                      className="sortable-header"
-                      onClick={() => key && setSortState((cur) => toggleSortState(cur, key))}
-                    >
-                      <span>{col.header || col.label}</span>
-                      <span className="sortable-indicator" aria-hidden="true">
-                        {isActive ? (direction === 'asc' ? '▲' : '▼') : '↕'}
-                      </span>
-                    </button>
-                  </th>
-                );
-              })}
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.length === 0 && !loading && (
-              <tr>
-                <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gh-table-text, #e0e0e0)' }}>
-                  No {title || resourceKind} deployed in this namespace
-                </td>
-              </tr>
-            )}
-            {sortedData.map((row: any, idx: number) => (
-              !row ? null : (
-                <tr
-                  key={getRowKey(row, idx)}
-                  className={bulkEnabled && selection.isSelected(getRowKey(row, idx)) ? 'bulk-selected' : undefined}
-                  onClick={(e) => {
-                    if (bulkEnabled && e.shiftKey) {
-                      e.preventDefault();
-                      selection.toggleRow(getRowKey(row, idx), idx, true);
-                      return;
-                    }
-                    openBottomPanel(row);
-                  }}
-                >
-                  {bulkEnabled && (
-                    <td className="bulk-checkbox-col" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        className="bulk-row-checkbox"
-                        type="checkbox"
-                        checked={selection.isSelected(getRowKey(row, idx))}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          selection.toggleRow(getRowKey(row, idx), idx, e.shiftKey);
-                        }}
-                        onChange={() => {}}
-                      />
-                    </td>
-                  )}
-                  {columns.map((col, colIdx) => (
-                    <td key={`${row.name || idx}-${col.accessorKey || col.key || colIdx}`}>
-                      {(() => {
-                        const key = col.accessorKey || col.key;
-                        const rawValue = key ? row[key] : undefined;
-                        if (!col.cell && key && STATUS_BADGE_KEYS.has(String(key).toLowerCase())) {
-                          if (rawValue === null || rawValue === undefined || rawValue === '') return '-';
-                          return <StatusBadge status={String(rawValue)} size="small" />;
-                        }
-                        if (!key) return rawValue;
-                        return col.cell ? col.cell({ getValue: () => row[key] }) : rawValue;
-                      })()}
-                    </td>
-                  ))}
-                  <td className="row-actions-cell">
-                    <button
-                      type="button"
-                      className="row-actions-button"
-                      aria-label="Row actions"
-                      title="Actions"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const key = getRowKey(row, idx);
-                        setOpenMenuKey((cur) => (cur === key ? null : key));
-                      }}
-                    >···
-                    </button>
-
-                    {openMenuKey === getRowKey(row, idx) && (
-                      <div
-                        className="menu-content row-actions-menu"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {(() => {
-                          const menuActions = buildMenuActions(row);
-                          return menuActions.map((a: RowAction, i: number) => {
-                          const disabled = Boolean(a?.disabled);
-                          const danger = Boolean(a?.danger);
-                          const itemClassName = `context-menu-item${disabled ? ' is-disabled' : ''}${danger ? ' is-danger' : ''}`;
-                          return (
-                            <div
-                              key={`${a?.label || 'action'}-${i}`}
-                              className={itemClassName}
-                              onClick={() => {
-                                if (disabled) return;
-                                try {
-                                  a?.onClick?.(row);
-                                } finally {
-                                  closeRowMenu();
-                                }
-                              }}
-                            >
-                              {a?.icon ? (
-                                <span aria-hidden="true" className="context-menu-icon">{a.icon}</span>
-                              ) : (
-                                <span aria-hidden="true" className="context-menu-icon" />
-                              )}
-                              <span>{a?.label}</span>
-                            </div>
-                          );
-                          });
-                        })()}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              )
-            ))}
-            {filteredData.length === 0 && data.length > 0 && (
-              <tr>
-                <td colSpan={columns.length + 1 + (bulkEnabled ? 1 : 0)} className="main-panel-loading">No rows match the filter.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <DataTable
+          columns={adaptedColumns}
+          data={data}
+          getRowId={getRowKey}
+          loading={loading}
+          emptyMessage={`No ${title || resourceKind} deployed in this namespace`}
+          enableSelection={bulkEnabled}
+          bulkActions={resolvedBulkActions}
+          onBulkAction={handleBulkAction}
+          rowActions={buildRowActions}
+          onRowClick={openBottomPanel}
+          title={undefined} // title moved to header
+          toolbarRight={undefined}
+          globalFilterPlaceholder="Filter..."
+          enableColumnReorder={true}
+          enableColumnVisibility={true}
+          initialSorting={[]}
+          persistKey={persistKey}
+          testId={tableTestId}
+        />
       </div>
+
       <BottomPanel
         open={bottomOpen}
         onClose={closeBottomPanel}
@@ -632,7 +368,6 @@ export default function OverviewTableWithPanel({
           : null}
       </BottomPanel>
 
-      {/* Create manifest overlay */}
       <CreateManifestOverlay
         open={showCreate}
         platform={createPlatform}
