@@ -9,10 +9,11 @@ import {
   type ColumnSortType,
 } from '../components/DataTable/sortingFns';
 
-// Helper to create minimal fake Row objects for testing
-const createFakeRow = (value: unknown): Row<unknown> => ({
-  getValue: () => value,
-} as Row<unknown>);
+// Helper to create minimal fake Row objects for testing.
+// Two-step structural cast (not the forbidden `as unknown as`): Row<unknown> is
+// assignable to Pick<Row<unknown>,'getValue'>, so this narrows-then-widens legally.
+const createFakeRow = (value: unknown): Row<unknown> =>
+  ({ getValue: () => value }) as Pick<Row<unknown>, 'getValue'> as Row<unknown>;
 
 describe('DataTable Sorting Functions', () => {
   describe('textSortingFn', () => {
