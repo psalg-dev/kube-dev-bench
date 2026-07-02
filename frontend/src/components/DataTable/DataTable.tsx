@@ -119,33 +119,34 @@ export function DataTable<TRow extends Record<string, unknown>>({
 
     // Data columns
     columns.forEach((col) => {
-      defs.push(
-        columnHelper.accessor(
-          (row) => {
-            if (col.cell) {
-              return col.cell(row);
-            }
-            if (col.accessorKey) {
-              return row[col.accessorKey];
-            }
-            return '';
-          },
-          {
-            id: col.id,
-            header: col.header,
-            enableSorting: col.enableSorting !== false,
-            // sortTypeToFn is SortingFn<unknown>; TanStack wants SortingFn<TRow> (compatible, generic bridge).
-            sortingFn: (col.sortType
-              ? sortTypeToFn(col.sortType)
-              : sortTypeToFn('text')) as SortingFn<TRow>,
-            enableHiding: col.enableHiding !== false,
-            meta: {
-              align: col.align,
-              width: col.width,
-            } satisfies DataTableColumnMeta,
+      // accessor's return union widens for wide TRow (e.g. Record<string,unknown>), so the
+      // AccessorFnColumnDef won't narrow to ColumnDef<TRow>; annotate to bridge the generic.
+      const def: ColumnDef<TRow> = columnHelper.accessor(
+        (row) => {
+          if (col.cell) {
+            return col.cell(row);
           }
-        )
-      );
+          if (col.accessorKey) {
+            return row[col.accessorKey];
+          }
+          return '';
+        },
+        {
+          id: col.id,
+          header: col.header,
+          enableSorting: col.enableSorting !== false,
+          // sortTypeToFn is SortingFn<unknown>; TanStack wants SortingFn<TRow> (compatible, generic bridge).
+          sortingFn: (col.sortType
+            ? sortTypeToFn(col.sortType)
+            : sortTypeToFn('text')) as SortingFn<TRow>,
+          enableHiding: col.enableHiding !== false,
+          meta: {
+            align: col.align,
+            width: col.width,
+          } satisfies DataTableColumnMeta,
+        }
+      ) as ColumnDef<TRow>;
+      defs.push(def);
     });
 
     // Row actions column
