@@ -8,7 +8,15 @@ import {
   podTabs,
   renderPodPanelContent,
   podConfig,
+  PortsCell,
+  getPodRowActions,
 } from '../config/resourceConfigs/podConfig';
+
+// Control the port-forward map for PortsCell rendering assertions.
+const pfMock = vi.hoisted(() => ({ value: {} as Record<string, Record<number, number[]>> }));
+vi.mock('../hooks/usePortForwardState', () => ({
+  usePortForwardState: () => pfMock.value,
+}));
 
 vi.mock('../holmes/holmesApi', () => ({
   AnalyzePodStream: vi.fn(),
@@ -196,5 +204,47 @@ describe('renderPodPanelContent – smoke tests', () => {
   it('returns null for unknown tab', () => {
     const node = renderPodPanelContent(mockRow, 'unknown', mockHolmesState, vi.fn(), vi.fn());
     expect(node).toBeNull();
+  });
+});
+
+describe('PortsCell', () => {
+  beforeEach(() => {
+    pfMock.value = {};
+  });
+
+  it('renders "-" when no ports', () => {
+    const { container } = render(<PortsCell ports={[]} podName="web" namespace="default" />);
+    expect(container.textContent).toBe('-');
+  });
+
+  it('renders plain port with no forward indicator when inactive', () => {
+    render(<PortsCell ports={[8080]} podName="web" namespace="default" />);
+    expect(screen.getByText('8080')).toBeInTheDocument();
+    expect(screen.queryByLabelText('forward active')).not.toBeInTheDocument();
+  });
+
+  it('renders a forward indicator when a forward is active', () => {
+    pfMock.value = { 'default/web': { 8080: [20000] } };
+    render(<PortsCell ports={[8080]} podName="web" namespace="default" />);
+    expect(screen.getByLabelText('forward active')).toBeInTheDocument();
+    expect(screen.getByText('20000')).toBeInTheDocument();
+  });
+});
+
+describe('getPodRowActions', () => {
+  it('includes Logs, Shell, Port Forward and Stop Port Forward', () => {
+    const labels = getPodRowActions(mockRow).map((a) => a.label);
+    expect(labels).toEqual(['Logs', 'Shell', 'Port Forward', 'Stop Port Forward']);
+  });
+
+  it('Logs/Shell/Port Forward open the matching panel tab', () => {
+    const openDetails = vi.fn();
+    const actions = getPodRowActions(mockRow, { openDetails });
+    actions.find((a) => a.label === 'Logs')?.onClick?.();
+    actions.find((a) => a.label === 'Shell')?.onClick?.();
+    actions.find((a) => a.label === 'Port Forward')?.onClick?.();
+    expect(openDetails).toHaveBeenNthCalledWith(1, 'logs');
+    expect(openDetails).toHaveBeenNthCalledWith(2, 'console');
+    expect(openDetails).toHaveBeenNthCalledWith(3, 'portforward');
   });
 });

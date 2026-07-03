@@ -29,7 +29,6 @@ import type {
   ResourceTab,
   RowAction,
   PanelApi,
-  HolmesHelpers,
 } from '../../types/resourceConfigs';
 
 const AppAPIAny = AppAPI as any;
@@ -37,7 +36,7 @@ const AppAPIAny = AppAPI as any;
 /**
  * PortsCell — shows pod ports with active port-forward indicators
  */
-function PortsCell({ ports, podName, namespace }: { ports: number[]; podName?: string; namespace?: string }) {
+export function PortsCell({ ports, podName, namespace }: { ports: number[]; podName?: string; namespace?: string }) {
   const pfByKey = usePortForwardState();
   if (!Array.isArray(ports) || ports.length === 0) return '-';
   const key = `${namespace || ''}/${podName}`;
@@ -82,7 +81,7 @@ export const podColumns: ResourceColumn[] = [
     key: 'ports',
     label: 'Ports',
     cell: (info) => {
-      const row = info.row?.original as any;
+      const row = info.row?.original;
       return <PortsCell ports={info.getValue() || []} podName={row?.name} namespace={row?.namespace} />;
     },
   },
@@ -127,38 +126,16 @@ export const normalizePod = (pod: Record<string, any> | null | undefined, fallba
 });
 
 /**
- * Row actions specific to Pods
+ * Row actions specific to Pods.
+ * NOTE: plain function (not a component) — no hooks here (rules-of-hooks).
+ * Stop Port Forward always shown; it prompts for the port to stop.
  */
-function getPodRowActions(row: ResourceRow, api?: PanelApi, helpers?: HolmesHelpers): RowAction[] {
-  const actions: RowAction[] = [];
-  const pfByKey = usePortForwardState();
-  const key = `${row.namespace || ''}/${row.name}`;
-  const hasActivePF = Object.keys(pfByKey[key] || {}).length > 0;
-
-  // Logs action
-  actions.push({
-    label: 'Logs',
-    icon: '📜',
-    onClick: () => api?.openDetails?.('logs'),
-  });
-
-  // Shell action
-  actions.push({
-    label: 'Shell',
-    icon: '💻',
-    onClick: () => api?.openDetails?.('console'),
-  });
-
-  // Port Forward action
-  actions.push({
-    label: 'Port Forward',
-    icon: '🔌',
-    onClick: () => api?.openDetails?.('portforward'),
-  });
-
-  // Stop Port Forward (only if active)
-  if (hasActivePF) {
-    actions.push({
+export function getPodRowActions(row: ResourceRow, api?: PanelApi): RowAction[] {
+  return [
+    { label: 'Logs', icon: '📜', onClick: () => api?.openDetails?.('logs') },
+    { label: 'Shell', icon: '💻', onClick: () => api?.openDetails?.('console') },
+    { label: 'Port Forward', icon: '🔌', onClick: () => api?.openDetails?.('portforward') },
+    {
       label: 'Stop Port Forward',
       icon: '🛑',
       onClick: async () => {
@@ -181,10 +158,8 @@ function getPodRowActions(row: ResourceRow, api?: PanelApi, helpers?: HolmesHelp
           showError(`Failed to stop port-forward: ${message}`);
         }
       },
-    });
-  }
-
-  return actions;
+    },
+  ];
 }
 
 /**
