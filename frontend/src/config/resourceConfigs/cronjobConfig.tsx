@@ -17,6 +17,7 @@ import CronJobYamlTab from '../../k8s/resources/cronjobs/CronJobYamlTab';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import type {
   RenderPanelContent,
   ResourceColumn,
@@ -50,6 +51,7 @@ export const cronjobTabs: ResourceTab[] = [
   { key: 'actions', label: 'Actions', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -163,6 +165,10 @@ export const renderCronJobPanelContent: RenderPanelContent = (
 
   if (tab === 'yaml') {
     return <CronJobYamlTab namespace={row.namespace} name={row.name} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="CronJob" name={row.name} />;
   }
 
   if (tab === 'holmes') {
