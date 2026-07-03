@@ -365,6 +365,29 @@ describe('DataTable', () => {
     expect(screen.queryByText('Edit')).not.toBeInTheDocument();
   });
 
+  it('row actions menu portals outside the scroll container so it is not clipped', () => {
+    const { container } = render(
+      <DataTable<TestRow>
+        columns={testColumns}
+        data={testData}
+        getRowId={(row) => row.id}
+        rowActions={() => [{ label: 'Edit', onClick: vi.fn() }]}
+      />
+    );
+
+    const actionButton = Array.from(container.querySelectorAll('button')).find(
+      (b) => b.textContent === '···'
+    );
+    fireEvent.click(actionButton!);
+
+    const menu = document.querySelector('.row-actions-menu');
+    expect(menu).not.toBeNull();
+    // Must be portaled to <body>, NOT nested in the overflow:auto scroll wrapper
+    // (that clipping was the "menu hidden behind rows" bug).
+    expect(container.querySelector('.data-table-wrapper')?.contains(menu)).toBe(false);
+    expect(getComputedStyle(menu as Element).position).toBe('fixed');
+  });
+
   it('row actions menu closes on Escape', async () => {
     const { container } = render(
       <DataTable<TestRow>

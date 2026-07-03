@@ -55,7 +55,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
   const [globalFilter, setGlobalFilter] = useState('');
   const [rowSelection, setRowSelection] = useState<Record<string, boolean>>({});
   const [visibilityMenuOpen, setVisibilityMenuOpen] = useState(false);
-  const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
+  const [openMenu, setOpenMenu] = useState<{ key: string; anchor: HTMLElement } | null>(null);
 
   // Initialize sorting from persistKey or initialSorting
   const initialSort = useMemo(() => {
@@ -169,16 +169,18 @@ export function DataTable<TRow extends Record<string, unknown>>({
                   title="Actions"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setOpenMenuKey((cur) => (cur === rowKey ? null : rowKey));
+                    const anchor = e.currentTarget;
+                    setOpenMenu((cur) => (cur?.key === rowKey ? null : { key: rowKey, anchor }));
                   }}
                 >
                   ···
                 </button>
-                {openMenuKey === rowKey && (
+                {openMenu?.key === rowKey && (
                   <RowActionsMenu
                     row={row.original}
                     actions={actions}
-                    onClose={() => setOpenMenuKey(null)}
+                    anchorEl={openMenu.anchor}
+                    onClose={() => setOpenMenu(null)}
                   />
                 )}
               </div>
@@ -191,7 +193,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
     }
 
     return defs;
-  }, [columns, columnHelper, enableSelection, rowActions, openMenuKey, rangeTo]);
+  }, [columns, columnHelper, enableSelection, rowActions, openMenu, rangeTo]);
 
   // Create table instance
   const table = useReactTable({
