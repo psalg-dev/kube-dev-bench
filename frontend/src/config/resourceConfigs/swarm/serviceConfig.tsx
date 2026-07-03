@@ -157,12 +157,12 @@ export const fetchSwarmServiceTabCounts = async (row: ResourceRow) => {
 /**
  * Render panel content for each tab
  */
-export const renderSwarmServicePanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel) => {
+export const renderSwarmServicePanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel, panelApi) => {
   const serviceId = row?.id ?? '';
   const serviceName = row?.name ?? '';
 
   if (tab === 'summary') {
-    return <ServiceSummaryPanel row={row} />;
+    return <ServiceSummaryPanel row={row} onRefresh={() => panelApi?.refresh?.()} />;
   }
 
   if (tab === 'tasks') {
