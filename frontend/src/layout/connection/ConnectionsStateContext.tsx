@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
 import {
     DeleteHook,
     DetectSystemProxy,
@@ -393,11 +393,20 @@ export interface ConnectionsStateContextValue extends ConnectionsState {
 }
 
 export function ConnectionsStateProvider({ children, initialSelectedSection }: ConnectionsStateProviderProps) {
-  const [state, dispatch] = useReducer(reducer, {
+  const [state, rawDispatch] = useReducer(reducer, {
     ...initialState,
     selectedSection: initialSelectedSection || initialState.selectedSection,
     pinnedConnections: loadPinnedConnections(),
   });
+
+  // Guard against state updates after unmount: async callbacks (loadKubeConfigs etc.)
+  // dispatch from `finally` blocks that can resolve after the provider is gone, which in
+  // jsdom teardown crashes React's scheduler with "window is not defined". No-op then.
+  const isMountedRef = useRef(true);
+  useEffect(() => () => { isMountedRef.current = false; }, []);
+  const dispatch = useCallback((action: ConnectionsAction) => {
+    if (isMountedRef.current) rawDispatch(action);
+  }, []);
 
   useEffect(() => {
     if (initialSelectedSection) {
