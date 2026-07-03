@@ -17,6 +17,7 @@ import DaemonSetNodeCoverageTab from '../../k8s/resources/daemonsets/DaemonSetNo
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import type {
   RenderPanelContent,
   ResourceColumn,
@@ -49,6 +50,7 @@ export const daemonsetTabs: ResourceTab[] = [
   { key: 'logs', label: 'Logs', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -199,6 +201,10 @@ spec:
         image: ${row.image}`;
 
     return <YamlTab content={yamlContent} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="DaemonSet" name={row.name} />;
   }
 
   if (tab === 'holmes') {
