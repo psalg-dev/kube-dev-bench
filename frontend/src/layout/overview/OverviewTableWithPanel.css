@@ -33,12 +33,6 @@
 .overview-table-scroll .data-table-wrapper {
   overflow: visible;
 }
-/* Keep column headers visible while the outer container scrolls. */
-.overview-table-scroll .data-table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-}
 
 .overview-title {
   justify-self: center;

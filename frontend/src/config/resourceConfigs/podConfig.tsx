@@ -271,6 +271,7 @@ export const podConfig: ResourceConfig = {
   onDelete: async (name: string, namespace?: string) => AppAPIAny.DeletePod(namespace ?? '', name),
   title: 'Pods',
   createKind: 'pod',
+  tableTestId: 'pods-table',
 };
 
 export default podConfig;
