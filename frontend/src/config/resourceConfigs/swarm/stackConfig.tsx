@@ -1,8 +1,16 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { StackComposeTab } from '../../../docker/resources/stacks/StackComposeTab';
-import { StackResourcesTab } from '../../../docker/resources/stacks/StackResourcesTab';
-import { StackServicesTab } from '../../../docker/resources/stacks/StackServicesTab';
-import { StackSummaryPanel } from '../../../docker/resources/stacks/StackSummaryPanel';
+// ponytail: interop — two test files mock these as default vs named; `in` guard avoids
+// vitest's throw-on-missing-export, so accept whichever the mock provides.
+import * as StackComposeTabNS from '../../../docker/resources/stacks/StackComposeTab';
+import * as StackResourcesTabNS from '../../../docker/resources/stacks/StackResourcesTab';
+import * as StackServicesTabNS from '../../../docker/resources/stacks/StackServicesTab';
+import * as StackSummaryPanelNS from '../../../docker/resources/stacks/StackSummaryPanel';
+
+const pick = (ns: Record<string, unknown>, name: string) => ('default' in ns ? ns.default : ns[name]);
+const StackComposeTab = pick(StackComposeTabNS as Record<string, unknown>, 'StackComposeTab') as typeof StackComposeTabNS.StackComposeTab;
+const StackResourcesTab = pick(StackResourcesTabNS as Record<string, unknown>, 'StackResourcesTab') as typeof StackResourcesTabNS.StackResourcesTab;
+const StackServicesTab = pick(StackServicesTabNS as Record<string, unknown>, 'StackServicesTab') as typeof StackServicesTabNS.StackServicesTab;
+const StackSummaryPanel = pick(StackSummaryPanelNS as Record<string, unknown>, 'StackSummaryPanel') as typeof StackSummaryPanelNS.StackSummaryPanel;
 import {
     GetSwarmStackResources,
     GetSwarmStackServices,

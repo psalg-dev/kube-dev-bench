@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import { swarmConfigConfig } from '../../../config/resourceConfigs/swarm/configConfig';
+import { emptyHolmesHelpers, type PanelApi, type ResourceRow } from '../../../types/resourceConfigs';
 
 export default function SwarmConfigsOverviewTable() {
-	const [configs, setConfigs] = useState<any[]>([]);
+	const [configs, setConfigs] = useState<ResourceRow[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [refreshKey, setRefreshKey] = useState(0);
 
@@ -12,14 +13,16 @@ export default function SwarmConfigsOverviewTable() {
 		setRefreshKey((k) => k + 1);
 	}, []);
 
+	const withRefresh = useCallback((api?: PanelApi): PanelApi => ({ ...(api ?? {}), refresh }), [refresh]);
+
 	useEffect(() => {
 		let active = true;
 
-		const loadConfigs = async () => {
+		const load = async () => {
 			try {
 				const data = await swarmConfigConfig.fetchFn?.();
 				if (active) {
-					setConfigs(Array.isArray(data) ? data : []);
+					setConfigs((Array.isArray(data) ? data : []) as ResourceRow[]);
 					setLoading(false);
 				}
 			} catch (err) {
@@ -31,12 +34,12 @@ export default function SwarmConfigsOverviewTable() {
 			}
 		};
 
-		loadConfigs();
+		load();
 
 		const off = EventsOn(swarmConfigConfig.eventName, (data) => {
 			if (!active) return;
 			if (Array.isArray(data)) {
-				setConfigs(data);
+				setConfigs(data as ResourceRow[]);
 			} else {
 				refresh();
 			}
@@ -54,17 +57,17 @@ export default function SwarmConfigsOverviewTable() {
 
 	return (
 		<OverviewTableWithPanel
-			title={swarmConfigConfig.title}
+			title={swarmConfigConfig.title ?? ''}
 			columns={swarmConfigConfig.columns}
 			data={configs}
 			tabs={swarmConfigConfig.tabs}
 			renderPanelContent={(row, tab, panelApi) =>
-				swarmConfigConfig.renderPanelContent?.(row, tab, {}, undefined, undefined, panelApi)
+				swarmConfigConfig.renderPanelContent?.(row, tab, {}, undefined, undefined, withRefresh(panelApi), configs)
 			}
 			createPlatform={swarmConfigConfig.createPlatform as 'swarm' | 'k8s'}
 			createKind={swarmConfigConfig.createKind}
 			tableTestId={swarmConfigConfig.tableTestId}
-			getRowActions={(row, api) => swarmConfigConfig.getRowActions?.(row, api) ?? []}
+			getRowActions={(row, api) => swarmConfigConfig.getRowActions?.(row, withRefresh(api), emptyHolmesHelpers) ?? []}
 		/>
 	);
 }

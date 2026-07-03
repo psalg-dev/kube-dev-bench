@@ -5,7 +5,7 @@
  * Configuration for GenericResourceTable to display Docker Swarm Volumes.
  */
 
-import { GetSwarmVolumes, BackupSwarmVolume, CloneSwarmVolume, RemoveSwarmVolume, RestoreSwarmVolume } from '../../../docker/swarmApi';
+import { GetSwarmVolumes, GetSwarmVolumeUsage, BackupSwarmVolume, CloneSwarmVolume, RemoveSwarmVolume, RestoreSwarmVolume } from '../../../docker/swarmApi';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import SwarmResourceActions from '../../../docker/resources/SwarmResourceActions';
@@ -97,7 +97,24 @@ export const renderSwarmVolumePanelContent: RenderPanelContent = (
 ) => {
   if (tab === 'summary') {
     const handleDelete = async () => {
-      if (!window.confirm(`Delete volume "${row.name}"?`)) return;
+      try {
+        const usage = await GetSwarmVolumeUsage(row.name);
+        const services = Array.isArray(usage) ? usage : [];
+        if (services.length > 0) {
+          const names = services
+            .map((s: { serviceName?: string; serviceId?: string }) => s?.serviceName || s?.serviceId)
+            .filter(Boolean)
+            .slice(0, 10)
+            .join(', ');
+          const extra = services.length > 10 ? `, +${services.length - 10} more` : '';
+          const msg = `Volume "${row.name}" is used by ${services.length} service${services.length === 1 ? '' : 's'} (${names}${extra}).\n\nDeleting it may break those services.\n\nDelete anyway?`;
+          if (!window.confirm(msg)) return;
+        } else if (!window.confirm(`Delete volume "${row.name}"?`)) {
+          return;
+        }
+      } catch {
+        if (!window.confirm(`Delete volume "${row.name}"?`)) return;
+      }
       try {
         await RemoveSwarmVolume(row.name, false);
         showSuccess(`Volume "${row.name}" deleted`);

@@ -1,27 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
-import { useHolmesStream } from '../../../hooks/useHolmesStream';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
+import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
 import { swarmTaskConfig } from '../../../config/resourceConfigs/swarm/taskConfig';
+import type { HolmesHelpers, PanelApi, ResourceRow } from '../../../types/resourceConfigs';
 
 export default function SwarmTasksOverviewTable() {
-	const [tasks, setTasks] = useState<any[]>([]);
+	const [tasks, setTasks] = useState<ResourceRow[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [refreshKey, setRefreshKey] = useState(0);
-	const holmesState = useHolmesStream();
+
+	const { state, analyze, cancel } = useHolmesAnalysis({
+		kind: swarmTaskConfig.resourceKind,
+		analyzeFn: swarmTaskConfig.analyzeFn as (..._args: string[]) => Promise<void>,
+		keyPrefix: swarmTaskConfig.holmesKeyPrefix,
+	});
+	const helpers: HolmesHelpers = { holmesState: state, analyze, cancel };
 
 	const refresh = useCallback(() => {
 		setRefreshKey((k) => k + 1);
 	}, []);
 
+	const withRefresh = useCallback((api?: PanelApi): PanelApi => ({ ...(api ?? {}), refresh }), [refresh]);
+
 	useEffect(() => {
 		let active = true;
 
-		const loadTasks = async () => {
+		const load = async () => {
 			try {
 				const data = await swarmTaskConfig.fetchFn?.();
 				if (active) {
-					setTasks(Array.isArray(data) ? data : []);
+					setTasks((Array.isArray(data) ? data : []) as ResourceRow[]);
 					setLoading(false);
 				}
 			} catch (err) {
@@ -33,12 +42,12 @@ export default function SwarmTasksOverviewTable() {
 			}
 		};
 
-		loadTasks();
+		load();
 
 		const off = EventsOn(swarmTaskConfig.eventName, (data) => {
 			if (!active) return;
 			if (Array.isArray(data)) {
-				setTasks(data);
+				setTasks(data as ResourceRow[]);
 			} else {
 				refresh();
 			}
@@ -56,17 +65,17 @@ export default function SwarmTasksOverviewTable() {
 
 	return (
 		<OverviewTableWithPanel
-			title={swarmTaskConfig.title}
+			title={swarmTaskConfig.title ?? ''}
 			columns={swarmTaskConfig.columns}
 			data={tasks}
 			tabs={swarmTaskConfig.tabs}
 			renderPanelContent={(row, tab, panelApi) =>
-				swarmTaskConfig.renderPanelContent?.(row, tab, holmesState.state, holmesState.analyze, holmesState.cancel, panelApi)
+				swarmTaskConfig.renderPanelContent?.(row, tab, state, analyze, cancel, withRefresh(panelApi), tasks)
 			}
 			createPlatform={swarmTaskConfig.createPlatform as 'swarm' | 'k8s'}
 			createKind={swarmTaskConfig.createKind}
 			tableTestId={swarmTaskConfig.tableTestId}
-			getRowActions={(row, api) => swarmTaskConfig.getRowActions?.(row, api, { holmesState: holmesState.state, analyze: holmesState.analyze }) ?? []}
+			getRowActions={(row, api) => swarmTaskConfig.getRowActions?.(row, withRefresh(api), helpers) ?? []}
 		/>
 	);
 }

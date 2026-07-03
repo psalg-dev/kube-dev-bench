@@ -3,17 +3,20 @@ import { EventsOn } from '../../../../wailsjs/runtime';
 import { useSwarmState } from '../../SwarmStateContext';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import { swarmVolumeConfig } from '../../../config/resourceConfigs/swarm/volumeConfig';
+import { emptyHolmesHelpers, type PanelApi, type ResourceRow } from '../../../types/resourceConfigs';
 
 export default function SwarmVolumesOverviewTable() {
 	const swarm = useSwarmState();
 	const connected = swarm?.connected;
-	const [volumes, setVolumes] = useState<any[]>([]);
+	const [volumes, setVolumes] = useState<ResourceRow[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [refreshKey, setRefreshKey] = useState(0);
 
 	const refresh = useCallback(() => {
 		setRefreshKey((k) => k + 1);
 	}, []);
+
+	const withRefresh = useCallback((api?: PanelApi): PanelApi => ({ ...(api ?? {}), refresh }), [refresh]);
 
 	useEffect(() => {
 		let active = true;
@@ -32,7 +35,7 @@ export default function SwarmVolumesOverviewTable() {
 			try {
 				const data = await swarmVolumeConfig.fetchFn?.();
 				if (active) {
-					setVolumes(Array.isArray(data) ? data : []);
+					setVolumes((Array.isArray(data) ? data : []) as ResourceRow[]);
 					setLoading(false);
 				}
 			} catch (err) {
@@ -55,7 +58,7 @@ export default function SwarmVolumesOverviewTable() {
 		const off = EventsOn(swarmVolumeConfig.eventName, (data) => {
 			if (!active) return;
 			if (Array.isArray(data)) {
-				setVolumes(data);
+				setVolumes(data as ResourceRow[]);
 			} else {
 				refresh();
 			}
@@ -81,17 +84,17 @@ export default function SwarmVolumesOverviewTable() {
 
 	return (
 		<OverviewTableWithPanel
-			title={swarmVolumeConfig.title}
+			title={swarmVolumeConfig.title ?? ''}
 			columns={swarmVolumeConfig.columns}
 			data={volumes}
 			tabs={swarmVolumeConfig.tabs}
 			renderPanelContent={(row, tab, panelApi) =>
-				swarmVolumeConfig.renderPanelContent?.(row, tab, {}, undefined, undefined, panelApi)
+				swarmVolumeConfig.renderPanelContent?.(row, tab, {}, undefined, undefined, withRefresh(panelApi))
 			}
 			createPlatform={swarmVolumeConfig.createPlatform as 'swarm' | 'k8s'}
 			createKind={swarmVolumeConfig.createKind}
 			tableTestId={swarmVolumeConfig.tableTestId}
-			getRowActions={(row, api) => swarmVolumeConfig.getRowActions?.(row, api) ?? []}
+			getRowActions={(row, api) => swarmVolumeConfig.getRowActions?.(row, withRefresh(api), emptyHolmesHelpers) ?? []}
 		/>
 	);
 }

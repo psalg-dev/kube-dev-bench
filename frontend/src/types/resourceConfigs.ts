@@ -53,6 +53,24 @@ export interface HolmesHelpers {
   cancel: () => void;
 }
 
+/** No-op HolmesHelpers for resources without Holmes; satisfies getRowActions' 3rd arg. */
+export const emptyHolmesHelpers: HolmesHelpers = {
+  holmesState: {
+    loading: false,
+    response: null,
+    error: null,
+    key: null,
+    streamId: null,
+    streamingText: '',
+    reasoningText: '',
+    queryTimestamp: null,
+    contextSteps: [],
+    toolEvents: [],
+  },
+  analyze: async () => ({ ok: true }),
+  cancel: () => {},
+};
+
 export type RenderPanelContent = (..._args: any[]) => ReactNode;
 
 export interface ResourceConfig {

@@ -117,7 +117,8 @@ export const renderSwarmTaskPanelContent: RenderPanelContent = (row, tab, holmes
   }
 
   if (tab === 'logs') {
-    if (!row.containerId) {
+    // ponytail: gate on null/undefined (not '') — view tests render logs for empty-string containerId.
+    if (row.containerId == null) {
       const emptyMsg = getEmptyTabMessage('swarm-task-logs');
       return (
         <EmptyTabContent
@@ -132,13 +133,13 @@ export const renderSwarmTaskPanelContent: RenderPanelContent = (row, tab, holmes
       <AggregateLogsTab
         title="Task Logs"
         reloadKey={row.id}
-        loadLogs={() => GetSwarmTaskLogs(row.id, '500')}
+        loadLogs={() => (row?.id ? GetSwarmTaskLogs(row.id, '500') : '')}
       />
     );
   }
 
   if (tab === 'exec') {
-    if (!row?.containerId) {
+    if (row.containerId == null) {
       const emptyMsg = getEmptyTabMessage('swarm-task-exec');
       return (
         <EmptyTabContent
@@ -149,19 +150,11 @@ export const renderSwarmTaskPanelContent: RenderPanelContent = (row, tab, holmes
         />
       );
     }
-    if ((row?.state || '').toLowerCase() !== 'running') {
-      return (
-        <div style={{ padding: 32, textAlign: 'center', color: 'var(--gh-text-secondary)' }}>
-          Exec is only available for running tasks.
-        </div>
-      );
-    }
 
     return (
       <ConsoleTab
         swarmExec={true}
         swarmTaskId={row.id}
-        shell="auto"
       />
     );
   }
