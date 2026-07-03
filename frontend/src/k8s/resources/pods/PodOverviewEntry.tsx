@@ -1,7 +1,8 @@
 import { createRoot } from 'react-dom/client';
 import '../../../app.css';
 import '../../../style.css';
-import PodOverviewTable from './PodOverviewTable';
+import { GenericResourceTable } from '../../../components/GenericResourceTable';
+import { podConfig } from '../../../config/resourceConfigs/podConfig';
 
 type RenderPodOverviewTableArgs = {
 	container: Element | null;
@@ -18,6 +19,6 @@ export function renderPodOverviewTable({ container, namespace, namespaces, onCre
 		root = createRoot(container);
 		rootByContainer.set(container, root);
 	}
-	root.render(<PodOverviewTable namespace={namespace} namespaces={namespaces} onCreateResource={onCreateResource} />);
+	root.render(<GenericResourceTable {...podConfig} namespace={namespace} namespaces={namespaces} />);
 	return root;
 }
