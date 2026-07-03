@@ -1,5 +1,5 @@
 import './DataTable.css';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, type ReactNode } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -121,19 +121,21 @@ export function DataTable<TRow extends Record<string, unknown>>({
     columns.forEach((col) => {
       // accessor's return union widens for wide TRow (e.g. Record<string,unknown>), so the
       // AccessorFnColumnDef won't narrow to ColumnDef<TRow>; annotate to bridge the generic.
+      const accessorKey = (col.accessorKey ?? col.id) as keyof TRow;
       const def: ColumnDef<TRow> = columnHelper.accessor(
-        (row) => {
-          if (col.cell) {
-            return col.cell(row);
-          }
-          if (col.accessorKey) {
-            return row[col.accessorKey];
-          }
-          return '';
-        },
+        // Accessor returns the raw VALUE (drives sorting + global filter). Rendering, which
+        // may return JSX, goes through `cell` — putting JSX in the accessor makes TanStack
+        // stringify it to "[object Object]" and sorts/filters on the element, not the value.
+        (row) => (accessorKey in (row as object) ? row[accessorKey] : ''),
         {
           id: col.id,
           header: col.header,
+          cell: col.cell
+            ? (ctx) => col.cell!(ctx.row.original)
+            : (ctx) => {
+                const v = ctx.getValue();
+                return (v === null || v === undefined ? '' : v) as ReactNode;
+              },
           enableSorting: col.enableSorting !== false,
           // sortTypeToFn is SortingFn<unknown>; TanStack wants SortingFn<TRow> (compatible, generic bridge).
           sortingFn: (col.sortType

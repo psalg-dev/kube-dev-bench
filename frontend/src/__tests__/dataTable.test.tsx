@@ -75,6 +75,33 @@ describe('DataTable', () => {
     expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
   });
 
+  it('renders JSX cell content (not "[object Object]") and sorts on the raw value', () => {
+    // A cell returning JSX must render its markup, and sorting/filtering must run on the
+    // underlying value — not the element. Regression: cells that returned JSX rendered
+    // "[object Object]" and sorted on the element (status badges broke across every view).
+    const cols: DataTableColumn<TestRow>[] = [
+      {
+        id: 'name',
+        header: 'Name',
+        accessorKey: 'name',
+        cell: (row) => <span data-testid="jsx-cell">badge:{row.name}</span>,
+      },
+    ];
+    const { container } = render(
+      <DataTable<TestRow> columns={cols} data={testData} getRowId={(row) => row.id} />
+    );
+
+    expect(container.textContent).not.toContain('[object Object]');
+    const cells = screen.getAllByTestId('jsx-cell');
+    expect(cells[0]).toHaveTextContent('badge:Item A');
+
+    // Sort ascending then descending: rows reorder by the raw name, proving sort uses the value.
+    const nameHeader = screen.getByRole('button', { name: 'Name' }).closest('th')!;
+    fireEvent.click(nameHeader);
+    fireEvent.click(nameHeader);
+    expect(screen.getAllByTestId('jsx-cell')[0]).toHaveTextContent('badge:Item C');
+  });
+
   it('sorts by text column in asc/desc/off order', async () => {
     const { container } = render(
       <DataTable<TestRow>
