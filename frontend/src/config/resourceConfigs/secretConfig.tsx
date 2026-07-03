@@ -13,6 +13,7 @@ import ResourceEventsTab from '../../components/ResourceEventsTab';
 import SecretDataTab from '../../k8s/resources/secrets/SecretDataTab';
 import SecretConsumersTab from '../../k8s/resources/secrets/SecretConsumersTab';
 import SecretYamlTab from '../../k8s/resources/secrets/SecretYamlTab';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
@@ -47,6 +48,7 @@ export const secretTabs: ResourceTab[] = [
   { key: 'consumers', label: 'Consumers', countKey: 'consumers' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -143,6 +145,10 @@ export const renderSecretPanelContent: RenderPanelContent = (
 
   if (tab === 'yaml') {
     return <SecretYamlTab namespace={row.namespace} name={row.name} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="Secret" name={row.name} />;
   }
 
   if (tab === 'holmes') {

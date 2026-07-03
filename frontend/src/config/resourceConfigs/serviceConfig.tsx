@@ -12,6 +12,7 @@ import QuickInfoSection, { type QuickInfoField } from '../../QuickInfoSection';
 import ResourceEventsTab from '../../components/ResourceEventsTab';
 import ServiceEndpointsTab from '../../k8s/resources/services/ServiceEndpointsTab';
 import ServiceYamlTab from '../../k8s/resources/services/ServiceYamlTab';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
@@ -45,6 +46,7 @@ export const serviceTabs: ResourceTab[] = [
   { key: 'endpoints', label: 'Endpoints', countKey: 'endpoints' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -135,6 +137,10 @@ export const renderServicePanelContent: RenderPanelContent = (
 
   if (tab === 'yaml') {
     return <ServiceYamlTab namespace={row.namespace} name={row.name} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="Service" name={row.name} />;
   }
 
   if (tab === 'holmes') {

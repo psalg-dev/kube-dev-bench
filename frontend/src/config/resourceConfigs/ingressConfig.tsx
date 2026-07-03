@@ -14,6 +14,7 @@ import IngressRulesTab from '../../k8s/resources/ingresses/IngressRulesTab';
 import IngressTLSTab from '../../k8s/resources/ingresses/IngressTLSTab';
 import IngressBackendServicesTab from '../../k8s/resources/ingresses/IngressBackendServicesTab';
 import IngressYamlTab from '../../k8s/resources/ingresses/IngressYamlTab';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
@@ -51,6 +52,7 @@ export const ingressTabs: ResourceTab[] = [
   { key: 'services', label: 'Backend Services', countable: false },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -203,6 +205,10 @@ export const renderIngressPanelContent: RenderPanelContent = (
 
   if (tab === 'yaml') {
     return <IngressYamlTab namespace={row.namespace} name={row.name} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="Ingress" name={row.name} />;
   }
 
   if (tab === 'holmes') {

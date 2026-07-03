@@ -13,6 +13,7 @@ import ResourceEventsTab from '../../components/ResourceEventsTab';
 import PersistentVolumeClaimYamlTab from '../../k8s/resources/persistentvolumeclaims/PersistentVolumeClaimYamlTab';
 import PVCBoundPVTab from '../../k8s/resources/persistentvolumeclaims/PVCBoundPVTab';
 import PVCConsumersTab from '../../k8s/resources/persistentvolumeclaims/PVCConsumersTab';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
@@ -48,6 +49,7 @@ export const pvcTabs: ResourceTab[] = [
   { key: 'consumers', label: 'Consumers', countKey: 'consumers' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -156,6 +158,10 @@ export const renderPVCPanelContent: RenderPanelContent = (
 
   if (tab === 'yaml') {
     return <PersistentVolumeClaimYamlTab namespace={row.namespace} name={row.name} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="PersistentVolumeClaim" name={row.name} />;
   }
 
   if (tab === 'holmes') {
