@@ -256,7 +256,7 @@ export const statefulsetConfig: ResourceConfig = {
   },
   onDelete: async (name: string, namespace?: string) => AppAPIAny.DeleteResource('statefulset', namespace ?? '', name),
   onScale: async (namespace: string | undefined, name: string, replicas: number) => AppAPIAny.ScaleStatefulSet(namespace ?? '', name, replicas),
-  title: 'StatefulSets',
+  title: 'Stateful Sets',
 };
 
 export default statefulsetConfig;
