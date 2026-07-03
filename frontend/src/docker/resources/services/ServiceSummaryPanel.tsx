@@ -8,6 +8,7 @@ type ServiceSummaryPanelProps = {
 
 const quickInfoFields: Array<{ key: string; label: string; type?: 'break-word' | 'date' }> = [
 	{ key: 'name', label: 'Name', type: 'break-word' },
+	{ key: 'id', label: 'Service ID', type: 'break-word' },
 	{ key: 'mode', label: 'Mode' },
 	{ key: 'replicas', label: 'Replicas' },
 	{ key: 'runningTasks', label: 'Running Tasks' },
