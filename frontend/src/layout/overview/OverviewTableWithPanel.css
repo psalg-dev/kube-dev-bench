@@ -22,6 +22,24 @@
   overflow: auto;
 }
 
+/*
+ * DataTable self-scrolls via .data-table-wrapper. Inside the overview scroll container we
+ * want THIS element (the one carrying the scroll-container testId) to be the single scroller,
+ * so let the DataTable grow to its content height instead of clipping internally.
+ */
+.overview-table-scroll .data-table-container {
+  height: auto;
+}
+.overview-table-scroll .data-table-wrapper {
+  overflow: visible;
+}
+/* Keep column headers visible while the outer container scrolls. */
+.overview-table-scroll .data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
 .overview-title {
   justify-self: center;
   margin: 0; /* avoid extra vertical spacing */

@@ -289,11 +289,11 @@ export function DataTable<TRow extends Record<string, unknown>>({
             {globalFilterPlaceholder && (
               <div className="data-table-filter">
                 <input
-                  type="text"
+                  type="search"
                   placeholder={globalFilterPlaceholder}
                   value={globalFilter}
                   onChange={(e) => setGlobalFilter(e.target.value)}
-                  aria-label="Global filter"
+                  aria-label="Filter table"
                 />
               </div>
             )}
