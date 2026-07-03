@@ -263,7 +263,7 @@ export function GenericResourceTable({
       data={data}
       tabs={tabs}
       renderPanelContent={renderPanelContentWithHolmes}
-      panelHeader={(row: ResourceRow) => <span style={{ fontWeight: 600 }}>{row.name}</span>}
+      panelHeader={(row: ResourceRow) => <span style={{ fontWeight: 600 }}>{(row.name ?? row.hostname ?? row.id) as ReactNode}</span>}
       title={title || `${resourceKind}s`}
       loading={loading}
       resourceKind={resourceKind}

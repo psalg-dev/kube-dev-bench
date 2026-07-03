@@ -137,6 +137,9 @@ export default function OverviewTableWithPanel({
       const target = e.target as HTMLElement | null;
       if (target?.closest('.bottom-panel') ||
           target?.closest('[data-resizing]') ||
+          // A click on a data row opens that row's panel (via the row's onClick); it must not
+          // be treated as a click-outside-to-close, or the close races the open and can win.
+          target?.closest('.data-table tbody tr') ||
           document.body.style.cursor === 'ns-resize') {
         return;
       }
