@@ -1,6 +1,7 @@
 import { helmReleasesConfig } from '../../../config/resourceConfigs/helmReleasesConfig';
 import { GenericResourceTable } from '../../../components/GenericResourceTable';
 import { showError, showSuccess } from '../../../notification';
+import type { ResourceRow } from '../../../types/resourceConfigs';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 type HelmReleasesOverviewTableProps = {
@@ -10,13 +11,16 @@ type HelmReleasesOverviewTableProps = {
 
 export default function HelmReleasesOverviewTable({ namespaces, namespace }: HelmReleasesOverviewTableProps) {
   // ponytail: HPA/Helm row actions (rollback, uninstall) integrated via config + getRowActions override
-  const getRowActions = (row: any) => [
+  const getRowActions = (row: ResourceRow) => {
+    const ns = row.namespace ?? '';
+    const name = row.name ?? '';
+    return [
     {
       label: 'Rollback',
       icon: '↩️',
       onClick: async () => {
         try {
-          const history = await AppAPI.GetHelmReleaseHistory(row.namespace, row.name);
+          const history = await AppAPI.GetHelmReleaseHistory(ns, name);
           const revisions = (history || []).map((h) => h.revision).filter((r) => Number.isInteger(r));
           if (revisions.length <= 1) {
             showError(`No previous revision available for '${row.name}'`);
@@ -39,7 +43,7 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }: Hel
           if (!window.confirm(`Rollback "${row.name}" to revision ${targetRevision}?`)) {
             return;
           }
-          await AppAPI.RollbackHelmRelease(row.namespace, row.name, targetRevision);
+          await AppAPI.RollbackHelmRelease(ns, name, targetRevision);
           showSuccess(`Rolled back "${row.name}" to revision ${targetRevision}`);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
@@ -56,7 +60,7 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }: Hel
           return;
         }
         try {
-          await AppAPI.UninstallHelmRelease(row.namespace, row.name);
+          await AppAPI.UninstallHelmRelease(ns, name);
           showSuccess(`Helm release '${row.name}' uninstalled`);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
@@ -64,7 +68,8 @@ export default function HelmReleasesOverviewTable({ namespaces, namespace }: Hel
         }
       },
     },
-  ];
+    ];
+  };
 
   return (
     <GenericResourceTable

@@ -152,50 +152,6 @@ function MainApp({ selectedSection, setSelectedSection }: MainAppProps) {
     }
   }, [selectedSection, selectedNamespaces, firstNs, showWizard]);
 
-  const _renderPodsMainContent = useCallback(
-    (selectedNamespacesArg: string[]) => {
-      return <PodOverviewTable namespace={firstNs} namespaces={selectedNamespacesArg} onCreateResource={(type) => { if (type) showResourceOverlay(type); }} />;
-    },
-    [firstNs]
-  );
-
-  const _renderResourceMainContent = useCallback(
-    (selectedNamespacesArg: string[], selectedSectionArg: string) => {
-      const commonNsProps = { namespaces: selectedNamespacesArg, namespace: firstNs };
-      switch (selectedSectionArg) {
-        case 'deployments':
-          return <DeploymentsOverviewTable {...commonNsProps} />;
-        case 'services':
-          return <ServicesOverviewTable {...commonNsProps} />;
-        case 'jobs':
-          return <JobsOverviewTable {...commonNsProps} />;
-        case 'cronjobs':
-          return <CronJobsOverviewTable {...commonNsProps} />;
-        case 'daemonsets':
-          return <DaemonSetsOverviewTable {...commonNsProps} />;
-        case 'statefulsets':
-          return <StatefulSetsOverviewTable {...commonNsProps} />;
-        case 'replicasets':
-          return <ReplicaSetsOverviewTable {...commonNsProps} />;
-        case 'configmaps':
-          return <ConfigMapsOverviewTable {...commonNsProps} onConfigMapCreate={() => showResourceOverlay('configmap')} />;
-        case 'secrets':
-          return <SecretsOverviewTable {...commonNsProps} onSecretCreate={() => showResourceOverlay('secret')} />;
-        case 'ingresses':
-          return <IngressesOverviewTable {...commonNsProps} onIngressCreate={() => showResourceOverlay('ingress')} />;
-        case 'persistentvolumeclaims':
-          return <PersistentVolumeClaimsOverviewTable {...commonNsProps} onPVCCreate={() => showResourceOverlay('persistentvolumeclaim')} />;
-        case 'persistentvolumes':
-          return <PersistentVolumesOverviewTable namespaces={selectedNamespacesArg} />;
-        case 'helmreleases':
-          return <HelmReleasesOverviewTable {...commonNsProps} />;
-        default:
-          return null;
-      }
-    },
-    [firstNs]
-  );
-
   const handleSelectSection = (section: string) => {
     if (kubernetesAvailable === false && !String(section).startsWith('swarm-')) {
       return;
