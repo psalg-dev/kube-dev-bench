@@ -13,6 +13,7 @@ import ResourceEventsTab from '../../components/ResourceEventsTab';
 import { ConfigMapDataTab } from '../../k8s/resources/configmaps/ConfigMapDataTab';
 import { ConfigMapConsumersTab } from '../../k8s/resources/configmaps/ConfigMapConsumersTab';
 import { ConfigMapYamlTab } from '../../k8s/resources/configmaps/ConfigMapYamlTab';
+import { ResourceGraphTab } from '../../k8s/graph/ResourceGraphTab';
 import SummaryTabHeader from '../../layout/bottompanel/SummaryTabHeader';
 import ResourceActions from '../../components/ResourceActions';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
@@ -46,6 +47,7 @@ export const configmapTabs: ResourceTab[] = [
   { key: 'consumers', label: 'Consumers', countKey: 'consumers' },
   { key: 'events', label: 'Events', countKey: 'events' },
   { key: 'yaml', label: 'YAML', countable: false },
+  { key: 'relationships', label: 'Relationships', countable: false, testId: 'relationships-tab' },
   { key: 'holmes', label: 'Holmes', countable: false },
 ];
 
@@ -141,6 +143,10 @@ export const renderConfigMapPanelContent: RenderPanelContent = (
 
   if (tab === 'yaml') {
     return <ConfigMapYamlTab namespace={row.namespace} name={row.name} />;
+  }
+
+  if (tab === 'relationships') {
+    return <ResourceGraphTab namespace={row.namespace} kind="ConfigMap" name={row.name} />;
   }
 
   if (tab === 'holmes') {

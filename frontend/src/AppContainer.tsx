@@ -119,13 +119,13 @@ function MainApp({ selectedSection, setSelectedSection }: MainAppProps) {
       case 'replicasets':
         return <ReplicaSetsOverviewTable {...commonNsProps} />;
       case 'configmaps':
-        return <ConfigMapsOverviewTable {...commonNsProps} onConfigMapCreate={() => showResourceOverlay('configmap')} />;
+        return <ConfigMapsOverviewTable {...commonNsProps} />;
       case 'secrets':
-        return <SecretsOverviewTable {...commonNsProps} onSecretCreate={() => showResourceOverlay('secret')} />;
+        return <SecretsOverviewTable {...commonNsProps} />;
       case 'ingresses':
-        return <IngressesOverviewTable {...commonNsProps} onIngressCreate={() => showResourceOverlay('ingress')} />;
+        return <IngressesOverviewTable {...commonNsProps} />;
       case 'persistentvolumeclaims':
-        return <PersistentVolumeClaimsOverviewTable {...commonNsProps} onPVCCreate={() => showResourceOverlay('persistentvolumeclaim')} />;
+        return <PersistentVolumeClaimsOverviewTable {...commonNsProps} />;
       case 'persistentvolumes':
         return <PersistentVolumesOverviewTable namespaces={selectedNamespaces} />;
       case 'helmreleases':
