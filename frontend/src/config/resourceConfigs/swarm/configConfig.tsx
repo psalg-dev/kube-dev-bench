@@ -74,10 +74,15 @@ export const normalizeSwarmConfig = (config: Record<string, any>): ResourceRow =
  */
 export const renderSwarmConfigPanelContent: RenderPanelContent = (
   row,
-  tab
+  tab,
+  _holmesState,
+  _onAnalyze,
+  _onCancel,
+  panelApi,
+  data
 ) => {
   if (tab === 'summary') {
-    return <ConfigSummaryPanel row={row} />;
+    return <ConfigSummaryPanel row={row} allConfigs={data} onRefresh={panelApi?.refresh} />;
   }
 
   if (tab === 'data') {

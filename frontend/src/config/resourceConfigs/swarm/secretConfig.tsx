@@ -79,10 +79,14 @@ export const normalizeSwarmSecret = (secret: Record<string, any>): ResourceRow =
  */
 export const renderSwarmSecretPanelContent: RenderPanelContent = (
   row,
-  tab
+  tab,
+  _holmesState,
+  _onAnalyze,
+  _onCancel,
+  panelApi
 ) => {
   if (tab === 'summary') {
-    return <SecretSummaryPanel row={row} />;
+    return <SecretSummaryPanel row={row} onRefresh={panelApi?.refresh} />;
   }
 
   if (tab === 'inspect') {
