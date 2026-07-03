@@ -18,15 +18,53 @@ import PodFilesTab from '../../k8s/resources/pods/PodFilesTab';
 import PodMountsTab from '../../k8s/resources/pods/PodMountsTab';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
 import StatusBadge from '../../components/StatusBadge';
+import { UptimeCell } from '../../components/DataTable/UptimeCell';
+import { usePortForwardState } from '../../hooks/usePortForwardState';
+import { showError, showSuccess } from '../../notification';
 import type {
   RenderPanelContent,
   ResourceColumn,
   ResourceConfig,
   ResourceRow,
   ResourceTab,
+  RowAction,
+  PanelApi,
 } from '../../types/resourceConfigs';
 
 const AppAPIAny = AppAPI as any;
+
+/**
+ * PortsCell — shows pod ports with active port-forward indicators
+ */
+export function PortsCell({ ports, podName, namespace }: { ports: number[]; podName?: string; namespace?: string }) {
+  const pfByKey = usePortForwardState();
+  if (!Array.isArray(ports) || ports.length === 0) return '-';
+  const key = `${namespace || ''}/${podName}`;
+  const fForPod = pfByKey[key] || {};
+  const sorted = [...ports].sort((a, b) => a - b);
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {sorted.map((p) => {
+        const locals = fForPod[p] || [];
+        const hasFwd = locals.length > 0;
+        return (
+          <span key={p} title={hasFwd ? `Forwarded to: ${locals.join(', ')}` : ''} style={{ whiteSpace: 'nowrap' }}>
+            <code style={{ background: 'rgba(99,110,123,0.2)', padding: '2px 6px', borderRadius: 0, border: '1px solid #353a42' }}>{p}</code>
+            {hasFwd && (
+              <>
+                <span style={{ margin: '0 4px', color: '#aaa' }}>→</span>
+                <code style={{ background: 'rgba(35,134,54,0.15)', padding: '2px 6px', borderRadius: 0, border: '1px solid rgba(35,134,54,0.4)', color: 'var(--gh-accent, #2ea44f)' }}>
+                  {locals.join(', ')}
+                </code>
+                <span aria-label="forward active" title="Port-forward active" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: 'var(--gh-accent, #2ea44f)', marginLeft: 6, verticalAlign: 'middle' }} />
+              </>
+            )}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * Column definitions for Pods table
@@ -43,22 +81,20 @@ export const podColumns: ResourceColumn[] = [
     key: 'ports',
     label: 'Ports',
     cell: (info) => {
-      const ports = info.getValue();
-      if (!Array.isArray(ports) || ports.length === 0) return '-';
-      const sorted = [...ports].sort((a, b) => a - b);
-      return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {sorted.map((p) => (
-            <code key={p} style={{ background: 'rgba(99,110,123,0.2)', padding: '2px 6px', borderRadius: 0, border: '1px solid #353a42' }}>
-              {p}
-            </code>
-          ))}
-        </div>
-      );
+      const row = info.row?.original;
+      return <PortsCell ports={info.getValue() || []} podName={row?.name} namespace={row?.namespace} />;
     },
   },
   { key: 'restarts', label: 'Restarts' },
-  { key: 'startTime', label: 'Uptime' },
+  {
+    key: 'startTime',
+    label: 'Uptime',
+    cell: (info) => {
+      const startTime = info.getValue();
+      if (!startTime) return '-';
+      return <UptimeCell startTime={startTime} />;
+    },
+  },
 ];
 
 /**
@@ -88,6 +124,43 @@ export const normalizePod = (pod: Record<string, any> | null | undefined, fallba
   startTime: pod?.startTime ?? pod?.StartTime ?? pod?.startedAt ?? pod?.StartedAt ?? null,
   created: pod?.created ?? pod?.Created ?? null,
 });
+
+/**
+ * Row actions specific to Pods.
+ * NOTE: plain function (not a component) — no hooks here (rules-of-hooks).
+ * Stop Port Forward always shown; it prompts for the port to stop.
+ */
+export function getPodRowActions(row: ResourceRow, api?: PanelApi): RowAction[] {
+  return [
+    { label: 'Logs', icon: '📜', onClick: () => api?.openDetails?.('logs') },
+    { label: 'Shell', icon: '💻', onClick: () => api?.openDetails?.('console') },
+    { label: 'Port Forward', icon: '🔌', onClick: () => api?.openDetails?.('portforward') },
+    {
+      label: 'Stop Port Forward',
+      icon: '🛑',
+      onClick: async () => {
+        if (!row.name || !row.namespace) {
+          showError('Missing pod name or namespace');
+          return;
+        }
+        try {
+          const input = window.prompt('Enter local port to stop forwarding:', '20000');
+          if (input == null) return;
+          const p = parseInt(String(input).trim(), 10);
+          if (!Number.isFinite(p) || p <= 0 || p > 65535) {
+            showError(`Invalid port: ${input}`);
+            return;
+          }
+          await AppAPIAny.StopPortForward(row.namespace, row.name, p);
+          showSuccess(`Stopped port-forward for ${row.name}:${p}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          showError(`Failed to stop port-forward: ${message}`);
+        }
+      },
+    },
+  ];
+}
 
 /**
  * Render panel content for each tab
@@ -193,6 +266,7 @@ export const podConfig: ResourceConfig = {
   analyzeFn: AnalyzePodStream,
   normalize: normalizePod,
   renderPanelContent: renderPodPanelContent,
+  getRowActions: getPodRowActions,
   onRestart: async (name: string, namespace?: string) => AppAPIAny.RestartPod(namespace ?? '', name),
   onDelete: async (name: string, namespace?: string) => AppAPIAny.DeletePod(namespace ?? '', name),
   title: 'Pods',

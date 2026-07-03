@@ -26,7 +26,8 @@ import IngressesOverviewTable from './k8s/resources/ingresses/IngressesOverviewT
 import JobsOverviewTable from './k8s/resources/jobs/JobsOverviewTable';
 import PersistentVolumeClaimsOverviewTable from './k8s/resources/persistentvolumeclaims/PersistentVolumeClaimsOverviewTable';
 import PersistentVolumesOverviewTable from './k8s/resources/persistentvolumes/PersistentVolumesOverviewTable';
-import PodOverviewTable from './k8s/resources/pods/PodOverviewTable';
+import { GenericResourceTable } from './components/GenericResourceTable';
+import { podConfig } from './config/resourceConfigs/podConfig';
 import ReplicaSetsOverviewTable from './k8s/resources/replicasets/ReplicaSetsOverviewTable';
 import SecretsOverviewTable from './k8s/resources/secrets/SecretsOverviewTable';
 import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTable';
@@ -103,7 +104,7 @@ function MainApp({ selectedSection, setSelectedSection }: MainAppProps) {
     const commonNsProps = { namespaces: selectedNamespaces, namespace: firstNs };
     switch (selectedSection) {
       case 'pods':
-        return <PodOverviewTable namespace={firstNs} namespaces={selectedNamespaces} onCreateResource={(type) => { if (type) showResourceOverlay(type); }} />;
+        return <GenericResourceTable {...podConfig} namespace={firstNs} namespaces={selectedNamespaces} createNotice={{ message: 'Resource created', type: 'success' }} />;
       case 'deployments':
         return <DeploymentsOverviewTable {...commonNsProps} />;
       case 'services':
