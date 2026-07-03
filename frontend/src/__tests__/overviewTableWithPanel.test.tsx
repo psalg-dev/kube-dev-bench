@@ -51,7 +51,7 @@ beforeEach(() => {
 describe('OverviewTableWithPanel', () => {
   it('filters rows by search input', () => {
     setup();
-    const filter = screen.getByRole('textbox', { name: /filter|search/i });
+    const filter = screen.getByRole('searchbox', { name: /filter|search/i });
     expect(screen.getAllByRole('row').length).toBeGreaterThan(2); // header + rows
     fireEvent.change(filter, { target: { value: 'bet' } });
     // Only beta row plus header + maybe message
@@ -62,7 +62,7 @@ describe('OverviewTableWithPanel', () => {
 
   it('shows no-match message when filter excludes all', () => {
     setup();
-    const filter = screen.getByRole('textbox', { name: /filter|search/i });
+    const filter = screen.getByRole('searchbox', { name: /filter|search/i });
     fireEvent.change(filter, { target: { value: 'zzz' } });
     // DataTable shows the emptyMessage when no rows match
     expect(screen.getByText(/no.*pod.*deployed/i)).toBeInTheDocument();
