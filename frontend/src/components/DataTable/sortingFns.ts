@@ -1,4 +1,4 @@
-import type { Row, SortingFn } from '@tanstack/react-table';
+import type { SortingFn } from '@tanstack/react-table';
 
 export type ColumnSortType = 'text' | 'number' | 'duration' | 'datetime';
 
