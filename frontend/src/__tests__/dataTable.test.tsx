@@ -56,6 +56,25 @@ describe('DataTable', () => {
     expect(screen.getByText('Item C')).toBeInTheDocument();
   });
 
+  it('exposes the gh-table DOM contract: gh-table class, button-role headers, aria-sort', () => {
+    // E2E + app CSS target `table.gh-table`; sort helpers read a `button` named after the
+    // column and the th's `aria-sort`. Regression guard for the DataTable re-skin.
+    const { container } = render(
+      <DataTable<TestRow> columns={testColumns} data={testData} getRowId={(row) => row.id} />
+    );
+
+    expect(container.querySelector('table.gh-table')).toBeInTheDocument();
+
+    const nameButton = screen.getByRole('button', { name: 'Name' });
+    const nameHeader = nameButton.closest('th')!;
+    expect(nameHeader).toHaveAttribute('aria-sort', 'none');
+
+    fireEvent.click(nameHeader);
+    expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+    fireEvent.click(nameHeader);
+    expect(nameHeader).toHaveAttribute('aria-sort', 'descending');
+  });
+
   it('sorts by text column in asc/desc/off order', async () => {
     const { container } = render(
       <DataTable<TestRow>

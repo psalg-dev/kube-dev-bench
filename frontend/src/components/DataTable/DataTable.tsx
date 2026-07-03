@@ -330,7 +330,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
       )}
 
       <div className="data-table-wrapper">
-        <table className="data-table">
+        <table className="data-table gh-table">
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id}>
