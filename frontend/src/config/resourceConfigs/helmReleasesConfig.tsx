@@ -112,7 +112,7 @@ export const renderHelmReleasesPanelContent: RenderPanelContent = (
               releaseName={release.name}
               namespace={release.namespace}
               chart={release.chart}
-              onRefresh={() => {}}
+              onRefresh={() => _panelApi?.refresh?.()}
             />
           }
         />

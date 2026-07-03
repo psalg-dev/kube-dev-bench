@@ -46,7 +46,7 @@ type OverviewTableWithPanelProps = {
   columns: ColumnDef[];
   data: any[];
   tabs?: TabDef[];
-  renderPanelContent?: (_row: any, _tab: string, _panelApi: { activeTab: string; setActiveTab: (_key: string) => void; tabCounts: Record<string, number> }) => ReactNode;
+  renderPanelContent?: (_row: any, _tab: string, _panelApi: { activeTab: string; setActiveTab: (_key: string) => void; tabCounts: Record<string, number>; refresh?: () => void; openDetails?: (_tabKey?: string) => void }) => ReactNode;
   panelHeader?: (_row: any) => ReactNode;
   title: string;
   resourceKind?: string;
@@ -61,11 +61,13 @@ type OverviewTableWithPanelProps = {
   createHint?: string;
   tableTestId?: string;
   headerActions?: ReactNode;
-  getRowActions?: (_row: any, _api: { openDetails: (_tabKey?: string) => void; setActiveTab: (_key: string) => void }) => RowAction[];
+  getRowActions?: (_row: any, _api: { openDetails: (_tabKey?: string) => void; setActiveTab: (_key: string) => void; refresh?: () => void }) => RowAction[];
   tabCountsFetcher?: (_row: any) => Promise<Record<string, number>> | Record<string, number>;
   enableTabCounts?: boolean;
   bulkActions?: BulkAction[];
   bulkResourceKind?: string;
+  /** Refetch the table data (from useResourceData) so panel/row actions can refresh after mutations. */
+  onRefreshData?: () => void;
 };
 
 /**
@@ -95,6 +97,7 @@ export default function OverviewTableWithPanel({
   enableTabCounts = true,
   bulkActions,
   bulkResourceKind,
+  onRefreshData,
 }: OverviewTableWithPanelProps) {
   const [bottomOpen, setBottomOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<Row | null>(null);
@@ -297,6 +300,7 @@ export default function OverviewTableWithPanel({
     const api = {
       openDetails: (tabKey?: string) => openBottomPanelAtTab(row, tabKey),
       setActiveTab,
+      refresh: onRefreshData,
     };
     const extra = typeof getRowActions === 'function' ? (getRowActions(row, api) || []) : [];
     const normalizedExtra = Array.isArray(extra) ? extra.filter(Boolean) : [];
@@ -369,7 +373,7 @@ export default function OverviewTableWithPanel({
         tabCountsLoading={tabCountsLoading}
       >
         {selectedRow && typeof renderPanelContent === 'function'
-          ? renderPanelContent(selectedRow, activeTab, { activeTab, setActiveTab, tabCounts })
+          ? renderPanelContent(selectedRow, activeTab, { activeTab, setActiveTab, tabCounts, refresh: onRefreshData, openDetails: (tabKey?: string) => openBottomPanelAtTab(selectedRow, tabKey) })
           : null}
       </BottomPanel>
 

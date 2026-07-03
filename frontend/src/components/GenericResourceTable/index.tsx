@@ -61,6 +61,7 @@ interface OverviewTableWithPanelProps {
   getRowActions?: (_row: ResourceRow, _api?: PanelApi) => RowAction[];
   tabCountsFetcher?: (_row: ResourceRow) => Promise<Record<string, number>> | Record<string, number>;
   enableTabCounts?: boolean;
+  onRefreshData?: () => void;
 }
 
 const OverviewTableWithPanelTyped = OverviewTableWithPanel as unknown as ComponentType<OverviewTableWithPanelProps>;
@@ -113,7 +114,7 @@ export function GenericResourceTable({
   enableTabCounts = true,
 }: GenericResourceTableProps) {
   // Fetch and subscribe to resource data
-  const { data, loading } = useResourceData({
+  const { data, loading, refresh } = useResourceData({
     fetchFn: fetchFn as (..._args: unknown[]) => Promise<unknown[]>,
     eventName,
     namespaces,
@@ -277,6 +278,7 @@ export function GenericResourceTable({
       getRowActions={getRowActions}
       tabCountsFetcher={tabCountsFetcher as ((_row: ResourceRow) => Promise<Record<string, number>> | Record<string, number>)}
       enableTabCounts={enableTabCounts}
+      onRefreshData={refresh}
     />
   );
 }
