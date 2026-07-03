@@ -108,17 +108,83 @@ export const renderSwarmVolumePanelContent: RenderPanelContent = (
       }
     };
 
+    const buttonStyle = {
+      padding: '6px 12px',
+      borderRadius: 4,
+      border: '1px solid var(--gh-border, #30363d)',
+      backgroundColor: 'var(--gh-button-bg, #21262d)',
+      color: 'var(--gh-text, #c9d1d9)',
+      cursor: 'pointer' as const,
+      fontSize: 12,
+      fontWeight: 500,
+    };
+
     return (
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <SummaryTabHeader
           name={row.name}
           labels={row.labels}
           actions={
-            <SwarmResourceActions
-              resourceType="volume"
-              name={row.name}
-              onDelete={handleDelete}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                id="swarm-volume-backup-btn"
+                style={buttonStyle}
+                onClick={async () => {
+                  try {
+                    const saved = await BackupSwarmVolume(row.name);
+                    if (!saved) return;
+                    showSuccess(`Backed up volume "${row.name}"`);
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    showError(`Failed to back up volume: ${message}`);
+                  }
+                }}
+              >
+                Backup
+              </button>
+              <button
+                id="swarm-volume-restore-btn"
+                style={buttonStyle}
+                onClick={async () => {
+                  if (!window.confirm(`Restore a backup into volume "${row.name}"? This may overwrite files.`)) return;
+                  try {
+                    const selected = await RestoreSwarmVolume(row.name);
+                    if (!selected) return;
+                    showSuccess(`Restored backup into volume "${row.name}"`);
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    showError(`Failed to restore volume: ${message}`);
+                  }
+                }}
+              >
+                Restore
+              </button>
+              <button
+                id="swarm-volume-clone-btn"
+                style={buttonStyle}
+                onClick={async () => {
+                  const iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+                  const def = `${row.name}@${iso}`;
+                  const newName = window.prompt('New volume name', def);
+                  if (!newName) return;
+                  try {
+                    await CloneSwarmVolume(row.name, newName);
+                    showSuccess(`Cloned volume to "${newName}"`);
+                    panelApi?.refresh?.();
+                  } catch (err) {
+                    const message = err instanceof Error ? err.message : String(err);
+                    showError(`Failed to clone volume: ${message}`);
+                  }
+                }}
+              >
+                Clone
+              </button>
+              <SwarmResourceActions
+                resourceType="volume"
+                name={row.name}
+                onDelete={handleDelete}
+              />
+            </div>
           }
         />
         <div style={{ display: 'flex', flex: 1, minHeight: 0, color: 'var(--gh-text, #c9d1d9)' }}>
