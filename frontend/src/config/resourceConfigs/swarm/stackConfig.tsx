@@ -84,9 +84,9 @@ export const fetchSwarmStackTabCounts = async (row: ResourceRow) => {
 /**
  * Render panel content for each tab
  */
-export const renderSwarmStackPanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel) => {
+export const renderSwarmStackPanelContent: RenderPanelContent = (row, tab, holmesState, onAnalyze, onCancel, panelApi) => {
   if (tab === 'summary') {
-    return <StackSummaryPanel row={row} />;
+    return <StackSummaryPanel row={row} onRefresh={() => panelApi?.refresh?.()} />;
   }
 
   if (tab === 'services') {
