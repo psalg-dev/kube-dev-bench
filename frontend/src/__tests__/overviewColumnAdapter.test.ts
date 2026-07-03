@@ -45,13 +45,25 @@ describe('columnAdapter', () => {
     expect(adapted[0].width).toBe('150px');
   });
 
-  it('preserves cell function', () => {
-    const cellFn = () => 'custom';
+  it('wraps config cell so it receives a { getValue, row } context from a raw row', () => {
+    // DataTable calls column.cell(rawRow); the config cell reads ctx.getValue() and
+    // ctx.row.original. Regression guard: passing the config cell through unwrapped
+    // made ctx.getValue() throw "e.getValue is not a function" at runtime.
+    const seen: { value: unknown; original: unknown } = { value: undefined, original: undefined };
+    const cellFn = (ctx: { getValue: () => unknown; row?: { original: unknown } }) => {
+      seen.value = ctx.getValue();
+      seen.original = ctx.row?.original;
+      return `v=${String(ctx.getValue())}`;
+    };
     const columns = [{ key: 'name', label: 'Name', cell: cellFn }];
 
     const adapted = adaptColumnsForDataTable(columns);
+    const row = { name: 'nginx', namespace: 'default' };
+    const rendered = (adapted[0].cell as (r: Record<string, unknown>) => unknown)(row);
 
-    expect(adapted[0].cell).toBe(cellFn);
+    expect(rendered).toBe('v=nginx');
+    expect(seen.value).toBe('nginx');
+    expect(seen.original).toBe(row);
   });
 
   it('adds StatusBadge cell for status-like keys without cell function', () => {
@@ -64,12 +76,14 @@ describe('columnAdapter', () => {
   });
 
   it('does not override custom cell function for status columns', () => {
-    const customCell = () => 'custom-status';
+    // status-like key but a custom cell is provided -> custom cell wins (wrapped), no StatusBadge
+    const customCell = (ctx: { getValue: () => unknown }) => `custom:${String(ctx.getValue())}`;
     const columns = [{ key: 'status', label: 'Status', cell: customCell }];
 
     const adapted = adaptColumnsForDataTable(columns);
+    const rendered = (adapted[0].cell as (r: Record<string, unknown>) => unknown)({ status: 'Running' });
 
-    expect(adapted[0].cell).toBe(customCell);
+    expect(rendered).toBe('custom:Running');
   });
 
   it('handles state, availability, phase as status-like columns', () => {
