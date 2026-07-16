@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -15,6 +16,18 @@ import (
 // logEmitMinInterval is the minimum time between log event emissions
 // to prevent overwhelming the frontend event loop (SUG-7).
 const logEmitMinInterval = 5 * time.Millisecond
+
+// maxLogLineBytes caps a single log line. bufio.Scanner defaults to 64KB and
+// fails with "token too long" on verbose pods (e.g. renovate-bot). 1MB matches
+// kubelet's per-line log cap, so anything the API server delivers fits.
+const maxLogLineBytes = 1024 * 1024
+
+// newLogScanner returns a scanner that tolerates long log lines.
+func newLogScanner(r io.Reader) *bufio.Scanner {
+	scanner := bufio.NewScanner(r)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxLogLineBytes)
+	return scanner
+}
 
 // StopPodLogs stops an active log stream for the given pod if running
 func (a *App) StopPodLogs(podName string) {
@@ -75,7 +88,7 @@ func (a *App) StreamPodLogs(podName string) {
 			return
 		}
 		defer stream.Close()
-		scanner := bufio.NewScanner(stream)
+		scanner := newLogScanner(stream)
 		for scanner.Scan() {
 			select {
 			case <-streamCtx.Done():
@@ -125,7 +138,7 @@ func (a *App) StreamPodContainerLogs(podName, container string) {
 			return
 		}
 		defer stream.Close()
-		scanner := bufio.NewScanner(stream)
+		scanner := newLogScanner(stream)
 		for scanner.Scan() {
 			select {
 			case <-streamCtx.Done():
@@ -206,7 +219,7 @@ func (a *App) streamLogsToEvents(ctx context.Context, podName, container string,
 	}
 	defer stream.Close()
 
-	scanner := bufio.NewScanner(stream)
+	scanner := newLogScanner(stream)
 	var lastEmit time.Time
 	for scanner.Scan() {
 		select {
@@ -359,7 +372,7 @@ func (a *App) streamContainerWithPrefix(ctx context.Context, clientset kubernete
 	defer stream.Close()
 
 	prefix := fmt.Sprintf("[%s] ", container)
-	scanner := bufio.NewScanner(stream)
+	scanner := newLogScanner(stream)
 	var lastEmit time.Time
 	for scanner.Scan() {
 		select {
