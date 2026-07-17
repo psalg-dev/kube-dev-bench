@@ -52,3 +52,5 @@ e2e-test-results*.zip
 **/**/*.txt
 
 .github/hookstmp-e2e-results/
+
+.serena/
