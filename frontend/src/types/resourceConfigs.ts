@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { ReactNode } from 'react';
-import type { HolmesAnalysisState } from '../hooks/useHolmesAnalysis';
+import type { HolmesState } from '../hooks/useHolmesStream';
 
 export type LooseRecord = Record<string, unknown>;
 
@@ -48,9 +48,9 @@ export interface RowAction {
 }
 
 export interface HolmesHelpers {
-  holmesState: HolmesAnalysisState;
-  analyze: (..._args: unknown[]) => Promise<{ ok: boolean; error?: string }>;
-  cancel: () => void;
+  holmesState: HolmesState;
+  analyze: (namespaceOrRow: string | ResourceRow, name?: string) => Promise<{ ok: boolean; error?: string }>;
+  cancel: () => Promise<void>;
 }
 
 /** No-op HolmesHelpers for resources without Holmes; satisfies getRowActions' 3rd arg. */
@@ -68,7 +68,7 @@ export const emptyHolmesHelpers: HolmesHelpers = {
     toolEvents: [],
   },
   analyze: async () => ({ ok: true }),
-  cancel: () => {},
+  cancel: async () => {},
 };
 
 export type RenderPanelContent = (..._args: any[]) => ReactNode;

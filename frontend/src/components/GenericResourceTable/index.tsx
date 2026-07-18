@@ -28,7 +28,7 @@
 
 import type { ComponentType, ReactNode } from 'react';
 import { useCallback } from 'react';
-import { useHolmesAnalysis } from '../../hooks/useHolmesAnalysis';
+import { useHolmesStream } from '../../hooks/useHolmesStream';
 import { useResourceData } from '../../hooks/useResourceData';
 import OverviewTableWithPanel from '../../layout/overview/OverviewTableWithPanel';
 import { showError, showSuccess } from '../../notification';
@@ -123,45 +123,75 @@ export function GenericResourceTable({
     clusterScoped,
   });
 
-  // Holmes AI integration (optional)
-  const hasHolmes = typeof analyzeFn === 'function';
-  const { state: holmesState, analyze, cancel } = useHolmesAnalysis({
-    kind: resourceKind,
-    analyzeFn: hasHolmes ? (analyzeFn as (..._args: string[]) => Promise<void>) : async () => {},
-    keyPrefix: holmesKeyPrefix,
-  });
+   // Holmes AI integration (optional)
+   const hasHolmes = typeof analyzeFn === 'function';
+   const { state: holmesState, analyze: analyzeStream, cancel } = useHolmesStream();
 
-  // Wrapper for panel content rendering that injects Holmes state and full data
-  const renderPanelContentWithHolmes = useCallback(
-    (row: ResourceRow, tab: string, panelApi?: PanelApi) => {
-      if (typeof renderPanelContent !== 'function') {
-        return null;
-      }
-      return renderPanelContent(row, tab, holmesState, analyze, cancel, panelApi, data);
-    },
-    [renderPanelContent, holmesState, analyze, cancel, data]
-  );
-
-  // Build row actions with Holmes integration
-  const getRowActions = useCallback(
-    (row: ResourceRow, api?: PanelApi) => {
-      const actions: RowAction[] = [];
-      const key = `${row.namespace || ''}/${row.name}`;
-      const isAnalyzing = holmesState.loading && holmesState.key === key;
-      const panelApi = api ?? {};
-
-      // Holmes action (if analysis function provided)
-      if (hasHolmes) {
-        actions.push({
-          label: isAnalyzing ? 'Analyzing...' : 'Ask Holmes',
-          icon: '🧠',
-          disabled: isAnalyzing,
-          onClick: () => {
-            analyze(row.namespace, row.name);
-            panelApi?.openDetails?.('holmes');
-          },
+    const analyzeHolmesStream = useCallback(
+      async (namespace: string, name: string): Promise<void> => {
+        const key = `${namespace}/${name}`;
+        await analyzeStream(key, async (streamId) => {
+          await (analyzeFn as (...args: string[]) => Promise<void>)(namespace, name, streamId);
         });
-      }
+      },
+      [analyzeFn, analyzeStream]
+    );
+
+    const analyze = useCallback(
+      async (namespaceOrRow: string | ResourceRow, name?: string): Promise<{ ok: boolean; error?: string }> => {
+        let namespace: string;
+        let resourceName: string;
+        
+        if (typeof namespaceOrRow === 'string') {
+          namespace = namespaceOrRow;
+          resourceName = name ?? '';
+        } else {
+          namespace = namespaceOrRow.namespace ?? '';
+          resourceName = namespaceOrRow.name ?? '';
+        }
+        
+        try {
+          await analyzeHolmesStream(namespace, resourceName);
+          return { ok: true };
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return { ok: false, error: message };
+        }
+      },
+      [analyzeHolmesStream]
+    );
+
+    // Wrapper for panel content rendering that injects Holmes state and full data
+    const renderPanelContentWithHolmes = useCallback(
+      (row: ResourceRow, tab: string, panelApi?: PanelApi) => {
+        if (typeof renderPanelContent !== 'function') {
+          return null;
+        }
+        return renderPanelContent(row, tab, holmesState, analyzeHolmesStream, cancel, panelApi, data);
+      },
+      [renderPanelContent, holmesState, analyzeHolmesStream, cancel, data]
+    );
+
+   // Build row actions with Holmes integration
+   const getRowActions = useCallback(
+     (row: ResourceRow, api?: PanelApi) => {
+       const actions: RowAction[] = [];
+       const key = `${row.namespace || ''}/${row.name}`;
+       const isAnalyzing = holmesState.loading && holmesState.key === key;
+       const panelApi = api ?? {};
+
+       // Holmes action (if analysis function provided)
+       if (hasHolmes) {
+         actions.push({
+           label: isAnalyzing ? 'Analyzing...' : 'Ask Holmes',
+           icon: '🧠',
+           disabled: isAnalyzing,
+             onClick: () => {
+               analyzeHolmesStream(row.namespace ?? '', row.name ?? '');
+               panelApi?.openDetails?.('holmes');
+             },
+         });
+       }
 
       // Restart action
       if (typeof onRestart === 'function') {

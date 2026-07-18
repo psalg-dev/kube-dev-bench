@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 7: Route k8s workloads to config + useHolmesStream
 
