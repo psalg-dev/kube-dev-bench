@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-refresh/only-export-components */
 /**
  * Pod Resource Configuration
  *
@@ -16,6 +14,7 @@ import ConsoleTab from '../../layout/bottompanel/ConsoleTab';
 import PortForwardOutput from '../../k8s/resources/pods/PortForwardOutput';
 import PodFilesTab from '../../k8s/resources/pods/PodFilesTab';
 import PodMountsTab from '../../k8s/resources/pods/PodMountsTab';
+import StopPortForwardDialog from '../../k8s/resources/pods/StopPortForwardDialog';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
 import StatusBadge from '../../components/StatusBadge';
 import { UptimeCell } from '../../components/DataTable/UptimeCell';
@@ -30,8 +29,6 @@ import type {
   RowAction,
   PanelApi,
 } from '../../types/resourceConfigs';
-
-const AppAPIAny = AppAPI as any;
 
 /**
  * PortsCell — shows pod ports with active port-forward indicators
@@ -115,14 +112,14 @@ export const podTabs: ResourceTab[] = [
 /**
  * Normalize pod data from API response
  */
-export const normalizePod = (pod: Record<string, any> | null | undefined, fallbackNamespace?: string): ResourceRow => ({
-  name: pod?.name ?? pod?.Name,
-  namespace: pod?.namespace ?? pod?.Namespace ?? fallbackNamespace,
-  restarts: pod?.restarts ?? pod?.Restarts ?? 0,
-  status: pod?.status ?? pod?.Status ?? pod?.phase ?? pod?.Phase ?? '-',
-  ports: pod?.ports ?? pod?.Ports ?? [],
-  startTime: pod?.startTime ?? pod?.StartTime ?? pod?.startedAt ?? pod?.StartedAt ?? null,
-  created: pod?.created ?? pod?.Created ?? null,
+export const normalizePod = (pod: Record<string, unknown> | null | undefined, fallbackNamespace?: string): ResourceRow => ({
+  name: (pod?.name ?? pod?.Name) as string | undefined,
+  namespace: (pod?.namespace ?? pod?.Namespace ?? fallbackNamespace) as string | undefined,
+  restarts: (pod?.restarts ?? pod?.Restarts ?? 0) as number,
+  status: (pod?.status ?? pod?.Status ?? pod?.phase ?? pod?.Phase ?? '-') as string,
+  ports: (pod?.ports ?? pod?.Ports ?? []) as number[],
+  startTime: (pod?.startTime ?? pod?.StartTime ?? pod?.startedAt ?? pod?.StartedAt) as string | null,
+  created: (pod?.created ?? pod?.Created) as string | null,
 });
 
 /**
@@ -151,7 +148,7 @@ export function getPodRowActions(row: ResourceRow, api?: PanelApi): RowAction[] 
             showError(`Invalid port: ${input}`);
             return;
           }
-          await AppAPIAny.StopPortForward(row.namespace, row.name, p);
+          await AppAPI.StopPortForward(row.namespace, row.name, p);
           showSuccess(`Stopped port-forward for ${row.name}:${p}`);
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
@@ -200,10 +197,12 @@ export const renderPodPanelContent: RenderPanelContent = (
   }
 
   if (tab === 'portforward') {
-    const { forwardLocalPort, forwardRemotePort } = (options ?? {}) as {
-      forwardLocalPort?: number;
-      forwardRemotePort?: number;
-    };
+    const forwardLocalPort = options && typeof (options as Record<string, unknown>).forwardLocalPort === 'number'
+      ? (options as Record<string, unknown>).forwardLocalPort
+      : undefined;
+    const forwardRemotePort = options && typeof (options as Record<string, unknown>).forwardRemotePort === 'number'
+      ? (options as Record<string, unknown>).forwardRemotePort
+      : undefined;
     if (typeof forwardLocalPort !== 'number' || typeof forwardRemotePort !== 'number') {
       return (
         <div style={{ padding: 16, color: 'var(--gh-text-muted, #8b949e)' }}>
@@ -267,8 +266,8 @@ export const podConfig: ResourceConfig = {
   normalize: normalizePod,
   renderPanelContent: renderPodPanelContent,
   getRowActions: getPodRowActions,
-  onRestart: async (name: string, namespace?: string) => AppAPIAny.RestartPod(namespace ?? '', name),
-  onDelete: async (name: string, namespace?: string) => AppAPIAny.DeletePod(namespace ?? '', name),
+  onRestart: async (name: string, namespace?: string) => AppAPI.RestartPod(namespace ?? '', name),
+  onDelete: async (name: string, namespace?: string) => AppAPI.DeletePod(namespace ?? '', name),
   title: 'Pods',
   createKind: 'pod',
   tableTestId: 'pods-table',

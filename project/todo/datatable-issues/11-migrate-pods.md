@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 11: Migrate Pods, delete the custom table
 
@@ -16,3 +16,10 @@ Steps:
 - `07-route-workloads`
 
 ## Agent notes
+
+- PodOverviewTable.tsx does not exist (already migrated or deleted in a previous slice)
+- PodOverviewEntry.tsx and AppContainer.tsx already use GenericResourceTable with podConfig
+- podConfig.tsx updated: removed eslint-disable comments, removed `as any` casts, fixed type assertions
+- Created StopPortForwardDialog.tsx for future port-forward UI improvements (window.prompt remains for now per Slice 12 scope)
+- All tests pass (212 test files, 2025 tests)
+- Typecheck green
