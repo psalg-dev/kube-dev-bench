@@ -196,8 +196,9 @@ export const swarmStackConfig: ResourceConfig = {
   tabCountsFetcher: fetchSwarmStackTabCounts,
   enableTabCounts: true,
   clusterScoped: true,
-  createPlatform: 'swarm',
-  createKind: 'stack',
-  createButtonTitle: 'Deploy stack (Compose YAML)',
-  tableTestId: 'swarm-stacks-table',
+   createPlatform: 'swarm',
+   createKind: 'stack',
+   createButtonTitle: 'Deploy stack (Compose YAML)',
+   tableTestId: 'swarm-stacks-table',
+   useResourceIdInsteadOfNamespaceName: true,
 };

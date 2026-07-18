@@ -329,7 +329,8 @@ export const swarmNodeConfig: ResourceConfig = {
   holmesKeyPrefix: 'swarm',
   tabCountsFetcher: fetchSwarmNodeTabCounts,
   enableTabCounts: true,
-  createPlatform: 'swarm',
-  createKind: 'node',
-  tableTestId: 'swarm-nodes-table',
+   createPlatform: 'swarm',
+   createKind: 'node',
+   tableTestId: 'swarm-nodes-table',
+   useResourceIdInsteadOfNamespaceName: true,
 };

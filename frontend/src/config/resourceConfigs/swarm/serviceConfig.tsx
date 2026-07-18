@@ -318,8 +318,9 @@ export const swarmServiceConfig: ResourceConfig = {
   analyzeFn: AnalyzeSwarmServiceStream,
   holmesKeyPrefix: 'swarm',
   clusterScoped: true,
-  createPlatform: 'swarm',
-  createKind: 'service',
-  title: 'Swarm Services',
-  tableTestId: 'swarm-services-table',
+   createPlatform: 'swarm',
+   createKind: 'service',
+   title: 'Swarm Services',
+   tableTestId: 'swarm-services-table',
+   useResourceIdInsteadOfNamespaceName: true,
 };

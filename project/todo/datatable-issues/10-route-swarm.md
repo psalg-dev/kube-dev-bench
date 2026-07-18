@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 10: Route swarm resources to config + useHolmesStream
 
@@ -14,3 +14,4 @@ Steps:
 - `06-reskin-overview`
 
 ## Agent notes
+Fixed typecheck errors by adding `useResourceIdInsteadOfNamespaceName?: boolean` property to the `ResourceConfig` interface and updating all swarm resource config files (node, service, stack, task) to use this property.

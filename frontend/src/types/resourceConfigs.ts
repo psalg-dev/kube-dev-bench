@@ -101,4 +101,5 @@ export interface ResourceConfig {
   createHint?: string;
   tabCountsFetcher?: (_row: ResourceRow) => unknown;
   enableTabCounts?: boolean;
+  useResourceIdInsteadOfNamespaceName?: boolean;
 }
