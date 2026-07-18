@@ -1,4 +1,5 @@
 import './BulkActionBar.css';
+import type { BulkAction } from '../constants/bulkActions';
 type BulkActionBarProps = {
   selectedCount: number;
   actions?: BulkAction[];

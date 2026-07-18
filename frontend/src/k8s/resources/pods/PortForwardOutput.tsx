@@ -70,7 +70,7 @@ export default function PortForwardOutput({ namespace, podName, localPort, remot
 
 	const handleStop = async () => {
 		try {
-			const stop = (window as unknown)?.go?.main?.App?.StopPortForward;
+			const stop = window.go?.main?.App?.StopPortForward;
 			if (typeof stop === 'function') {
 				await stop(namespace, podName, localPort);
 			}

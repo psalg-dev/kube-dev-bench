@@ -33,7 +33,7 @@ describe('ResourceCountsProvider RBAC normalization', () => {
   beforeEach(() => {
     getResourceCounts.mockClear();
     onCallback.handler = undefined;
-    (window as unknown).go = { main: { App: { GetResourceCounts: vi.fn() } } };
+    window.go = { main: { App: { GetResourceCounts: vi.fn() } } };
   });
 
   it('normalizes uppercase RBAC keys to camelCase and updates on events', async () => {
@@ -43,7 +43,7 @@ describe('ResourceCountsProvider RBAC normalization', () => {
 
     await waitFor(() => expect(result.current.counts).toBeTruthy());
 
-    const counts = result.current.counts as unknown;
+    const counts = result.current.counts as Record<string, number>;
     expect(counts.roles).toBe(2);
     expect(counts.clusterroles).toBe(3);
     expect(counts.rolebindings).toBe(4);
@@ -55,7 +55,7 @@ describe('ResourceCountsProvider RBAC normalization', () => {
     }
 
     await waitFor(() => {
-      const updated = result.current.counts as unknown;
+      const updated = result.current.counts as Record<string, number>;
       expect(updated.roles).toBe(7);
       expect(updated.clusterroles).toBe(0);
       expect(updated.rolebindings).toBe(1);

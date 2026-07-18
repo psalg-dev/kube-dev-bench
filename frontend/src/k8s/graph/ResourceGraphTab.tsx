@@ -60,9 +60,9 @@ export function ResourceGraphTab({ namespace, kind, name }: ResourceGraphTabProp
       return true;
     };
 
-    const filteredNodes = graph.nodes.filter((node: unknown) => shouldKeepNode(node.kind || ''));
-    const allowedNodeIds = new Set(filteredNodes.map((node: unknown) => node.id));
-    const filteredEdges = graph.edges.filter((edge: unknown) => allowedNodeIds.has(edge.source) && allowedNodeIds.has(edge.target));
+    const filteredNodes = graph.nodes.filter((node) => shouldKeepNode(node.kind || ''));
+    const allowedNodeIds = new Set(filteredNodes.map((node) => node.id));
+    const filteredEdges = graph.edges.filter((edge) => allowedNodeIds.has(edge.source) && allowedNodeIds.has(edge.target));
 
     return {
       ...graph,

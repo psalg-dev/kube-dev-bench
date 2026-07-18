@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
 import StatusBadge from '../../../components/StatusBadge';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 
@@ -9,7 +10,7 @@ type DeploymentPodsTabProps = {
 };
 
 export default function DeploymentPodsTab({ namespace, deploymentName }: DeploymentPodsTabProps) {
-	const [detail, setDetail] = useState<unknown | null>(null);
+	const [detail, setDetail] = useState<app.DeploymentDetail | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [activeSection, setActiveSection] = useState<'pods' | 'conditions' | 'revisions'>('pods');
@@ -107,7 +108,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }: Deploym
 								</tr>
 							</thead>
 							<tbody>
-								{detail.pods.map((pod: unknown, idx: number) => (
+								{detail.pods.map((pod, idx) => (
 									<tr key={pod.name || idx}>
 										<td>{pod.name}</td>
 										<td>
@@ -142,7 +143,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }: Deploym
 								</tr>
 							</thead>
 							<tbody>
-								{detail.conditions.map((cond: unknown, idx: number) => (
+								{detail.conditions.map((cond, idx) => (
 									<tr key={idx}>
 										<td>{cond.type}</td>
 										<td>
@@ -182,7 +183,7 @@ export default function DeploymentPodsTab({ namespace, deploymentName }: Deploym
 								</tr>
 							</thead>
 							<tbody>
-								{detail.revisions.map((rev: unknown, idx: number) => (
+								{detail.revisions.map((rev, idx) => (
 									<tr key={idx} style={{ backgroundColor: rev.isCurrent ? '#23863610' : 'transparent' }}>
 										<td style={{ fontWeight: rev.isCurrent ? 600 : 400 }}>
 											#{rev.revision}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import { GetPodEvents } from '../../../../wailsjs/go/main/App';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
@@ -9,7 +10,7 @@ type PodEventsTabProps = {
 };
 
 export default function PodEventsTab({ namespace, podName }: PodEventsTabProps) {
-	const [events, setEvents] = useState<unknown[]>([]);
+	const [events, setEvents] = useState<app.EventInfo[]>([]);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 

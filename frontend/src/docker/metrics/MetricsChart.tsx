@@ -1,13 +1,13 @@
-type MetricsChartProps = {
-  points?: unknown[];
+type MetricsChartProps<TPoint> = {
+  points?: TPoint[];
   valueKey?: string;
-  valueFn?: (_point: unknown) => number;
+  valueFn?: (_point: TPoint) => number;
   width?: number;
   height?: number;
   color?: string;
   emptyText?: string;
 };
-export default function MetricsChart({
+export default function MetricsChart<TPoint>({
   points,
   valueKey,
   valueFn,
@@ -15,12 +15,12 @@ export default function MetricsChart({
   height = 64,
   color = '#58a6ff',
   emptyText = 'No data yet',
-}: MetricsChartProps) {
+}: MetricsChartProps<TPoint>) {
   const data = Array.isArray(points) ? points : [];
   const values = data
     .map((p) => {
       if (typeof valueFn === 'function') return Number(valueFn(p));
-      return Number((p as unknown)?.[valueKey as string] ?? 0);
+      return Number((p as Record<string, unknown>)?.[valueKey as string] ?? 0);
     })
     .filter((v) => Number.isFinite(v));
 

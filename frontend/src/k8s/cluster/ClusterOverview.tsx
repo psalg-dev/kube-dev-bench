@@ -33,8 +33,8 @@ function toNumber(value: unknown, fallback = 0) {
 
 export default function ClusterOverview({ initialTab = TAB_STATS }: ClusterOverviewProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
-  const { selectedContext, selectedNamespaces } = useClusterState() as unknown;
-  const { counts, lastUpdated } = useResourceCounts() as unknown;
+  const { selectedContext, selectedNamespaces } = useClusterState();
+  const { counts, lastUpdated } = useResourceCounts();
 
   const namespaces = Array.isArray(selectedNamespaces) ? selectedNamespaces : [];
   const primaryNamespace = namespaces[0] || '';

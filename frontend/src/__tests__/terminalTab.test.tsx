@@ -78,7 +78,7 @@ describe('TerminalTab', () => {
     terminalState.instances.length = 0;
     runtimeState.handlers.clear();
     runtimeState.offFns.length = 0;
-    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue('session-123');
+    vi.spyOn(globalThis.crypto, 'randomUUID').mockReturnValue('session-123' as ReturnType<typeof crypto.randomUUID>);
     appApiMocks.StartShellSession.mockResolvedValue(undefined);
     appApiMocks.StartPodExecSession.mockResolvedValue(undefined);
     appApiMocks.StartSwarmTaskExecSession.mockResolvedValue(undefined);

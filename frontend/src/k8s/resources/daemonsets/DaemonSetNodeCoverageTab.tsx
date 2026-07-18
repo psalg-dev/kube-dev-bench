@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 
 type DaemonSetNodeCoverageTabProps = {
@@ -7,7 +8,7 @@ type DaemonSetNodeCoverageTabProps = {
 };
 
 export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: DaemonSetNodeCoverageTabProps) {
-	const [data, setData] = useState<unknown>(null);
+	const [data, setData] = useState<app.DaemonSetNodeCoverage | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -21,7 +22,7 @@ export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: D
 				const res = await AppAPI.GetDaemonSetNodeCoverage(namespace, daemonSetName);
 				if (!cancelled) setData(res);
 			} catch (e: unknown) {
-				if (!cancelled) setError(e?.message || String(e));
+				if (!cancelled) setError((e as Error)?.message || String(e));
 			} finally {
 				if (!cancelled) setLoading(false);
 			}
@@ -38,7 +39,7 @@ export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: D
 		return <div style={{ padding: 16, color: '#f85149' }}>Error: {error}</div>;
 	}
 
-	const nodes = data?.nodes || data?.Nodes || [];
+	const nodes = data?.nodes || [];
 
 	return (
 		<div style={{ padding: 12, overflow: 'auto', height: '100%' }}>
@@ -56,12 +57,12 @@ export default function DaemonSetNodeCoverageTab({ namespace, daemonSetName }: D
 						</tr>
 					</thead>
 					<tbody>
-						{nodes.map((n: unknown, idx: number) => {
-							const node = n.node ?? n.Node;
-							const hasPod = !!(n.hasPod ?? n.HasPod);
-							const podName = n.podName ?? n.PodName;
-							const podStatus = n.podStatus ?? n.PodStatus;
-							const ready = n.ready ?? n.Ready;
+						{nodes.map((n, idx) => {
+							const node = n.node;
+							const hasPod = !!n.hasPod;
+							const podName = n.podName;
+							const podStatus = n.podStatus;
+							const ready = n.ready;
 							return (
 								<tr key={node || idx}>
 									<td>{node}</td>

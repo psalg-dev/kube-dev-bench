@@ -48,8 +48,8 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }: Ingre
 
 			try {
 				// Try to get ingress detail if API exists
-				if (typeof (AppAPI as unknown).GetIngressDetail === 'function') {
-					const result = await (AppAPI as unknown).GetIngressDetail(namespace, ingressName);
+				if (typeof AppAPI.GetIngressDetail === 'function') {
+					const result = await AppAPI.GetIngressDetail(namespace ?? '', ingressName ?? '');
 					setDetail(result);
 				} else {
 					// Fallback: use the hosts prop to build basic rules
@@ -61,7 +61,7 @@ export default function IngressRulesTab({ namespace, ingressName, hosts }: Ingre
 					});
 				}
 			} catch (err: unknown) {
-				setError(err?.message || String(err));
+				setError((err as Error)?.message || String(err));
 			} finally {
 				setLoading(false);
 			}

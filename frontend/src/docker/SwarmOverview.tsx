@@ -12,7 +12,7 @@ type SwarmOverviewProps = {
 };
 
 export default function SwarmOverview({ initialTab = TAB_METRICS }: SwarmOverviewProps) {
-  const swarm = useSwarmState() as unknown;
+  const swarm = useSwarmState();
   const [activeTab, setActiveTab] = useState(initialTab);
 
   useEffect(() => {

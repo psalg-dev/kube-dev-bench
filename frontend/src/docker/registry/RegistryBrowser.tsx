@@ -168,10 +168,10 @@ export default function RegistryBrowser({ registryName, registryType = '' }: Reg
   }, [defaultSearchSortKey, searchColumns]);
 
   const sortedSearchResults = useMemo(() => {
-    return sortRows(searchResults, searchSort.key, searchSort.direction, (row: unknown, key: string) => {
+    return sortRows(searchResults, searchSort.key, searchSort.direction, (row: SearchResult, key: string) => {
       const fullName = (row.fullName || (row.namespace && row.name ? `${row.namespace}/${row.name}` : '') || row.name || '').trim();
       if (key === 'fullName') return fullName;
-      return row?.[key];
+      return (row as Record<string, unknown>)?.[key];
     });
   }, [searchResults, searchSort]);
 

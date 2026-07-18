@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getResourceGraph } from '../utils/graphApi';
+import type { k8s_graph } from '../../../../wailsjs/go/models';
 
 export interface ResourceGraphHook {
-  graph: unknown | null;
+  graph: k8s_graph.ResourceGraph | null;
   loading: boolean;
   error: string | null;
   refresh: () => void;
@@ -22,7 +23,7 @@ export function useResourceGraph(
   name: string,
   depth: number = 2
 ): ResourceGraphHook {
-  const [graph, setGraph] = useState<unknown | null>(null);
+  const [graph, setGraph] = useState<k8s_graph.ResourceGraph | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 

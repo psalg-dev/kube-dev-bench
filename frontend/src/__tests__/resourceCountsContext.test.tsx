@@ -31,7 +31,7 @@ vi.mock('../k8s/resources/kubeApi', () => ({
 
 // Expose a fake Wails binding on window so the provider's waitForWailsBinding check passes
 beforeAll(() => {
-  (window as unknown).go = {
+  window.go = {
     main: {
       App: {
         GetResourceCounts: () => Promise.resolve({}),
@@ -41,7 +41,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  delete (window as unknown).go;
+  delete window.go;
 });
 
 function Probe() {

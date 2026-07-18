@@ -463,10 +463,10 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
   const testConnection = useCallback(async (): Promise<HolmesConnectionStatus> => {
     try {
       const status = await TestHolmesConnection();
-      if ((status as unknown).connected) {
+      if (status.connected) {
         showSuccess('Holmes connection successful');
       } else {
-        showError('Holmes connection failed: ' + ((status as unknown).error || 'Unknown error'));
+        showError('Holmes connection failed: ' + (status.error || 'Unknown error'));
       }
       return status;
     } catch (err) {
@@ -494,7 +494,7 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
       const result = await DeployHolmesGPT(request);
       onStatusUpdate?.(result);
 
-      if ((result as unknown).phase === 'deployed') {
+      if (result.phase === 'deployed') {
         showSuccess('Holmes deployed successfully!');
         await loadConfig();
       }
@@ -511,11 +511,11 @@ export function HolmesProvider({ children }: { children: React.ReactNode }) {
     try {
       showNotification('Reconnecting to Holmes...', { type: 'warning', duration: 2000 });
       const status = await ReconnectHolmes();
-      if ((status as unknown).connected) {
+      if (status.connected) {
         showSuccess('Holmes reconnected successfully');
         await loadConfig();
       } else {
-        showError('Holmes reconnection failed: ' + ((status as unknown).error || 'Unknown error'));
+        showError('Holmes reconnection failed: ' + (status.error || 'Unknown error'));
       }
       return status;
     } catch (err) {

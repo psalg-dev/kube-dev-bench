@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SwarmResourceCountsContextValue } from '../docker/SwarmResourceCountsContext';
 import type { SwarmStateContextValue } from '../docker/SwarmStateContext';
+import type { ClusterStateContextValue } from '../state/ClusterStateContext';
 
 // Mock all heavy component imports used by main-content
 const Stub = () => null;
@@ -243,7 +244,7 @@ describe('main-content', () => {
     const resourceCountsValue = { counts: { deployments: 5 }, lastUpdated: 456 };
 
     renderResourceMainContent(['ns1'], 'cluster', {
-      clusterState: clusterStateValue as unknown,
+      clusterState: clusterStateValue as ClusterStateContextValue,
       resourceCounts: resourceCountsValue,
     });
 

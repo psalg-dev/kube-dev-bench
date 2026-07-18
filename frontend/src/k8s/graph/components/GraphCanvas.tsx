@@ -1,6 +1,7 @@
 import {
     Background,
     Controls,
+    Edge,
     EdgeTypes,
     MiniMap,
     Node,
@@ -19,16 +20,16 @@ import './GraphCanvas.css';
 import { ResourceNode } from './nodes/ResourceNode';
 
 const nodeTypes: NodeTypes = {
-  resourceNode: ResourceNode as unknown
+  resourceNode: ResourceNode
 };
 
 const edgeTypes: EdgeTypes = {
-  relationshipEdge: RelationshipEdge as unknown
+  relationshipEdge: RelationshipEdge
 };
 
 export interface GraphCanvasProps {
   nodes: Node[];
-  edges: unknown[];
+  edges: Edge[];
   loading?: boolean;
   error?: string | null;
   onRefresh?: () => void;

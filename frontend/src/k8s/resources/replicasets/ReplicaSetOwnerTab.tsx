@@ -38,7 +38,7 @@ export default function ReplicaSetOwnerTab({ namespace, replicaSetName }: Replic
 					setOwner(null);
 				}
 			} catch (err: unknown) {
-				setError(err?.message || String(err));
+				setError((err as Error)?.message || String(err));
 				setOwner(null);
 			} finally {
 				setLoading(false);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { showError, showSuccess } from '../../../notification';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
@@ -9,7 +10,7 @@ type DeploymentRolloutTabProps = {
 };
 
 export default function DeploymentRolloutTab({ namespace, deploymentName }: DeploymentRolloutTabProps) {
-	const [detail, setDetail] = useState<unknown | null>(null);
+	const [detail, setDetail] = useState<app.DeploymentDetail | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 	const [busyRevision, setBusyRevision] = useState<number | null>(null);
@@ -22,7 +23,7 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }: Depl
 			const data = await AppAPI.GetDeploymentDetail(namespace, deploymentName);
 			setDetail(data);
 		} catch (e: unknown) {
-			setError(e?.message || 'Failed to fetch deployment details');
+			setError((e as Error)?.message || 'Failed to fetch deployment details');
 			setDetail(null);
 		} finally {
 			setLoading(false);
@@ -42,7 +43,7 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }: Depl
 			showSuccess(`Rollback triggered for Deployment '${deploymentName}' to revision #${revision}`);
 			await fetchDetail();
 		} catch (e: unknown) {
-			showError(`Failed to rollback Deployment '${deploymentName}': ${e?.message || e}`);
+			showError(`Failed to rollback Deployment '${deploymentName}': ${(e as Error)?.message || e}`);
 		} finally {
 			setBusyRevision(null);
 		}
@@ -86,7 +87,7 @@ export default function DeploymentRolloutTab({ namespace, deploymentName }: Depl
 						</tr>
 					</thead>
 					<tbody>
-						{revisions.map((rev: unknown, idx: number) => {
+						{revisions.map((rev, idx) => {
 							const isCurrent = !!rev.isCurrent;
 							const revision = Number(rev.revision);
 							const rollbackDisabled = isCurrent || busyRevision !== null;

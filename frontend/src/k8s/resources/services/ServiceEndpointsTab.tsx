@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
 import './ServiceEndpointsTab.css';
@@ -9,7 +10,7 @@ type ServiceEndpointsTabProps = {
 };
 
 export default function ServiceEndpointsTab({ namespace, serviceName }: ServiceEndpointsTabProps) {
-	const [endpoints, setEndpoints] = useState<unknown[]>([]);
+	const [endpoints, setEndpoints] = useState<app.ServiceEndpoint[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export default function ServiceEndpointsTab({ namespace, serviceName }: ServiceE
 	const sortedEndpoints = useMemo(() => {
 		return sortRows(endpoints, sortState.key, sortState.direction, (row, key) => {
 			if (key === 'status') return row?.ready ? 'Ready' : 'Not Ready';
-			return row?.[key];
+			return row?.[key as keyof typeof row];
 		});
 	}, [endpoints, sortState]);
 
@@ -51,7 +52,7 @@ export default function ServiceEndpointsTab({ namespace, serviceName }: ServiceE
 				}
 			} catch (err: unknown) {
 				if (!cancelled) {
-					setError(err?.message || 'Failed to load endpoints');
+					setError((err as Error)?.message || 'Failed to load endpoints');
 					setEndpoints([]);
 				}
 			} finally {

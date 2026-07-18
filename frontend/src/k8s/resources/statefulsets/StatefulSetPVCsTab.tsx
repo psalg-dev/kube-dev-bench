@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime';
 import StatusBadge from '../../../components/StatusBadge';
@@ -14,7 +15,7 @@ type StatefulSetPVCsTabProps = {
  * Shows PVCs associated with a StatefulSet.
  */
 export default function StatefulSetPVCsTab({ namespace, statefulSetName }: StatefulSetPVCsTabProps) {
-	const [pvcs, setPvcs] = useState<unknown[]>([]);
+	const [pvcs, setPvcs] = useState<app.StatefulSetPVCInfo[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +29,7 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }: State
 			const result = await AppAPI.GetStatefulSetDetail(namespace, statefulSetName);
 			setPvcs(result?.pvcs || []);
 		} catch (err: unknown) {
-			setError(err?.message || String(err));
+			setError((err as Error)?.message || String(err));
 			if (isInitial) setPvcs([]);
 		} finally {
 			if (isInitial) setLoading(false);
@@ -165,7 +166,7 @@ export default function StatefulSetPVCsTab({ namespace, statefulSetName }: State
 						</tr>
 					</thead>
 					<tbody>
-						{sortedPvcs.map((pvc: unknown, idx: number) => {
+						{sortedPvcs.map((pvc, idx) => {
 							return (
 								<tr key={idx} className="pvc-row">
 									<td className="pvc-name">{pvc.name || '-'}</td>

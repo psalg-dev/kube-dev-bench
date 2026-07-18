@@ -30,14 +30,17 @@ vi.mock('../k8s/graph/utils/graphApi', () => ({
   })),
 }));
 
+type MockGraphNode = { id: string; kind?: string; name?: string; namespace?: string; status?: string; group?: string; metadata?: Record<string, unknown>; dimmed?: boolean };
+type MockGraphEdge = { id: string; source: string; target: string; type?: string; label?: string; dimmed?: boolean };
+
 vi.mock('../k8s/graph/hooks/useGraphLayout', () => ({
-  useGraphLayout: (graphData: unknown) => {
+  useGraphLayout: (graphData: { nodes?: MockGraphNode[]; edges?: MockGraphEdge[] } | null | undefined) => {
     if (!graphData?.nodes || !graphData?.edges) {
       return { nodes: [], edges: [] };
     }
 
     return {
-      nodes: graphData.nodes.map((node: unknown, index: number) => ({
+      nodes: graphData.nodes.map((node, index) => ({
         id: node.id,
         position: { x: 10 * index, y: 10 * index },
         data: {
@@ -50,7 +53,7 @@ vi.mock('../k8s/graph/hooks/useGraphLayout', () => ({
           dimmed: Boolean(node.dimmed),
         },
       })),
-      edges: graphData.edges.map((edge: unknown) => ({
+      edges: graphData.edges.map((edge) => ({
         id: edge.id,
         source: edge.source,
         target: edge.target,
@@ -65,7 +68,7 @@ vi.mock('../k8s/graph/hooks/useGraphLayout', () => ({
 }));
 
 vi.mock('../k8s/graph/components/GraphCanvas', () => ({
-  GraphCanvas: ({ nodes, edges }: { nodes: unknown[]; edges: unknown[] }) => {
+  GraphCanvas: ({ nodes, edges }: { nodes: Array<{ data?: { dimmed?: boolean } }>; edges: Array<{ data?: { dimmed?: boolean } }> }) => {
     const dimmedNodes = nodes.filter((node) => node.data?.dimmed).length;
     const dimmedEdges = edges.filter((edge) => edge.data?.dimmed).length;
     return (

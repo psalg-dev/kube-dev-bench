@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import StatusBadge from '../../../components/StatusBadge';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
@@ -9,7 +10,7 @@ type JobPodsTabProps = {
 };
 
 export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
-	const [detail, setDetail] = useState<unknown | null>(null);
+	const [detail, setDetail] = useState<app.JobDetail | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -140,7 +141,7 @@ export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
 					</tr>
 				</thead>
 				<tbody>
-					{sortedPods.map((pod: unknown, idx: number) => (
+					{sortedPods.map((pod, idx) => (
 						<tr key={pod.name || idx}>
 							<td>{pod.name}</td>
 							<td>
@@ -188,7 +189,7 @@ export default function JobPodsTab({ namespace, jobName }: JobPodsTabProps) {
 							</tr>
 						</thead>
 						<tbody>
-							{sortedConditions.map((cond: unknown, idx: number) => (
+							{sortedConditions.map((cond, idx) => (
 								<tr key={idx}>
 									<td>{cond.type}</td>
 									<td>

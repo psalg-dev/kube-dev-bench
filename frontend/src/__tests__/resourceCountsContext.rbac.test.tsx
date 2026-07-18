@@ -30,13 +30,13 @@ vi.mock('../k8s/resources/kubeApi', () => ({
 
 // Expose fake Wails binding for waitForWailsBinding
 beforeAll(() => {
-  (window as unknown).go = { main: { App: { GetResourceCounts: () => Promise.resolve({}) } } };
+  window.go = { main: { App: { GetResourceCounts: () => Promise.resolve({}) } } };
 });
-afterAll(() => { delete (window as unknown).go; });
+afterAll(() => { delete window.go; });
 
 function Probe() {
   const { counts, lastUpdated } = useResourceCounts();
-  return <pre data-testid="counts">{JSON.stringify({ counts, lastUpdated })}</pre> as unknown;
+  return <pre data-testid="counts">{JSON.stringify({ counts, lastUpdated })}</pre>;
 }
 
 describe('ResourceCountsContext RBAC updates', () => {

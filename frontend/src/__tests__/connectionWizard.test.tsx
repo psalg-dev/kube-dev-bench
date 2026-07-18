@@ -31,7 +31,7 @@ const mockTestHook = vi.fn();
 const mockSelectHookScript = vi.fn();
 
 // Wails runtime EventsOn mock (ConnectionsStateContext subscribes to hook events)
-const mockEventsOn = vi.fn(() => () => {});
+const mockEventsOn = vi.fn((..._args: unknown[]) => () => {});
 vi.mock('../../wailsjs/go/main/App', () => ({
   GetKubeConfigs: (...args: unknown[]) => mockGetKubeConfigs(...args),
   SelectKubeConfigFile: (...args: unknown[]) => mockSelectKubeConfigFile(...args),

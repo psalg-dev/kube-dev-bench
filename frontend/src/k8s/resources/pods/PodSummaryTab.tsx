@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { GetPodEvents, GetPodEventsLegacy, GetPodSummary } from '../../../../wailsjs/go/main/App';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App.js';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime';
 import ResourceActions from '../../../components/ResourceActions';
@@ -14,11 +15,11 @@ type PodSummaryTabProps = {
 };
 
 export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps) {
-	const [data, setData] = useState<unknown | null>(null);
+	const [data, setData] = useState<app.PodSummary | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	// Events panel state
-	const [events, setEvents] = useState<unknown[]>([]);
+	const [events, setEvents] = useState<app.EventInfo[]>([]);
 	const [eventsLoading, setEventsLoading] = useState(false);
 	const [eventsError, setEventsError] = useState<string | null>(null);
 
@@ -42,7 +43,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 		setEventsLoading(true);
 		setEventsError(null);
 		try {
-			let res: unknown[] = [];
+			let res: app.EventInfo[] = [];
 			if (ns !== undefined) {
 				try {
 					res = await GetPodEvents(ns || '', podName);
@@ -143,7 +144,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 	// Handler for restart (no UI side-effects; ResourceActions shows notifications)
 	const handleRestart = async (name: string, ns?: string) => {
 		if (typeof AppAPI.RestartPod !== 'function') throw new Error('RestartPod API unavailable');
-		const resolvedNs = ns ?? namespace ?? data?.namespace ?? data?.Namespace ?? '';
+		const resolvedNs = ns ?? namespace ?? data?.namespace ?? '';
 		if (!resolvedNs) throw new Error('Namespace unavailable for restart');
 		await AppAPI.RestartPod(resolvedNs, name);
 		// refresh summary after restart
@@ -152,7 +153,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 	// Handler for delete (two-step confirm handled by ResourceActions)
 	const handleDelete = async (name: string, ns?: string) => {
 		if (typeof AppAPI.DeletePod !== 'function') throw new Error('DeletePod API unavailable');
-		const resolvedNs = ns ?? namespace ?? data?.namespace ?? data?.Namespace ?? '';
+		const resolvedNs = ns ?? namespace ?? data?.namespace ?? '';
 		if (!resolvedNs) throw new Error('Namespace unavailable for delete');
 		await AppAPI.DeletePod(resolvedNs, name);
 	};
@@ -160,14 +161,13 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 	return (
 		<div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 			<SummaryTabHeader
-				_hideTitle
 				name={podName}
-				labels={data?.labels || data?.Labels || data?.metadata?.labels}
+				labels={data?.labels}
 				actions={
 					<ResourceActions
 						resourceType="Pod"
 						name={podName}
-						namespace={data?.namespace || data?.Namespace || ''}
+						namespace={data?.namespace || ''}
 						onRestart={handleRestart}
 						onDelete={handleDelete}
 						disabled={!data}
@@ -215,7 +215,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 										<div>
 											{data.ports && data.ports.length > 0 ? (
 												<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-													{data.ports.map((port: string, i: number) => (
+													{data.ports.map((port, i) => (
 														<span key={i} style={{ background: 'rgba(46,160,67,0.15)', border: '1px solid #30363d', padding: '2px 6px', borderRadius: 0, color: '#3fb950' }}>
 															{port}
 														</span>
@@ -238,7 +238,7 @@ export default function PodSummaryTab({ podName, namespace }: PodSummaryTabProps
 										<div>
 											<div style={{ fontSize: 12, color: 'var(--gh-text-muted, #8b949e)', marginBottom: 4 }}>Init Containers</div>
 											<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-												{data.initContainers.map((ic: unknown, i: number) => {
+												{data.initContainers.map((ic, i) => {
 													const badgeStatus = getInitContainerBadgeStatus(ic.state, ic.exitCode);
 													return (
 														<div

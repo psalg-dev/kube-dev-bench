@@ -11,8 +11,8 @@ vi.mock('../docker/swarmApi', () => ({
 }));
 
 type ReactFlowProps = {
-  nodes?: unknown[];
-  onNodeClick?: (_: unknown, _node: unknown) => void;
+  nodes?: Array<{ id: string; data?: { label?: string } }>;
+  onNodeClick?: (_: unknown, _node: { id: string; data?: { label?: string } }) => void;
   children?: ReactNode;
 };
 vi.mock('@xyflow/react', () => ({

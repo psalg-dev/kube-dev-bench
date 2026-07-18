@@ -1,6 +1,6 @@
 import { Edge, Node } from '@xyflow/react';
 import { useMemo } from 'react';
-import { computeLayout, LayoutOptions } from '../utils/layoutEngine';
+import { computeLayout, GraphData, LayoutOptions } from '../utils/layoutEngine';
 
 /**
  * Hook to compute graph layout using Dagre
@@ -9,7 +9,7 @@ import { computeLayout, LayoutOptions } from '../utils/layoutEngine';
  * @returns React Flow nodes and edges with computed positions
  */
 export function useGraphLayout(
-  graphData: unknown | null,
+  graphData: GraphData | null | undefined,
   layoutOptions?: LayoutOptions
 ): { nodes: Node[]; edges: Edge[] } {
   return useMemo(() => {

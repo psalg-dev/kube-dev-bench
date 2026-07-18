@@ -113,7 +113,7 @@ groupSections.forEach((sec) => {
 });
 
 function getPodTotal(counts?: Record<string, unknown> | null) {
-  const podStatus = counts?.podStatus || counts?.PodStatus;
+  const podStatus = (counts?.podStatus || counts?.PodStatus) as Record<string, unknown> | undefined;
   const total = podStatus?.total ?? podStatus?.Total;
   return typeof total === 'number' ? total : undefined;
 }

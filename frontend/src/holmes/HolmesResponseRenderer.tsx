@@ -51,9 +51,8 @@ export function HolmesResponseRenderer({ text, response }: HolmesResponseRendere
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { inline?: boolean; children?: ReactNode }) {
       const match = /language-(\w+)/.exec(className || '');
       const codeString = String(children).replace(/\n$/, '');
-      const inline = (props as { inline?: boolean }).inline;
-      const restProps = { ...props };
-      delete (restProps as { style?: unknown }).style;
+      const { inline, style: _ignoredStyle, ...restProps } = props as React.HTMLAttributes<HTMLElement> & { inline?: boolean };
+      void _ignoredStyle;
       if (inline) {
         return (
           <code className="holmes-inline-code" {...props}>

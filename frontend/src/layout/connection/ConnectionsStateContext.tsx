@@ -566,8 +566,9 @@ export function ConnectionsStateProvider({ children, initialSelectedSection }: C
               if (Array.isArray(namespaces) && namespaces.length > 0 && !currentConfig.currentNamespace) {
                 const firstNs = namespaces[0];
                 await SetCurrentNamespace(firstNs);
-                if (window?.go?.main?.App?.SetPreferredNamespaces) {
-                  await window.go.main.App.SetPreferredNamespaces([firstNs]);
+                const setPreferred = window?.go?.main?.App?.SetPreferredNamespaces as ((_ns: string[]) => Promise<void>) | undefined;
+                if (setPreferred) {
+                  await setPreferred([firstNs]);
                 }
               }
             } catch {

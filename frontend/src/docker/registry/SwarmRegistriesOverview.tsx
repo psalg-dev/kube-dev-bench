@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { registry } from '../../../wailsjs/go/models';
 import BottomPanel from '../../layout/bottompanel/BottomPanel';
 import '../../layout/overview/OverviewTableWithPanel.css';
 import { showError, showSuccess } from '../../notification';
@@ -23,13 +24,13 @@ type RegistryRow = {
 };
 
 export default function SwarmRegistriesOverview() {
-  const [registries, setRegistries] = useState<unknown[]>([]);
+  const [registries, setRegistries] = useState<registry.RegistryConfig[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [selectedRegistry, setSelectedRegistry] = useState('');
   const [bottomOpen, setBottomOpen] = useState(false);
 
-  const swarmCounts: unknown = useSwarmResourceCounts();
+  const swarmCounts = useSwarmResourceCounts();
 
   const loadRegistries = useCallback(async () => {
     setLoading(true);

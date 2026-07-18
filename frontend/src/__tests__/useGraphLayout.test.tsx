@@ -1,7 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { useGraphLayout } from '../k8s/graph/hooks/useGraphLayout';
+import type { GraphData } from '../k8s/graph/utils/layoutEngine';
 
-function LayoutProbe({ graph }: { graph: unknown }) {
+function LayoutProbe({ graph }: { graph: GraphData | null }) {
   const { nodes, edges } = useGraphLayout(graph);
   return (
     <div>

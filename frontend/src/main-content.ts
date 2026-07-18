@@ -23,7 +23,7 @@ import ServicesOverviewTable from './k8s/resources/services/ServicesOverviewTabl
 import StatefulSetsOverviewTable from './k8s/resources/statefulsets/StatefulSetsOverviewTable';
 import { showResourceOverlay } from './resource-overlay';
 // Docker Swarm imports
-import { createElement } from 'react';
+import { createElement, type ReactElement } from 'react';
 import type { Root } from 'react-dom/client';
 import { createRoot } from 'react-dom/client';
 import SwarmRegistriesOverview from './docker/registry/SwarmRegistriesOverview';
@@ -134,247 +134,187 @@ export function renderResourceMainContent(
     options: RenderOptions = {}
 ) {
     const firstNs = Array.isArray(selectedNamespaces) && selectedNamespaces.length > 0 ? selectedNamespaces[0] : '';
-    const sections: Array<{ id: string; section: string; table: React.ComponentType<unknown>; props: Record<string, unknown> }> = [
+    const sections: Array<{ id: string; section: string; element: ReactElement }> = [
         {
             id: 'cluster-overview-react',
             section: 'cluster',
-            table: ClusterOverview,
-            props: {}
+            element: createElement(ClusterOverview, {})
         },
         {
             id: 'namespace-topology-react',
             section: 'namespace-topology',
-            table: GraphView,
-            props: { mode: 'namespace' }
+            element: createElement(GraphView, { mode: 'namespace' })
         },
         {
             id: 'storage-graph-react',
             section: 'storage-graph',
-            table: GraphView,
-            props: { mode: 'storage' }
+            element: createElement(GraphView, { mode: 'storage' })
         },
         {
             id: 'network-graph-react',
             section: 'network-graph',
-            table: GraphView,
-            props: { mode: 'network' }
+            element: createElement(GraphView, { mode: 'network' })
         },
         {
             id: 'rbac-graph-react',
             section: 'rbac-graph',
-            table: GraphView,
-            props: { mode: 'rbac' }
+            element: createElement(GraphView, { mode: 'rbac' })
         },
         {
             id: 'deployments-overview-react',
             section: 'deployments',
-            table: DeploymentsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(DeploymentsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'services-overview-react',
             section: 'services',
-            table: ServicesOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(ServicesOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'jobs-overview-react',
             section: 'jobs',
-            table: JobsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(JobsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'nodes-overview-react',
             section: 'nodes',
-            table: NodesOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(NodesOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'hpa-overview-react',
             section: 'hpa',
-            table: HPAOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(HPAOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'cronjobs-overview-react',
             section: 'cronjobs',
-            table: CronJobsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(CronJobsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'daemonsets-overview-react',
             section: 'daemonsets',
-            table: DaemonSetsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(DaemonSetsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'statefulsets-overview-react',
             section: 'statefulsets',
-            table: StatefulSetsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(StatefulSetsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'replicasets-overview-react',
             section: 'replicasets',
-            table: ReplicaSetsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(ReplicaSetsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'configmaps-overview-react',
             section: 'configmaps',
-            table: ConfigMapsOverviewTable,
-            props: {
-                namespaces: selectedNamespaces,
-                namespace: firstNs,
-                onConfigMapCreate: () => {
-                    showResourceOverlay('configmap');
-                }
-            }
+            element: createElement(ConfigMapsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'secrets-overview-react',
             section: 'secrets',
-            table: SecretsOverviewTable,
-            props: {
-                namespaces: selectedNamespaces,
-                namespace: firstNs,
-                onSecretCreate: () => {
-                    showResourceOverlay('secret');
-                }
-            }
+            element: createElement(SecretsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'ingresses-overview-react',
             section: 'ingresses',
-            table: IngressesOverviewTable,
-            props: {
-                namespaces: selectedNamespaces,
-                namespace: firstNs,
-                onIngressCreate: () => {
-                    showResourceOverlay('ingress');
-                }
-            }
+            element: createElement(IngressesOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'persistentvolumeclaims-overview-react',
             section: 'persistentvolumeclaims',
-            table: PersistentVolumeClaimsOverviewTable,
-            props: {
-                namespaces: selectedNamespaces,
-                namespace: firstNs,
-                onIngressCreate: () => {
-                    showResourceOverlay('persistentvolumeclaim');
-                }
-            }
+            element: createElement(PersistentVolumeClaimsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'persistentvolumes-overview-react',
             section: 'persistentvolumes',
-            table: PersistentVolumesOverviewTable,
-            props: { namespace: firstNs }
+            element: createElement(PersistentVolumesOverviewTable, {})
         },
         {
             id: 'helmreleases-overview-react',
             section: 'helmreleases',
-            table: HelmReleasesOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(HelmReleasesOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'roles-overview-react',
             section: 'roles',
-            table: RolesOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(RolesOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'clusterroles-overview-react',
             section: 'clusterroles',
-            table: ClusterRolesOverviewTable,
-            props: { namespace: firstNs }
+            element: createElement(ClusterRolesOverviewTable, { namespace: firstNs })
         },
         {
             id: 'rolebindings-overview-react',
             section: 'rolebindings',
-            table: RoleBindingsOverviewTable,
-            props: { namespaces: selectedNamespaces, namespace: firstNs }
+            element: createElement(RoleBindingsOverviewTable, { namespaces: selectedNamespaces, namespace: firstNs })
         },
         {
             id: 'clusterrolebindings-overview-react',
             section: 'clusterrolebindings',
-            table: ClusterRoleBindingsOverviewTable,
-            props: { namespace: firstNs }
+            element: createElement(ClusterRoleBindingsOverviewTable, { namespace: firstNs })
         },
         // Docker Swarm sections
         {
             id: 'swarm-overview-react',
             section: 'swarm-overview',
-            table: SwarmOverview,
-            props: {}
+            element: createElement(SwarmOverview, {})
         },
         {
             id: 'swarm-metrics-dashboard-react',
             section: 'swarm-metrics',
-            table: SwarmOverview,
-            props: { initialTab: 'metrics' }
+            element: createElement(SwarmOverview, { initialTab: 'metrics' })
         },
         {
             id: 'swarm-topology-view-react',
             section: 'swarm-topology',
-            table: SwarmOverview,
-            props: { initialTab: 'topology' }
+            element: createElement(SwarmOverview, { initialTab: 'topology' })
         },
         {
             id: 'swarm-services-overview-react',
             section: 'swarm-services',
-            table: SwarmServicesOverviewTable,
-            props: {}
+            element: createElement(SwarmServicesOverviewTable, {})
         },
         {
             id: 'swarm-tasks-overview-react',
             section: 'swarm-tasks',
-            table: SwarmTasksOverviewTable,
-            props: {}
+            element: createElement(SwarmTasksOverviewTable, {})
         },
         {
             id: 'swarm-nodes-overview-react',
             section: 'swarm-nodes',
-            table: SwarmNodesOverviewTable,
-            props: {}
+            element: createElement(SwarmNodesOverviewTable, {})
         },
         {
             id: 'swarm-networks-overview-react',
             section: 'swarm-networks',
-            table: SwarmNetworksOverviewTable,
-            props: {}
+            element: createElement(SwarmNetworksOverviewTable, {})
         },
         {
             id: 'swarm-configs-overview-react',
             section: 'swarm-configs',
-            table: SwarmConfigsOverviewTable,
-            props: {}
+            element: createElement(SwarmConfigsOverviewTable, {})
         },
         {
             id: 'swarm-secrets-overview-react',
             section: 'swarm-secrets',
-            table: SwarmSecretsOverviewTable,
-            props: {}
+            element: createElement(SwarmSecretsOverviewTable, {})
         },
         {
             id: 'swarm-stacks-overview-react',
             section: 'swarm-stacks',
-            table: SwarmStacksOverviewTable,
-            props: {}
+            element: createElement(SwarmStacksOverviewTable, {})
         },
         {
             id: 'swarm-volumes-overview-react',
             section: 'swarm-volumes',
-            table: SwarmVolumesOverviewTable,
-            props: {}
+            element: createElement(SwarmVolumesOverviewTable, {})
         },
         {
             id: 'swarm-registries-overview-react',
             section: 'swarm-registries',
-            table: SwarmRegistriesOverview,
-            props: {}
+            element: createElement(SwarmRegistriesOverview, {})
         }
     ];
 
@@ -394,7 +334,7 @@ export function renderResourceMainContent(
         rootByContainerId.set(target.id, root);
     }
 
-    const baseEl = createElement(target.table, target.props);
+    const baseEl = target.element;
 
     // NOTE: main-content renders into a separate React root.
     // React context does NOT cross roots, so we explicitly bridge contexts.

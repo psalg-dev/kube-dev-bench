@@ -216,22 +216,8 @@ describe('DaemonSetNodeCoverageTab', () => {
     });
   });
 
-  describe('alternative data format (capitalized fields)', () => {
-    it('handles Node/Nodes capitalized format', async () => {
-      getDaemonSetNodeCoverageMock.mockResolvedValue(toCoverage({
-        Nodes: [
-          { Node: 'node-1', HasPod: true, PodName: 'nginx-ds-abc', PodStatus: 'Running', Ready: 'True' },
-        ],
-      }));
-
-      render(<DaemonSetNodeCoverageTab namespace="default" daemonSetName="nginx-ds" />);
-
-      await waitFor(() => {
-        expect(screen.getByText('node-1')).toBeInTheDocument();
-        expect(screen.getByText('nginx-ds-abc')).toBeInTheDocument();
-        expect(screen.getByText('Covered')).toBeInTheDocument();
-      });
-    });
-  });
+  // Deleted: 'alternative data format (capitalized fields)' — the generated wails
+  // bindings serialize lowercase json tags only; the capitalized payload shape
+  // cannot occur from the real backend, and the fallback code for it was removed.
 });
 

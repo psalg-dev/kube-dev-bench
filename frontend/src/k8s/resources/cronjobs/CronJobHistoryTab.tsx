@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { app } from '../../../../wailsjs/go/models';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import StatusBadge from '../../../components/StatusBadge';
 import { formatTimestampDMYHMS } from '../../../utils/dateUtils';
@@ -9,7 +10,7 @@ type CronJobHistoryTabProps = {
 };
 
 export default function CronJobHistoryTab({ namespace, cronJobName }: CronJobHistoryTabProps) {
-	const [detail, setDetail] = useState<unknown | null>(null);
+	const [detail, setDetail] = useState<app.CronJobDetail | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
@@ -81,7 +82,7 @@ export default function CronJobHistoryTab({ namespace, cronJobName }: CronJobHis
 					</tr>
 				</thead>
 				<tbody>
-					{detail.jobs.map((job: unknown, idx: number) => (
+					{detail.jobs.map((job, idx) => (
 						<tr key={job.name || idx}>
 							<td>{job.name}</td>
 							<td>

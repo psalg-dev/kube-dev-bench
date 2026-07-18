@@ -14,14 +14,19 @@ export const updateSwarmNodeAvailabilityMock = vi.fn();
 export const updateSwarmNodeRoleMock = vi.fn();
 export const updateSwarmNodeLabelsMock = vi.fn();
 
+export type Procedure = (...args: unknown[]) => Promise<unknown>;
+
 // Generic mock for other App API functions to avoid individual test failures.
 // Note: Vitest is configured with restoreMocks=true, so we must provide a stable
 // default implementation (mockResolvedValue can be wiped by restore).
-export const genericAPIMock = vi.fn(() => Promise.resolve(undefined));
+// Signature: (name: string, ...args: unknown[]) => Promise<unknown>
+export const genericAPIMock = vi.fn<Procedure>(function () {
+  return Promise.resolve(undefined);
+});
 
 // Keep a registry of all App API mocks (except CreateResource which has its own)
-export const appApiMocks: Record<string, Mock> = {};
-const appFunctionNames = [
+export const appApiMocks: Record<string, Mock<Procedure>> = {};
+const appFunctionNames: string[] = [
   'CreateResource','DeletePod','DeleteResource','ExecCommand','GetConfigMaps','GetConnectionStatus','GetCronJobs','GetCurrentConfig','GetDaemonSets','GetDeployments','GetHorizontalPodAutoscalers','GetIngresses','GetIngressDetail','GetIngressTLSSummary','GetJobs','GetKubeConfigs','GetKubeContexts','GetKubeContextsFromFile','GetNamespaces','GetOverview','GetPersistentVolumeClaims','GetPersistentVolumes','GetPVCConsumers','GetRoles','GetClusterRoles','GetRoleBindings','GetClusterRoleBindings','GetNodes','GetNodeYAML','GetRoleYAML','GetRoleBindingYAML','GetClusterRoleYAML','GetClusterRoleBindingYAML','GetResourceYAML','ResizePersistentVolumeClaim','GetServiceSummary','GetServices','GetPodContainerLog','GetPodContainerPorts','GetPodContainers','GetPodEvents','GetPodEventsLegacy','GetPodLog','GetPodMounts','GetPodStatusCounts','GetPodSummary','GetPodYAML','GetRememberContext','GetRememberNamespace','GetUseInformers','GetReplicaSets','GetResourceCounts','GetResourceGraph','GetNamespaceGraph','GetStorageGraph','GetNetworkPolicyGraph','GetRunningPods','GetSecretData','GetSecrets','GetStatefulSets','Greet','ListPortForwards','PortForwardPod','PortForwardPodWith','ResizeShellSession','RestartPod','SaveCustomKubeConfig','SavePrimaryKubeConfig','SelectKubeConfigFile','SendShellInput','SetCurrentKubeContext','SetCurrentNamespace','SetKubeConfigPath','SetPreferredNamespaces','SetRememberContext','SetRememberNamespace','SetUseInformers','ShellPod','StartCronJobPolling','StartDaemonSetPolling','StartDeploymentPolling','StartPodExecSession','StartPodPolling','StartReplicaSetPolling','StartShellSession','StartStatefulSetPolling','Startup','StopPodLogs','StopPortForward','StopShellSession','StreamPodContainerLogs','StreamPodLogs',
   // Proxy functions
   'GetProxyConfig','SetProxyConfig','DetectSystemProxy','ClearProxyConfig',
@@ -62,7 +67,7 @@ const appFunctionNames = [
 ];
 
 vi.mock('../../wailsjs/go/main/App', () => {
-  const exports: Record<string, (..._args: unknown[]) => unknown> = {};
+  const exports: Record<string, (...args: unknown[]) => unknown> = {};
   for (const name of appFunctionNames) {
     if (name === 'CreateResource') {
       exports[name] = (...args: unknown[]) => createResourceMock(...args);
@@ -123,7 +128,9 @@ export function resetAllMocks() {
   eventsEmitMock.mockReset();
   eventsOnMock.mockReset();
   genericAPIMock.mockReset();
-  genericAPIMock.mockImplementation(() => Promise.resolve(undefined));
+  genericAPIMock.mockImplementation(function () {
+    return Promise.resolve(undefined);
+  });
   Object.entries(appApiMocks).forEach(([name, mockFn]) => {
     if (mockFn && mockFn.mockReset) {
       mockFn.mockReset();
@@ -132,8 +139,10 @@ export function resetAllMocks() {
   });
 }
 
+export type RuntimeEventHandler = (...args: unknown[]) => void;
+
 // Helper to trigger runtime EventsOn callbacks that tests registered via EventsOn
-export function triggerRuntimeEvent(name, ...args) {
+export function triggerRuntimeEvent(name: string, ...args: unknown[]) {
   const calls = eventsOnMock.mock && eventsOnMock.mock.calls ? eventsOnMock.mock.calls : [];
   for (const call of calls) {
     if (call && call[0] === name && typeof call[1] === 'function') {
@@ -143,7 +152,7 @@ export function triggerRuntimeEvent(name, ...args) {
 }
 
 // Helper to simulate EventsEmit calls
-export function emitRuntimeEvent(name, ...args) {
+export function emitRuntimeEvent(name: string, ...args: unknown[]) {
   eventsEmitMock(name, ...args);
 }
 

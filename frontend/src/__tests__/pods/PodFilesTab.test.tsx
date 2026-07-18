@@ -5,20 +5,11 @@ import PodFilesTab from '../../k8s/resources/pods/PodFilesTab';
 type PodFileEntry = { name: string; type: 'file' | 'dir'; path: string };
 type PodFileContent = { base64: string; size: number; truncated: boolean; isBinary: boolean };
 
-declare global {
-  interface Window {
-    go?: {
-      main: {
-        App: {
-          SetPreferredNamespaces?: (_namespaces: string[]) => Promise<void>;
-          GetPodFileContent: ReturnType<typeof vi.fn>;
-          GetPodContainers: ReturnType<typeof vi.fn>;
-          GetPodFiles: ReturnType<typeof vi.fn>;
-        };
-      };
-    };
-  }
-}
+let appMocks: {
+  GetPodFileContent: ReturnType<typeof vi.fn>;
+  GetPodContainers: ReturnType<typeof vi.fn>;
+  GetPodFiles: ReturnType<typeof vi.fn>;
+};
 
 beforeEach(() => {
   const filesMock = vi.fn((podName: string, container: string, path: string): Promise<PodFileEntry[]> => {
@@ -36,20 +27,17 @@ beforeEach(() => {
     return Promise.resolve([]);
   });
 
-  window.go = {
-    main: {
-      App: {
-        GetPodFileContent: vi.fn().mockResolvedValue({
-          base64: btoa('file content'),
-          size: 12,
-          truncated: false,
-          isBinary: false,
-        } satisfies PodFileContent),
-        GetPodContainers: vi.fn().mockResolvedValue(['container1']),
-        GetPodFiles: filesMock,
-      },
-    },
+  appMocks = {
+    GetPodFileContent: vi.fn().mockResolvedValue({
+      base64: btoa('file content'),
+      size: 12,
+      truncated: false,
+      isBinary: false,
+    } satisfies PodFileContent),
+    GetPodContainers: vi.fn().mockResolvedValue(['container1']),
+    GetPodFiles: filesMock,
   };
+  window.go = { main: { App: appMocks } };
 });
 
 describe('PodFilesTab', () => {
@@ -72,7 +60,7 @@ describe('PodFilesTab', () => {
   it('renders without crashing', async () => {
     render(<PodFilesTab podName="test-pod" />);
     expect(await screen.findByText(/container/i)).toBeInTheDocument();
-    await waitFor(() => expect(window.go?.main.App.GetPodContainers).toHaveBeenCalled());
+    await waitFor(() => expect(appMocks.GetPodContainers).toHaveBeenCalled());
   });
 
   it('shows directory entries', async () => {
@@ -87,7 +75,7 @@ describe('PodFilesTab', () => {
     await waitFor(() => expect(screen.getByText('dir1')).toBeInTheDocument());
     fireEvent.click(screen.getByText('dir1'));
     await waitFor(() => {
-      expect(window.go?.main.App.GetPodFiles).toHaveBeenCalled();
+      expect(appMocks.GetPodFiles).toHaveBeenCalled();
     });
   });
 
@@ -99,7 +87,7 @@ describe('PodFilesTab', () => {
     const fileRow = rows.find((row) => within(row).queryByText('file1.txt'));
     if (!fileRow) throw new Error('Expected file row');
     fireEvent.click(fileRow);
-    await waitFor(() => expect(window.go?.main.App.GetPodFileContent).toHaveBeenCalled());
+    await waitFor(() => expect(appMocks.GetPodFileContent).toHaveBeenCalled());
     await waitFor(() => expect(screen.getByText(/file content/i)).toBeInTheDocument());
   });
 
@@ -124,14 +112,14 @@ describe('PodFilesTab', () => {
     const fileRow = screen.getAllByRole('row').find((r) => within(r).queryByText('file1.txt'));
     if (!fileRow) throw new Error('Expected file row');
     fireEvent.click(fileRow);
-    await waitFor(() => expect(window.go?.main.App.GetPodFileContent).toHaveBeenCalled());
+    await waitFor(() => expect(appMocks.GetPodFileContent).toHaveBeenCalled());
     const copyBtn = await screen.findByRole('button', { name: /copy/i });
     fireEvent.click(copyBtn);
     await waitFor(() => expect(copyBtn).toHaveTextContent(/copied/i));
   });
 
   it('shows loading and error states', async () => {
-    window.go?.main.App.GetPodFiles.mockRejectedValueOnce(new Error('Failed to load'));
+    appMocks.GetPodFiles.mockRejectedValueOnce(new Error('Failed to load'));
     render(<PodFilesTab podName="test-pod" />);
     await waitFor(() => expect(screen.getByText(/error: failed to load/i)).toBeInTheDocument());
   });

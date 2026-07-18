@@ -336,7 +336,7 @@ export default function FilesTab({ namespace, pvcName }: FilesTabProps) {
             <button
               disabled={downloading}
               style={btnStyle}
-              onClick={() => downloadArchive(fileContent.path, true)}
+              onClick={() => downloadArchive(fileContent.path)}
             >
               Download File (.tar.gz)
             </button>

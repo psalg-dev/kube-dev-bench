@@ -1,23 +1,22 @@
-import { Handle, Position } from '@xyflow/react';
+import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { getNodeColor } from '../../utils/graphStyles';
 import './ResourceNode.css';
 
-export interface ResourceNodeProps {
-  data: {
-    kind: string;
-    name: string;
-    namespace: string;
-    status: string;
-    group: string;
-    metadata: Record<string, string>;
-    dimmed?: boolean;
-  };
+export interface ResourceNodeData extends Record<string, unknown> {
+  kind: string;
+  name: string;
+  namespace: string;
+  status: string;
+  group: string;
+  metadata: Record<string, string>;
+  dimmed?: boolean;
 }
 
 /**
  * Custom React Flow node for Kubernetes resources
  */
-export function ResourceNode({ data }: ResourceNodeProps) {
+export function ResourceNode({ data: rawData }: NodeProps) {
+  const data = rawData as ResourceNodeData;
   const color = getNodeColor(data.kind, data.status);
   const kindClass = data.kind ? `graph-node--${data.kind.toLowerCase()}` : 'graph-node--unknown';
   const displayName = data.metadata?.fullName || data.name;
