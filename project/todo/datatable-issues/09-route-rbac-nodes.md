@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 9: Route k8s rbac + nodes to config + useHolmesStream
 
@@ -14,3 +14,9 @@ Steps:
 - `06-reskin-overview`
 
 ## Agent notes
+- All 5 overview table views already implemented as thin wrappers using `GenericResourceTable` with direct config imports (per plan requirement)
+- All 5 configs already have Holmes integration via `analyzeFn` and `useHolmesStream` in `GenericResourceTable`
+- Added `onDelete` action to `nodeConfig` (missing for cluster-scoped resource)
+- All tests pass (212 test files, 2025 tests)
+- Typecheck passes with no errors
+- Lint errors are pre-existing and unrelated to this slice

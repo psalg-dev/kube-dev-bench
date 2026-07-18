@@ -153,6 +153,7 @@ export const nodeConfig: ResourceConfig = {
   analyzeFn: AnalyzeNodeStream,
   clusterScoped: true,
   renderPanelContent: renderNodePanelContent,
+  onDelete: async (name: string) => AppAPI.DeleteResource('node', '', name),
   title: 'Nodes',
 };
 
