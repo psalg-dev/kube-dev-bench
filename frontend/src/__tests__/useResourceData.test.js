@@ -26,7 +26,7 @@ describe('useResourceData', () => {
 
   it('should provide initial loading state', async () => {
     mockFetchFn.mockResolvedValue([]);
-    
+
     const { result } = renderHook(() =>
       useResourceData({
         fetchFn: mockFetchFn,
@@ -87,7 +87,7 @@ describe('useResourceData', () => {
     await waitFor(() => {
       expect(result.current.data).toHaveLength(2);
     });
-    
+
     expect(mockFetchFn).toHaveBeenCalledWith('ns1');
     expect(mockFetchFn).toHaveBeenCalledWith('ns2');
   });

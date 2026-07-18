@@ -16,7 +16,7 @@ describe('UpdateStackModal', () => {
           initialComposeYAML="version: '3.8'"
         />
       );
-      
+
       expect(screen.queryByText('Update Stack:')).not.toBeInTheDocument();
     });
 
@@ -28,7 +28,7 @@ describe('UpdateStackModal', () => {
           initialComposeYAML="version: '3.8'"
         />
       );
-      
+
       expect(screen.getByText(/Update Stack:/)).toBeInTheDocument();
     });
 
@@ -40,7 +40,7 @@ describe('UpdateStackModal', () => {
           initialComposeYAML=""
         />
       );
-      
+
       expect(screen.getByText(/production-stack/)).toBeInTheDocument();
     });
 
@@ -52,7 +52,7 @@ describe('UpdateStackModal', () => {
           initialComposeYAML=""
         />
       );
-      
+
       expect(screen.getByText('Close')).toBeInTheDocument();
     });
 
@@ -64,7 +64,7 @@ describe('UpdateStackModal', () => {
           initialComposeYAML=""
         />
       );
-      
+
       expect(screen.getByText(/stack redeploy/)).toBeInTheDocument();
     });
   });
@@ -79,7 +79,7 @@ describe('UpdateStackModal', () => {
           initialComposeYAML={yaml}
         />
       );
-      
+
       const textarea = screen.getByRole('textbox');
       expect(textarea.value).toBe(yaml);
     });
@@ -92,10 +92,10 @@ describe('UpdateStackModal', () => {
           initialComposeYAML=""
         />
       );
-      
+
       const textarea = screen.getByRole('textbox');
       fireEvent.change(textarea, { target: { value: 'version: "3.9"' } });
-      
+
       expect(textarea.value).toBe('version: "3.9"');
     });
   });
@@ -111,9 +111,9 @@ describe('UpdateStackModal', () => {
           onClose={onClose}
         />
       );
-      
+
       fireEvent.click(screen.getByText('Close'));
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
@@ -127,11 +127,11 @@ describe('UpdateStackModal', () => {
           onClose={onClose}
         />
       );
-      
+
       // Click the overlay (outermost div)
       const overlay = container.firstChild;
       fireEvent.click(overlay);
-      
+
       expect(onClose).toHaveBeenCalled();
     });
 
@@ -145,10 +145,10 @@ describe('UpdateStackModal', () => {
           onClose={onClose}
         />
       );
-      
+
       // Click on the stack name text (inside modal)
       fireEvent.click(screen.getByText(/Update Stack:/));
-      
+
       expect(onClose).not.toHaveBeenCalled();
     });
   });
@@ -163,7 +163,7 @@ describe('UpdateStackModal', () => {
           onConfirm={vi.fn()}
         />
       );
-      
+
       expect(screen.getByText('Redeploy')).toBeInTheDocument();
     });
   });

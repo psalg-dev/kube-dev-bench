@@ -15,7 +15,7 @@ describe('PersistentVolumeClaimsOverviewTable', () => {
       ];
     });
 
-    const { findByText } = renderWithProviders(<PersistentVolumeClaimsOverviewTable namespaces={["default"]} />);
+    const { findByText } = renderWithProviders(<PersistentVolumeClaimsOverviewTable namespaces={['default']} />);
 
     // wait for async fetch to complete
     await flushPromises();

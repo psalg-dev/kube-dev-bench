@@ -141,7 +141,7 @@ export function GenericResourceTable({
       async (namespaceOrRow: string | ResourceRow, name?: string): Promise<{ ok: boolean; error?: string }> => {
         let namespace: string;
         let resourceName: string;
-        
+
         if (typeof namespaceOrRow === 'string') {
           namespace = namespaceOrRow;
           resourceName = name ?? '';
@@ -149,7 +149,7 @@ export function GenericResourceTable({
           namespace = namespaceOrRow.namespace ?? '';
           resourceName = namespaceOrRow.name ?? '';
         }
-        
+
         try {
           await analyzeHolmesStream(namespace, resourceName);
           return { ok: true };

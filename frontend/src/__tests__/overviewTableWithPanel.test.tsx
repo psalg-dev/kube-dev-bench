@@ -18,7 +18,7 @@ vi.mock('../components/BaseModal', () => ({
   __esModule: true,
   BaseModal: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
     if (!isOpen) return null;
-    
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
         onClose();
@@ -36,7 +36,7 @@ vi.mock('../components/BaseModal', () => ({
   },
   default: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
     if (!isOpen) return null;
-    
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
         onClose();
@@ -323,7 +323,7 @@ describe('OverviewTableWithPanel', () => {
     fireEvent.click(scaleBtn);
 
     fireEvent.keyDown(screen.getByTestId('modal-content'), { key: 'Escape' });
-    
+
     await waitFor(() => {
       expect(screen.queryByTestId('modal-wrapper')).toBeNull();
     });

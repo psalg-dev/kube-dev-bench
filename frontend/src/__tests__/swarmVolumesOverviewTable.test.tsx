@@ -31,7 +31,7 @@ vi.mock('../components/BaseModal', () => ({
   __esModule: true,
   BaseModal: ({ isOpen, onClose, title, children, footer, testId }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode; testId?: string }) => {
     if (!isOpen) return null;
-    
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
         onClose();
@@ -50,7 +50,7 @@ vi.mock('../components/BaseModal', () => ({
   },
   default: ({ isOpen, onClose, title, children, footer, testId }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode; testId?: string }) => {
     if (!isOpen) return null;
-    
+
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Escape') {
         onClose();
@@ -238,42 +238,42 @@ describe('SwarmVolumesOverviewTable', () => {
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Backed up volume "data"');
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Restore…' }));
-    
+
     const restoreModal = await screen.findByTestId('modal-wrapper');
     const restoreButtons = within(restoreModal).getAllByRole('button');
     const restoreConfirmBtn = restoreButtons.find(btn => btn.textContent === 'Restore');
     if (restoreConfirmBtn) {
       fireEvent.click(restoreConfirmBtn);
     }
-    
+
     await waitFor(() => expect(swarmApiMocks.RestoreSwarmVolume).toHaveBeenCalledWith('data'));
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Restored backup into volume "data"');
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Clone…' }));
-    
+
     const cloneInput = await screen.findByTestId('volume-clone-input');
     fireEvent.change(cloneInput, { target: { value: 'data-clone' } });
-    
+
     const cloneModal = await screen.findByTestId('modal-wrapper');
     const cloneButtons = within(cloneModal).getAllByRole('button');
     const cloneConfirmBtn = cloneButtons.find(btn => btn.textContent === 'Clone');
     if (cloneConfirmBtn) {
       fireEvent.click(cloneConfirmBtn);
     }
-    
+
     await waitFor(() => expect(swarmApiMocks.CloneSwarmVolume).toHaveBeenCalledWith('data', 'data-clone'));
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Cloned volume to "data-clone"');
 
     const actions2 = screen.getByTestId('actions-data');
     fireEvent.click(within(actions2).getByRole('button', { name: 'Delete' }));
-    
+
     const deleteModal = await screen.findByTestId('modal-wrapper');
     const deleteButtons = within(deleteModal).getAllByRole('button');
     const deleteConfirmBtn = deleteButtons.find(btn => btn.textContent === 'Delete');
     if (deleteConfirmBtn) {
       fireEvent.click(deleteConfirmBtn);
     }
-    
+
     await waitFor(() => expect(swarmApiMocks.RemoveSwarmVolume).toHaveBeenCalledWith('data', false));
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Volume "data" deleted');
 
@@ -283,7 +283,7 @@ describe('SwarmVolumesOverviewTable', () => {
 
   it('summary panel delete checks usage list for confirm message', async () => {
     vi.stubGlobal('confirm', vi.fn(() => true));
-    
+
     swarmApiMocks.GetSwarmVolumeUsage.mockResolvedValue([
       { serviceName: 'api', serviceId: 'svc1' },
       { serviceName: 'web', serviceId: 'svc2' },

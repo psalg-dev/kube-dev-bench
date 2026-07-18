@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  getColumnKey, 
-  pickDefaultSortKey, 
-  sortRows, 
-  toggleSortState 
+import {
+  getColumnKey,
+  pickDefaultSortKey,
+  sortRows,
+  toggleSortState
 } from '../utils/tableSorting';
 
 describe('tableSorting', () => {

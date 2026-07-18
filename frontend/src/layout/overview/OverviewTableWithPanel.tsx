@@ -13,10 +13,6 @@ import { ColumnVisibilityMenu } from '../../components/DataTable/ColumnVisibilit
 import './BulkSelection.css';
 import './OverviewTableWithPanel.css';
 
-// ponytail: temporary loose compat layer, delete after Slice 13. Internal helpers use Row;
-// the PUBLIC props below must keep `any` — 27 call sites pass concrete row types
-// (e.g. SwarmConfigInfo[]) and typed callbacks that are NOT assignable to Record<string, unknown>
-// (concrete arrays don't widen to it; callbacks break contravariantly). `any` is load-bearing here.
 type Row = Record<string, unknown>;
 
 type ColumnDef = {

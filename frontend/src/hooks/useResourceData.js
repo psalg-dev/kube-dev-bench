@@ -1,13 +1,13 @@
 /**
  * Custom hook for resource data fetching and live event subscriptions.
  * Consolidates duplicated data loading logic from ~20 OverviewTable components.
- * 
+ *
  * This hook handles:
  * - Initial data fetching with namespace handling
  * - Live event subscription for real-time updates
  * - Data normalization (PascalCase to camelCase)
  * - Loading state management
- * 
+ *
  * @example
  * const { data, loading, refresh } = useResourceData({
  *   fetchFn: AppAPI.GetDeployments,
@@ -27,7 +27,7 @@ import { EventsOn, EventsOff } from '../../wailsjs/runtime';
 
 /**
  * Custom hook for fetching and subscribing to K8s/Swarm resource data
- * 
+ *
  * @param {Object} options - Configuration options
  * @param {Function} options.fetchFn - Function to fetch data (receives namespace as param)
  * @param {string} options.eventName - Wails event name for live updates
@@ -49,14 +49,14 @@ export function useResourceData({
 }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Use ref to store normalize function to avoid dependency changes
   const normalizeRef = useRef(normalize);
   normalizeRef.current = normalize;
 
   // Use ref for refresh function to avoid circular dependencies in event handler
   const refreshRef = useRef(null);
-  
+
   // Track loading state in ref to avoid race conditions in event handler
   const loadingRef = useRef(false);
 
@@ -104,10 +104,10 @@ export function useResourceData({
     }
 
     // Namespace-scoped resources
-    const nsArr = namespacesKey 
+    const nsArr = namespacesKey
       ? namespacesKey.split(',')
       : (namespace ? [namespace] : []);
-    
+
     if (nsArr.length === 0) {
       setLoading(false);
       loadingRef.current = false;
@@ -169,10 +169,10 @@ export function useResourceData({
 /**
  * Common normalizer factory for K8s resources.
  * Creates a normalize function based on field definitions.
- * 
+ *
  * @param {Object} fieldDefaults - Object with field names as keys and default values
  * @returns {Function} - Normalizer function
- * 
+ *
  * @example
  * const normalizeDeployment = createNormalizer({
  *   name: '',

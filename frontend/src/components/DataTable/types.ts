@@ -1,6 +1,9 @@
 import type { SortingState } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
 import type { BulkAction } from '../../constants/bulkActions';
+import type { ColumnSortType } from './sortingFns';
+
+export type { ColumnSortType } from './sortingFns';
 
 export interface RowAction<TRow> {
   label: string;
@@ -11,10 +14,6 @@ export interface RowAction<TRow> {
 }
 
 export type ColumnAlign = 'left' | 'center' | 'right';
-
-export type { ColumnSortType } from './sortingFns';
-
-import type { ColumnSortType } from './sortingFns';
 
 export interface DataTableColumn<TRow> {
   id: string;

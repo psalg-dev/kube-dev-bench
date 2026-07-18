@@ -83,7 +83,7 @@ export function useEnterpriseAuthEvents() {
 
     showError(
       `Credential provider "${payload.binary}" not found on PATH. ` +
-        `Install it or add its directory to your system PATH, then restart.`,
+        'Install it or add its directory to your system PATH, then restart.',
     );
   }, []);
 

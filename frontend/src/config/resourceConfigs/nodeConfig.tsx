@@ -1,4 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
+
 import * as AppAPI from '../../../wailsjs/go/main/App';
 import { AnalyzeNodeStream } from '../../holmes/holmesApi';
 import QuickInfoSection, { type QuickInfoField } from '../../QuickInfoSection';

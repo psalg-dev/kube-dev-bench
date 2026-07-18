@@ -21,22 +21,22 @@ describe('useEventSubscription', () => {
 
   it('should call subscribeFn with handler on mount', () => {
     const handler = vi.fn();
-    
+
     renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     expect(mockSubscribeFn).toHaveBeenCalledTimes(1);
     expect(mockSubscribeFn).toHaveBeenCalledWith(handler);
   });
 
   it('should call unsubscribe on unmount', () => {
     const handler = vi.fn();
-    
+
     const { unmount } = renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     expect(mockUnsubscribe).not.toHaveBeenCalled();
-    
+
     unmount();
-    
+
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
   });
 
@@ -45,9 +45,9 @@ describe('useEventSubscription', () => {
     mockUnsubscribe.mockImplementation(() => {
       throw new Error('Unsubscribe failed');
     });
-    
+
     const { unmount } = renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     // Should not throw
     expect(() => unmount()).not.toThrow();
   });
@@ -55,9 +55,9 @@ describe('useEventSubscription', () => {
   it('should handle null unsubscribe function', () => {
     const handler = vi.fn();
     mockSubscribeFn.mockReturnValue(null);
-    
+
     const { unmount } = renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     // Should not throw
     expect(() => unmount()).not.toThrow();
   });
@@ -65,9 +65,9 @@ describe('useEventSubscription', () => {
   it('should handle undefined unsubscribe function', () => {
     const handler = vi.fn();
     mockSubscribeFn.mockReturnValue(undefined);
-    
+
     const { unmount } = renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     // Should not throw
     expect(() => unmount()).not.toThrow();
   });
@@ -75,17 +75,17 @@ describe('useEventSubscription', () => {
   it('should re-subscribe when dependencies change', () => {
     const handler = vi.fn();
     let dep = 'first';
-    
+
     const { rerender } = renderHook(
       () => useEventSubscription(mockSubscribeFn, handler, [dep])
     );
-    
+
     expect(mockSubscribeFn).toHaveBeenCalledTimes(1);
-    
+
     // Change dependency
     dep = 'second';
     rerender();
-    
+
     // Should unsubscribe from old and subscribe to new
     expect(mockUnsubscribe).toHaveBeenCalledTimes(1);
     expect(mockSubscribeFn).toHaveBeenCalledTimes(2);
@@ -93,37 +93,37 @@ describe('useEventSubscription', () => {
 
   it('should not subscribe if subscribeFn is not a function', () => {
     const handler = vi.fn();
-    
+
     // Pass null as subscribeFn
     const { unmount } = renderHook(() => useEventSubscription(null, handler, []));
-    
+
     // Should not throw and should not try to unsubscribe
     expect(() => unmount()).not.toThrow();
   });
 
   it('should pass handler to subscribeFn correctly', () => {
     const handler = vi.fn((data) => data * 2);
-    
+
     renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     // Get the handler that was passed to subscribeFn
     const passedHandler = mockSubscribeFn.mock.calls[0][0];
-    
+
     // Verify it's the same handler
     expect(passedHandler(5)).toBe(10);
   });
 
   it('should work with empty dependency array', () => {
     const handler = vi.fn();
-    
+
     const { rerender } = renderHook(() => useEventSubscription(mockSubscribeFn, handler, []));
-    
+
     // Initial subscription
     expect(mockSubscribeFn).toHaveBeenCalledTimes(1);
-    
+
     // Rerender without dependency change
     rerender();
-    
+
     // Should not re-subscribe
     expect(mockSubscribeFn).toHaveBeenCalledTimes(1);
     expect(mockUnsubscribe).not.toHaveBeenCalled();
@@ -136,17 +136,17 @@ describe('useEventSubscription', () => {
     const unsubscribe2 = vi.fn();
     const subscribe1 = vi.fn().mockReturnValue(unsubscribe1);
     const subscribe2 = vi.fn().mockReturnValue(unsubscribe2);
-    
+
     const { unmount: unmount1 } = renderHook(() => useEventSubscription(subscribe1, handler1, []));
     const { unmount: unmount2 } = renderHook(() => useEventSubscription(subscribe2, handler2, []));
-    
+
     expect(subscribe1).toHaveBeenCalledTimes(1);
     expect(subscribe2).toHaveBeenCalledTimes(1);
-    
+
     unmount1();
     expect(unsubscribe1).toHaveBeenCalledTimes(1);
     expect(unsubscribe2).not.toHaveBeenCalled();
-    
+
     unmount2();
     expect(unsubscribe2).toHaveBeenCalledTimes(1);
   });

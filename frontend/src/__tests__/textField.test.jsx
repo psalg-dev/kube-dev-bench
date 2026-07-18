@@ -21,11 +21,11 @@ describe('TextField', () => {
 
     it('displays placeholder text', () => {
       render(
-        <TextField 
-          id="test-field" 
-          label="Email" 
-          value="" 
-          onChange={vi.fn()} 
+        <TextField
+          id="test-field"
+          label="Email"
+          value=""
+          onChange={vi.fn()}
           placeholder="Enter your email"
         />
       );
@@ -37,22 +37,22 @@ describe('TextField', () => {
     it('calls onChange when value changes', () => {
       const onChange = vi.fn();
       render(<TextField id="test-field" label="Name" value="" onChange={onChange} />);
-      
+
       const input = screen.getByRole('textbox');
       fireEvent.change(input, { target: { value: 'New Value' } });
-      
+
       expect(onChange).toHaveBeenCalledWith('New Value');
     });
 
     it('calls onChange with each keystroke', () => {
       const onChange = vi.fn();
       render(<TextField id="test-field" label="Name" value="" onChange={onChange} />);
-      
+
       const input = screen.getByRole('textbox');
       fireEvent.change(input, { target: { value: 'a' } });
       fireEvent.change(input, { target: { value: 'ab' } });
       fireEvent.change(input, { target: { value: 'abc' } });
-      
+
       expect(onChange).toHaveBeenCalledTimes(3);
     });
   });
@@ -60,11 +60,11 @@ describe('TextField', () => {
   describe('validation', () => {
     it('shows required indicator when required is true', () => {
       const { container } = render(
-        <TextField 
-          id="test-field" 
-          label="Required Field" 
-          value="" 
-          onChange={vi.fn()} 
+        <TextField
+          id="test-field"
+          label="Required Field"
+          value=""
+          onChange={vi.fn()}
           required
         />
       );
@@ -75,11 +75,11 @@ describe('TextField', () => {
 
     it('displays error message when error is provided', () => {
       render(
-        <TextField 
-          id="test-field" 
-          label="Name" 
-          value="" 
-          onChange={vi.fn()} 
+        <TextField
+          id="test-field"
+          label="Name"
+          value=""
+          onChange={vi.fn()}
           error="This field is required"
         />
       );

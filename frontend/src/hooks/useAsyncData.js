@@ -1,12 +1,12 @@
 /**
  * Custom hook for async data fetching with automatic cleanup handling.
  * Consolidates duplicated "active flag" pattern from 20+ components.
- * 
+ *
  * This hook handles:
  * - Loading, error, and data state management
  * - Cleanup to prevent state updates after unmount
  * - Refetch capability
- * 
+ *
  * @example
  * const { data, loading, error, refetch } = useAsyncData(
  *   () => GetSwarmConfigInspectJSON(id).then(json => String(json || '')),
@@ -19,7 +19,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * Hook for async data fetching with automatic cleanup handling.
  * Prevents state updates after component unmount.
- * 
+ *
  * @param {Function} fetchFn - Async function that returns the data
  * @param {Array} deps - Dependency array for re-fetching (like useEffect deps)
  * @returns {Object} - { data, loading, error, refetch }
@@ -28,7 +28,7 @@ export function useAsyncData(fetchFn, deps = []) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Track if component is mounted to prevent state updates after unmount.
   // This is a ref so it persists across renders and can be checked in async callbacks.
   const mountedRef = useRef(true);

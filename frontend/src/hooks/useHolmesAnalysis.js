@@ -1,12 +1,12 @@
 /**
  * Custom hook for Holmes AI analysis functionality.
  * Consolidates duplicated Holmes streaming logic from ~16 OverviewTable components.
- * 
+ *
  * This hook handles:
  * - Holmes state management (loading, response, error, streaming text)
  * - Event subscription for chat stream and context progress
  * - Analysis triggering and cancellation
- * 
+ *
  * @example
  * const { state, analyze, cancel } = useHolmesAnalysis({
  *   kind: 'Deployment',
@@ -35,7 +35,7 @@ const initialHolmesState = {
 
 /**
  * Custom hook for Holmes AI analysis
- * 
+ *
  * @param {Object} options - Configuration options
  * @param {string} options.kind - The resource kind (e.g., 'Deployment', 'Pod', 'Service')
  * @param {Function} options.analyzeFn - The streaming analysis function to call (e.g., AnalyzeDeploymentStream)
@@ -57,12 +57,12 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
       if (!payload) return;
       const current = stateRef.current;
       const { streamId } = current;
-      
+
       // Ignore events for other streams
       if (payload.stream_id && streamId && payload.stream_id !== streamId) {
         return;
       }
-      
+
       // Handle errors
       if (payload.error) {
         if (payload.error === 'context canceled' || payload.error === 'context cancelled') {
@@ -74,7 +74,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
       }
 
       const eventType = payload.event;
-      
+
       // Handle stream_end event which may not have data
       if (eventType === 'stream_end') {
         setState((prev) => {
@@ -85,7 +85,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
         });
         return;
       }
-      
+
       if (!payload.data) {
         return;
       }
@@ -152,7 +152,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
         return;
       }
     });
-    
+
     return () => {
       try { unsubscribe?.(); } catch (_) { /* ignore cleanup errors */ }
     };
@@ -181,7 +181,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
         return { ...prev, contextSteps: nextSteps };
       });
     });
-    
+
     return () => {
       try { unsubscribe?.(); } catch (_) { /* ignore cleanup errors */ }
     };
@@ -189,7 +189,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
 
   /**
    * Trigger Holmes analysis for a resource
-   * 
+   *
    * @param {...any} args - Arguments to pass to the analyze function
    *   For K8s resources: (namespace, name) or (row) where row has namespace and name
    *   For Swarm resources: (id) or (row) where row has id or ID
@@ -197,7 +197,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
   const analyze = useCallback(async (...args) => {
     let key;
     let analyzeArgs;
-    
+
     // Handle different call signatures
     if (args.length === 1 && typeof args[0] === 'object') {
       // Called with a row object
@@ -232,7 +232,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
     // Apply key prefix if provided (e.g., 'swarm' for Swarm resources)
     const finalKey = keyPrefix ? `${keyPrefix}/${key}` : key;
     const streamId = `${kind.toLowerCase()}-${Date.now()}`;
-    
+
     setState({
       loading: true,
       response: null,
@@ -245,7 +245,7 @@ export function useHolmesAnalysis({ kind, analyzeFn, keyPrefix }) {
       contextSteps: [],
       toolEvents: [],
     });
-    
+
     try {
       await analyzeFn(...analyzeArgs, streamId);
       // The response comes via stream events, not from the return value
