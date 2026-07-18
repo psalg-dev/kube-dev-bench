@@ -7,6 +7,7 @@
  */
 
 import * as AppAPI from '../../../wailsjs/go/main/App';
+import { AnalyzeResourceStream } from '../../holmes/holmesApi';
 import type { app } from '../../../wailsjs/go/models';
 import StatusBadge from '../../components/StatusBadge';
 import QuickInfoSection, { type QuickInfoField } from '../../QuickInfoSection';
@@ -25,6 +26,7 @@ import type {
   ResourceConfig,
   ResourceRow,
   ResourceTab,
+  RowAction,
 } from '../../types/resourceConfigs';
 
 /**
@@ -215,6 +217,10 @@ export const helmReleasesConfig: ResourceConfig = {
   eventName: 'helmreleases:update',
   normalize: normalizeHelmRelease,
   renderPanelContent: renderHelmReleasesPanelContent,
+  analyzeFn: (namespace: string, name: string, streamId: string) => AnalyzeResourceStream('HelmRelease', namespace, name, streamId),
+  onDelete: async (name: string, namespace?: string) => {
+    await AppAPI.UninstallHelmRelease(namespace ?? '', name);
+  },
   title: 'Helm Releases',
   clusterScoped: false,
 };

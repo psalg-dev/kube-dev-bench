@@ -26,3 +26,7 @@ export { ingressConfig, ingressColumns, ingressTabs, normalizeIngress, renderIng
 // Storage resources
 export { pvConfig, pvColumns, pvTabs, normalizePV, renderPVPanelContent } from './pvConfig';
 export { pvcConfig, pvcColumns, pvcTabs, normalizePVC, renderPVCPanelContent } from './pvcConfig';
+
+// Additional resources
+export { hpaConfig, hpaColumns, hpaTabs, normalizeHPA, renderHPAPanelContent } from './hpaConfig';
+export { helmReleasesConfig, helmReleasesColumns, helmReleasesTabs, normalizeHelmRelease, renderHelmReleasesPanelContent } from './helmReleasesConfig';
