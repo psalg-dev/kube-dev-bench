@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 2: Persisted table state
 
@@ -13,3 +13,10 @@ Steps:
 - `00-fix-typecheck-baseline`
 
 ## Agent notes
+Implementation already present in `frontend/src/components/DataTable/usePersistedTableState.ts` and `frontend/src/__tests__/usePersistedTableState.test.ts`.
+Tests pass (21 passed), typecheck passes. All done criteria met:
+- ✅ hook returns `{ columnOrder, setColumnOrder, columnVisibility, setColumnVisibility, sorting, setSorting }`
+- ✅ Persists to `localStorage` under `datatable:{persistKey}`
+- ✅ Undefined key → pure in-memory useState, zero localStorage access
+- ✅ JSON.parse guard with try/catch → defaults
+- ✅ Tests cover: setter writes, read-back, corrupt JSON → defaults, undefined key behavior, default state
