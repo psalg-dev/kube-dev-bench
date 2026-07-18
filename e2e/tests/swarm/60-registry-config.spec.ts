@@ -3,6 +3,7 @@ import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
+import { acceptModalConfirm } from '../../src/support/modals.js';
 
 test.describe('Docker Swarm Registries', () => {
   test.beforeEach(async ({ page }) => {
@@ -58,13 +59,9 @@ test.describe('Docker Swarm Registries', () => {
     await row.click();
     await page.waitForSelector('.bottom-panel', { state: 'visible', timeout: 10_000 });
 
-    // Remove it.
-    page.once('dialog', async (d) => {
-      expect(d.type()).toBe('confirm');
-      await d.accept();
-    });
-
+    // Remove it (confirm via the in-DOM modal, not a native dialog).
     await page.locator('.bottom-panel button[title="Remove registry"]').click();
+    await acceptModalConfirm(page);
     await notifications.expectSuccessContains(`Removed registry ${name}`, { timeoutMs: 30_000 });
 
     await expect(row).toBeHidden({ timeout: 30_000 });

@@ -3,6 +3,7 @@ import { SwarmSidebarPage } from '../../src/pages/SwarmSidebarPage.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { ensureRegistry, getRegistryConfig } from '../../src/support/registry-bootstrap.js';
+import { acceptModalConfirm } from '../../src/support/modals.js';
 
 // Skip entire suite when E2E_REGISTRY_SUITE is not enabled
 test.skip(() => process.env.E2E_REGISTRY_SUITE !== '1', 'Requires E2E_REGISTRY_SUITE=1');
@@ -63,12 +64,8 @@ test.describe('Docker Registry v2 Integration', () => {
     await page.waitForSelector('.bottom-panel', { state: 'visible', timeout: 10_000 });
 
     // Cleanup: remove the registry so it doesn't bleed into other runs.
-    page.once('dialog', async (d) => {
-      expect(d.type()).toBe('confirm');
-      await d.accept();
-    });
-
     await page.locator('.bottom-panel button[title="Remove registry"]').click();
+    await acceptModalConfirm(page);
     await notifications.expectSuccessContains(new RegExp(`Removed registry\\s+${name}`, 'i'), { timeoutMs: 30_000 });
     await expect(row).toBeHidden({ timeout: 30_000 });
   });
@@ -141,12 +138,8 @@ test.describe('Docker Registry v2 Integration', () => {
     await row.click();
     await page.waitForSelector('.bottom-panel', { state: 'visible', timeout: 10_000 });
 
-    page.once('dialog', async (d) => {
-      expect(d.type()).toBe('confirm');
-      await d.accept();
-    });
-
     await page.locator('.bottom-panel button[title="Remove registry"]').click();
+    await acceptModalConfirm(page);
     await notifications.expectSuccessContains(new RegExp(`Removed registry\\s+${name}`, 'i'), { timeoutMs: 30_000 });
   });
 });
