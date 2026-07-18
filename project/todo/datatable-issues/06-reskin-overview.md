@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 6: Re-skin OverviewTableWithPanel on DataTable
 
