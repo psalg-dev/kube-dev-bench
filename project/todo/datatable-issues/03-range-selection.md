@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 3: Shift-range selection helper
 
