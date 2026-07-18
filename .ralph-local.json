@@ -3,6 +3,7 @@
   "llama": "C:\\dev\\path\\llama-b9789-bin-win-cuda-13.3-x64\\llama-server.exe",
   "gate": "cd frontend && npm run typecheck && npm run test",
   "promptHeader": "Frontend commands run from frontend/ (npm run typecheck / test / lint). TDD: write the slice's tests first. No any, no new eslint-disable, no as-unknown-as double casts.",
+  "serveArgs": "-ngl 999 --n-cpu-moe 999",
   "timeoutSec": 5400,
   "postLoop": "pwsh -NoProfile -File C:\\dev\\workspace\\eshucode\\fluentmind\\scripts\\restart_app.ps1"
 }
