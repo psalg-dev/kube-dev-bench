@@ -179,8 +179,9 @@ export const sortTypeToFn = (type: ColumnSortType): SortingFn<unknown> => {
       return durationSortingFn;
     case 'datetime':
       return datetimeSortingFn;
-    default:
+    default: {
       const _exhaustive: never = type;
       return _exhaustive;
+    }
   }
 };
