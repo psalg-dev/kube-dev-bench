@@ -5,6 +5,12 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 
 // ─── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -25,6 +31,7 @@ vi.mock('../notification', () => ({
 
 import * as AppAPI from '../../wailsjs/go/main/App';
 import HelmActions from '../k8s/resources/helmreleases/HelmActions';
+import { showModalConfirm } from '../components/ModalProvider';
 import * as notification from '../notification';
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -48,6 +55,7 @@ function getRollbackConfirmButton() {
 describe('HelmActions – Upgrade', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(showModalConfirm).mockResolvedValue(true);
   });
 
   it('renders Upgrade, Rollback and Uninstall buttons', () => {
@@ -164,6 +172,7 @@ describe('HelmActions – Upgrade', () => {
 describe('HelmActions – Rollback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(showModalConfirm).mockResolvedValue(true);
   });
 
   it('opens rollback revision picker after loading history', async () => {
@@ -184,7 +193,6 @@ describe('HelmActions – Rollback', () => {
   });
 
   it('executes rollback when revision selected and confirmed', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(AppAPI.GetHelmReleaseHistory).mockResolvedValue([
       { revision: 3, status: 'deployed', chart: 'my-app-1.0.3', description: '', updated: '' },
       { revision: 2, status: 'superseded', chart: 'my-app-1.0.2', description: '', updated: '' },
@@ -273,7 +281,7 @@ describe('HelmActions – Rollback', () => {
   });
 
   it('does NOT rollback when window.confirm is cancelled', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.mocked(showModalConfirm).mockResolvedValue(false);
     vi.mocked(AppAPI.GetHelmReleaseHistory).mockResolvedValue([
       { revision: 2, status: 'deployed', chart: 'my-app-1.0.2', description: '', updated: '' },
       { revision: 1, status: 'superseded', chart: 'my-app-1.0.1', description: '', updated: '' },
@@ -297,10 +305,10 @@ describe('HelmActions – Rollback', () => {
 describe('HelmActions – Uninstall', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(showModalConfirm).mockResolvedValue(true);
   });
 
   it('calls UninstallHelmRelease after confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(AppAPI.UninstallHelmRelease).mockResolvedValue(undefined as unknown as void);
 
     const onRefresh = vi.fn();
@@ -319,7 +327,7 @@ describe('HelmActions – Uninstall', () => {
   });
 
   it('does NOT call UninstallHelmRelease if user cancels confirmation', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.mocked(showModalConfirm).mockResolvedValue(false);
 
     render(<HelmActions {...defaultProps} />);
 
@@ -331,7 +339,6 @@ describe('HelmActions – Uninstall', () => {
   });
 
   it('shows error notification when UninstallHelmRelease rejects', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     vi.mocked(AppAPI.UninstallHelmRelease).mockRejectedValue(new Error('permission denied'));
 
     render(<HelmActions {...defaultProps} />);
@@ -346,7 +353,6 @@ describe('HelmActions – Uninstall', () => {
   });
 
   it('disables the Uninstall button while uninstalling', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     // Never resolves — keeps the component in the "uninstalling" state
     vi.mocked(AppAPI.UninstallHelmRelease).mockImplementation(
       () => new Promise(() => {})

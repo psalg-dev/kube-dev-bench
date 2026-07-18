@@ -9,6 +9,7 @@ import { ConfigDataTab } from '../../../docker/resources/configs/ConfigDataTab';
 import { ConfigInspectTab } from '../../../docker/resources/configs/ConfigInspectTab';
 import { ConfigSummaryPanel } from '../../../docker/resources/configs/ConfigSummaryPanel';
 import { CloneSwarmConfig, ExportSwarmConfig, GetSwarmConfigs, RemoveSwarmConfig } from '../../../docker/swarmApi';
+import { showModalPrompt, showModalConfirm } from '../../../components/ModalProvider';
 import { showError, showSuccess } from '../../../notification';
 import type {
     PanelApi,
@@ -135,7 +136,7 @@ export const getSwarmConfigRowActions = (row: ResourceRow, api?: PanelApi): RowA
         showError('Missing config id');
         return;
       }
-      const newName = window.prompt('New config name', makeDefaultCloneName(configName));
+      const newName = await showModalPrompt('New config name', makeDefaultCloneName(configName));
       if (!newName) return;
       try {
         await CloneSwarmConfig(configId, newName);
@@ -158,7 +159,8 @@ export const getSwarmConfigRowActions = (row: ResourceRow, api?: PanelApi): RowA
         showError('Missing config id');
         return;
       }
-      if (!window.confirm(`Delete config "${configName}"?`)) return;
+      const confirmed = await showModalConfirm(`Delete config "${configName}"?`);
+      if (!confirmed) return;
       try {
         await RemoveSwarmConfig(configId);
         showSuccess(`Config ${configName} removed`);

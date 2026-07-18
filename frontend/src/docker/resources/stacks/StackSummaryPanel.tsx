@@ -3,6 +3,7 @@ import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import { showError, showSuccess } from '../../../notification';
 import { CreateSwarmStack, GetSwarmStackComposeYAML, RollbackSwarmStack } from '../../swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import UpdateStackModal from './UpdateStackModal';
 import type { docker } from '../../../../wailsjs/go/models';
 
@@ -91,7 +92,8 @@ export default function StackSummaryPanel({ row, onRefresh }: StackSummaryPanelP
 	};
 
 	const handleRollback = async () => {
-		if (!window.confirm(`Rollback stack "${row.name}"? This will attempt to rollback each service in the stack.`)) return;
+		const confirmed = await showModalConfirm(`Rollback stack "${row.name}"? This will attempt to rollback each service in the stack.`);
+	if (!confirmed) return;
 		try {
 			await RollbackSwarmStack(row.name);
 			showSuccess(`Rollback triggered for stack "${row.name}"`);

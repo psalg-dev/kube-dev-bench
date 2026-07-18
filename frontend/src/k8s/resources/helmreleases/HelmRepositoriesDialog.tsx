@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import type { app } from '../../../../wailsjs/go/models';
 
 type HelmRepositoriesDialogProps = {
@@ -59,7 +60,8 @@ export default function HelmRepositoriesDialog({ onClose }: HelmRepositoriesDial
   };
 
   const handleRemove = async (name: string) => {
-    if (!window.confirm(`Remove repository "${name}"?`)) return;
+    const confirmed = await showModalConfirm(`Remove repository "${name}"?`);
+    if (!confirmed) return;
 
     setDeleting(name);
     setError(null);

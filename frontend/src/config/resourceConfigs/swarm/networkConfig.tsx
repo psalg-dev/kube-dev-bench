@@ -6,6 +6,7 @@
  */
 
 import { GetSwarmNetworks, GetSwarmNetworkServices, GetSwarmNetworkContainers, RemoveSwarmNetwork } from '../../../docker/swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import SwarmResourceActions from '../../../docker/resources/SwarmResourceActions';
@@ -205,7 +206,8 @@ export const getSwarmNetworkRowActions = (row: ResourceRow, api?: PanelApi): Row
           showError('Missing network id');
           return;
         }
-        if (!window.confirm(`Delete network "${networkName}"?`)) return;
+        const confirmed = await showModalConfirm(`Delete network "${networkName}"?`);
+        if (!confirmed) return;
         try {
           await RemoveSwarmNetwork(networkId);
           showSuccess(`Network ${networkName} removed`);

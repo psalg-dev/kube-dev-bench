@@ -5,7 +5,7 @@ import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPa
 import { swarmVolumeConfig } from '../../../config/resourceConfigs/swarm/volumeConfig';
 import { BaseModal, ModalButton, ModalDangerButton, ModalPrimaryButton } from '../../../components/BaseModal';
 import { showSuccess, showError } from '../../../notification';
-import { GetSwarmVolumeUsage, RemoveSwarmVolume, CloneSwarmVolume, RestoreSwarmVolume } from '../../../docker/swarmApi';
+import { RemoveSwarmVolume, CloneSwarmVolume, RestoreSwarmVolume } from '../../../docker/swarmApi';
 import { emptyHolmesHelpers, type PanelApi, type ResourceRow } from '../../../types/resourceConfigs';
 
 export default function SwarmVolumesOverviewTable() {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useConnectionsState } from './ConnectionsStateContext';
+import { showModalConfirm } from '../../components/ModalProvider';
 import './ConnectionHooksSettings.css';
 
 type ConnectionHooksSettingsProps = {
@@ -172,7 +173,8 @@ function ConnectionHooksSettings({ onClose }: ConnectionHooksSettingsProps) {
   };
 
   const handleDelete = async (hook: Hook) => {
-    if (!window.confirm(`Delete hook "${hook.name || 'Unnamed'}"?`)) return;
+    const confirmed = await showModalConfirm(`Delete hook "${hook.name || 'Unnamed'}"?`);
+    if (!confirmed) return;
     await actions.deleteHook(hook.id);
     setFormOpen(false);
     setActiveHookId(null);

@@ -145,6 +145,12 @@ vi.mock('../holmes/HolmesBottomPanel', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import SwarmStacksOverviewTable from '../docker/resources/stacks/SwarmStacksOverviewTable';
 
 function emitRuntime(eventName: string, payload: unknown) {
@@ -212,7 +218,6 @@ describe('SwarmStacksOverviewTable', () => {
   });
 
   it('deletes a stack from row action and refreshes list', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     render(<SwarmStacksOverviewTable />);
     await screen.findByTestId('row-demo');

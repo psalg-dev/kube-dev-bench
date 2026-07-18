@@ -5,6 +5,7 @@ import { DownloadFromSwarmVolume, GetSwarmVolumeFileContent, IsSwarmVolumeReadOn
 import { showError, showSuccess } from '../../../notification';
 import { CreateSwarmVolumeDirectory, DeleteSwarmVolumeFile, WriteSwarmVolumeFile } from '../../swarmApi';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../../utils/tableSorting';
+import { showModalPrompt, showModalConfirm } from '../../../components/ModalProvider';
 import type { app } from '../../../../wailsjs/go/models';
 
 const DIR_CACHE_TTL_MS = 2000;
@@ -42,10 +43,11 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 	const [editContent, setEditContent] = useState('');
 	const [isSaving, setIsSaving] = useState(false);
 
-	const ensureNotEditingOrConfirmDiscard = () => {
+	const ensureNotEditingOrConfirmDiscard = async () => {
 		if (!isEditing) return true;
 		if ((editContent || '') === (fileText || '')) return true;
-		return window.confirm('Discard your unsaved changes?');
+		const confirmed = await showModalConfirm('Discard your unsaved changes?');
+		return confirmed;
 	};
 
 	const sanitizeName = (name: string | null | undefined) => String(name || '').trim().replace(/^\/+/, '').replace(/\/+$/g, '');
@@ -153,8 +155,8 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 
 	const breadcrumbs = useMemo(() => (path === '/' ? [''] : path.split('/').filter(Boolean)), [path]);
 
-	const handleCrumbClick = (idx: number) => {
-		if (!ensureNotEditingOrConfirmDiscard()) return;
+	const handleCrumbClick = async (idx: number) => {
+		if (!(await ensureNotEditingOrConfirmDiscard())) return;
 		if (idx === -1) {
 			loadDir('/');
 			return;
@@ -163,8 +165,8 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 		loadDir(newPath === '' ? '/' : newPath);
 	};
 
-	const openEntry = (entry: app.PodFileEntry) => {
-		if (!ensureNotEditingOrConfirmDiscard()) return;
+	const openEntry = async (entry: app.PodFileEntry) => {
+		if (!(await ensureNotEditingOrConfirmDiscard())) return;
 		if (entry?.isDir) {
 			loadDir(entry.path);
 		} else {
@@ -180,9 +182,9 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 		setIsEditing(true);
 	};
 
-	const cancelEdit = () => {
+	const cancelEdit = async () => {
 		if (!isEditing) return;
-		if (!ensureNotEditingOrConfirmDiscard()) return;
+		if (!(await ensureNotEditingOrConfirmDiscard())) return;
 		setIsEditing(false);
 		setEditContent('');
 	};
@@ -209,8 +211,8 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 
 	const createFolder = async () => {
 		if (readOnly === true) return;
-		if (!ensureNotEditingOrConfirmDiscard()) return;
-		const name = window.prompt('New folder name:');
+		if (!(await ensureNotEditingOrConfirmDiscard())) return;
+		const name = await showModalPrompt('New folder name:');
 		const safe = sanitizeName(name);
 		if (!safe) return;
 		try {
@@ -225,8 +227,8 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 
 	const createFile = async () => {
 		if (readOnly === true) return;
-		if (!ensureNotEditingOrConfirmDiscard()) return;
-		const name = window.prompt('New file name:');
+		if (!(await ensureNotEditingOrConfirmDiscard())) return;
+		const name = await showModalPrompt('New file name:');
 		const safe = sanitizeName(name);
 		if (!safe) return;
 		try {
@@ -242,13 +244,13 @@ export default function VolumeFilesTab({ volumeName }: VolumeFilesTabProps) {
 	const deleteEntry = async (entry: app.PodFileEntry) => {
 		if (readOnly === true) return;
 		if (!entry?.path) return;
-		if (!ensureNotEditingOrConfirmDiscard()) return;
+		if (!(await ensureNotEditingOrConfirmDiscard())) return;
 
 		const label = entry.isDir ? 'folder' : 'file';
-		const ok = window.confirm(
+		const confirmed = await showModalConfirm(
 			entry.isDir ? `Delete folder ${entry.path} (recursive)?` : `Delete file ${entry.path}?`
 		);
-		if (!ok) return;
+		if (!confirmed) return;
 
 		try {
 			await DeleteSwarmVolumeFile(volumeName, entry.path, !!entry.isDir);

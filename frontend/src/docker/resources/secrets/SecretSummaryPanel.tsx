@@ -4,6 +4,7 @@ import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import QuickInfoSection from '../../../QuickInfoSection';
 import { showError, showSuccess } from '../../../notification';
 import { RemoveSwarmSecret } from '../../swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import SwarmResourceActions from '../SwarmResourceActions';
 import SecretCloneModal from './SecretCloneModal';
 import SecretDataSection from './SecretDataSection';
@@ -39,7 +40,8 @@ function SecretSummaryPanel({ row, onRefresh }: SecretSummaryPanelProps) {
 	const [showClone, setShowClone] = useState(false);
 
 	const handleDelete = async () => {
-		if (!window.confirm(`Delete secret "${row.name}"?`)) return;
+		const confirmed = await showModalConfirm(`Delete secret "${row.name}"?`);
+	if (!confirmed) return;
 		try {
 			await RemoveSwarmSecret(row.id);
 			showSuccess(`Secret "${row.name}" deleted`);

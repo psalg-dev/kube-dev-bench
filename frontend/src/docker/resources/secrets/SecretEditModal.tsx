@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import { EventsEmit } from '../../../../wailsjs/runtime/runtime.js';
 import { showError, showSuccess } from '../../../notification';
 import { UpdateSwarmSecretData } from '../../swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 
 type SecretEditModalProps = {
 	open: boolean;
@@ -150,14 +151,14 @@ export default function SecretEditModal({ open, secretId, secretName, titleVerb 
 					</div>
 					<button
 						style={buttonStyle}
-						onClick={() => {
+						onClick={async () => {
 							if (saving) return;
 							if (masked) {
 								if (!revealConfirmed) {
-									const ok = window.confirm(
+									const confirmed = await showModalConfirm(
 										'Revealing the secret value will show it on-screen. Make sure no one is watching/recording your screen.\n\nReveal now?'
 									);
-									if (!ok) return;
+									if (!confirmed) return;
 									setRevealConfirmed(true);
 								}
 								setMasked(false);

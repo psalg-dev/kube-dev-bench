@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
 import { showError, showSuccess } from '../../../notification';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import StatusBadge from '../../../components/StatusBadge';
 import type { app } from '../../../../wailsjs/go/models';
 
@@ -32,7 +33,8 @@ export default function HelmHistoryTab({ namespace, releaseName, onRefresh }: He
   }, [namespace, releaseName]);
 
   const handleRollback = async (revision: number) => {
-    if (!window.confirm(`Rollback "${releaseName}" to revision ${revision}?`)) return;
+    const confirmed = await showModalConfirm(`Rollback "${releaseName}" to revision ${revision}?`);
+    if (!confirmed) return;
     setRollingBack(revision);
     try {
       await AppAPI.RollbackHelmRelease(namespace ?? '', releaseName ?? '', revision);

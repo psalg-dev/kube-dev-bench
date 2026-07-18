@@ -17,6 +17,7 @@ import {
     GetSwarmStacks,
     RemoveSwarmStack,
 } from '../../../docker/swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import { AnalyzeSwarmStackStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
 import { showError, showSuccess } from '../../../notification';
@@ -163,7 +164,8 @@ export const getSwarmStackRowActions = (row: ResourceRow, api: PanelApi, { holme
           showError('Missing stack name');
           return;
         }
-        if (!window.confirm(`Delete stack "${stackName}"?`)) return;
+        const confirmed = await showModalConfirm(`Delete stack "${stackName}"?`);
+        if (!confirmed) return;
         try {
           await RemoveSwarmStack(stackName);
           showSuccess(`Removed stack "${stackName}"`);

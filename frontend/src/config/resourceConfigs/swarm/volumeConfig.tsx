@@ -6,6 +6,7 @@
  */
 
 import { GetSwarmVolumes, GetSwarmVolumeUsage, BackupSwarmVolume, CloneSwarmVolume, RemoveSwarmVolume, RestoreSwarmVolume } from '../../../docker/swarmApi';
+import { showModalPrompt, showModalConfirm } from '../../../components/ModalProvider';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import SwarmResourceActions from '../../../docker/resources/SwarmResourceActions';
@@ -108,12 +109,15 @@ export const renderSwarmVolumePanelContent: RenderPanelContent = (
             .join(', ');
           const extra = services.length > 10 ? `, +${services.length - 10} more` : '';
           const msg = `Volume "${row.name}" is used by ${services.length} service${services.length === 1 ? '' : 's'} (${names}${extra}).\n\nDeleting it may break those services.\n\nDelete anyway?`;
-          if (!window.confirm(msg)) return;
-        } else if (!window.confirm(`Delete volume "${row.name}"?`)) {
-          return;
+          const confirmed = await showModalConfirm(msg);
+          if (!confirmed) return;
+        } else {
+          const confirmed = await showModalConfirm(`Delete volume "${row.name}"?`);
+          if (!confirmed) return;
         }
       } catch {
-        if (!window.confirm(`Delete volume "${row.name}"?`)) return;
+        const confirmed = await showModalConfirm(`Delete volume "${row.name}"?`);
+        if (!confirmed) return;
       }
       try {
         await RemoveSwarmVolume(row.name, false);
@@ -163,7 +167,8 @@ export const renderSwarmVolumePanelContent: RenderPanelContent = (
                 id="swarm-volume-restore-btn"
                 style={buttonStyle}
                 onClick={async () => {
-                  if (!window.confirm(`Restore a backup into volume "${row.name}"? This may overwrite files.`)) return;
+                   const confirmed = await showModalConfirm(`Restore a backup into volume "${row.name}"? This may overwrite files.`);
+                   if (!confirmed) return;
                   try {
                     const selected = await RestoreSwarmVolume(row.name);
                     if (!selected) return;
@@ -182,8 +187,8 @@ export const renderSwarmVolumePanelContent: RenderPanelContent = (
                 onClick={async () => {
                   const iso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
                   const def = `${row.name}@${iso}`;
-                  const newName = window.prompt('New volume name', def);
-                  if (!newName) return;
+                   const newName = await showModalPrompt('New volume name', def);
+                   if (!newName) return;
                   try {
                     await CloneSwarmVolume(row.name, newName);
                     showSuccess(`Cloned volume to "${newName}"`);
@@ -266,7 +271,8 @@ export const getSwarmVolumeRowActions = (row: ResourceRow, api?: PanelApi): RowA
         showError('Missing volume name');
         return;
       }
-      if (!window.confirm(`Restore a backup into volume "${volumeName}"? This may overwrite files.`)) return;
+      const confirmed = await showModalConfirm(`Restore a backup into volume "${volumeName}"? This may overwrite files.`);
+      if (!confirmed) return;
       try {
         const selected = await RestoreSwarmVolume(volumeName);
         if (!selected) return;
@@ -286,7 +292,7 @@ export const getSwarmVolumeRowActions = (row: ResourceRow, api?: PanelApi): RowA
         showError('Missing volume name');
         return;
       }
-      const newName = window.prompt('New volume name', makeDefaultCloneName(volumeName));
+      const newName = await showModalPrompt('New volume name', makeDefaultCloneName(volumeName));
       if (!newName) return;
       try {
         await CloneSwarmVolume(volumeName, newName);
@@ -308,7 +314,8 @@ export const getSwarmVolumeRowActions = (row: ResourceRow, api?: PanelApi): RowA
         showError('Missing volume name');
         return;
       }
-      if (!window.confirm(`Delete volume "${volumeName}"?`)) return;
+      const confirmed = await showModalConfirm(`Delete volume "${volumeName}"?`);
+      if (!confirmed) return;
       try {
         await RemoveSwarmVolume(volumeName, false);
         showSuccess(`Volume "${volumeName}" deleted`);

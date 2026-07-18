@@ -26,7 +26,6 @@ import type {
   ResourceConfig,
   ResourceRow,
   ResourceTab,
-  RowAction,
 } from '../../types/resourceConfigs';
 
 /**
@@ -97,8 +96,7 @@ export const renderHelmReleasesPanelContent: RenderPanelContent = (
   _holmesState,
   _onAnalyze,
   _onCancel,
-  _panelApi,
-  _allData
+  _panelApi
 ) => {
   // ponytail: Helm doesn't use Holmes, ignoring unused params
   const release = row as unknown as app.HelmReleaseInfo;

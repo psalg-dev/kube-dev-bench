@@ -176,6 +176,12 @@ vi.mock('../docker/resources/volumes/VolumeInspectTab', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import SwarmVolumesOverviewTable from '../docker/resources/volumes/SwarmVolumesOverviewTable';
 
 function emit(eventName: string, payload: unknown) {
@@ -282,7 +288,6 @@ describe('SwarmVolumesOverviewTable', () => {
   });
 
   it('summary panel delete checks usage list for confirm message', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     swarmApiMocks.GetSwarmVolumeUsage.mockResolvedValue([
       { serviceName: 'api', serviceId: 'svc1' },

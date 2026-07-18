@@ -5,6 +5,7 @@ import '../../layout/overview/OverviewTableWithPanel.css';
 import { showError, showSuccess } from '../../notification';
 import { pickDefaultSortKey, sortRows, toggleSortState } from '../../utils/tableSorting';
 import { GetRegistries, RemoveRegistry } from '../swarmApi';
+import { showModalConfirm } from '../../components/ModalProvider';
 import { useSwarmResourceCounts } from '../SwarmResourceCountsContext';
 import AddRegistryModal from './AddRegistryModal';
 import './registry.css';
@@ -118,8 +119,8 @@ export default function SwarmRegistriesOverview() {
 
   const handleRemove = async (name: string) => {
     if (!name) return;
-    const ok = window.confirm(`Remove registry '${name}'?`);
-    if (!ok) return;
+    const confirmed = await showModalConfirm(`Remove registry '${name}'?`);
+    if (!confirmed) return;
 
     try {
       await RemoveRegistry(name);

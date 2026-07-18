@@ -5,6 +5,7 @@ import SummaryTabHeader from '../../../layout/bottompanel/SummaryTabHeader';
 import QuickInfoSection, { type QuickInfoField } from '../../../QuickInfoSection';
 import { showError, showSuccess } from '../../../notification';
 import { CloneSwarmConfig, ExportSwarmConfig, RemoveSwarmConfig } from '../../swarmApi';
+import { showModalPrompt } from '../../../components/ModalProvider';
 import SwarmResourceActions from '../SwarmResourceActions';
 import ConfigCompareModal from './ConfigCompareModal';
 import ConfigDataSection from './ConfigDataSection';
@@ -70,8 +71,8 @@ function ConfigSummaryPanel({ row, allConfigs = [], onRefresh }: ConfigSummaryPa
 	};
 
 	const handleClone = async () => {
-		const newName = window.prompt('New config name', makeDefaultCloneName());
-		if (!newName) return;
+    const newName = await showModalPrompt('New config name', makeDefaultCloneName());
+    if (!newName) return;
 		setCloning(true);
 		try {
 			await CloneSwarmConfig(row.id, newName);

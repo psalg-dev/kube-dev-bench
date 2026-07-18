@@ -6,6 +6,7 @@ import {
   UpdateSwarmNodeRole,
   RemoveSwarmNode,
 } from '../../../docker/swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import { AnalyzeSwarmNodeStream } from '../../../holmes/holmesApi';
 import { showSuccess, showError } from '../../../notification';
 import StatusBadge from '../../../components/StatusBadge';
@@ -242,7 +243,8 @@ export const getSwarmNodeRowActions = (row: ResourceRow, api: PanelApi, { holmes
       disabled: role !== 'worker',
       onClick: async () => {
         if (role !== 'worker') return;
-        if (!window.confirm(`Promote node "${row.hostname}" to manager?`)) return;
+        const confirmed = await showModalConfirm(`Promote node "${row.hostname}" to manager?`);
+        if (!confirmed) return;
         const nodeId = row?.id;
         if (!nodeId) {
           showError('Missing node id');
@@ -268,7 +270,8 @@ export const getSwarmNodeRowActions = (row: ResourceRow, api: PanelApi, { holmes
           showError('Cannot demote the current leader node');
           return;
         }
-        if (!window.confirm(`Demote node "${row.hostname}" to worker?`)) return;
+        const confirmed = await showModalConfirm(`Demote node "${row.hostname}" to worker?`);
+        if (!confirmed) return;
         const nodeId = row?.id;
         if (!nodeId) {
           showError('Missing node id');
@@ -291,7 +294,8 @@ export const getSwarmNodeRowActions = (row: ResourceRow, api: PanelApi, { holmes
       disabled: role === 'manager',
       onClick: async () => {
         if (role === 'manager') return;
-        if (!window.confirm(`Remove node "${row.hostname}" from the swarm?`)) return;
+        const confirmed = await showModalConfirm(`Remove node "${row.hostname}" from the swarm?`);
+        if (!confirmed) return;
         const nodeId = row?.id;
         if (!nodeId) {
           showError('Missing node id');

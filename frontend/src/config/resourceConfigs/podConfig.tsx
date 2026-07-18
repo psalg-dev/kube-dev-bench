@@ -14,12 +14,12 @@ import ConsoleTab from '../../layout/bottompanel/ConsoleTab';
 import PortForwardOutput from '../../k8s/resources/pods/PortForwardOutput';
 import PodFilesTab from '../../k8s/resources/pods/PodFilesTab';
 import PodMountsTab from '../../k8s/resources/pods/PodMountsTab';
-import StopPortForwardDialog from '../../k8s/resources/pods/StopPortForwardDialog';
 import HolmesBottomPanel from '../../holmes/HolmesBottomPanel';
 import StatusBadge from '../../components/StatusBadge';
 import { UptimeCell } from '../../components/DataTable/UptimeCell';
 import { usePortForwardState } from '../../hooks/usePortForwardState';
 import { showError, showSuccess } from '../../notification';
+import { showModalPrompt } from '../../components/ModalProvider';
 import type {
   RenderPanelContent,
   ResourceColumn,
@@ -141,7 +141,7 @@ export function getPodRowActions(row: ResourceRow, api?: PanelApi): RowAction[] 
           return;
         }
         try {
-          const input = window.prompt('Enter local port to stop forwarding:', '20000');
+          const input = await showModalPrompt('Enter local port to stop forwarding:', '20000');
           if (input == null) return;
           const p = parseInt(String(input).trim(), 10);
           if (!Number.isFinite(p) || p <= 0 || p > 65535) {

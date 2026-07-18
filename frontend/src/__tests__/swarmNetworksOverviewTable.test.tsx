@@ -135,6 +135,12 @@ vi.mock('../docker/resources/networks/NetworkDetailsSections', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import SwarmNetworksOverviewTable from '../docker/resources/networks/SwarmNetworksOverviewTable';
 
 function emit(eventName: string, payload: unknown) {
@@ -195,7 +201,6 @@ describe('SwarmNetworksOverviewTable', () => {
   });
 
   it('deletes a custom network via row action', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     render(<SwarmNetworksOverviewTable />);
     await screen.findByTestId('row-net2');

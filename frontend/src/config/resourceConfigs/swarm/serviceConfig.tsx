@@ -18,6 +18,7 @@ import {
     RestartSwarmService,
     ScaleSwarmService,
 } from '../../../docker/swarmApi';
+import { showModalPrompt, showModalConfirm } from '../../../components/ModalProvider';
 import { AnalyzeSwarmServiceStream } from '../../../holmes/holmesApi';
 import HolmesBottomPanel from '../../../holmes/HolmesBottomPanel';
 import { showError, showSuccess } from '../../../notification';
@@ -217,8 +218,8 @@ export const getSwarmServiceRowActions = (row: ResourceRow, api: PanelApi, { hol
   const canScale = String(row?.mode ?? '').toLowerCase() === 'replicated';
   const isAnalyzing = holmesState?.loading && holmesState?.key === `swarm/${row.id}`;
 
-  const promptReplicas = (current: number) => {
-    const value = window.prompt('Scale to replicas', String(current ?? 0));
+  const promptReplicas = async (current: number) => {
+    const value = await showModalPrompt('Scale to replicas', String(current ?? 0));
     if (value === null) return null;
     const next = Number(String(value).trim());
     if (!Number.isFinite(next) || next < 0) return null;
@@ -265,7 +266,7 @@ export const getSwarmServiceRowActions = (row: ResourceRow, api: PanelApi, { hol
           showError('Missing service id');
           return;
         }
-        const desired = promptReplicas(Number(row?.replicas ?? 0));
+        const desired = await promptReplicas(Number(row?.replicas ?? 0));
         if (desired === null) return;
         try {
           await ScaleSwarmService(serviceId, desired);
@@ -282,7 +283,8 @@ export const getSwarmServiceRowActions = (row: ResourceRow, api: PanelApi, { hol
       icon: '🗑️',
       danger: true,
       onClick: async () => {
-        if (!window.confirm(`Delete service "${row.name}"?`)) return;
+        const confirmed = await showModalConfirm(`Delete service "${row.name}"?`);
+      if (!confirmed) return;
         const serviceId = row?.id;
         if (!serviceId) {
           showError('Missing service id');

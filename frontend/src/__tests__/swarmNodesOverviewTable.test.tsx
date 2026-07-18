@@ -144,6 +144,12 @@ vi.mock('../docker/resources/nodes/NodeLogsTab', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import SwarmNodesOverviewTable from '../docker/resources/nodes/SwarmNodesOverviewTable';
 
 function emit(eventName: string, payload: unknown) {
@@ -216,7 +222,6 @@ describe('SwarmNodesOverviewTable', () => {
   });
 
   it('executes row actions and shows notifications', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     render(<SwarmNodesOverviewTable />);
     await screen.findByTestId('row-node1');
@@ -241,7 +246,6 @@ describe('SwarmNodesOverviewTable', () => {
   });
 
   it('demote on a leader manager shows an error without confirming', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     render(<SwarmNodesOverviewTable />);
     await screen.findByTestId('row-node2');

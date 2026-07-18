@@ -14,6 +14,7 @@ import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext';
 import { HolmesConfigModal } from './holmes/HolmesConfigModal';
 import { HolmesProvider, useHolmes } from './holmes/HolmesContext';
 import { HolmesPanel } from './holmes/HolmesPanel';
+import { ModalProvider } from './components/ModalProvider';
 // Resource overview tables
 import ConfigMapsOverviewTable from './k8s/resources/configmaps/ConfigMapsOverviewTable';
 import CronJobsOverviewTable from './k8s/resources/cronjobs/CronJobsOverviewTable';
@@ -214,16 +215,19 @@ export default function AppContainer() {
   const [reloadKey, _setReloadKey] = useState(0);
   const [selectedSection, setSelectedSection] = useState('pods');
   return (
-    <ClusterStateProvider key={reloadKey}>
-      <ResourceCountsProvider>
-        <SwarmStateProvider>
-          <SwarmResourceCountsProvider>
-            <HolmesProvider>
-              <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
-            </HolmesProvider>
-          </SwarmResourceCountsProvider>
-        </SwarmStateProvider>
-      </ResourceCountsProvider>
-    </ClusterStateProvider>
+    <>
+      <ModalProvider />
+      <ClusterStateProvider key={reloadKey}>
+        <ResourceCountsProvider>
+          <SwarmStateProvider>
+            <SwarmResourceCountsProvider>
+              <HolmesProvider>
+                <MainApp selectedSection={selectedSection} setSelectedSection={setSelectedSection} />
+              </HolmesProvider>
+            </SwarmResourceCountsProvider>
+          </SwarmStateProvider>
+        </ResourceCountsProvider>
+      </ClusterStateProvider>
+    </>
   );
 }

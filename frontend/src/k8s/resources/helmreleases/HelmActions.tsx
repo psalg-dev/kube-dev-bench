@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import * as AppAPI from '../../../../wailsjs/go/main/App';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import { showError, showSuccess } from '../../../notification';
 
 type HelmActionsProps = {
@@ -37,9 +38,8 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
   }, [showRollbackPicker]);
 
   const handleUninstall = async () => {
-    if (!window.confirm(`Are you sure you want to uninstall "${releaseName}" from namespace "${namespace}"?`)) {
-      return;
-    }
+    const confirmed = await showModalConfirm(`Are you sure you want to uninstall "${releaseName}" from namespace "${namespace}"?`);
+    if (!confirmed) return;
     setUninstalling(true);
     try {
       await AppAPI.UninstallHelmRelease(namespace, releaseName);
@@ -83,9 +83,8 @@ export default function HelmActions({ releaseName, namespace, chart, onRefresh }
 
   const confirmRollback = async () => {
     if (!selectedRevision) return;
-    if (!window.confirm(`Rollback "${releaseName}" to revision ${selectedRevision}?`)) {
-      return;
-    }
+    const confirmed = await showModalConfirm(`Rollback "${releaseName}" to revision ${selectedRevision}?`);
+    if (!confirmed) return;
     setRollingBack(true);
     try {
       await AppAPI.RollbackHelmRelease(namespace, releaseName, selectedRevision);

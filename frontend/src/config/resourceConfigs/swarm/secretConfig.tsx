@@ -8,6 +8,7 @@
 import { SecretInspectTab } from '../../../docker/resources/secrets/SecretInspectTab';
 import { SecretSummaryPanel } from '../../../docker/resources/secrets/SecretSummaryPanel';
 import { GetSwarmSecrets, RemoveSwarmSecret } from '../../../docker/swarmApi';
+import { showModalConfirm } from '../../../components/ModalProvider';
 import { showError, showSuccess } from '../../../notification';
 import type {
     PanelApi,
@@ -111,7 +112,8 @@ export const getSwarmSecretRowActions = (row: ResourceRow, api?: PanelApi): RowA
         showError('Missing secret id');
         return;
       }
-      if (!window.confirm(`Delete secret "${secretName}"?`)) return;
+      const confirmed = await showModalConfirm(`Delete secret "${secretName}"?`);
+      if (!confirmed) return;
       try {
         await RemoveSwarmSecret(secretId);
         showSuccess(`Secret "${secretName}" deleted`);

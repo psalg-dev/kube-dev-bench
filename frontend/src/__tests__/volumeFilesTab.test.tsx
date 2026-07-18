@@ -53,7 +53,14 @@ vi.mock('../layout/bottompanel/TextEditorTab', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg: string, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import VolumeFilesTab from '../docker/resources/volumes/VolumeFilesTab';
+import { showModalConfirm } from '../components/ModalProvider';
 
 function rowFor(name: string) {
   const table = screen.getByRole('table');
@@ -64,6 +71,7 @@ function rowFor(name: string) {
 describe('VolumeFilesTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(showModalConfirm).mockResolvedValue(true);
 
     swarmApiMocks.IsSwarmVolumeReadOnly.mockResolvedValue(false);
     swarmApiMocks.ListSwarmVolumeFiles.mockResolvedValue([
@@ -141,7 +149,7 @@ describe('VolumeFilesTab', () => {
   });
 
   it('prompts to discard unsaved changes before navigating directories', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => false));
+    vi.mocked(showModalConfirm).mockResolvedValue(false);
 
     swarmApiMocks.ListSwarmVolumeFiles
       .mockResolvedValueOnce([
@@ -164,19 +172,17 @@ describe('VolumeFilesTab', () => {
 
     // attempt to navigate to dir should prompt; confirm=false means no navigation
     fireEvent.click(rowFor('dir1') as HTMLElement);
-    expect(globalThis.confirm).toHaveBeenCalledWith('Discard your unsaved changes?');
+    await waitFor(() => expect(vi.mocked(showModalConfirm)).toHaveBeenCalledWith('Discard your unsaved changes?'));
     expect(swarmApiMocks.ListSwarmVolumeFiles).not.toHaveBeenCalledWith('data', '/dir1');
 
     // allow navigation
-    (globalThis.confirm as ReturnType<typeof vi.fn>).mockImplementationOnce(() => true);
+    vi.mocked(showModalConfirm).mockResolvedValueOnce(true);
     fireEvent.click(rowFor('dir1') as HTMLElement);
     expect(await screen.findByText(/nested\.txt/)).toBeInTheDocument();
     expect(swarmApiMocks.ListSwarmVolumeFiles).toHaveBeenCalledWith('data', '/dir1');
   });
 
   it('supports row download and delete actions', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
-
     swarmApiMocks.DownloadFromSwarmVolume.mockResolvedValueOnce('C:/tmp/file.txt');
     swarmApiMocks.DeleteSwarmVolumeFile.mockResolvedValueOnce(undefined);
 

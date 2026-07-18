@@ -1,5 +1,11 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import { genericAPIMock, resetAllMocks } from './wailsMocks';
 
 // Mock EventsOn and EventsOff
@@ -17,6 +23,7 @@ vi.mock('../notification', () => ({
 
 // Import after mocks
 import HelmActions from '../k8s/resources/helmreleases/HelmActions';
+import { showModalConfirm } from '../components/ModalProvider';
 import HelmHistoryTab from '../k8s/resources/helmreleases/HelmHistoryTab';
 import HelmInstallDialog from '../k8s/resources/helmreleases/HelmInstallDialog';
 import HelmNotesTab from '../k8s/resources/helmreleases/HelmNotesTab';
@@ -344,7 +351,7 @@ describe('HelmActions', () => {
   });
 
   it('prompts for confirmation before uninstall', async () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.mocked(showModalConfirm).mockResolvedValue(false);
     genericAPIMock.mockImplementation(() => toUndefinedPromise(undefined));
 
     render(<HelmActions releaseName="my-nginx" namespace="default" chart="nginx" />);
@@ -352,8 +359,7 @@ describe('HelmActions', () => {
     const uninstallBtn = screen.getByRole('button', { name: /uninstall/i });
     fireEvent.click(uninstallBtn);
 
-    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('my-nginx'));
-    confirmSpy.mockRestore();
+    await waitFor(() => expect(vi.mocked(showModalConfirm)).toHaveBeenCalledWith(expect.stringContaining('my-nginx')));
   });
 });
 

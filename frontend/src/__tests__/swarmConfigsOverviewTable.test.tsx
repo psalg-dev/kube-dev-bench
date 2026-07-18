@@ -136,6 +136,12 @@ vi.mock('../docker/resources/configs/ConfigCompareModal', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn(() => Promise.resolve('app-config-clone')),
+  ModalProvider: () => null,
+}));
+
 import SwarmConfigsOverviewTable from '../docker/resources/configs/SwarmConfigsOverviewTable';
 
 function emit(eventName: string, payload: unknown) {
@@ -201,9 +207,6 @@ describe('SwarmConfigsOverviewTable', () => {
   });
 
   it('downloads/clones/deletes via row actions', async () => {
-    vi.stubGlobal('prompt', vi.fn(() => 'app-config-clone'));
-    vi.stubGlobal('confirm', vi.fn(() => true));
-
     render(<SwarmConfigsOverviewTable />);
     await screen.findByTestId('row-cfg1');
 

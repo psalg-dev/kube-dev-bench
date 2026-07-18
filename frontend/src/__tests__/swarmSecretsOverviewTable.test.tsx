@@ -142,6 +142,12 @@ vi.mock('../docker/resources/secrets/SecretCloneModal', () => ({
   },
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import SwarmSecretsOverviewTable from '../docker/resources/secrets/SwarmSecretsOverviewTable';
 
 function emit(eventName: string, payload: unknown) {
@@ -195,7 +201,6 @@ describe('SwarmSecretsOverviewTable', () => {
   });
 
   it('deletes via row action', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     render(<SwarmSecretsOverviewTable />);
     await screen.findByTestId('row-sec1');
@@ -211,7 +216,6 @@ describe('SwarmSecretsOverviewTable', () => {
   });
 
   it('opens edit/rotate/clone modals from summary panel and deletes from panel actions', async () => {
-    vi.stubGlobal('confirm', vi.fn(() => true));
 
     render(<SwarmSecretsOverviewTable />);
     await screen.findByTestId('row-sec1');

@@ -1,6 +1,6 @@
 import '../__tests__/wailsMocks';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import type { HolmesAnalysisState } from '../hooks/useHolmesAnalysis';
 import type { ResourceRow } from '../types/resourceConfigs';
 import {

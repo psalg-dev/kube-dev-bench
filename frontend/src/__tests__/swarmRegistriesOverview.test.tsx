@@ -57,6 +57,12 @@ vi.mock('../docker/registry/RegistryBrowser', () => ({
   ),
 }));
 
+vi.mock('../components/ModalProvider', () => ({
+  showModalConfirm: vi.fn(() => Promise.resolve(true)),
+  showModalPrompt: vi.fn((_msg: string, def = '') => Promise.resolve(def)),
+  ModalProvider: () => null,
+}));
+
 import SwarmRegistriesOverview from '../docker/registry/SwarmRegistriesOverview';
 
 beforeEach(() => {
@@ -80,7 +86,6 @@ describe('SwarmRegistriesOverview', () => {
         { name: 'Generic', type: 'generic_v2', url: 'https://reg.example.com' },
       ]);
 
-    vi.spyOn(window, 'confirm').mockImplementation(() => true);
     swarmApi.RemoveRegistry.mockResolvedValueOnce(undefined);
 
     render(<SwarmRegistriesOverview />);

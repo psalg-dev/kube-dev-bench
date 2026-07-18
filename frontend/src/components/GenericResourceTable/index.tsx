@@ -91,7 +91,6 @@ export function GenericResourceTable({
 
   // Holmes integration
   analyzeFn,
-  holmesKeyPrefix,
 
   // Panel rendering
   renderPanelContent,

@@ -59,7 +59,7 @@ vi.mock('../components/BaseModal', () => ({
 
 // Import component under test AFTER mocks
 import OverviewTableWithPanel from '../layout/overview/OverviewTableWithPanel';
-import { showNotification, showSuccess, showError } from '../notification';
+import { showNotification } from '../notification';
 
 function setup(props: Record<string, unknown> = {}) {
   const columns = [
