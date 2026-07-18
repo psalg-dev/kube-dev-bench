@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { EventsOn } from '../../../../wailsjs/runtime/runtime.js';
 import OverviewTableWithPanel from '../../../layout/overview/OverviewTableWithPanel';
 import { useHolmesAnalysis } from '../../../hooks/useHolmesAnalysis';
 import { swarmServiceConfig } from '../../../config/resourceConfigs/swarm/serviceConfig';
 import ImageUpdateModal from './ImageUpdateModal';
 import ImageUpdateSettingsModal from './ImageUpdateSettingsModal';
+import { BaseModal, ModalButton, ModalDangerButton, ModalPrimaryButton } from '../../../components/BaseModal';
+import { showSuccess, showError } from '../../../notification';
+import { ScaleSwarmService, RemoveSwarmService } from '../../../docker/swarmApi';
 import type { HolmesHelpers, PanelApi, ResourceRow } from '../../../types/resourceConfigs';
 
 // ponytail: services carries image-update glue the config can't hold (event merge, badge onOpenDetails, modals).
@@ -34,11 +37,14 @@ const decorate = (list: unknown): ResourceRow[] =>
 	(Array.isArray(list) ? list : []).map((s) => swarmServiceConfig.normalize?.(s) ?? s) as ResourceRow[];
 
 export default function SwarmServicesOverviewTable() {
-	const [services, setServices] = useState<ResourceRow[]>([]);
-	const [loading, setLoading] = useState(true);
-	const [refreshKey, setRefreshKey] = useState(0);
-	const [imageUpdateServiceId, setImageUpdateServiceId] = useState<string | null>(null);
-	const [imageUpdateSettingsOpen, setImageUpdateSettingsOpen] = useState(false);
+  const [services, setServices] = useState<ResourceRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [imageUpdateServiceId, setImageUpdateServiceId] = useState<string | null>(null);
+  const [imageUpdateSettingsOpen, setImageUpdateSettingsOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{ type: 'scale' | 'delete'; row: ResourceRow } | null>(null);
+  const [scaleValue, setScaleValue] = useState<string>('');
+  const scaleInputRef = useRef<HTMLInputElement>(null);
 
 	const { state, analyze, cancel } = useHolmesAnalysis({
 		kind: swarmServiceConfig.resourceKind,
@@ -51,9 +57,51 @@ export default function SwarmServicesOverviewTable() {
 		setRefreshKey((k) => k + 1);
 	}, []);
 
-	const withRefresh = useCallback((api?: PanelApi): PanelApi => ({ ...(api ?? {}), refresh }), [refresh]);
+  const withRefresh = useCallback((api?: PanelApi): PanelApi => ({ ...(api ?? {}), refresh }), [refresh]);
 
-	useEffect(() => {
+  const handleScaleConfirm = useCallback(async () => {
+    if (!pendingAction?.row) return;
+    const desired = Number(scaleValue);
+    if (!Number.isFinite(desired) || desired < 0) {
+      showError('Replica count must be a non-negative number.');
+      return;
+    }
+    const serviceId = pendingAction.row?.id;
+    if (!serviceId) {
+      showError('Missing service id');
+      setPendingAction(null);
+      return;
+    }
+    try {
+      await ScaleSwarmService(serviceId, Math.floor(desired));
+      showSuccess(`Scaled service ${pendingAction.row.name} to ${Math.floor(desired)} replicas`);
+      setPendingAction(null);
+      setScaleValue('');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      showError(`Failed to scale service: ${message}`);
+    }
+  }, [pendingAction, scaleValue]);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!pendingAction?.row) return;
+    const serviceId = pendingAction.row?.id;
+    if (!serviceId) {
+      showError('Missing service id');
+      setPendingAction(null);
+      return;
+    }
+    try {
+      await RemoveSwarmService(serviceId);
+      showSuccess(`Removed service ${pendingAction.row.name}`);
+      setPendingAction(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      showError(`Failed to remove service: ${message}`);
+    }
+  }, [pendingAction]);
+
+  useEffect(() => {
 		let active = true;
 
 		const load = async () => {
@@ -130,7 +178,29 @@ export default function SwarmServicesOverviewTable() {
 				createPlatform={swarmServiceConfig.createPlatform as 'swarm' | 'k8s'}
 				createKind={swarmServiceConfig.createKind}
 				tableTestId={swarmServiceConfig.tableTestId}
-				getRowActions={(row, api) => swarmServiceConfig.getRowActions?.(row, withRefresh(api), helpers) ?? []}
+				getRowActions={(row, api) => {
+					const originalActions = swarmServiceConfig.getRowActions?.(row, withRefresh(api), helpers) ?? [];
+					return originalActions.map((action) => {
+						if (action.label === 'Scale…' && typeof action.onClick === 'function') {
+							return {
+								...action,
+								onClick: () => {
+									setScaleValue(String(row?.replicas ?? 0));
+									setPendingAction({ type: 'scale', row });
+								},
+							};
+						}
+						if (action.label === 'Delete' && typeof action.onClick === 'function') {
+							return {
+								...action,
+								onClick: () => {
+									setPendingAction({ type: 'delete', row });
+								},
+							};
+						}
+						return action;
+					});
+				}}
 				headerActions={
 					<button
 						id="swarm-image-update-settings-btn"
@@ -164,6 +234,60 @@ export default function SwarmServicesOverviewTable() {
 				open={imageUpdateSettingsOpen}
 				onClose={() => setImageUpdateSettingsOpen(false)}
 			/>
+
+			{/* Scale modal */}
+			<BaseModal
+				isOpen={pendingAction?.type === 'scale'}
+				onClose={() => {
+					setPendingAction(null);
+					setScaleValue('');
+				}}
+				title="Scale service"
+			>
+				<div className="modal-content">
+					<div className="form-group">
+						<label htmlFor="service-scale-input">Enter desired replica count:</label>
+						<input
+							id="service-scale-input"
+							data-testid="service-scale-input"
+							ref={scaleInputRef}
+							type="number"
+							min="0"
+							value={scaleValue}
+							onChange={(e) => setScaleValue(e.target.value)}
+							onKeyDown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									handleScaleConfirm();
+								}
+							}}
+							autoFocus
+						/>
+					</div>
+					<div className="modal-footer">
+						<ModalButton onClick={() => {
+							setPendingAction(null);
+							setScaleValue('');
+						}}>Cancel</ModalButton>
+						<ModalPrimaryButton onClick={handleScaleConfirm}>Scale</ModalPrimaryButton>
+					</div>
+				</div>
+			</BaseModal>
+
+			{/* Delete modal */}
+			<BaseModal
+				isOpen={pendingAction?.type === 'delete'}
+				onClose={() => setPendingAction(null)}
+				title="Confirm delete"
+			>
+				<div className="modal-content">
+					<p>Are you sure you want to delete service "{pendingAction?.row?.name}"?</p>
+					<div className="modal-footer">
+						<ModalButton onClick={() => setPendingAction(null)}>Cancel</ModalButton>
+						<ModalDangerButton onClick={handleDeleteConfirm}>Delete</ModalDangerButton>
+					</div>
+				</div>
+			</BaseModal>
 		</>
 	);
 }

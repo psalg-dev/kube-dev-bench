@@ -1,6 +1,6 @@
 import '../__tests__/wailsMocks';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { HolmesAnalysisState } from '../hooks/useHolmesAnalysis';
 import type { ResourceRow } from '../types/resourceConfigs';
 import {
@@ -8,6 +8,7 @@ import {
   swarmServiceTabs,
   renderSwarmServicePanelContent,
   swarmServiceConfig,
+  getSwarmServiceRowActions,
 } from '../config/resourceConfigs/swarm/serviceConfig';
 
 vi.mock('../docker/swarmApi', () => ({
@@ -54,6 +55,41 @@ vi.mock('../docker/resources/services/ImageUpdateBadge', () => ({
   ImageUpdateBadge: ({ value }: { value: unknown }) => (
     <button type="button">{String(value ?? 'no-update')}</button>
   ),
+}));
+
+vi.mock('../components/BaseModal', () => ({
+  __esModule: true,
+  BaseModal: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
+    if (!isOpen) return null;
+    return (
+      <div data-testid="modal-wrapper">
+        <div data-testid="modal-title">{title}</div>
+        <div data-testid="modal-content">{children}</div>
+        {footer && <div data-testid="modal-footer">{footer}</div>}
+        <button data-testid="modal-close" onClick={onClose}>Close</button>
+      </div>
+    );
+  },
+  default: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
+    if (!isOpen) return null;
+    return (
+      <div data-testid="modal-wrapper">
+        <div data-testid="modal-title">{title}</div>
+        <div data-testid="modal-content">{children}</div>
+        {footer && <div data-testid="modal-footer">{footer}</div>}
+        <button data-testid="modal-close" onClick={onClose}>Close</button>
+      </div>
+    );
+  },
+  ModalButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-btn" {...props}>{children}</button>,
+  ModalPrimaryButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-primary-btn" {...props}>{children}</button>,
+  ModalDangerButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-danger-btn" {...props}>{children}</button>,
+}));
+
+vi.mock('../notification', () => ({
+  __esModule: true,
+  showError: vi.fn(),
+  showSuccess: vi.fn(),
 }));
 
 const mockHolmesState: HolmesAnalysisState = {
@@ -156,5 +192,41 @@ describe('renderSwarmServicePanelContent – smoke tests', () => {
   it('returns null for unknown tab', () => {
     const node = renderSwarmServicePanelContent(mockRow, 'unknown', mockHolmesState, vi.fn(), vi.fn());
     expect(node).toBeNull();
+  });
+});
+
+describe('getSwarmServiceRowActions – scale dialog', () => {
+  const mockPanelApi = { openDetails: vi.fn(), setActiveTab: vi.fn(), refresh: vi.fn() };
+  const mockHolmesHelpers = {
+    holmesState: { loading: false, response: null, error: null, key: null, streamId: null, streamingText: '', reasoningText: '', queryTimestamp: null, contextSteps: [], toolEvents: [] },
+    analyze: vi.fn(),
+    cancel: vi.fn()
+  };
+
+  it('does NOT use window.prompt for scale action', () => {
+    const windowPromptSpy = vi.spyOn(window, 'prompt');
+    const actions = getSwarmServiceRowActions(mockRow, mockPanelApi, mockHolmesHelpers);
+    const scaleAction = actions.find((a) => a.label === 'Scale…');
+    expect(scaleAction).toBeDefined();
+    expect(windowPromptSpy).not.toHaveBeenCalled();
+    windowPromptSpy.mockRestore();
+  });
+});
+
+describe('getSwarmServiceRowActions – delete dialog', () => {
+  const mockPanelApi = { openDetails: vi.fn(), setActiveTab: vi.fn(), refresh: vi.fn() };
+  const mockHolmesHelpers = {
+    holmesState: { loading: false, response: null, error: null, key: null, streamId: null, streamingText: '', reasoningText: '', queryTimestamp: null, contextSteps: [], toolEvents: [] },
+    analyze: vi.fn(),
+    cancel: vi.fn()
+  };
+
+  it('does NOT use window.confirm for delete action', () => {
+    const windowConfirmSpy = vi.spyOn(window, 'confirm');
+    const actions = getSwarmServiceRowActions(mockRow, mockPanelApi, mockHolmesHelpers);
+    const deleteAction = actions.find((a) => a.label === 'Delete');
+    expect(deleteAction).toBeDefined();
+    expect(windowConfirmSpy).not.toHaveBeenCalled();
+    windowConfirmSpy.mockRestore();
   });
 });

@@ -10,11 +10,56 @@ vi.mock('../CreateManifestOverlay', () => ({
 vi.mock('../notification', () => ({
   __esModule: true,
   showNotification: vi.fn(),
+  showSuccess: vi.fn(),
+  showError: vi.fn(),
+}));
+
+vi.mock('../components/BaseModal', () => ({
+  __esModule: true,
+  BaseModal: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
+    if (!isOpen) return null;
+    
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    return (
+      <div data-testid="modal-wrapper" onKeyDown={handleKeyDown}>
+        <div data-testid="modal-title">{title}</div>
+        <div data-testid="modal-content">{children}</div>
+        {footer && <div data-testid="modal-footer">{footer}</div>}
+        <button data-testid="modal-close" onClick={onClose}>Close</button>
+      </div>
+    );
+  },
+  default: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
+    if (!isOpen) return null;
+    
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    return (
+      <div data-testid="modal-wrapper" onKeyDown={handleKeyDown}>
+        <div data-testid="modal-title">{title}</div>
+        <div data-testid="modal-content">{children}</div>
+        {footer && <div data-testid="modal-footer">{footer}</div>}
+        <button data-testid="modal-close" onClick={onClose}>Close</button>
+      </div>
+    );
+  },
+  ModalButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-btn" {...props}>{children}</button>,
+  ModalPrimaryButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-primary-btn" {...props}>{children}</button>,
+  ModalDangerButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-danger-btn" {...props}>{children}</button>,
 }));
 
 // Import component under test AFTER mocks
 import OverviewTableWithPanel from '../layout/overview/OverviewTableWithPanel';
-import { showNotification } from '../notification';
+import { showNotification, showSuccess, showError } from '../notification';
 
 function setup(props: Record<string, unknown> = {}) {
   const columns = [
@@ -207,5 +252,80 @@ describe('OverviewTableWithPanel', () => {
       (th) => th.draggable === true
     );
     expect(dragHeaders.length).toBeGreaterThan(0);
+  });
+
+  it('shows delete confirmation modal when bulk delete is triggered', async () => {
+    setup({
+      bulkActions: [{ key: 'delete', label: 'Delete', danger: true, confirm: true }],
+    });
+
+    const checkboxes = screen.getAllByRole('checkbox', { name: /select row/i });
+    if (checkboxes.length >= 2) {
+      fireEvent.click(checkboxes[0]);
+      fireEvent.click(checkboxes[1]);
+    }
+
+    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(deleteBtn);
+
+    expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
+    expect(screen.getByTestId('modal-title')).toHaveTextContent('Confirm bulk action');
+    expect(screen.getByTestId('modal-content')).toHaveTextContent(/Delete \d+ selected item\(s\)\?/i);
+  });
+
+  it('cancels bulk delete when confirmation modal is cancelled', async () => {
+    setup({
+      bulkActions: [{ key: 'delete', label: 'Delete', danger: true, confirm: true }],
+    });
+
+    const checkboxes = screen.getAllByRole('checkbox', { name: /select row/i });
+    if (checkboxes.length >= 1) {
+      fireEvent.click(checkboxes[0]);
+    }
+
+    const deleteBtn = screen.getByRole('button', { name: 'Delete' });
+    fireEvent.click(deleteBtn);
+
+    const closeModal = screen.getByTestId('modal-close');
+    fireEvent.click(closeModal);
+
+    expect(screen.queryByTestId('modal-wrapper')).toBeNull();
+  });
+
+  it('shows scale prompt modal when bulk scale is triggered', async () => {
+    setup({
+      bulkActions: [{ key: 'scale', label: 'Scale', promptReplicas: true }],
+    });
+
+    const checkboxes = screen.getAllByRole('checkbox', { name: /select row/i });
+    if (checkboxes.length >= 1) {
+      fireEvent.click(checkboxes[0]);
+    }
+
+    const scaleBtn = screen.getByRole('button', { name: 'Scale' });
+    fireEvent.click(scaleBtn);
+
+    expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
+    expect(screen.getByTestId('modal-title')).toHaveTextContent(/scale/i);
+  });
+
+  it('closes scale modal on Escape key', async () => {
+    setup({
+      bulkActions: [{ key: 'scale', label: 'Scale', promptReplicas: true }],
+    });
+
+    const checkboxes = screen.getAllByRole('checkbox', { name: /select row/i });
+    if (checkboxes.length >= 1) {
+      fireEvent.click(checkboxes[0]);
+    }
+
+    const scaleBtn = screen.getByRole('button', { name: 'Scale' });
+    fireEvent.click(scaleBtn);
+
+    fireEvent.keyDown(screen.getByTestId('modal-content'), { key: 'Escape' });
+    
+    await waitFor(() => {
+      expect(screen.queryByTestId('modal-wrapper')).toBeNull();
+    });
   });
 });

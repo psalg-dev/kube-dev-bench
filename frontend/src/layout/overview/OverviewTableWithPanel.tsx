@@ -8,6 +8,8 @@ import CreateManifestOverlay from '../../CreateManifestOverlay';
 import { showError, showNotification, showSuccess } from '../../notification';
 import BottomPanel from '../bottompanel/BottomPanel';
 import { adaptColumnsForDataTable } from './columnAdapter';
+import { BaseModal, ModalButton, ModalDangerButton, ModalPrimaryButton } from '../../components/BaseModal';
+import { ColumnVisibilityMenu } from '../../components/DataTable/ColumnVisibilityMenu';
 import './BulkSelection.css';
 import './OverviewTableWithPanel.css';
 
@@ -110,6 +112,11 @@ export default function OverviewTableWithPanel({
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({});
   const [tabCountsLoading, setTabCountsLoading] = useState(false);
   const tabCountsInitializedRef = useRef(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showScalePrompt, setShowScalePrompt] = useState(false);
+  const [bulkActionToDelete, setBulkActionToDelete] = useState<{ action: BulkAction; rows: Row[] } | null>(null);
+  const [scaleAction, setScaleAction] = useState<{ action: BulkAction; rows: Row[] } | null>(null);
+  const [columnVisibilityMenuOpen, setColumnVisibilityMenuOpen] = useState(false);
 
   const openBottomPanel = (row: Row) => {
     setSelectedRow(row);
@@ -264,21 +271,16 @@ export default function OverviewTableWithPanel({
     if (selectedRows.length === 0) return;
 
     if (action.confirm) {
-      const ok = window.confirm(`${action.label} ${selectedRows.length} selected item(s)?`);
-      if (!ok) return;
+      setBulkActionToDelete({ action, rows: selectedRows });
+      setShowDeleteConfirm(true);
+      return;
     }
 
     const options: Record<string, unknown> = {};
     if (action.promptReplicas) {
-      const current = selectedRows[0]?.replicas ?? selectedRows[0]?.Replicas ?? 0;
-      const raw = window.prompt('Enter desired replica count:', String(current ?? 0));
-      if (raw === null) return;
-      const parsed = Number(raw);
-      if (!Number.isFinite(parsed) || parsed < 0) {
-        showError('Replica count must be a non-negative number.');
-        return;
-      }
-      options.replicas = Math.floor(parsed);
+      setScaleAction({ action, rows: selectedRows });
+      setShowScalePrompt(true);
+      return;
     }
 
     try {
@@ -339,6 +341,24 @@ export default function OverviewTableWithPanel({
         <h2 className="overview-title">{title}</h2>
         <div className="overview-actions">
           {headerActions}
+          <div className="column-visibility-menu">
+            <button
+              type="button"
+              title="Column visibility"
+              onClick={() => setColumnVisibilityMenuOpen(!columnVisibilityMenuOpen)}
+              className="column-visibility-button"
+            >
+              👁️
+            </button>
+            {columnVisibilityMenuOpen && (
+              <ColumnVisibilityMenu
+                columns={adaptedColumns}
+                visibility={{}}
+                onVisibilityChange={() => {}}
+                onClose={() => setColumnVisibilityMenuOpen(false)}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -388,6 +408,130 @@ export default function OverviewTableWithPanel({
         createHint={createHint}
         onClose={() => setShowCreate(false)}
       />
+
+      {/* Delete confirmation modal */}
+      <BaseModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setBulkActionToDelete(null);
+        }}
+        title="Confirm bulk action"
+      >
+        {bulkActionToDelete && (
+          <div className="modal-content">
+            <p>
+              {bulkActionToDelete.action.label} {bulkActionToDelete.rows.length} selected item(s)?
+            </p>
+            <div className="modal-footer">
+              <ModalButton onClick={() => {
+                setShowDeleteConfirm(false);
+                setBulkActionToDelete(null);
+              }}>
+                Cancel
+              </ModalButton>
+              <ModalDangerButton onClick={async () => {
+                if (bulkActionToDelete) {
+                  setShowDeleteConfirm(false);
+                  setBulkActionToDelete(null);
+                  await handleBulkAction(bulkActionToDelete.action, bulkActionToDelete.rows);
+                }
+              }}>
+                Confirm
+              </ModalDangerButton>
+            </div>
+          </div>
+        )}
+      </BaseModal>
+
+      {/* Scale prompt modal */}
+      <BaseModal
+        isOpen={showScalePrompt}
+        onClose={() => {
+          setShowScalePrompt(false);
+          setScaleAction(null);
+        }}
+        title="Scale replica count"
+      >
+        {scaleAction && (
+          <div className="modal-content">
+            <ScalePromptForm
+              initialReplicas={Number(scaleAction.rows[0]?.replicas ?? scaleAction.rows[0]?.Replicas ?? 0)}
+              onCancel={() => {
+                setShowScalePrompt(false);
+                setScaleAction(null);
+              }}
+              onScale={async (replicas) => {
+                const options: Record<string, unknown> = { replicas };
+                try {
+                  const summary = await executeBulkAction({
+                    platform: createPlatform,
+                    kind: scaleAction.action.key === 'scale' ? (bulkResourceKind || resourceKind || createKind) : createKind,
+                    actionKey: scaleAction.action.key,
+                    rows: scaleAction.rows,
+                    options,
+                  });
+                  if (summary.failed === 0) {
+                    showSuccess(`${scaleAction.action.label} succeeded for ${summary.succeeded} item(s).`);
+                  } else {
+                    showError(`${scaleAction.action.label} completed with ${summary.failed} failure(s).`);
+                  }
+                } catch (err) {
+                  showError(`${scaleAction.action.label} failed: ${err instanceof Error ? err.message : String(err)}`);
+                } finally {
+                  setShowScalePrompt(false);
+                  setScaleAction(null);
+                }
+              }}
+            />
+          </div>
+        )}
+      </BaseModal>
     </div>
+  );
+}
+
+function ScalePromptForm({
+  initialReplicas,
+  onCancel,
+  onScale,
+}: {
+  initialReplicas: number;
+  onCancel: () => void;
+  onScale: (replicas: number) => Promise<void>;
+}) {
+  const [replicas, setReplicas] = useState(String(initialReplicas));
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsed = Number(replicas);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setError('Replica count must be a non-negative number.');
+      return;
+    }
+    setError(null);
+    await onScale(Math.floor(parsed));
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="form-group">
+        <label htmlFor="replica-count">Enter desired replica count:</label>
+        <input
+          id="replica-count"
+          type="number"
+          min="0"
+          value={replicas}
+          onChange={(e) => setReplicas(e.target.value)}
+          autoFocus
+        />
+        {error && <p className="error-message" style={{ color: 'var(--gh-error, #f85149)' }}>{error}</p>}
+      </div>
+      <div className="modal-footer">
+        <ModalButton onClick={onCancel}>Cancel</ModalButton>
+        <ModalPrimaryButton type="submit">Scale</ModalPrimaryButton>
+      </div>
+    </form>
   );
 }

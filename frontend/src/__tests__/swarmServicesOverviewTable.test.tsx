@@ -161,6 +161,49 @@ vi.mock('../holmes/HolmesResponseRenderer', () => ({
   },
 }));
 
+vi.mock('../components/BaseModal', () => ({
+  __esModule: true,
+  BaseModal: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
+    if (!isOpen) return null;
+    
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    return (
+      <div data-testid="modal-wrapper" onKeyDown={handleKeyDown}>
+        <div data-testid="modal-title">{title}</div>
+        <div data-testid="modal-content">{children}</div>
+        {footer && <div data-testid="modal-footer">{footer}</div>}
+        <button data-testid="modal-close" onClick={onClose}>Close</button>
+      </div>
+    );
+  },
+  default: ({ isOpen, onClose, title, children, footer }: { isOpen: boolean; onClose: () => void; title?: string; children: React.ReactNode; footer?: React.ReactNode }) => {
+    if (!isOpen) return null;
+    
+    const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    return (
+      <div data-testid="modal-wrapper" onKeyDown={handleKeyDown}>
+        <div data-testid="modal-title">{title}</div>
+        <div data-testid="modal-content">{children}</div>
+        {footer && <div data-testid="modal-footer">{footer}</div>}
+        <button data-testid="modal-close" onClick={onClose}>Close</button>
+      </div>
+    );
+  },
+  ModalButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-btn" {...props}>{children}</button>,
+  ModalPrimaryButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-primary-btn" {...props}>{children}</button>,
+  ModalDangerButton: ({ children, ...props }: { children: React.ReactNode } & Record<string, unknown>) => <button data-testid="modal-danger-btn" {...props}>{children}</button>,
+}));
+
 import SwarmServicesOverviewTable from '../docker/resources/services/SwarmServicesOverviewTable';
 
 function emit(eventName: string, payload: unknown) {
@@ -258,9 +301,6 @@ describe('SwarmServicesOverviewTable', () => {
   });
 
   it('row actions call APIs and emit notifications', async () => {
-    vi.stubGlobal('prompt', vi.fn(() => '5'));
-    vi.stubGlobal('confirm', vi.fn(() => true));
-
     render(<SwarmServicesOverviewTable />);
     await screen.findByTestId('row-svc1');
 
@@ -271,10 +311,30 @@ describe('SwarmServicesOverviewTable', () => {
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Restarted service api');
 
     fireEvent.click(within(actions).getByRole('button', { name: 'Scale…' }));
+    
+    const scaleInput = await screen.findByTestId('service-scale-input');
+    fireEvent.change(scaleInput, { target: { value: '5' } });
+    
+    const scaleModal = await screen.findByTestId('modal-wrapper');
+    const scaleButtons = within(scaleModal).getAllByRole('button');
+    const scaleConfirmBtn = scaleButtons.find(btn => btn.textContent === 'Scale');
+    if (scaleConfirmBtn) {
+      fireEvent.click(scaleConfirmBtn);
+    }
+    
     await waitFor(() => expect(swarmApiMocks.ScaleSwarmService).toHaveBeenCalledWith('svc1', 5));
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Scaled service api to 5 replicas');
 
-    fireEvent.click(within(actions).getByRole('button', { name: 'Delete' }));
+    const actions3 = screen.getByTestId('actions-svc1');
+    fireEvent.click(within(actions3).getByRole('button', { name: 'Delete' }));
+    
+    const deleteModal = await screen.findByTestId('modal-wrapper');
+    const deleteButtons = within(deleteModal).getAllByRole('button');
+    const deleteConfirmBtn = deleteButtons.find(btn => btn.textContent === 'Delete');
+    if (deleteConfirmBtn) {
+      fireEvent.click(deleteConfirmBtn);
+    }
+    
     await waitFor(() => expect(swarmApiMocks.RemoveSwarmService).toHaveBeenCalledWith('svc1'));
     expect(notificationMocks.showSuccess).toHaveBeenCalledWith('Removed service api');
 
