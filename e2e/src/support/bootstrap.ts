@@ -17,7 +17,7 @@ import { readRunState } from './run-state.js';
 async function waitForWailsBindings(page: Page, timeout = 30_000): Promise<void> {
   await page.waitForFunction(
     () => {
-      const app = (window as any)?.go?.main?.App;
+      const app = window.go?.main?.App;
       return (
         app != null &&
         typeof app.SetKubeConfigPath === 'function' &&
@@ -43,6 +43,8 @@ export async function bootstrapApp(opts: {
         'Kubernetes E2E tests require KinD/kubeconfig; Swarm-only tests should use `bootstrapSwarm()`.'
     );
   }
+  // Narrow to string so the value survives into the closure below.
+  const kubeconfigYaml = state.kubeconfigYaml;
 
   const gotoWithRetry = async () => {
     const navigationTimeoutMs = Number(process.env.E2E_GOTO_TIMEOUT_MS || 30_000);
@@ -74,7 +76,7 @@ export async function bootstrapApp(opts: {
       .catch(() => false);
 
     if (wizardVisible || wizardStatus !== 'already-visible') {
-      await wizard.pastePrimaryKubeconfigAndContinue(state.kubeconfigYaml);
+      await wizard.pastePrimaryKubeconfigAndContinue(kubeconfigYaml);
     }
 
     await page.locator('#kubecontext-root').waitFor({ state: 'visible', timeout: 60_000 });

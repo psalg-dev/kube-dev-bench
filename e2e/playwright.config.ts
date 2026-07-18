@@ -1,9 +1,9 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, type ReporterDescription } from '@playwright/test';
 
 const ciReportPrefix = process.env.E2E_REPORT_PREFIX?.trim();
 const ciReportDir = './test-results/ci-reports';
 
-const ciReporters = ciReportPrefix
+const ciReporters: ReporterDescription[] = ciReportPrefix
   ? [
       ['github'],
       ['html', { open: 'never' }],

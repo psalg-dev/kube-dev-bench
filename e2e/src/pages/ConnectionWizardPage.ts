@@ -51,7 +51,7 @@ export class ConnectionWizardPage {
   private async ensureWailsReady(timeout = 30_000): Promise<void> {
     await this.page.waitForFunction(
       () => {
-        const app = (window as any)?.go?.main?.App;
+        const app = window.go?.main?.App;
         return app != null && typeof app.SetKubeConfigPath === 'function';
       },
       { timeout, polling: 200 },
