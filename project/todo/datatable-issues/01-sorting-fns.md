@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 1: Sorting functions (duration/datetime/number/text)
 
@@ -13,3 +13,11 @@ Steps:
 - `00-fix-typecheck-baseline`
 
 ## Agent notes
+
+- Sorting functions implemented in `frontend/src/components/DataTable/sortingFns.ts`
+- Tests in `frontend/src/__tests__/dataTableSortingFns.test.ts` (28 tests)
+- Both pass typecheck and tests
+- Functions exported: `textSortingFn`, `numberSortingFn`, `durationSortingFn`, `datetimeSortingFn`, `sortTypeToFn`
+- Type `ColumnSortType` owned and exported from this file (re-exported by Slice 5's types.ts)
+
+(End of file - total 17 lines)
