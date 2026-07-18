@@ -10,6 +10,6 @@ Steps:
 3. Verify with the slice's Done criteria (from frontend/: `npm run typecheck && npm run test`).
 
 ## Blocked by
-None
+- `00-fix-typecheck-baseline`
 
 ## Agent notes
