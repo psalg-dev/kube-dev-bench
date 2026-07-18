@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: ready-for-human
 
 # Fix the frontend typecheck baseline (392 errors, 44 files) after dependency bumps
 
