@@ -1,4 +1,4 @@
-Status: ready-for-agent
+Status: done
 
 # Slice 4: useHolmesStream hook (the big dedup)
 
@@ -13,3 +13,5 @@ Steps:
 - `00-fix-typecheck-baseline`
 
 ## Agent notes
+
+`useHolmesStream.ts` already implemented with full test coverage. All 24 tests pass. Typecheck passes. Lint errors are pre-existing in the codebase (unrelated to this hook).
