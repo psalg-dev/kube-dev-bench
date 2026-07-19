@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SwarmResourceCountsProvider, useSwarmResourceCounts } from './docker/SwarmResourceCountsContext';
 import { SwarmStateProvider, useSwarmState } from './docker/SwarmStateContext';
+import { ModalProvider } from './components/ModalProvider';
 import { ContextSelect, NamespaceMultiSelect } from './Dropdowns';
 import { AppLayout } from './layout/AppLayout';
 import ConnectionWizard from './layout/connection/ConnectionWizard';
@@ -316,6 +317,7 @@ export default function App() {
                 setConnectionWizardInitialSection={setConnectionWizardInitialSection}
               />
               <MainContentBinder selectedSection={selectedSection} setConnectionWizardInitialSection={setConnectionWizardInitialSection} />
+              <ModalProvider />
               </MCPProvider>
             </HolmesProvider>
           </SwarmResourceCountsProvider>

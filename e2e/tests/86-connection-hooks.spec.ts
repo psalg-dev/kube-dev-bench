@@ -4,6 +4,7 @@ import { repoRoot } from '../src/support/paths.js';
 import { readRunState } from '../src/support/run-state.js';
 import { ConnectionWizardPage } from '../src/pages/ConnectionWizardPage.js';
 import { Notifications } from '../src/pages/Notifications.js';
+import { acceptModalConfirm } from '../src/support/modals.js';
 
 function hookFailScriptPath(): string {
   if (process.platform === 'win32') {
@@ -74,8 +75,8 @@ test.describe.serial('connection hooks', () => {
     const row = page.locator('[id^="hook-row-"]').filter({ hasText: hookName }).first();
     await expect(row).toBeVisible({ timeout: 10_000 });
 
-    page.once('dialog', (d) => d.accept());
     await row.locator('button', { hasText: 'Delete' }).click();
+    await acceptModalConfirm(page);
 
     await page.locator('#hooks-settings-close-btn').click();
 

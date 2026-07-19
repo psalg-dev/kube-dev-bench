@@ -8,6 +8,7 @@ import { exec } from '../../src/support/exec.js';
 import { Notifications } from '../../src/pages/Notifications.js';
 import { setNextOpenPath, setNextSavePath } from '../../src/support/e2e-dialogs.js';
 import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
+import { acceptModalConfirm, dismissModalConfirm, respondModalPrompt } from '../../src/support/modals.js';
 
 async function docker(args: string[], timeoutMs = 90_000) {
   return exec('docker', args, { timeoutMs });
@@ -207,11 +208,8 @@ test.describe('Docker Swarm Volumes Files (Phase 1-3)', () => {
       await expectFileViewerContains(panelRoot, 'hello UPDATED', 60_000);
 
       // New Folder.
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('prompt');
-        await d.accept('new-folder');
-      });
       await panelRoot.getByRole('button', { name: 'New Folder', exact: true }).click();
+      await respondModalPrompt(page, 'new-folder');
       await notifications.expectSuccessContains(/folder created/i);
       await expect(panelRoot.getByText('new-folder').first()).toBeVisible({ timeout: 60_000 });
 
@@ -221,20 +219,14 @@ test.describe('Docker Swarm Volumes Files (Phase 1-3)', () => {
       await expect(panelRoot.getByText(/select a file to preview/i).first()).toBeVisible({ timeout: 60_000 });
 
       // New File.
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('prompt');
-        await d.accept('new.txt');
-      });
       await panelRoot.getByRole('button', { name: 'New File', exact: true }).click();
+      await respondModalPrompt(page, 'new.txt');
       await notifications.expectSuccessContains(/file created/i);
       await expect(panelRoot.getByText('new.txt').first()).toBeVisible({ timeout: 60_000 });
 
       // Delete file.
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('confirm');
-        await d.accept();
-      });
       await panelRoot.locator('tbody tr').filter({ hasText: 'new.txt' }).getByRole('button', { name: 'Delete', exact: true }).click();
+      await acceptModalConfirm(page);
       await notifications.expectSuccessContains(/deleted/i);
       await expect(panelRoot.getByText('new.txt')).toHaveCount(0);
 
@@ -251,29 +243,18 @@ test.describe('Docker Swarm Volumes Files (Phase 1-3)', () => {
       await writeCodeMirror(page, panelRoot, 'unsaved changes\n');
 
       // Attempt to navigate away; cancel first.
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('confirm');
-        expect(d.message()).toMatch(/discard your unsaved changes/i);
-        await d.dismiss();
-      });
       await panelRoot.getByText('root', { exact: true }).click();
+      await dismissModalConfirm(page, /discard your unsaved changes/i);
       await expect(panelRoot.getByRole('button', { name: 'Save', exact: true })).toBeVisible();
 
       // Now accept and navigate.
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('confirm');
-        await d.accept();
-      });
       await panelRoot.getByText('root', { exact: true }).click();
+      await acceptModalConfirm(page, /discard your unsaved changes/i);
       await expect(panelRoot.getByText('new-folder').first()).toBeVisible({ timeout: 60_000 });
 
       // Delete folder (recursive confirm).
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('confirm');
-        expect(d.message()).toMatch(/recursive/i);
-        await d.accept();
-      });
       await panelRoot.locator('tbody tr').filter({ hasText: 'new-folder' }).getByRole('button', { name: 'Delete', exact: true }).click();
+      await acceptModalConfirm(page, /recursive/i);
       await notifications.expectSuccessContains(/deleted/i);
       await expect(panelRoot.getByText('new-folder')).toHaveCount(0);
     } finally {

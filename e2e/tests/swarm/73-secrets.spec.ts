@@ -7,6 +7,7 @@ import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
 import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
+import { acceptModalConfirm } from '../../src/support/modals.js';
 
 async function docker(args: string[], timeoutMs = 120_000) {
   return exec('docker', args, { timeoutMs });
@@ -121,11 +122,8 @@ test.describe('Docker Swarm Secrets', () => {
       await expect(textarea).toBeDisabled();
 
       // Toggle reveal requires confirm the first time.
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('confirm');
-        await d.accept();
-      });
       await editModal.getByRole('button', { name: 'Show', exact: true }).click();
+      await acceptModalConfirm(page);
       await expect(editModal.getByRole('button', { name: 'Hide', exact: true })).toBeVisible();
 
       // Ack and enter value.

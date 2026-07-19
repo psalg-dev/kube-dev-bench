@@ -3,6 +3,7 @@ import { bootstrapApp } from '../src/support/bootstrap.js';
 import { helm, kubectl } from '../src/support/kind.js';
 import { BottomPanel } from '../src/pages/BottomPanel.js';
 import { Notifications } from '../src/pages/Notifications.js';
+import { acceptModalConfirm } from '../src/support/modals.js';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs/promises';
@@ -290,12 +291,8 @@ test.describe('Helm Release Operations', () => {
       await expect(helmPanel.root.getByRole('button', { name: /upgrade/i })).toBeVisible();
 
       // Test Uninstall via UI
-      // Set up dialog handler before clicking
-      page.once('dialog', async (dialog) => {
-        await dialog.accept();
-      });
-
       await helmPanel.root.getByRole('button', { name: /uninstall/i }).click();
+      await acceptModalConfirm(page);
 
       // Wait for the release to be removed from the table
       await sidebar.goToSection('helmreleases');

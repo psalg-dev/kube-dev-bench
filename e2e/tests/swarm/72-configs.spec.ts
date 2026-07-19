@@ -7,6 +7,7 @@ import { Notifications } from '../../src/pages/Notifications.js';
 import { bootstrapSwarm, uniqueSwarmName } from '../../src/support/swarm-bootstrap.js';
 import { exec } from '../../src/support/exec.js';
 import { isLocalSwarmActive } from '../../src/support/docker-swarm.js';
+import { respondModalPrompt } from '../../src/support/modals.js';
 
 async function docker(args: string[], timeoutMs = 120_000) {
   return exec('docker', args, { timeoutMs });
@@ -103,11 +104,8 @@ test.describe('Docker Swarm Configs', () => {
 
       // Clone should prompt for name and create a new config.
       const cloneName = `${cfgName}-clone`;
-      page.once('dialog', async (d) => {
-        expect(d.type()).toBe('prompt');
-        await d.accept(cloneName);
-      });
       await page.locator('#swarm-config-clone-btn').click();
+      await respondModalPrompt(page, cloneName);
       await notifications.expectSuccessContains(`Cloned config to ${cloneName}`);
 
       const tableFilter = page.getByRole('searchbox', { name: 'Filter table' });
