@@ -151,6 +151,24 @@ describe('OverviewTableWithPanel', () => {
     expect(document.querySelector('.bottom-panel')).toBeNull();
   });
 
+  it('keeps panel open when clicking inside a modal spawned from a panel action', () => {
+    setup();
+    const alphaRow = screen.getAllByRole('row').find(r => r.textContent?.includes('alpha')) as HTMLElement;
+    fireEvent.click(alphaRow);
+    expect(document.querySelector('.bottom-panel')).not.toBeNull();
+    // ModalProvider renders confirm/prompt dialogs at document root, outside the panel.
+    const overlay = document.createElement('div');
+    overlay.className = 'base-modal-overlay';
+    const btn = document.createElement('button');
+    overlay.appendChild(btn);
+    document.body.appendChild(overlay);
+    fireEvent.mouseDown(btn); // clicking a modal button must not close the panel
+    expect(document.querySelector('.bottom-panel')).not.toBeNull();
+    fireEvent.keyDown(document, { key: 'Escape' }); // Escape goes to the modal, not the panel
+    expect(document.querySelector('.bottom-panel')).not.toBeNull();
+    overlay.remove();
+  });
+
   it('resets active tab after closing & reopening', () => {
     setup();
     const alphaRow = screen.getAllByRole('row').find(r => r.textContent?.includes('alpha')) as HTMLElement;

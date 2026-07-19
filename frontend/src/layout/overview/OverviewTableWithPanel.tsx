@@ -140,6 +140,9 @@ export default function OverviewTableWithPanel({
       const target = e.target as HTMLElement | null;
       if (target?.closest('.bottom-panel') ||
           target?.closest('[data-resizing]') ||
+          // A confirm/prompt modal (ModalProvider) spawned from a panel action renders
+          // outside the panel DOM; clicking it must not close the panel underneath.
+          target?.closest('.base-modal-overlay') ||
           // A click on a data row opens that row's panel (via the row's onClick); it must not
           // be treated as a click-outside-to-close, or the close races the open and can win.
           target?.closest('.data-table tbody tr') ||
@@ -151,6 +154,8 @@ export default function OverviewTableWithPanel({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        // Let an open modal consume Escape instead of closing the panel behind it.
+        if (document.querySelector('.base-modal-overlay')) return;
         closeBottomPanel();
       }
     };
