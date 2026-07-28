@@ -160,7 +160,7 @@ require (
 	github.com/containerd/errdefs v1.0.0
 	github.com/mark3labs/mcp-go v0.57.0
 	github.com/moby/moby/api v1.55.0
-	github.com/moby/moby/client v0.5.0
+	github.com/moby/moby/client v0.5.1
 	golang.org/x/sync v0.22.0
 	k8s.io/apiextensions-apiserver v0.36.3
 	k8s.io/metrics v0.36.3
