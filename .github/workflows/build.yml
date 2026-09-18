@@ -10,7 +10,7 @@ env:
 
 jobs:
   frontend:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -60,7 +60,7 @@ jobs:
           retention-days: 1
 
   backend:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     needs: frontend
     steps:
       - name: Checkout code
@@ -129,7 +129,7 @@ jobs:
           retention-days: 1
 
   e2e:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     needs: backend
     env:
       HOLMES_MOCK_NODE_IMAGE: node:24-alpine
@@ -605,7 +605,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-dev-snapshot:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     needs: release
     if: github.ref == 'refs/heads/dev'
     permissions:
