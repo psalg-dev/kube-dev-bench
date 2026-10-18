@@ -257,60 +257,7 @@ func TestGetJobLogs_NoSelector(t *testing.T) {
 	}
 }
 
-func TestGetReplicaSetLogs_ReturnsAggregatedLogs(t *testing.T) {
-	ctx := context.Background()
-	labels := map[string]string{"app": "web"}
-
-	rs := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "web-rs",
-			Namespace: "default",
-		},
-		Spec: appsv1.ReplicaSetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-		},
-	}
-
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "web-rs-abc",
-			Namespace: "default",
-			Labels:    labels,
-		},
-	}
-
-	clientset := fake.NewSimpleClientset(rs, pod)
-	app := &App{ctx: ctx, testClientset: clientset}
-
-	_, err := app.GetReplicaSetLogs("default", "web-rs")
-	if err == nil {
-		t.Log("GetReplicaSetLogs completed")
-	}
-}
-
-func TestGetReplicaSetLogs_NoSelector(t *testing.T) {
-	ctx := context.Background()
-
-	rs := &appsv1.ReplicaSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "web-rs",
-			Namespace: "default",
-		},
-		Spec: appsv1.ReplicaSetSpec{
-			// No selector
-		},
-	}
-
-	clientset := fake.NewSimpleClientset(rs)
-	app := &App{ctx: ctx, testClientset: clientset}
-
-	_, err := app.GetReplicaSetLogs("default", "web-rs")
-	if err == nil {
-		t.Fatal("expected error for replicaset without selector")
-	}
-}
+// No selector
 
 func TestAggregatePodsLogs_EmptyNamespace(t *testing.T) {
 	ctx := context.Background()
@@ -638,22 +585,6 @@ func TestGetJobLogs_NotFound(t *testing.T) {
 	_, err := app.GetJobLogs("default", "missing-job")
 	if err == nil {
 		t.Error("expected not-found error for missing job")
-	}
-}
-
-func TestGetReplicaSetLogs_GetK8sError(t *testing.T) {
-	app := newAppNoCtx()
-	_, err := app.GetReplicaSetLogs("default", "x")
-	if err == nil {
-		t.Error("expected error from GetReplicaSetLogs with no K8s context")
-	}
-}
-
-func TestGetReplicaSetLogs_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetReplicaSetLogs("default", "missing-rs")
-	if err == nil {
-		t.Error("expected not-found error for missing replicaset")
 	}
 }
 

@@ -266,60 +266,7 @@ func TestStreamPodLogs_MultiContainer_PodDetected(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 }
 
-func TestStreamPodLogsWith_MultiContainer(t *testing.T) {
-	previous := disableWailsEvents
-	disableWailsEvents = true
-	t.Cleanup(func() { disableWailsEvents = previous })
-
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "multi-pod", Namespace: "default"},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{Name: "app"},
-				{Name: "sidecar"},
-			},
-		},
-	}
-
-	app := &App{
-		ctx:              context.Background(),
-		logCancels:       make(map[string]context.CancelFunc),
-		currentNamespace: "default",
-		testClientset:    fake.NewSimpleClientset(pod),
-		kubeConfig:       "/nonexistent-kubeconfig",
-	}
-
-	app.StreamPodLogsWith("multi-pod", 50, true)
-	time.Sleep(200 * time.Millisecond)
-}
-
-func TestStreamPodLogsWith_SpecificContainer_NoMulti(t *testing.T) {
-	previous := disableWailsEvents
-	disableWailsEvents = true
-	t.Cleanup(func() { disableWailsEvents = previous })
-
-	pod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "multi-pod", Namespace: "default"},
-		Spec: corev1.PodSpec{
-			Containers: []corev1.Container{
-				{Name: "app"},
-				{Name: "sidecar"},
-			},
-		},
-	}
-
-	app := &App{
-		ctx:              context.Background(),
-		logCancels:       make(map[string]context.CancelFunc),
-		currentNamespace: "default",
-		testClientset:    fake.NewSimpleClientset(pod),
-		kubeConfig:       "/nonexistent-kubeconfig",
-	}
-
-	// When a specific container is requested, should NOT use multi-container mode
-	app.StreamPodContainerLogsWith("multi-pod", "app", 50, true)
-	time.Sleep(200 * time.Millisecond)
-}
+// When a specific container is requested, should NOT use multi-container mode
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GetPodLog multi-container aggregation

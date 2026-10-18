@@ -111,70 +111,6 @@ func TestGetEndpoints_EmptyNamespace(t *testing.T) {
 	}
 }
 
-func TestGetEndpointDetail_ReturnsEndpoint(t *testing.T) {
-	ctx := context.Background()
-	port := int32(8080)
-	clientset := fake.NewClientset(
-		&discoveryv1.EndpointSlice{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-service-1",
-				Namespace: "default",
-				Labels: map[string]string{
-					discoveryv1.LabelServiceName: "my-service",
-					"app":                        "myapp",
-				},
-			},
-			AddressType: discoveryv1.AddressTypeIPv4,
-			Endpoints: []discoveryv1.Endpoint{
-				{Addresses: []string{"10.0.0.1"}},
-			},
-			Ports: []discoveryv1.EndpointPort{
-				{Port: &port},
-			},
-		},
-	)
-
-	app := &App{ctx: ctx, testClientset: clientset}
-
-	endpoint, err := app.GetEndpointDetail("default", "my-service")
-	if err != nil {
-		t.Fatalf("GetEndpointDetail failed: %v", err)
-	}
-
-	if endpoint.Name != "my-service" {
-		t.Errorf("expected endpoint name 'my-service', got '%s'", endpoint.Name)
-	}
-	if len(endpoint.Endpoints) != 1 {
-		t.Errorf("expected 1 endpoint address, got %d", len(endpoint.Endpoints))
-	}
-}
-
-func TestGetEndpointDetail_EmptyNamespace(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	_, err := app.GetEndpointDetail("", "my-service")
-	if err == nil {
-		t.Fatal("expected error for empty namespace")
-	}
-
-	if err.Error() != "missing required parameter: namespace" {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
-
-func TestGetEndpointDetail_EmptyName(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	_, err := app.GetEndpointDetail("default", "")
-	if err == nil {
-		t.Fatal("expected error for empty name")
-	}
-
-	if err.Error() != "missing required parameter: name" {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
-
 func TestBuildEndpointInfo_MultiplePortsAndAddresses(t *testing.T) {
 	port8080 := int32(8080)
 	port9090 := int32(9090)
@@ -212,13 +148,5 @@ func TestGetEndpoints_GetK8sError(t *testing.T) {
 	_, err := app.GetEndpoints("default")
 	if err == nil {
 		t.Error("expected error from GetEndpoints with no K8s context")
-	}
-}
-
-func TestGetEndpointDetail_GetK8sError(t *testing.T) {
-	app := newAppNoCtx()
-	_, err := app.GetEndpointDetail("default", "svc")
-	if err == nil {
-		t.Error("expected error from GetEndpointDetail with no K8s context")
 	}
 }

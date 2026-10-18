@@ -90,57 +90,6 @@ func TestGetStorageClasses_NoStorageClasses(t *testing.T) {
 	}
 }
 
-func TestGetStorageClassDetail_ReturnsStorageClass(t *testing.T) {
-	ctx := context.Background()
-
-	reclaimPolicy := corev1.PersistentVolumeReclaimRetain
-	volumeBindingMode := storagev1.VolumeBindingWaitForFirstConsumer
-
-	clientset := fake.NewSimpleClientset(
-		&storagev1.StorageClass{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "fast-storage",
-				Labels: map[string]string{
-					"type": "ssd",
-				},
-			},
-			Provisioner:       "kubernetes.io/aws-ebs",
-			ReclaimPolicy:     &reclaimPolicy,
-			VolumeBindingMode: &volumeBindingMode,
-		},
-	)
-
-	app := &App{ctx: ctx, testClientset: clientset}
-
-	sc, err := app.GetStorageClassDetail("fast-storage")
-	if err != nil {
-		t.Fatalf("GetStorageClassDetail failed: %v", err)
-	}
-
-	if sc.Name != "fast-storage" {
-		t.Errorf("expected storage class name 'fast-storage', got '%s'", sc.Name)
-	}
-	if sc.ReclaimPolicy != "Retain" {
-		t.Errorf("expected reclaim policy 'Retain', got '%s'", sc.ReclaimPolicy)
-	}
-	if sc.VolumeBindingMode != "WaitForFirstConsumer" {
-		t.Errorf("expected volume binding mode 'WaitForFirstConsumer', got '%s'", sc.VolumeBindingMode)
-	}
-}
-
-func TestGetStorageClassDetail_EmptyName(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	_, err := app.GetStorageClassDetail("")
-	if err == nil {
-		t.Fatal("expected error for empty name")
-	}
-
-	if err.Error() != "missing required parameter: name" {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
-
 func TestBuildStorageClassInfo_Defaults(t *testing.T) {
 	sc := &storagev1.StorageClass{
 		ObjectMeta: metav1.ObjectMeta{

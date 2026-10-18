@@ -12,47 +12,6 @@ import (
 	"gowails/pkg/app/holmesgpt"
 )
 
-func TestDetectLogPatterns(t *testing.T) {
-	app := &App{}
-	logs := "error connecting\nwarning: slow\npanic: boom\nerror: retry"
-
-	patterns, err := app.DetectLogPatterns(logs)
-	if err != nil {
-		t.Fatalf("DetectLogPatterns failed: %v", err)
-	}
-
-	if len(patterns) != 3 {
-		t.Fatalf("expected 3 pattern types, got %d", len(patterns))
-	}
-
-	counts := map[string]int{}
-	for _, p := range patterns {
-		counts[p.Type] = p.Occurrences
-	}
-
-	if counts["error"] != 2 {
-		t.Fatalf("expected error occurrences=2, got %d", counts["error"])
-	}
-	if counts["warning"] != 1 {
-		t.Fatalf("expected warning occurrences=1, got %d", counts["warning"])
-	}
-	if counts["panic"] != 1 {
-		t.Fatalf("expected panic occurrences=1, got %d", counts["panic"])
-	}
-}
-
-func TestDetectLogPatterns_EmptyInput(t *testing.T) {
-	app := &App{}
-
-	patterns, err := app.DetectLogPatterns("")
-	if err != nil {
-		t.Fatalf("DetectLogPatterns failed: %v", err)
-	}
-	if len(patterns) != 0 {
-		t.Fatalf("expected zero patterns, got %d", len(patterns))
-	}
-}
-
 func TestAnalyzeLogs_WithPodLogs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/api/chat" {

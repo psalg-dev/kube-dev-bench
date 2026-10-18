@@ -111,30 +111,3 @@ func extractSliceAddresses(slice *discoveryv1.EndpointSlice) []string {
 
 	return addresses
 }
-
-// GetEndpointDetail returns detailed information about a specific endpoint
-func (a *App) GetEndpointDetail(namespace, name string) (*EndpointInfo, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("missing required parameter: namespace")
-	}
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return nil, err
-	}
-
-	selector := fmt.Sprintf("%s=%s", discoveryv1.LabelServiceName, name)
-	sliceList, err := clientset.DiscoveryV1().EndpointSlices(namespace).List(a.ctx, metav1.ListOptions{LabelSelector: selector})
-	if err != nil {
-		return nil, err
-	}
-	if len(sliceList.Items) == 0 {
-		return nil, fmt.Errorf("endpoint not found: %s", name)
-	}
-
-	info := buildEndpointInfoFromSlices(namespace, name, sliceList.Items, time.Now())
-	return &info, nil
-}

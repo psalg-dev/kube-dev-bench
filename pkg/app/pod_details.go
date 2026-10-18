@@ -722,11 +722,6 @@ func (a *App) readRemoteFileContent(clientset *kubernetes.Clientset, restConfig 
 	return fileBuf.Bytes(), nil
 }
 
-// GetPodFileContentSimple returns a default preview (128KB)
-func (a *App) GetPodFileContentSimple(podName, container, path string) (PodFileContent, error) {
-	return a.GetPodFileContent(podName, container, path, 128*1024)
-}
-
 // shEscape minimal shell escaping for a path argument
 func shEscape(s string) string {
 	if s == "" {

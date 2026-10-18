@@ -49,23 +49,12 @@ func (a *App) restartWorkload(kind, namespace, name string) error {
 	return err
 }
 
-// RestartWorkload restarts a workload by kind. Exposed to frontend via Wails.
-// Supported kinds: deployment, statefulset, daemonset.
-func (a *App) RestartWorkload(kind, namespace, name string) error {
-	return a.restartWorkload(kind, namespace, name)
-}
-
 // --- Deployments ---
 
 // RestartDeployment restarts a deployment by patching its pod template annotation.
 // Delegates to restartWorkload for the common restart logic.
 func (a *App) RestartDeployment(namespace, name string) error {
 	return a.restartWorkload("deployment", namespace, name)
-}
-
-// DeleteDeployment deletes a deployment. Delegates to DeleteResource.
-func (a *App) DeleteDeployment(namespace, name string) error {
-	return a.DeleteResource("deployment", namespace, name)
 }
 
 // RollbackDeploymentToRevision updates the Deployment's pod template to match a previous ReplicaSet revision.
@@ -140,63 +129,11 @@ func (a *App) RestartStatefulSet(namespace, name string) error {
 	return a.restartWorkload("statefulset", namespace, name)
 }
 
-// DeleteStatefulSet deletes a statefulset. Delegates to DeleteResource.
-func (a *App) DeleteStatefulSet(namespace, name string) error {
-	return a.DeleteResource("statefulset", namespace, name)
-}
-
 // --- DaemonSets ---
 
 // RestartDaemonSet restarts a daemonset. Delegates to restartWorkload.
 func (a *App) RestartDaemonSet(namespace, name string) error {
 	return a.restartWorkload("daemonset", namespace, name)
-}
-
-// DeleteDaemonSet deletes a daemonset. Delegates to DeleteResource.
-func (a *App) DeleteDaemonSet(namespace, name string) error {
-	return a.DeleteResource("daemonset", namespace, name)
-}
-
-// --- ReplicaSets (restart not meaningful separately) ---
-
-// DeleteReplicaSet deletes a replicaset. Delegates to DeleteResource.
-func (a *App) DeleteReplicaSet(namespace, name string) error {
-	return a.DeleteResource("replicaset", namespace, name)
-}
-
-// --- ConfigMaps ---
-
-// DeleteConfigMap deletes a configmap. Delegates to DeleteResource.
-func (a *App) DeleteConfigMap(namespace, name string) error {
-	return a.DeleteResource("configmap", namespace, name)
-}
-
-// --- Secrets ---
-
-// DeleteSecret deletes a secret. Delegates to DeleteResource.
-func (a *App) DeleteSecret(namespace, name string) error {
-	return a.DeleteResource("secret", namespace, name)
-}
-
-// --- Persistent Volume Claims ---
-
-// DeletePersistentVolumeClaim deletes a PVC. Delegates to DeleteResource.
-func (a *App) DeletePersistentVolumeClaim(namespace, name string) error {
-	return a.DeleteResource("pvc", namespace, name)
-}
-
-// --- Persistent Volumes ---
-
-// DeletePersistentVolume deletes a PV. Delegates to DeleteResource.
-func (a *App) DeletePersistentVolume(name string) error {
-	return a.DeleteResource("pv", "", name)
-}
-
-// --- Ingresses ---
-
-// DeleteIngress deletes an ingress. Delegates to DeleteResource.
-func (a *App) DeleteIngress(namespace, name string) error {
-	return a.DeleteResource("ingress", namespace, name)
 }
 
 // Job and CronJob App methods moved to resource_actions_jobs.go

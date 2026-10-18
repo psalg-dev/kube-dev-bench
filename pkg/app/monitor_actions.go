@@ -587,32 +587,6 @@ func (a *App) GetDismissedIssues() ([]MonitorIssue, error) {
 	return issues, nil
 }
 
-func (a *App) AnalyzeMonitorIssueStream(issueID, streamID string) error {
-	if issueID == "" || streamID == "" {
-		return fmt.Errorf("issueID and streamID required")
-	}
-
-	nsList := a.preferredNamespaces
-	if len(nsList) == 0 && a.currentNamespace != "" {
-		nsList = []string{a.currentNamespace}
-	}
-	if len(nsList) == 0 {
-		return fmt.Errorf("no namespaces selected")
-	}
-
-	info := a.collectMonitorInfo(nsList)
-	found := findIssueByID(info, issueID)
-	if found == nil {
-		return fmt.Errorf("issue not found")
-	}
-
-	contextText := a.getResourceContext(found.Resource, found.Namespace, found.Name)
-
-	question := fmt.Sprintf("Analyze this monitoring issue and provide likely cause, impact, and remediation steps.\n\nIssue:\nResource: %s\nNamespace: %s\nName: %s\nReason: %s\nMessage: %s\nContainer: %s\nRestarts: %d\n\nContext:\n%s", found.Resource, found.Namespace, found.Name, found.Reason, found.Message, found.ContainerName, found.RestartCount, contextText)
-
-	return a.AskHolmesStream(question, streamID)
-}
-
 func (a *App) SaveMonitorIssueAnalysis(issueID string, response *holmesgpt.HolmesResponse) error {
 	if issueID == "" || response == nil {
 		return fmt.Errorf("invalid input")

@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"gowails/pkg/app/holmesgpt"
@@ -12,15 +11,6 @@ import (
 )
 
 const defaultLogAnalysisLines = 200
-
-// LogPattern represents a detected log signature in a log stream.
-type LogPattern struct {
-	Type        string `json:"type"`
-	Pattern     string `json:"pattern"`
-	Occurrences int    `json:"occurrences"`
-	FirstSeen   string `json:"firstSeen"`
-	LastSeen    string `json:"lastSeen"`
-}
 
 // AnalyzeLogs retrieves logs for a pod/container and asks HolmesGPT to analyze them.
 func (a *App) AnalyzeLogs(namespace, podName, containerName string, lines int) (*holmesgpt.HolmesResponse, error) {
@@ -76,51 +66,6 @@ func (a *App) AnalyzeLogs(namespace, podName, containerName string, lines int) (
 	}
 
 	return resp, err
-}
-
-// DetectLogPatterns performs lightweight pattern detection in raw logs.
-func (a *App) DetectLogPatterns(logs string) ([]LogPattern, error) {
-	patterns := make(map[string]*LogPattern)
-
-	lines := strings.Split(logs, "\n")
-	for _, line := range lines {
-		lowerLine := strings.ToLower(line)
-
-		if strings.Contains(lowerLine, "error") || strings.Contains(lowerLine, "err") {
-			updatePattern(patterns, "error", line)
-		}
-
-		if strings.Contains(lowerLine, "panic") {
-			updatePattern(patterns, "panic", line)
-		}
-
-		if strings.Contains(lowerLine, "warning") || strings.Contains(lowerLine, "warn") {
-			updatePattern(patterns, "warning", line)
-		}
-	}
-
-	result := make([]LogPattern, 0, len(patterns))
-	for _, p := range patterns {
-		result = append(result, *p)
-	}
-
-	return result, nil
-}
-
-func updatePattern(patterns map[string]*LogPattern, key string, line string) {
-	if p, exists := patterns[key]; exists {
-		p.Occurrences++
-		p.LastSeen = line
-		return
-	}
-
-	patterns[key] = &LogPattern{
-		Type:        key,
-		Pattern:     key,
-		Occurrences: 1,
-		FirstSeen:   line,
-		LastSeen:    line,
-	}
 }
 
 func (a *App) getPodLogs(namespace, podName, containerName string, lines int) (string, error) {

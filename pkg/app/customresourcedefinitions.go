@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	"time"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -11,19 +10,19 @@ import (
 
 // CustomResourceDefinitionInfo represents summary information about a CRD
 type CustomResourceDefinitionInfo struct {
-	Name              string            `json:"name"`
-	Group             string            `json:"group"`
-	Scope             string            `json:"scope"`
-	Kind              string            `json:"kind"`
-	ListKind          string            `json:"listKind"`
-	Singular          string            `json:"singular"`
-	Plural            string            `json:"plural"`
-	ShortNames        []string          `json:"shortNames"`
-	Versions          []CRDVersion      `json:"versions"`
-	Age               string            `json:"age"`
-	Labels            map[string]string `json:"labels"`
-	Annotations       map[string]string `json:"annotations"`
-	Raw               interface{}       `json:"raw,omitempty"`
+	Name        string            `json:"name"`
+	Group       string            `json:"group"`
+	Scope       string            `json:"scope"`
+	Kind        string            `json:"kind"`
+	ListKind    string            `json:"listKind"`
+	Singular    string            `json:"singular"`
+	Plural      string            `json:"plural"`
+	ShortNames  []string          `json:"shortNames"`
+	Versions    []CRDVersion      `json:"versions"`
+	Age         string            `json:"age"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Raw         interface{}       `json:"raw,omitempty"`
 }
 
 // CRDVersion represents a version of a CRD
@@ -103,35 +102,6 @@ func buildCRDInfo(crd *apiextensionsv1.CustomResourceDefinition, now time.Time) 
 	}
 }
 
-// GetCustomResourceDefinitionDetail returns detailed information about a specific CRD
-func (a *App) GetCustomResourceDefinitionDetail(name string) (*CustomResourceDefinitionInfo, error) {
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
+// Check if we have a test client
 
-	var apiExtClient apiextensionsclientset.Interface
-
-	// Check if we have a test client
-	if a.testCRDClientset != nil {
-		apiExtClient = a.testCRDClientset.(apiextensionsclientset.Interface)
-	} else {
-		// Create apiextensions client
-		config, err := a.getRESTConfig()
-		if err != nil {
-			return nil, err
-		}
-
-		apiExtClient, err = apiextensionsclientset.NewForConfig(config)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	crd, err := apiExtClient.ApiextensionsV1().CustomResourceDefinitions().Get(a.ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	info := buildCRDInfo(crd, time.Now())
-	return &info, nil
-}
+// Create apiextensions client

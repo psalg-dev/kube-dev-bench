@@ -47,13 +47,3 @@ func (a *App) GetDaemonSets(namespace string) ([]DaemonSetInfo, error) {
 		buildDaemonSetInfo,
 	)
 }
-
-func (a *App) collectDaemonSets(nsList []string) []DaemonSetInfo {
-	var all []DaemonSetInfo
-	for _, ns := range nsList {
-		if list, err := a.GetDaemonSets(ns); err == nil {
-			all = append(all, list...)
-		}
-	}
-	return all
-}

@@ -8,18 +8,6 @@ import (
 	types "k8s.io/apimachinery/pkg/types"
 )
 
-// App methods for Jobs and CronJobs
-
-// DeleteJob deletes a job. Delegates to DeleteResource.
-func (a *App) DeleteJob(namespace, name string) error {
-	return a.DeleteResource("job", namespace, name)
-}
-
-// DeleteCronJob deletes a cronjob. Delegates to DeleteResource.
-func (a *App) DeleteCronJob(namespace, name string) error {
-	return a.DeleteResource("cronjob", namespace, name)
-}
-
 func (a *App) SuspendCronJob(namespace, name string) error {
 	clientset, err := a.getKubernetesInterface()
 	if err != nil {

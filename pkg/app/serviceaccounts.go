@@ -69,26 +69,3 @@ func buildServiceAccountInfo(sa *corev1.ServiceAccount, now time.Time) ServiceAc
 		Raw:         sa,
 	}
 }
-
-// GetServiceAccountDetail returns detailed information about a specific service account
-func (a *App) GetServiceAccountDetail(namespace, name string) (*ServiceAccountInfo, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("missing required parameter: namespace")
-	}
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return nil, err
-	}
-
-	sa, err := clientset.CoreV1().ServiceAccounts(namespace).Get(a.ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	info := buildServiceAccountInfo(sa, time.Now())
-	return &info, nil
-}

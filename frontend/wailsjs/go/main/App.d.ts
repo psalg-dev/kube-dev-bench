@@ -40,8 +40,6 @@ export function AnalyzeLogs(arg1:string,arg2:string,arg3:string,arg4:number):Pro
 
 export function AnalyzeMonitorIssue(arg1:string):Promise<app.MonitorIssue>;
 
-export function AnalyzeMonitorIssueStream(arg1:string,arg2:string):Promise<void>;
-
 export function AnalyzeNode(arg1:string):Promise<holmesgpt.HolmesResponse>;
 
 export function AnalyzeNodeStream(arg1:string,arg2:string):Promise<void>;
@@ -136,41 +134,17 @@ export function CreateSwarmVolume(arg1:string,arg2:string,arg3:Record<string, st
 
 export function CreateSwarmVolumeDirectory(arg1:string,arg2:string):Promise<void>;
 
-export function DeleteConfigMap(arg1:string,arg2:string):Promise<void>;
-
-export function DeleteCronJob(arg1:string,arg2:string):Promise<void>;
-
-export function DeleteDaemonSet(arg1:string,arg2:string):Promise<void>;
-
-export function DeleteDeployment(arg1:string,arg2:string):Promise<void>;
-
 export function DeleteHook(arg1:string):Promise<void>;
-
-export function DeleteIngress(arg1:string,arg2:string):Promise<void>;
-
-export function DeleteJob(arg1:string,arg2:string):Promise<void>;
-
-export function DeletePersistentVolume(arg1:string):Promise<void>;
-
-export function DeletePersistentVolumeClaim(arg1:string,arg2:string):Promise<void>;
 
 export function DeletePod(arg1:string,arg2:string):Promise<void>;
 
-export function DeleteReplicaSet(arg1:string,arg2:string):Promise<void>;
-
 export function DeleteResource(arg1:string,arg2:string,arg3:string):Promise<void>;
-
-export function DeleteSecret(arg1:string,arg2:string):Promise<void>;
-
-export function DeleteStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function DeleteSwarmVolumeFile(arg1:string,arg2:string,arg3:boolean):Promise<void>;
 
 export function DeployHolmesGPT(arg1:holmesgpt.HolmesDeploymentRequest):Promise<holmesgpt.HolmesDeploymentStatus>;
 
 export function DetectKubeconfigEnvPaths():Promise<Array<string>>;
-
-export function DetectLogPatterns(arg1:string):Promise<Array<app.LogPattern>>;
 
 export function DetectSystemProxy():Promise<Record<string, string>>;
 
@@ -188,15 +162,9 @@ export function GetAlertInvestigationHistory():Promise<Array<app.AlertInvestigat
 
 export function GetAllTabCounts(arg1:string,arg2:string,arg3:string):Promise<app.TabCounts>;
 
-export function GetClusterRoleBindingDetail(arg1:string):Promise<app.RoleBindingInfo>;
-
-export function GetClusterRoleBindingSubjects(arg1:string):Promise<Array<app.Subject>>;
-
 export function GetClusterRoleBindingYAML(arg1:string):Promise<string>;
 
 export function GetClusterRoleBindings():Promise<Array<app.RoleBindingInfo>>;
-
-export function GetClusterRoleDetail(arg1:string):Promise<app.RoleInfo>;
 
 export function GetClusterRoleYAML(arg1:string):Promise<string>;
 
@@ -230,8 +198,6 @@ export function GetCurrentConfig():Promise<app.AppConfig>;
 
 export function GetCustomCAPath():Promise<string>;
 
-export function GetCustomResourceDefinitionDetail(arg1:string):Promise<app.CustomResourceDefinitionInfo>;
-
 export function GetCustomResourceDefinitions():Promise<Array<app.CustomResourceDefinitionInfo>>;
 
 export function GetDaemonSetDetail(arg1:string,arg2:string):Promise<app.DaemonSetDetail>;
@@ -262,8 +228,6 @@ export function GetDockerConnectionStatus():Promise<docker.DockerConnectionStatu
 
 export function GetDockerHubRepositoryDetails(arg1:string):Promise<registry.DockerHubRepoDetails>;
 
-export function GetEndpointDetail(arg1:string,arg2:string):Promise<app.EndpointInfo>;
-
 export function GetEndpoints(arg1:string):Promise<Array<app.EndpointInfo>>;
 
 export function GetHelmChartVersions(arg1:string,arg2:string):Promise<Array<app.HelmChartVersionInfo>>;
@@ -281,8 +245,6 @@ export function GetHelmReleases(arg1:string):Promise<Array<app.HelmReleaseInfo>>
 export function GetHelmRepositories():Promise<Array<app.HelmRepositoryInfo>>;
 
 export function GetHolmesConfig():Promise<holmesgpt.HolmesConfigData>;
-
-export function GetHolmesLogPath():Promise<string>;
 
 export function GetHooksConfig():Promise<app.HooksConfig>;
 
@@ -330,8 +292,6 @@ export function GetNamespaces():Promise<Array<string>>;
 
 export function GetNetworkPolicies(arg1:string):Promise<Array<app.NetworkPolicyInfo>>;
 
-export function GetNetworkPolicyDetail(arg1:string,arg2:string):Promise<app.NetworkPolicyInfo>;
-
 export function GetNetworkPolicyGraph(arg1:string,arg2:number):Promise<k8s_graph.ResourceGraph>;
 
 export function GetNodeDetail(arg1:string):Promise<app.NodeInfo>;
@@ -374,8 +334,6 @@ export function GetPodEventsLegacy(arg1:string):Promise<Array<app.EventInfo>>;
 
 export function GetPodFileContent(arg1:string,arg2:string,arg3:string,arg4:number):Promise<app.PodFileContent>;
 
-export function GetPodFileContentSimple(arg1:string,arg2:string,arg3:string):Promise<app.PodFileContent>;
-
 export function GetPodFiles(arg1:string,arg2:string,arg3:string):Promise<Array<app.PodFileEntry>>;
 
 export function GetPodLog(arg1:string):Promise<string>;
@@ -412,8 +370,6 @@ export function GetRememberNamespace():Promise<boolean>;
 
 export function GetReplicaSetDetail(arg1:string,arg2:string):Promise<app.ReplicaSetDetail>;
 
-export function GetReplicaSetLogs(arg1:string,arg2:string):Promise<string>;
-
 export function GetReplicaSetYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetReplicaSets(arg1:string):Promise<Array<app.ReplicaSetInfo>>;
@@ -428,15 +384,9 @@ export function GetResourceGraph(arg1:string,arg2:string,arg3:string,arg4:number
 
 export function GetResourceYAML(arg1:string,arg2:string,arg3:string):Promise<string>;
 
-export function GetRoleBindingDetail(arg1:string,arg2:string):Promise<app.RoleBindingInfo>;
-
-export function GetRoleBindingSubjects(arg1:string,arg2:string):Promise<Array<app.Subject>>;
-
 export function GetRoleBindingYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetRoleBindings(arg1:string):Promise<Array<app.RoleBindingInfo>>;
-
-export function GetRoleDetail(arg1:string,arg2:string):Promise<app.RoleInfo>;
 
 export function GetRoleYAML(arg1:string,arg2:string):Promise<string>;
 
@@ -461,8 +411,6 @@ export function GetSecretDataCount(arg1:string,arg2:string):Promise<number>;
 export function GetSecretYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetSecrets(arg1:string):Promise<Array<Record<string, any>>>;
-
-export function GetServiceAccountDetail(arg1:string,arg2:string):Promise<app.ServiceAccountInfo>;
 
 export function GetServiceAccounts(arg1:string):Promise<Array<app.ServiceAccountInfo>>;
 
@@ -489,8 +437,6 @@ export function GetStatefulSetPVCsCount(arg1:string,arg2:string):Promise<number>
 export function GetStatefulSetYAML(arg1:string,arg2:string):Promise<string>;
 
 export function GetStatefulSets(arg1:string):Promise<Array<app.StatefulSetInfo>>;
-
-export function GetStorageClassDetail(arg1:string):Promise<app.StorageClassInfo>;
 
 export function GetStorageClasses():Promise<Array<app.StorageClassInfo>>;
 
@@ -644,8 +590,6 @@ export function RestartStatefulSet(arg1:string,arg2:string):Promise<void>;
 
 export function RestartSwarmService(arg1:string):Promise<void>;
 
-export function RestartWorkload(arg1:string,arg2:string,arg3:string):Promise<void>;
-
 export function RestoreSwarmVolume(arg1:string):Promise<string>;
 
 export function ResumeCronJob(arg1:string,arg2:string):Promise<void>;
@@ -752,8 +696,6 @@ export function Startup(arg1:context.Context):Promise<void>;
 
 export function StopAllPolling():Promise<void>;
 
-export function StopHolmesPortForward(arg1:string):Promise<void>;
-
 export function StopMCPServer():Promise<void>;
 
 export function StopPodLogs(arg1:string):Promise<void>;
@@ -764,11 +706,7 @@ export function StopShellSession(arg1:string):Promise<void>;
 
 export function StreamPodContainerLogs(arg1:string,arg2:string):Promise<void>;
 
-export function StreamPodContainerLogsWith(arg1:string,arg2:string,arg3:number,arg4:boolean):Promise<void>;
-
 export function StreamPodLogs(arg1:string):Promise<void>;
-
-export function StreamPodLogsWith(arg1:string,arg2:number,arg3:boolean):Promise<void>;
 
 export function SuspendCronJob(arg1:string,arg2:string):Promise<void>;
 

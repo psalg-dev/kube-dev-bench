@@ -155,102 +155,7 @@ func (a *App) StreamPodContainerLogs(podName, container string) {
 	}()
 }
 
-// StreamPodLogsWith streams logs with optional tail lines & follow flags.
-func (a *App) StreamPodLogsWith(podName string, tailLines int, follow bool) {
-	a.streamPodLogsInternal(podName, "", tailLines, follow)
-}
-
-// StreamPodContainerLogsWith streams logs for a specific container with tail/follow options.
-func (a *App) StreamPodContainerLogsWith(podName, container string, tailLines int, follow bool) {
-	a.streamPodLogsInternal(podName, container, tailLines, follow)
-}
-
-func (a *App) streamPodLogsInternal(podName, container string, tailLines int, follow bool) {
-	a.StopPodLogs(podName)
-	go func() {
-		ctx, cancel := context.WithCancel(a.ctx)
-		a.registerLogCancel(podName, cancel)
-		defer a.unregisterLogCancel(podName, cancel)
-
-		// If no specific container requested, detect multi-container pod
-		if container == "" {
-			containers, multiContainer := a.getPodContainerNames(podName)
-			if multiContainer {
-				a.streamAllContainerLogsWith(ctx, podName, containers, tailLines, follow)
-				return
-			}
-		}
-
-		if err := a.streamLogsToEvents(ctx, podName, container, tailLines, follow); err != nil {
-			emitEvent(a.ctx, PodLogsEvent(podName), "[error] "+err.Error())
-		}
-		if follow {
-			emitEvent(a.ctx, PodLogsEvent(podName), "[stream closed]")
-		}
-	}()
-}
-
-func (a *App) registerLogCancel(podName string, cancel context.CancelFunc) {
-	a.logMu.Lock()
-	a.logCancels[podName] = cancel
-	a.logMu.Unlock()
-}
-
-func (a *App) unregisterLogCancel(podName string, cancel context.CancelFunc) {
-	a.logMu.Lock()
-	delete(a.logCancels, podName)
-	a.logMu.Unlock()
-	cancel()
-}
-
-func (a *App) streamLogsToEvents(ctx context.Context, podName, container string, tailLines int, follow bool) error {
-	if a.currentNamespace == "" {
-		return fmt.Errorf("no namespace selected")
-	}
-	clientset, err := a.getKubernetesClient()
-	if err != nil {
-		return fmt.Errorf("client: %w", err)
-	}
-
-	opts := a.buildLogOptions(container, tailLines, follow)
-	stream, err := clientset.CoreV1().Pods(a.currentNamespace).GetLogs(podName, opts).Stream(ctx)
-	if err != nil {
-		return fmt.Errorf("log stream: %w", err)
-	}
-	defer stream.Close()
-
-	scanner := newLogScanner(stream)
-	var lastEmit time.Time
-	for scanner.Scan() {
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-		}
-		if elapsed := time.Since(lastEmit); elapsed < logEmitMinInterval {
-			time.Sleep(logEmitMinInterval - elapsed)
-		}
-		emitEvent(a.ctx, PodLogsEvent(podName), scanner.Text())
-		lastEmit = time.Now()
-	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("scan error: %w", err)
-	}
-	return nil
-}
-
-func (a *App) buildLogOptions(container string, tailLines int, follow bool) *v1.PodLogOptions {
-	var tl *int64
-	if tailLines > 0 {
-		v := int64(tailLines)
-		tl = &v
-	}
-	opts := &v1.PodLogOptions{Follow: follow, TailLines: tl}
-	if container != "" {
-		opts.Container = container
-	}
-	return opts
-}
+// If no specific container requested, detect multi-container pod
 
 // GetPodLog returns the full log content of a pod (no follow).
 // For multi-container pods, logs from all containers are aggregated
@@ -320,32 +225,6 @@ func (a *App) streamAllContainerLogs(ctx context.Context, podName string, contai
 		go func(container string) {
 			defer wg.Done()
 			a.streamContainerWithPrefix(ctx, cs, podName, container, nil, follow)
-		}(c)
-	}
-	wg.Wait()
-	if follow {
-		emitEvent(a.ctx, PodLogsEvent(podName), "[stream closed]")
-	}
-}
-
-// streamAllContainerLogsWith streams logs from all containers with tail/follow options.
-func (a *App) streamAllContainerLogsWith(ctx context.Context, podName string, containers []string, tailLines int, follow bool) {
-	cs, err := a.getKubernetesClient()
-	if err != nil {
-		emitEvent(a.ctx, PodLogsEvent(podName), fmt.Sprintf("[error] client: %s", err.Error()))
-		return
-	}
-	var tl *int64
-	if tailLines > 0 {
-		v := int64(tailLines)
-		tl = &v
-	}
-	var wg sync.WaitGroup
-	for _, c := range containers {
-		wg.Add(1)
-		go func(container string) {
-			defer wg.Done()
-			a.streamContainerWithPrefix(ctx, cs, podName, container, tl, follow)
 		}(c)
 	}
 	wg.Wait()

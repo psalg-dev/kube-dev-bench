@@ -196,26 +196,3 @@ func convertPeer(peer networkingv1.NetworkPolicyPeer) NetworkPolicyPeer {
 	}
 	return result
 }
-
-// GetNetworkPolicyDetail returns detailed information about a specific network policy
-func (a *App) GetNetworkPolicyDetail(namespace, name string) (*NetworkPolicyInfo, error) {
-	if namespace == "" {
-		return nil, fmt.Errorf("missing required parameter: namespace")
-	}
-	if name == "" {
-		return nil, fmt.Errorf("missing required parameter: name")
-	}
-
-	clientset, err := a.getKubernetesInterface()
-	if err != nil {
-		return nil, err
-	}
-
-	np, err := clientset.NetworkingV1().NetworkPolicies(namespace).Get(a.ctx, name, metav1.GetOptions{})
-	if err != nil {
-		return nil, err
-	}
-
-	info := buildNetworkPolicyInfo(np, time.Now())
-	return &info, nil
-}

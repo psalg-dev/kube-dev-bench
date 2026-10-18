@@ -29,10 +29,10 @@ func TestGetCustomResourceDefinitions_ReturnsCRDs(t *testing.T) {
 				Group: "example.com",
 				Scope: apiextensionsv1.NamespaceScoped,
 				Names: apiextensionsv1.CustomResourceDefinitionNames{
-					Kind:     "MyResource",
-					ListKind: "MyResourceList",
-					Singular: "myresource",
-					Plural:   "myresources",
+					Kind:       "MyResource",
+					ListKind:   "MyResourceList",
+					Singular:   "myresource",
+					Plural:     "myresources",
 					ShortNames: []string{"mr"},
 				},
 				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
@@ -139,69 +139,6 @@ func TestGetCustomResourceDefinitions_NoCRDs(t *testing.T) {
 	}
 }
 
-func TestGetCustomResourceDefinitionDetail_ReturnsCRD(t *testing.T) {
-	ctx := context.Background()
-	clientset := fake.NewClientset()
-
-	crdClientset := apiextensionsfake.NewClientset(
-		&apiextensionsv1.CustomResourceDefinition{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "myresources.example.com",
-			},
-			Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-				Group: "example.com",
-				Scope: apiextensionsv1.NamespaceScoped,
-				Names: apiextensionsv1.CustomResourceDefinitionNames{
-					Kind:     "MyResource",
-					Plural:   "myresources",
-					Singular: "myresource",
-				},
-				Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-					{
-						Name:    "v1",
-						Served:  true,
-						Storage: true,
-					},
-				},
-			},
-		},
-	)
-
-	app := &App{
-		ctx:              ctx,
-		testClientset:    clientset,
-		testCRDClientset: crdClientset,
-	}
-
-	crd, err := app.GetCustomResourceDefinitionDetail("myresources.example.com")
-	if err != nil {
-		t.Fatalf("GetCustomResourceDefinitionDetail failed: %v", err)
-	}
-
-	if crd.Name != "myresources.example.com" {
-		t.Errorf("expected CRD name 'myresources.example.com', got '%s'", crd.Name)
-	}
-	if len(crd.Versions) != 1 {
-		t.Errorf("expected 1 version, got %d", len(crd.Versions))
-	}
-	if !crd.Versions[0].Storage {
-		t.Errorf("expected storage version to be true")
-	}
-}
-
-func TestGetCustomResourceDefinitionDetail_EmptyName(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	_, err := app.GetCustomResourceDefinitionDetail("")
-	if err == nil {
-		t.Fatal("expected error for empty name")
-	}
-
-	if err.Error() != "missing required parameter: name" {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
-
 func TestBuildCRDInfo_ClusterScoped(t *testing.T) {
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		ObjectMeta: metav1.ObjectMeta{
@@ -237,13 +174,5 @@ func TestGetCustomResourceDefinitions_GetK8sError(t *testing.T) {
 	_, err := app.GetCustomResourceDefinitions()
 	if err == nil {
 		t.Error("expected error from GetCustomResourceDefinitions with no K8s context")
-	}
-}
-
-func TestGetCustomResourceDefinitionDetail_GetK8sError(t *testing.T) {
-	app := newAppNoCtx()
-	_, err := app.GetCustomResourceDefinitionDetail("my-crd.example.com")
-	if err == nil {
-		t.Error("expected error from GetCustomResourceDefinitionDetail with no K8s context")
 	}
 }

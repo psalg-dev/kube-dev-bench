@@ -10,74 +10,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-// ─── Resource detail "not found" error paths ─────────────────────────────────
-// These tests call GetXxxDetail with a nonexistent resource name on an empty
-// fake clientset so the Kubernetes GET call returns a not-found error.
-
-func TestGetRoleDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetRoleDetail("default", "ghost-role")
-	if err == nil {
-		t.Error("expected error for nonexistent role")
-	}
-}
-
-func TestGetClusterRoleDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetClusterRoleDetail("ghost-clusterrole")
-	if err == nil {
-		t.Error("expected error for nonexistent cluster role")
-	}
-}
-
-func TestGetRoleBindingDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetRoleBindingDetail("default", "ghost-rb")
-	if err == nil {
-		t.Error("expected error for nonexistent role binding")
-	}
-}
-
-func TestGetClusterRoleBindingDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetClusterRoleBindingDetail("ghost-crb")
-	if err == nil {
-		t.Error("expected error for nonexistent cluster role binding")
-	}
-}
-
-func TestGetServiceAccountDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetServiceAccountDetail("default", "ghost-sa")
-	if err == nil {
-		t.Error("expected error for nonexistent service account")
-	}
-}
-
-func TestGetNetworkPolicyDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetNetworkPolicyDetail("default", "ghost-np")
-	if err == nil {
-		t.Error("expected error for nonexistent network policy")
-	}
-}
-
-func TestGetEndpointDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetEndpointDetail("default", "ghost-ep")
-	if err == nil {
-		t.Error("expected error for nonexistent endpoint")
-	}
-}
-
-func TestGetStorageClassDetail_NotFound(t *testing.T) {
-	app := &App{ctx: context.Background(), testClientset: fake.NewSimpleClientset()}
-	_, err := app.GetStorageClassDetail("ghost-sc")
-	if err == nil {
-		t.Error("expected error for nonexistent storage class")
-	}
-}
-
 // ─── UpdateConfigMapDataKey – empty configMapName validation ──────────────────
 
 // TestUpdateConfigMapDataKey_EmptyConfigMapName covers the configMapName == ""
@@ -252,15 +184,5 @@ func TestCopyFile_DestCreateError(t *testing.T) {
 	err := copyFile(srcPath, bogusParent)
 	if err == nil {
 		t.Error("expected error when destination parent is not a directory")
-	}
-}
-
-// ─── GetCustomResourceDefinitionDetail – not found path ──────────────────────
-
-func TestGetCustomResourceDefinitionDetail_EmptyNameExtra(t *testing.T) {
-	app := &App{ctx: context.Background()}
-	_, err := app.GetCustomResourceDefinitionDetail("")
-	if err == nil {
-		t.Error("expected error for empty name")
 	}
 }

@@ -417,9 +417,7 @@ func TestTryReconnectAndRetry_Paths(t *testing.T) {
 	}
 }
 
-func TestEmitHolmesStreamEvent_AndGetHolmesLogPath(t *testing.T) {
+func TestEmitHolmesStreamEvent(t *testing.T) {
 	app := &App{ctx: context.Background()}
 	app.emitHolmesStreamEvent("sid", "error", "boom")
-
-	_ = app.GetHolmesLogPath()
 }

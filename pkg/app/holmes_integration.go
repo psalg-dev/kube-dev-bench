@@ -1695,9 +1695,3 @@ func (a *App) ReconnectHolmes() (*holmesgpt.HolmesConnectionStatus, error) {
 		Endpoint:  endpoint,
 	}, nil
 }
-
-// GetHolmesLogPath returns the path to the Holmes log file.
-// This is a Wails RPC method callable from the frontend.
-func (a *App) GetHolmesLogPath() string {
-	return holmesgpt.GetLogPath()
-}

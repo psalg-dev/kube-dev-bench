@@ -7,7 +7,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	eventsv1 "k8s.io/api/events/v1"
-	apiextensionsfake "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/fake"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
@@ -101,21 +100,7 @@ func TestProcessEventsV1Events_NonWarningSkipped(t *testing.T) {
 	}
 }
 
-// ─── GetCustomResourceDefinitionDetail "not found" path ──────────────────────
-
-// TestGetCustomResourceDefinitionDetail_NotFound covers the error return from
-// the CRD Get call when the requested CRD does not exist.
-func TestGetCustomResourceDefinitionDetail_NotFound(t *testing.T) {
-	crdClientset := apiextensionsfake.NewClientset() // empty – no CRDs
-	app := &App{
-		ctx:              context.Background(),
-		testCRDClientset: crdClientset,
-	}
-	_, err := app.GetCustomResourceDefinitionDetail("nonexistent.example.com")
-	if err == nil {
-		t.Error("expected error for nonexistent CRD")
-	}
-}
+// empty – no CRDs
 
 // ─── handleDockerPullLine: KIND_DEBUG_LOG env path ───────────────────────────
 

@@ -62,10 +62,6 @@ export function AnalyzeMonitorIssue(arg1) {
   return window['go']['main']['App']['AnalyzeMonitorIssue'](arg1);
 }
 
-export function AnalyzeMonitorIssueStream(arg1, arg2) {
-  return window['go']['main']['App']['AnalyzeMonitorIssueStream'](arg1, arg2);
-}
-
 export function AnalyzeNode(arg1) {
   return window['go']['main']['App']['AnalyzeNode'](arg1);
 }
@@ -254,60 +250,16 @@ export function CreateSwarmVolumeDirectory(arg1, arg2) {
   return window['go']['main']['App']['CreateSwarmVolumeDirectory'](arg1, arg2);
 }
 
-export function DeleteConfigMap(arg1, arg2) {
-  return window['go']['main']['App']['DeleteConfigMap'](arg1, arg2);
-}
-
-export function DeleteCronJob(arg1, arg2) {
-  return window['go']['main']['App']['DeleteCronJob'](arg1, arg2);
-}
-
-export function DeleteDaemonSet(arg1, arg2) {
-  return window['go']['main']['App']['DeleteDaemonSet'](arg1, arg2);
-}
-
-export function DeleteDeployment(arg1, arg2) {
-  return window['go']['main']['App']['DeleteDeployment'](arg1, arg2);
-}
-
 export function DeleteHook(arg1) {
   return window['go']['main']['App']['DeleteHook'](arg1);
-}
-
-export function DeleteIngress(arg1, arg2) {
-  return window['go']['main']['App']['DeleteIngress'](arg1, arg2);
-}
-
-export function DeleteJob(arg1, arg2) {
-  return window['go']['main']['App']['DeleteJob'](arg1, arg2);
-}
-
-export function DeletePersistentVolume(arg1) {
-  return window['go']['main']['App']['DeletePersistentVolume'](arg1);
-}
-
-export function DeletePersistentVolumeClaim(arg1, arg2) {
-  return window['go']['main']['App']['DeletePersistentVolumeClaim'](arg1, arg2);
 }
 
 export function DeletePod(arg1, arg2) {
   return window['go']['main']['App']['DeletePod'](arg1, arg2);
 }
 
-export function DeleteReplicaSet(arg1, arg2) {
-  return window['go']['main']['App']['DeleteReplicaSet'](arg1, arg2);
-}
-
 export function DeleteResource(arg1, arg2, arg3) {
   return window['go']['main']['App']['DeleteResource'](arg1, arg2, arg3);
-}
-
-export function DeleteSecret(arg1, arg2) {
-  return window['go']['main']['App']['DeleteSecret'](arg1, arg2);
-}
-
-export function DeleteStatefulSet(arg1, arg2) {
-  return window['go']['main']['App']['DeleteStatefulSet'](arg1, arg2);
 }
 
 export function DeleteSwarmVolumeFile(arg1, arg2, arg3) {
@@ -320,10 +272,6 @@ export function DeployHolmesGPT(arg1) {
 
 export function DetectKubeconfigEnvPaths() {
   return window['go']['main']['App']['DetectKubeconfigEnvPaths']();
-}
-
-export function DetectLogPatterns(arg1) {
-  return window['go']['main']['App']['DetectLogPatterns'](arg1);
 }
 
 export function DetectSystemProxy() {
@@ -358,24 +306,12 @@ export function GetAllTabCounts(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetAllTabCounts'](arg1, arg2, arg3);
 }
 
-export function GetClusterRoleBindingDetail(arg1) {
-  return window['go']['main']['App']['GetClusterRoleBindingDetail'](arg1);
-}
-
-export function GetClusterRoleBindingSubjects(arg1) {
-  return window['go']['main']['App']['GetClusterRoleBindingSubjects'](arg1);
-}
-
 export function GetClusterRoleBindingYAML(arg1) {
   return window['go']['main']['App']['GetClusterRoleBindingYAML'](arg1);
 }
 
 export function GetClusterRoleBindings() {
   return window['go']['main']['App']['GetClusterRoleBindings']();
-}
-
-export function GetClusterRoleDetail(arg1) {
-  return window['go']['main']['App']['GetClusterRoleDetail'](arg1);
 }
 
 export function GetClusterRoleYAML(arg1) {
@@ -442,10 +378,6 @@ export function GetCustomCAPath() {
   return window['go']['main']['App']['GetCustomCAPath']();
 }
 
-export function GetCustomResourceDefinitionDetail(arg1) {
-  return window['go']['main']['App']['GetCustomResourceDefinitionDetail'](arg1);
-}
-
 export function GetCustomResourceDefinitions() {
   return window['go']['main']['App']['GetCustomResourceDefinitions']();
 }
@@ -506,10 +438,6 @@ export function GetDockerHubRepositoryDetails(arg1) {
   return window['go']['main']['App']['GetDockerHubRepositoryDetails'](arg1);
 }
 
-export function GetEndpointDetail(arg1, arg2) {
-  return window['go']['main']['App']['GetEndpointDetail'](arg1, arg2);
-}
-
 export function GetEndpoints(arg1) {
   return window['go']['main']['App']['GetEndpoints'](arg1);
 }
@@ -544,10 +472,6 @@ export function GetHelmRepositories() {
 
 export function GetHolmesConfig() {
   return window['go']['main']['App']['GetHolmesConfig']();
-}
-
-export function GetHolmesLogPath() {
-  return window['go']['main']['App']['GetHolmesLogPath']();
 }
 
 export function GetHooksConfig() {
@@ -642,10 +566,6 @@ export function GetNetworkPolicies(arg1) {
   return window['go']['main']['App']['GetNetworkPolicies'](arg1);
 }
 
-export function GetNetworkPolicyDetail(arg1, arg2) {
-  return window['go']['main']['App']['GetNetworkPolicyDetail'](arg1, arg2);
-}
-
 export function GetNetworkPolicyGraph(arg1, arg2) {
   return window['go']['main']['App']['GetNetworkPolicyGraph'](arg1, arg2);
 }
@@ -730,10 +650,6 @@ export function GetPodFileContent(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['GetPodFileContent'](arg1, arg2, arg3, arg4);
 }
 
-export function GetPodFileContentSimple(arg1, arg2, arg3) {
-  return window['go']['main']['App']['GetPodFileContentSimple'](arg1, arg2, arg3);
-}
-
 export function GetPodFiles(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetPodFiles'](arg1, arg2, arg3);
 }
@@ -806,10 +722,6 @@ export function GetReplicaSetDetail(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetDetail'](arg1, arg2);
 }
 
-export function GetReplicaSetLogs(arg1, arg2) {
-  return window['go']['main']['App']['GetReplicaSetLogs'](arg1, arg2);
-}
-
 export function GetReplicaSetYAML(arg1, arg2) {
   return window['go']['main']['App']['GetReplicaSetYAML'](arg1, arg2);
 }
@@ -838,24 +750,12 @@ export function GetResourceYAML(arg1, arg2, arg3) {
   return window['go']['main']['App']['GetResourceYAML'](arg1, arg2, arg3);
 }
 
-export function GetRoleBindingDetail(arg1, arg2) {
-  return window['go']['main']['App']['GetRoleBindingDetail'](arg1, arg2);
-}
-
-export function GetRoleBindingSubjects(arg1, arg2) {
-  return window['go']['main']['App']['GetRoleBindingSubjects'](arg1, arg2);
-}
-
 export function GetRoleBindingYAML(arg1, arg2) {
   return window['go']['main']['App']['GetRoleBindingYAML'](arg1, arg2);
 }
 
 export function GetRoleBindings(arg1) {
   return window['go']['main']['App']['GetRoleBindings'](arg1);
-}
-
-export function GetRoleDetail(arg1, arg2) {
-  return window['go']['main']['App']['GetRoleDetail'](arg1, arg2);
 }
 
 export function GetRoleYAML(arg1, arg2) {
@@ -904,10 +804,6 @@ export function GetSecretYAML(arg1, arg2) {
 
 export function GetSecrets(arg1) {
   return window['go']['main']['App']['GetSecrets'](arg1);
-}
-
-export function GetServiceAccountDetail(arg1, arg2) {
-  return window['go']['main']['App']['GetServiceAccountDetail'](arg1, arg2);
 }
 
 export function GetServiceAccounts(arg1) {
@@ -960,10 +856,6 @@ export function GetStatefulSetYAML(arg1, arg2) {
 
 export function GetStatefulSets(arg1) {
   return window['go']['main']['App']['GetStatefulSets'](arg1);
-}
-
-export function GetStorageClassDetail(arg1) {
-  return window['go']['main']['App']['GetStorageClassDetail'](arg1);
 }
 
 export function GetStorageClasses() {
@@ -1270,10 +1162,6 @@ export function RestartSwarmService(arg1) {
   return window['go']['main']['App']['RestartSwarmService'](arg1);
 }
 
-export function RestartWorkload(arg1, arg2, arg3) {
-  return window['go']['main']['App']['RestartWorkload'](arg1, arg2, arg3);
-}
-
 export function RestoreSwarmVolume(arg1) {
   return window['go']['main']['App']['RestoreSwarmVolume'](arg1);
 }
@@ -1486,10 +1374,6 @@ export function StopAllPolling() {
   return window['go']['main']['App']['StopAllPolling']();
 }
 
-export function StopHolmesPortForward(arg1) {
-  return window['go']['main']['App']['StopHolmesPortForward'](arg1);
-}
-
 export function StopMCPServer() {
   return window['go']['main']['App']['StopMCPServer']();
 }
@@ -1510,16 +1394,8 @@ export function StreamPodContainerLogs(arg1, arg2) {
   return window['go']['main']['App']['StreamPodContainerLogs'](arg1, arg2);
 }
 
-export function StreamPodContainerLogsWith(arg1, arg2, arg3, arg4) {
-  return window['go']['main']['App']['StreamPodContainerLogsWith'](arg1, arg2, arg3, arg4);
-}
-
 export function StreamPodLogs(arg1) {
   return window['go']['main']['App']['StreamPodLogs'](arg1);
-}
-
-export function StreamPodLogsWith(arg1, arg2, arg3) {
-  return window['go']['main']['App']['StreamPodLogsWith'](arg1, arg2, arg3);
 }
 
 export function SuspendCronJob(arg1, arg2) {

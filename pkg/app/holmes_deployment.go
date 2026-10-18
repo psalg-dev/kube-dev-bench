@@ -685,7 +685,7 @@ func (a *App) StartHolmesPortForward(namespace string) (string, error) {
 
 func waitForLocalPort(host string, port int, timeout time.Duration) error {
 	deadline := time.Now().Add(timeout)
-		addr := net.JoinHostPort(host, strconv.Itoa(port))
+	addr := net.JoinHostPort(host, strconv.Itoa(port))
 	for time.Now().Before(deadline) {
 		conn, err := net.DialTimeout("tcp", addr, 500*time.Millisecond)
 		if err == nil {
@@ -697,23 +697,6 @@ func waitForLocalPort(host string, port int, timeout time.Duration) error {
 	return fmt.Errorf("timeout waiting for %s", addr)
 }
 
-// StopHolmesPortForward stops the Holmes port-forward if active
-func (a *App) StopHolmesPortForward(namespace string) error {
-	if namespace == "" {
-		namespace = holmesDefaultNamespace
-	}
+// Find the Holmes pod to stop port-forward
 
-	// Find the Holmes pod to stop port-forward
-	pods, err := a.GetRunningPods(namespace)
-	if err != nil {
-		return nil // Ignore if we can't list pods
-	}
-
-	for _, pod := range pods {
-		if strings.HasPrefix(pod.Name, "holmesgpt") || strings.HasPrefix(pod.Name, "holmes") {
-			_ = a.StopPortForward(namespace, pod.Name, holmesPortForwardLocalPort)
-		}
-	}
-
-	return nil
-}
+// Ignore if we can't list pods

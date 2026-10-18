@@ -101,67 +101,6 @@ func TestGetServiceAccounts_EmptyNamespace(t *testing.T) {
 	}
 }
 
-func TestGetServiceAccountDetail_ReturnsServiceAccount(t *testing.T) {
-	ctx := context.Background()
-	clientset := fake.NewSimpleClientset(
-		&corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "my-sa",
-				Namespace: "default",
-				Labels: map[string]string{
-					"app": "myapp",
-				},
-			},
-			Secrets: []corev1.ObjectReference{
-				{Name: "my-sa-token-abc123"},
-			},
-		},
-	)
-
-	app := &App{ctx: ctx, testClientset: clientset}
-
-	sa, err := app.GetServiceAccountDetail("default", "my-sa")
-	if err != nil {
-		t.Fatalf("GetServiceAccountDetail failed: %v", err)
-	}
-
-	if sa.Name != "my-sa" {
-		t.Errorf("expected service account name 'my-sa', got '%s'", sa.Name)
-	}
-	if len(sa.Secrets) != 1 {
-		t.Errorf("expected 1 secret, got %d", len(sa.Secrets))
-	}
-	if sa.Secrets[0] != "my-sa-token-abc123" {
-		t.Errorf("expected secret 'my-sa-token-abc123', got '%s'", sa.Secrets[0])
-	}
-}
-
-func TestGetServiceAccountDetail_EmptyNamespace(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	_, err := app.GetServiceAccountDetail("", "my-sa")
-	if err == nil {
-		t.Fatal("expected error for empty namespace")
-	}
-
-	if err.Error() != "missing required parameter: namespace" {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
-
-func TestGetServiceAccountDetail_EmptyName(t *testing.T) {
-	app := &App{ctx: context.Background()}
-
-	_, err := app.GetServiceAccountDetail("default", "")
-	if err == nil {
-		t.Fatal("expected error for empty name")
-	}
-
-	if err.Error() != "missing required parameter: name" {
-		t.Errorf("unexpected error message: %v", err)
-	}
-}
-
 func TestBuildServiceAccountInfo_NoSecrets(t *testing.T) {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
