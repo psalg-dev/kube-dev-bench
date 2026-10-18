@@ -13,5 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      ALL_SECRETS: ${{ toJson(secrets) }}
     steps:
       - run: echo "write-scoped job ok"
