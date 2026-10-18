@@ -5,11 +5,13 @@ no production behaviour changed. Reviewed together with Qwen (`qwen/qwen3.8-max-
 OpenRouter): it received the measured metrics plus excerpts of the duplicated Go code and returned
 an independent ranking and refactor designs, merged below.
 
-**Status:** four commits, 101 files, 14,839 deletions. `23633f8` zero-risk deletions,
-`296a048` dead Wails bindings + helpers, `48ddbda` `.ts`/`.js` twins + CI guard, `cb4de96` this
+**Status:** four commits, 101 files, 14,839 deletions. `4274c0e` zero-risk deletions,
+`9760434` dead Wails bindings + helpers, `ee4a614` `.ts`/`.js` twins + CI guard, `3c1d4d6` this
 document. Gates after each batch: `go build ./...`, `go vet ./pkg/...`, `go test ./pkg/...`,
 `npm test` (214 files / 2,040 tests), `tsc --noEmit`, `vite build`, plus a Wails binding
-regeneration (`wails build -s`).
+regeneration (`wails build -s`). Rebased onto `8631778` (upstream Helm dependency bump) and pushed
+to `dev`; Build run [39148602396](https://github.com/psalg-dev/kube-dev-bench/actions/runs/39148602396)
+passed all 14 jobs — frontend, backend, 6 e2e shards, 5 release targets, publish-dev-snapshot.
 
 ## Where the lines are
 
@@ -112,7 +114,7 @@ it. That selects 30 of the 401 generated bindings: all per-kind `Delete*` wrappe
 `DetectLogPatterns` (`holmes_logs.go:82`), `RestartWorkload` (`resource_actions.go:21`).
 Nine Go test files reference them and would need trimming.
 
-**Done in `296a048`** (3,203 deletions): the 30 bindings plus `AnalyzeMonitorIssueStream`; the
+**Done in `9760434`** (3,203 deletions): the 30 bindings plus `AnalyzeMonitorIssueStream`; the
 tests that existed only for them; the helper chains they stranded (`streamPodLogsInternal`,
 `streamLogsToEvents`, the `*With` container-log variants, `registerLogCancel`,
 `buildLogOptions`, `updatePattern`, `LogPattern`); three unused `collect*Sets` methods; three
@@ -134,7 +136,7 @@ Fix: port the JS behaviour into `.ts`, keep the named/default export shape, dele
 first for the five hooks/utils edited in July. Add a CI check that fails when a basename exists as
 both `.ts(x)` and `.js(x)`; do not flip `resolve.extensions` while both copies exist.
 
-**Done in `48ddbda`** (1,603 deletions): diff review showed the July edits were whitespace-only and
+**Done in `ee4a614`** (1,603 deletions): diff review showed the July edits were whitespace-only and
 every TS twin was the typed equivalent, so all 11 `.js` files were deleted and the full suite was
 run against the TS implementations — 214 files / 2,040 tests still pass. A dependency-free guard
 (`frontend/scripts/check-duplicate-modules.mjs`, `npm run check:twins`) now fails CI in
@@ -195,11 +197,11 @@ already consolidated into `GenericResourceTable`.
 
 ## Suggested PR sequence
 
-1. **Zero-risk deletions** — done in `23633f8`: ignored Go tests (5,341), legacy duplicate tests
+1. **Zero-risk deletions** — done in `4274c0e`: ignored Go tests (5,341), legacy duplicate tests
    (1,976), `vitest.config.js` (35), unreferenced modules (1,220), `quality/` (1,406).
-2. **Dead bindings** — done in `296a048`: 31 bindings, their tests, stranded helpers, coverage dump.
+2. **Dead bindings** — done in `9760434`: 31 bindings, their tests, stranded helpers, coverage dump.
 3. **Test-only components** — delete the 13 modules and their test blocks.
-4. **Twins** — done in `48ddbda`: TS implementations kept, 11 JS twins deleted, twin guard in CI.
+4. **Twins** — done in `ee4a614`: TS implementations kept, 11 JS twins deleted, twin guard in CI.
 5. **Holmes table refactor** after golden prompt tests.
 6. **Builder helpers** after golden graph tests.
 7. **Resource-config factory**.
