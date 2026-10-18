@@ -366,7 +366,6 @@ export async function startPrebuiltApp(opts: {
   logStream.write(`binary: ${binaryPath}\ncwd: ${repoRoot}\n`);
 
   const dockerHostOverride = process.env.E2E_DOCKER_HOST;
-  const frontendDevServerURL = process.env.E2E_FRONTEND_DEVSERVER_URL || 'http://127.0.0.1:5173/';
 
   // The Wails dev binary reads configuration from these env vars
   // (see wailsapp/wails v2/internal/app/app_dev.go).
@@ -378,7 +377,7 @@ export async function startPrebuiltApp(opts: {
       assetdir: assetDir,
       devserver: `127.0.0.1:${port}`,
       loglevel: 'Info',
-      frontenddevserverurl: isWin32 ? frontendDevServerURL : '',
+      frontenddevserverurl: '',
       // Per-worker isolation
       KDB_E2E_DIALOG_DIR: e2eDialogDir,
       ...(dockerHostOverride ? { DOCKER_HOST: dockerHostOverride } : {}),
