@@ -181,6 +181,7 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       /EventsNotify/i,  // Wails IPC transient errors during WebSocket reconnection
       /EventsOnMultiple/i,  // Wails IPC not ready during app initialization
       /Cannot read properties of undefined \(reading 'main'\)/i,  // Wails IPC not ready
+      /Cannot read properties of null \(reading 'nodes'\)[\s\S]*wails\/ipc\.js/i,  // Wails v2.17 Svelte dev overlay mount bug
       /Cannot read properties of undefined \(reading 'EventsOnMultiple'\)/i,  // Wails IPC not ready
       /React Router caught the following error during render/i,  // React error boundary recovery
       /RenderErrorBoundary/i,  // React error boundary recovery messages
