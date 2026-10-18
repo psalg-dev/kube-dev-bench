@@ -1,0 +1,17 @@
+name: Write permission probe
+
+on:
+  workflow_dispatch:
+
+jobs:
+  read-only:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "read-only job ok"
+
+  write-scoped:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: echo "write-scoped job ok"
