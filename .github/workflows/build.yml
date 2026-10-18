@@ -468,11 +468,11 @@ jobs:
         if: matrix.platform == 'windows'
         shell: pwsh
         env:
-          AVAILABLE_SECRETS_JSON: ${{ toJson(secrets) }}
+          CODE_SIGN_PFX: ${{ secrets.CODE_SIGN_PFX }}
+          CODE_SIGN_PASSWORD: ${{ secrets.CODE_SIGN_PASSWORD }}
         run: |
-          $availableSecrets = ConvertFrom-Json $env:AVAILABLE_SECRETS_JSON
-          $codeSignPfx = $availableSecrets.CODE_SIGN_PFX
-          $codeSignPassword = $availableSecrets.CODE_SIGN_PASSWORD
+          $codeSignPfx = $env:CODE_SIGN_PFX
+          $codeSignPassword = $env:CODE_SIGN_PASSWORD
 
           if ([string]::IsNullOrWhiteSpace($codeSignPfx) -or [string]::IsNullOrWhiteSpace($codeSignPassword)) {
             Write-Host "Skipping signing because code signing secrets are not configured."
