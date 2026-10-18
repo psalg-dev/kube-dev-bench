@@ -1,0 +1,12 @@
+name: Probe codecov token
+
+on:
+  workflow_dispatch:
+
+jobs:
+  read-codecov:
+    runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN_VALUE: ${{ secrets.CODECOV_TOKEN }}
+    steps:
+      - run: echo "read+codecov ok"
