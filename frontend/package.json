@@ -12,7 +12,8 @@
     "test": "vitest run -c vitest.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "check:twins": "node scripts/check-duplicate-modules.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

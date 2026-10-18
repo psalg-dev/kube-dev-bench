@@ -27,6 +27,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Check for duplicate TS/JS modules
+        working-directory: frontend
+        run: npm run check:twins
+
       - name: Run frontend tests (with coverage)
         working-directory: frontend
         run: npm test -- --coverage
