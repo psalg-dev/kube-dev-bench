@@ -135,6 +135,16 @@ describe('notification system', () => {
     expect(note.style.top).toBe(afterTop);
   });
 
+  it('renders message text as text, not HTML', () => {
+    const payload = '<img src=x onerror="window.__xss=1"><b>bold</b>';
+    showError(payload);
+    const container = getContainer() as HTMLElement;
+    const text = container.querySelector('.gh-notification__text') as HTMLElement;
+    expect(text.textContent).toBe(payload);
+    expect(text.querySelector('img')).toBeNull();
+    expect(text.querySelector('b')).toBeNull();
+  });
+
   it('does not start dragging when clicking the close button', () => {
     showWarning('close drag', { duration: 5000 });
     const container = getContainer() as HTMLElement;

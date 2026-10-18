@@ -187,10 +187,15 @@ export function showNotification(
   el.className = `gh-notification gh-notification--${type}`;
   el.innerHTML = `
     <div class="gh-notification__icon" aria-hidden="true">${iconFor(type)}</div>
-    <div class="gh-notification__text" role="status">${text}</div>
+    <div class="gh-notification__text" role="status"></div>
     ${dismissible ? '<button class="gh-notification__close" aria-label="Dismiss">×</button>' : '<span />'}
     <div class="gh-notification__progress"></div>
   `;
+
+  // Message text comes from API errors and user input; assign it as text so it can
+  // never be reinterpreted as HTML.
+  const textEl = el.querySelector<HTMLElement>('.gh-notification__text');
+  if (textEl) textEl.textContent = text;
 
   // Progress bar animation
   const progress = el.querySelector('.gh-notification__progress') as HTMLElement | null;
