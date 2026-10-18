@@ -5,8 +5,11 @@ no production behaviour changed. Reviewed together with Qwen (`qwen/qwen3.8-max-
 OpenRouter): it received the measured metrics plus excerpts of the duplicated Go code and returned
 an independent ranking and refactor designs, merged below.
 
-**Status:** PR 1 executed in `23633f8` — 47 files, 10,033 deletions. Gates: `go build ./...`,
-`go test ./pkg/...`, `npm test` (214 files / 2,040 tests), `tsc --noEmit`, `vite build` all green.
+**Status:** four commits, 101 files, 14,839 deletions. `23633f8` zero-risk deletions,
+`296a048` dead Wails bindings + helpers, `48ddbda` `.ts`/`.js` twins + CI guard, `cb4de96` this
+document. Gates after each batch: `go build ./...`, `go vet ./pkg/...`, `go test ./pkg/...`,
+`npm test` (214 files / 2,040 tests), `tsc --noEmit`, `vite build`, plus a Wails binding
+regeneration (`wails build -s`).
 
 ## Where the lines are
 
@@ -36,8 +39,8 @@ Go tests are 1.67× the production code they cover. Test-ish code (Go + TS tests
 | 4 | Delete 13 components reachable only from tests (+ their tests) | 2,572 + ~2,000 | medium |
 | 5 | Delete truly unreferenced modules (incl. both `manifestTemplates`) | 1,220 | low |
 | 6 | Delete `quality/` (disabled pipeline) + `quality.yml.disabled` | 1,406 | low |
-| 7 | Remove 30 dead Wails bindings (+ their tests) | 388 + ~500 | low |
-| 8 | Collapse one side of the 12 `.ts`/`.js` module twins | ~2,000 | medium |
+| 7 | Remove 30 dead Wails bindings (+ their tests) — done | 388 + ~500 | low |
+| 8 | Collapse one side of the 12 `.ts`/`.js` module twins — done | ~2,000 | medium |
 | 9 | Delete `frontend/vitest.config.js` (dead config) | 35 | none |
 | 10 | Table-drive Holmes analyzers/context getters | ~1,000–1,200 | medium |
 | 11 | Helper-consolidate `k8s_graph/builder.go` | ~500–700 | medium |
@@ -109,6 +112,13 @@ it. That selects 30 of the 401 generated bindings: all per-kind `Delete*` wrappe
 `DetectLogPatterns` (`holmes_logs.go:82`), `RestartWorkload` (`resource_actions.go:21`).
 Nine Go test files reference them and would need trimming.
 
+**Done in `296a048`** (3,203 deletions): the 30 bindings plus `AnalyzeMonitorIssueStream`; the
+tests that existed only for them; the helper chains they stranded (`streamPodLogsInternal`,
+`streamLogsToEvents`, the `*With` container-log variants, `registerLogCancel`,
+`buildLogOptions`, `updatePattern`, `LogPattern`); three unused `collect*Sets` methods; three
+unused `*ForTest` wrappers in `daemonsets_coverage.go`; and the tracked coverage dump
+`pkg/app/cover19_funcs.txt` (935 lines). Bindings regenerated with `wails build -s`.
+
 ### 8. `.ts`/`.js` twins — 1,962 JS vs 2,000 TS lines
 The TS migration (`398a984`) deleted the JS files; merge commit `1d267a8` (PR #150) re-added them.
 Vite resolves `.js` before `.ts` (verified by resolving `/src/hooks/useResourceData` through a real
@@ -123,6 +133,12 @@ Fix: port the JS behaviour into `.ts`, keep the named/default export shape, dele
 `npm test` + `tsc` + `vite build`. Delete JS first for anything not edited since February; port
 first for the five hooks/utils edited in July. Add a CI check that fails when a basename exists as
 both `.ts(x)` and `.js(x)`; do not flip `resolve.extensions` while both copies exist.
+
+**Done in `48ddbda`** (1,603 deletions): diff review showed the July edits were whitespace-only and
+every TS twin was the typed equivalent, so all 11 `.js` files were deleted and the full suite was
+run against the TS implementations — 214 files / 2,040 tests still pass. A dependency-free guard
+(`frontend/scripts/check-duplicate-modules.mjs`, `npm run check:twins`) now fails CI in
+`.github/workflows/build.yml` if a TS/JS twin reappears.
 
 ### 9. `frontend/vitest.config.js` — 35 lines (done)
 `package.json` passes `-c vitest.config.ts`, but `.github/workflows/coverage.yml` ran bare
@@ -181,9 +197,9 @@ already consolidated into `GenericResourceTable`.
 
 1. **Zero-risk deletions** — done in `23633f8`: ignored Go tests (5,341), legacy duplicate tests
    (1,976), `vitest.config.js` (35), unreferenced modules (1,220), `quality/` (1,406).
-2. **Dead bindings**: delete the 30 methods, trim the 9 tests, regenerate `frontend/wailsjs`.
-3. **Test-only components**: delete the 13 modules and their test blocks.
-4. **Twins**: one commit per module, JS behaviour into TS, then delete `.js`; add the twin CI guard.
+2. **Dead bindings** — done in `296a048`: 31 bindings, their tests, stranded helpers, coverage dump.
+3. **Test-only components** — delete the 13 modules and their test blocks.
+4. **Twins** — done in `48ddbda`: TS implementations kept, 11 JS twins deleted, twin guard in CI.
 5. **Holmes table refactor** after golden prompt tests.
 6. **Builder helpers** after golden graph tests.
 7. **Resource-config factory**.
