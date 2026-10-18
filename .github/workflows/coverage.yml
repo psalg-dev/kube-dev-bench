@@ -55,7 +55,7 @@ jobs:
           set -e
           mkdir -p ../coverage
           echo "Running vitest coverage"
-          npx vitest run --coverage --run 2>&1 | tee ../coverage/frontend-vitest-output.txt
+          npx vitest run -c vitest.config.ts --coverage --run 2>&1 | tee ../coverage/frontend-vitest-output.txt
           # extract 'All files' line
           all_line=$(grep -i "All files" ../coverage/frontend-vitest-output.txt || true)
           if [ -n "$all_line" ]; then
