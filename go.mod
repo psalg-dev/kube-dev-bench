@@ -168,6 +168,7 @@ require (
 	github.com/moby/moby/client v0.6.2
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/wailsapp/wails/v2 v2.17.0
+	github.com/wailsapp/wails/v3 v3.0.0
 	golang.org/x/sync v0.24.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v4 v4.3.1
