@@ -4,7 +4,7 @@ replicaCount: 1
 image:
   repository: node
   pullPolicy: IfNotPresent
-  tag: "24-alpine"
+  tag: "26-alpine"
 
 service:
   type: ClusterIP
